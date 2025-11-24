@@ -1,26 +1,34 @@
-import React, { useState } from 'react';
-import { User, Lock, Eye, EyeOff, ArrowRight, BookOpen } from 'lucide-react';
-import { useDispatch } from 'react-redux';
-import { loginFailure, loginStart, loginSuccess } from '../redux/auth/authSlice';
+import React, { useState } from "react";
+import { User, Lock, Eye, EyeOff, ArrowRight, BookOpen } from "lucide-react";
+import { useDispatch } from "react-redux";
+import {
+  loginFailure,
+  loginStart,
+  loginSuccess,
+} from "../redux/auth/authSlice";
 import api from "../api/axios";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 
 const LoginSignupPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [number, setNumber] = useState('');
-  const [proficiencyLevel, setProficiencyLevel] = useState('');
-  const full_list =['A1','A2','B1','B2','C1','C2'];
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [number, setNumber] = useState("");
+  const [proficiencyLevel, setProficiencyLevel] = useState("");
+  const full_list = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const handleAuth = async (e) => {
     e.preventDefault();
-    if (!number || !password || (!isLogin && (!username || !proficiencyLevel))) {
-      alert('Please fill in all required fields');
+    if (
+      !number ||
+      !password ||
+      (!isLogin && (!username || !proficiencyLevel))
+    ) {
+      alert("Please fill in all required fields");
       return;
     }
 
@@ -40,7 +48,7 @@ const LoginSignupPage = () => {
       setPassword("");
       setNumber("");
       setProficiencyLevel("");
-      navigate('/');
+      navigate("/");
     } catch (err) {
       dispatch(loginFailure(err.response?.data?.msg || "Auth Failed"));
       alert(err.response?.data?.msg || "Authentication failed");
@@ -64,7 +72,9 @@ const LoginSignupPage = () => {
             <span className="text-slate-800">SKILL</span>
             <span className="text-amber-400">CASE</span>
           </h1>
-          <p className="text-slate-600 text-sm sm:text-base">A platform where you can learn, practice, and grow.</p>
+          <p className="text-slate-600 text-sm sm:text-base">
+            A platform where you can learn, practice, and grow.
+          </p>
         </div>
 
         <div className="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 md:p-10 border border-slate-100">
@@ -73,8 +83,8 @@ const LoginSignupPage = () => {
               onClick={() => setIsLogin(true)}
               className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
                 isLogin
-                  ? 'bg-white text-cyan-600 shadow-md'
-                  : 'text-slate-600 hover:text-slate-800'
+                  ? "bg-white text-cyan-600 shadow-md"
+                  : "text-slate-600 hover:text-slate-800 cursor-pointer"
               }`}
             >
               Login
@@ -83,8 +93,8 @@ const LoginSignupPage = () => {
               onClick={() => setIsLogin(false)}
               className={`flex-1 py-3 rounded-lg font-semibold transition-all ${
                 !isLogin
-                  ? 'bg-white text-cyan-600 shadow-md'
-                  : 'text-slate-600 hover:text-slate-800'
+                  ? "bg-white text-cyan-600 shadow-md"
+                  : "text-slate-600 hover:text-slate-800 cursor-pointer"
               }`}
             >
               Sign Up
@@ -94,12 +104,12 @@ const LoginSignupPage = () => {
           <div className="space-y-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-slate-800 mb-2">
-                {isLogin ? 'Welcome Back!' : 'Create Account'}
+                {isLogin ? "Welcome Back!" : "Create Account"}
               </h2>
               <p className="text-slate-600 text-sm">
                 {isLogin
-                  ? 'Enter your credentials to continue'
-                  : 'Join us and start learning today'}
+                  ? "Enter your credentials to continue"
+                  : "Join us and start learning today"}
               </p>
             </div>
 
@@ -115,6 +125,7 @@ const LoginSignupPage = () => {
                 <input
                   type="tel"
                   value={number}
+                  maxLength={10}
                   onChange={(e) => setNumber(e.target.value)}
                   placeholder="Enter your mobile number"
                   className="w-full pl-12 pr-4 py-3 sm:py-4 border-2 border-slate-200 rounded-xl focus:border-cyan-500 focus:outline-none transition-all text-slate-800 placeholder:text-slate-400"
@@ -148,7 +159,7 @@ const LoginSignupPage = () => {
                   <Lock className="w-5 h-5 text-slate-400" />
                 </div>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
@@ -157,9 +168,13 @@ const LoginSignupPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </div>
@@ -176,8 +191,10 @@ const LoginSignupPage = () => {
                   className="w-full pl-4 pr-4 py-3 sm:py-4 border-2 border-slate-200 rounded-xl focus:border-cyan-500 focus:outline-none transition-all text-slate-800"
                 >
                   <option value="">Select a Proficiency Level</option>
-                  {full_list.map((level) =>(
-                    <option key={level} value={level}>{level}</option>
+                  {full_list.map((level) => (
+                    <option key={level} value={level}>
+                      {level}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -188,7 +205,7 @@ const LoginSignupPage = () => {
               <div className="flex justify-end">
                 <button
                   type="button"
-                  className="text-sm text-cyan-600 hover:text-cyan-700 font-medium transition-colors"
+                  className="text-sm text-cyan-600 hover:text-cyan-700 font-medium transition-colors cursor-pointer"
                 >
                   Forgot Password?
                 </button>
@@ -198,9 +215,9 @@ const LoginSignupPage = () => {
             {/* Submit Button */}
             <button
               onClick={handleAuth}
-              className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold py-3 sm:py-4 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group"
+              className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold py-3 sm:py-4 rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 group cursor-pointer"
             >
-              <span>{isLogin ? 'Login' : 'Create Account'}</span>
+              <span>{isLogin ? "Login" : "Create Account"}</span>
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
@@ -208,12 +225,18 @@ const LoginSignupPage = () => {
           {/* Terms & Privacy (Signup only) */}
           {!isLogin && (
             <p className="mt-6 text-center text-xs text-slate-500">
-              By signing up, you agree to our{' '}
-              <a href="#" className="text-cyan-600 hover:text-cyan-700 font-medium">
+              By signing up, you agree to our{" "}
+              <a
+                href="#"
+                className="text-cyan-600 hover:text-cyan-700 font-medium"
+              >
                 Terms of Service
-              </a>{' '}
-              and{' '}
-              <a href="#" className="text-cyan-600 hover:text-cyan-700 font-medium">
+              </a>{" "}
+              and{" "}
+              <a
+                href="#"
+                className="text-cyan-600 hover:text-cyan-700 font-medium"
+              >
                 Privacy Policy
               </a>
             </p>
@@ -224,20 +247,20 @@ const LoginSignupPage = () => {
         <div className="text-center mt-6 text-sm text-slate-600">
           {isLogin ? (
             <>
-              Don’t have an account?{' '}
+              Don't have an account?{" "}
               <button
                 onClick={() => setIsLogin(false)}
-                className="text-cyan-600 hover:text-cyan-700 font-semibold transition-colors"
+                className="text-cyan-600 hover:text-cyan-700 cursor-pointer font-semibold transition-colors"
               >
                 Sign up for free
               </button>
             </>
           ) : (
             <>
-              Already have an account?{' '}
+              Already have an account?{" "}
               <button
                 onClick={() => setIsLogin(true)}
-                className="text-cyan-600 hover:text-cyan-700 font-semibold transition-colors"
+                className="text-cyan-600 hover:text-cyan-700 cursor-pointer font-semibold transition-colors"
               >
                 Login here
               </button>
