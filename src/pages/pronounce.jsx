@@ -1,8 +1,18 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Volume2, Mic, CheckCircle2, XCircle, Square, Loader2, RotateCcw } from 'lucide-react';
-import api from '../api/axios';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import React, { useEffect, useState, useRef } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Volume2,
+  Mic,
+  CheckCircle2,
+  XCircle,
+  Square,
+  Loader2,
+  RotateCcw,
+} from "lucide-react";
+import api from "../api/axios";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const Pronounce = () => {
   const { user } = useSelector((state) => state.auth);
@@ -33,6 +43,8 @@ const Pronounce = () => {
   const [searchParams] = useSearchParams();
   const pronounce_name = searchParams.get("pronounce_name");
   const navigate = useNavigate();
+
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
 
   const totalCards = flashcardSet.length;
 
@@ -65,14 +77,14 @@ const Pronounce = () => {
       setAssesmentResult(null);
 
       timerRef.current = setInterval(() => {
-  setRecordingTime((prev) => {
-    if (prev + 1 >= 5) {
-      stopRecording();   // Auto-stop at 10 seconds
-      return 5;
-    }
-    return prev + 1;
-  });
-}, 1000);
+        setRecordingTime((prev) => {
+          if (prev + 1 >= 5) {
+            stopRecording(); // Auto-stop at 10 seconds
+            return 5;
+          }
+          return prev + 1;
+        });
+      }, 1000);
     } catch (err) {
       console.error("Error accessing microphone:", err);
       setUploadStatus("Error: Could not access microphone");
@@ -87,7 +99,10 @@ const Pronounce = () => {
       scriptNodeRef.current.disconnect();
       audioContextRef.current.close();
 
-      const wavBlob = encodeWAV(audioDataRef.current, audioContextRef.current.sampleRate);
+      const wavBlob = encodeWAV(
+        audioDataRef.current,
+        audioContextRef.current.sampleRate
+      );
 
       setIsRecording(false);
       clearInterval(timerRef.current);
@@ -165,7 +180,7 @@ const Pronounce = () => {
 
       if (response.status === 200) {
         setUploadStatus("Successfully uploaded!");
-        console.log("Response:", response.data);
+        // console.log("Response:", response.data);
         setAssesmentResult(response.data);
       } else {
         setUploadStatus("Upload failed. Please try again.");
@@ -191,50 +206,90 @@ const Pronounce = () => {
   };
 
   // Speech synthesis
-  const speakText = (text, language = 'de-DE') => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = language;
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
+  const speakText = async (text, language = "de-DE") => {
+    try {
+      setIsLoadingAudio(true);
+      setIsSpeaking(true);
 
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
+      const response = await api.post(
+        "/tts/speak",
+        {
+          text,
+          language,
+        },
+        {
+          responseType: "blob", // Important: receive audio as blob
+        }
+      );
 
-      window.speechSynthesis.speak(utterance);
-    } else {
-      alert('Text‑to‑speech is not supported in your browser.');
+      // Create audio URL from blob
+      const audioBlob = new Blob([response.data], { type: "audio/mpeg" });
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      // Play audio
+      const audio = new Audio(audioUrl);
+
+      audio.onended = () => {
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl); // Clean up
+      };
+
+      audio.onerror = () => {
+        setIsSpeaking(false);
+        setIsLoadingAudio(false);
+        console.error("Failed to play audio");
+      };
+
+      await audio.play();
+      setIsLoadingAudio(false);
+    } catch (err) {
+      console.error("TTS Error:", err);
+      setIsSpeaking(false);
+      setIsLoadingAudio(false);
+
+      // Fallback to browser TTS if Azure fails
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = language;
+        utterance.rate = 0.9;
+        utterance.onend = () => setIsSpeaking(false);
+        window.speechSynthesis.speak(utterance);
+      }
     }
   };
 
-  const handleSpeakFront = (e) => {
+  const handleSpeakFront = async (e) => {
     e.stopPropagation();
     if (flashcardSet[currentCard]?.back_content) {
-      speakText(flashcardSet[currentCard].back_content, 'de-DE');
+      await speakText(flashcardSet[currentCard].back_content, "de-DE");
     }
   };
 
   useEffect(() => {
-    if (flashcardSet[currentCard]?.back_content) {
-      speakText(flashcardSet[currentCard].back_content, 'de-DE');
-    }
+    const playAudio = async () => {
+      if (flashcardSet[currentCard]?.back_content) {
+        await speakText(flashcardSet[currentCard].back_content, "de-DE");
+      }
+    };
+    playAudio();
   }, [currentCard, flashcardSet]);
 
   // Load flashcards
   useEffect(() => {
-    if (!user) navigate('/login');
+    if (!user) navigate("/login");
     const getCards = async () => {
       try {
-        const res = await api.get(`pronounce/getPronounceCards/${pronounce_id}`);
+        const res = await api.get(
+          `pronounce/getPronounceCards/${pronounce_id}`
+        );
         setFlashcardSet(res.data);
       } catch (err) {
         console.error(err);
       }
     };
     getCards();
-  }, []);
+  }, [user, navigate, pronounce_id]);
 
   useEffect(() => {
     const progress = ((currentCard + 1) / totalCards) * 100;
@@ -243,13 +298,13 @@ const Pronounce = () => {
 
   useEffect(() => {
     return () => {
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     };
   }, []);
 
   // Swipe handling
   const handleDragStart = (e) => {
-    const clientX = e.type === 'mousedown' ? e.clientX : e.touches[0].clientX;
+    const clientX = e.type === "mousedown" ? e.clientX : e.touches[0].clientX;
     setDragStart(clientX);
     setIsDragging(true);
     setSwipeDirection(null);
@@ -257,7 +312,7 @@ const Pronounce = () => {
 
   const handleDragMove = (e) => {
     if (!dragStart) return;
-    const clientX = e.type === 'mousemove' ? e.clientX : e.touches[0].clientX;
+    const clientX = e.type === "mousemove" ? e.clientX : e.touches[0].clientX;
     const delta = clientX - dragStart;
     setDragOffset(delta);
   };
@@ -267,14 +322,14 @@ const Pronounce = () => {
     const swipeThreshold = 100;
     if (Math.abs(dragOffset) > swipeThreshold) {
       if (dragOffset > 0) {
-        setSwipeDirection('right');
+        setSwipeDirection("right");
         setTimeout(() => {
           handlePrevious();
           setSwipeDirection(null);
           setDragOffset(0);
         }, 300);
       } else {
-        setSwipeDirection('left');
+        setSwipeDirection("left");
         setTimeout(() => {
           handleNext();
           setSwipeDirection(null);
@@ -289,15 +344,16 @@ const Pronounce = () => {
   };
 
   const getCardTransform = () => {
-    if (swipeDirection === 'left') return 'translateX(-120%) rotate(-20deg)';
-    if (swipeDirection === 'right') return 'translateX(120%) rotate(20deg)';
-    if (isDragging && dragOffset !== 0) return `translateX(${dragOffset}px) rotate(${dragOffset * 0.05}deg)`;
-    return 'translateX(0) rotate(0deg)';
+    if (swipeDirection === "left") return "translateX(-120%) rotate(-20deg)";
+    if (swipeDirection === "right") return "translateX(120%) rotate(20deg)";
+    if (isDragging && dragOffset !== 0)
+      return `translateX(${dragOffset}px) rotate(${dragOffset * 0.05}deg)`;
+    return "translateX(0) rotate(0deg)";
   };
 
   // Navigation
   const handleNext = () => {
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     if (currentCard < totalCards - 1) {
       setCurrentCard(currentCard + 1);
       setAssesmentResult(null);
@@ -307,7 +363,7 @@ const Pronounce = () => {
   };
 
   const handlePrevious = () => {
-    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     if (currentCard > 0) {
       setCurrentCard(currentCard - 1);
       setAssesmentResult(null);
@@ -319,7 +375,7 @@ const Pronounce = () => {
   const getAssessmentStatus = () => {
     if (!assesmentResult) return null;
     const accuracy = assesmentResult.result.accuracyScore;
-    return accuracy >= 70 ? 'pass' : 'fail';
+    return accuracy >= 70 ? "pass" : "fail";
   };
 
   const assessmentStatus = getAssessmentStatus();
@@ -336,8 +392,12 @@ const Pronounce = () => {
               <ChevronLeft className="w-5 h-5" /> Back
             </button>
             <div className="text-center">
-              <h1 className="text-xl md:text-2xl font-bold text-slate-800">{pronounce_name}</h1>
-              <p className="text-sm text-slate-500">🇩🇪 German • {prof_level?.toUpperCase()} Level</p>
+              <h1 className="text-xl md:text-2xl font-bold text-slate-800">
+                {pronounce_name}
+              </h1>
+              <p className="text-sm text-slate-500">
+                🇩🇪 German • {prof_level?.toUpperCase()} Level
+              </p>
             </div>
             <div className="w-10" />
           </div>
@@ -365,19 +425,26 @@ const Pronounce = () => {
             style={{
               transform: getCardTransform(),
               opacity: swipeDirection ? 0 : 1,
-              transition: isDragging ? 'none' : 'all 0.3s ease-out',
+              transition: isDragging ? "none" : "all 0.3s ease-out",
             }}
           >
             <div className="h-full bg-white rounded-3xl shadow-2xl p-12 flex flex-col items-center justify-center border-4 border-slate-500 relative overflow-hidden">
               {/* Speak button */}
               <button
                 onClick={handleSpeakFront}
+                disabled={isLoadingAudio || isSpeaking}
                 className={`absolute top-6 right-6 p-3 rounded-full shadow-lg transition-all z-20 ${
-                  isSpeaking ? 'bg-cyan-600 text-white animate-pulse' : 'bg-white text-cyan-600 hover:bg-cyan-50'
+                  isSpeaking
+                    ? "bg-cyan-600 text-white animate-pulse"
+                    : "bg-white text-cyan-600 hover:bg-cyan-50 cursor-pointer"
                 }`}
                 title="Play pronunciation"
               >
-                <Volume2 className="w-5 h-5" />
+                {isLoadingAudio ? (
+                  <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full" />
+                ) : (
+                  <Volume2 className="w-5 h-5" />
+                )}
               </button>
 
               {/* Card content */}
@@ -403,12 +470,16 @@ const Pronounce = () => {
                   onClick={isRecording ? stopRecording : startRecording}
                   disabled={isUploading}
                   className={`w-20 h-20 rounded-full flex items-center justify-center transition-all transform hover:scale-105 ${
-                    isRecording 
-                      ? "bg-red-500 hover:bg-red-600 animate-pulse" 
+                    isRecording
+                      ? "bg-red-500 hover:bg-red-600 animate-pulse"
                       : "bg-blue-500 hover:bg-blue-600"
                   } text-white shadow-lg`}
                 >
-                  {isRecording ? <Square className="w-8 h-8" /> : <Mic className="w-8 h-8" />}
+                  {isRecording ? (
+                    <Square className="w-8 h-8" />
+                  ) : (
+                    <Mic className="w-8 h-8" />
+                  )}
                 </button>
               )}
 
@@ -416,7 +487,9 @@ const Pronounce = () => {
               {isUploading && (
                 <div className="flex flex-col items-center gap-3">
                   <Loader2 className="w-12 h-12 animate-spin text-blue-500" />
-                  <p className="text-slate-600 font-medium">Analyzing pronunciation...</p>
+                  <p className="text-slate-600 font-medium">
+                    Analyzing pronunciation...
+                  </p>
                 </div>
               )}
 
@@ -425,15 +498,19 @@ const Pronounce = () => {
                 <div className="mt-8 w-full animate-fadeIn">
                   {/* Pass/Fail Indicator */}
                   <div className="flex items-center justify-center gap-2 mb-6">
-                    {assessmentStatus === 'pass' ? (
+                    {assessmentStatus === "pass" ? (
                       <>
                         <CheckCircle2 className="w-6 h-6 text-green-600" />
-                        <span className="text-green-600 font-semibold text-lg">Passed</span>
+                        <span className="text-green-600 font-semibold text-lg">
+                          Passed
+                        </span>
                       </>
                     ) : (
                       <>
                         <XCircle className="w-6 h-6 text-red-600" />
-                        <span className="text-red-600 font-semibold text-lg">Keep Practicing</span>
+                        <span className="text-red-600 font-semibold text-lg">
+                          Keep Practicing
+                        </span>
                       </>
                     )}
                   </div>
@@ -441,36 +518,48 @@ const Pronounce = () => {
                   {/* Assessment Metrics - Horizontal */}
                   <div className="flex items-center justify-center gap-8 flex-wrap mb-6">
                     <div className="text-center">
-                      <p className="text-xs text-slate-500 font-medium mb-1">Accuracy</p>
-                      <p className={`text-3xl font-bold ${
-                        assesmentResult.result.accuracyScore >= 70 ? 'text-green-600' : 'text-red-600'
-                      }`}>
+                      <p className="text-xs text-slate-500 font-medium mb-1">
+                        Accuracy
+                      </p>
+                      <p
+                        className={`text-3xl font-bold ${
+                          assesmentResult.result.accuracyScore >= 70
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
                         {assesmentResult.result.accuracyScore}
                       </p>
                     </div>
-                    
+
                     <div className="h-12 w-px bg-slate-200"></div>
-                    
+
                     <div className="text-center">
-                      <p className="text-xs text-slate-500 font-medium mb-1">Fluency</p>
+                      <p className="text-xs text-slate-500 font-medium mb-1">
+                        Fluency
+                      </p>
                       <p className="text-3xl font-bold text-slate-700">
                         {assesmentResult.result.fluencyScore}
                       </p>
                     </div>
-                    
+
                     <div className="h-12 w-px bg-slate-200"></div>
-                    
+
                     <div className="text-center">
-                      <p className="text-xs text-slate-500 font-medium mb-1">Completeness</p>
+                      <p className="text-xs text-slate-500 font-medium mb-1">
+                        Completeness
+                      </p>
                       <p className="text-3xl font-bold text-slate-700">
                         {assesmentResult.result.completenessScore}
                       </p>
                     </div>
-                    
+
                     <div className="h-12 w-px bg-slate-200"></div>
-                    
+
                     <div className="text-center">
-                      <p className="text-xs text-slate-500 font-medium mb-1">Pronunciation</p>
+                      <p className="text-xs text-slate-500 font-medium mb-1">
+                        Pronunciation
+                      </p>
                       <p className="text-3xl font-bold text-slate-700">
                         {assesmentResult.result.pronunciationScore}
                       </p>

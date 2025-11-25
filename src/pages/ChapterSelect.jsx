@@ -26,10 +26,10 @@ export default function TwoColumnSection() {
           setChapters(res.data);
           const chapter_num = res.data.length;
           const completed_chap_num = res.data.filter(ch => ch.test_status).length;
-          console.log(chapter_num);
-          console.log(completed_chap_num);
+          // console.log(chapter_num);
+          // console.log(completed_chap_num);
           const prog = (completed_chap_num/chapter_num)*100;
-          console.log(prog);
+          // console.log(prog);
           setProgress(prog);
           
         }

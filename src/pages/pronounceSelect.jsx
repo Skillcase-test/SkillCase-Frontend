@@ -26,7 +26,7 @@ export default function ProSelect() {
           const chapter_num = res.data.length;
           const completed_chap_num = res.data.filter(ch => ch.test_status).length;
           const prog = (completed_chap_num/chapter_num)*100;
-          console.log(prog);
+          // console.log(prog);
           setProgress(prog);
         }
         catch(err){

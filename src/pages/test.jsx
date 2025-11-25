@@ -73,7 +73,7 @@ export default function VoiceRecorder() {
         const data = await response.json();
         setUploadStatus('Successfully uploaded!');
         setAudioBlob(null);
-        console.log('Response:', data);
+        // console.log('Response:', data);
       } else {
         setUploadStatus('Upload failed. Please try again.');
       }
