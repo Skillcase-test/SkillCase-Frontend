@@ -12,6 +12,7 @@ import AddInterviewPage from "./interview/add";
 import DeleteTest from "./test/delete";
 import AddTestPage from "./test/add";
 import TcAgreements from "./TcAgreements";
+import StoryManagement from "../../pages/StoryManagement";
 
 function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -38,6 +39,8 @@ function Dashboard() {
         return <Analytics />;
       case "tc-agreements":
         return <TcAgreements />;
+      case "stories":
+        return <StoryManagement />;
       default:
         return <div>Select an option from the sidebar</div>;
     }

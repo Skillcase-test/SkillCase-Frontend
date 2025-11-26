@@ -668,7 +668,7 @@ const FlashcardStudyPage = () => {
                 </button>
                 <button
                   onClick={() => navigate(`/practice/${prof_level}`)}
-                  className="hidden md:flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors"
+                  className="hidden md:flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors z-50 cursor-pointer"
                 >
                   <ChevronLeft className="w-5 h-5" />
                   <span className="font-medium">Back to Chapters</span>
@@ -752,7 +752,7 @@ const FlashcardStudyPage = () => {
                 {/* Desktop button */}
                 <button
                   onClick={() => navigate(`/practice/${prof_level}`)}
-                  className="hidden md:flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors"
+                  className="hidden md:flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors z-50 cursor-pointer"
                 >
                   <ChevronLeft className="w-5 h-5" />
                   <span className="font-medium">Back to Chapters</span>
@@ -1199,7 +1199,7 @@ const FlashcardStudyPage = () => {
               </button>
               <button
                 onClick={() => navigate(`/practice/${prof_level}`)}
-                className="hidden md:flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors"
+                className="hidden md:flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors z-50 cursor-pointer"
               >
                 <ChevronLeft className="w-5 h-5" />
                 <span className="font-medium">Back to Chapters</span>

@@ -1,120 +1,119 @@
 import React from "react";
-import { Upload, FileText, CheckCircle, AlertCircle, Loader } from "lucide-react";
+import {
+  Upload,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+  Loader,
+} from "lucide-react";
 import api from "../../../api/axios";
 
 export default function AddFlashSet() {
   const [selectedFile, setSelectedFile] = React.useState(null);
-  const [fileName, setFileName] = React.useState('');
-  const [chapterName, setChapterName] = React.useState('');
-  const [language, setLanguage] = React.useState('');
-  const [proficiency, setProficiency] = React.useState('');
-  const [uploadStatus, setUploadStatus] = React.useState('');
+  const [fileName, setFileName] = React.useState("");
+  const [chapterName, setChapterName] = React.useState("");
+  const [language, setLanguage] = React.useState("");
+  const [proficiency, setProficiency] = React.useState("");
+  const [uploadStatus, setUploadStatus] = React.useState("");
   const [isUploading, setIsUploading] = React.useState(false);
 
-  const prof_chapter_mp = {
-    A1: ['Chapter 1','Chapter 2','Chapter 3','Chapter 4','Chapter 5','Chapter 6','Chapter 7','Chapter 8','Chapter 9','Chapter 10','Chapter 11','Chapter 12'],
-    A2: ['Chapter 1','Chapter 2','Chapter 3'],
-    B1: ['Lesson 1','Lesson 2','Lesson 3'],
-    B2: ['Unit 1','Unit 2'],
-    C1: ['Module 1','Module 2'],
-    C2: ['Topic 1'],
-  };
-
-  const proficiencyLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Test'];
+  const proficiencyLevels = ["A1", "A2", "B1", "B2", "C1", "C2", "Test"];
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file && file.type === 'text/csv') {
+    if (file && file.type === "text/csv") {
       setSelectedFile(file);
       setFileName(file.name);
-      setUploadStatus('');
+      setUploadStatus("");
     } else {
-      setUploadStatus('error:Please select a valid CSV file');
+      setUploadStatus("error:Please select a valid CSV file");
       setSelectedFile(null);
-      setFileName('');
+      setFileName("");
     }
   };
 
   const handleSubmit = async () => {
     if (!selectedFile || !chapterName || !proficiency) {
-      setUploadStatus('error:Please fill in all fields');
+      setUploadStatus("error:Please fill in all fields");
       return;
     }
 
     setIsUploading(true);
-    setUploadStatus('checking:Checking if chapter exists...');
+    setUploadStatus("checking:Checking if chapter exists...");
 
     try {
       const formData = new FormData();
-      formData.append('file', selectedFile);
-      formData.append('set_name', chapterName);
-      formData.append('proficiency_level', proficiency);
+      formData.append("file", selectedFile);
+      formData.append("set_name", chapterName);
+      formData.append("proficiency_level", proficiency);
 
       const res = await api.post("/admin/check", {
-        "set_name": chapterName,
-        "proficiency_level": proficiency
+        set_name: chapterName,
+        proficiency_level: proficiency,
       });
 
       if (res.data.status === true) {
-        setUploadStatus('error:The chapter already exists. Please delete it first to insert a new set.');
+        setUploadStatus(
+          "error:The chapter already exists. Please delete it first to insert a new set."
+        );
         setIsUploading(false);
         return;
       } else {
-        setUploadStatus('uploading:Uploading file...');
+        setUploadStatus("uploading:Uploading file...");
       }
 
       await api.post("/admin/addFlashCardSet", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      setUploadStatus('success:Upload successful!');
+      setUploadStatus("success:Upload successful!");
       setIsUploading(false);
 
       // Reset form
       setTimeout(() => {
         setSelectedFile(null);
-        setFileName('');
-        setChapterName('');
-        setProficiency('');
-        setUploadStatus('');
+        setFileName("");
+        setChapterName("");
+        setProficiency("");
+        setUploadStatus("");
       }, 2000);
     } catch (err) {
       console.error(err);
-      setUploadStatus('error:Upload failed. Please try again.');
+      setUploadStatus("error:Upload failed. Please try again.");
       setIsUploading(false);
     }
   };
 
   const getStatusInfo = () => {
     if (!uploadStatus) return null;
-    
-    const [type, message] = uploadStatus.split(':');
-    
+
+    const [type, message] = uploadStatus.split(":");
+
     const statusConfig = {
       success: {
-        bg: 'bg-green-50 ',
-        border: 'border-green-200 ',
-        text: 'text-green-700 ',
-        icon: CheckCircle
+        bg: "bg-green-50 ",
+        border: "border-green-200 ",
+        text: "text-green-700 ",
+        icon: CheckCircle,
       },
       error: {
-        bg: 'bg-red-50 ',
-        border: 'border-red-200 ',
-        text: 'text-red-700 ',
-        icon: AlertCircle
+        bg: "bg-red-50 ",
+        border: "border-red-200 ",
+        text: "text-red-700 ",
+        icon: AlertCircle,
       },
       checking: {
-        bg: 'bg-blue-50 ',
-        border: 'border-blue-200 ',
-        text: 'text-blue-700 ',
-        icon: Loader
+        bg: "bg-blue-50 ",
+        border: "border-blue-200 ",
+        text: "text-blue-700 ",
+        icon: Loader,
       },
       uploading: {
-        bg: 'bg-blue-50 ',
-        border: 'border-blue-200 ',
-        text: 'text-blue-700 ',
-        icon: Loader
-      }
+        bg: "bg-blue-50 ",
+        border: "border-blue-200 ",
+        text: "text-blue-700 ",
+        icon: Loader,
+      },
     };
 
     return { type, message, config: statusConfig[type] };
@@ -137,7 +136,6 @@ export default function AddFlashSet() {
       {/* Main Form Card */}
       <div className="bg-white  shadow-xs rounded-xl">
         <div className="p-6 space-y-6">
-          
           {/* CSV Upload Section */}
           <div>
             <label className="block text-sm font-semibold text-gray-800  mb-3">
@@ -158,7 +156,7 @@ export default function AddFlashSet() {
                 <div className="text-center">
                   <FileText className="w-12 h-12 text-gray-400  mx-auto mb-3" />
                   <p className="text-sm font-medium text-gray-700 ">
-                    {fileName || 'Click to upload CSV file'}
+                    {fileName || "Click to upload CSV file"}
                   </p>
                   <p className="text-xs text-gray-500  mt-1">
                     CSV files only (Max 10MB)
@@ -180,36 +178,41 @@ export default function AddFlashSet() {
             >
               <option value="">Select proficiency level</option>
               {proficiencyLevels.map((level) => (
-                <option key={level} value={level}>{level}</option>
+                <option key={level} value={level}>
+                  {level}
+                </option>
               ))}
             </select>
           </div>
 
           {/* Chapter Name */}
-          {proficiency && prof_chapter_mp[proficiency] && (
+          {/* Chapter Name */}
+          {proficiency && (
             <div>
-              <label className="block text-sm font-semibold text-gray-800  mb-3">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Chapter Name
               </label>
-              <select
+              <input
+                type="text"
                 value={chapterName}
                 onChange={(e) => setChapterName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300  rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-white  text-gray-800 "
-              >
-                <option value="">Select a chapter</option>
-                {prof_chapter_mp[proficiency].map((chapter) => (
-                  <option key={chapter} value={chapter}>{chapter}</option>
-                ))}
-              </select>
+                placeholder="Enter chapter name (e.g., Chapter 1, Lesson 1)"
+                className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition"
+              />
             </div>
           )}
 
           {/* Upload Status */}
           {statusInfo && (
-            <div className={`flex items-center gap-3 p-4 rounded-lg border ${statusInfo.config.bg} ${statusInfo.config.border}`}>
-              <statusInfo.config.icon 
+            <div
+              className={`flex items-center gap-3 p-4 rounded-lg border ${statusInfo.config.bg} ${statusInfo.config.border}`}
+            >
+              <statusInfo.config.icon
                 className={`w-5 h-5 flex-shrink-0 ${statusInfo.config.text} ${
-                  (statusInfo.type === 'checking' || statusInfo.type === 'uploading') ? 'animate-spin' : ''
+                  statusInfo.type === "checking" ||
+                  statusInfo.type === "uploading"
+                    ? "animate-spin"
+                    : ""
                 }`}
               />
               <span className={`text-sm font-medium ${statusInfo.config.text}`}>
@@ -221,7 +224,9 @@ export default function AddFlashSet() {
           {/* Submit Button */}
           <button
             onClick={handleSubmit}
-            disabled={isUploading || !selectedFile || !chapterName || !proficiency}
+            disabled={
+              isUploading || !selectedFile || !chapterName || !proficiency
+            }
             className="w-full bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-500"
           >
             {isUploading ? (

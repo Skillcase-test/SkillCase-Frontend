@@ -249,7 +249,7 @@ function Sidebar({
                                   : "text-gray-500/90  hover:text-gray-700 ")
                               }
                             >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
                                 Add Flashcard
                               </span>
                             </button>
@@ -266,7 +266,7 @@ function Sidebar({
                                   : "text-gray-500/90  hover:text-gray-700 ")
                               }
                             >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
                                 Delete Flashcard
                               </span>
                             </button>
@@ -344,7 +344,7 @@ function Sidebar({
                                   : "text-gray-500/90  hover:text-gray-700 ")
                               }
                             >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
                                 Add Pronunciation Set
                               </span>
                             </button>
@@ -359,7 +359,7 @@ function Sidebar({
                                   : "text-gray-500/90  hover:text-gray-700 ")
                               }
                             >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
                                 Delete Pronunciation Set
                               </span>
                             </button>
@@ -405,7 +405,7 @@ function Sidebar({
                             >
                               <path d="M6.753 2.659a1 1 0 0 0-1.506-1.317L2.451 4.537l-.744-.744A1 1 0 1 0 .293 5.207l1.5 1.5a1 1 0 0 0 1.46-.048l3.5-4ZM6.753 10.659a1 1 0 1 0-1.506-1.317l-2.796 3.195-.744-.744a1 1 0 0 0-1.414 1.414l1.5 1.5a1 1 0 0 0 1.46-.049l3.5-4ZM8 4.5a1 1 0 0 1 1-1h6a1 1 0 1 1 0 2H9a1 1 0 0 1-1-1ZM9 11.5a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H9Z" />
                             </svg>
-                            <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                            <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
                               Test
                             </span>
                           </div>
@@ -433,7 +433,7 @@ function Sidebar({
                                   : "text-gray-500/90  hover:text-gray-700 ")
                               }
                             >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
                                 Add Test
                               </span>
                             </button>
@@ -448,7 +448,7 @@ function Sidebar({
                                   : "text-gray-500/90  hover:text-gray-700 ")
                               }
                             >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
                                 Delete Test
                               </span>
                             </button>
@@ -526,7 +526,7 @@ function Sidebar({
                                   : "text-gray-500/90  hover:text-gray-700 ")
                               }
                             >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
                                 Add Interview
                               </span>
                             </button>
@@ -542,8 +542,84 @@ function Sidebar({
                                   : "text-gray-500/90  hover:text-gray-700 ")
                               }
                             >
-                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
                                 Delete Interview
+                              </span>
+                            </button>
+                          </li>
+                        </ul>
+                      </div>
+                    </React.Fragment>
+                  );
+                }}
+              </SidebarLinkGroup>
+
+              {/* 6. Stories - with dropdown */}
+              <SidebarLinkGroup
+                activecondition={activePage.includes("stories")}
+              >
+                {(handleClick, open) => {
+                  return (
+                    <React.Fragment>
+                      <a
+                        href="#0"
+                        className={`block text-gray-800 truncate transition duration-150 ${
+                          activePage.includes("stories")
+                            ? ""
+                            : "hover:text-gray-900"
+                        }`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleClick();
+                          setActivePage("stories");
+                          setSidebarExpanded(true);
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <svg
+                              className={`shrink-0 fill-current ${
+                                activePage.includes("stories")
+                                  ? "text-blue-500"
+                                  : "text-gray-400"
+                              }`}
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 16 16"
+                            >
+                              <path d="M2 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H2zm0 2h12v8H2V4zm2 2a1 1 0 0 0 0 2h8a1 1 0 1 0 0-2H4zm0 3a1 1 0 1 0 0 2h5a1 1 0 1 0 0-2H4z" />
+                            </svg>
+                            <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                              Stories
+                            </span>
+                          </div>
+                          <div className="flex shrink-0 ml-2">
+                            <svg
+                              className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 ${
+                                open && "rotate-180"
+                              }`}
+                              viewBox="0 0 12 12"
+                            >
+                              <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
+                            </svg>
+                          </div>
+                        </div>
+                      </a>
+                      <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
+                        <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
+                          <li className="mb-1 last:mb-0">
+                            <button
+                              onClick={() => setActivePage("stories")}
+                              className={({ activePage }) =>
+                                "block transition duration-150 truncate " +
+                                (activePage === "stories"
+                                  ? "text-blue-500"
+                                  : "text-gray-500/90 hover:text-gray-700")
+                              }
+                            >
+                              <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
+                                Manage Stories
                               </span>
                             </button>
                           </li>

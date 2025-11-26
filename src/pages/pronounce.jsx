@@ -387,7 +387,7 @@ const Pronounce = () => {
           <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
             <button
               onClick={() => navigate(`/pronounce/${prof_level}`)}
-              className="text-slate-600 hover:text-slate-800 flex items-center gap-2"
+              className="text-slate-600 hover:text-slate-800 flex items-center gap-2 z-50 cursor-pointer"
             >
               <ChevronLeft className="w-5 h-5" /> Back
             </button>

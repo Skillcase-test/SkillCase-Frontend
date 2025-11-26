@@ -18,6 +18,7 @@ import DeletePronounceSet from "./DeletePronounceSetPage";
 import DeleteTest from "./deleteTestSetPage";
 import DeleteInterview from "./deleteInterviewPage";
 import UserAnalyticsDashboard from "./userAnalytics";
+import StoryManagement from "./StoryManagement";
 
 const AdminDashboard = () => {
   const [activePage, setActivePage] = useState("flashcards-add");
@@ -35,13 +36,15 @@ const AdminDashboard = () => {
       case "test-add":
         return <AddTest />;
       case "test-delete":
-        return <DeleteTest/>
+        return <DeleteTest />;
       case "interview-add":
         return <AddInterview />;
       case "interview-delete":
-        return <DeleteInterview/>
+        return <DeleteInterview />;
       case "analytics":
-        return <UserAnalyticsDashboard/>
+        return <UserAnalyticsDashboard />;
+      case "stories":
+        return <StoryManagement />;
       default:
         return <div>Select an option from the sidebar</div>;
     }
@@ -54,9 +57,18 @@ const AdminDashboard = () => {
     { id: "test-delete", label: "delete Test", icon: <ClipboardList /> },
     { id: "interview-add", label: "Add Interview", icon: <Users /> },
     { id: "interview-delete", label: "Delete Interview", icon: <Users /> },
-    {id:"pronounce-add", label:"Add Pronunciation Set", icon: <FilePlus2 />},
-    {id:"analytics",label:"User Analytics",icon: <Users />},
-    { id: "pronounce-delete", label: "Delete Pronunciation Set", icon: <Trash2 /> },
+    {
+      id: "pronounce-add",
+      label: "Add Pronunciation Set",
+      icon: <FilePlus2 />,
+    },
+    { id: "analytics", label: "User Analytics", icon: <Users /> },
+    {
+      id: "pronounce-delete",
+      label: "Delete Pronunciation Set",
+      icon: <Trash2 />,
+    },
+    { id: "stories", label: "Story Management", icon: <FilePlus2 /> },
   ];
 
   return (
@@ -71,9 +83,7 @@ const AdminDashboard = () => {
       <div className="w-72 bg-white shadow-xl flex flex-col border-r border-gray-200 rounded-l-2xl">
         <div className="p-6 border-b border-gray-200 flex items-center space-x-2">
           <LayoutDashboard className="text-[#004E92]" size={24} />
-          <h1 className="text-2xl font-semibold text-[#004E92]">
-            Admin Panel
-          </h1>
+          <h1 className="text-2xl font-semibold text-[#004E92]">Admin Panel</h1>
         </div>
 
         <nav className="flex flex-col mt-4 px-4 space-y-2 overflow-y-auto scrollbar-hide">

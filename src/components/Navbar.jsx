@@ -87,7 +87,7 @@ export default function Navbar() {
 
                 <button
                   onClick={handleLogout}
-                  className="bg-[#F9C235] text-white px-6 py-2 rounded-lg hover:bg-amber-600 transition font-semibold"
+                  className="bg-[#F9C235] text-white px-6 py-2 rounded-lg hover:bg-amber-600 transition font-semibold cursor-pointer"
                 >
                   Logout
                 </button>
@@ -187,7 +187,7 @@ export default function Navbar() {
                 )}
                 <button
                   onClick={handleLogout}
-                  className="w-full bg-[#F9C235] text-white px-6 py-2 rounded-lg text-center font-semibold hover:bg-amber-600 transition"
+                  className="w-full bg-[#F9C235] text-white px-6 py-2 rounded-lg text-center font-semibold hover:bg-amber-600 transition cursor-pointer"
                 >
                   Logout
                 </button>
