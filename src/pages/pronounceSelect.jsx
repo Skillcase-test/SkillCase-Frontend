@@ -33,20 +33,20 @@ export default function ProSelect() {
       setLoading(true);
       try {
         const res = await api.get(`/pronounce/allPronounceSet/${prof_level}`);
-        const sortedChapters = res.data.sort((a, b) => {
-          // Handle missing set_name
-          if (!a.set_name) return 1;
-          if (!b.set_name) return -1;
+
+        const sortedChapters = [...res.data].sort((a, b) => {
+          if (!a.pronounce_name) return 1;
+          if (!b.pronounce_name) return -1;
 
           // Extract numbers
-          const numA = parseInt(a.set_name.match(/\d+/)?.[0] || "999");
-          const numB = parseInt(b.set_name.match(/\d+/)?.[0] || "999");
+          const numA = parseInt(a.pronounce_name.match(/\d+/)?.[0] || "999");
+          const numB = parseInt(b.pronounce_name.match(/\d+/)?.[0] || "999");
           return numA - numB;
         });
 
         setChapters(sortedChapters);
-        const chapter_num = res.data.length;
-        const completed_chap_num = res.data.filter(
+        const chapter_num = sortedChapters.length;
+        const completed_chap_num = sortedChapters.filter(
           (ch) => ch.test_status
         ).length;
         const prog = (completed_chap_num / chapter_num) * 100;
