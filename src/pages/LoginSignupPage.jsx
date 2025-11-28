@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { User, Lock, Eye, EyeOff, ArrowRight, BookOpen } from "lucide-react";
 import { useDispatch } from "react-redux";
+import toast from "react-hot-toast";
 import {
   loginFailure,
   loginStart,
@@ -29,7 +30,7 @@ const LoginSignupPage = () => {
       !password ||
       (!isLogin && (!username || !proficiencyLevel))
     ) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -57,7 +58,7 @@ const LoginSignupPage = () => {
     } catch (err) {
       setIsLoading(false); // STOP LOADING ON ERROR
       dispatch(loginFailure(err.response?.data?.msg || "Auth Failed"));
-      alert(err.response?.data?.msg || "Authentication failed");
+      toast.error(err.response?.data?.msg || "Authentication failed");
     }
   };
 

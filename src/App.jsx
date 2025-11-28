@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { BookOpen, FileText, Video, ArrowRight, Menu, X } from "lucide-react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import LandingPage from "./pages/LandingPage";
 import AddFlashSet from "./pages/AddFlashSetPage";
 import Navbar from "./components/Navbar";
@@ -30,6 +31,11 @@ if (typeof global === "undefined") {
 }
 import "./dashboard-src/css/style.css";
 
+// import ResumePage from "./pages/ResumePage";
+// import AIResumeBuilder from "./pages/AIResumeBuilder";
+// import ManualResumeBuilder from "./pages/ManualResumeBuilder";
+// import MyResumes from "./pages/MyResumes";
+
 export default function App() {
   const dispatch = useDispatch();
   const { token, user } = useSelector((state) => state.auth);
@@ -50,6 +56,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <Toaster position="top-right" />
       <Navbar />
 
       <Routes>
@@ -70,6 +77,15 @@ export default function App() {
         <Route path="/Login" element={<LoginSignupPage />} />
         <Route path="/stories" element={<ShortStoryHome />} />
         <Route path="/story/:slug" element={<StoryPage />} />
+
+        {/* <Route path="/resume" element={<ResumePage />} />
+        <Route path="/resume/ai-builder" element={<AIResumeBuilder />} />
+        <Route
+          path="/resume/manual-builder"
+          element={<ManualResumeBuilder />}
+        />
+        <Route path="/resume/my-resumes" element={<MyResumes />} />
+        <Route path="/resume/edit/:resumeId" element={<AIResumeBuilder />} /> */}
       </Routes>
 
       <Footer />

@@ -33,9 +33,18 @@ export default function TwoColumnSection() {
       setStatus("Fetching chapters, please wait.");
       try {
         const res = await api.get(`/practice/allFlashSet/${prof_level}`);
-        setChapters(res.data);
-        const chapter_num = res.data.length;
-        const completed_chap_num = res.data.filter(
+
+        const sortedChapters = res.data.sort((a, b) => {
+          if (!a.set_name) return 1;
+          if (!b.set_name) return -1;
+          const numA = parseInt(a.set_name.match(/\d+/)?.[0] || "999");
+          const numB = parseInt(b.set_name.match(/\d+/)?.[0] || "999");
+          return numA - numB;
+        });
+
+        setChapters(sortedChapters);
+        const chapter_num = sortedChapters.length;
+        const completed_chap_num = sortedChapters.filter(
           (ch) => ch.test_status
         ).length;
         // console.log(chapter_num);

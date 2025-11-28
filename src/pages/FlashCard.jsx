@@ -20,6 +20,8 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { toast } from "react-hot-toast";
+
 const FlashcardStudyPage = () => {
   const { user } = useSelector((state) => state.auth);
 
@@ -84,7 +86,7 @@ const FlashcardStudyPage = () => {
       audio.onerror = () => {
         setIsSpeaking(false);
         setIsLoadingAudio(false);
-        alert("Failed to play audio");
+        toast.error("Failed to play audio");
       };
 
       await audio.play();
@@ -103,7 +105,7 @@ const FlashcardStudyPage = () => {
         utterance.onend = () => setIsSpeaking(false);
         window.speechSynthesis.speak(utterance);
       } else {
-        alert("Text-to-speech failed. Please try again.");
+        toast.error("Text-to-speech failed. Please try again.");
       }
     }
   };

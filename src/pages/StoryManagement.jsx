@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Save, X } from "lucide-react";
+import toast from "react-hot-toast";
 import api from "../api/axios";
 
 export default function StoryManagement() {
@@ -28,7 +29,7 @@ export default function StoryManagement() {
       setStories(res.data.data || []);
     } catch (err) {
       console.error("Error fetching stories:", err);
-      alert("Failed to fetch stories");
+      toast.error("Failed to fetch stories");
     } finally {
       setLoading(false);
     }
@@ -44,13 +45,13 @@ export default function StoryManagement() {
     e.preventDefault();
     try {
       await api.post("/admin/stories", formData);
-      alert("Story created successfully!");
+      toast.success("Story created successfully!");
       setShowForm(false);
       resetForm();
       fetchStories();
     } catch (err) {
       console.error("Error creating story:", err);
-      alert(err.response?.data?.message || "Failed to create story");
+      toast.error(err.response?.data?.message || "Failed to create story");
     } finally {
       setSubmitting(false);
     }
@@ -65,14 +66,14 @@ export default function StoryManagement() {
         newSlug:
           formData.slug !== editingStory.slug ? formData.slug : undefined,
       });
-      alert("Story updated successfully!");
+      toast.success("Story updated successfully!");
       setEditingStory(null);
       setShowForm(false);
       resetForm();
       fetchStories();
     } catch (err) {
       console.error("Error updating story:", err);
-      alert(err.response?.data?.message || "Failed to update story");
+      toast.error(err.response?.data?.message || "Failed to update story");
     } finally {
       setSubmitting(false);
     }
@@ -83,11 +84,11 @@ export default function StoryManagement() {
 
     try {
       await api.delete(`/admin/stories/${slug}`);
-      alert("Story deleted successfully!");
+      toast.success("Story deleted successfully!");
       fetchStories();
     } catch (err) {
       console.error("Error deleting story:", err);
-      alert("Failed to delete story");
+      toast.error("Failed to delete story");
     }
   };
 

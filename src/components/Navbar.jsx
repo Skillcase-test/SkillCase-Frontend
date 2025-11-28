@@ -73,6 +73,12 @@ export default function Navbar() {
             >
               Stories
             </Link>
+            {/* <Link
+              to="/resume"
+              className="text-slate-700 hover:text-[#1976D2] transition font-medium"
+            >
+              Resume Builder
+            </Link> */}
 
             {isAuthenticated ? (
               <>
@@ -174,6 +180,12 @@ export default function Navbar() {
             >
               Stories
             </Link>
+            {/* <Link
+              to="/resume"
+              className="block text-slate-600 hover:text-slate-900 font-medium"
+            >
+              Resume Builder
+            </Link> */}
 
             {isAuthenticated ? (
               <>
@@ -206,3 +218,4 @@ export default function Navbar() {
     </nav>
   );
 }
+
