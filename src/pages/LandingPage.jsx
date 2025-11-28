@@ -170,7 +170,7 @@ export default function LandingPage() {
 
                 <Link
                   to="/stories"
-                  className="col-span-1 bg-[#FF6B6B] rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 group"
+                  className="col-span-2 lg:col-span-1 bg-[#FF6B6B] rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 group"
                 >
                   <BookOpen className="w-12 h-12 sm:w-16 sm:h-16 text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform" />
                   <div className="text-center text-white">

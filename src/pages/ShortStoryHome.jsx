@@ -49,7 +49,7 @@ const ShortStoryHome = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <button
             onClick={() => navigate("/")}
-            className="flex items-center gap-2 text-slate-700 hover:text-slate-900 transition"
+            className="flex items-center gap-2 text-slate-700 hover:text-slate-900 transition w-16 sm:w-auto"
           >
             <ChevronLeft className="w-5 h-5" />
             <span className="hidden sm:inline">Back</span>
@@ -63,7 +63,10 @@ const ShortStoryHome = () => {
               <span>A1 Level</span>
             </div>
           </div>
-          <span className="w-16" /> {/* Spacer for centering */}
+          <span className="w-16 sm:w-auto sm:invisible sm:flex sm:items-center sm:gap-2">
+            <ChevronLeft className="w-5 h-5 invisible" />
+            <span className="hidden sm:inline">Back</span>
+          </span>
         </div>
       </div>
       {/* Stories List */}

@@ -218,15 +218,15 @@ export default function ProSelect() {
                       <Check className="text-green-500 w-5 h-5" />
                     )}
                   </div>
-                  <h3 className="text-xs font-semibold text-white leading-tight mb-1 flex-grow line-clamp-2">
+                  <h3 className="text-xs font-semibold text-white leading-tight mb-1 flex-grow line-clamp-2 mt-4">
                     {chapter.pronounce_name.charAt(0).toUpperCase() +
                       chapter.pronounce_name.slice(1)}
                   </h3>
-                  <div className="mt-auto pt-1">
+                  {/* <div className="mt-auto pt-1">
                     <span className="text-[10px] text-white/60 font-medium">
                       {chapter.number_of_cards || 0} cards
                     </span>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             );
