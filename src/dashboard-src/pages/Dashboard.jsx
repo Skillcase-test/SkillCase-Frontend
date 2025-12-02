@@ -13,6 +13,8 @@ import DeleteTest from "./test/delete";
 import AddTestPage from "./test/add";
 import TcAgreements from "./TcAgreements";
 import StoryManagement from "../../pages/StoryManagement";
+import AddConversation from "./conversation/add";
+import DeleteConversation from "./conversation/delete";
 
 function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -41,6 +43,10 @@ function Dashboard() {
         return <TcAgreements />;
       case "stories":
         return <StoryManagement />;
+      case "conversation-add":
+        return <AddConversation />;
+      case "conversation-delete":
+        return <DeleteConversation />;
       default:
         return <div>Select an option from the sidebar</div>;
     }

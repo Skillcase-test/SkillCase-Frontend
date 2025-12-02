@@ -1,5 +1,12 @@
 import { useEffect } from "react";
-import { BookOpen, FileText, Video, ArrowRight, Mic } from "lucide-react";
+import {
+  BookOpen,
+  FileText,
+  Video,
+  ArrowRight,
+  Mic,
+  MessageCircle,
+} from "lucide-react";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import {
@@ -133,18 +140,18 @@ export default function LandingPage() {
                 <Link
                   to={
                     user?.user_prof_level
-                      ? `/interview/${user?.user_prof_level}`
-                      : "interview/test"
+                      ? `/conversation/${user?.user_prof_level}`
+                      : "conversation/A1"
                   }
-                  className="bg-gray-500 to-amber-600 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 group pointer-events-none cursor-not-allowed opacity-60"
+                  className="bg-gradient-to-br from-purple-500 to-purple-700 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 group"
                 >
-                  <Video className="w-12 h-12 sm:w-16 sm:h-16 text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform" />
+                  <MessageCircle className="w-12 h-12 sm:w-16 sm:h-16 text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform" />
                   <div className="text-center text-white">
                     <div className="text-lg sm:text-xl font-bold mb-1">
-                      Mock Interview
+                      Listener
                     </div>
                     <div className="text-xs sm:text-sm opacity-90">
-                      Coming Soon
+                      Listen & Learn
                     </div>
                   </div>
                 </Link>
@@ -170,7 +177,7 @@ export default function LandingPage() {
 
                 <Link
                   to="/stories"
-                  className="col-span-2 lg:col-span-1 bg-[#FF6B6B] rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 group"
+                  className="col-span-1 bg-[#FF6B6B] rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 group"
                 >
                   <BookOpen className="w-12 h-12 sm:w-16 sm:h-16 text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform" />
                   <div className="text-center text-white">
@@ -197,6 +204,25 @@ export default function LandingPage() {
                     </div>
                   </div>
                 </Link> */}
+
+                <Link
+                  to={
+                    user?.user_prof_level
+                      ? `/interview/${user?.user_prof_level}`
+                      : "interview/test"
+                  }
+                  className="bg-gray-500 to-amber-600 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 group pointer-events-none cursor-not-allowed opacity-60"
+                >
+                  <Video className="w-12 h-12 sm:w-16 sm:h-16 text-white mb-3 sm:mb-4 group-hover:scale-110 transition-transform" />
+                  <div className="text-center text-white">
+                    <div className="text-lg sm:text-xl font-bold mb-1">
+                      Mock Interview
+                    </div>
+                    <div className="text-xs sm:text-sm opacity-90">
+                      Coming Soon
+                    </div>
+                  </div>
+                </Link>
               </div>
             </div>
           </div>

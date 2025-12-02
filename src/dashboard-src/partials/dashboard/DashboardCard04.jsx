@@ -11,9 +11,8 @@ function DashboardCard04() {
         setLoading(true);
         const response = await api.get('/admin/analytics/prev-month-user-completetion-analytics');
 
-      
-
         const data = await response.data;
+        console.log(data)
         setUserData(data.slice(0, 10)); // Top 10 users
         setError(null);
       } catch (err) {

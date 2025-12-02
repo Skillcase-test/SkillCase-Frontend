@@ -36,6 +36,9 @@ import "./dashboard-src/css/style.css";
 // import ManualResumeBuilder from "./pages/ManualResumeBuilder";
 // import MyResumes from "./pages/MyResumes";
 
+import ConversationSelect from "./pages/ConversationSelect";
+import ConversationPlayer from "./pages/ConversationPlayer";
+
 export default function App() {
   const dispatch = useDispatch();
   const { token, user } = useSelector((state) => state.auth);
@@ -86,6 +89,15 @@ export default function App() {
         />
         <Route path="/resume/my-resumes" element={<MyResumes />} />
         <Route path="/resume/edit/:resumeId" element={<AIResumeBuilder />} /> */}
+
+        <Route
+          path="/conversation/:prof_level"
+          element={<ConversationSelect />}
+        />
+        <Route
+          path="/conversation/:prof_level/:conversation_id"
+          element={<ConversationPlayer />}
+        />
       </Routes>
 
       <Footer />
