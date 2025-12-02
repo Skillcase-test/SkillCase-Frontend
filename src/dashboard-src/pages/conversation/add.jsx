@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Upload,
   FileAudio,
@@ -15,6 +15,11 @@ export default function AddConversation() {
   const [jsonFile, setJsonFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
+  
+  // Refs for file inputs
+  const audioInputRef = useRef(null);
+  const jsonInputRef = useRef(null);
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -41,11 +46,14 @@ export default function AddConversation() {
         type: "success",
         message: `Conversation "${res.data.data.title}" created successfully!`,
       });
-      // Reset form
-      setFormData({ proficiency_level: "a1" });
+      // Reset form properly
+      setFormData({ proficiency_level: "A1" }); // Fixed: uppercase A1
       setAudioFile(null);
       setJsonFile(null);
-      e.target.reset();
+      
+      // Reset file inputs using refs
+      if (audioInputRef.current) audioInputRef.current.value = "";
+      if (jsonInputRef.current) jsonInputRef.current.value = "";
     } catch (err) {
       console.error("Error creating conversation:", err);
       setStatus({
@@ -97,6 +105,7 @@ export default function AddConversation() {
                   {audioFile ? audioFile.name : "Choose MP3 file"}
                 </span>
                 <input
+                  ref={audioInputRef}
                   type="file"
                   accept=".mp3,audio/mpeg"
                   onChange={(e) => setAudioFile(e.target.files[0])}
@@ -121,6 +130,7 @@ export default function AddConversation() {
                   {jsonFile ? jsonFile.name : "Choose JSON file"}
                 </span>
                 <input
+                  ref={jsonInputRef}
                   type="file"
                   accept=".json,application/json"
                   onChange={(e) => setJsonFile(e.target.files[0])}
