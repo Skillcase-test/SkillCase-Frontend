@@ -14,10 +14,15 @@ function DashboardCard07() {
     pageSize: 10,
   });
 
+  const [pageSize, setPageSize] = useState(10);
+  const [searchQuery, setSearchQuery] = useState("");
+
   const fetchUserAnalytics = async (page = 1) => {
     try {
       setLoading(true);
-      const response = await api.get(`/admin/analytics?page=${page}&limit=10`);
+      const response = await api.get(
+        `/admin/analytics?page=${page}&limit=${pageSize}`
+      );
 
       const data = await response.data;
       setUserData(data.data);
@@ -30,11 +35,15 @@ function DashboardCard07() {
       setLoading(false);
     }
   };
-  
 
   useEffect(() => {
     fetchUserAnalytics(1);
-  }, []);
+  }, [pageSize]);
+
+  // Filter users based on search query
+  const filteredUsers = userData.filter((user) =>
+    user.username.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
@@ -102,13 +111,43 @@ function DashboardCard07() {
 
   return (
     <div className="flex flex-col col-span-full bg-white  shadow-xs rounded-xl">
-      <header className="px-5 py-4 border-b border-gray-100 ">
-        <h2 className="font-semibold text-gray-800 ">User Analytics</h2>
-        <div className="text-sm text-gray-500  mt-1">
-          {pagination.totalRecords} total users • Click a row to view activity
-          details
+      <header className="px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h2 className="font-semibold text-gray-800">User Analytics</h2>
+            <div className="text-sm text-gray-500 mt-1">
+              {pagination.totalRecords} total users • {filteredUsers.length} shown
+            </div>
+          </div>
+
+          {/* Page Size Selector with Custom Input */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Show:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="pl-3 pr-8 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={20}>20</option>
+            </select>
+            <span className="text-sm text-gray-600">per page</span>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="mt-3">
+          <input
+            type="text"
+            placeholder="Search by username..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
         </div>
       </header>
+
       <div className="p-3">
         <div className="overflow-x-auto">
           <table className="table-auto w-full">
@@ -141,17 +180,17 @@ function DashboardCard07() {
                     Loading...
                   </td>
                 </tr>
-              ) : userData.length === 0 ? (
+              ) : filteredUsers.length === 0 ? (
                 <tr>
                   <td
                     colSpan="7"
                     className="px-2 first:pl-5 last:pr-5 py-4 text-center text-gray-500 "
                   >
-                    No users found
+                    {searchQuery ? "No users found matching your search" : "No users found"}
                   </td>
                 </tr>
               ) : (
-                userData.map((user) => (
+                filteredUsers.map((user) => (
                   <React.Fragment key={user.user_id}>
                     {/* Main Row */}
                     <tr

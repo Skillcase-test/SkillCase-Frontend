@@ -53,7 +53,7 @@ function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex min-h-screen">
       {/* Sidebar */}
       <Sidebar
         setSidebarOpen={setSidebarOpen}
@@ -63,7 +63,7 @@ function Dashboard() {
       />
 
       {/* Content area */}
-      <div className="relative flex flex-col flex-1 overflow-y-auto overflow-x-hidden bg-gray-100">
+      <div className="relative flex flex-col flex-1 bg-gray-100">
         {/*  Site header */}
 
         <main className="grow">
