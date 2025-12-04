@@ -77,6 +77,24 @@ const StoryPage = () => {
   const paragraphs = story.story
     .split("\n\n")
     .filter((p) => p.trim().length > 0);
+
+  const handleReadAnotherStory = async () => {
+    console.log("🔵 Attempting to mark story as complete:", story.story_id);
+    
+    try {
+      const response = await api.put(`/stories/complete/${story.story_id}`);
+      console.log("✅ Story marked as complete successfully:", response.data);
+    } catch (err) {
+      console.error("❌ Error marking story as complete:", err);
+      console.error("Error details:", {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+      });
+    }
+
+    navigate("/stories");
+  };
   return (
     <div className="min-h-screen bg-[#ecfbff]">
       {/* Hero Image Section */}
@@ -118,12 +136,12 @@ const StoryPage = () => {
         {/* Footer */}
         <div className="mt-12 pt-8 border-t border-slate-200 text-center">
           <p className="text-slate-400 text-sm italic">Great job reading!</p>
-          <Link
-            to="/stories"
-            className="mt-4 inline-block text-blue-600 font-semibold hover:text-blue-700"
+          <button
+            onClick={handleReadAnotherStory}
+            className="mt-4 inline-block text-blue-600 font-semibold hover:text-blue-700 cursor-pointer"
           >
             Read another story &rarr;
-          </Link>
+          </button>
         </div>
       </article>
     </div>

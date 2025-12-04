@@ -1,8 +1,20 @@
 import { Link } from "react-router-dom";
+import { CheckCircle2 } from "lucide-react";
+
 const StoryCard = ({ s, idx }) => {
+  // Debug: Log the story data to verify completed field
+  console.log(`Story "${s.title}" - completed:`, s.completed);
+
   return (
     <Link to={`/story/${s.slug}`}>
-      <div className="bg-white rounded-lg shadow-md p-4 md:p-6 flex items-center gap-3 md:gap-4 hover:shadow-lg transition-shadow border border-[#9c9c9c]/40">
+      <div className="bg-white rounded-lg shadow-md p-4 md:p-6 flex items-center gap-3 md:gap-4 hover:shadow-lg transition-shadow border border-[#9c9c9c]/40 relative">
+        {/* Completion Badge */}
+        {s.completed && (
+          <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5 lg:p-1.5 z-10 shadow-md">
+            <CheckCircle2 className="w-6 h-6 text-white" />
+          </div>
+        )}
+
         <p className="text-center">{idx + 1}.</p>
         <div className="flex-1">
           <h3 className="text-md md:text-lg font-normal text-slate-900 text-start line-clamp-1">

@@ -47,10 +47,10 @@ export default function ProSelect() {
         setChapters(sortedChapters);
         const chapter_num = sortedChapters.length;
         const completed_chap_num = sortedChapters.filter(
-          (ch) => ch.test_status
+          (ch) => ch.completed
         ).length;
-        const prog = (completed_chap_num / chapter_num) * 100;
-        // console.log(prog);
+        const prog =
+          chapter_num > 0 ? (completed_chap_num / chapter_num) * 100 : 0;
         setProgress(prog);
       } catch (err) {
         console.error(err);
@@ -151,14 +151,14 @@ export default function ProSelect() {
                       getDifficultyStyles(color).iconBg
                     } rounded-lg flex items-center justify-center flex-shrink-0`}
                   >
-                    {!chapter.test_status ? (
+                    {chapter.completed ? (
+                      <Check className="text-green-500 w-5 h-5" />
+                    ) : (
                       <Award
                         className={`w-5 h-5 ${
                           getDifficultyStyles(color).iconColor
                         }`}
                       />
-                    ) : (
-                      <Check className="text-green-500 w-5 h-5" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -208,25 +208,20 @@ export default function ProSelect() {
                       getDifficultyStyles(color).iconBg
                     } rounded-lg flex items-center justify-center mb-2`}
                   >
-                    {!chapter.test_status ? (
+                    {chapter.completed ? (
+                      <Check className="text-green-500 w-5 h-5" />
+                    ) : (
                       <Award
                         className={`w-5 h-5 ${
                           getDifficultyStyles(color).iconColor
                         }`}
                       />
-                    ) : (
-                      <Check className="text-green-500 w-5 h-5" />
                     )}
                   </div>
-                  <h3 className="text-xs font-semibold text-white leading-tight mb-1 flex-grow line-clamp-2 mt-4">
+                  <h3 className="text-xs font-semibold text-white leading-tight mb-1 flex-grow line-clamp-2 mt-2">
                     {chapter.pronounce_name.charAt(0).toUpperCase() +
                       chapter.pronounce_name.slice(1)}
                   </h3>
-                  {/* <div className="mt-auto pt-1">
-                    <span className="text-[10px] text-white/60 font-medium">
-                      {chapter.number_of_cards || 0} cards
-                    </span>
-                  </div> */}
                 </div>
               </div>
             );

@@ -21,6 +21,7 @@ const Pronounce = () => {
   const [flashcardSet, setFlashcardSet] = useState([]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [Progress, setProgress] = useState(0);
+  const [isCompleted, setIsCompleted] = useState(false);
 
   // Voice recorder states
   const [isRecording, setIsRecording] = useState(false);
@@ -266,14 +267,14 @@ const Pronounce = () => {
     }
   };
 
-  useEffect(() => {
-    const playAudio = async () => {
-      if (flashcardSet[currentCard]?.back_content) {
-        await speakText(flashcardSet[currentCard].back_content, "de-DE");
-      }
-    };
-    playAudio();
-  }, [currentCard, flashcardSet]);
+  // useEffect(() => {
+  //   const playAudio = async () => {
+  //     if (flashcardSet[currentCard]?.back_content) {
+  //       await speakText(flashcardSet[currentCard].back_content, "de-DE");
+  //     }
+  //   };
+  //   playAudio();
+  // }, [currentCard, flashcardSet]);
 
   // Load flashcards
   useEffect(() => {
@@ -290,6 +291,26 @@ const Pronounce = () => {
     };
     getCards();
   }, [user, navigate, pronounce_id]);
+
+  useEffect(() => {
+    const loadProgress = async () => {
+      if (!pronounce_id) return;
+
+      try {
+        const res = await api.get(`/pronounce/progress/${pronounce_id}`);
+        const { current_card_index, completed } = res.data;
+
+        setCurrentCard(current_card_index || 0);
+        setIsCompleted(completed || false);
+      } catch (err) {
+        console.error("Error loading progress:", err);
+        setCurrentCard(0);
+        setIsCompleted(false);
+      }
+    };
+
+    loadProgress();
+  }, [pronounce_id]);
 
   useEffect(() => {
     const progress = ((currentCard + 1) / totalCards) * 100;
@@ -352,23 +373,59 @@ const Pronounce = () => {
   };
 
   // Navigation
-  const handleNext = () => {
+  const handleNext = async () => {
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     if (currentCard < totalCards - 1) {
-      setCurrentCard(currentCard + 1);
+      const nextCard = currentCard + 1;
+      setCurrentCard(nextCard);
       setAssesmentResult(null);
       setRecordingTime(0);
       setUploadStatus("");
+
+      try {
+        await api.put(`/pronounce/progress/${pronounce_id}`, {
+          current_card_index: nextCard,
+          completed: false,
+        });
+      } catch (err) {
+        console.error("Error saving progress:", err);
+      }
     }
   };
 
-  const handlePrevious = () => {
+  const handlePrevious = async () => {
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     if (currentCard > 0) {
-      setCurrentCard(currentCard - 1);
+      const prevCard = currentCard - 1;
+      setCurrentCard(prevCard);
       setAssesmentResult(null);
       setRecordingTime(0);
       setUploadStatus("");
+
+      try {
+        await api.put(`/pronounce/progress/${pronounce_id}`, {
+          current_card_index: prevCard,
+          completed: false,
+        });
+      } catch (err) {
+        console.error("Error saving progress:", err);
+      }
+    }
+  };
+
+  const handleFinish = async () => {
+    try {
+      await api.put(`/pronounce/progress/${pronounce_id}`, {
+        current_card_index: totalCards - 1,
+        completed: true,
+      });
+
+      setIsCompleted(true);
+
+      // Navigate back to selection page
+      navigate(`/pronounce/${prof_level}`);
+    } catch (err) {
+      console.error("Error marking as complete:", err);
     }
   };
 
@@ -589,6 +646,7 @@ const Pronounce = () => {
           </div>
 
           {/* Navigation */}
+          {/* Navigation */}
           <div className="flex items-center justify-center gap-4 mt-8">
             <button
               onClick={handlePrevious}
@@ -597,13 +655,25 @@ const Pronounce = () => {
             >
               <ChevronLeft className="w-6 h-6" />
             </button>
-            <button
-              onClick={handleNext}
-              disabled={currentCard === totalCards - 1}
-              className="p-3 rounded-xl bg-white text-slate-700 hover:bg-slate-50 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
+
+            {/* Show "Finish" button on last card, otherwise "Next" */}
+            {currentCard === totalCards - 1 ? (
+              <button
+                onClick={handleFinish}
+                className="px-8 py-3 rounded-xl bg-green-500 text-white hover:bg-green-600 shadow-lg font-semibold flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-5 h-5" />
+                Finish
+              </button>
+            ) : (
+              <button
+                onClick={handleNext}
+                disabled={currentCard === totalCards - 1}
+                className="p-3 rounded-xl bg-white text-slate-700 hover:bg-slate-50 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            )}
           </div>
         </div>
       </div>
