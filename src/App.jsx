@@ -38,6 +38,7 @@ import "./dashboard-src/css/style.css";
 
 import ConversationSelect from "./pages/ConversationSelect";
 import ConversationPlayer from "./pages/ConversationPlayer";
+import NursingGermanyLanding from "./pages/NursingGermanyLanding";
 
 export default function App() {
   const dispatch = useDispatch();
@@ -60,7 +61,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-right" />
-      <Navbar />
+      <ConditionalNav />
 
       <Routes>
         <Route path="/" element={<LandingPage />} />
@@ -98,9 +99,25 @@ export default function App() {
           path="/conversation/:prof_level/:conversation_id"
           element={<ConversationPlayer />}
         />
+        <Route path="/register" element={<NursingGermanyLanding />} />
       </Routes>
 
-      <Footer />
+      <ConditionalFooter />
     </BrowserRouter>
   );
+}
+
+function ConditionalFooter() {
+  const location = useLocation();
+  const hideFooter = location.pathname === "/register";
+
+  if (hideFooter) return null;
+  return <Footer />;
+}
+function ConditionalNav() {
+  const location = useLocation();
+  const hideNav = location.pathname === "/register";
+
+  if (hideNav) return null;
+  return <Navbar />;
 }
