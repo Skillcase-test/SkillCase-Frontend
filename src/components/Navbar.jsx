@@ -17,7 +17,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     dispatch(logout());
-    navigate("/");
+    window.location.href = "https://skillcase.in";
   };
 
   return (

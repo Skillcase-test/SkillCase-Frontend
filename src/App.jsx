@@ -29,6 +29,9 @@ import StoryPage from "./pages/StoryPage";
 if (typeof global === "undefined") {
   window.global = window;
 }
+
+import { useSSO } from "./hooks/useSSO";
+
 import "./dashboard-src/css/style.css";
 
 // import ResumePage from "./pages/ResumePage";
@@ -43,6 +46,8 @@ import NursingGermanyLanding from "./pages/NursingGermanyLanding";
 export default function App() {
   const dispatch = useDispatch();
   const { token, user } = useSelector((state) => state.auth);
+  const { checking } = useSSO();
+
   useEffect(() => {
     const fetchUser = async () => {
       if (token && !user) {
@@ -57,6 +62,14 @@ export default function App() {
     };
     fetchUser();
   }, [token, user, dispatch]);
+
+  if (checking) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <BrowserRouter>
@@ -78,7 +91,7 @@ export default function App() {
           path="/pronounce/:prof_level/:pronounce_id"
           element={<Pronounce />}
         />
-        <Route path="/Login" element={<LoginSignupPage />} />
+        {/* <Route path="/Login" element={<LoginSignupPage />} /> */}
         <Route path="/stories" element={<ShortStoryHome />} />
         <Route path="/story/:slug" element={<StoryPage />} />
 
