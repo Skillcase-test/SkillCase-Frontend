@@ -23,6 +23,7 @@ export default function ConversationPlayer() {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentSentenceIndex, setCurrentSentenceIndex] = useState(0);
+  const [timestamps, setTimestamps] = useState([]);
 
   const audioRef = useRef(null);
   const sentenceRefs = useRef([]);
@@ -36,6 +37,7 @@ export default function ConversationPlayer() {
         setConversation(res.data.data.conversation);
         setSentences(res.data.data.sentences);
         setProgress(res.data.data.progress);
+        setTimestamps(res.data.data.timestamps || []);
 
         // Set initial sentence based on progress
         if (res.data.data.progress.current_sentence > 0) {
@@ -111,18 +113,21 @@ export default function ConversationPlayer() {
     }
     setIsPlaying(!isPlaying);
   };
+
   const goToPreviousSentence = () => {
     if (currentSentenceIndex > 0) {
       const prevIndex = currentSentenceIndex - 1;
       jumpToSentence(prevIndex);
     }
   };
+
   const goToNextSentence = () => {
     if (currentSentenceIndex < sentences.length - 1) {
       const nextIndex = currentSentenceIndex + 1;
       jumpToSentence(nextIndex);
     }
   };
+
   const jumpToSentence = (index) => {
     const audio = audioRef.current;
     if (!audio || !sentences[index]) return;
@@ -135,6 +140,17 @@ export default function ConversationPlayer() {
     }
     updateProgress(index);
   };
+
+  const jumpToTimestamp = (timeInSeconds) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    audio.currentTime = timeInSeconds;
+    if (!isPlaying) {
+      audio.play();
+      setIsPlaying(true);
+    }
+  };
+
   const handleProgressBarClick = (e) => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -142,6 +158,7 @@ export default function ConversationPlayer() {
     const percent = (e.clientX - rect.left) / rect.width;
     audio.currentTime = percent * duration;
   };
+
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -240,22 +257,55 @@ export default function ConversationPlayer() {
         </div>
         {/* Player Controls */}
         <div className="bg-white rounded-2xl shadow-lg p-6">
+          {/* Timestamp Chips */}
+          {timestamps.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-4 justify-center">
+              {timestamps.map((ts, index) => (
+                <button
+                  key={ts.timestamp_id || index}
+                  onClick={() => jumpToTimestamp(ts.time_seconds)}
+                  className="px-2 py-1 text-[0.5rem] md:text-[0.7rem]  bg-slate-100 hover:bg-slate-200 
+                text-slate-700 rounded-full transition cursor-pointer
+                border border-slate-300 flex items-center gap-1"
+                >
+                  <span className="w-1.5 h-1.5 bg-slate-500 rounded-full"></span>
+                  {ts.label}
+
+                  <span className="text-slate-400">
+                    ({formatTime(ts.time_seconds)})
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Progress Bar */}
           <div className="mb-4">
             <div
               onClick={handleProgressBarClick}
-              className="w-full h-2 bg-gray-200 rounded-full cursor-pointer overflow-hidden"
+              className="relative w-full h-2 bg-gray-200 rounded-full cursor-pointer overflow-visible"
             >
+              {/* Progress fill */}
               <div
-                className="h-full bg-slate-900 transition-all"
+                className="h-full bg-slate-900 transition-all rounded-full"
                 style={{ width: `${(currentTime / duration) * 100}%` }}
               />
+              {/* Timestamp markers */}
+              {timestamps.map((ts, index) => (
+                <div
+                  key={ts.timestamp_id || index}
+                  className="absolute top-0 w-0.5 h-full bg-amber-500"
+                  style={{ left: `${(ts.time_seconds / duration) * 100}%` }}
+                  title={ts.label}
+                />
+              ))}
             </div>
             <div className="flex justify-between text-xs text-gray-500 mt-1">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(duration)}</span>
             </div>
           </div>
+
           {/* Control Buttons */}
           <div className="flex items-center justify-center gap-4">
             <button
