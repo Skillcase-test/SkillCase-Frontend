@@ -43,6 +43,19 @@ import ConversationSelect from "./pages/ConversationSelect";
 import ConversationPlayer from "./pages/ConversationPlayer";
 import NursingGermanyLanding from "./pages/NursingGermanyLanding";
 
+function GoogleAnalyticsTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    // Send pageview to Google Analytics on route change
+    if (typeof window.gtag === "function") {
+      window.gtag("config", "G-CB8X1XP8FL", {
+        page_path: location.pathname + location.search,
+      });
+    }
+  }, [location]);
+  return null;
+}
+
 export default function App() {
   const dispatch = useDispatch();
   const { token, user } = useSelector((state) => state.auth);
@@ -73,6 +86,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <GoogleAnalyticsTracker />
       <Toaster position="top-right" />
       <ConditionalNav />
 
