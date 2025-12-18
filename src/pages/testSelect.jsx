@@ -16,10 +16,6 @@ export default function TestSelect() {
   const [isOverlayOpen, setIsOverlayOpen] = useState(false);
   const [selectedTest, setSelectedTest] = useState(null);
   useEffect(() => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
     const getTests = async () => {
       setLoading(true);
       try {

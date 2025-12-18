@@ -54,7 +54,7 @@ const StoryPage = () => {
       } catch (err) {
         console.error("Error fetching story:", err);
         if (err.response?.status === 401 || err.response?.status === 403) {
-          navigate("/Login");
+          setError("Please login to view this story.");
         } else if (err.response?.status === 404) {
           setError("Story not found.");
         } else {

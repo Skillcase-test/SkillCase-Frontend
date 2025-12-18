@@ -53,7 +53,6 @@ const FlashcardStudyPage = () => {
   };
   // Data loading
   useEffect(() => {
-    if (!user) navigate("/login");
     const getCards = async () => {
       setLoading(true);
       try {

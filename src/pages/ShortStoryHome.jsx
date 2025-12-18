@@ -18,7 +18,7 @@ const ShortStoryHome = () => {
       } catch (err) {
         console.error("Error fetching stories:", err);
         if (err.response?.status === 401 || err.response?.status === 403) {
-          navigate("/Login");
+          setError("Please login to view stories.");
         } else {
           setError("Failed to load stories. Please try again.");
         }

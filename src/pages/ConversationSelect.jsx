@@ -18,10 +18,6 @@ export default function ConversationSelect() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   useEffect(() => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
     const fetchConversations = async () => {
       setLoading(true);
       try {

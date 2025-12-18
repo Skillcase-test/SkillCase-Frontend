@@ -115,8 +115,6 @@ const Pronounce = () => {
   };
   // Load data
   useEffect(() => {
-    if (!user) navigate("/login");
-
     const getCards = async () => {
       setLoading(true);
       try {
