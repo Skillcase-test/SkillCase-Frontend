@@ -1,22 +1,44 @@
 import { useState, useEffect } from "react";
-import {
-  BookOpen, Clock, BarChart3, Layers, Award,
-  BarChart2, Play, FileText, Target, ChevronRight, Trophy,RefreshCw
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, RefreshCw } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useSelector } from "react-redux";
 import api from "../api/axios";
-
+import { images } from "../assets/images.js";
 export default function TestSelect() {
   const { prof_level } = useParams();
-  const [isOverlayOpen, setIsOverlayOpen] = useState(false);
-  const [selectedTest, setSelectedTest] = useState(null);
+  const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
   const [finalTest, setFinalTest] = useState(null);
   const [chapterTests, setChapterTests] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [status,setStatus] = useState('')
-  const navigate = useNavigate();
-
-  // Open/close overlay
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  // Overlay state for test difficulty selection
+  const [isOverlayOpen, setIsOverlayOpen] = useState(false);
+  const [selectedTest, setSelectedTest] = useState(null);
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    const getTests = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get(`/test/get/${prof_level}`);
+        setFinalTest(res.data.results.final[0]);
+        setChapterTests(res.data.results.chapter);
+      } catch (err) {
+        console.error(err);
+        setError("Could not fetch tests");
+      } finally {
+        setLoading(false);
+      }
+    };
+    getTests();
+  }, [prof_level, user, navigate]);
+  // Disable background scroll when overlay open
+  useEffect(() => {
+    document.body.style.overflow = isOverlayOpen ? "hidden" : "auto";
+  }, [isOverlayOpen]);
   const openOverlay = (test) => {
     setSelectedTest(test);
     setIsOverlayOpen(true);
@@ -25,277 +47,226 @@ export default function TestSelect() {
     setSelectedTest(null);
     setIsOverlayOpen(false);
   };
-
-  // Disable background scroll when overlay open
-  useEffect(() => {
-    document.body.style.overflow = isOverlayOpen ? "hidden" : "auto";
-  }, [isOverlayOpen]);
-
-  // Fetch tests
-  useEffect(() => {
-    const getTests = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get(`/test/get/${prof_level}`);
-        setFinalTest(res.data.results.final[0]);
-        setChapterTests(res.data.results.chapter);
-        setLoading(false);
-      } catch (err) {
-        console.error(err);
-        setStatus('could not fetch test');
-        setLoading(false);
-      }
-    };
-    getTests();
-  }, [prof_level]);
-
-  const getDifficultyStyles = (difficulty) => {
-    const styles = {
-      Easy: {
-        gradient: "from-green-500 to-emerald-600",
-        sectionBg: "from-slate-800 to-slate-900",
-        iconBg: "bg-green-100",
-        iconColor: "text-green-600",
-        badge: "bg-green-400 text-green-900",
-        buttonBg: "bg-green-500 hover:bg-green-600",
-      },
-      Medium: {
-        gradient: "from-amber-500 to-orange-600",
-        sectionBg: "from-slate-800 to-slate-900",
-        iconBg: "bg-amber-100",
-        iconColor: "text-amber-600",
-        badge: "bg-amber-400 text-amber-900",
-        buttonBg: "bg-amber-500 hover:bg-amber-600",
-      },
-      Hard: {
-        gradient: "from-red-500 to-rose-600",
-        sectionBg: "from-slate-800 to-slate-900",
-        iconBg: "bg-red-100",
-        iconColor: "text-red-600",
-        badge: "bg-red-400 text-red-900",
-        buttonBg: "bg-red-500 hover:bg-red-600",
-      },
-    };
-    return styles[difficulty] || styles.Easy;
-  };
-
-
-  const difficulty = finalTest?.difficulty || "Easy";
-  const styles = getDifficultyStyles(difficulty);
-
+  // Check if all chapter tests are complete (placeholder logic)
+  const allChaptersComplete =
+    chapterTests.length > 0 && chapterTests.every((t) => t.completed);
   return (
-    <section className="w-screen bg-gray-100 min-h-screen flex flex-col md:flex-row p-5">
-      {/* Left column - Desktop only */}
-      <div className="hidden md:flex md:w-1/3 flex-col gap-4 md:m-2 md:h-screen md:sticky md:top-0">
-        {/* Test Info Block */}
-        <div className="bg-slate-900 text-white rounded-3xl p-10 space-y-6 md:flex-1 md:flex md:flex-col md:justify-center">
-          <div className="text-5xl md:text-3xl font-bold">
-            {prof_level.toUpperCase()} Tests
-          </div>
-
-          <div className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-blue-400 flex-shrink-0" />
-            <span className="whitespace-nowrap">
-              Chapter Tests: {chapterTests.length}
-            </span>
-          </div>
-        </div>
-
-        {/* Final Test Block */}
-        {finalTest && (
-          <div
-            className={`bg-gradient-to-br ${styles.sectionBg} text-white rounded-3xl p-10 space-y-6 border border-gray-700/50 md:flex-1 md:flex md:flex-col md:justify-center`}
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Back Navigation */}
+      <div className="px-4 py-2.5">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
           >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-12 h-12 ${styles.iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}
-              >
-                <Trophy className={`w-6 h-6 ${styles.iconColor}`} />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold">{finalTest.test_name}</h3>
-              </div>
-            </div>
-
-            <div className="space-y-2 text-white/80 text-sm">
-              <p>Complete all chapter tests to unlock the final assessment</p>
-              <p>Test your overall knowledge of {prof_level} level</p>
-            </div>
-
-            <button
-              onClick={() => window.open(finalTest.test_link, "_blank")}
-              className={`w-full ${styles.buttonBg} text-white font-semibold py-4 px-6 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg`}
-            >
-              <Play className="w-5 h-5" />
-              Start Final Test
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Mobile header - Test Info Block */}
-      <div className="md:hidden bg-slate-900 text-white rounded-3xl p-8 space-y-4 mb-5">
-        <div className="text-4xl font-bold">
-          {prof_level.toUpperCase()} Tests
-        </div>
-
-        <div className="flex items-center gap-2">
-          <FileText className="w-5 h-5 text-blue-400 flex-shrink-0" />
-          <span className="whitespace-nowrap">
-            Chapter Tests: {chapterTests.length}
+            <ChevronLeft className="w-4 h-4" />
+            <span>Back</span>
+          </button>
+          <span className="text-sm font-semibold text-[#7b7b7b]">
+            Mock Test
           </span>
         </div>
       </div>
-
-      {/* Right column - Chapter Tests */}
-      <div className="w-full md:w-2/3 md:mt-2 max-h-screen overflow-y-auto hide-scrollbar">
-       {loading && (<div className="min-h-[400px] flex justify-center items-center">
-      <RefreshCw className={`w-7 h-7 ${loading ? "animate-spin" : ""}`} />
-      </div>)}
-        {/* Desktop List View */}
-        <div className="hidden md:block space-y-4">
-          {chapterTests.map((test) => {
-            const testStyles = getDifficultyStyles("Medium");
-            return (
-              <div
-                key={test.test_id}
-                onClick={() => openOverlay(test)}
-                className={`flex items-center justify-between p-4 rounded-lg cursor-pointer bg-gradient-to-r ${testStyles.sectionBg} hover:opacity-90 transition-all border border-gray-700/50`}
-              >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div
-                    className={`w-10 h-10 ${testStyles.iconBg} rounded-lg flex items-center justify-center flex-shrink-0`}
-                  >
-                    <FileText className={`w-5 h-5 ${testStyles.iconColor}`} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h3 className="text-lg md:text-xl font-semibold text-white truncate">
-                      {test.test_name.charAt(0).toUpperCase() +
-                        test.test_name.slice(1)}
-                    </h3>
-                  </div>
-                </div>
-                <ChevronRight className="w-5 h-5 text-white/60 flex-shrink-0 ml-2" />
-              </div>
-            );
-          })}
+      {/* Header Background Image */}
+      <div className="relative h-[140px] w-full overflow-hidden">
+        <img
+          src={images.mockTest}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
+      </div>
+      {/* Level Info Section */}
+      <div className="px-4 pt-4 pb-4">
+        {/* Level Title */}
+        <div className="flex items-center gap-4 mb-1.5">
+          <h1 className="text-[30px] font-semibold text-[#002856] leading-[38px]">
+            {prof_level?.toUpperCase() || "A1"}
+          </h1>
+          <span className="text-base font-semibold text-[#002856]">
+            German Language Level Tests
+          </span>
         </div>
-
-        {/* Mobile Grid View */}
-        <div className="md:hidden grid grid-cols-3 gap-3">
+        {/* Subtitle */}
+        <p className="text-xs text-black opacity-70 mb-4">
+          B1 level is minimum to work as a nurse in Germany
+        </p>
+        {/* Chapter Progress Bars */}
+        <div
+          className="flex gap-2 overflow-x-auto pb-2"
+          style={{
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
           {chapterTests.map((test) => {
-            const testStyles = getDifficultyStyles("Medium");
+            const isComplete = test.completed === true;
+            // Get chapter title, truncate if too long
+            const title = test.test_name || "Chapter";
+            const displayTitle =
+              title.length > 10 ? title.slice(0, 8) + "..." : title;
+
             return (
               <div
                 key={test.test_id}
                 onClick={() => openOverlay(test)}
-                className={`bg-gradient-to-br ${testStyles.sectionBg} rounded-xl p-4 cursor-pointer transition-all active:scale-95 shadow-md border border-gray-700/50 flex flex-col justify-between min-h-[120px] hover:opacity-90`}
+                className="flex-shrink-0 flex flex-col items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                style={{ minWidth: "60px", maxWidth: "80px" }}
               >
-                <div className="flex flex-col h-full">
+                <div className="h-3 w-full rounded-full bg-[#f0f0f0] overflow-hidden">
                   <div
-                    className={`w-8 h-8 ${testStyles.iconBg} rounded-lg flex items-center justify-center mb-2`}
-                  >
-                    <FileText className={`w-5 h-5 ${testStyles.iconColor}`} />
-                  </div>
-                  <h3 className="text-sm font-semibold text-white leading-tight mb-2 flex-grow line-clamp-2">
-                    {test.test_name.charAt(0).toUpperCase() +
-                      test.test_name.slice(1)}
-                  </h3>
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      isComplete ? "bg-[#edb843]" : "bg-[#f0f0f0]"
+                    }`}
+                    style={{ width: isComplete ? "100%" : "0%" }}
+                  />
                 </div>
+                <span
+                  className="text-[10px] font-medium text-[#002856] text-center truncate w-full"
+                  title={title}
+                >
+                  {displayTitle}
+                </span>
               </div>
             );
           })}
         </div>
       </div>
-
-      {/* Mobile Final Test Block - Appears at bottom */}
-      {finalTest && (
-        <div
-          className={`md:hidden bg-gradient-to-br ${styles.sectionBg} text-white rounded-3xl p-8 space-y-6 border border-gray-700/50 mt-5`}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className={`w-12 h-12 ${styles.iconBg} rounded-xl flex items-center justify-center flex-shrink-0`}
-            >
-              <Trophy className={`w-6 h-6 ${styles.iconColor}`} />
-            </div>
-            <div>
-              <h3 className="text-2xl font-bold">{finalTest.test_name}</h3>
-            </div>
+      {/* Chapter Test Cards */}
+      <div className="flex-1 px-4 py-6 space-y-6">
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <RefreshCw className="w-7 h-7 animate-spin text-[#002856]" />
           </div>
-
-          <div className="space-y-2 text-white/80 text-sm">
-            <p>Complete all chapter tests to unlock the final assessment</p>
-            <p>Test your overall knowledge of {prof_level} level</p>
-          </div>
-
-          <button
-            onClick={() => window.open(finalTest.test_link, "_blank")}
-            className={`w-full ${styles.buttonBg} text-white font-semibold py-4 px-6 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg`}
-          >
-            <Play className="w-5 h-5" />
-            Start Final Test
-          </button>
-        </div>
-      )}
-
-      {/* Overlay */}
+        ) : error ? (
+          <div className="text-center py-20 text-red-500">{error}</div>
+        ) : (
+          <>
+            {/* Chapter Cards */}
+            {chapterTests.map((test, index) => (
+              <div
+                key={test.test_id}
+                onClick={() => openOverlay(test)}
+                className="bg-white border border-[#dbdbdb] rounded-xl px-3 py-5 cursor-pointer hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center justify-between">
+                  {/* Chapter Name */}
+                  <h3 className="text-base font-semibold text-[#181d27]">
+                    {test.test_name?.charAt(0).toUpperCase() +
+                      test.test_name?.slice(1) || `Chapter ${index + 1}`}
+                  </h3>
+                  {/* Right Side - Badge & Chevron */}
+                  <div className="flex items-center gap-4">
+                    {/* Levels Badge */}
+                    <div className="bg-[#f0f0f0] px-2 py-0.5 rounded-full">
+                      <span className="text-[13px] font-medium text-[#898989]">
+                        3 levels
+                      </span>
+                    </div>
+                    {/* Chevron Icon */}
+                    <ChevronRight className="w-6 h-6 text-[#414651]" />
+                  </div>
+                </div>
+              </div>
+            ))}
+            {/* Final Test Card */}
+            {finalTest && (
+              <div
+                onClick={() =>
+                  allChaptersComplete &&
+                  window.open(finalTest.test_link, "_blank")
+                }
+                className={`rounded-2xl p-6 ${
+                  allChaptersComplete
+                    ? "bg-[#e1f6e8] cursor-pointer hover:shadow-md"
+                    : "bg-[#e1f6e8] cursor-not-allowed"
+                } transition-shadow`}
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between mb-4">
+                  <h3 className="text-base font-semibold text-[#181d27]">
+                    Final Test
+                  </h3>
+                  <div className="bg-white border border-[#d5d7da] px-2 py-0.5 rounded-md shadow-sm">
+                    <span className="text-sm font-medium text-[#414651]">
+                      {prof_level?.toUpperCase() || "A1"} Level
+                    </span>
+                  </div>
+                </div>
+                {/* Description */}
+                <p className="text-base text-[#535862] mb-5 leading-relaxed">
+                  Test your overall knowledge of{" "}
+                  {prof_level?.toUpperCase() || "A1"} level
+                  <br />
+                  Complete all chapter tests to unlock the final assessment
+                </p>
+                {/* Button */}
+                <button
+                  disabled={!allChaptersComplete}
+                  className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-semibold text-sm transition-colors ${
+                    allChaptersComplete
+                      ? "bg-[#019035] text-white hover:bg-[#017a2c]"
+                      : "bg-[#c6c6c6] text-[rgba(0,0,0,0.6)] cursor-not-allowed"
+                  }`}
+                >
+                  <Lock className="w-5 h-5" />
+                  <span>
+                    {allChaptersComplete
+                      ? "Start Final Test"
+                      : "Complete all Chapters to Unlock"}
+                  </span>
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+      {/* Test Difficulty Overlay */}
       {isOverlayOpen && selectedTest && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-200">
-          <div className="bg-white rounded-2xl shadow-lg p-6 w-96 relative transform transition-all duration-300 scale-100">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-lg p-6 w-[90%] max-w-sm relative">
             <button
               onClick={closeOverlay}
-              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800 text-xl"
             >
               ✕
             </button>
-
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            <h2 className="text-xl font-bold text-[#181d27] mb-2">
               {selectedTest.test_name}
             </h2>
-            <p className="text-gray-600 mb-4">
-              Ready to test your knowledge for this chapter? Click below to start.
+            <p className="text-[#535862] text-sm mb-6">
+              Select difficulty level to start the test
             </p>
-            <div className="space-y-6">
-            <button
-              onClick={() => window.open(selectedTest.easy_test_link, "_blank")}
-              className="bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 w-full font-semibold"
-            >
-              Easy Test
-            </button>
-            <button
-              onClick={() => window.open(selectedTest.medium_test_link, "_blank")}
-              className="bg-amber-600 text-white px-4 py-2 rounded-xl hover:bg-amber-700 w-full font-semibold"
-            >
-              Medium Test
-            </button>
-            <button
-              onClick={() => window.open(selectedTest.hard_test_link, "_blank")}
-              className="bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700 w-full font-semibold"
-            >
-              Hard Test
-            </button>
+            <div className="space-y-3">
+              <button
+                onClick={() =>
+                  window.open(selectedTest.easy_test_link, "_blank")
+                }
+                className="w-full bg-green-500 text-white px-4 py-3 rounded-xl hover:bg-green-600 font-semibold transition-colors"
+              >
+                Easy
+              </button>
+              <button
+                onClick={() =>
+                  window.open(selectedTest.medium_test_link, "_blank")
+                }
+                className="w-full bg-amber-500 text-white px-4 py-3 rounded-xl hover:bg-amber-600 font-semibold transition-colors"
+              >
+                Medium
+              </button>
+              <button
+                onClick={() =>
+                  window.open(selectedTest.hard_test_link, "_blank")
+                }
+                className="w-full bg-red-500 text-white px-4 py-3 rounded-xl hover:bg-red-600 font-semibold transition-colors"
+              >
+                Hard
+              </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* Hide Scrollbar */}
-      <style jsx>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .line-clamp-2 {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-      `}</style>
-    </section>
+    </div>
   );
 }

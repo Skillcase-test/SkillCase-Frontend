@@ -10,8 +10,6 @@ export default function DeletePronounceSet() {
   const [deletingChapter, setDeletingChapter] = React.useState(null);
 
   const proficiencyLevels = ["A1", "A2", "B1", "B2", "C1", "C2", "Test"];
-  const API_BASE_URL = 'http://localhost:3000';
-
   // Fetch chapters for selected proficiency
   const fetchChapters = async () => {
     if (!proficiency) {

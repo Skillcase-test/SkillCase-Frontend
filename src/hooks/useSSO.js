@@ -13,6 +13,37 @@ export function useSSO() {
 
   useEffect(() => {
     const checkSSO = async () => {
+      // if (window.location.hostname === "localhost") {
+      //   if (isAuthenticated) {
+      //     // Add this check
+      //     setChecking(false);
+      //     return;
+      //   }
+
+      //   // For local testing: Create a test user session
+      //   const testUser = {
+      //     phone: "1234567890",
+      //     name: "Test User",
+      //     email: "test@test.com",
+      //   };
+
+      //   try {
+      //     const backendRes = await api.post("/sso/create-token", testUser);
+      //     if (backendRes.data.success) {
+      //       dispatch(
+      //         loginSuccess({
+      //           token: backendRes.data.token,
+      //           user: backendRes.data.user,
+      //         })
+      //       );
+      //     }
+      //   } catch (err) {
+      //     console.log("Local test login failed:", err);
+      //   }
+      //   setChecking(false);
+      //   return;
+      // }
+
       if (isAuthenticated) {
         setChecking(false);
         return;
@@ -21,7 +52,7 @@ export function useSSO() {
         const phpRes = await fetch(`${PHP_API}/api/validate-session`, {
           credentials: "include",
         });
-        
+
         // If not authenticated, redirect to main site login
         if (!phpRes.ok) {
           const returnUrl = encodeURIComponent(window.location.href);
@@ -34,7 +65,7 @@ export function useSSO() {
           window.location.href = `${MAIN_SITE_LOGIN}?redirect=${returnUrl}`;
           return;
         }
-        
+
         // Step 2: Send user data to our backend to get JWT
         const backendRes = await api.post("/sso/create-token", {
           phone: phpData.user.phone,

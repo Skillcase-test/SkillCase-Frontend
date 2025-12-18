@@ -1,52 +1,70 @@
 import { useState, useEffect } from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Check,
-  RefreshCw,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import api from "../api/axios";
-import { images } from "../assets/images.js";
-export default function ConversationSelect() {
+
+import api from "../../api/axios.js";
+import { images } from "../../assets/images.js";
+
+export default function PronounceSelect() {
   const { prof_level } = useParams();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  const [conversations, setConversations] = useState([]);
+
+  const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
   useEffect(() => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
-    const fetchConversations = async () => {
+    const fetchChapters = async () => {
       setLoading(true);
       try {
-        const res = await api.get(`/conversation/sets/${prof_level}`);
-        setConversations(res.data.data);
+        const res = await api.get(`/pronounce/allPronounceSet/${prof_level}`);
+        const sortedChapters = [...res.data].sort((a, b) => {
+          if (!a.pronounce_name) return 1;
+          if (!b.pronounce_name) return -1;
+
+          // Extract numbers
+          const numA = parseInt(a.pronounce_name.match(/\d+/)?.[0] || "999");
+          const numB = parseInt(b.pronounce_name.match(/\d+/)?.[0] || "999");
+          return numA - numB;
+        });
+
+        setChapters(sortedChapters);
       } catch (err) {
-        console.error("Error fetching conversations:", err);
-        setError("Could not fetch conversations");
+        console.error(err);
+        setError("Error fetching chapters");
       } finally {
         setLoading(false);
       }
     };
-    fetchConversations();
-  }, [prof_level, user, navigate]);
-  // Format duration from seconds to mm:ss
-  const formatDuration = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
+    fetchChapters();
+  }, [prof_level]);
+
+  // Calculate progress for each chapter
+  const getChapterProgress = (chapter) => {
+    const currentIndex = chapter.current_card_index;
+    const completed =
+      currentIndex !== null && currentIndex !== undefined
+        ? currentIndex + 1
+        : 0;
+    const total = chapter.number_of_cards || 0;
+
+    return {
+      completed: Math.min(completed, total),
+      total,
+    };
   };
-  // Check if conversation is complete
-  const isComplete = (conv) => conv.completed === true;
-  // Get badge style based on completion
-  const getBadgeStyle = (completed) => {
-    if (completed) {
+
+  // Check if chapter is complete
+  const isChapterComplete = (chapter) => {
+    const { completed, total } = getChapterProgress(chapter);
+    return completed >= total && total > 0;
+  };
+
+  // Get progress badge variant
+  const getBadgeStyle = (completed, total) => {
+    if (completed === total && total > 0) {
       return {
         bg: "bg-[rgba(1,144,53,0.12)]",
         text: "text-[#019035]",
@@ -57,9 +75,15 @@ export default function ConversationSelect() {
       text: "text-[#ac8121]",
     };
   };
-  const handleConversationClick = (conv) => {
-    navigate(`/conversation/${prof_level}/${conv.conversation_id}`);
+
+  const handleChapterClick = (chapter) => {
+    navigate(
+      `/pronounce/${prof_level}/${
+        chapter.pronounce_id
+      }?pronounce_name=${encodeURIComponent(chapter.pronounce_name)}`
+    );
   };
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Back Navigation */}
@@ -73,14 +97,13 @@ export default function ConversationSelect() {
             <span>Back</span>
           </button>
           <span className="text-sm font-semibold text-[#7b7b7b]">
-            Conversations
+            Pronounce
           </span>
         </div>
       </div>
-      {/* Header Background Image */}
       <div className="relative h-[140px] w-full overflow-hidden">
         <img
-          src={images.speakToAI}
+          src={images.vocabulary}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
         />
@@ -91,17 +114,18 @@ export default function ConversationSelect() {
         {/* Level Title */}
         <div className="flex items-center gap-4 mb-1.5">
           <h1 className="text-[30px] font-semibold text-[#002856] leading-[38px]">
-            {prof_level?.toUpperCase() || "A1"}
+            {prof_level.toUpperCase()}
           </h1>
           <span className="text-base font-semibold text-[#002856]">
-            German Conversations
+            German Language Level
           </span>
         </div>
+
         {/* Subtitle */}
         <p className="text-xs text-black opacity-70 mb-4">
-          Practice real-world German conversations
+          B1 level is minimum to work as a nurse in Germany
         </p>
-        {/* Conversation Progress Bars */}
+        {/* Chapter Progress Bar - Horizontal Scrollable */}
         <div
           className="flex gap-2 overflow-x-auto pb-2"
           style={{
@@ -110,34 +134,38 @@ export default function ConversationSelect() {
             WebkitOverflowScrolling: "touch",
           }}
         >
-          {conversations.map((conv, index) => {
-            const completed = isComplete(conv);
+          {chapters.map((chapter, index) => {
+            const { completed, total } = getChapterProgress(chapter);
+            const isComplete = isChapterComplete(chapter);
+            const fillPercent = total > 0 ? (completed / total) * 100 : 0;
+
             return (
               <div
-                key={conv.conversation_id}
-                onClick={() => handleConversationClick(conv)}
+                key={chapter.pronounce_id}
+                onClick={() => handleChapterClick(chapter)}
                 className="flex-shrink-0 flex flex-col items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
                 style={{ minWidth: "50px", width: "50px" }}
               >
-                {/* Progress bar */}
+                {/* Progress bar with fill based on completion */}
                 <div className="h-3 w-full rounded-full bg-[#f0f0f0] overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-300 ${
-                      completed ? "bg-[#019035]" : "bg-[#f0f0f0]"
+                      isComplete ? "bg-[#019035]" : "bg-[#edb843]"
                     }`}
-                    style={{ width: completed ? "100%" : "0%" }}
+                    style={{ width: `${fillPercent}%` }}
                   />
                 </div>
                 <span className="text-[10px] font-medium text-[#002856] whitespace-nowrap">
-                  {index + 1}
+                  Ch. {index + 1}
                 </span>
               </div>
             );
           })}
         </div>
       </div>
-      {/* Conversation Cards */}
-      <div className="flex-1 px-4 py-6 space-y-4">
+
+      {/* Chapter Cards */}
+      <div className="flex-1 px-4 py-10 space-y-6">
         {loading ? (
           <div className="flex justify-center items-center py-20">
             <RefreshCw className="w-7 h-7 animate-spin text-[#002856]" />
@@ -145,45 +173,34 @@ export default function ConversationSelect() {
         ) : error ? (
           <div className="text-center py-20 text-red-500">{error}</div>
         ) : (
-          conversations.map((conv) => {
-            const completed = isComplete(conv);
-            const badgeStyle = getBadgeStyle(completed);
+          chapters.map((chapter, index) => {
+            const { completed, total } = getChapterProgress(chapter);
+            const isComplete = isChapterComplete(chapter);
+            const badgeStyle = getBadgeStyle(completed, total);
             return (
               <div
-                key={conv.conversation_id}
-                onClick={() => handleConversationClick(conv)}
-                className="bg-white border border-[#dbdbdb] rounded-xl px-4 py-4 cursor-pointer hover:shadow-md transition-shadow"
+                key={chapter.pronounce_id}
+                onClick={() => handleChapterClick(chapter)}
+                className="bg-white border border-[#dbdbdb] rounded-xl px-3 py-5 cursor-pointer hover:shadow-md transition-shadow"
               >
                 <div className="flex items-center justify-between">
-                  {/* Left - Title & Info */}
-                  <div className="flex-1 min-w-0 pr-4">
-                    {/* Title */}
-                    <h3 className="text-base font-semibold text-[#181d27] mb-1 truncate">
-                      {conv.title}
-                    </h3>
-                    {/* Meta Info - Duration & Sentences */}
-                    <div className="flex items-center gap-4 text-sm text-[#7b7b7b]">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        {formatDuration(conv.audio_duration)}
-                      </span>
-                      <span>{conv.total_sentences} sentences</span>
-                    </div>
-                  </div>
-                  {/* Right - Badge & Chevron */}
-                  <div className="flex items-center gap-3">
-                    {/* Completion Badge */}
+                  {/* Chapter Name */}
+                  <h3 className="text-base font-semibold text-[#181d27]">
+                    {chapter.pronounce_name || `Chapter ${index + 1}`}
+                  </h3>
+                  {/* Right Side - Badge & Chevron */}
+                  <div className="flex items-center gap-4">
+                    {/* Progress Badge - Shows cards done/total */}
                     <div
-                      className={`${badgeStyle.bg} px-2 py-0.5 rounded-full flex items-center gap-1`}
+                      className={`${badgeStyle.bg} px-2 py-0.5 rounded-full`}
                     >
-                      {completed && <Check className="w-3 h-3" />}
                       <span
                         className={`text-[13px] font-medium ${badgeStyle.text}`}
                       >
-                        {completed ? "Done" : "New"}
+                        {completed}/{total} done
                       </span>
                     </div>
-                    {/* Chevron */}
+                    {/* Chevron Icon */}
                     <ChevronRight className="w-6 h-6 text-[#414651]" />
                   </div>
                 </div>

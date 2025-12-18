@@ -35,6 +35,15 @@ const StoryPage = () => {
   const [story, setStory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const markAsComplete = async (storyId) => {
+    try {
+      await api.put(`/stories/complete/${storyId}`);
+    } catch (err) {
+      console.error("Error marking story as complete:", err);
+    }
+  };
+
   useEffect(() => {
     async function loadStory() {
       try {
@@ -59,14 +68,14 @@ const StoryPage = () => {
   }, [slug, navigate]);
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#ecfbff]">
+      <div className="h-screen flex items-center justify-center bg-white">
         <div className="text-slate-600">Loading...</div>
       </div>
     );
   }
   if (error || !story) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-[#ecfbff]">
+      <div className="h-screen flex flex-col items-center justify-center bg-white">
         <p className="text-slate-600 mb-4">{error || "Story not found."}</p>
         <Link to="/stories" className="text-blue-500 underline">
           Back to Stories
@@ -77,26 +86,8 @@ const StoryPage = () => {
   const paragraphs = story.story
     .split("\n\n")
     .filter((p) => p.trim().length > 0);
-
-  const handleReadAnotherStory = async () => {
-    console.log("🔵 Attempting to mark story as complete:", story.story_id);
-    
-    try {
-      const response = await api.put(`/stories/complete/${story.story_id}`);
-      console.log("✅ Story marked as complete successfully:", response.data);
-    } catch (err) {
-      console.error("❌ Error marking story as complete:", err);
-      console.error("Error details:", {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status,
-      });
-    }
-
-    navigate("/stories");
-  };
   return (
-    <div className="min-h-screen bg-[#ecfbff]">
+    <div className="min-h-screen bg-white">
       {/* Hero Image Section */}
       <div className="relative w-full h-64 bg-gradient-to-b from-slate-200 to-[#ecfbff]">
         <Link
@@ -137,7 +128,10 @@ const StoryPage = () => {
         <div className="mt-12 pt-8 border-t border-slate-200 text-center">
           <p className="text-slate-400 text-sm italic">Great job reading!</p>
           <button
-            onClick={handleReadAnotherStory}
+            onClick={async () => {
+              await markAsComplete(story.story_id);
+              navigate("/stories");
+            }}
             className="mt-4 inline-block text-blue-600 font-semibold hover:text-blue-700 cursor-pointer"
           >
             Read another story &rarr;

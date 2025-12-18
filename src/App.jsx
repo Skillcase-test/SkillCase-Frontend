@@ -2,15 +2,15 @@ import React, { useEffect } from "react";
 import { BookOpen, FileText, Video, ArrowRight, Menu, X } from "lucide-react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import LandingPage from "./pages/LandingPage";
+import LandingPage from "./pages/landing/LandingPage";
 import AddFlashSet from "./pages/AddFlashSetPage";
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
+import NewNavbar from "./components/NewNavbar";
+import NewFooter from "./components/NewFooter";
 import Practice from "./pages/Practice";
 import { useDispatch, useSelector } from "react-redux";
-import ChapterSelect from "./pages/ChapterSelect";
+import ChapterSelect from "./pages/flashcard/ChapterSelect";
 import TestSelect from "./pages/testSelect";
-import FlashcardStudyPage from "./pages/FlashCard";
+import FlashcardStudyPage from "./pages/flashcard/FlashCard";
 import LoginSignupPage from "./pages/LoginSignupPage";
 import DeleteFlashSet from "./pages/deleteFlashSetPage";
 import AddInterviewPage from "./pages/addInterviewPage";
@@ -18,9 +18,9 @@ import AddTestPage from "./pages/addTestPage";
 import api from "./api/axios";
 import InterviewSelect from "./pages/interviewSelect";
 import { setUser, logout } from "./redux/auth/authSlice";
-import ProSelect from "./pages/pronounceSelect";
+import PronounceSelect from "./pages/pronounce/PronounceSelect";
 // import CardOverlayExample from './components/testOverlay';
-import Pronounce from "./pages/pronounce";
+import Pronounce from "./pages/pronounce/Pronounce";
 import AddPronounceSet from "./pages/AddPronounceSetPage";
 import DeletePronounceSet from "./pages/DeletePronounceSetPage";
 import Dashboard from "./dashboard-src/pages/Dashboard";
@@ -95,7 +95,7 @@ export default function App() {
         <Route path="/test/:prof_level" element={<TestSelect />} />
         {/* <Route path ='/interview/:prof_level' element = {<InterviewSelect/>}/> */}
         <Route path="/practice/:prof_level" element={<ChapterSelect />} />
-        <Route path="/pronounce/:prof_level" element={<ProSelect />} />
+        <Route path="/pronounce/:prof_level" element={<PronounceSelect />} />
         <Route
           path="/practice/:prof_level/:set_id"
           element={<FlashcardStudyPage />}
@@ -139,12 +139,12 @@ function ConditionalFooter() {
   const hideFooter = location.pathname === "/register";
 
   if (hideFooter) return null;
-  return <Footer />;
+  return <NewFooter />;
 }
 function ConditionalNav() {
   const location = useLocation();
   const hideNav = location.pathname === "/register";
 
   if (hideNav) return null;
-  return <Navbar />;
+  return <NewNavbar />;
 }
