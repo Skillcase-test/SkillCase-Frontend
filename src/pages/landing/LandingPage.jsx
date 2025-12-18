@@ -27,13 +27,13 @@ export default function LandingPage() {
         <DemoClassSection />
         <SalaryInfoCard />
         <TalkToTeamSection />
-        <PricingCard />
-        <CompleteProfileCTA />
+        {/* <PricingCard /> */}
+        {/* <CompleteProfileCTA /> */}
         <div className="px-4">
           <hr className="border-gray-200" />
         </div>
-        <ExploreJobsCTA />
-        <MockInterviewSection />
+        {/* <ExploreJobsCTA /> */}
+        {/* <MockInterviewSection /> */}
       </main>
     </div>
   );

@@ -6,6 +6,7 @@ import LandingPage from "./pages/landing/LandingPage";
 import AddFlashSet from "./pages/AddFlashSetPage";
 import NewNavbar from "./components/NewNavbar";
 import NewFooter from "./components/NewFooter";
+import Footer from "./components/Footer";
 import Practice from "./pages/Practice";
 import { useDispatch, useSelector } from "react-redux";
 import ChapterSelect from "./pages/flashcard/ChapterSelect";
@@ -139,7 +140,7 @@ function ConditionalFooter() {
   const hideFooter = location.pathname === "/register";
 
   if (hideFooter) return null;
-  return <NewFooter />;
+  return <Footer />;
 }
 function ConditionalNav() {
   const location = useLocation();
