@@ -131,7 +131,7 @@ export default function NursingGermanyLanding() {
         </section>
         <section className="py-4 md:py-8 relative z-10">
           <div className="container mx-auto px-4 max-w-lg">
-            <div className="rounded-lg overflow-hidden shadow-lg border p-1">
+            <div className="rounded-lg shadow-lg border p-1 relative">
               <div className="aspect-video relative">
                 <iframe
                   id="heroVideo"
@@ -148,7 +148,7 @@ export default function NursingGermanyLanding() {
               {isMuted && (
                 <button
                   onClick={() => setIsMuted(false)}
-                  className="absolute -top-4 right-4 md:right-100 bg-black/70 hover:bg-black/90 text-white px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-all"
+                  className="absolute -top-10 -right-2 bg-black/70 hover:bg-black/90 text-white px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-all"
                 >
                   <svg
                     className="w-4 h-4"
