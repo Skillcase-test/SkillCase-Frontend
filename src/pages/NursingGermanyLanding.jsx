@@ -32,6 +32,13 @@ export default function NursingGermanyLanding() {
     return () => observer.disconnect();
   }, []);
   const handleGetStarted = () => {
+    if (typeof window.gtag === "function") {
+    window.gtag("event", "cta_click", {
+      event_category: "engagement",
+      event_label: "Get Started Button",
+    });
+  }
+
     setShowModal(true);
     setSubmitSuccess(false);
     setFormData({ name: "", phone: "", qualification: "", experience: "" });
