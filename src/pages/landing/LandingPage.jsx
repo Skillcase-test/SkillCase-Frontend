@@ -13,6 +13,8 @@ import MockInterviewSection from "./components/MockInterviewSection";
 // Shared Components (used by both tabs)
 import TalkToTeamSection from "./components/TalkToTeamSection";
 import CompleteProfileCTA from "./components/CompleteProfileCTA";
+import StreakWidget from "../../components/StreakWidget";
+
 export default function LandingPage() {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
@@ -24,6 +26,7 @@ export default function LandingPage() {
       <main className="max-w-lg mx-auto lg:max-w-6xl xl:max-w-7xl lg:px-8">
         <LevelProgress currentLevel={currentLevel} />
         <FeatureCardsGrid />
+        <StreakWidget />
         <DemoClassSection />
         <SalaryInfoCard />
         <TalkToTeamSection />

@@ -1,20 +1,26 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ChevronLeft, ChevronRight, Shuffle, RotateCcw } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import api from "../../api/axios";
+
 // Components
 import FlashcardDeck from "./components/FlashcardDeck";
 import ProgressBar from "./components/ProgressBar";
 import TestView from "./components/TestView";
+import StreakCelebrationModal from "./components/StreakCelebrationModal";
+
 // Hooks (reuse from pronounce)
 import useTextToSpeech from "../pronounce/hooks/useTextToSpeech";
+
 const FlashcardStudyPage = () => {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   const { prof_level, set_id } = useParams();
   const [searchParams] = useSearchParams();
   const set_name = searchParams.get("set_name");
+  const startIndexParam = searchParams.get("start_index");
+
   // Card states
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -39,20 +45,23 @@ const FlashcardStudyPage = () => {
 
   const [loading, setLoading] = useState(true);
 
+  // Track which cards have been flipped for streak counting (use ref to avoid useEffect issues)
+  const flippedCardsRef = useRef(new Set());
+
   const totalCards = flashcardSet.length;
   const chapterNumber = set_name?.match(/\d+/)?.[0] || "01";
   // TTS Hook
   const { isSpeaking, isLoadingAudio, speakText, cancelSpeech } =
     useTextToSpeech();
-  const handleSpeak = (e) => {
-    e.stopPropagation();
-    const content = isFlipped
-      ? flashcardSet[currentCard]?.back_content
-      : flashcardSet[currentCard]?.front_content;
+  const handleSpeak = () => {
+    const card = flashcardSet[currentCard];
+    const content = isFlipped ? card?.back_content : card?.front_content;
     if (content) speakText(content, isFlipped ? "de-DE" : "en-US");
   };
+
   // Data loading
   useEffect(() => {
+    if (!user) navigate("/login");
     const getCards = async () => {
       setLoading(true);
       try {
@@ -63,6 +72,10 @@ const FlashcardStudyPage = () => {
         if (!userState || userState.useDefault) {
           setOrder(new Map(flashcards.map((item, idx) => [idx, item.card_id])));
           setFlashcardSet(flashcards);
+          // Use start_index from URL if provided
+          if (startIndexParam) {
+            setCurrentCard(parseInt(startIndexParam, 10));
+          }
         } else {
           const orderMap = new Map(userState[0].current_order);
           const lookup = new Map(flashcards.map((c) => [c.card_id, c]));
@@ -70,7 +83,11 @@ const FlashcardStudyPage = () => {
             Array.from(orderMap.values()).map((id) => lookup.get(id))
           );
           setOrder(orderMap);
-          setCurrentCard(userState[0].current_index || 0);
+          // Use start_index from URL if provided, otherwise use saved position
+          const startIdx = startIndexParam
+            ? parseInt(startIndexParam, 10)
+            : userState[0].current_index || 0;
+          setCurrentCard(startIdx);
           setCompletedFinalTest(userState[0].test_status || false);
         }
       } catch (err) {
@@ -80,7 +97,8 @@ const FlashcardStudyPage = () => {
       }
     };
     getCards();
-  }, [set_id, user, navigate]);
+  }, [set_id, user, navigate, startIndexParam]);
+
   useEffect(() => {
     if (!order || order.size === 0) return;
     api.post("/practice/saveFS", {
@@ -91,9 +109,55 @@ const FlashcardStudyPage = () => {
       current_index: currentCard,
     });
   }, [currentCard, user, set_id, completedFinalTest, order]);
+
+  // Log flashcard activity for streak - count when card is FLIPPED for the first time
+  const prevIsFlipped = useRef(false);
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const [streakInfo, setStreakInfo] = useState({
+    todayFlashcards: 0,
+    dailyGoal: 20,
+  });
+
+  useEffect(() => {
+    // Only count when isFlipped transitions from false to true (user flips to see answer)
+    const justFlipped = isFlipped && !prevIsFlipped.current;
+    prevIsFlipped.current = isFlipped;
+
+    if (!user?.user_id || loading) return;
+    if (!justFlipped) return; // Only count the first flip (false → true)
+
+    // Only log if this card hasn't been flipped before in this session
+    if (!flippedCardsRef.current.has(currentCard)) {
+      flippedCardsRef.current.add(currentCard);
+
+      const logActivity = async () => {
+        try {
+          const [, streakRes] = await Promise.all([
+            api.post("/streak/flip", { set_id, card_index: currentCard }),
+            api.post("/streak/log"),
+          ]);
+
+          // Show celebration modal when daily goal is reached
+          if (streakRes.data.streakUpdated) {
+            setStreakInfo({
+              todayFlashcards: streakRes.data.todayFlashcards,
+              dailyGoal: streakRes.data.dailyGoal,
+              streakDays: streakRes.data.currentStreak || 1,
+            });
+            setShowStreakCelebration(true);
+          }
+        } catch (err) {
+          console.error("Error logging flashcard activity:", err);
+        }
+      };
+      logActivity();
+    }
+  }, [isFlipped, currentCard, user?.user_id, loading, set_id]);
+
   useEffect(() => {
     return () => cancelSpeech();
   }, []);
+
   // Swipe handlers
   const handleDragStart = (e) => {
     setDragStart(e.type === "mousedown" ? e.clientX : e.touches[0].clientX);
@@ -116,7 +180,7 @@ const FlashcardStudyPage = () => {
           setSwipeDirection(null);
           setDragOffset(0);
         }, 250);
-      } else if (dragOffset < 0 && currentCard < totalCards - 1) {
+      } else if (dragOffset < 0 && currentCard <= totalCards - 1) {
         setSwipeDirection("left");
         setTimeout(() => {
           handleNext();
@@ -285,7 +349,10 @@ const FlashcardStudyPage = () => {
   };
   const continueAfterTest = () => {
     setShowTest(false);
-    if (!isFinalTest) {
+    if (isFinalTest) {
+      // Navigate to chapter select after completing final test
+      navigate(`/practice/${prof_level}`);
+    } else {
       setCurrentCard(currentCard + 1);
       setDeckRotation((p) => (p + 1) % 3);
     }
@@ -361,6 +428,13 @@ const FlashcardStudyPage = () => {
   // Main View
   return (
     <div className="min-h-100dvh bg-white flex flex-col">
+      {/* Streak Celebration Modal */}
+      <StreakCelebrationModal
+        showStreakCelebration={showStreakCelebration}
+        setShowStreakCelebration={setShowStreakCelebration}
+        streakInfo={streakInfo}
+      />
+
       <div className="px-4 py-2.5">
         <div className="flex items-center justify-between">
           <button
