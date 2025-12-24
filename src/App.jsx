@@ -75,16 +75,15 @@ export default function App() {
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
-      // Fullscreen mode
       Fullscreen.activateImmersiveMode();
-
-      // Initialize push notifications
-      initPushNotifications();
-
-      // Check for OTA updates
       initLiveUpdate();
+
+      // Only init push notifications if authenticated
+      if (token) {
+        initPushNotifications();
+      }
     }
-  }, []);
+  }, [token]);
 
   const initLiveUpdate = async () => {
     try {
