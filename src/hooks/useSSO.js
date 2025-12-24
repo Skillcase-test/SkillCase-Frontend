@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { loginSuccess } from "../redux/auth/authSlice";
 import api from "../api/axios";
@@ -13,6 +13,11 @@ export function useSSO() {
   const [checking, setChecking] = useState(true);
   const { isAuthenticated } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
+
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  useEffect(() => {
+    isAuthenticatedRef.current = isAuthenticated;
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
@@ -35,7 +40,13 @@ export function useSSO() {
     if (Capacitor.isNativePlatform()) {
       const checkOnResume = CapApp.addListener("appStateChange", (state) => {
         if (state.isActive && !isAuthenticated) {
-          window.location.href = `${MAIN_SITE_LOGIN}?redirect=${getRedirectUrl()}`;
+          // Race condition
+          // Small delay to let deep link token be processed first
+          setTimeout(() => {
+            if (!isAuthenticatedRef.current) {
+              window.location.href = `${MAIN_SITE_LOGIN}?redirect=${getRedirectUrl()}`;
+            }
+          }, 1000);
         }
       });
 
