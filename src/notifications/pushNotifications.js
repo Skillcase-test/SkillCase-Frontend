@@ -27,28 +27,13 @@ export const initPushNotifications = async () => {
     }
   });
 
-  // Handle foreground notifications
-  PushNotifications.addListener(
-    "pushNotificationReceived",
-    async (notification) => {
-      console.log("Push received:", notification);
-      // Show local notification when app is in foreground
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: Math.floor(Math.random() * 100000),
-            title: notification.title || "SkillCase",
-            body: notification.body || "",
-            schedule: { at: new Date(Date.now() + 100) },
-          },
-        ],
-      });
-    }
-  );
-
   // Handle notification tap
   PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
     console.log("Notification tapped:", action);
-    // Handle navigation based on action.notification.data
+
+    const deepLink = action.notification.data?.deepLink;
+    if (deepLink) {
+      window.location.href = deepLink;
+    }
   });
 };

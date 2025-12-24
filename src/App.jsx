@@ -47,6 +47,8 @@ import NursingGermanyLanding from "./pages/NursingGermanyLanding";
 //fallback page
 import FallbackPage from "./pages/FallbackPage";
 
+import ContinuePractice from "./pages/ContinuePractice";
+
 //capacitor app
 import { Capacitor } from "@capacitor/core";
 import { Fullscreen } from "@boengli/capacitor-fullscreen";
@@ -92,7 +94,7 @@ export default function App() {
       const response = await fetch(
         `${
           import.meta.env.VITE_BACKEND_URL
-        }/api/updates/check?version=${APP_VERSION}`
+        }/updates/check?version=${APP_VERSION}`
       );
 
       const data = await response.json();
@@ -178,6 +180,7 @@ export default function App() {
         />
         <Route path="/register" element={<NursingGermanyLanding />} />
         <Route path="/open-app" element={<FallbackPage />} />
+        <Route path="/continue" element={<ContinuePractice />} />
       </Routes>
 
       <ConditionalFooter />
