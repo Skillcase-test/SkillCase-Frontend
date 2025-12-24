@@ -4,6 +4,7 @@ import { loginSuccess } from "../redux/auth/authSlice";
 import api from "../api/axios";
 
 import { Capacitor } from "@capacitor/core";
+import { App as CapApp } from "@capacitor/app";
 
 const PHP_API = "https://skillcase.in";
 const MAIN_SITE_LOGIN = "https://skillcase.in/login";
@@ -12,6 +13,22 @@ export function useSSO() {
   const [checking, setChecking] = useState(true);
   const { isAuthenticated } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      // Listen for deep link with token
+      CapApp.addListener("appUrlOpen", (data) => {
+        const url = new URL(data.url);
+        const token = url.searchParams.get("token");
+        const userStr = url.searchParams.get("user");
+
+        if (token && userStr) {
+          const user = JSON.parse(decodeURIComponent(userStr));
+          dispatch(loginSuccess({ token, user }));
+        }
+      });
+    }
+  }, [dispatch]);
 
   const getRedirectUrl = () => {
     if (Capacitor.isNativePlatform()) {
@@ -26,6 +43,15 @@ export function useSSO() {
     const checkSSO = async () => {
       // Skip SSO check for Nursing Landing page
       if (window.location.pathname === "/register") {
+        setChecking(false);
+        return;
+      }
+
+      if (Capacitor.isNativePlatform()) {
+        if (!isAuthenticated) {
+          // Redirect to login
+          window.location.href = `${MAIN_SITE_LOGIN}?redirect=${getRedirectUrl()}`;
+        }
         setChecking(false);
         return;
       }
