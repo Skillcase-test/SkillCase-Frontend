@@ -90,12 +90,12 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            <Link
-              to="/login"
-              className="bg-[#edb843] text-[#002856] px-5 py-2 rounded-lg hover:bg-[#d4a53c] transition font-semibold text-sm ml-4"
+            <a
+              href="https://skillcase.in/login?redirect=https%3A%2F%2Flearner.skillcase.in%2Fopen-app"
+              className="block bg-[#edb843] text-[#002856] px-5 py-2 rounded-lg hover:bg-[#d4a53c] transition font-semibold text-sm ml-4"
             >
               Get Started
-            </Link>
+            </a>
           )}
         </nav>
 
@@ -189,13 +189,12 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <Link
-                to="/login"
-                className="block px-4 py-3 rounded-lg bg-[#edb843] text-[#002856] font-semibold text-center"
-                onClick={() => setIsMenuOpen(false)}
+              <a
+                href="https://skillcase.in/login?redirect=https%3A%2F%2Flearner.skillcase.in%2Fopen-app"
+                className="block bg-[#edb843] text-[#002856] px-5 py-2 rounded-lg hover:bg-[#d4a53c] transition font-semibold text-sm ml-4"
               >
                 Get Started
-              </Link>
+              </a>
             )}
           </nav>
         </div>

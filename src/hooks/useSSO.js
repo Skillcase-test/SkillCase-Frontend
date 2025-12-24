@@ -30,6 +30,21 @@ export function useSSO() {
     }
   }, [dispatch]);
 
+  // Re-check auth when app becomes active (user returns from browser)
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      const checkOnResume = CapApp.addListener("appStateChange", (state) => {
+        if (state.isActive && !isAuthenticated) {
+          window.location.href = `${MAIN_SITE_LOGIN}?redirect=${getRedirectUrl()}`;
+        }
+      });
+
+      return () => {
+        checkOnResume.remove();
+      };
+    }
+  }, [isAuthenticated]);
+
   const getRedirectUrl = () => {
     if (Capacitor.isNativePlatform()) {
       // Mobile app → redirect to fallback page that triggers deep link
