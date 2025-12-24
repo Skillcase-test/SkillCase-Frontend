@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { loginSuccess } from "../redux/auth/authSlice";
 import api from "../api/axios";
 
+import { Capacitor } from "@capacitor/core";
+
 const PHP_API = "https://skillcase.in";
 const MAIN_SITE_LOGIN = "https://skillcase.in/login";
 
@@ -10,6 +12,15 @@ export function useSSO() {
   const [checking, setChecking] = useState(true);
   const { isAuthenticated } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
+
+  const getRedirectUrl = () => {
+    if (Capacitor.isNativePlatform()) {
+      // Mobile app → redirect to fallback page that triggers deep link
+      return encodeURIComponent("https://learner.skillcase.in/open-app");
+    }
+    // Web → redirect back to current page
+    return encodeURIComponent(window.location.href);
+  };
 
   useEffect(() => {
     const checkSSO = async () => {
@@ -61,13 +72,13 @@ export function useSSO() {
 
         // If not authenticated, redirect to main site login
         if (!phpRes.ok) {
-          const returnUrl = encodeURIComponent(window.location.href);
+          const returnUrl = getRedirectUrl();
           window.location.href = `${MAIN_SITE_LOGIN}?redirect=${returnUrl}`;
           return;
         }
         const phpData = await phpRes.json();
         if (!phpData.success) {
-          const returnUrl = encodeURIComponent(window.location.href);
+          const returnUrl = getRedirectUrl();
           window.location.href = `${MAIN_SITE_LOGIN}?redirect=${returnUrl}`;
           return;
         }
@@ -89,7 +100,7 @@ export function useSSO() {
       } catch (err) {
         console.log("SSO check failed:", err);
         // On error, also redirect to login
-        const returnUrl = encodeURIComponent(window.location.href);
+        const returnUrl = getRedirectUrl();
         window.location.href = `${MAIN_SITE_LOGIN}?redirect=${returnUrl}`;
       } finally {
         setChecking(false);

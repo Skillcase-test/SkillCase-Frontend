@@ -44,6 +44,17 @@ import ConversationSelect from "./pages/ConversationSelect";
 import ConversationPlayer from "./pages/ConversationPlayer";
 import NursingGermanyLanding from "./pages/NursingGermanyLanding";
 
+//fallback page
+import FallbackPage from "./pages/FallbackPage";
+
+//capacitor app
+import { Capacitor } from "@capacitor/core";
+import { Fullscreen } from "@boengli/capacitor-fullscreen";
+import { LiveUpdate } from "@capawesome/capacitor-live-update";
+import { initPushNotifications } from "./notifications/pushNotifications";
+
+const APP_VERSION = "1.0.0";
+
 function GoogleAnalyticsTracker() {
   const location = useLocation();
   useEffect(() => {
@@ -61,6 +72,45 @@ export default function App() {
   const dispatch = useDispatch();
   const { token, user } = useSelector((state) => state.auth);
   const { checking } = useSSO();
+
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      // Fullscreen mode
+      Fullscreen.activateImmersiveMode();
+
+      // Initialize push notifications
+      initPushNotifications();
+
+      // Check for OTA updates
+      initLiveUpdate();
+    }
+  }, []);
+
+  const initLiveUpdate = async () => {
+    try {
+      await LiveUpdate.ready();
+
+      const response = await fetch(
+        `${
+          import.meta.env.VITE_BACKEND_URL
+        }/api/updates/check?version=${APP_VERSION}`
+      );
+
+      const data = await response.json();
+
+      if (data.url) {
+        await LiveUpdate.downloadBundle({
+          url: data.url,
+          bundleId: data.version,
+        });
+
+        await LiveUpdate.setNextBundle({ bundleId: data.version });
+        // Update applies on next app launch
+      }
+    } catch (err) {
+      console.error("Live update failed:", err);
+    }
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -128,6 +178,7 @@ export default function App() {
           element={<ConversationPlayer />}
         />
         <Route path="/register" element={<NursingGermanyLanding />} />
+        <Route path="/open-app" element={<FallbackPage />} />
       </Routes>
 
       <ConditionalFooter />
