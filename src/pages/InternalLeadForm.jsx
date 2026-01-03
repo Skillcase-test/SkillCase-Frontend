@@ -171,22 +171,6 @@ export default function InternalLeadForm() {
                 />
               </div>
 
-              {/* Ad Set */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Ad Set *
-                </label>
-                <select
-                  name="CONTACTCF8"
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1976D2] bg-white"
-                >
-                  <option value="">-- Select Ad Set --</option>
-                  <option value="Inbound">Inbound</option>
-                  <option value="Influencer">Influencer</option>
-                </select>
-              </div>
-
               {/* Language Level - NEW */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -203,6 +187,22 @@ export default function InternalLeadForm() {
                   <option value="A2">A2</option>
                   <option value="B1">B1</option>
                   <option value="B2">B2</option>
+                </select>
+              </div>
+
+              {/* Ad Set */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Ad Set *
+                </label>
+                <select
+                  name="CONTACTCF8"
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1976D2] bg-white"
+                >
+                  <option value="">-- Select Ad Set --</option>
+                  <option value="Inbound">Inbound</option>
+                  <option value="Influencer">Influencer</option>
                 </select>
               </div>
 
