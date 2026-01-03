@@ -68,7 +68,10 @@ export function useSSO() {
   useEffect(() => {
     const checkSSO = async () => {
       // Skip SSO check for Nursing Landing page
-      if (window.location.pathname === "/register") {
+      if (
+        window.location.pathname === "/register" ||
+        window.location.pathname === "/internal/lead-form"
+      ) {
         setChecking(false);
         return;
       }

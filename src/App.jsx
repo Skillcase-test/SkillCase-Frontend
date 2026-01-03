@@ -1,29 +1,25 @@
-import React, { useEffect } from "react";
-import { BookOpen, FileText, Video, ArrowRight, Menu, X } from "lucide-react";
+import * as Sentry from "@sentry/react";
+
+Sentry.init({
+  dsn: import.meta.env.VITE_SENTRY_DSN,
+  sendDefaultPii: true,
+});
+
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import LandingPage from "./pages/landing/LandingPage";
-import AddFlashSet from "./pages/AddFlashSetPage";
 import NewNavbar from "./components/NewNavbar";
 import NewFooter from "./components/NewFooter";
 import Footer from "./components/Footer";
-import Practice from "./pages/Practice";
 import { useDispatch, useSelector } from "react-redux";
 import ChapterSelect from "./pages/flashcard/ChapterSelect";
 import TestSelect from "./pages/testSelect";
 import FlashcardStudyPage from "./pages/flashcard/FlashCard";
-import LoginSignupPage from "./pages/LoginSignupPage";
-import DeleteFlashSet from "./pages/deleteFlashSetPage";
-import AddInterviewPage from "./pages/addInterviewPage";
-import AddTestPage from "./pages/addTestPage";
 import api from "./api/axios";
-import InterviewSelect from "./pages/interviewSelect";
 import { setUser, logout } from "./redux/auth/authSlice";
 import PronounceSelect from "./pages/pronounce/PronounceSelect";
-// import CardOverlayExample from './components/testOverlay';
 import Pronounce from "./pages/pronounce/Pronounce";
-import AddPronounceSet from "./pages/AddPronounceSetPage";
-import DeletePronounceSet from "./pages/DeletePronounceSetPage";
 import Dashboard from "./dashboard-src/pages/Dashboard";
 import ShortStoryHome from "./pages/ShortStoryHome";
 import StoryPage from "./pages/StoryPage";
@@ -54,8 +50,9 @@ import { Capacitor } from "@capacitor/core";
 import { Fullscreen } from "@boengli/capacitor-fullscreen";
 import { LiveUpdate } from "@capawesome/capacitor-live-update";
 import { initPushNotifications } from "./notifications/pushNotifications";
+import InternalLeadForm from "./pages/InternalLeadForm";
 
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.0.2";
 
 function GoogleAnalyticsTracker() {
   const location = useLocation();
@@ -76,6 +73,7 @@ export default function App() {
   const { checking } = useSSO();
 
   useEffect(() => {
+    console.log("App Version:", APP_VERSION);
     if (Capacitor.isNativePlatform()) {
       Fullscreen.activateImmersiveMode();
       initLiveUpdate();
@@ -181,6 +179,7 @@ export default function App() {
         <Route path="/register" element={<NursingGermanyLanding />} />
         <Route path="/open-app" element={<FallbackPage />} />
         <Route path="/continue" element={<ContinuePractice />} />
+        <Route path="/internal/lead-form" element={<InternalLeadForm />} />
       </Routes>
 
       <ConditionalFooter />
@@ -190,14 +189,18 @@ export default function App() {
 
 function ConditionalFooter() {
   const location = useLocation();
-  const hideFooter = location.pathname === "/register";
+  const hideFooter =
+    location.pathname === "/register" ||
+    location.pathname === "/internal/lead-form";
 
   if (hideFooter) return null;
   return <Footer />;
 }
 function ConditionalNav() {
   const location = useLocation();
-  const hideNav = location.pathname === "/register";
+  const hideNav =
+    location.pathname === "/register" ||
+    location.pathname === "/internal/lead-form";
 
   if (hideNav) return null;
   return <NewNavbar />;

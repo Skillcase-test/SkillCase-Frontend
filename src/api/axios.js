@@ -1,8 +1,9 @@
 import axios from "axios";
 import { store } from "../redux/store";
+import * as Sentry from "@sentry/react";
 
 const api = axios.create({
-  baseURL:import.meta.env.VITE_BACKEND_URL,
+  baseURL: import.meta.env.VITE_BACKEND_URL,
 });
 
 api.interceptors.request.use((config) => {
@@ -12,5 +13,13 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    Sentry.captureException(error);
+    return Promise.reject(error);
+  }
+);
 
 export default api;
