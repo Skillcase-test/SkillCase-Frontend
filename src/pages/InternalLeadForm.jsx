@@ -20,7 +20,6 @@ export default function InternalLeadForm() {
     }, 2000);
   };
 
-  // Password Protection
   if (!authenticated) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
@@ -101,21 +100,19 @@ export default function InternalLeadForm() {
               <input
                 type="hidden"
                 name="xnQsjsdp"
-                value="cd5ceeaf1b0270e1c87021a2bcb022113863d639e8c739d815322aeab374d576"
+                value="c3a87a6d8f0d62a55d610ead5258ee12a45be82fd471b94004baf965ad30784c"
               />
               <input type="hidden" name="zc_gad" value="" />
               <input
                 type="hidden"
                 name="xmIwtLD"
-                value="a89c18beb4b60cc3407b471e26b815f4be4c1e48c669b5fd299fcc819a7fd9d64e0d6fdb725b31388d98331e4bbb10e5"
+                value="e81c7e5d60860a251e375719ab25cfb954c6b2bde9d03f735ea48bb4284bf4a295d70b28e788d2b19a6de6dc4da33f43"
               />
               <input type="hidden" name="actionType" value="Q29udGFjdHM=" />
               <input type="hidden" name="returnURL" value="null" />
-
-              {/* Hidden: Contact Type - Default Candidate */}
               <input type="hidden" name="CONTACTCF1" value="Candidate" />
 
-              {/* Last Name - Required */}
+              {/* Last Name */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Last Name *
@@ -130,7 +127,7 @@ export default function InternalLeadForm() {
                 />
               </div>
 
-              {/* Company Name - Required */}
+              {/* Company Name */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Company Name *
@@ -145,7 +142,7 @@ export default function InternalLeadForm() {
                 />
               </div>
 
-              {/* Mobile - Required */}
+              {/* Mobile */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Mobile *
@@ -160,7 +157,7 @@ export default function InternalLeadForm() {
                 />
               </div>
 
-              {/* Email - Optional */}
+              {/* Email */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Email
@@ -174,7 +171,7 @@ export default function InternalLeadForm() {
                 />
               </div>
 
-              {/* Ad Set - Dropdown */}
+              {/* Ad Set */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Ad Set *
@@ -190,7 +187,26 @@ export default function InternalLeadForm() {
                 </select>
               </div>
 
-              {/* Submit Button */}
+              {/* Language Level - NEW */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Language Level *
+                </label>
+                <select
+                  name="CONTACTCF4"
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1976D2] bg-white"
+                >
+                  <option value="">-- Select Level --</option>
+                  <option value="Yet to start">Yet to start</option>
+                  <option value="A1">A1</option>
+                  <option value="A2">A2</option>
+                  <option value="B1">B1</option>
+                  <option value="B2">B2</option>
+                </select>
+              </div>
+
+              {/* Submit */}
               <button
                 type="submit"
                 disabled={isSubmitting}
@@ -206,7 +222,6 @@ export default function InternalLeadForm() {
                 )}
               </button>
             </form>
-
             <iframe
               name="bigin_hidden_iframe"
               style={{ display: "none" }}
