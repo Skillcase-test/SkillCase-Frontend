@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, PhoneCall } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { logout } from "../redux/auth/authSlice";
 import { images } from "../assets/images.js";
+import { hapticMedium } from "../utils/haptics";
 
-export default function Navbar() {
+export default function Navbar({ minimal = false }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
@@ -19,17 +20,20 @@ export default function Navbar() {
 
   const handleLogout = () => {
     dispatch(logout());
-    window.location.href = "https://skillcase.in/userlogout";
+    navigate("/login");
   };
 
   // Get user's proficiency level for dynamic links
   const profLevel = user?.user_prof_level || "A1";
 
+  // In minimal mode, only show links if authenticated
+  const showNavLinks = !minimal || isAuthenticated;
+
   return (
-    <header className="bg-white border-b border-[#efefef] sticky top-0 z-50">
+    <header className="bg-white border-b border-[#efefef] sticky top-0 z-50 shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="h-[55px] lg:h-[72px] flex items-center justify-between px-4 lg:px-8 max-w-7xl mx-auto">
         {/* Logo */}
-        <Link to="/" className="flex-shrink-0">
+        <Link to="/" className="flex-shrink-0" onClick={hapticMedium}>
           <img
             src={images.skillcaseLogo}
             alt="Skillcase"
@@ -37,83 +41,104 @@ export default function Navbar() {
           />
         </Link>
 
-        {/* Desktop Menu - Hidden on mobile */}
-        <nav className="hidden lg:flex items-center gap-6">
-          <Link
-            to={`/practice/${profLevel}`}
-            className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
-          >
-            Flashcards
-          </Link>
-          <Link
-            to={`/pronounce/${profLevel}`}
-            className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
-          >
-            Pronounce
-          </Link>
-          <Link
-            to={`/test/${profLevel}`}
-            className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
-          >
-            Test
-          </Link>
-          <Link
-            to="/stories"
-            className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
-          >
-            Stories
-          </Link>
-          <Link
-            to={`/conversation/${profLevel}`}
-            className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
-          >
-            Listener
-          </Link>
-
-          {/* Auth Buttons - Desktop */}
-          {isAuthenticated ? (
-            <div className="flex items-center gap-4 ml-4">
-              {user?.role === "admin" && (
-                <Link
-                  to="/admin"
-                  className="bg-[#002856] text-white px-4 py-2 rounded-lg hover:bg-[#003d83] transition font-semibold text-sm"
-                >
-                  Admin
-                </Link>
-              )}
-
-              <button
-                onClick={handleLogout}
-                className="bg-[#edb843] text-[#002856] px-4 py-2 rounded-lg hover:bg-[#d4a53c] transition font-semibold text-sm cursor-pointer"
-              >
-                Logout
-              </button>
-            </div>
-          ) : (
-            <a
-              href="https://skillcase.in/login?redirect=https%3A%2F%2Flearner.skillcase.in%2Fopen-app"
-              className="block bg-[#edb843] text-[#002856] px-5 py-2 rounded-lg hover:bg-[#d4a53c] transition font-semibold text-sm ml-4"
+        {/* Desktop Menu - Hidden on mobile, also hidden in minimal mode if not authenticated */}
+        {showNavLinks && (
+          <nav className="hidden lg:flex items-center gap-6">
+            <Link
+              to={`/practice/${profLevel}`}
+              className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
             >
-              Get Started
-            </a>
-          )}
-        </nav>
+              Flashcards
+            </Link>
+            <Link
+              to={`/pronounce/${profLevel}`}
+              className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+            >
+              Pronounce
+            </Link>
+            <Link
+              to={`/test/${profLevel}`}
+              className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+            >
+              Test
+            </Link>
+            <Link
+              to={`/interview/${profLevel}`}
+              className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+            >
+              Interview
+            </Link>
+            <Link
+              to="/stories"
+              className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+            >
+              Stories
+            </Link>
+            <Link
+              to="/conversation/A1"
+              className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+            >
+              Listener
+            </Link>
 
-        {/* Mobile Right Side */}
-        <div className="lg:hidden flex items-center gap-3">
-          {/* Mobile Burger Menu Button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center"
-            aria-label="Toggle menu"
-          >
-            {isMenuOpen ? (
-              <X className="w-6 h-6 text-[#414651]" />
+            {/* Auth Buttons - Desktop */}
+            {isAuthenticated ? (
+              <div className="flex items-center gap-4 ml-4">
+                {user?.role === "admin" && (
+                  <Link
+                    to="/admin"
+                    className="bg-[#002856] text-white px-4 py-2 rounded-lg hover:bg-[#003d83] transition font-semibold text-sm"
+                  >
+                    Admin
+                  </Link>
+                )}
+
+                <button
+                  onClick={handleLogout}
+                  className="bg-[#edb843] text-[#002856] px-4 py-2 rounded-lg hover:bg-[#d4a53c] transition font-semibold text-sm cursor-pointer"
+                >
+                  Logout
+                </button>
+              </div>
             ) : (
-              <Menu className="w-6 h-6 text-[#414651]" />
+              <Link
+                to="/login"
+                className="block bg-[#edb843] text-[#002856] px-5 py-2 rounded-lg hover:bg-[#d4a53c] transition font-semibold text-sm ml-4"
+              >
+                Get Started
+              </Link>
             )}
-          </button>
-        </div>
+          </nav>
+        )}
+
+        {/* Mobile Right */}
+        {showNavLinks && (
+          <div className="lg:hidden flex items-center gap-3">
+            {/* Mobile Burger Menu Button */}
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center"
+              aria-label="Toggle menu"
+            >
+              {isMenuOpen ? (
+                <X className="w-6 h-6 text-[#414651]" />
+              ) : (
+                <Menu className="w-6 h-6 text-[#414651]" />
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Call Us Button */}
+        {!showNavLinks && (
+          <a
+            href="tel:9731462667"
+            className="flex items-center gap-2 px-4 py-2 border border-[#bab9b9]/40 rounded-full text-[#414651] hover:bg-gray-50 transition font-bold text-sm"
+          >
+            <PhoneCall className="w-4 h-4" />
+            Call Us
+          </a>
+        )}
       </div>
 
       {/* Mobile Menu Dropdown */}
@@ -189,12 +214,12 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <a
-                href="https://skillcase.in/login?redirect=https%3A%2F%2Flearner.skillcase.in%2Fopen-app"
+              <Link
+                to="/login"
                 className="block bg-[#edb843] text-[#002856] px-5 py-2 rounded-lg hover:bg-[#d4a53c] transition font-semibold text-sm ml-4"
               >
                 Get Started
-              </a>
+              </Link>
             )}
           </nav>
         </div>

@@ -15,6 +15,7 @@ import TcAgreements from "./TcAgreements";
 import StoryManagement from "../../pages/StoryManagement";
 import AddConversation from "./conversation/add";
 import DeleteConversation from "./conversation/delete";
+import SendNotification from "./notification/send";
 
 function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -47,6 +48,8 @@ function Dashboard() {
         return <AddConversation />;
       case "conversation-delete":
         return <DeleteConversation />;
+      case "notifications":
+        return <SendNotification />;
       default:
         return <div>Select an option from the sidebar</div>;
     }

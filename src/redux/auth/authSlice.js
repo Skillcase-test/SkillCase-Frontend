@@ -32,6 +32,11 @@ const authSlice = createSlice({
     setUser: (state, action) => {
       state.user = action.payload;
     },
+    setOnboardingComplete: (state) => {
+      if (state.user) {
+        state.user.onboarding_completed = true;
+      }
+    },
     logout: (state) => {
       state.token = null;
       state.user = null;
@@ -40,7 +45,7 @@ const authSlice = createSlice({
   },
 });
 
-export const { loginStart, loginSuccess, loginFailure, setUser, logout } =
+export const { loginStart, loginSuccess, loginFailure, setUser, setOnboardingComplete, logout } =
   authSlice.actions;
 
 export default authSlice.reducer;

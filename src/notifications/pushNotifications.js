@@ -17,8 +17,6 @@ export const initPushNotifications = async () => {
 
   // Handle registration
   PushNotifications.addListener("registration", async (token) => {
-    console.log("FCM Token:", token.value);
-
     // Store token in backend
     try {
       await api.post("/user/fcm-token", { fcmToken: token.value });
@@ -28,12 +26,31 @@ export const initPushNotifications = async () => {
   });
 
   // Handle notification tap
-  PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
-    console.log("Notification tapped:", action);
+  PushNotifications.addListener(
+    "pushNotificationActionPerformed",
+    async (action) => {
+      console.log("Notification tapped:", action);
+      await handleNotificationOpen(action.notification);
 
-    const deepLink = action.notification.data?.deepLink;
-    if (deepLink) {
-      window.location.href = deepLink;
+      const deepLink = action.notification.data?.deepLink;
+      if (deepLink) {
+        window.location.href = deepLink;
+      }
     }
-  });
+  );
+};
+
+export const handleNotificationOpen = async (notification) => {
+  try {
+    const { notificationType, sentAt } = notification.data || {};
+
+    if (notificationType && sentAt) {
+      await api.post("/user/notification-opened", {
+        notificationType,
+        sentAt,
+      });
+    }
+  } catch (error) {
+    console.error("Error tracking notification open:", error);
+  }
 };

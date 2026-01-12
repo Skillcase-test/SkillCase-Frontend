@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import Badge from "../../../components/ui/Badge";
 import { images } from "../../../assets/images.js";
 import { useState } from "react";
+import { hapticLight } from "../../../utils/haptics";
 
 /* Feature Cards */
 
@@ -13,6 +14,7 @@ export default function FeatureCardsGrid() {
   const features = [
     {
       id: "flashcards",
+      tourId: "flashcard-card",
       title: "Flashcards",
       description: "Practice basic German using Flashcards",
       image: images.flashcards,
@@ -21,6 +23,7 @@ export default function FeatureCardsGrid() {
     },
     {
       id: "vocabulary",
+      tourId: "pronunciation-card",
       title: "Vocabulary Practice",
       description: "Build your German vocabulary",
       image: images.vocabulary,
@@ -29,6 +32,7 @@ export default function FeatureCardsGrid() {
     },
     {
       id: "mock-test",
+      tourId: "test-card",
       title: "Mock Test",
       description: "Test your German knowledge",
       image: images.mockTest,
@@ -37,6 +41,7 @@ export default function FeatureCardsGrid() {
     },
     {
       id: "listener",
+      tourId: "listener-card",
       title: "Listener",
       description: "Listen the conversations",
       image: images.speakToAI,
@@ -45,6 +50,7 @@ export default function FeatureCardsGrid() {
     },
     {
       id: "stories",
+      tourId: "stories-card",
       title: "Short Stories",
       description: "Read engaging stories",
       image: images.grammar,
@@ -64,7 +70,7 @@ export default function FeatureCardsGrid() {
 
   return (
     <div className="px-4 pt-8 pb-4">
-      <div className="grid grid-cols-3 gap-2.5">
+      <div id="feature-cards-grid" className="grid grid-cols-3 gap-2.5">
         {features.map((feature) => (
           <FeatureCard key={feature.id} {...feature} />
         ))}
@@ -73,14 +79,15 @@ export default function FeatureCardsGrid() {
   );
 }
 
-function FeatureCard({ title, description, image, link, enabled, comingSoon }) {
+function FeatureCard({ title, description, image, link, enabled, comingSoon, tourId }) {
   const CardWrapper = enabled ? Link : "div";
   const [isPressed, setIsPressed] = useState(false);
 
   return (
     <CardWrapper
+      id={tourId}
       to={enabled ? link : undefined}
-      onTouchStart={() => enabled && setIsPressed(true)}
+      onTouchStart={() => { if (enabled) { setIsPressed(true); hapticLight(); } }}
       onTouchEnd={() => setIsPressed(false)}
       onMouseDown={() => enabled && setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}

@@ -6,8 +6,16 @@ Sentry.init({
 });
 
 import { useEffect } from "react";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useLocation,
+  Navigate,
+} from "react-router-dom";
 import { Toaster } from "react-hot-toast";
+import SignupPage from "./pages/auth/SignupPage";
+import LoginPage from "./pages/auth/LoginPage";
 import LandingPage from "./pages/landing/LandingPage";
 import NewNavbar from "./components/NewNavbar";
 import NewFooter from "./components/NewFooter";
@@ -27,7 +35,7 @@ if (typeof global === "undefined") {
   window.global = window;
 }
 
-import { useSSO } from "./hooks/useSSO";
+import { startHeartbeat, stopHeartbeat } from "./utils/heartbeat";
 
 import "./dashboard-src/css/style.css";
 
@@ -51,6 +59,7 @@ import { Fullscreen } from "@boengli/capacitor-fullscreen";
 import { LiveUpdate } from "@capawesome/capacitor-live-update";
 import { initPushNotifications } from "./notifications/pushNotifications";
 import InternalLeadForm from "./pages/InternalLeadForm";
+import ProductTour from "./tour/ProductTour";
 
 const APP_VERSION = "1.0.2";
 
@@ -68,12 +77,31 @@ function GoogleAnalyticsTracker() {
 }
 
 export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
+  );
+}
+
+function AppContent() {
   const dispatch = useDispatch();
-  const { token, user } = useSelector((state) => state.auth);
-  const { checking } = useSSO();
+  const { token, user, isAuthenticated } = useSelector((state) => state.auth);
+  const location = useLocation();
+
+  // Public routes that don't require auth
+  const publicRoutes = [
+    "/login",
+    "/signup",
+    "/register",
+    "/open-app",
+    "/internal/lead-form",
+  ];
+  const isPublicRoute = publicRoutes.some((route) =>
+    location.pathname.startsWith(route)
+  );
 
   useEffect(() => {
-    console.log("App Version:", APP_VERSION);
     if (Capacitor.isNativePlatform()) {
       Fullscreen.activateImmersiveMode();
       initLiveUpdate();
@@ -85,28 +113,62 @@ export default function App() {
     }
   }, [token]);
 
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (user) {
+      startHeartbeat();
+    } else {
+      stopHeartbeat();
+    }
+
+    return () => stopHeartbeat();
+  }, [user]);
+
   const initLiveUpdate = async () => {
     try {
       await LiveUpdate.ready();
-
-      const response = await fetch(
-        `${
-          import.meta.env.VITE_BACKEND_URL
-        }/updates/check?version=${APP_VERSION}`
+      // Use authenticated API call instead of fetch
+      const response = await api.get(
+        `/api/updates/check?version=${APP_VERSION}`
       );
 
-      const data = await response.json();
+      const data = response.data;
 
       if (data.url) {
+        // Log download attempt
+        api
+          .post("/api/updates/log", {
+            event: "download_started",
+            targetVersion: data.version,
+          })
+          .catch(() => {});
         await LiveUpdate.downloadBundle({
           url: data.url,
           bundleId: data.version,
         });
-
         await LiveUpdate.setNextBundle({ bundleId: data.version });
-        // Update applies on next app launch
+        // Log success
+        api
+          .post("/api/updates/log", {
+            event: "download_complete",
+            targetVersion: data.version,
+          })
+          .catch(() => {});
       }
     } catch (err) {
+      // Log failure
+      api
+        .post("/api/updates/log", {
+          event: "download_failed",
+          targetVersion: APP_VERSION,
+          error: err.message,
+        })
+        .catch(() => {});
+
       console.error("Live update failed:", err);
     }
   };
@@ -126,21 +188,20 @@ export default function App() {
     fetchUser();
   }, [token, user, dispatch]);
 
-  if (checking) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        Loading...
-      </div>
-    );
+  // Redirect to signup if not authenticated and trying to access protected route
+  if (!isAuthenticated && !isPublicRoute) {
+    return <Navigate to="/signup" replace />;
   }
 
   return (
-    <BrowserRouter>
+    <ProductTour>
       <GoogleAnalyticsTracker />
       <Toaster position="top-right" />
       <ConditionalNav />
 
       <Routes>
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<LandingPage />} />
         <Route path="/test/:prof_level" element={<TestSelect />} />
         {/* <Route path ='/interview/:prof_level' element = {<InterviewSelect/>}/> */}
@@ -183,12 +244,13 @@ export default function App() {
       </Routes>
 
       <ConditionalFooter />
-    </BrowserRouter>
+    </ProductTour>
   );
 }
 
 function ConditionalFooter() {
   const location = useLocation();
+  // Hide footer only on register and internal lead form pages
   const hideFooter =
     location.pathname === "/register" ||
     location.pathname === "/internal/lead-form";
@@ -196,12 +258,18 @@ function ConditionalFooter() {
   if (hideFooter) return null;
   return <Footer />;
 }
+
 function ConditionalNav() {
   const location = useLocation();
+  // Hide navbar completely on register and internal lead form
   const hideNav =
     location.pathname === "/register" ||
     location.pathname === "/internal/lead-form";
 
+  // Show minimal navbar (logo only, no links/burger) on auth pages
+  const isAuthPage =
+    location.pathname === "/login" || location.pathname === "/signup";
+
   if (hideNav) return null;
-  return <NewNavbar />;
+  return <NewNavbar minimal={isAuthPage} />;
 }

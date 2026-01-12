@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api/axios";
+import { hapticLight } from "../utils/haptics";
 export default function ConversationPlayer() {
   const { prof_level, conversation_id } = useParams();
   const navigate = useNavigate();
@@ -139,6 +140,8 @@ export default function ConversationPlayer() {
       setIsPlaying(true);
     }
     updateProgress(index);
+    // Dispatch tour interaction event
+    window.dispatchEvent(new Event("tour:listenerInteraction"));
   };
 
   const jumpToTimestamp = (timeInSeconds) => {
@@ -149,6 +152,8 @@ export default function ConversationPlayer() {
       audio.play();
       setIsPlaying(true);
     }
+    // Dispatch tour interaction event
+    window.dispatchEvent(new Event("tour:listenerInteraction"));
   };
 
   const handleProgressBarClick = (e) => {
@@ -177,7 +182,7 @@ export default function ConversationPlayer() {
       <div className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <button
-            onClick={() => navigate(`/conversation/${prof_level}`)}
+            onClick={() => { hapticLight(); navigate(`/conversation/${prof_level}`); }}
             className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -316,7 +321,13 @@ export default function ConversationPlayer() {
               <SkipBack className="w-5 h-5 text-gray-700" />
             </button>
             <button
-              onClick={togglePlayPause}
+              id="play-button"
+              onClick={() => {
+                hapticLight();
+                togglePlayPause();
+                // Dispatch tour event for listener interaction
+                window.dispatchEvent(new Event("tour:listenerInteraction"));
+              }}
               className="p-4 rounded-full bg-slate-800 hover:bg-slate-900 transition shadow-lg cursor-pointer"
             >
               {isPlaying ? (

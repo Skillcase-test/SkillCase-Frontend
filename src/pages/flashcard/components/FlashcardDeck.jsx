@@ -1,5 +1,7 @@
 import React from "react";
 import FlashcardCard from "./FlashcardCard";
+import "../../../tour/tourStyles.css";
+
 const cardColors = ["#d6bbfb", "#d9f4ff", "#ffffff"];
 const baseTransforms = [
   { rotate: 8, x: 0, y: -24, scale: 0.95 },
@@ -22,6 +24,10 @@ const FlashcardDeck = ({
   onSpeak,
   isSpeaking,
   isLoadingAudio,
+  isTourMode = false,
+  userId, // For user-specific article education
+  onShowExplanation,
+  chapterNumber,
 }) => {
   return (
     <div
@@ -113,6 +119,10 @@ const FlashcardDeck = ({
                 onSpeak={onSpeak}
                 isSpeaking={isSpeaking}
                 isLoadingAudio={isLoadingAudio}
+                isTourMode={isTourMode}
+                userId={userId}
+                onShowExplanation={onShowExplanation}
+                chapterNumber={chapterNumber}
               />
             )}
           </div>

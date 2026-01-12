@@ -98,8 +98,9 @@ export default function LandingPage() {
             </div>
 
             <div className="relative w-full">
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+              <div id="feature-cards-grid" className="grid grid-cols-2 lg:grid-cols-3 gap-4 w-full">
                 <Link
+                  id="flashcard-card"
                   to={
                     user?.user_prof_level
                       ? `/practice/${user?.user_prof_level}`
@@ -119,6 +120,7 @@ export default function LandingPage() {
                 </Link>
 
                 <Link
+                  id="test-card"
                   to={
                     user?.user_prof_level
                       ? `/test/${user?.user_prof_level}`
@@ -138,6 +140,7 @@ export default function LandingPage() {
                 </Link>
 
                 <Link
+                  id="listener-card"
                   to={
                     user?.user_prof_level
                       ? `/conversation/${user?.user_prof_level}`
@@ -157,6 +160,7 @@ export default function LandingPage() {
                 </Link>
 
                 <Link
+                  id="pronunciation-card"
                   to={
                     user?.user_prof_level
                       ? `/pronounce/${user?.user_prof_level}`
@@ -176,6 +180,7 @@ export default function LandingPage() {
                 </Link>
 
                 <Link
+                  id="stories-card"
                   to="/stories"
                   className="col-span-1 bg-[#FF6B6B] rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 group"
                 >

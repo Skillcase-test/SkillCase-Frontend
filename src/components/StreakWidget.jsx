@@ -3,6 +3,7 @@ import { Flame } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import api from "../api/axios";
+import { hapticMedium } from "../utils/haptics";
 
 export default function StreakWidget() {
   const { user } = useSelector((state) => state.auth);
@@ -40,7 +41,7 @@ export default function StreakWidget() {
   if (loading) {
     return (
       <div className="px-4 py-4">
-        <div className="bg-[#002856] shadow-xl border border-slate-100 rounded-2xl p-5 flex items-center justify-between">
+        <div id="streak-widget" className="bg-[#002856] shadow-xl border border-slate-100 rounded-2xl p-5 flex items-center justify-between">
           <div className="flex items-center gap-3 animate-pulse">
             <div className="w-10 h-10 bg-gray-400 rounded-full" />
             <div>
@@ -69,8 +70,8 @@ export default function StreakWidget() {
   }
 
   return (
-    <Link to={continueLink} className="block px-4 py-4">
-      <div className="bg-[#002856] shadow-xl border border-slate-100 rounded-2xl p-5 flex items-center justify-between hover:shadow-2xl transition-shadow cursor-pointer">
+    <Link to={continueLink} onClick={hapticMedium} className="block px-4 py-4">
+      <div id="streak-widget" className="bg-[#002856] shadow-xl border border-slate-100 rounded-2xl p-5 flex items-center justify-between hover:shadow-2xl transition-shadow cursor-pointer">
         {/* Left Side - Streak */}
         <div className="flex items-center gap-3">
           <Flame className="w-10 h-10 text-orange-400" />

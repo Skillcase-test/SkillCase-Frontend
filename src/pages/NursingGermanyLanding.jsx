@@ -33,22 +33,54 @@ export default function NursingGermanyLanding() {
   }, []);
   const handleGetStarted = () => {
     if (typeof window.gtag === "function") {
-    window.gtag("event", "cta_click", {
-      event_category: "engagement",
-      event_label: "Get Started Button",
-    });
-  }
+      window.gtag("event", "cta_click", {
+        event_category: "engagement",
+        event_label: "Get Started Button",
+      });
+    }
 
     setShowModal(true);
     setSubmitSuccess(false);
     setFormData({ name: "", phone: "", qualification: "", experience: "" });
   };
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // Prevent default form submission temporarily
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSubmitSuccess(true);
-    }, 2000);
+    try {
+      // Send data to backend
+      await fetch(
+        "https://skillcase-backend.southeastasia.cloudapp.azure.com/api/leads",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            phone: formData.phone,
+            qualification: formData.qualification,
+            experience: formData.experience,
+            source: "Website",
+          }),
+        }
+      );
+
+      // Now submit to Bigin
+      formRef.current.submit();
+      setTimeout(() => {
+        setIsSubmitting(false);
+        setSubmitSuccess(true);
+      }, 2000);
+    } catch (error) {
+      console.error("Error:", error);
+
+      // Still submit to Bigin even if webhook fails
+      formRef.current.submit();
+      setTimeout(() => {
+        setIsSubmitting(false);
+        setSubmitSuccess(true);
+      }, 2000);
+    }
   };
   const germanyBenefits = [
     {
@@ -322,7 +354,7 @@ export default function NursingGermanyLanding() {
         <div className="fixed bottom-0 left-0 right-0 z-40 py-3 px-4">
           <button
             onClick={handleGetStarted}
-            className="w-full max-w-md mx-auto block bg-[#F9C53D] text-[#002856] py-4 rounded-xl font-semibold text-lg hover:bg-[#003366] transition-all shadow-lg"
+            className="w-full max-w-md mx-auto block bg-[#F9C53D] text-[#002856] py-4 rounded-xl font-semibold text-lg hover:bg-[#003366] hover:text-[#F9C53D] transition-all shadow-lg"
           >
             Get Started
           </button>

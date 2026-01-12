@@ -26,6 +26,9 @@ const CardDeck = ({
   // Assessment props
   assesmentResult,
   onRetry,
+  // Tour props
+  isTourMode = false,
+  tourPronounceStep = 0,
 }) => {
   const cardColors = ["#d6bbfb", "#d9f4ff", "#ffffff"];
 
@@ -123,6 +126,8 @@ const CardDeck = ({
                 onSpeak={onSpeak}
                 assesmentResult={isFrontCard ? assesmentResult : null}
                 onRetry={onRetry}
+                isTourMode={isTourMode}
+                tourPronounceStep={tourPronounceStep}
               />
             )}
           </div>

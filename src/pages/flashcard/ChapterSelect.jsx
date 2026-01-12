@@ -161,7 +161,7 @@ export default function ChapterSelect() {
         </div>
       </div>
       {/* Chapter Cards */}
-      <div className="flex-1 px-4 py-10 space-y-6">
+      <div id="chapter-list" className="flex-1 px-4 py-10 space-y-6">
         {loading ? (
           <div className="flex justify-center items-center py-20">
             <RefreshCw className="w-7 h-7 animate-spin text-[#002856]" />
@@ -175,6 +175,7 @@ export default function ChapterSelect() {
             const badgeStyle = getBadgeStyle(completed, total);
             return (
               <div
+                id={index === 0 ? "first-chapter" : undefined}
                 key={chapter.set_id}
                 onClick={() => handleChapterClick(chapter)}
                 className="bg-white border border-[#dbdbdb] rounded-xl px-3 py-5 cursor-pointer hover:shadow-md transition-shadow"

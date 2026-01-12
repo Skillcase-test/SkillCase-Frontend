@@ -2,8 +2,6 @@ import { Link } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
 
 const StoryCard = ({ s, idx }) => {
-  // Debug: Log the story data to verify completed field
-  console.log(`Story "${s.title}" - completed:`, s.completed);
 
   return (
     <Link to={`/story/${s.slug}`}>

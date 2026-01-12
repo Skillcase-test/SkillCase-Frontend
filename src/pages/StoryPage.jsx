@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { ChevronLeft } from "lucide-react";
+import { hapticLight } from "../utils/haptics";
 // Component to highlight German words with English translations
 const HighlightGerman = ({ text }) => {
   const regex = /(\b[A-Za-zÄÖÜäöüß]+)\s*\(([^)]+)\)/g;
@@ -92,6 +93,7 @@ const StoryPage = () => {
       <div className="relative w-full h-64 bg-gradient-to-b from-slate-200 to-[#ecfbff]">
         <Link
           to="/stories"
+          onClick={hapticLight}
           className="absolute top-4 left-4 bg-white/80 backdrop-blur p-2 rounded-full shadow-sm z-10 hover:bg-white transition"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -105,7 +107,7 @@ const StoryPage = () => {
         )}
       </div>
       {/* Story Content */}
-      <article className="max-w-xl mx-auto px-6 -mt-32 relative z-10 pb-12">
+      <article id="story-article" className="max-w-xl mx-auto px-6 -mt-32 relative z-10 pb-12">
         {/* Story Header Card */}
         <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-6 mb-8 border border-slate-50">
           <div className="flex justify-between items-start mb-4">
@@ -129,6 +131,7 @@ const StoryPage = () => {
           <p className="text-slate-400 text-sm italic">Great job reading!</p>
           <button
             onClick={async () => {
+              hapticLight();
               await markAsComplete(story.story_id);
               navigate("/stories");
             }}

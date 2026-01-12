@@ -129,6 +129,7 @@ const ShortStoryHome = () => {
             const badgeStyle = getBadgeStyle(completed);
             return (
               <div
+                id={index === 0 ? "first-story" : undefined}
                 key={story.slug}
                 onClick={() => handleStoryClick(story)}
                 className="bg-white border border-[#dbdbdb] rounded-xl px-4 py-4 cursor-pointer hover:shadow-md transition-all duration-200 active:scale-[0.98]"

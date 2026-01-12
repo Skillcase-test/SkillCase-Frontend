@@ -10,12 +10,20 @@ import ProgressBar from "./components/ProgressBar";
 import useVoiceRecorder from "./hooks/useVoiceRecorder";
 import useTextToSpeech from "./hooks/useTextToSpeech";
 import useCardSwipe from "./hooks/useCardSwipe";
+import { useTour } from "../../tour/TourContext";
+import { TOUR_PAGES } from "../../tour/tourSteps";
+
 const Pronounce = () => {
   const { user } = useSelector((state) => state.auth);
+  const { isTourActive, tourPage, pronounceStep } = useTour();
   const navigate = useNavigate();
   const { prof_level, pronounce_id } = useParams();
   const [searchParams] = useSearchParams();
   const pronounce_name = searchParams.get("pronounce_name");
+  
+  // Detect if we're in tour mode for pronunciation practice
+  const isTourMode = isTourActive && tourPage === TOUR_PAGES.PRONOUNCE_PRACTICE;
+  
   // Data states
   const [flashcardSet, setFlashcardSet] = useState([]);
   const [currentCard, setCurrentCard] = useState(0);
@@ -108,10 +116,30 @@ const Pronounce = () => {
     e.stopPropagation();
     if (flashcardSet[currentCard]?.back_content) {
       speakText(flashcardSet[currentCard].back_content, "de-DE");
+      
+      // Dispatch tour event when user listens (step 0 -> step 1)
+      if (isTourMode) {
+        window.dispatchEvent(new CustomEvent("tour:pronounceStep", { detail: { step: 1 } }));
+      }
     }
   };
+  
+  const handleStartRecording = () => {
+    startRecording();
+    
+    // Dispatch tour event when user starts recording (step 1 -> step 2)
+    if (isTourMode) {
+      window.dispatchEvent(new CustomEvent("tour:pronounceStep", { detail: { step: 2 } }));
+    }
+  };
+  
   const handleStopRecording = () => {
     stopRecording(flashcardSet[currentCard]?.back_content);
+    
+    // Dispatch tour event when user stops recording (step 2 -> step 3)
+    if (isTourMode) {
+      window.dispatchEvent(new CustomEvent("tour:pronounceStep", { detail: { step: 3 } }));
+    }
   };
   // Load data
   useEffect(() => {
@@ -149,6 +177,13 @@ const Pronounce = () => {
   useEffect(() => {
     return () => cancelSpeech();
   }, []);
+  
+  // Dispatch tour event when assessment result is shown (step 3 -> step 4)
+  useEffect(() => {
+    if (isTourMode && assesmentResult) {
+      window.dispatchEvent(new CustomEvent("tour:pronounceStep", { detail: { step: 4 } }));
+    }
+  }, [isTourMode, assesmentResult]);
 
   const handleNextButton = async () => {
     if (currentCard < totalCards - 1 && !isRecording && !isUploading) {
@@ -232,7 +267,7 @@ const Pronounce = () => {
         <ProgressBar currentCard={currentCard} totalCards={totalCards} />
       </div>
       {/* Card Deck Area */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
+      <div id="pronounce-container" className="flex-1 flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
         {loading ? (
           <div className="w-[280px] h-[430px] bg-white rounded-[20px] shadow-lg animate-pulse flex flex-col items-center justify-center gap-4">
             <div className="w-16 h-16 rounded-full bg-gray-200" />
@@ -255,13 +290,15 @@ const Pronounce = () => {
             isUploading={isUploading}
             recordingTime={recordingTime}
             formatTime={formatTime}
-            onStartRecording={startRecording}
+            onStartRecording={handleStartRecording}
             onStopRecording={handleStopRecording}
             isSpeaking={isSpeaking}
             isLoadingAudio={isLoadingAudio}
             onSpeak={handleSpeak}
             assesmentResult={assesmentResult}
             onRetry={resetRecording}
+            isTourMode={isTourMode}
+            tourPronounceStep={pronounceStep}
           />
         )}
         {uploadStatus && uploadStatus.includes("Error") && (

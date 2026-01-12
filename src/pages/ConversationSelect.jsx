@@ -141,11 +141,12 @@ export default function ConversationSelect() {
         ) : error ? (
           <div className="text-center py-20 text-red-500">{error}</div>
         ) : (
-          conversations.map((conv) => {
+          conversations.map((conv, index) => {
             const completed = isComplete(conv);
             const badgeStyle = getBadgeStyle(completed);
             return (
               <div
+                id={index === 0 ? "first-conversation" : undefined}
                 key={conv.conversation_id}
                 onClick={() => handleConversationClick(conv)}
                 className="bg-white border border-[#dbdbdb] rounded-xl px-4 py-4 cursor-pointer hover:shadow-md transition-shadow"

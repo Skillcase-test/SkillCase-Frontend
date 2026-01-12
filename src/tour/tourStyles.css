@@ -1,0 +1,476 @@
+/* Custom Driver.js styling to match Skillcase theme */
+.driver-popover {
+  font-family: 'Inter', sans-serif;
+  border-radius: 16px !important;
+  padding: 24px !important;
+  max-width: 90vw !important;
+  width: 400px !important;
+}
+
+.driver-popover-title {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: #181d27 !important;
+}
+
+.driver-popover-description {
+  font-size: 15px !important;
+  color: #414651 !important;
+  line-height: 1.5 !important;
+}
+
+.driver-popover-progress-text {
+  font-size: 13px !important;
+  color: #717680 !important;
+}
+
+.driver-popover-prev-btn,
+.driver-popover-next-btn {
+  border-radius: 10px !important;
+  padding: 10px 16px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+}
+
+.driver-popover-next-btn {
+  background-color: #002856 !important;
+  color: white !important;
+  border: none !important;
+  text-shadow: none !important;
+  -webkit-text-stroke: 0 !important;
+}
+
+.driver-popover-next-btn:hover {
+  background-color: #003d83 !important;
+}
+
+.driver-popover-prev-btn {
+  background-color: transparent !important;
+  color: #002856 !important;
+  border: 1px solid #d5d7da !important;
+}
+
+/* Red X close button in top-right corner */
+.driver-popover-close-btn {
+  color: #dc2626 !important;
+  font-size: 20px !important;
+  font-weight: bold !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  padding: 4px 8px !important;
+}
+
+.driver-popover-close-btn:hover {
+  color: #b91c1c !important;
+}
+
+/* Custom Skip Tour button in footer */
+.skip-tour-btn {
+  color: #002856 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  background: transparent !important;
+  border: 1px solid #d5d7da !important;
+  border-radius: 10px !important;
+  padding: 10px 14px !important;
+  cursor: pointer !important;
+  margin-left: auto !important;
+}
+
+.skip-tour-btn:hover {
+  background: #f3f4f6 !important;
+}
+
+/* Hide arrow and center popover for grid elements on mobile */
+.driver-popover.centered-popover {
+  position: fixed !important;
+  left: 50% !important;
+  transform: translate(-50%, 0) !important;
+  margin: 0 !important;
+}
+
+.driver-popover.centered-popover.popover-top {
+  top: 15% !important;
+  bottom: auto !important;
+}
+
+.driver-popover.centered-popover.popover-bottom {
+  top: auto !important;
+  bottom: 15% !important;
+}
+
+
+.driver-popover.centered-popover .driver-popover-arrow {
+  display: none !important;
+}
+
+/* Continue Tour Button */
+.tour-continue-btn {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #EDB843;
+  color: #002856;
+  padding: 14px 40px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  border: none;
+  box-shadow: 0 4px 12px rgba(237, 184, 67, 0.4);
+  cursor: pointer;
+  z-index: 100000;
+  animation: pulse-yellow 2s infinite;
+  white-space: nowrap;
+}
+
+.tour-continue-btn:hover {
+  background: #d4a53b;
+}
+
+@keyframes pulse-yellow {
+
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1);
+    box-shadow: 0 4px 12px rgba(237, 184, 67, 0.4);
+  }
+
+  50% {
+    transform: translateX(-50%) scale(1.02);
+    box-shadow: 0 8px 20px rgba(237, 184, 67, 0.6);
+  }
+}
+
+/* Success animation before continue button */
+.tour-success-popup {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #22c55e;
+  color: white;
+  padding: 14px 40px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  z-index: 100001;
+  animation: success-pop 2s ease-out forwards;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+}
+
+@keyframes success-pop {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.8);
+  }
+
+  20% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.05);
+  }
+
+  40% {
+    transform: translateX(-50%) scale(1);
+  }
+
+  80% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.9);
+  }
+}
+
+/* Hide progress on completion popover */
+.completion-popover .driver-popover-progress-text {
+  display: none !important;
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: translateX(-50%) scale(1.02);
+    opacity: 0.5;
+  }
+}
+
+/* Compact popover for practice cards (Reduced Height Only) */
+.driver-popover.practice-card-popover {
+  padding: 12px 20px !important;
+  /* Less vertical padding, normal horizontal */
+}
+
+.driver-popover.practice-card-popover .driver-popover-title {
+  font-size: 16px !important;
+  margin-bottom: 2px !important;
+}
+
+.driver-popover.practice-card-popover .driver-popover-description {
+  font-size: 14px !important;
+  margin-bottom: 4px !important;
+  line-height: 1.4 !important;
+}
+
+/* Swipe Hand Visual Animation (Just Swipe) */
+.swipe-hand-animation {
+  display: block;
+  width: 40px;
+  height: 40px;
+  margin: 12px auto 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23002856' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0'/%3E%3Cpath d='M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2'/%3E%3Cpath d='M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8'/%3E%3Cpath d='M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  animation: swipe-gesture 2s infinite ease-in-out;
+}
+
+/* Tap & Swipe Animation (For Flashcards) */
+.tap-swipe-animation {
+  display: block;
+  width: 40px;
+  height: 40px;
+  margin: 12px auto 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23002856' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0'/%3E%3Cpath d='M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2'/%3E%3Cpath d='M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8'/%3E%3Cpath d='M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  animation: tap-swipe-gesture 2.5s infinite ease-in-out;
+}
+
+@keyframes swipe-gesture {
+  0% {
+    transform: translateX(20px) rotate(10deg);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  80% {
+    transform: translateX(-20px) rotate(-10deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(-20px) rotate(-10deg);
+    opacity: 0;
+  }
+}
+
+@keyframes tap-swipe-gesture {
+  0% {
+    transform: translate(10px, 10px);
+    opacity: 0;
+  }
+
+  15% {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+
+  30% {
+    transform: scale(0.85);
+  }
+
+  /* Tap press */
+  40% {
+    transform: scale(1);
+  }
+
+  /* Tap release */
+  55% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  85% {
+    transform: translateX(-40px) rotate(-15deg);
+    opacity: 0;
+  }
+
+  /* Swipe left */
+  100% {
+    transform: translateX(-40px);
+    opacity: 0;
+  }
+}
+
+/* ============================================
+   TOUR OVERLAY STYLES
+   ============================================ */
+
+/* Tour Tap Overlay */
+.tour-tap-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 40, 86, 0.15);
+  border-radius: 20px;
+  z-index: 100;
+  cursor: pointer;
+}
+
+.tap-reveal-btn {
+  background: #002856;
+  color: white;
+  padding: 16px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 40, 86, 0.3);
+}
+
+.pulse-animation {
+  animation: btn-pulse 2s infinite;
+}
+
+@keyframes btn-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 4px 12px rgba(0, 40, 86, 0.3);
+  }
+
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 8px 20px rgba(0, 40, 86, 0.4);
+  }
+}
+
+/* Tour Step Overlay for Pronunciation */
+.tour-step-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 40, 86, 0.1);
+  border-radius: 50%;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Pulsing box highlight for flashcard hint */
+.tour-hint-highlight {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: rgba(0, 40, 86, 0.08);
+  border: 2px solid #002856;
+  animation: hint-box-pulse 2s infinite;
+}
+
+@keyframes hint-box-pulse {
+
+  0%,
+  100% {
+    border-color: #002856;
+    box-shadow: 0 0 0 0 rgba(0, 40, 86, 0.4);
+  }
+
+  50% {
+    border-color: #003d83;
+    box-shadow: 0 0 0 6px rgba(0, 40, 86, 0);
+  }
+}
+
+.tour-button-hint {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #002856;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  z-index: 101;
+  box-shadow: 0 4px 12px rgba(0, 40, 86, 0.3);
+  pointer-events: none;
+}
+
+.tour-button-hint::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top-color: #002856;
+}
+
+/* Speak Now Popup */
+.speak-now-popup {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #002856;
+  color: white;
+  padding: 14px 40px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  z-index: 10000;
+  animation: fadeInDown 0.3s ease;
+  box-shadow: 0 8px 24px rgba(0, 40, 86, 0.4);
+  white-space: nowrap;
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* Pulsing ring effect for buttons */
+.tour-pulse-ring {
+  position: absolute;
+  inset: -8px;
+  border: 3px solid #002856;
+  border-radius: 50%;
+  animation: pulse-ring 2s infinite;
+  pointer-events: none;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 0.5;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

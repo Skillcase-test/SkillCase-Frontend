@@ -23,30 +23,30 @@ export default function ResumePreview({ data, onEdit }) {
   // State to force the container to be a multiple of A4 height
   const [forcedHeight, setForcedHeight] = useState(A4_HEIGHT_PX);
 
-  // 1. Resize Handler: Scale the view and Calculate Page Height
+  // Resize handler to scale view and calculate page height
   const handleResize = useCallback(() => {
     if (parentRef.current && contentRef.current) {
-      // 1. Handle Scaling
+      // Handle scaling
       const parentWidth = parentRef.current.offsetWidth;
       const newScale =
         parentWidth < A4_WIDTH_PX ? parentWidth / A4_WIDTH_PX : 1;
       setScale(newScale);
 
-      // 2. Handle Height Calculation
+      // Calculate height based on content
       // Temporarily remove fixed height to get natural scrollHeight
       if (!contentRef.current) return;
       contentRef.current.style.height = "auto";
       const naturalHeight = contentRef.current.scrollHeight;
 
-      // Calculate how many pages we need (Round up)
+      // Calculate required pages and round up
       const pageCount = Math.ceil(naturalHeight / A4_HEIGHT_PX);
 
-      // Set the new forced height (Pages * 1123px)
-      // We explicitly set this so background styles stretch to the bottom
+      // Set forced height for proper background stretching
+      // Explicitly set height to multiple of A4
       const newForcedHeight = Math.max(pageCount * A4_HEIGHT_PX, A4_HEIGHT_PX);
       setForcedHeight(newForcedHeight);
 
-      // Re-apply height immediately for visual stability
+      // Apply height immediately for visual stability
       contentRef.current.style.height = `${newForcedHeight}px`;
     }
   }, [A4_WIDTH_PX]);
@@ -76,7 +76,7 @@ export default function ResumePreview({ data, onEdit }) {
     };
   }, [data, handleResize]);
 
-  // Helper function to convert image to base64
+  // Convert image to base64
   const imageToBase64 = async (url) => {
     try {
       const response = await fetch(url);
@@ -96,10 +96,10 @@ export default function ResumePreview({ data, onEdit }) {
   const handleDownloadPDF = async () => {
     setIsGenerating(true);
     try {
-      // Send only resume data (not HTML!)
+      // Send only resume data
       const response = await api.post(
         "/pdf/generate-resume",
-        { resumeData: data }, // Just the data object
+        { resumeData: data },
         { responseType: "blob" }
       );
       // Create download link
@@ -164,20 +164,20 @@ export default function ResumePreview({ data, onEdit }) {
         )}
       </div>
 
-      {/* --- RESPONSIVE SCALER WRAPPER --- */}
+      {/* Responsive scaler wrapper */}
       <div className="w-full bg-slate-100 p-2 md:p-8 flex justify-center overflow-hidden border rounded-lg">
-        {/* 1. Parent Container (Calculates Width) */}
+        {/* Parent container calculates width */}
         <div
           ref={parentRef}
           className="relative transition-all duration-200 ease-linear"
           style={{
             width: "100%",
             maxWidth: "210mm",
-            // Use the calculated forced height for the wrapper
+            // Use calculated forced height for wrapper
             height: `${forcedHeight * scale}px`,
           }}
         >
-          {/* 2. Scale Container (Applies Zoom) */}
+          {/* Scale container applies zoom */}
           <div
             style={{
               transform: `scale(${scale})`,
@@ -186,14 +186,14 @@ export default function ResumePreview({ data, onEdit }) {
               height: `${forcedHeight}px`,
             }}
           >
-            {/* 3. The Resume Content */}
+            {/* Resume content */}
             <div
               ref={contentRef}
               id="print-container"
               className="bg-white shadow-2xl relative"
               style={{
                 width: "210mm",
-                // Explicitly set the height to the calculated multiple of A4
+                // Explicitly set height to calculated multiple of A4
                 height: `${forcedHeight}px`,
                 position: "relative",
               }}
@@ -230,7 +230,7 @@ export default function ResumePreview({ data, onEdit }) {
   );
 }
 
-// --- Resume Template Component ---
+// Resume template component
 function EuropassResumeTemplate({ data }) {
   const {
     personalInfo,
@@ -247,9 +247,8 @@ function EuropassResumeTemplate({ data }) {
     <div
       className="resume-content-wrapper flex font-sans text-black relative items-stretch h-full"
       style={{
-        // IMPORTANT: We remove the background gradient here.
-        // 1. In the Preview: We can add a simple fallback if you want.
-        // 2. In the PDF: The 'print-bg-left' and 'print-bg-right' classes handle it.
+        // Background gradient removed for PDF compatibility
+        // Preview uses simple fallback, PDF uses print-bg classes
         background: "transparent",
       }}
     >

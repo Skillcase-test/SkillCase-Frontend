@@ -1,0 +1,337 @@
+/* ===========================
+   Article Education Styles
+   =========================== */
+
+/* Overlay - Positioned to break out of flashcard container */
+.article-popup-overlay {
+  position: absolute;
+  /* Relative to the transformed flashcard */
+  top: 50%;
+  left: 50%;
+  width: 150vw;
+  /* Much larger than flashcard */
+  height: 150vh;
+  transform: translate(-50%, -50%);
+  /* Force center on screen/card */
+  /* background: rgba(0, 0, 0, 0.6); */
+  /* backdrop-filter: blur(4px); */
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100000 !important;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  padding: 20px;
+  border-radius: 0;
+  /* Remove border radius from overlay logic */
+  pointer-events: auto;
+  /* Ensure clicks are captured */
+}
+
+.article-popup-overlay.visible {
+  opacity: 1;
+}
+
+/* Popup Card */
+.article-popup-card {
+  background: white;
+  border-radius: 20px;
+  padding: 28px 24px;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 40, 86, 0.15);
+  transform: scale(0.7);
+  opacity: 0;
+}
+
+/* Keyframe for enter animation - guaranteed to run on mount */
+@keyframes popupEnter {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(0.9);
+    opacity: 1;
+  }
+}
+
+/* Keyframe for exit animation */
+@keyframes popupExit {
+  0% {
+    transform: scale(0.9);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+}
+
+.article-popup-card.enter {
+  animation: popupEnter 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.article-popup-card.exit {
+  animation: popupExit 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Morph animation - shrink and move toward top-right */
+.article-popup-card.morph {
+  transform: scale(0.3) translate(150px, -200px);
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Header */
+.article-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.article-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 12px;
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 60px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.article-label {
+  font-size: 16px;
+  font-weight: 600;
+  color: #002856;
+}
+
+/* Reference card header */
+.article-reference-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #002856;
+}
+
+/* Description */
+.article-description {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #181d27;
+  margin-bottom: 16px;
+}
+
+/* Examples */
+.article-examples {
+  background: #f5f7fa;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.article-examples strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #002856;
+  margin-bottom: 8px;
+}
+
+.article-examples ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.article-examples li {
+  font-size: 14px;
+  color: #414651;
+  padding: 4px 0;
+  padding-left: 18px;
+  position: relative;
+}
+
+.article-examples li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #7b7b7b;
+}
+
+/* Tip box */
+.article-tip {
+  background: #fff5df;
+  border-left: 3px solid #edb843;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #414651;
+}
+
+.article-tip strong {
+  color: #002856;
+}
+
+/* Button */
+.article-popup-button {
+  width: 100%;
+  padding: 14px;
+  background: #002856;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 12px rgba(0, 40, 86, 0.2);
+}
+
+.article-popup-button:hover {
+  background: #003d7a;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(0, 40, 86, 0.3);
+}
+
+.article-popup-button:active {
+  transform: translateY(0);
+}
+
+/* ===========================
+   Info Icon Styles
+   =========================== */
+
+.article-info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.article-info-icon:hover {
+  background: #f0f0f0;
+  transform: scale(1.05);
+}
+
+.article-info-icon svg {
+  color: #3B82F6;
+  width: 20px;
+  height: 20px;
+}
+
+/* Pulse animation for first appearance */
+@keyframes iconPulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+  }
+}
+
+/* Reference card (when info icon is clicked) */
+.article-reference-card {
+  width: 300px !important;
+  max-width: 90vw !important;
+  min-height: auto;
+  padding: 24px 24px !important;
+  /* Animation starts at 0.7 and ends at 0.9 via .enter class */
+}
+
+.article-reference-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.article-reference-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #f5f7fa;
+  border-radius: 10px;
+}
+
+.article-badge-small {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 8px;
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  min-width: 50px;
+}
+
+.article-reference-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #002856;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .article-popup-card {
+    padding: 24px 20px;
+    max-width: calc(100vw - 40px);
+  }
+
+  /* On mobile, respect screen width */
+  .article-reference-card {
+    width: 90% !important;
+    max-width: 400px !important;
+  }
+
+  .article-popup-header {
+    gap: 10px;
+  }
+
+  .article-badge {
+    font-size: 16px;
+    padding: 6px 12px;
+  }
+
+  .article-label {
+    font-size: 15px;
+  }
+
+  .article-description {
+    font-size: 14px;
+  }
+
+  .article-examples,
+  .article-tip {
+    font-size: 13px;
+  }
+
+  .article-popup-button {
+    padding: 12px;
+    font-size: 15px;
+  }
+}
