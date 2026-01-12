@@ -10,12 +10,20 @@ export const startHeartbeat = () => {
     try {
       await api.post("/user/heartbeat");
     } catch (error) {
-      console.error("Heartbeat error:", error);
+      // Silently fail, don't log 403 errors on public pages
+      if (error.response?.status !== 403) {
+        console.error("Heartbeat error:", error);
+      }
     }
   }, 120000); // 2 minutes
 
-  // Send initial heartbeat
-  api.post("/user/heartbeat").catch(console.error);
+  // Send initial heartbeat 
+  api.post("/user/heartbeat").catch((error) => {
+    // Don't log 403 errors to avoid exposing backend URL on public pages
+    if (error.response?.status !== 403) {
+      console.error("Heartbeat error:", error);
+    }
+  });
 };
 
 export const stopHeartbeat = () => {

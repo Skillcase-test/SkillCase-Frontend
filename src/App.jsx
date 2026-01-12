@@ -31,6 +31,7 @@ import Pronounce from "./pages/pronounce/Pronounce";
 import Dashboard from "./dashboard-src/pages/Dashboard";
 import ShortStoryHome from "./pages/ShortStoryHome";
 import StoryPage from "./pages/StoryPage";
+import ThankYouPage from "./pages/ThankYouPage";
 if (typeof global === "undefined") {
   window.global = window;
 }
@@ -95,6 +96,7 @@ function AppContent() {
     "/signup",
     "/register",
     "/open-app",
+    "/thank-you",
     "/internal/lead-form",
   ];
   const isPublicRoute = publicRoutes.some((route) =>
@@ -238,6 +240,7 @@ function AppContent() {
           element={<ConversationPlayer />}
         />
         <Route path="/register" element={<NursingGermanyLanding />} />
+        <Route path="/thank-you" element={<ThankYouPage />} />
         <Route path="/open-app" element={<FallbackPage />} />
         <Route path="/continue" element={<ContinuePractice />} />
         <Route path="/internal/lead-form" element={<InternalLeadForm />} />
@@ -253,6 +256,7 @@ function ConditionalFooter() {
   // Hide footer only on register and internal lead form pages
   const hideFooter =
     location.pathname === "/register" ||
+    location.pathname === "/thank-you" ||
     location.pathname === "/internal/lead-form";
 
   if (hideFooter) return null;
@@ -264,6 +268,7 @@ function ConditionalNav() {
   // Hide navbar completely on register and internal lead form
   const hideNav =
     location.pathname === "/register" ||
+    location.pathname === "/thank-you" ||
     location.pathname === "/internal/lead-form";
 
   // Show minimal navbar (logo only, no links/burger) on auth pages
