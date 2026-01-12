@@ -143,7 +143,7 @@ export default function Navbar({ minimal = false }) {
 
       {/* Mobile Menu Dropdown */}
       {isMenuOpen && (
-        <div className="lg:hidden absolute top-[55px] left-0 right-0 bg-white border-b border-[#efefef] shadow-lg z-40">
+        <div className="lg:hidden absolute left-0 right-0 bg-white border-b border-[#efefef] shadow-lg z-40" style={{ top: 'calc(55px + env(safe-area-inset-top))' }}>
           <nav className="px-4 py-4 space-y-1">
             <Link
               to="/"

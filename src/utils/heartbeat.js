@@ -1,11 +1,21 @@
 import api from "../api/axios";
+import { APP_VERSION } from "../App";
 
 let heartbeatInterval = null;
+
+// Send app version when app opens
+export const sendAppVersion = async () => {
+  try {
+    await api.post("/user/app-version", { appVersion: APP_VERSION });
+  } catch (error) {
+    console.error("Failed to send app version:", error);
+  }
+};
 
 export const startHeartbeat = () => {
   if (heartbeatInterval) return;
 
-  // Send heartbeat every 2 minutes
+  // Send heartbeat every 2 minutes 
   heartbeatInterval = setInterval(async () => {
     try {
       await api.post("/user/heartbeat");

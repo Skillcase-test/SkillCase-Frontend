@@ -36,7 +36,7 @@ if (typeof global === "undefined") {
   window.global = window;
 }
 
-import { startHeartbeat, stopHeartbeat } from "./utils/heartbeat";
+import { startHeartbeat, stopHeartbeat, sendAppVersion } from "./utils/heartbeat";
 
 import "./dashboard-src/css/style.css";
 
@@ -62,7 +62,7 @@ import { initPushNotifications } from "./notifications/pushNotifications";
 import InternalLeadForm from "./pages/InternalLeadForm";
 import ProductTour from "./tour/ProductTour";
 
-const APP_VERSION = "1.0.2";
+export const APP_VERSION = "1.0.2";
 
 function GoogleAnalyticsTracker() {
   const location = useLocation();
@@ -123,6 +123,7 @@ function AppContent() {
   useEffect(() => {
     if (user) {
       startHeartbeat();
+      sendAppVersion();
     } else {
       stopHeartbeat();
     }
