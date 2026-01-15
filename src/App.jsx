@@ -36,7 +36,11 @@ if (typeof global === "undefined") {
   window.global = window;
 }
 
-import { startHeartbeat, stopHeartbeat, sendAppVersion } from "./utils/heartbeat";
+import {
+  startHeartbeat,
+  stopHeartbeat,
+  sendAppVersion,
+} from "./utils/heartbeat";
 
 import "./dashboard-src/css/style.css";
 
@@ -48,6 +52,11 @@ import "./dashboard-src/css/style.css";
 import ConversationSelect from "./pages/ConversationSelect";
 import ConversationPlayer from "./pages/ConversationPlayer";
 import NursingGermanyLanding from "./pages/NursingGermanyLanding";
+
+import AllEventsPage from "./pages/event/AllEventsPage";
+import EventDetailPage from "./pages/event/EventDetailPage";
+import FeaturedEventPage from "./pages/event/FeaturedEventPage";
+import ManageEventsPublic from "./pages/event/ManageEventsPublic";
 
 //fallback page
 import FallbackPage from "./pages/FallbackPage";
@@ -98,6 +107,8 @@ function AppContent() {
     "/open-app",
     "/thank-you",
     "/internal/lead-form",
+    "/manage-event",
+    "/events"
   ];
   const isPublicRoute = publicRoutes.some((route) =>
     location.pathname.startsWith(route)
@@ -245,6 +256,10 @@ function AppContent() {
         <Route path="/open-app" element={<FallbackPage />} />
         <Route path="/continue" element={<ContinuePractice />} />
         <Route path="/internal/lead-form" element={<InternalLeadForm />} />
+        <Route path="/events" element={<AllEventsPage />} />
+        <Route path="/events/featured" element={<FeaturedEventPage />} />
+        <Route path="/events/:slug" element={<EventDetailPage />} />
+        <Route path="/manage-event" element={<ManageEventsPublic />} />
       </Routes>
 
       <ConditionalFooter />
