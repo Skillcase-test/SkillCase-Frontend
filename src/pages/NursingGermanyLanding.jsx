@@ -62,21 +62,21 @@ export default function NursingGermanyLanding() {
       // Store nonce in sessionStorage
       sessionStorage.setItem("thankYouNonce", nonce);
 
-      // Backend submission (triggers WhatsApp)
-      // await fetch(
-      //   "https://skillcase-backend.southeastasia.cloudapp.azure.com/api/leads",
-      //   {
-      //     method: "POST",
-      //     headers: { "Content-Type": "application/json" },
-      //     body: JSON.stringify({
-      //       name: formData.name,
-      //       phone: formData.phone,
-      //       qualification: formData.qualification,
-      //       experience: formData.experience,
-      //       source: "Website",
-      //     }),
-      //   }
-      // );
+      // Submit to Pabbly (triggers WhatsApp drip campaign)
+      await fetch(
+        "https://connect.pabbly.com/workflow/sendwebhookdata/IjU3NjcwNTZkMDYzMDA0MzY1MjY0NTUzMDUxMzIi_pc",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.name,
+            phone: formData.phone,
+            qualification: formData.qualification,
+            experience: formData.experience,
+            source: "Website",
+          }),
+        }
+      );
 
       // Submit to Bigin
       formRef.current.submit();

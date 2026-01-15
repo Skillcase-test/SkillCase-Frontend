@@ -10,9 +10,37 @@ export default function InternalLeadForm() {
 
   const formRef = useRef(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    try {
+      // Get form data
+      const formData = new FormData(formRef.current);
+      
+      // Submit to Pabbly (triggers WhatsApp drip campaign)
+      await fetch(
+        "https://connect.pabbly.com/workflow/sendwebhookdata/IjU3NjcwNTZkMDYzMDA0MzY1MjY0NTUzMDUxMzIi_pc",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.get("Last Name"),
+            phone: formData.get("Mobile"),
+            company: formData.get("Accounts.Account Name"),
+            email: formData.get("Email"),
+            languageLevel: formData.get("CONTACTCF4"),
+            adSet: formData.get("CONTACTCF8"),
+            source: "Internal",
+          }),
+        }
+      );
+    } catch (error) {
+      console.error("Pabbly webhook error:", error);
+      // Continue even if Pabbly fails
+    }
+
+    // Submit to Bigin
     formRef.current.submit();
     setTimeout(() => {
       setIsSubmitting(false);
@@ -203,6 +231,7 @@ export default function InternalLeadForm() {
                   <option value="">-- Select Ad Set --</option>
                   <option value="Inbound">Inbound</option>
                   <option value="Influencer">Influencer</option>
+                  <option value="Referral">Referral</option>
                 </select>
               </div>
 
