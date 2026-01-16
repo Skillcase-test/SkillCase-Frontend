@@ -16,6 +16,7 @@ import {
   RotateCcw,
   AlertTriangle,
   Upload,
+  Copy,
 } from "lucide-react";
 
 // Toast Component
@@ -347,6 +348,7 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
   const [eventDuration, setEventDuration] = useState("60"); // minutes
   const [showEditChoice, setShowEditChoice] = useState(false);
   const [editChoiceEvent, setEditChoiceEvent] = useState(null);
+  const [copiedEventId, setCopiedEventId] = useState(null);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -667,6 +669,15 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
     }
   };
 
+  const handleCopyLink = (event) => {
+    const eventUrl = `${window.location.origin}/events/${event.slug}`;
+    navigator.clipboard.writeText(eventUrl);
+    setCopiedEventId(event.event_id);
+    showToast("Event link copied to clipboard!");
+    setTimeout(() => setCopiedEventId(null), 2000);
+  };
+
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -793,6 +804,21 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleCopyLink(event)}
+                        className={`p-2 rounded-lg transition ${
+                          copiedEventId === event.event_id
+                            ? "text-green-600 bg-green-50"
+                            : "text-gray-600 hover:bg-gray-50"
+                        }`}
+                        title="Copy event link"
+                      >
+                        {copiedEventId === event.event_id ? (
+                          <Check size={18} />
+                        ) : (
+                          <Copy size={18} />
+                        )}
+                      </button>
                       <button
                         onClick={() => handleEditButtonClick(event)}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
