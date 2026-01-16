@@ -194,7 +194,7 @@ export default function EventDetailPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Two-Column Layout */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-[40%_60%] gap-8">
           {/* LEFT COLUMN - Square Image with Grey Bar at Bottom */}
           <div>
@@ -244,7 +244,7 @@ export default function EventDetailPage() {
           {/* RIGHT COLUMN - Event Details */}
           <div className="space-y-5">
             {/* Title */}
-            <h1 className="text-3xl md:text-4xl font-bold text-[#163B72] mb-1">
+            <h1 className="text-[24px] md:text-4xl font-semibold leading-8 md:leading-12 text-[#163B72] mb-1">
               {event?.title}
             </h1>
 
@@ -293,11 +293,11 @@ export default function EventDetailPage() {
               <div className="w-10 h-10 flex items-center justify-center">
                 <img
                   src={googleMeetIcon}
-                  alt="Google Meet"
+                  alt="Meeting Link"
                   className="w-full h-full object-contain"
                 />
               </div>
-              <span className="text-[#163B72] font-medium">Google Meet</span>
+              <span className="text-[#163B72] font-medium">Meeting Link</span>
             </a>
 
             {/* Registration Status */}
