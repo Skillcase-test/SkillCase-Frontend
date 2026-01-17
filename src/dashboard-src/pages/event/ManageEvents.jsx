@@ -1324,14 +1324,19 @@ Leave an empty line for a new paragraph."
                           )}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          {new Date(reg.registered_at).toLocaleString("en-IN", {
-                            year: "numeric",
-                            month: "short",
-                            day: "numeric",
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          })}
+                          {(() => {
+                            const rawDate = new Date(reg.registered_at);
+                            const correctedDate = new Date(rawDate.getTime() - (5.5 * 60 * 60 * 1000));
+                            return correctedDate.toLocaleString("en-IN", {
+                              timeZone: "Asia/Kolkata",
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true,
+                            });
+                          })()}
                         </td>
                       </tr>
                     ))}
