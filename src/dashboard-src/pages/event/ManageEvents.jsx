@@ -1325,7 +1325,6 @@ Leave an empty line for a new paragraph."
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {new Date(reg.registered_at).toLocaleString("en-IN", {
-                            timeZone: "Asia/Kolkata",
                             year: "numeric",
                             month: "short",
                             day: "numeric",
