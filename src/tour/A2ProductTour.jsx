@@ -353,6 +353,7 @@ export default function A2ProductTour({ children }) {
 
     const finishPhase = (phase) => () => {
       markDone(phase);
+      destroyDriver();
       phaseLabelRef.current = null;
       setActiveFeature(null);
       setActivePhase(null);
@@ -369,6 +370,7 @@ export default function A2ProductTour({ children }) {
     const finishPhaseWithSuccess = (phase) => () => {
       markDone(phase);
       showSuccess();
+      destroyDriver();
       phaseLabelRef.current = null;
       setActiveFeature(null);
       setActivePhase(null);
