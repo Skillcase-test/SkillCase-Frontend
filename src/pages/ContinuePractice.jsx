@@ -12,17 +12,28 @@ export default function ContinuePractice() {
       try {
         const res = await api.get("/streak/last-chapter");
         if (res.data?.hasProgress) {
-          const { proficiencyLevel, setId, setName, currentIndex } = res.data;
-          navigate(
-            `/practice/${proficiencyLevel}/${setId}?set_name=${encodeURIComponent(
-              setName
-            )}&start_index=${currentIndex}`,
-            { replace: true }
-          );
+          const { proficiencyLevel, setId, setName, currentIndex, isA2, chapterId } = res.data;
+          
+          // Handle A2 users - redirect to A2 flashcard route
+          if (isA2) {
+            navigate(`/a2/flashcard/${chapterId}`, { replace: true });
+          } else {
+            // A1 users - use original route format
+            navigate(
+              `/practice/${proficiencyLevel}/${setId}?set_name=${encodeURIComponent(
+                setName
+              )}&start_index=${currentIndex}`,
+              { replace: true }
+            );
+          }
         } else {
-          navigate(`/practice/${user?.user_prof_level || "A1"}`, {
-            replace: true,
-          });
+          // No progress - redirect based on user's proficiency level
+          const userLevel = user?.user_prof_level || "A1";
+          if (userLevel.toUpperCase() === "A2") {
+            navigate("/a2/flashcard", { replace: true });
+          } else {
+            navigate(`/practice/${userLevel}`, { replace: true });
+          }
         }
       } catch (err) {
         console.error("Error fetching last chapter:", err);

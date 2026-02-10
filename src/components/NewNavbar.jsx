@@ -30,7 +30,10 @@ export default function Navbar({ minimal = false }) {
   const showNavLinks = !minimal || isAuthenticated;
 
   return (
-    <header className="bg-white border-b border-[#efefef] sticky top-0 z-50 shadow-sm" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <header
+      className="bg-white border-b border-[#efefef] sticky top-0 z-50 shadow-sm"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
       <div className="h-[55px] lg:h-[72px] flex items-center justify-between px-4 lg:px-8 max-w-7xl mx-auto">
         {/* Logo */}
         <Link to="/" className="flex-shrink-0" onClick={hapticMedium}>
@@ -44,42 +47,79 @@ export default function Navbar({ minimal = false }) {
         {/* Desktop Menu - Hidden on mobile, also hidden in minimal mode if not authenticated */}
         {showNavLinks && (
           <nav className="hidden lg:flex items-center gap-6">
-            <Link
-              to={`/practice/${profLevel}`}
-              className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
-            >
-              Flashcards
-            </Link>
-            <Link
-              to={`/pronounce/${profLevel}`}
-              className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
-            >
-              Pronounce
-            </Link>
-            <Link
-              to={`/test/${profLevel}`}
-              className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
-            >
-              Test
-            </Link>
-            <Link
-              to={`/interview/${profLevel}`}
-              className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
-            >
-              Interview
-            </Link>
-            <Link
-              to="/stories"
-              className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
-            >
-              Stories
-            </Link>
-            <Link
-              to="/conversation/A1"
-              className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
-            >
-              Listener
-            </Link>
+            {profLevel === "A2" ? (
+              <>
+                <Link
+                  to="/a2/flashcards"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Flashcards
+                </Link>
+                <Link
+                  to="/a2/grammar"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Grammar
+                </Link>
+                <Link
+                  to="/a2/listening"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Listening
+                </Link>
+                <Link
+                  to="/a2/reading"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Reading
+                </Link>
+                <Link
+                  to="/a2/speaking"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Speaking
+                </Link>
+                <Link
+                  to="/a2/test"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Test
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  to={`/practice/${profLevel}`}
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Flashcards
+                </Link>
+                <Link
+                  to={`/pronounce/${profLevel}`}
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Pronounce
+                </Link>
+                <Link
+                  to={`/test/${profLevel}`}
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Test
+                </Link>
+                <Link
+                  to="/stories"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Stories
+                </Link>
+                <Link
+                  to={`/conversation/${profLevel}`}
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Listener
+                </Link>
+              </>
+            )}
 
             {/* Auth Buttons - Desktop */}
             {isAuthenticated ? (
@@ -143,7 +183,10 @@ export default function Navbar({ minimal = false }) {
 
       {/* Mobile Menu Dropdown */}
       {isMenuOpen && (
-        <div className="lg:hidden absolute left-0 right-0 bg-white border-b border-[#efefef] shadow-lg z-40" style={{ top: 'calc(55px + env(safe-area-inset-top))' }}>
+        <div
+          className="lg:hidden absolute left-0 right-0 bg-white border-b border-[#efefef] shadow-lg z-40"
+          style={{ top: "calc(55px + env(safe-area-inset-top))" }}
+        >
           <nav className="px-4 py-4 space-y-1">
             <Link
               to="/"
@@ -152,41 +195,90 @@ export default function Navbar({ minimal = false }) {
             >
               Home
             </Link>
-            <Link
-              to={`/practice/${profLevel}`}
-              className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Flashcards
-            </Link>
-            <Link
-              to={`/pronounce/${profLevel}`}
-              className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Pronounce
-            </Link>
-            <Link
-              to={`/test/${profLevel}`}
-              className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Test
-            </Link>
-            <Link
-              to="/stories"
-              className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Stories
-            </Link>
-            <Link
-              to={`/conversation/${profLevel}`}
-              className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Listener
-            </Link>
+            {profLevel === "A2" ? (
+              <>
+                <Link
+                  to="/a2/flashcards"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Flashcards
+                </Link>
+                <Link
+                  to="/a2/grammar"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Grammar
+                </Link>
+                <Link
+                  to="/a2/listening"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Listening
+                </Link>
+                <Link
+                  to="/a2/reading"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Reading
+                </Link>
+                <Link
+                  to="/a2/speaking"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Speaking
+                </Link>
+                <Link
+                  to="/a2/test"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Test
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  to={`/practice/${profLevel}`}
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Flashcards
+                </Link>
+                <Link
+                  to={`/pronounce/${profLevel}`}
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Pronounce
+                </Link>
+                <Link
+                  to={`/test/${profLevel}`}
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Test
+                </Link>
+                <Link
+                  to="/stories"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Stories
+                </Link>
+                <Link
+                  to={`/conversation/${profLevel}`}
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Listener
+                </Link>
+              </>
+            )}
 
             {/* Divider */}
             <div className="border-t border-[#efefef] my-2"></div>

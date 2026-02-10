@@ -474,3 +474,70 @@
     opacity: 1;
   }
 }
+
+/* A2 TOUR TAP OVERLAY */
+.a2-tap-overlay-injected {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: 12px;
+  pointer-events: none;
+  z-index: 100010;
+}
+
+.a2-tap-overlay-ring {
+  width: 56px;
+  height: 56px;
+  border: 3px solid #002856;
+  border-radius: 50%;
+  animation: a2-tap-ring-pulse 1.5s infinite ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 40, 86, 0.06);
+}
+
+.a2-tap-overlay-ring .a2-tap-emoji {
+  font-size: 24px;
+  animation: a2-tap-bounce 1.5s infinite ease-in-out;
+}
+
+.a2-tap-overlay-label {
+  background: #002856;
+  color: white;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 40, 86, 0.3);
+}
+
+@keyframes a2-tap-ring-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 40, 86, 0.4);
+  }
+
+  50% {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 10px rgba(0, 40, 86, 0);
+  }
+}
+
+@keyframes a2-tap-bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-3px);
+  }
+}

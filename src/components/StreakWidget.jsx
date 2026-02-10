@@ -41,7 +41,10 @@ export default function StreakWidget() {
   if (loading) {
     return (
       <div className="px-4 py-4">
-        <div id="streak-widget" className="bg-[#002856] shadow-xl border border-slate-100 rounded-2xl p-5 flex items-center justify-between">
+        <div
+          id="streak-widget"
+          className="bg-[#002856] shadow-xl border border-slate-100 rounded-2xl p-5 flex items-center justify-between"
+        >
           <div className="flex items-center gap-3 animate-pulse">
             <div className="w-10 h-10 bg-gray-400 rounded-full" />
             <div>
@@ -58,20 +61,35 @@ export default function StreakWidget() {
     );
   }
 
-  // Build continue link
-  let continueLink = user?.user_prof_level
-    ? `/practice/${user.user_prof_level}`
-    : "/practice/A1";
+  // Build continue link - handle A2 vs A1 default routing
+  const profLevel = user?.user_prof_level?.toUpperCase() || "A1";
+  let continueLink =
+    profLevel === "A2"
+      ? "/a2/flashcard" // A2 default
+      : `/practice/${profLevel}`; // A1 default
 
-  if (lastChapter?.setId) {
-    continueLink = `/practice/${lastChapter.proficiencyLevel}/${
-      lastChapter.setId
-    }?set_name=${encodeURIComponent(lastChapter.setName)}&start_index=${lastChapter.currentIndex}`;
+  if (lastChapter?.hasProgress) {
+    if (lastChapter.isA2) {
+      // A2 user with progress - route to specific chapter at last unflipped card
+      continueLink = `/a2/flashcard/${lastChapter.chapterId}?start_index=${
+        lastChapter.currentIndex || 0
+      }`;
+    } else if (lastChapter.setId) {
+      // A1 user - route to A1 practice
+      continueLink = `/practice/${lastChapter.proficiencyLevel}/${
+        lastChapter.setId
+      }?set_name=${encodeURIComponent(lastChapter.setName)}&start_index=${
+        lastChapter.currentIndex
+      }`;
+    }
   }
 
   return (
     <Link to={continueLink} onClick={hapticMedium} className="block px-4 py-4">
-      <div id="streak-widget" className="bg-[#002856] shadow-xl border border-slate-100 rounded-2xl p-5 flex items-center justify-between hover:shadow-2xl transition-shadow cursor-pointer">
+      <div
+        id="streak-widget"
+        className="bg-[#002856] shadow-xl border border-slate-100 rounded-2xl p-5 flex items-center justify-between hover:shadow-2xl transition-shadow cursor-pointer"
+      >
         {/* Left Side - Streak */}
         <div className="flex items-center gap-3">
           <Flame className="w-10 h-10 text-orange-400" />

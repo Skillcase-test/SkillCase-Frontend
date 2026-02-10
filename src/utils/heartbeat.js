@@ -1,10 +1,16 @@
 import api from "../api/axios";
 import { APP_VERSION } from "../App";
+import { Capacitor } from "@capacitor/core";
 
 let heartbeatInterval = null;
 
-// Send app version when app opens
+// Send app version when app opens - ONLY for native mobile app
 export const sendAppVersion = async () => {
+  // Only send app version from native mobile app, not from web
+  if (!Capacitor.isNativePlatform()) {
+    return;
+  }
+
   try {
     await api.post("/user/app-version", { appVersion: APP_VERSION });
   } catch (error) {
@@ -15,7 +21,7 @@ export const sendAppVersion = async () => {
 export const startHeartbeat = () => {
   if (heartbeatInterval) return;
 
-  // Send heartbeat every 2 minutes 
+  // Send heartbeat every 2 minutes
   heartbeatInterval = setInterval(async () => {
     try {
       await api.post("/user/heartbeat");
@@ -27,7 +33,7 @@ export const startHeartbeat = () => {
     }
   }, 120000); // 2 minutes
 
-  // Send initial heartbeat 
+  // Send initial heartbeat
   api.post("/user/heartbeat").catch((error) => {
     // Don't log 403 errors to avoid exposing backend URL on public pages
     if (error.response?.status !== 403) {

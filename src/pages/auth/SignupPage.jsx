@@ -10,6 +10,7 @@ import { loginSuccess } from "../../redux/auth/authSlice";
 
 import api from "../../api/axios";
 import { hapticMedium } from "../../utils/haptics";
+import { Capacitor } from "@capacitor/core";
 
 import OtpInput from "./components/OtpInput";
 import CustomDropdown from "./components/CustomDropdown";
@@ -283,6 +284,7 @@ const SignupPage = () => {
         qualification: formData.qualification,
         language_level: formData.language_level,
         experience: formData.experience,
+        signup_source: Capacitor.isNativePlatform() ? "app" : "web",
       });
 
       if (response.data.status === "success") {

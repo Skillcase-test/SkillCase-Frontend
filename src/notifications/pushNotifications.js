@@ -1,5 +1,6 @@
 import { PushNotifications } from "@capacitor/push-notifications";
 import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 import api from "../api/axios";
 
 export const initPushNotifications = async () => {
@@ -33,10 +34,28 @@ export const initPushNotifications = async () => {
       await handleNotificationOpen(action.notification);
 
       const deepLink = action.notification.data?.deepLink;
+      const isExternal = action.notification.data?.isExternal === "true";
+
       if (deepLink) {
-        window.location.href = deepLink;
+        if (
+          isExternal ||
+          deepLink.startsWith("http://") ||
+          deepLink.startsWith("https://")
+        ) {
+          // Open external links in browser
+          try {
+            await Browser.open({ url: deepLink });
+          } catch (err) {
+            console.error("Failed to open browser:", err);
+            // Fallback to in-app navigation
+            window.location.href = deepLink;
+          }
+        } else {
+          // In-app navigation
+          window.location.href = deepLink;
+        }
       }
-    }
+    },
   );
 };
 

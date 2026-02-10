@@ -220,7 +220,11 @@ function DashboardCard07() {
                         </div>
                       </td>
                       <td className="px-2 first:pl-5 last:pr-5 py-3 whitespace-nowrap">
-                        <div className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100  text-blue-600 ">
+                        <div className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
+                          user.current_profeciency_level?.toUpperCase() === "A2"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-blue-100 text-blue-600"
+                        }`}>
                           {user.current_profeciency_level}
                         </div>
                       </td>
@@ -311,10 +315,33 @@ function DashboardCard07() {
                                                   : activity.activity_type ===
                                                     "conversation"
                                                   ? "bg-green-100 text-green-600"
-                                                  : "bg-purple-100 text-purple-600"
+                                                  : activity.activity_type ===
+                                                    "story"
+                                                  ? "bg-purple-100 text-purple-600"
+                                                  : activity.activity_type ===
+                                                    "a2_flashcard"
+                                                  ? "bg-sky-100 text-sky-700"
+                                                  : activity.activity_type ===
+                                                    "a2_grammar"
+                                                  ? "bg-emerald-100 text-emerald-700"
+                                                  : activity.activity_type ===
+                                                    "a2_listening"
+                                                  ? "bg-teal-100 text-teal-700"
+                                                  : activity.activity_type ===
+                                                    "a2_speaking"
+                                                  ? "bg-cyan-100 text-cyan-700"
+                                                  : activity.activity_type ===
+                                                    "a2_reading"
+                                                  ? "bg-indigo-100 text-indigo-700"
+                                                  : activity.activity_type ===
+                                                    "a2_test"
+                                                  ? "bg-rose-100 text-rose-700"
+                                                  : "bg-gray-100 text-gray-600"
                                               }`}
                                             >
-                                              {activity.activity_type}
+                                              {activity.activity_type.startsWith("a2_")
+                                                ? `A2 ${activity.activity_type.replace("a2_", "").charAt(0).toUpperCase() + activity.activity_type.replace("a2_", "").slice(1)}`
+                                                : activity.activity_type.charAt(0).toUpperCase() + activity.activity_type.slice(1)}
                                             </span>
                                           </td>
                                           <td className="px-3 py-2 font-medium text-gray-800">
