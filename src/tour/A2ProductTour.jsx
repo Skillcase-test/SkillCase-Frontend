@@ -388,7 +388,7 @@ export default function A2ProductTour({ children }) {
         steps = getA2FlashcardSelectSteps();
         opts = {
           onComplete: finishPhase("flashcard_select"),
-          onClose: skipPhase,
+          onClose: finishPhase("flashcard_select"),
         };
         break;
 
@@ -397,7 +397,7 @@ export default function A2ProductTour({ children }) {
         // Completion via tour:a2FlashcardRevealed event; close = skip this feature tour
         opts = {
           onComplete: finishPhase("flashcard_practice"),
-          onClose: skipPhase,
+          onClose: finishPhase("flashcard_practice"),
         };
         break;
 
@@ -405,7 +405,7 @@ export default function A2ProductTour({ children }) {
         steps = getA2GrammarSelectSteps();
         opts = {
           onComplete: finishPhase("grammar_select"),
-          onClose: skipPhase,
+          onClose: finishPhase("grammar_select"),
         };
         break;
 
@@ -414,7 +414,7 @@ export default function A2ProductTour({ children }) {
         // Completion via tour:a2GrammarStartPractice event; close = skip
         opts = {
           onComplete: finishPhase("grammar"),
-          onClose: skipPhase,
+          onClose: finishPhase("grammar"),
         };
         break;
 
@@ -422,7 +422,7 @@ export default function A2ProductTour({ children }) {
         steps = getA2ListeningSelectSteps();
         opts = {
           onComplete: finishPhase("listening_select"),
-          onClose: skipPhase,
+          onClose: finishPhase("listening_select"),
         };
         break;
 
@@ -432,7 +432,7 @@ export default function A2ProductTour({ children }) {
         // Close = skip this feature tour
         opts = {
           onComplete: finishPhase("listening"),
-          onClose: skipPhase,
+          onClose: finishPhase("listening"),
         };
         break;
 
@@ -440,7 +440,7 @@ export default function A2ProductTour({ children }) {
         steps = getA2SpeakingSelectSteps();
         opts = {
           onComplete: finishPhase("speaking_select"),
-          onClose: skipPhase,
+          onClose: finishPhase("speaking_select"),
         };
         break;
 
@@ -457,7 +457,7 @@ export default function A2ProductTour({ children }) {
               }),
             );
           },
-          onClose: skipPhase,
+          onClose: finishPhase("speaking"),
         };
         break;
 
@@ -465,7 +465,7 @@ export default function A2ProductTour({ children }) {
         steps = getA2ReadingSelectSteps();
         opts = {
           onComplete: finishPhase("reading_select"),
-          onClose: skipPhase,
+          onClose: finishPhase("reading_select"),
         };
         break;
 
@@ -474,7 +474,7 @@ export default function A2ProductTour({ children }) {
         // Completion via tour:a2ReadingQuiz event; close = skip
         opts = {
           onComplete: finishPhase("reading"),
-          onClose: skipPhase,
+          onClose: finishPhase("reading"),
         };
         break;
 
@@ -482,7 +482,7 @@ export default function A2ProductTour({ children }) {
         steps = getA2TestSelectSteps();
         opts = {
           onComplete: finishPhase("test_select"),
-          onClose: skipPhase,
+          onClose: finishPhase("test_select"),
         };
         break;
 
@@ -490,7 +490,7 @@ export default function A2ProductTour({ children }) {
         steps = getA2TestLevelSteps();
         opts = {
           onComplete: finishPhaseWithSuccess("test_level"),
-          onClose: skipPhase,
+          onClose: finishPhase("test_level"),
         };
         break;
 
