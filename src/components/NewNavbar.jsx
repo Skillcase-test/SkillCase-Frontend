@@ -50,7 +50,7 @@ export default function Navbar({ minimal = false }) {
             {profLevel === "A2" ? (
               <>
                 <Link
-                  to="/a2/flashcards"
+                  to="/a2/flashcard"
                   className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
                 >
                   Flashcards
@@ -198,7 +198,7 @@ export default function Navbar({ minimal = false }) {
             {profLevel === "A2" ? (
               <>
                 <Link
-                  to="/a2/flashcards"
+                  to="/a2/flashcard"
                   className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
                   onClick={() => setIsMenuOpen(false)}
                 >
