@@ -52,7 +52,7 @@ const parseMarkdown = (text) => {
               {processInlineFormatting(item)}
             </li>
           ))}
-        </ul>
+        </ul>,
       );
       listItems = [];
     }
@@ -61,9 +61,18 @@ const parseMarkdown = (text) => {
 
   const flushTable = (key) => {
     if (tableRows.length > 0) {
-      const headers = tableRows[0];
-      const dataRows = tableRows.slice(2); // Skip header separator
-      
+      // Filter out null separator rows
+      const validRows = tableRows.filter((row) => row !== null);
+
+      if (validRows.length === 0) {
+        tableRows = [];
+        inTable = false;
+        return;
+      }
+
+      const headers = validRows[0];
+      const dataRows = validRows.slice(1); // Skip header, all data rows
+
       elements.push(
         <div key={key} className="overflow-x-auto my-4">
           <table className="min-w-full border border-gray-200 rounded-lg overflow-hidden">
@@ -78,9 +87,15 @@ const parseMarkdown = (text) => {
             </thead>
             <tbody>
               {dataRows.map((row, rowIdx) => (
-                <tr key={rowIdx} className={rowIdx % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+                <tr
+                  key={rowIdx}
+                  className={rowIdx % 2 === 0 ? "bg-gray-50" : "bg-white"}
+                >
                   {row.map((cell, cellIdx) => (
-                    <td key={cellIdx} className="px-4 py-2 border-t border-gray-200">
+                    <td
+                      key={cellIdx}
+                      className="px-4 py-2 border-t border-gray-200"
+                    >
                       {processInlineFormatting(cell.trim())}
                     </td>
                   ))}
@@ -88,7 +103,7 @@ const parseMarkdown = (text) => {
               ))}
             </tbody>
           </table>
-        </div>
+        </div>,
       );
       tableRows = [];
     }
@@ -102,12 +117,10 @@ const parseMarkdown = (text) => {
     if (trimmedLine.startsWith("|") && trimmedLine.endsWith("|")) {
       if (inList) flushList(`list-${i}`);
       inTable = true;
-      const cells = trimmedLine.slice(1, -1).split("|");
-      // Skip separator rows
+      // Skip separator rows (e.g., |---|---|)
       if (!trimmedLine.includes("---")) {
+        const cells = trimmedLine.slice(1, -1).split("|");
         tableRows.push(cells);
-      } else {
-        tableRows.push(null); // Placeholder for separator
       }
       return;
     } else if (inTable) {
@@ -126,12 +139,9 @@ const parseMarkdown = (text) => {
     // Headers
     if (trimmedLine.startsWith("### ")) {
       elements.push(
-        <h3
-          key={i}
-          className="text-lg font-semibold text-[#002856] mt-5 mb-2"
-        >
+        <h3 key={i} className="text-lg font-semibold text-[#002856] mt-5 mb-2">
           {trimmedLine.slice(4)}
-        </h3>
+        </h3>,
       );
     } else if (trimmedLine.startsWith("## ")) {
       elements.push(
@@ -140,13 +150,13 @@ const parseMarkdown = (text) => {
           className="text-xl font-semibold text-[#002856] mt-6 mb-3 border-b border-[#E5E7EB] pb-2"
         >
           {trimmedLine.slice(3)}
-        </h2>
+        </h2>,
       );
     } else if (trimmedLine.startsWith("# ")) {
       elements.push(
         <h1 key={i} className="text-2xl font-bold text-[#002856] mb-4">
           {trimmedLine.slice(2)}
-        </h1>
+        </h1>,
       );
     }
     // Empty lines
@@ -158,7 +168,7 @@ const parseMarkdown = (text) => {
       elements.push(
         <p key={i} className="text-[#181d27] leading-relaxed mb-3">
           {processInlineFormatting(trimmedLine)}
-        </p>
+        </p>,
       );
     }
   });

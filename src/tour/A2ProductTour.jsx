@@ -358,6 +358,14 @@ export default function A2ProductTour({ children }) {
       setActivePhase(null);
     };
 
+    const skipPhase = () => {
+      // Skip without marking as done
+      destroyDriver();
+      phaseLabelRef.current = null;
+      setActiveFeature(null);
+      setActivePhase(null);
+    };
+
     const finishPhaseWithSuccess = (phase) => () => {
       markDone(phase);
       showSuccess();
@@ -378,41 +386,62 @@ export default function A2ProductTour({ children }) {
 
       case "flashcard:select":
         steps = getA2FlashcardSelectSteps();
-        opts = { onComplete: finishPhase("flashcard_select") };
+        opts = {
+          onComplete: finishPhase("flashcard_select"),
+          onClose: skipPhase,
+        };
         break;
 
       case "flashcard:practice":
         steps = getA2FlashcardPracticeSteps();
         // Completion via tour:a2FlashcardRevealed event; close = skip this feature tour
-        opts = { onComplete: finishPhase("flashcard_practice") };
+        opts = {
+          onComplete: finishPhase("flashcard_practice"),
+          onClose: skipPhase,
+        };
         break;
 
       case "grammar:select":
         steps = getA2GrammarSelectSteps();
-        opts = { onComplete: finishPhase("grammar_select") };
+        opts = {
+          onComplete: finishPhase("grammar_select"),
+          onClose: skipPhase,
+        };
         break;
 
       case "grammar:explanation":
         steps = getA2GrammarExplanationSteps();
         // Completion via tour:a2GrammarStartPractice event; close = skip
-        opts = { onComplete: finishPhase("grammar") };
+        opts = {
+          onComplete: finishPhase("grammar"),
+          onClose: skipPhase,
+        };
         break;
 
       case "listening:select":
         steps = getA2ListeningSelectSteps();
-        opts = { onComplete: finishPhase("listening_select") };
+        opts = {
+          onComplete: finishPhase("listening_select"),
+          onClose: skipPhase,
+        };
         break;
 
       case "listening:content":
         steps = getA2ListeningSteps();
         // Multi-step event chain: play → subtitle → area → continue
         // Close = skip this feature tour
-        opts = { onComplete: finishPhase("listening") };
+        opts = {
+          onComplete: finishPhase("listening"),
+          onClose: skipPhase,
+        };
         break;
 
       case "speaking:select":
         steps = getA2SpeakingSelectSteps();
-        opts = { onComplete: finishPhase("speaking_select") };
+        opts = {
+          onComplete: finishPhase("speaking_select"),
+          onClose: skipPhase,
+        };
         break;
 
       case "speaking:practice":
@@ -428,28 +457,41 @@ export default function A2ProductTour({ children }) {
               }),
             );
           },
+          onClose: skipPhase,
         };
         break;
 
       case "reading:select":
         steps = getA2ReadingSelectSteps();
-        opts = { onComplete: finishPhase("reading_select") };
+        opts = {
+          onComplete: finishPhase("reading_select"),
+          onClose: skipPhase,
+        };
         break;
 
       case "reading:content":
         steps = getA2ReadingSteps();
         // Completion via tour:a2ReadingQuiz event; close = skip
-        opts = { onComplete: finishPhase("reading") };
+        opts = {
+          onComplete: finishPhase("reading"),
+          onClose: skipPhase,
+        };
         break;
 
       case "test:select":
         steps = getA2TestSelectSteps();
-        opts = { onComplete: finishPhase("test_select") };
+        opts = {
+          onComplete: finishPhase("test_select"),
+          onClose: skipPhase,
+        };
         break;
 
       case "test:level":
         steps = getA2TestLevelSteps();
-        opts = { onComplete: finishPhaseWithSuccess("test_level") };
+        opts = {
+          onComplete: finishPhaseWithSuccess("test_level"),
+          onClose: skipPhase,
+        };
         break;
 
       default:
