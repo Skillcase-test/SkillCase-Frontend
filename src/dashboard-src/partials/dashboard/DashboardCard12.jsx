@@ -138,7 +138,7 @@ function DashboardCard12() {
 
         <div className="flex items-center gap-1 mt-3">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-xs text-gray-400">Updates every 10s</span>
+          <span className="text-xs text-gray-400">Updates every 60s</span>
         </div>
       </div>
     </div>
