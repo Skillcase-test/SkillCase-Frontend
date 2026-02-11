@@ -14,10 +14,10 @@ function DashboardCard12() {
     // Initial fetch
     fetchActiveUsers();
 
-    // Auto-refresh every 10 seconds
+    // Auto-refresh every 60 seconds to reduce database load
     const interval = setInterval(() => {
       fetchActiveUsers();
-    }, 10000);
+    }, 60000);
 
     return () => clearInterval(interval);
   }, []);

@@ -21,7 +21,7 @@ export const sendAppVersion = async () => {
 export const startHeartbeat = () => {
   if (heartbeatInterval) return;
 
-  // Send heartbeat every 2 minutes
+  // Send heartbeat every 5 minutes to reduce database wake-ups
   heartbeatInterval = setInterval(async () => {
     try {
       await api.post("/user/heartbeat");
@@ -31,7 +31,7 @@ export const startHeartbeat = () => {
         console.error("Heartbeat error:", error);
       }
     }
-  }, 120000); // 2 minutes
+  }, 300000); // 5 minutes
 
   // Send initial heartbeat
   api.post("/user/heartbeat").catch((error) => {
