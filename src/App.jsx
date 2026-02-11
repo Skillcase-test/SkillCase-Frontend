@@ -156,6 +156,7 @@ function AppContent() {
 
   useEffect(() => {
     if (user) {
+      // Start heartbeat for all users, but it only sends when dashboard is active
       startHeartbeat();
       sendAppVersion();
     } else {
