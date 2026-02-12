@@ -17,10 +17,10 @@ export default function InternalLeadForm() {
     try {
       // Get form data
       const formData = new FormData(formRef.current);
-      
+
       // Submit to Pabbly (triggers WhatsApp drip campaign)
       await fetch(
-        "https://connect.pabbly.com/workflow/sendwebhookdata/IjU3NjcwNTZkMDYzMDA0MzY1MjY0NTUzMDUxMzIi_pc",
+        "https://connect.pabbly.com/workflow/sendwebhookdata/IjU3NjcwNTZjMDYzMTA0MzU1MjZlNTUzMzUxMzUi_pc",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -33,7 +33,7 @@ export default function InternalLeadForm() {
             adSet: formData.get("CONTACTCF8"),
             source: "Internal",
           }),
-        }
+        },
       );
     } catch (error) {
       console.error("Pabbly webhook error:", error);

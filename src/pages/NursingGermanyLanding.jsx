@@ -30,7 +30,7 @@ export default function NursingGermanyLanding() {
           }
         });
       },
-      { threshold: 0.2 }
+      { threshold: 0.2 },
     );
     benefitsRef.current.forEach((el) => {
       if (el) observer.observe(el);
@@ -64,7 +64,7 @@ export default function NursingGermanyLanding() {
 
       // Submit to Pabbly (triggers WhatsApp drip campaign)
       await fetch(
-        "https://connect.pabbly.com/workflow/sendwebhookdata/IjU3NjcwNTZkMDYzMDA0MzY1MjY0NTUzMDUxMzIi_pc",
+        "https://connect.pabbly.com/workflow/sendwebhookdata/IjU3NjcwNTZjMDYzMTA0MzU1MjZlNTUzMzUxMzUi_pc",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -75,7 +75,7 @@ export default function NursingGermanyLanding() {
             experience: formData.experience,
             source: "Website",
           }),
-        }
+        },
       );
 
       // Submit to Bigin
