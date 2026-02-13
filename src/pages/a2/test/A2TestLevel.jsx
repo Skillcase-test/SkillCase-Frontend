@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
+import api from "../../../api/axios";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
@@ -17,6 +19,9 @@ export default function A2TestLevel() {
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const [streakInfo, setStreakInfo] = useState({ streakDays: 0 });
+
   useEffect(() => {
     const fetchProgress = async () => {
       try {
@@ -31,6 +36,22 @@ export default function A2TestLevel() {
     };
     fetchProgress();
   }, [topicId]);
+
+  useEffect(() => {
+    const raw = sessionStorage.getItem("streak_test_completed");
+    if (raw) {
+      sessionStorage.removeItem("streak_test_completed");
+      try {
+        const data = JSON.parse(raw);
+        setStreakInfo({ streakDays: data.streakDays || 1 });
+        setShowStreakCelebration(true);
+      } catch {
+        // Fallback: if parse fails, still show celebration
+        setStreakInfo({ streakDays: 1 });
+        setShowStreakCelebration(true);
+      }
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -95,8 +116,8 @@ export default function A2TestLevel() {
                   isCompleted
                     ? "border-green-500 bg-green-50"
                     : isCurrent
-                    ? "border-[#002856] bg-[#edfaff]"
-                    : "border-gray-200 opacity-60"
+                      ? "border-[#002856] bg-[#edfaff]"
+                      : "border-gray-200 opacity-60"
                 }`}
               >
                 <div
@@ -104,8 +125,8 @@ export default function A2TestLevel() {
                     isCompleted
                       ? "bg-green-500 text-white"
                       : isCurrent
-                      ? "bg-[#002856] text-white"
-                      : "bg-gray-200 text-gray-500"
+                        ? "bg-[#002856] text-white"
+                        : "bg-gray-200 text-gray-500"
                   }`}
                 >
                   {level}
@@ -116,8 +137,8 @@ export default function A2TestLevel() {
                     {isCompleted
                       ? "Completed - Tap to Review"
                       : isCurrent
-                      ? "Current Level"
-                      : "Locked"}
+                        ? "Current Level"
+                        : "Locked"}
                   </p>
                 </div>
                 {isCompleted ? (
@@ -145,6 +166,12 @@ export default function A2TestLevel() {
           </div>
         )}
       </div>
+
+      <StreakCelebrationModal
+        showStreakCelebration={showStreakCelebration}
+        setShowStreakCelebration={setShowStreakCelebration}
+        streakInfo={streakInfo}
+      />
     </div>
   );
 }

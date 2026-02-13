@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
@@ -32,6 +32,10 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+import api from "../../../api/axios";
+import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
+import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
+
 // Drag-and-drop sentence ordering components
 function WordItem({ word, isDragging, isOverlay }) {
   return (
@@ -40,8 +44,8 @@ function WordItem({ word, isDragging, isOverlay }) {
         isOverlay
           ? "bg-[#002856] text-white shadow-2xl scale-110 cursor-grabbing z-50"
           : isDragging
-          ? "opacity-30 scale-95 bg-gray-200"
-          : "bg-white text-[#002856] border-2 border-[#002856] shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
+            ? "opacity-30 scale-95 bg-gray-200"
+            : "bg-white text-[#002856] border-2 border-[#002856] shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
       }`}
     >
       {word}
@@ -205,6 +209,41 @@ export default function A2Reading() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
 
+  // --- Streak tracking ---
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const [dailyGoalReached, setDailyGoalReached] = useState(false);
+  const [streakInfo, setStreakInfo] = useState({
+    todayFlashcards: 0,
+    dailyGoal: 20,
+    streakDays: 0,
+  });
+
+  const [localStreakCount, setLocalStreakCount] = useState(0);
+
+  useEffect(() => {
+    if (!user?.user_id) return;
+    api
+      .get("/streak")
+      .then((res) => {
+        if (res.data) {
+          setStreakInfo((p) => ({
+            ...p,
+            todayFlashcards: res.data.todayPoints,
+            dailyGoal: res.data.dailyGoal,
+            streakDays: res.data.currentStreak,
+          }));
+          setLocalStreakCount(res.data.todayPoints);
+          if (res.data.dailyGoalMet) setDailyGoalReached(true);
+        }
+      })
+      .catch((err) => console.error(err));
+  }, [user?.user_id]);
+
+  const handleStreakComplete = useCallback(() => {
+    setDailyGoalReached(true);
+    setShowStreakCelebration(true);
+  }, []);
+
   const currentContent = contentList[currentIndex];
   useEffect(() => {
     if (!user) {
@@ -256,9 +295,32 @@ export default function A2Reading() {
   };
   const handleAnswer = (qIdx, answer) =>
     setAnswers({ ...answers, [qIdx]: answer });
+
   const handleSubmitQuiz = () => {
     setShowAnswers(true);
+    // Streak: +1 per question attempted
+    const questionCount = currentContent?.questions?.length || 0;
+    if (questionCount > 0) {
+      setLocalStreakCount((prev) => prev + questionCount);
+      api
+        .post("/streak/log", { points: questionCount })
+        .then((streakRes) => {
+          if (streakRes.data.streakUpdated) {
+            setStreakInfo({
+              todayFlashcards: streakRes.data.todayPoints,
+              dailyGoal: streakRes.data.dailyGoal,
+              streakDays: streakRes.data.currentStreak || 1,
+            });
+            setDailyGoalReached(true);
+            setShowStreakCelebration(true);
+          }
+        })
+        .catch(() =>
+          setLocalStreakCount((prev) => Math.max(0, prev - questionCount)),
+        );
+    }
   };
+
   const handleTryAgain = () => {
     setAnswers({});
     setShowAnswers(false);
@@ -504,10 +566,10 @@ export default function A2Reading() {
                                     showAnswers && isCorrectOpt
                                       ? "border-green-500 bg-green-500"
                                       : showAnswers && isSelected
-                                      ? "border-red-500 bg-red-500"
-                                      : isSelected
-                                      ? "border-[#002856] bg-[#002856]"
-                                      : "border-gray-300"
+                                        ? "border-red-500 bg-red-500"
+                                        : isSelected
+                                          ? "border-[#002856] bg-[#002856]"
+                                          : "border-gray-300"
                                   }`}
                                 >
                                   {isSelected && (
@@ -683,10 +745,10 @@ export default function A2Reading() {
                                     showAnswers && isCorrectOpt
                                       ? "border-green-500 bg-green-500"
                                       : showAnswers && isSelected
-                                      ? "border-red-500 bg-red-500"
-                                      : isSelected
-                                      ? "border-[#002856] bg-[#002856]"
-                                      : "border-gray-300"
+                                        ? "border-red-500 bg-red-500"
+                                        : isSelected
+                                          ? "border-[#002856] bg-[#002856]"
+                                          : "border-gray-300"
                                   }`}
                                 >
                                   {(isSelected ||
@@ -842,6 +904,21 @@ export default function A2Reading() {
           </>
         )}
       </div>
+
+      <StreakCelebrationModal
+        showStreakCelebration={showStreakCelebration}
+        setShowStreakCelebration={setShowStreakCelebration}
+        streakInfo={streakInfo}
+      />
+      {!showStreakCelebration &&
+        !dailyGoalReached &&
+        localStreakCount <= streakInfo.dailyGoal && (
+          <FloatingStreakCounter
+            current={localStreakCount}
+            target={streakInfo.dailyGoal}
+            onComplete={handleStreakComplete}
+          />
+        )}
     </div>
   );
 }

@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import api from "../../api/axios";
+import FloatingStreakCounter from "../../components/FloatingStreakCounter";
+import StreakCelebrationModal from "../../components/StreakCelebrationModal";
 import Navbar from "../../components/Navbar";
 // Local imports
 import CardDeck from "./components/CardDeck";
@@ -20,16 +22,52 @@ const Pronounce = () => {
   const { prof_level, pronounce_id } = useParams();
   const [searchParams] = useSearchParams();
   const pronounce_name = searchParams.get("pronounce_name");
-  
+
   // Detect if we're in tour mode for pronunciation practice
   const isTourMode = isTourActive && tourPage === TOUR_PAGES.PRONOUNCE_PRACTICE;
-  
+
   // Data states
   const [flashcardSet, setFlashcardSet] = useState([]);
   const [currentCard, setCurrentCard] = useState(0);
   const [deckRotation, setDeckRotation] = useState(0);
   const [isCompleted, setIsCompleted] = useState(false);
   const [buttonSwipeDirection, setButtonSwipeDirection] = useState(null);
+
+  // --- Streak tracking ---
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const [dailyGoalReached, setDailyGoalReached] = useState(false);
+  const [streakInfo, setStreakInfo] = useState({
+    todayFlashcards: 0,
+    dailyGoal: 20,
+    streakDays: 0,
+  });
+
+  const [localStreakCount, setLocalStreakCount] = useState(0);
+  const recordedCardsRef = useRef(new Set());
+
+  // Fetch initial streak data
+  useEffect(() => {
+    if (!user?.user_id) return;
+    api
+      .get("/streak")
+      .then((res) => {
+        if (res.data) {
+          setStreakInfo((prev) => ({
+            ...prev,
+            todayFlashcards: res.data.todayPoints,
+            dailyGoal: res.data.dailyGoal,
+            streakDays: res.data.currentStreak,
+          }));
+          setLocalStreakCount(res.data.todayPoints);
+          if (res.data.dailyGoalMet) setDailyGoalReached(true);
+        }
+      })
+      .catch((err) => console.error(err));
+  }, [user?.user_id]);
+  const handleStreakComplete = useCallback(() => {
+    setDailyGoalReached(true);
+    setShowStreakCelebration(true);
+  }, []);
 
   const [loading, setLoading] = useState(true);
 
@@ -116,38 +154,64 @@ const Pronounce = () => {
     e.stopPropagation();
     if (flashcardSet[currentCard]?.back_content) {
       speakText(flashcardSet[currentCard].back_content, "de-DE");
-      
+
       // Dispatch tour event when user listens (step 0 -> step 1)
       if (isTourMode) {
-        window.dispatchEvent(new CustomEvent("tour:pronounceStep", { detail: { step: 1 } }));
+        window.dispatchEvent(
+          new CustomEvent("tour:pronounceStep", { detail: { step: 1 } }),
+        );
       }
     }
   };
-  
+
   const handleStartRecording = () => {
     startRecording();
-    
+
     // Dispatch tour event when user starts recording (step 1 -> step 2)
     if (isTourMode) {
-      window.dispatchEvent(new CustomEvent("tour:pronounceStep", { detail: { step: 2 } }));
+      window.dispatchEvent(
+        new CustomEvent("tour:pronounceStep", { detail: { step: 2 } }),
+      );
     }
   };
-  
+
   const handleStopRecording = () => {
     stopRecording(flashcardSet[currentCard]?.back_content);
-    
-    // Dispatch tour event when user stops recording (step 2 -> step 3)
-    if (isTourMode) {
-      window.dispatchEvent(new CustomEvent("tour:pronounceStep", { detail: { step: 3 } }));
+    if (isTourMode && localPronounceStep === 2) {
+      setLocalPronounceStep(3);
+      window.dispatchEvent(
+        new CustomEvent("tour:pronounceStep", { detail: { step: 3 } }),
+      );
+    }
+
+    // Streak: +1 point per recording (only first recording per card)
+    if (user?.user_id && !recordedCardsRef.current.has(currentCard)) {
+      recordedCardsRef.current.add(currentCard);
+      setLocalStreakCount((prev) => prev + 1);
+      api
+        .post("/streak/log", { points: 1 })
+        .then((res) => {
+          if (res.data.streakUpdated) {
+            setStreakInfo({
+              todayFlashcards: res.data.todayPoints,
+              dailyGoal: res.data.dailyGoal,
+              streakDays: res.data.currentStreak || 1,
+            });
+            setDailyGoalReached(true);
+            setShowStreakCelebration(true);
+          }
+        })
+        .catch(() => setLocalStreakCount((prev) => Math.max(0, prev - 1)));
     }
   };
+
   // Load data
   useEffect(() => {
     const getCards = async () => {
       setLoading(true);
       try {
         const res = await api.get(
-          `pronounce/getPronounceCards/${pronounce_id}`
+          `pronounce/getPronounceCards/${pronounce_id}`,
         );
         setFlashcardSet(res.data);
       } catch (err) {
@@ -177,11 +241,13 @@ const Pronounce = () => {
   useEffect(() => {
     return () => cancelSpeech();
   }, []);
-  
+
   // Dispatch tour event when assessment result is shown (step 3 -> step 4)
   useEffect(() => {
     if (isTourMode && assesmentResult) {
-      window.dispatchEvent(new CustomEvent("tour:pronounceStep", { detail: { step: 4 } }));
+      window.dispatchEvent(
+        new CustomEvent("tour:pronounceStep", { detail: { step: 4 } }),
+      );
     }
   }, [isTourMode, assesmentResult]);
 
@@ -267,7 +333,10 @@ const Pronounce = () => {
         <ProgressBar currentCard={currentCard} totalCards={totalCards} />
       </div>
       {/* Card Deck Area */}
-      <div id="pronounce-container" className="flex-1 flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden">
+      <div
+        id="pronounce-container"
+        className="flex-1 flex flex-col items-center justify-center px-4 py-12 relative overflow-hidden"
+      >
         {loading ? (
           <div className="w-[280px] h-[430px] bg-white rounded-[20px] shadow-lg animate-pulse flex flex-col items-center justify-center gap-4">
             <div className="w-16 h-16 rounded-full bg-gray-200" />
@@ -336,6 +405,23 @@ const Pronounce = () => {
           </button>
         )}
       </div>
+
+      {/* Streak Celebration Modal */}
+      <StreakCelebrationModal
+        showStreakCelebration={showStreakCelebration}
+        setShowStreakCelebration={setShowStreakCelebration}
+        streakInfo={streakInfo}
+      />
+      {/* Floating Streak Counter */}
+      {!showStreakCelebration &&
+        !dailyGoalReached &&
+        localStreakCount <= streakInfo.dailyGoal && (
+          <FloatingStreakCounter
+            current={localStreakCount}
+            target={streakInfo.dailyGoal}
+            onComplete={handleStreakComplete}
+          />
+        )}
     </div>
   );
 };

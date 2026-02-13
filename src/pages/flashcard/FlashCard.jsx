@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { ChevronLeft, ChevronRight, Shuffle, RotateCcw } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -10,8 +10,9 @@ import { TOUR_PAGES } from "../../tour/tourSteps";
 import FlashcardDeck from "./components/FlashcardDeck";
 import ProgressBar from "./components/ProgressBar";
 import TestView from "./components/TestView";
-import StreakCelebrationModal from "./components/StreakCelebrationModal";
+import StreakCelebrationModal from "../../components/StreakCelebrationModal";
 import ArticleEducationPopup from "./components/ArticleEducationPopup";
+import FloatingStreakCounter from "../../components/FloatingStreakCounter";
 
 // Hooks (reuse from pronounce)
 import useTextToSpeech from "../pronounce/hooks/useTextToSpeech";
@@ -110,7 +111,7 @@ const FlashcardStudyPage = () => {
           const orderMap = new Map(userState[0].current_order);
           const lookup = new Map(flashcards.map((c) => [c.card_id, c]));
           setFlashcardSet(
-            Array.from(orderMap.values()).map((id) => lookup.get(id))
+            Array.from(orderMap.values()).map((id) => lookup.get(id)),
           );
           setOrder(orderMap);
           // Use start_index from URL if provided, otherwise use saved position
@@ -143,10 +144,34 @@ const FlashcardStudyPage = () => {
   // Log flashcard activity for streak - count when card is flipped for the first time
   const prevIsFlipped = useRef(false);
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const [dailyGoalReached, setDailyGoalReached] = useState(false);
   const [streakInfo, setStreakInfo] = useState({
     todayFlashcards: 0,
     dailyGoal: 20,
   });
+
+  // Local state for smooth animation
+  const [localStreakCount, setLocalStreakCount] = useState(0);
+
+  // Fetch initial streak data on mount
+  useEffect(() => {
+    if (!user?.user_id) return;
+    api
+      .get("/streak")
+      .then((res) => {
+        if (res.data) {
+          setStreakInfo((prev) => ({
+            ...prev,
+            todayFlashcards: res.data.todayPoints,
+            dailyGoal: res.data.dailyGoal,
+          }));
+          // Initialize local count to match server
+          setLocalStreakCount(res.data.todayPoints);
+          if (res.data.dailyGoalMet) setDailyGoalReached(true);
+        }
+      })
+      .catch((err) => console.error(err));
+  }, [user?.user_id]);
 
   useEffect(() => {
     // Only count when isFlipped transitions from false to true
@@ -165,29 +190,42 @@ const FlashcardStudyPage = () => {
         window.dispatchEvent(new Event("tour:flashcardRevealed"));
       }
 
+      // Optimistic update (sync, outside async)
+      setLocalStreakCount((prev) => prev + 1);
+
       const logActivity = async () => {
         try {
-          const [, streakRes] = await Promise.all([
-            api.post("/streak/flip", { set_id, card_index: currentCard }),
-            api.post("/streak/log"),
-          ]);
+          // /streak/flip saves the card flip AND logs +1 point
+          await api.post("/streak/flip", { set_id, card_index: currentCard });
 
-          // Show celebration modal when daily goal is reached
-          if (streakRes.data.streakUpdated) {
+          // Check if daily goal was just reached
+          const streakRes = await api.get("/streak");
+          if (streakRes.data.dailyGoalMet) {
             setStreakInfo({
-              todayFlashcards: streakRes.data.todayFlashcards,
+              todayFlashcards: streakRes.data.todayPoints,
               dailyGoal: streakRes.data.dailyGoal,
               streakDays: streakRes.data.currentStreak || 1,
             });
-            setShowStreakCelebration(true);
+            if (!dailyGoalReached) {
+              setDailyGoalReached(true);
+              setShowStreakCelebration(true);
+            }
           }
         } catch (err) {
+          // Rollback optimistic update on failure
+          setLocalStreakCount((prev) => Math.max(0, prev - 1));
           console.error("Error logging flashcard activity:", err);
         }
       };
       logActivity();
     }
   }, [isFlipped, currentCard, user?.user_id, loading, set_id, isTourMode]);
+
+  // Stable callback for when streak animation finishes (avoids re-creating on every render)
+  const handleStreakComplete = useCallback(() => {
+    setDailyGoalReached(true);
+    setShowStreakCelebration(true);
+  }, []);
 
   // Handler for manual explanation trigger (from tooltip)
   const handleShowExplanation = (article) => {
@@ -219,7 +257,7 @@ const FlashcardStudyPage = () => {
   const handleDragMove = (e) => {
     if (dragStart)
       setDragOffset(
-        (e.type === "mousemove" ? e.clientX : e.touches[0].clientX) - dragStart
+        (e.type === "mousemove" ? e.clientX : e.touches[0].clientX) - dragStart,
       );
   };
 
@@ -327,7 +365,7 @@ const FlashcardStudyPage = () => {
                     ...w.map((x) => x.front_content),
                   ].sort(() => Math.random() - 0.5),
                   correctAnswer: c.front_content,
-                }
+                },
           );
       }
     }
@@ -344,8 +382,8 @@ const FlashcardStudyPage = () => {
               ? c.back_content
               : shuffled[wIdx].back_content
             : isT
-            ? c.front_content
-            : shuffled[wIdx].front_content,
+              ? c.front_content
+              : shuffled[wIdx].front_content,
         correctAnswer: isT,
       });
     }
@@ -363,10 +401,10 @@ const FlashcardStudyPage = () => {
               .slice(0, 30)
           : Array.from(
               { length: Math.min(20, n) },
-              (_, i) => n - Math.min(20, n) + i
+              (_, i) => n - Math.min(20, n) + i,
             ),
-        isFin
-      )
+        isFin,
+      ),
     );
     setShowTest(true);
     setShowTestPrompt(false);
@@ -604,6 +642,17 @@ const FlashcardStudyPage = () => {
           <ChevronRight className="w-6 h-6 text-[#414651]" />
         </button>
       </div>
+
+      {/* FLOATING COUNTER */}
+      {!showStreakCelebration &&
+        !dailyGoalReached &&
+        localStreakCount <= streakInfo.dailyGoal && (
+          <FloatingStreakCounter
+            current={localStreakCount}
+            target={streakInfo.dailyGoal}
+            onComplete={handleStreakComplete}
+          />
+        )}
     </div>
   );
 };

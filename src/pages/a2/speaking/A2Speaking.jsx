@@ -1,7 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
+
+import api from "../../../api/axios";
+import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
+import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
+
 import { getSpeakingContent, saveSpeakingProgress } from "../../../api/a2Api";
 import useCardSwipe from "./hooks/useCardSwipe";
 import useVoiceRecorder from "./hooks/useVoiceRecorder";
@@ -19,6 +24,42 @@ export default function A2Speaking() {
   const [deckRotation, setDeckRotation] = useState(0);
   const [loading, setLoading] = useState(true);
   const [buttonSwipeDirection, setButtonSwipeDirection] = useState(null);
+
+  // --- Streak tracking ---
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const [dailyGoalReached, setDailyGoalReached] = useState(false);
+  const [streakInfo, setStreakInfo] = useState({
+    todayFlashcards: 0,
+    dailyGoal: 20,
+    streakDays: 0,
+  });
+
+  const [localStreakCount, setLocalStreakCount] = useState(0);
+  const recordedCardsRef = useRef(new Set());
+
+  useEffect(() => {
+    if (!user?.user_id) return;
+    api
+      .get("/streak")
+      .then((res) => {
+        if (res.data) {
+          setStreakInfo((prev) => ({
+            ...prev,
+            todayFlashcards: res.data.todayPoints,
+            dailyGoal: res.data.dailyGoal,
+            streakDays: res.data.currentStreak,
+          }));
+          setLocalStreakCount(res.data.todayPoints);
+          if (res.data.dailyGoalMet) setDailyGoalReached(true);
+        }
+      })
+      .catch((err) => console.error(err));
+  }, [user?.user_id]);
+  const handleStreakComplete = useCallback(() => {
+    setDailyGoalReached(true);
+    setShowStreakCelebration(true);
+  }, []);
+
   const totalCards = content.length;
   const currentCard = content[currentIndex];
   const {
@@ -55,6 +96,26 @@ export default function A2Speaking() {
       window.dispatchEvent(
         new CustomEvent("tour:a2SpeakingStep", { detail: { step: 3 } }),
       );
+    }
+
+    // Streak: +1 point per recording (only first recording per card)
+    if (user?.user_id && !recordedCardsRef.current.has(currentIndex)) {
+      recordedCardsRef.current.add(currentIndex);
+      setLocalStreakCount((prev) => prev + 1);
+      api
+        .post("/streak/log", { points: 1 })
+        .then((res) => {
+          if (res.data.streakUpdated) {
+            setStreakInfo({
+              todayFlashcards: res.data.todayPoints,
+              dailyGoal: res.data.dailyGoal,
+              streakDays: res.data.currentStreak || 1,
+            });
+            setDailyGoalReached(true);
+            setShowStreakCelebration(true);
+          }
+        })
+        .catch(() => setLocalStreakCount((prev) => Math.max(0, prev - 1)));
     }
   };
 
@@ -259,6 +320,22 @@ export default function A2Speaking() {
           </button>
         )}
       </div>
+
+      <StreakCelebrationModal
+        showStreakCelebration={showStreakCelebration}
+        setShowStreakCelebration={setShowStreakCelebration}
+        streakInfo={streakInfo}
+      />
+      {!showStreakCelebration &&
+        !dailyGoalReached &&
+        localStreakCount <= streakInfo.dailyGoal && (
+          <FloatingStreakCounter
+            key={chapterId}
+            current={localStreakCount}
+            target={streakInfo.dailyGoal}
+            onComplete={handleStreakComplete}
+          />
+        )}
     </div>
   );
 }

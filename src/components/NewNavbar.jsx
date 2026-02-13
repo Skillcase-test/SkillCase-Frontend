@@ -133,6 +133,26 @@ export default function Navbar({ minimal = false }) {
                   </Link>
                 )}
 
+                <Link to="/profile" className="flex-shrink-0">
+                  {user?.profile_pic_url ? (
+                    <img
+                      src={user.profile_pic_url}
+                      alt="Profile"
+                      className="w-8 h-8 rounded-full object-cover border border-[#e9eaeb] hover:border-[#002856] transition-colors"
+                    />
+                  ) : (
+                    <svg
+                      viewBox="0 0 100 100"
+                      className="w-8 h-8 rounded-full"
+                      fill="none"
+                    >
+                      <circle cx="50" cy="50" r="50" fill="#D1D5DB" />
+                      <circle cx="50" cy="38" r="16" fill="#9CA3AF" />
+                      <ellipse cx="50" cy="78" rx="28" ry="20" fill="#9CA3AF" />
+                    </svg>
+                  )}
+                </Link>
+
                 <button
                   onClick={handleLogout}
                   className="bg-[#edb843] text-[#002856] px-4 py-2 rounded-lg hover:bg-[#d4a53c] transition font-semibold text-sm cursor-pointer"
@@ -154,6 +174,29 @@ export default function Navbar({ minimal = false }) {
         {/* Mobile Right */}
         {showNavLinks && (
           <div className="lg:hidden flex items-center gap-3">
+            {/* Mobile Profile Avatar */}
+            {isAuthenticated && (
+              <Link to="/profile" className="flex-shrink-0">
+                {user?.profile_pic_url ? (
+                  <img
+                    src={user.profile_pic_url}
+                    alt="Profile"
+                    className="w-8 h-8 rounded-full object-cover border border-[#e9eaeb]"
+                  />
+                ) : (
+                  <svg
+                    viewBox="0 0 100 100"
+                    className="w-8 h-8 rounded-full"
+                    fill="none"
+                  >
+                    <circle cx="50" cy="50" r="50" fill="#D1D5DB" />
+                    <circle cx="50" cy="38" r="16" fill="#9CA3AF" />
+                    <ellipse cx="50" cy="78" rx="28" ry="20" fill="#9CA3AF" />
+                  </svg>
+                )}
+              </Link>
+            )}
+
             {/* Mobile Burger Menu Button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}

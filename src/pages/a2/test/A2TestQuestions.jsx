@@ -17,6 +17,7 @@ import {
   getTestResults,
   getTestProgress,
 } from "../../../api/a2Api";
+import api from "../../../api/axios";
 import QuestionRenderer from "../../../components/a2/QuestionRenderer";
 
 export default function A2TestQuestions() {
@@ -105,6 +106,21 @@ export default function A2TestQuestions() {
         questions, // Send questions so backend scores against same shuffled data
       });
       setResult(res.data);
+
+      try {
+        const streakRes = await api.post("/streak/log", { points: 20 });
+        // Store streak data for A2TestLevel to show celebration instantly
+        if (streakRes.data.streakUpdated) {
+          sessionStorage.setItem(
+            "streak_test_completed",
+            JSON.stringify({
+              streakDays: streakRes.data.currentStreak || 1,
+            }),
+          );
+        }
+      } catch (streakErr) {
+        console.error("Error logging test streak:", streakErr);
+      }
     } catch (err) {
       console.error("Error:", err);
     } finally {

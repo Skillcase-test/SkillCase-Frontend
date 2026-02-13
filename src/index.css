@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 
@@ -40,7 +40,7 @@
   --color-border-dark: rgba(0, 0, 0, 0.08);
 
   /* Fonts */
-  --font-family: 'Inter', sans-serif;
+  --font-family: 'Poppins', sans-serif;
 
   /* Shadows */
   --shadow-xs: 0px 1px 2px 0px rgba(10, 13, 18, 0.05);

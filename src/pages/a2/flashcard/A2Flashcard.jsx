@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -18,7 +18,8 @@ import { getFlashcards, saveFlashcardProgress } from "../../../api/a2Api";
 import api from "../../../api/axios";
 import A2FlashcardDeck from "../../../components/a2/A2FlashcardDeck";
 import ProgressBar from "../../../components/a2/ProgressBar";
-import StreakCelebrationModal from "../../flashcard/components/StreakCelebrationModal";
+import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
+import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import {
   DndContext,
   closestCenter,
@@ -49,8 +50,8 @@ function WordItem({ word, isDragging, isOverlay }) {
         isOverlay
           ? "bg-[#002856] text-white shadow-2xl scale-110 cursor-grabbing z-50"
           : isDragging
-          ? "opacity-30 scale-95 bg-gray-200"
-          : "bg-white text-[#002856] border-2 border-[#002856] shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
+            ? "opacity-30 scale-95 bg-gray-200"
+            : "bg-white text-[#002856] border-2 border-[#002856] shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
       }`}
     >
       {word}
@@ -220,13 +221,13 @@ function QuizMatching({ question, value, onChange, showResult }) {
                     ? status === "correct"
                       ? "bg-green-50 border-green-400 text-green-700"
                       : status === "incorrect"
-                      ? "bg-red-50 border-red-400 text-red-600"
-                      : "bg-gray-50 border-gray-200"
+                        ? "bg-red-50 border-red-400 text-red-600"
+                        : "bg-gray-50 border-gray-200"
                     : isSelected
-                    ? "bg-[#002856] text-white border-[#002856] scale-105 shadow-md"
-                    : matched
-                    ? "bg-[#edfaff] border-[#002856] text-[#002856]"
-                    : "bg-white text-[#181d27] border-gray-100 hover:border-blue-200"
+                      ? "bg-[#002856] text-white border-[#002856] scale-105 shadow-md"
+                      : matched
+                        ? "bg-[#edfaff] border-[#002856] text-[#002856]"
+                        : "bg-white text-[#181d27] border-gray-100 hover:border-blue-200"
                 }`}
               >
                 {item}
@@ -264,13 +265,13 @@ function QuizMatching({ question, value, onChange, showResult }) {
                     ? status === "correct"
                       ? "bg-green-50 border-green-400 text-green-700"
                       : status === "incorrect"
-                      ? "bg-red-50 border-red-400 text-red-600"
-                      : "bg-gray-50 border-gray-200"
+                        ? "bg-red-50 border-red-400 text-red-600"
+                        : "bg-gray-50 border-gray-200"
                     : isSelected
-                    ? "bg-[#002856] text-white border-[#002856] scale-105 shadow-md"
-                    : matched
-                    ? "bg-[#edfaff] border-[#002856] text-[#002856]"
-                    : "bg-white text-[#181d27] border-gray-100 hover:border-blue-200"
+                      ? "bg-[#002856] text-white border-[#002856] scale-105 shadow-md"
+                      : matched
+                        ? "bg-[#edfaff] border-[#002856] text-[#002856]"
+                        : "bg-white text-[#181d27] border-gray-100 hover:border-blue-200"
                 }`}
               >
                 {item}
@@ -354,11 +355,35 @@ export default function A2Flashcard() {
   const flippedCardsRef = useRef(new Set());
   const prevIsFlipped = useRef(false);
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const [dailyGoalReached, setDailyGoalReached] = useState(false);
   const [streakInfo, setStreakInfo] = useState({
     todayFlashcards: 0,
     dailyGoal: 20,
     streakDays: 0,
   });
+
+  // [NEW] Local state for smooth animation
+  const [localStreakCount, setLocalStreakCount] = useState(0);
+
+  // [NEW] Fetch initial streak data on mount
+  useEffect(() => {
+    if (!user?.user_id) return;
+    api
+      .get("/streak")
+      .then((res) => {
+        if (res.data) {
+          setStreakInfo((prev) => ({
+            ...prev,
+            todayFlashcards: res.data.todayPoints,
+            dailyGoal: res.data.dailyGoal,
+            streakDays: res.data.currentStreak,
+          }));
+          setLocalStreakCount(res.data.todayPoints);
+          if (res.data.dailyGoalMet) setDailyGoalReached(true);
+        }
+      })
+      .catch((err) => console.error(err));
+  }, [user?.user_id]);
 
   const { isSpeaking, isLoadingAudio, speakText, cancelSpeech } =
     useTextToSpeech();
@@ -382,22 +407,28 @@ export default function A2Flashcard() {
     if (!flippedCardsRef.current.has(currentCard)) {
       flippedCardsRef.current.add(currentCard);
 
+      // Optimistic update for UI (sync, outside async)
+      setLocalStreakCount((prev) => prev + 1);
+
       const logActivity = async () => {
         try {
           // NOTE: A2 uses different flashcard tables, so we only call /streak/log
           // (not /streak/flip which uses A1's user_flipped_cards table)
           const streakRes = await api.post("/streak/log");
 
-          // Show celebration modal when daily goal is reached
+          // Sync with server data when daily goal is reached
           if (streakRes.data.streakUpdated) {
             setStreakInfo({
-              todayFlashcards: streakRes.data.todayFlashcards,
+              todayFlashcards: streakRes.data.todayPoints,
               dailyGoal: streakRes.data.dailyGoal,
               streakDays: streakRes.data.currentStreak || 1,
             });
+            setDailyGoalReached(true);
             setShowStreakCelebration(true);
           }
         } catch (err) {
+          // Rollback optimistic update on failure
+          setLocalStreakCount((prev) => Math.max(0, prev - 1));
           console.error("Error logging flashcard activity:", err);
         }
       };
@@ -797,6 +828,12 @@ export default function A2Flashcard() {
   const isAtFinalTest = currentCard >= totalCards - 1;
   const isPassed = completedTests.has(currentCard + 1);
 
+  // Stable callback for when animation finishes
+  const handleStreakCounterComplete = useCallback(() => {
+    setDailyGoalReached(true);
+    setShowStreakCelebration(true);
+  }, []);
+
   // TEST PROMPT VIEW
   if (showTestPrompt) {
     return (
@@ -862,8 +899,8 @@ export default function A2Flashcard() {
                 {isPassed
                   ? "Review Results"
                   : isAtFinalTest
-                  ? "Start Final Test"
-                  : "Start Test"}
+                    ? "Start Final Test"
+                    : "Start Test"}
               </button>
               {!isAtFinalTest && (
                 <button
@@ -937,12 +974,12 @@ export default function A2Flashcard() {
                     {q.type === "truefalse"
                       ? `"${q.question}" = "${q.displayAnswer}"`
                       : q.type === "sentence_correction"
-                      ? q.question_data?.incorrect_sentence
-                      : q.type === "sentence_reorder"
-                      ? `Arrange: ${q.question_data?.hint_en}`
-                      : q.type === "matching"
-                      ? "Match the pairs below"
-                      : q.question || ""}
+                        ? q.question_data?.incorrect_sentence
+                        : q.type === "sentence_reorder"
+                          ? `Arrange: ${q.question_data?.hint_en}`
+                          : q.type === "matching"
+                            ? "Match the pairs below"
+                            : q.question || ""}
                   </p>
                   <div className="space-y-2">
                     {(q.type === "mcq" || q.type === "fill_options") &&
@@ -1285,6 +1322,18 @@ export default function A2Flashcard() {
         setShowStreakCelebration={setShowStreakCelebration}
         streakInfo={streakInfo}
       />
+
+      {/* FLOATING COUNTER */}
+      {!showStreakCelebration &&
+        !dailyGoalReached &&
+        localStreakCount <= streakInfo.dailyGoal && (
+          <FloatingStreakCounter
+            key={chapterId}
+            current={localStreakCount}
+            target={streakInfo.dailyGoal}
+            onComplete={handleStreakCounterComplete}
+          />
+        )}
     </div>
   );
 }

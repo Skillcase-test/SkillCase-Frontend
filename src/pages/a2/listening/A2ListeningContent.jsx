@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -44,6 +44,10 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import KaraokeSubtitles from "../../../components/a2/KaraokeSubtitles";
 import A2AudioPlayer from "../../../components/a2/A2AudioPlayer";
+
+import api from "../../../api/axios";
+import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
+import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 
 const CustomDropdown = ({
   options,
@@ -182,8 +186,8 @@ function WordItem({ word, isDragging, isOverlay }) {
         isOverlay
           ? "bg-[#002856] text-white shadow-2xl scale-110 cursor-grabbing z-50"
           : isDragging
-          ? "opacity-30 scale-95 bg-gray-200"
-          : "bg-white text-[#002856] border-2 border-[#002856] shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
+            ? "opacity-30 scale-95 bg-gray-200"
+            : "bg-white text-[#002856] border-2 border-[#002856] shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
       }`}
     >
       {word}
@@ -363,6 +367,40 @@ export default function A2ListeningContent() {
   const [showAnswers, setShowAnswers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // --- Streak tracking ---
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const [dailyGoalReached, setDailyGoalReached] = useState(false);
+  const [streakInfo, setStreakInfo] = useState({
+    todayFlashcards: 0,
+    dailyGoal: 20,
+    streakDays: 0,
+  });
+
+  const [localStreakCount, setLocalStreakCount] = useState(0);
+
+  useEffect(() => {
+    api
+      .get("/streak")
+      .then((res) => {
+        if (res.data) {
+          setStreakInfo((p) => ({
+            ...p,
+            todayFlashcards: res.data.todayPoints,
+            dailyGoal: res.data.dailyGoal,
+            streakDays: res.data.currentStreak,
+          }));
+          setLocalStreakCount(res.data.todayPoints);
+          if (res.data.dailyGoalMet) setDailyGoalReached(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleStreakComplete = useCallback(() => {
+    setDailyGoalReached(true);
+    setShowStreakCelebration(true);
+  }, []);
+
   const currentItem = content[currentIndex];
 
   useEffect(() => {
@@ -476,6 +514,28 @@ export default function A2ListeningContent() {
         isCompleted: true,
         score: res.data.score,
       });
+
+      // Streak: +1 per question attempted
+      const questionCount = currentItem.questions?.length || 0;
+      if (questionCount > 0) {
+        setLocalStreakCount((prev) => prev + questionCount);
+        api
+          .post("/streak/log", { points: questionCount })
+          .then((streakRes) => {
+            if (streakRes.data.streakUpdated) {
+              setStreakInfo({
+                todayFlashcards: streakRes.data.todayPoints,
+                dailyGoal: streakRes.data.dailyGoal,
+                streakDays: streakRes.data.currentStreak || 1,
+              });
+              setDailyGoalReached(true);
+              setShowStreakCelebration(true);
+            }
+          })
+          .catch(() =>
+            setLocalStreakCount((prev) => Math.max(0, prev - questionCount)),
+          );
+      }
     } catch (err) {
       console.error("Error checking answers:", err);
     } finally {
@@ -603,7 +663,6 @@ export default function A2ListeningContent() {
       {/* Content */}
       <div className="p-4">
         <div className="space-y-4">
-
           {/* Karaoke Subtitles */}
           {subtitles.length > 0 && (
             <KaraokeSubtitles
@@ -859,10 +918,10 @@ export default function A2ListeningContent() {
                                       showAnswers && isCorrectOption
                                         ? "border-green-500 bg-green-500"
                                         : showAnswers && isSelected
-                                        ? "border-red-500 bg-red-500"
-                                        : isSelected
-                                        ? "border-[#002856] bg-[#002856]"
-                                        : "border-gray-300"
+                                          ? "border-red-500 bg-red-500"
+                                          : isSelected
+                                            ? "border-[#002856] bg-[#002856]"
+                                            : "border-gray-300"
                                     }`}
                                   >
                                     {isSelected && (
@@ -1048,10 +1107,10 @@ export default function A2ListeningContent() {
                                       showAnswers && isCorrectOption
                                         ? "border-green-500 bg-green-500"
                                         : showAnswers && isSelected
-                                        ? "border-red-500 bg-red-500"
-                                        : isSelected
-                                        ? "border-[#002856] bg-[#002856]"
-                                        : "border-gray-300"
+                                          ? "border-red-500 bg-red-500"
+                                          : isSelected
+                                            ? "border-[#002856] bg-[#002856]"
+                                            : "border-gray-300"
                                     }`}
                                   >
                                     {(isSelected ||
@@ -1126,6 +1185,21 @@ export default function A2ListeningContent() {
           </div>
         )}
       </div>
+
+      <StreakCelebrationModal
+        showStreakCelebration={showStreakCelebration}
+        setShowStreakCelebration={setShowStreakCelebration}
+        streakInfo={streakInfo}
+      />
+      {!showStreakCelebration &&
+        !dailyGoalReached &&
+        localStreakCount <= streakInfo.dailyGoal && (
+          <FloatingStreakCounter
+            current={localStreakCount}
+            target={streakInfo.dailyGoal}
+            onComplete={handleStreakComplete}
+          />
+        )}
     </div>
   );
 }

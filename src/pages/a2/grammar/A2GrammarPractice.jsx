@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ChevronLeft,
@@ -16,6 +16,10 @@ import {
 } from "../../../api/a2Api";
 import QuestionRenderer from "../../../components/a2/QuestionRenderer";
 import A2GrammarExplanation from "./A2GrammarExplanation";
+
+import api from "../../../api/axios";
+import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
+import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 
 export default function A2GrammarPractice() {
   const { topicId } = useParams();
@@ -38,6 +42,41 @@ export default function A2GrammarPractice() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [showFloatingBtn, setShowFloatingBtn] = useState(true);
   const startPracticeBtnRef = useRef(null);
+
+  // --- Streak tracking ---
+  const [showStreakCelebration, setShowStreakCelebration] = useState(false);
+  const [dailyGoalReached, setDailyGoalReached] = useState(false);
+  const [streakInfo, setStreakInfo] = useState({
+    todayFlashcards: 0,
+    dailyGoal: 20,
+    streakDays: 0,
+  });
+
+  const [localStreakCount, setLocalStreakCount] = useState(0);
+  const streakLoggedRef = useRef(new Set());
+
+  useEffect(() => {
+    api
+      .get("/streak")
+      .then((res) => {
+        if (res.data) {
+          setStreakInfo((p) => ({
+            ...p,
+            todayFlashcards: res.data.todayPoints,
+            dailyGoal: res.data.dailyGoal,
+            streakDays: res.data.currentStreak,
+          }));
+          setLocalStreakCount(res.data.todayPoints);
+          if (res.data.dailyGoalMet) setDailyGoalReached(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleStreakComplete = useCallback(() => {
+    setDailyGoalReached(true);
+    setShowStreakCelebration(true);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,6 +143,26 @@ export default function A2GrammarPractice() {
       });
       setIsCorrect(res.data.isCorrect);
       setShowResult(true);
+
+      // Streak: +1 per question checked (only first check per question)
+      if (!isReviewMode && !streakLoggedRef.current.has(currentIndex)) {
+        streakLoggedRef.current.add(currentIndex);
+        setLocalStreakCount((prev) => prev + 1);
+        api
+          .post("/streak/log", { points: 1 })
+          .then((streakRes) => {
+            if (streakRes.data.streakUpdated) {
+              setStreakInfo({
+                todayFlashcards: streakRes.data.todayPoints,
+                dailyGoal: streakRes.data.dailyGoal,
+                streakDays: streakRes.data.currentStreak || 1,
+              });
+              setDailyGoalReached(true);
+              setShowStreakCelebration(true);
+            }
+          })
+          .catch(() => setLocalStreakCount((prev) => Math.max(0, prev - 1)));
+      }
     } catch (err) {
       console.error("Error:", err);
     } finally {
@@ -249,8 +308,8 @@ export default function A2GrammarPractice() {
                   questionDisplay = qd.hint_en
                     ? `Arrange: "${qd.hint_en}"`
                     : qd.hint
-                    ? `Arrange: "${qd.hint}"`
-                    : qd.question || "Arrange the words";
+                      ? `Arrange: "${qd.hint}"`
+                      : qd.question || "Arrange the words";
                   break;
 
                 case "sentence_correction":
@@ -549,6 +608,21 @@ export default function A2GrammarPractice() {
           </button>
         )}
       </div>
+
+      <StreakCelebrationModal
+        showStreakCelebration={showStreakCelebration}
+        setShowStreakCelebration={setShowStreakCelebration}
+        streakInfo={streakInfo}
+      />
+      {!showStreakCelebration &&
+        !dailyGoalReached &&
+        localStreakCount <= streakInfo.dailyGoal && (
+          <FloatingStreakCounter
+            current={localStreakCount}
+            target={streakInfo.dailyGoal}
+            onComplete={handleStreakComplete}
+          />
+        )}
     </div>
   );
 }

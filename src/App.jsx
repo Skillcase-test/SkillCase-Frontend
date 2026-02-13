@@ -49,6 +49,8 @@ import "./dashboard-src/css/style.css";
 // import ManualResumeBuilder from "./pages/ManualResumeBuilder";
 // import MyResumes from "./pages/MyResumes";
 
+import ProfilePage from "./pages/ProfilePage";
+
 import ConversationSelect from "./pages/ConversationSelect";
 import ConversationPlayer from "./pages/ConversationPlayer";
 import NursingGermanyLanding from "./pages/NursingGermanyLanding";
@@ -89,7 +91,7 @@ import { initPushNotifications } from "./notifications/pushNotifications";
 import InternalLeadForm from "./pages/InternalLeadForm";
 import ProductTour from "./tour/ProductTour";
 
-export const APP_VERSION = "1.0.3";
+export const APP_VERSION = "1.0.4";
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 2000;
 const PLAY_STORE_URL = "market://details?id=com.skillcase.app";
@@ -166,10 +168,6 @@ function AppContent() {
     return () => stopHeartbeat();
   }, [user]);
 
-  // Add this import at the top with other imports (around line 67-70)
-
-  // Add these constants after APP_VERSION (around line 74)
-
   // Helper function to open Play Store
   const openPlayStore = async () => {
     try {
@@ -197,7 +195,7 @@ function AppContent() {
 
         // Make the update check API call
         const response = await api.get(
-          `/api/updates/check?version=${APP_VERSION}`,
+          `/updates/check?version=${APP_VERSION}`,
         );
 
         const data = response.data;
@@ -213,7 +211,7 @@ function AppContent() {
           case "play_store":
             // Log the redirect event
             api
-              .post("/api/updates/log", {
+              .post("/updates/log", {
                 event: "play_store_redirect",
                 targetVersion: data.currentVersion,
                 appVersion: APP_VERSION,
@@ -244,7 +242,7 @@ function AppContent() {
 
             // Log download attempt
             api
-              .post("/api/updates/log", {
+              .post("/updates/log", {
                 event: "download_started",
                 targetVersion: data.version,
               })
@@ -261,7 +259,7 @@ function AppContent() {
 
             // Log success
             api
-              .post("/api/updates/log", {
+              .post("/updates/log", {
                 event: "download_complete",
                 targetVersion: data.version,
               })
@@ -278,7 +276,7 @@ function AppContent() {
 
         // Log retry attempt
         api
-          .post("/api/updates/log", {
+          .post("/updates/log", {
             event: "retry_attempt",
             targetVersion: APP_VERSION,
             error: `Attempt ${retryCount}: ${err.message}`,
@@ -296,7 +294,7 @@ function AppContent() {
 
         // Max retries exceeded - log failure
         api
-          .post("/api/updates/log", {
+          .post("/updates/log", {
             event: "download_failed",
             targetVersion: APP_VERSION,
             error: `Failed after ${MAX_RETRY_ATTEMPTS} attempts: ${err.message}`,
@@ -384,6 +382,8 @@ function AppContent() {
           <Route path="/events/featured" element={<FeaturedEventPage />} />
           <Route path="/events/:slug" element={<EventDetailPage />} />
           <Route path="/manage-event" element={<ManageEventsPublic />} />
+
+          <Route path="/profile" element={<ProfilePage />} />
 
           {/* A2 ROUTES */}
           {/* A2 Flashcard */}
