@@ -85,6 +85,7 @@ function DashboardCard03() {
       "Phone",
       "Level",
       "Source",
+      "Payment Status",
       "Signup Date",
       "Last Activity",
     ];
@@ -94,6 +95,7 @@ function DashboardCard03() {
       u.phone || "",
       u.current_profeciency_level || "",
       u.signup_source || "",
+      u.is_paid ? "Paid" : "Not Paid",
       formatDate(u.created_at),
       formatDate(u.last_activity_at),
     ]);
@@ -256,6 +258,7 @@ function DashboardCard03() {
                       <th className="py-3 pr-4">User Name</th>
                       <th className="py-3 pr-4">Phone</th>
                       <th className="py-3 pr-4">Level</th>
+                      <th className="py-3 pr-4">Payment</th>
                       <th className="py-3 pr-4">Signup Date</th>
                       <th className="py-3">Last Usage</th>
                     </tr>
@@ -292,6 +295,17 @@ function DashboardCard03() {
                             {user.current_profeciency_level || "A1"}
                           </span>
                         </td>
+                        <td className="py-2.5 pr-4">
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                              user.is_paid
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {user.is_paid ? "Paid" : "Not Paid"}
+                          </span>
+                        </td>
                         <td className="py-2.5 pr-4 text-gray-600">
                           {formatDate(user.created_at)}
                         </td>
@@ -303,7 +317,7 @@ function DashboardCard03() {
                     {filteredUsers.length === 0 && (
                       <tr>
                         <td
-                          colSpan="6"
+                          colSpan="7"
                           className="py-8 text-center text-gray-400"
                         >
                           No users match your search.
