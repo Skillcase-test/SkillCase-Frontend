@@ -76,6 +76,11 @@ import A2TestLevel from "./pages/a2/test/A2TestLevel";
 import A2TestQuestions from "./pages/a2/test/A2TestQuestions";
 import A2ProductTour from "./tour/A2ProductTour";
 
+//Hard Core Test
+import ExamLobby from "./pages/exam/ExamLobby";
+import ExamPage from "./pages/exam/ExamPage";
+import ExamResult from "./pages/exam/ExamResult";
+
 //fallback page
 import FallbackPage from "./pages/FallbackPage";
 
@@ -91,7 +96,7 @@ import { initPushNotifications } from "./notifications/pushNotifications";
 import InternalLeadForm from "./pages/InternalLeadForm";
 import ProductTour from "./tour/ProductTour";
 
-export const APP_VERSION = "1.0.4";
+export const APP_VERSION = "1.0.5";
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 2000;
 const PLAY_STORE_URL = "market://details?id=com.skillcase.app";
@@ -194,9 +199,7 @@ function AppContent() {
         const bundles = await LiveUpdate.getBundles();
 
         // Make the update check API call
-        const response = await api.get(
-          `/updates/check?version=${APP_VERSION}`,
-        );
+        const response = await api.get(`/updates/check?version=${APP_VERSION}`);
 
         const data = response.data;
 
@@ -416,6 +419,11 @@ function AppContent() {
             path="/a2/test/:topicId/:level"
             element={<A2TestQuestions />}
           />
+
+          {/* Hard Core Test */}
+          <Route path="/exam/:testId" element={<ExamLobby />} />
+          <Route path="/exam/:testId/take" element={<ExamPage />} />
+          <Route path="/exam/:testId/result" element={<ExamResult />} />
         </Routes>
 
         <ConditionalFooter />
@@ -444,10 +452,12 @@ function ConditionalNav() {
     location.pathname === "/thank-you" ||
     location.pathname === "/internal/lead-form";
 
+  const disableNav = /^\/exam\/[^/]+\/take$/.test(location.pathname);
+
   // Show minimal navbar (logo only, no links/burger) on auth pages
   const isAuthPage =
     location.pathname === "/login" || location.pathname === "/signup";
 
   if (hideNav) return null;
-  return <NewNavbar minimal={isAuthPage} />;
+  return <NewNavbar minimal={isAuthPage} disableNavigation={disableNav}/>;
 }

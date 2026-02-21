@@ -21,7 +21,6 @@ export default function KaraokeSubtitles({
     const idx = subtitles.findIndex(
       (sub) => currentTime >= sub.start && currentTime < sub.end,
     );
-    // console.log(`[KaraokeDebug] Time: ${currentTime}, Idx: ${idx}`);
     setActiveIndex(idx !== -1 ? idx : activeIndex);
   }, [currentTime, subtitles, isVisible]);
 

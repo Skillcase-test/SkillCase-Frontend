@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Badge from "../../../components/ui/Badge";
+import ExamCards from "../../exam/ExamCards";
 import { images } from "../../../assets/images.js";
 import { useState } from "react";
 import { hapticLight } from "../../../utils/haptics";
@@ -149,6 +150,7 @@ export default function FeatureCardsGrid() {
             tourId={getTourId(feature.id)}
           />
         ))}
+        <ExamCards />
       </div>
     </div>
   );

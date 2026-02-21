@@ -217,6 +217,74 @@ function Sidebar({
                 </button>
               </li>
 
+              {/* Manage Exam */}
+              <li
+                className={`pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 bg-linear-to-r ${
+                  activePage === "exam-manage" &&
+                  "from-blue-500/[0.12] to-blue-500/[0.04]"
+                }`}
+              >
+                <button
+                  onClick={() => setActivePage("exam-manage")}
+                  className={`block text-gray-800 truncate transition duration-150 cursor-pointer ${
+                    activePage === "exam-manage" ? "" : "hover:text-gray-900"
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <svg
+                      className={`shrink-0 fill-current ${
+                        activePage === "exam-manage"
+                          ? "text-blue-500"
+                          : "text-gray-400"
+                      }`}
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm0 16H5V8h14v11zM8 11h8v2H8v-2zm0 4h5v2H8v-2z" />
+                    </svg>
+                    <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                      Manage Exam
+                    </span>
+                  </div>
+                </button>
+              </li>
+
+              {/* Manage Batch */}
+              <li
+                className={`pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 bg-linear-to-r ${
+                  activePage === "batch-manage" &&
+                  "from-blue-500/[0.12] to-blue-500/[0.04]"
+                }`}
+              >
+                <button
+                  onClick={() => setActivePage("batch-manage")}
+                  className={`block text-gray-800 truncate transition duration-150 cursor-pointer ${
+                    activePage === "batch-manage" ? "" : "hover:text-gray-900"
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <svg
+                      className={`shrink-0 fill-current ${
+                        activePage === "batch-manage"
+                          ? "text-blue-500"
+                          : "text-gray-400"
+                      }`}
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M16 11c1.66 0 3-1.79 3-4s-1.34-4-3-4-3 1.79-3 4 1.34 4 3 4zm-8 0c1.66 0 3-1.79 3-4S9.66 3 8 3 5 4.79 5 7s1.34 4 3 4zm0 2c-2.67 0-8 1.34-8 4v2h10v-2c0-1.43.77-2.65 2.1-3.57C10.76 13.16 9.26 13 8 13zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.98 1.97 3.45v2h7v-2c0-2.66-5.33-4-8-4z" />
+                    </svg>
+                    <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                      Manage Batch
+                    </span>
+                  </div>
+                </button>
+              </li>
+
               {/* 2. Flashcard Service - with dropdown */}
               <SidebarLinkGroup
                 activecondition={activePage.includes("flashcards")}
@@ -762,7 +830,10 @@ function Sidebar({
         <div className="space-y-8">
           <div>
             <h3 className="text-xs uppercase text-gray-400 font-semibold pl-3">
-              <span className="hidden lg:block lg:sidebar-expanded:hidden 2xl:hidden text-center w-6" aria-hidden="true">
+              <span
+                className="hidden lg:block lg:sidebar-expanded:hidden 2xl:hidden text-center w-6"
+                aria-hidden="true"
+              >
                 •••
               </span>
               <span className="lg:hidden lg:sidebar-expanded:block 2xl:block">
@@ -771,521 +842,540 @@ function Sidebar({
             </h3>
             <ul className="mt-3">
               {/* A2 Flashcards */}
-              <SidebarLinkGroup activecondition={activePage.includes("a2-flashcard")}>
-          {(handleClick, open) => (
-            <React.Fragment>
-              <a
-                href="#0"
-                className={`block text-gray-800 truncate transition duration-150 ${
-                  activePage.includes("a2-flashcard")
-                    ? ""
-                    : "hover:text-gray-900 "
-                }`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleClick();
-                  setSidebarExpanded(true);
-                }}
+              <SidebarLinkGroup
+                activecondition={activePage.includes("a2-flashcard")}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <svg
-                      className={`shrink-0 h-6 w-6 stroke-current ${
+                {(handleClick, open) => (
+                  <React.Fragment>
+                    <a
+                      href="#0"
+                      className={`block text-gray-800 truncate transition duration-150 ${
                         activePage.includes("a2-flashcard")
-                          ? "text-blue-500"
-                          : "text-gray-400 "
+                          ? ""
+                          : "hover:text-gray-900 "
                       }`}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      strokeWidth="2"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleClick();
+                        setSidebarExpanded(true);
+                      }}
                     >
-                      <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
-                      <line x1="7" y1="10" x2="17" y2="10" />
-                      <line x1="7" y1="14" x2="12" y2="14" />
-                    </svg>
-                    <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                      A2 Flashcards
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 ml-2">
-                    <svg
-                      className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 ${
-                        open && "rotate-180"
-                      }`}
-                      viewBox="0 0 12 12"
-                    >
-                      <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
-                    </svg>
-                  </div>
-                </div>
-              </a>
-              <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
-                <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
-                  <li className="mb-1 last:mb-0">
-                    <button
-                      onClick={() => setActivePage("a2-flashcard-add")}
-                      className={
-                        "block transition duration-150 truncate " +
-                        (activePage === "a2-flashcard-add"
-                          ? "text-blue-500"
-                          : "text-gray-500/90 hover:text-gray-700 ")
-                      }
-                    >
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
-                        Add
-                      </span>
-                    </button>
-                  </li>
-                  <li className="mb-1 last:mb-0">
-                    <button
-                      onClick={() => setActivePage("a2-flashcard-manage")}
-                      className={
-                        "block transition duration-150 truncate " +
-                        (activePage === "a2-flashcard-manage"
-                          ? "text-blue-500"
-                          : "text-gray-500/90 hover:text-gray-700 ")
-                      }
-                    >
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
-                        Manage & Reorder
-                      </span>
-                    </button>
-                  </li>
-                </ul>
-              </div>
-            </React.Fragment>
-          )}
-        </SidebarLinkGroup>
-        {/* A2 Grammar */}
-        <SidebarLinkGroup activecondition={activePage.includes("a2-grammar")}>
-          {(handleClick, open) => (
-            <React.Fragment>
-              <a
-                href="#0"
-                className={`block text-gray-800 truncate transition duration-150 ${
-                  activePage.includes("a2-grammar")
-                    ? ""
-                    : "hover:text-gray-900 "
-                }`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleClick();
-                  setSidebarExpanded(true);
-                }}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <svg
+                            className={`shrink-0 h-6 w-6 stroke-current ${
+                              activePage.includes("a2-flashcard")
+                                ? "text-blue-500"
+                                : "text-gray-400 "
+                            }`}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            strokeWidth="2"
+                          >
+                            <rect
+                              x="3"
+                              y="5"
+                              width="18"
+                              height="14"
+                              rx="2"
+                              ry="2"
+                            />
+                            <line x1="7" y1="10" x2="17" y2="10" />
+                            <line x1="7" y1="14" x2="12" y2="14" />
+                          </svg>
+                          <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                            A2 Flashcards
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 ml-2">
+                          <svg
+                            className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 ${
+                              open && "rotate-180"
+                            }`}
+                            viewBox="0 0 12 12"
+                          >
+                            <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </a>
+                    <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
+                      <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
+                        <li className="mb-1 last:mb-0">
+                          <button
+                            onClick={() => setActivePage("a2-flashcard-add")}
+                            className={
+                              "block transition duration-150 truncate " +
+                              (activePage === "a2-flashcard-add"
+                                ? "text-blue-500"
+                                : "text-gray-500/90 hover:text-gray-700 ")
+                            }
+                          >
+                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
+                              Add
+                            </span>
+                          </button>
+                        </li>
+                        <li className="mb-1 last:mb-0">
+                          <button
+                            onClick={() => setActivePage("a2-flashcard-manage")}
+                            className={
+                              "block transition duration-150 truncate " +
+                              (activePage === "a2-flashcard-manage"
+                                ? "text-blue-500"
+                                : "text-gray-500/90 hover:text-gray-700 ")
+                            }
+                          >
+                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
+                              Manage & Reorder
+                            </span>
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                  </React.Fragment>
+                )}
+              </SidebarLinkGroup>
+              {/* A2 Grammar */}
+              <SidebarLinkGroup
+                activecondition={activePage.includes("a2-grammar")}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <svg
-                      className={`shrink-0 h-6 w-6 stroke-current ${
+                {(handleClick, open) => (
+                  <React.Fragment>
+                    <a
+                      href="#0"
+                      className={`block text-gray-800 truncate transition duration-150 ${
                         activePage.includes("a2-grammar")
-                          ? "text-blue-500"
-                          : "text-gray-400 "
+                          ? ""
+                          : "hover:text-gray-900 "
                       }`}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      strokeWidth="2"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleClick();
+                        setSidebarExpanded(true);
+                      }}
                     >
-                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-                    </svg>
-                    <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                      A2 Grammar
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 ml-2">
-                    <svg
-                      className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 ${
-                        open && "rotate-180"
-                      }`}
-                      viewBox="0 0 12 12"
-                    >
-                      <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
-                    </svg>
-                  </div>
-                </div>
-              </a>
-              <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
-                <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
-                  <li className="mb-1 last:mb-0">
-                    <button
-                      onClick={() => setActivePage("a2-grammar-add")}
-                      className={
-                        "block transition duration-150 truncate " +
-                        (activePage === "a2-grammar-add"
-                          ? "text-blue-500"
-                          : "text-gray-500/90 hover:text-gray-700 ")
-                      }
-                    >
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
-                        Add
-                      </span>
-                    </button>
-                  </li>
-                  <li className="mb-1 last:mb-0">
-                    <button
-                      onClick={() => setActivePage("a2-grammar-manage")}
-                      className={
-                        "block transition duration-150 truncate " +
-                        (activePage === "a2-grammar-manage"
-                          ? "text-blue-500"
-                          : "text-gray-500/90 hover:text-gray-700 ")
-                      }
-                    >
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
-                        Manage & Reorder
-                      </span>
-                    </button>
-                  </li>
-                </ul>
-              </div>
-            </React.Fragment>
-          )}
-        </SidebarLinkGroup>
-        {/* A2 Listening */}
-        <SidebarLinkGroup activecondition={activePage.includes("a2-listening")}>
-          {(handleClick, open) => (
-            <React.Fragment>
-              <a
-                href="#0"
-                className={`block text-gray-800 truncate transition duration-150 ${
-                  activePage.includes("a2-listening")
-                    ? ""
-                    : "hover:text-gray-900 "
-                }`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleClick();
-                  setSidebarExpanded(true);
-                }}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <svg
+                            className={`shrink-0 h-6 w-6 stroke-current ${
+                              activePage.includes("a2-grammar")
+                                ? "text-blue-500"
+                                : "text-gray-400 "
+                            }`}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            strokeWidth="2"
+                          >
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                          </svg>
+                          <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                            A2 Grammar
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 ml-2">
+                          <svg
+                            className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 ${
+                              open && "rotate-180"
+                            }`}
+                            viewBox="0 0 12 12"
+                          >
+                            <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </a>
+                    <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
+                      <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
+                        <li className="mb-1 last:mb-0">
+                          <button
+                            onClick={() => setActivePage("a2-grammar-add")}
+                            className={
+                              "block transition duration-150 truncate " +
+                              (activePage === "a2-grammar-add"
+                                ? "text-blue-500"
+                                : "text-gray-500/90 hover:text-gray-700 ")
+                            }
+                          >
+                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
+                              Add
+                            </span>
+                          </button>
+                        </li>
+                        <li className="mb-1 last:mb-0">
+                          <button
+                            onClick={() => setActivePage("a2-grammar-manage")}
+                            className={
+                              "block transition duration-150 truncate " +
+                              (activePage === "a2-grammar-manage"
+                                ? "text-blue-500"
+                                : "text-gray-500/90 hover:text-gray-700 ")
+                            }
+                          >
+                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
+                              Manage & Reorder
+                            </span>
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                  </React.Fragment>
+                )}
+              </SidebarLinkGroup>
+              {/* A2 Listening */}
+              <SidebarLinkGroup
+                activecondition={activePage.includes("a2-listening")}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <svg
-                      className={`shrink-0 h-6 w-6 stroke-current ${
+                {(handleClick, open) => (
+                  <React.Fragment>
+                    <a
+                      href="#0"
+                      className={`block text-gray-800 truncate transition duration-150 ${
                         activePage.includes("a2-listening")
-                          ? "text-blue-500"
-                          : "text-gray-400 "
+                          ? ""
+                          : "hover:text-gray-900 "
                       }`}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      strokeWidth="2"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleClick();
+                        setSidebarExpanded(true);
+                      }}
                     >
-                      <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-                      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
-                    </svg>
-                    <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                      A2 Listening
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 ml-2">
-                    <svg
-                      className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 ${
-                        open && "rotate-180"
-                      }`}
-                      viewBox="0 0 12 12"
-                    >
-                      <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
-                    </svg>
-                  </div>
-                </div>
-              </a>
-              <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
-                <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
-                  <li className="mb-1 last:mb-0">
-                    <button
-                      onClick={() => setActivePage("a2-listening-add")}
-                      className={
-                        "block transition duration-150 truncate " +
-                        (activePage === "a2-listening-add"
-                          ? "text-blue-500"
-                          : "text-gray-500/90 hover:text-gray-700 ")
-                      }
-                    >
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
-                        Add
-                      </span>
-                    </button>
-                  </li>
-                  <li className="mb-1 last:mb-0">
-                    <button
-                      onClick={() => setActivePage("a2-listening-manage")}
-                      className={
-                        "block transition duration-150 truncate " +
-                        (activePage === "a2-listening-manage"
-                          ? "text-blue-500"
-                          : "text-gray-500/90 hover:text-gray-700 ")
-                      }
-                    >
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
-                        Manage & Reorder
-                      </span>
-                    </button>
-                  </li>
-                </ul>
-              </div>
-            </React.Fragment>
-          )}
-        </SidebarLinkGroup>
-        {/* A2 Speaking */}
-        <SidebarLinkGroup activecondition={activePage.includes("a2-speaking")}>
-          {(handleClick, open) => (
-            <React.Fragment>
-              <a
-                href="#0"
-                className={`block text-gray-800 truncate transition duration-150 ${
-                  activePage.includes("a2-speaking")
-                    ? ""
-                    : "hover:text-gray-900 "
-                }`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleClick();
-                  setSidebarExpanded(true);
-                }}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <svg
+                            className={`shrink-0 h-6 w-6 stroke-current ${
+                              activePage.includes("a2-listening")
+                                ? "text-blue-500"
+                                : "text-gray-400 "
+                            }`}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            strokeWidth="2"
+                          >
+                            <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+                            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+                          </svg>
+                          <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                            A2 Listening
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 ml-2">
+                          <svg
+                            className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 ${
+                              open && "rotate-180"
+                            }`}
+                            viewBox="0 0 12 12"
+                          >
+                            <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </a>
+                    <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
+                      <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
+                        <li className="mb-1 last:mb-0">
+                          <button
+                            onClick={() => setActivePage("a2-listening-add")}
+                            className={
+                              "block transition duration-150 truncate " +
+                              (activePage === "a2-listening-add"
+                                ? "text-blue-500"
+                                : "text-gray-500/90 hover:text-gray-700 ")
+                            }
+                          >
+                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
+                              Add
+                            </span>
+                          </button>
+                        </li>
+                        <li className="mb-1 last:mb-0">
+                          <button
+                            onClick={() => setActivePage("a2-listening-manage")}
+                            className={
+                              "block transition duration-150 truncate " +
+                              (activePage === "a2-listening-manage"
+                                ? "text-blue-500"
+                                : "text-gray-500/90 hover:text-gray-700 ")
+                            }
+                          >
+                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
+                              Manage & Reorder
+                            </span>
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                  </React.Fragment>
+                )}
+              </SidebarLinkGroup>
+              {/* A2 Speaking */}
+              <SidebarLinkGroup
+                activecondition={activePage.includes("a2-speaking")}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <svg
-                      className={`shrink-0 h-6 w-6 stroke-current ${
+                {(handleClick, open) => (
+                  <React.Fragment>
+                    <a
+                      href="#0"
+                      className={`block text-gray-800 truncate transition duration-150 ${
                         activePage.includes("a2-speaking")
-                          ? "text-blue-500"
-                          : "text-gray-400 "
+                          ? ""
+                          : "hover:text-gray-900 "
                       }`}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      strokeWidth="2"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleClick();
+                        setSidebarExpanded(true);
+                      }}
                     >
-                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                      <line x1="12" y1="19" x2="12" y2="23" />
-                      <line x1="8" y1="23" x2="16" y2="23" />
-                    </svg>
-                    <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                      A2 Speaking
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 ml-2">
-                    <svg
-                      className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 ${
-                        open && "rotate-180"
-                      }`}
-                      viewBox="0 0 12 12"
-                    >
-                      <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
-                    </svg>
-                  </div>
-                </div>
-              </a>
-              <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
-                <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
-                  <li className="mb-1 last:mb-0">
-                    <button
-                      onClick={() => setActivePage("a2-speaking-add")}
-                      className={
-                        "block transition duration-150 truncate " +
-                        (activePage === "a2-speaking-add"
-                          ? "text-blue-500"
-                          : "text-gray-500/90 hover:text-gray-700 ")
-                      }
-                    >
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
-                        Add
-                      </span>
-                    </button>
-                  </li>
-                  <li className="mb-1 last:mb-0">
-                    <button
-                      onClick={() => setActivePage("a2-speaking-manage")}
-                      className={
-                        "block transition duration-150 truncate " +
-                        (activePage === "a2-speaking-manage"
-                          ? "text-blue-500"
-                          : "text-gray-500/90 hover:text-gray-700 ")
-                      }
-                    >
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
-                        Manage & Reorder
-                      </span>
-                    </button>
-                  </li>
-                </ul>
-              </div>
-            </React.Fragment>
-          )}
-        </SidebarLinkGroup>
-        {/* A2 Reading */}
-        <SidebarLinkGroup activecondition={activePage.includes("a2-reading")}>
-          {(handleClick, open) => (
-            <React.Fragment>
-              <a
-                href="#0"
-                className={`block text-gray-800 truncate transition duration-150 ${
-                  activePage.includes("a2-reading")
-                    ? ""
-                    : "hover:text-gray-900 "
-                }`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleClick();
-                  setSidebarExpanded(true);
-                }}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <svg
+                            className={`shrink-0 h-6 w-6 stroke-current ${
+                              activePage.includes("a2-speaking")
+                                ? "text-blue-500"
+                                : "text-gray-400 "
+                            }`}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            strokeWidth="2"
+                          >
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                            <line x1="12" y1="19" x2="12" y2="23" />
+                            <line x1="8" y1="23" x2="16" y2="23" />
+                          </svg>
+                          <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                            A2 Speaking
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 ml-2">
+                          <svg
+                            className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 ${
+                              open && "rotate-180"
+                            }`}
+                            viewBox="0 0 12 12"
+                          >
+                            <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </a>
+                    <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
+                      <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
+                        <li className="mb-1 last:mb-0">
+                          <button
+                            onClick={() => setActivePage("a2-speaking-add")}
+                            className={
+                              "block transition duration-150 truncate " +
+                              (activePage === "a2-speaking-add"
+                                ? "text-blue-500"
+                                : "text-gray-500/90 hover:text-gray-700 ")
+                            }
+                          >
+                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
+                              Add
+                            </span>
+                          </button>
+                        </li>
+                        <li className="mb-1 last:mb-0">
+                          <button
+                            onClick={() => setActivePage("a2-speaking-manage")}
+                            className={
+                              "block transition duration-150 truncate " +
+                              (activePage === "a2-speaking-manage"
+                                ? "text-blue-500"
+                                : "text-gray-500/90 hover:text-gray-700 ")
+                            }
+                          >
+                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
+                              Manage & Reorder
+                            </span>
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                  </React.Fragment>
+                )}
+              </SidebarLinkGroup>
+              {/* A2 Reading */}
+              <SidebarLinkGroup
+                activecondition={activePage.includes("a2-reading")}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <svg
-                      className={`shrink-0 h-6 w-6 stroke-current ${
+                {(handleClick, open) => (
+                  <React.Fragment>
+                    <a
+                      href="#0"
+                      className={`block text-gray-800 truncate transition duration-150 ${
                         activePage.includes("a2-reading")
-                          ? "text-blue-500"
-                          : "text-gray-400 "
+                          ? ""
+                          : "hover:text-gray-900 "
                       }`}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      strokeWidth="2"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleClick();
+                        setSidebarExpanded(true);
+                      }}
                     >
-                      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-                    </svg>
-                    <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                      A2 Reading
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 ml-2">
-                    <svg
-                      className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 ${
-                        open && "rotate-180"
-                      }`}
-                      viewBox="0 0 12 12"
-                    >
-                      <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
-                    </svg>
-                  </div>
-                </div>
-              </a>
-              <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
-                <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
-                  <li className="mb-1 last:mb-0">
-                    <button
-                      onClick={() => setActivePage("a2-reading-add")}
-                      className={
-                        "block transition duration-150 truncate " +
-                        (activePage === "a2-reading-add"
-                          ? "text-blue-500"
-                          : "text-gray-500/90 hover:text-gray-700 ")
-                      }
-                    >
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
-                        Add
-                      </span>
-                    </button>
-                  </li>
-                  <li className="mb-1 last:mb-0">
-                    <button
-                      onClick={() => setActivePage("a2-reading-manage")}
-                      className={
-                        "block transition duration-150 truncate " +
-                        (activePage === "a2-reading-manage"
-                          ? "text-blue-500"
-                          : "text-gray-500/90 hover:text-gray-700 ")
-                      }
-                    >
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
-                        Manage & Reorder
-                      </span>
-                    </button>
-                  </li>
-                </ul>
-              </div>
-            </React.Fragment>
-          )}
-        </SidebarLinkGroup>
-        {/* A2 Test */}
-        <SidebarLinkGroup activecondition={activePage.includes("a2-test")}>
-          {(handleClick, open) => (
-            <React.Fragment>
-              <a
-                href="#0"
-                className={`block text-gray-800 truncate transition duration-150 ${
-                  activePage.includes("a2-test")
-                    ? ""
-                    : "hover:text-gray-900 "
-                }`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleClick();
-                  setSidebarExpanded(true);
-                }}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <svg
+                            className={`shrink-0 h-6 w-6 stroke-current ${
+                              activePage.includes("a2-reading")
+                                ? "text-blue-500"
+                                : "text-gray-400 "
+                            }`}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            strokeWidth="2"
+                          >
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                          </svg>
+                          <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                            A2 Reading
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 ml-2">
+                          <svg
+                            className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 ${
+                              open && "rotate-180"
+                            }`}
+                            viewBox="0 0 12 12"
+                          >
+                            <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </a>
+                    <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
+                      <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
+                        <li className="mb-1 last:mb-0">
+                          <button
+                            onClick={() => setActivePage("a2-reading-add")}
+                            className={
+                              "block transition duration-150 truncate " +
+                              (activePage === "a2-reading-add"
+                                ? "text-blue-500"
+                                : "text-gray-500/90 hover:text-gray-700 ")
+                            }
+                          >
+                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
+                              Add
+                            </span>
+                          </button>
+                        </li>
+                        <li className="mb-1 last:mb-0">
+                          <button
+                            onClick={() => setActivePage("a2-reading-manage")}
+                            className={
+                              "block transition duration-150 truncate " +
+                              (activePage === "a2-reading-manage"
+                                ? "text-blue-500"
+                                : "text-gray-500/90 hover:text-gray-700 ")
+                            }
+                          >
+                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
+                              Manage & Reorder
+                            </span>
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                  </React.Fragment>
+                )}
+              </SidebarLinkGroup>
+              {/* A2 Test */}
+              <SidebarLinkGroup
+                activecondition={activePage.includes("a2-test")}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <svg
-                      className={`shrink-0 h-6 w-6 stroke-current ${
+                {(handleClick, open) => (
+                  <React.Fragment>
+                    <a
+                      href="#0"
+                      className={`block text-gray-800 truncate transition duration-150 ${
                         activePage.includes("a2-test")
-                          ? "text-blue-500"
-                          : "text-gray-400 "
+                          ? ""
+                          : "hover:text-gray-900 "
                       }`}
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      strokeWidth="2"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleClick();
+                        setSidebarExpanded(true);
+                      }}
                     >
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                      <polyline points="10 9 9 9 8 9" />
-                    </svg>
-                    <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
-                      A2 Test
-                    </span>
-                  </div>
-                  <div className="flex shrink-0 ml-2">
-                    <svg
-                      className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 ${
-                        open && "rotate-180"
-                      }`}
-                      viewBox="0 0 12 12"
-                    >
-                      <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
-                    </svg>
-                  </div>
-                </div>
-              </a>
-              <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
-                <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
-                  <li className="mb-1 last:mb-0">
-                    <button
-                      onClick={() => setActivePage("a2-test-add")}
-                      className={
-                        "block transition duration-150 truncate " +
-                        (activePage === "a2-test-add"
-                          ? "text-blue-500"
-                          : "text-gray-500/90 hover:text-gray-700 ")
-                      }
-                    >
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
-                        Add
-                      </span>
-                    </button>
-                  </li>
-                  <li className="mb-1 last:mb-0">
-                    <button
-                      onClick={() => setActivePage("a2-test-manage")}
-                      className={
-                        "block transition duration-150 truncate " +
-                        (activePage === "a2-test-manage"
-                          ? "text-blue-500"
-                          : "text-gray-500/90 hover:text-gray-700 ")
-                      }
-                    >
-                      <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
-                        Manage & Reorder
-                      </span>
-                    </button>
-                  </li>
-                </ul>
-              </div>
-            </React.Fragment>
-          )}
-        </SidebarLinkGroup>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <svg
+                            className={`shrink-0 h-6 w-6 stroke-current ${
+                              activePage.includes("a2-test")
+                                ? "text-blue-500"
+                                : "text-gray-400 "
+                            }`}
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            strokeWidth="2"
+                          >
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                            <polyline points="10 9 9 9 8 9" />
+                          </svg>
+                          <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                            A2 Test
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 ml-2">
+                          <svg
+                            className={`w-3 h-3 shrink-0 ml-1 fill-current text-gray-400 ${
+                              open && "rotate-180"
+                            }`}
+                            viewBox="0 0 12 12"
+                          >
+                            <path d="M5.9 11.4L.5 6l1.4-1.4 4 4 4-4L11.3 6z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </a>
+                    <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
+                      <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
+                        <li className="mb-1 last:mb-0">
+                          <button
+                            onClick={() => setActivePage("a2-test-add")}
+                            className={
+                              "block transition duration-150 truncate " +
+                              (activePage === "a2-test-add"
+                                ? "text-blue-500"
+                                : "text-gray-500/90 hover:text-gray-700 ")
+                            }
+                          >
+                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
+                              Add
+                            </span>
+                          </button>
+                        </li>
+                        <li className="mb-1 last:mb-0">
+                          <button
+                            onClick={() => setActivePage("a2-test-manage")}
+                            className={
+                              "block transition duration-150 truncate " +
+                              (activePage === "a2-test-manage"
+                                ? "text-blue-500"
+                                : "text-gray-500/90 hover:text-gray-700 ")
+                            }
+                          >
+                            <span className="text-sm font-medium lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200 cursor-pointer">
+                              Manage & Reorder
+                            </span>
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                  </React.Fragment>
+                )}
+              </SidebarLinkGroup>
             </ul>
           </div>
         </div>

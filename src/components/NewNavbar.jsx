@@ -6,7 +6,7 @@ import { logout } from "../redux/auth/authSlice";
 import { images } from "../assets/images.js";
 import { hapticMedium } from "../utils/haptics";
 
-export default function Navbar({ minimal = false }) {
+export default function Navbar({ minimal = false, disableNavigation = false }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
@@ -17,6 +17,10 @@ export default function Navbar({ minimal = false }) {
   useEffect(() => {
     setIsMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (disableNavigation) setIsMenuOpen(false);
+  }, [disableNavigation]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -31,8 +35,11 @@ export default function Navbar({ minimal = false }) {
 
   return (
     <header
-      className="bg-white border-b border-[#efefef] sticky top-0 z-50 shadow-sm"
+      className={`bg-white border-b border-[#efefef] sticky top-0 z-50 shadow-sm ${
+        disableNavigation ? "pointer-events-none" : ""
+      }`}
       style={{ paddingTop: "env(safe-area-inset-top)" }}
+      aria-disabled={disableNavigation}
     >
       <div className="h-[55px] lg:h-[72px] flex items-center justify-between px-4 lg:px-8 max-w-7xl mx-auto">
         {/* Logo */}

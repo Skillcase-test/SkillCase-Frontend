@@ -31,6 +31,9 @@ import A2ReadingManage from "./a2/reading/manage";
 import A2TestAdd from "./a2/test/add";
 import A2TestManage from "./a2/test/manage";
 
+import AdminExamManager from "./exam/AdminExamManager";
+import AdminBatchManager from "./exam/AdminBatchManager";
+
 function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activePage, setActivePage] = useState("analytics");
@@ -100,6 +103,12 @@ function Dashboard() {
         return <A2TestAdd />;
       case "a2-test-manage":
         return <A2TestManage />;
+
+      // Hard Core Test
+      case "exam-manage":
+        return <AdminExamManager />;
+      case "batch-manage":
+        return <AdminBatchManager />;
 
       default:
         return <div>Select an option from the sidebar</div>;

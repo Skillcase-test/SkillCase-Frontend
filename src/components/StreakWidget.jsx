@@ -87,13 +87,17 @@ export default function StreakWidget() {
 
   return (
     <>
-      <Link to={continueLink} className="block px-4 py-4" id="streak-widget">
-        <div className="bg-[#002856] shadow-xl border border-slate-100 rounded-2xl p-5 flex items-center justify-between hover:shadow-2xl transition-shadow cursor-pointer">
+      <Link
+        to={continueLink}
+        className="block px-2 pt-4 pb-6"
+        id="streak-widget"
+      >
+        <div className="bg-[#002856] shadow-xl border border-slate-100 rounded-2xl py-5 px-3 flex items-center justify-between hover:shadow-2xl transition-shadow cursor-pointer">
           {/* Left Side - Streak */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Flame className="w-10 h-10 text-orange-400" />
             <div className="text-[#EDB843]">
-              <div className="text-3xl font-bold leading-tight">
+              <div className="text-2xl md:text-3xl font-bold leading-tight">
                 {streakData.currentStreak}
               </div>
               <div className="text-sm opacity-90">Days Streak</div>

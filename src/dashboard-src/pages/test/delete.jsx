@@ -23,7 +23,6 @@ export default function DeleteTest() {
 
     try {
       const res = await api.get(`/admin/getTest/${proficiency}`);
-      console.log("Response:", res.data);
 
       const results = res.data.results || {};
 

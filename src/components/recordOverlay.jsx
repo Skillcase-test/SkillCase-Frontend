@@ -143,7 +143,6 @@ export default function VoiceRecorder({ card, closeOverlay,setAssesmentResult })
       if (response.status === 200) {
         setUploadStatus("Successfully uploaded!");
         setAudioBlob(null);
-        console.log("Response:", response.data);
         setAssesmentResult(response.data)
         closeOverlay()
       } else {
