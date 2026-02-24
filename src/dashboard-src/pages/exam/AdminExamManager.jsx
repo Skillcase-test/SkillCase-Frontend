@@ -15,6 +15,8 @@ import {
   getExamSubmissions,
   reopenSubmission,
   resetSubmissionForRetest,
+  getSubmissionDetail,
+  overrideAnswer,
   listBatches,
 } from "../../../api/examApi";
 import {
@@ -73,6 +75,7 @@ const QUESTION_TYPES = [
   { value: "sentence_correction", label: "Sentence Correction" },
   { value: "matching", label: "Matching" },
   { value: "dialogue_dropdown", label: "Dialogue Dropdown" },
+  { value: "paragraph", label: "Paragraph (Manual Grade)" },
   { value: "page_break", label: "── Page Break ──" },
   { value: "reading_passage", label: "📖 Reading Passage" },
   { value: "content_block", label: "📝 Content Block" },
@@ -129,6 +132,8 @@ function getDefaultData(type) {
       };
     case "dialogue_dropdown":
       return { question: "Complete the dialogue", dialogue: [] };
+    case "paragraph":
+      return { question: "", word_limit: 0 };
     case "page_break":
       return {};
     case "reading_passage":
@@ -1966,6 +1971,33 @@ function QuestionFormBuilder({ type, data, onChange, onOptionFileChange, onQuest
       return <MatchingForm data={data} onChange={onChange} />;
     case "dialogue_dropdown":
       return <DialogueDropdownForm data={data} onChange={onChange} />;
+    case "paragraph":
+      return (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Prompt / Question *</label>
+            <textarea
+              value={data.question || ""}
+              onChange={(e) => onChange({ ...data, question: e.target.value })}
+              className="w-full px-3 py-2 border rounded-lg text-sm min-h-[80px]"
+              placeholder="Write your paragraph question here..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Word Limit (0 = no limit)</label>
+            <input
+              type="number"
+              min={0}
+              value={data.word_limit ?? 0}
+              onChange={(e) => onChange({ ...data, word_limit: parseInt(e.target.value) || 0 })}
+              className="w-32 px-3 py-2 border rounded-lg text-sm"
+            />
+          </div>
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
+            ✍️ This question is <strong>not auto-graded</strong>. You must manually mark each student's answer correct or incorrect from the Submissions view.
+          </div>
+        </div>
+      );
     case "page_break":
       return <PageBreakForm />;
     case "reading_passage":
@@ -2287,6 +2319,7 @@ export default function AdminExamManager() {
   const [batches, setBatches] = useState([]);
   const [selectedBatchIds, setSelectedBatchIds] = useState([]);
   const [submissions, setSubmissions] = useState([]);
+  const [submissionDetail, setSubmissionDetail] = useState(null); // { submission, questions }
 
   // Drag-and-drop sensors
   const dndSensors = useSensors(
@@ -2493,7 +2526,7 @@ export default function AdminExamManager() {
       formData.append("question_data", JSON.stringify(qForm.question_data));
       formData.append("points", qForm.points);
       if (audioFile) formData.append("audio", audioFile);
-      if (audioLink.trim()) formData.append("audio_url", audioLink.trim());
+      formData.append("audio_url", audioLink.trim()); // always send; empty string = clear audio
       if (imageBlockFile) formData.append("image_block_file", imageBlockFile);
       if (questionImageFile) formData.append("question_image_file", questionImageFile);
       Object.entries(optionImageFiles).forEach(([idx, file]) => {
@@ -2527,7 +2560,7 @@ export default function AdminExamManager() {
       formData.append("question_data", JSON.stringify(qForm.question_data));
       formData.append("points", qForm.points);
       if (audioFile) formData.append("audio", audioFile);
-      if (audioLink.trim()) formData.append("audio_url", audioLink.trim());
+      formData.append("audio_url", audioLink.trim()); // always send; empty string = clear audio
       if (imageBlockFile) formData.append("image_block_file", imageBlockFile);
       if (questionImageFile) formData.append("question_image_file", questionImageFile);
       Object.entries(optionImageFiles).forEach(([idx, file]) => {
@@ -2648,6 +2681,38 @@ export default function AdminExamManager() {
       setSubmissions(res.data?.submissions || []);
     } catch (err) {
       setError(err.response?.data?.msg || "Failed to clear and reopen");
+    }
+  };
+
+  const openSubmissionDetail = async (submissionId) => {
+    try {
+      const res = await getSubmissionDetail(submissionId);
+      setSubmissionDetail(res.data);
+      setView("submission_detail");
+    } catch (err) {
+      setError("Failed to load submission detail");
+    }
+  };
+
+  const handleOverrideAnswer = async (questionId) => {
+    if (!submissionDetail) return;
+    try {
+      const res = await overrideAnswer(
+        submissionDetail.submission.submission_id,
+        questionId,
+      );
+      const { is_correct, points_earned, earned_points, score } = res.data;
+      setSubmissionDetail((prev) => ({
+        ...prev,
+        submission: { ...prev.submission, earned_points, score },
+        questions: prev.questions.map((q) =>
+          q.question_id === questionId
+            ? { ...q, is_correct, points_earned }
+            : q,
+        ),
+      }));
+    } catch (err) {
+      setError("Failed to override answer");
     }
   };
 
@@ -3426,6 +3491,7 @@ export default function AdminExamManager() {
                     <th className="text-left p-2">Score</th>
                     <th className="text-left p-2">Warnings</th>
                     <th className="text-left p-2">Actions</th>
+                    <th className="text-left p-2">Answers</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3485,6 +3551,14 @@ export default function AdminExamManager() {
                           </button>
                         )}
                       </td>
+                      <td className="p-2">
+                        <button
+                          onClick={() => openSubmissionDetail(s.submission_id)}
+                          className="text-xs text-purple-600 hover:underline flex items-center gap-1"
+                        >
+                          <Eye className="w-3 h-3" /> View Answers
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -3493,6 +3567,199 @@ export default function AdminExamManager() {
           )}
         </div>
       )}
+
+      {/* SUBMISSION DETAIL */}
+      {view === "submission_detail" && submissionDetail && (() => {
+        const { submission, questions } = submissionDetail;
+        const NON_Q = new Set(["page_break", "reading_passage", "audio_block", "content_block", "image_block"]);
+        const scoreColor = submission.score >= 80
+          ? "text-green-700 bg-green-50"
+          : submission.score >= 50
+          ? "text-yellow-700 bg-yellow-50"
+          : "text-red-700 bg-red-50";
+        return (
+          <div>
+            <button
+              onClick={() => setView("submissions")}
+              className="flex items-center gap-1 text-sm text-gray-500 mb-4"
+            >
+              <ArrowLeft className="w-4 h-4" /> Back to Submissions
+            </button>
+
+            {/* Header card */}
+            <div className="bg-white border rounded-xl p-4 mb-5 flex flex-wrap items-center gap-4 justify-between">
+              <div>
+                <p className="text-xs text-gray-400 uppercase font-semibold tracking-wide">Submission Detail</p>
+                <h2 className="text-lg font-bold text-gray-900">
+                  {submission.fullname || submission.username}
+                  <span className="ml-2 text-sm font-normal text-gray-400">@{submission.username}</span>
+                </h2>
+                <p className="text-sm text-gray-500 mt-0.5">{submission.exam_title}</p>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className={`text-2xl font-bold px-3 py-1 rounded-lg ${scoreColor}`}>
+                  {submission.score !== null ? `${parseFloat(submission.score).toFixed(1)}%` : "—"}
+                </span>
+                <div className="text-sm text-gray-500">
+                  <p>{parseFloat(submission.earned_points || 0).toFixed(2)} / {parseFloat(submission.total_points || 0).toFixed(2)} pts</p>
+                  <p className="text-xs">
+                    {submission.finished_at
+                      ? new Date(submission.finished_at).toLocaleString()
+                      : submission.status === "in_progress" ? "In progress" : "—"}
+                  </p>
+                </div>
+                <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                  submission.status === "completed" ? "bg-green-100 text-green-700"
+                  : submission.status === "in_progress" ? "bg-yellow-100 text-yellow-700"
+                  : "bg-red-100 text-red-700"
+                }`}>{submission.status}</span>
+              </div>
+            </div>
+
+            {/* Per-question list */}
+            <div className="space-y-3">
+              {questions.map((q, idx) => {
+                // ── CONTEXT BLOCKS (read-only reference for admin) ─────────
+                if (q.question_type === "page_break") {
+                  return (
+                    <div key={q.question_id} className="border-t-2 border-dashed border-gray-300 my-2 flex items-center justify-center">
+                      <span className="text-xs text-gray-400 bg-white px-2 font-medium">— Page Break —</span>
+                    </div>
+                  );
+                }
+                if (q.question_type === "reading_passage") {
+                  return (
+                    <div key={q.question_id} className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                      <p className="text-xs font-semibold text-blue-500 uppercase mb-2 tracking-wide">📖 Reading Passage</p>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap break-words leading-relaxed">{q.question_data?.passage}</p>
+                    </div>
+                  );
+                }
+                if (q.question_type === "content_block") {
+                  return (
+                    <div key={q.question_id} className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                      <p className="text-xs font-semibold text-gray-400 uppercase mb-2 tracking-wide">📝 Content Block</p>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap break-words leading-relaxed">{q.question_data?.content}</p>
+                    </div>
+                  );
+                }
+                if (q.question_type === "image_block") {
+                  return (
+                    <div key={q.question_id} className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col gap-2">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">🖼️ Image Block</p>
+                      {q.question_data?.image_url && (
+                        <img src={q.question_data.image_url} alt={q.question_data?.alt || ""} className="max-h-48 object-contain rounded-lg border" />
+                      )}
+                    </div>
+                  );
+                }
+                if (q.question_type === "audio_block") {
+                  return (
+                    <div key={q.question_id} className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
+                      <span className="text-lg">🔊</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-1">Audio Block</p>
+                        <audio controls src={q.audio_url} className="w-full h-8 mt-1" style={{ height: 32 }} />
+                      </div>
+                    </div>
+                  );
+                }
+
+                // ── ANSWERABLE QUESTION CARDS ──────────────────────────────
+                const unanswered = q.user_answer === null || q.user_answer === undefined;
+                const correct = q.is_correct;
+                const isPending = correct === null && !unanswered; // paragraph pending admin review
+                const borderColor = unanswered
+                  ? "border-gray-200"
+                  : isPending ? "border-amber-300"
+                  : correct ? "border-green-300" : "border-red-300";
+                const labelColor = unanswered
+                  ? "text-gray-400"
+                  : isPending ? "text-amber-600"
+                  : correct ? "text-green-700" : "text-red-600";
+                const qLabel = q.question_data?.question
+                  || q.question_data?.incorrect_sentence
+                  || `Question ${idx + 1}`;
+
+                // Render user answer as readable string
+                const renderAnswer = (ans, opts) => {
+                  if (ans === null || ans === undefined) return <span className="italic text-gray-400">No answer</span>;
+                  if (Array.isArray(ans)) {
+                    return ans.map((a, i) => {
+                      const opt = opts?.[a];
+                      return <span key={i} className="inline-block bg-gray-100 rounded px-1.5 mr-1">
+                        {typeof opt === "object" && opt?.url
+                          ? <img src={opt.url} alt="" className="max-h-8 inline"/>
+                          : String(typeof a === "number" && opts ? (opts[a] ?? a) : a)}
+                      </span>;
+                    });
+                  }
+                  if (typeof ans === "number" && opts?.[ans]) {
+                    const opt = opts[ans];
+                    return typeof opt === "object" && opt?.url
+                      ? <img src={opt.url} alt="" className="max-h-10"/>
+                      : <span>{String(opt)}</span>;
+                  }
+                  return <span>{String(ans)}</span>;
+                };
+
+                const opts = q.question_data?.options;
+                const correctAns = q.question_data?.correct
+                  ?? q.question_data?.correct_answer
+                  ?? q.question_data?.correct_sentence
+                  ?? q.question_data?.correct_order;
+
+                return (
+                  <div key={q.question_id} className={`bg-white border-2 ${borderColor} rounded-xl p-4`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-blue-600 uppercase mb-1">
+                          {q.question_type.replace(/_/g, " ")}
+                        </p>
+                        <p className="text-sm font-medium text-gray-800 mb-2 whitespace-pre-wrap break-words">
+                          {qLabel}
+                        </p>
+                        {q.question_data?.question_image && (
+                          <img src={q.question_data.question_image} alt="" className="max-h-24 rounded mb-2" />
+                        )}
+                        <div className="flex flex-wrap gap-4 text-sm mt-1">
+                          <div>
+                            <p className="text-xs text-gray-400 mb-0.5">Student answered</p>
+                            <div className="font-medium">{renderAnswer(q.user_answer, opts)}</div>
+                          </div>
+                          {correctAns !== undefined && correctAns !== null && (
+                            <div>
+                              <p className="text-xs text-gray-400 mb-0.5">Correct answer</p>
+                              <div className="font-medium text-green-700">{renderAnswer(correctAns, opts)}</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2 shrink-0">
+                        <span className={`text-xs font-bold ${labelColor}`}>
+                          {unanswered ? "—" : isPending ? "Pending review" : correct ? `+${parseFloat(q.points_earned || 0).toFixed(2)} pts` : `0 / ${q.points} pts`}
+                        </span>
+                        {(!unanswered) && (
+                          <button
+                            onClick={() => handleOverrideAnswer(q.question_id)}
+                            className={`text-xs px-2.5 py-1.5 rounded-lg font-semibold border transition-all ${
+                              correct === true
+                                ? "border-red-300 text-red-600 hover:bg-red-50"
+                                : "border-green-400 text-green-700 hover:bg-green-50"
+                            }`}
+                          >
+                            {correct === true ? "Mark Wrong" : "Mark Correct"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

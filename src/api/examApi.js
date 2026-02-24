@@ -64,6 +64,12 @@ export const reopenSubmission = (submissionId) =>
 export const resetSubmissionForRetest = (submissionId) =>
   api.put(`/admin/exam/submission/${submissionId}/reset-reopen`);
 
+export const getSubmissionDetail = (submissionId) =>
+  api.get(`/admin/exam/submission/${submissionId}/detail`);
+
+export const overrideAnswer = (submissionId, questionId) =>
+  api.put(`/admin/exam/submission/${submissionId}/answer/${questionId}/override`);
+
 // BATCH ENDPOINTS
 export const createBatch = (data) => api.post("/admin/batch", data);
 

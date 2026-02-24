@@ -1040,6 +1040,45 @@ export default function ExamPage() {
                   </div>
                 );
               }
+              // paragraph — free-text textarea, manually graded by admin
+              if (q.question_type === "paragraph") {
+                const answer = answers[q.question_id];
+                const wordLimit = q.question_data?.word_limit || 0;
+                const globalQNumber =
+                  answerableQuestions.findIndex(
+                    (aq) => aq.question_id === q.question_id,
+                  ) + 1;
+                return (
+                  <div key={q.question_id} className="bg-white p-1 pb-6 border-b border-gray-200">
+                    <p className="text-xs font-semibold text-gray-400 mb-2 mt-2 uppercase tracking-wider">
+                      Question {globalQNumber} of {answerableQuestions.length}
+                    </p>
+                    {q.question_data?.question_image && (
+                      <img
+                        src={q.question_data.question_image}
+                        alt=""
+                        style={{ display: "block", maxWidth: "100%" }}
+                        className="mb-3 rounded-lg"
+                      />
+                    )}
+                    <QuestionAudioPlayer src={q.audio_url} />
+                    <h2 className="text-base font-medium leading-relaxed text-[#181d27] whitespace-pre-wrap break-words mb-4">
+                      {q.question_data?.question}
+                    </h2>
+                    <textarea
+                      className="w-full min-h-[140px] p-3 border-2 border-gray-200 rounded-xl text-sm leading-relaxed focus:border-[#002856] focus:outline-none resize-y transition-colors"
+                      placeholder="Write your answer here..."
+                      defaultValue={typeof answer === "string" ? answer : ""}
+                      onBlur={(e) => handleAnswer(q.question_id, e.target.value)}
+                    />
+                    {wordLimit > 0 && (
+                      <p className="text-xs text-gray-400 mt-1 text-right">
+                        Suggested word limit: {wordLimit}
+                      </p>
+                    )}
+                  </div>
+                );
+              }
               // Normal question — only use own audio_url, no inheritance
               const answer = answers[q.question_id];
               // Calculate question number (across all answerable questions)

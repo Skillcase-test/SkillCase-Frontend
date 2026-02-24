@@ -897,6 +897,39 @@ function renderResultDetail(q) {
         </div>
       );
 
+    case "paragraph":
+      return (
+        <div className="space-y-2">
+          <div
+            className={`p-3 rounded-xl border-2 ${
+              q.is_correct === true
+                ? "border-green-400 bg-green-50"
+                : q.is_correct === false
+                ? "border-red-400 bg-red-50"
+                : "border-amber-300 bg-amber-50"
+            }`}
+          >
+            <p className="text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wide">
+              Your answer
+            </p>
+            <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+              {userAnswer || <span className="italic text-gray-400">No answer</span>}
+            </p>
+          </div>
+          {q.is_correct === null && (
+            <p className="text-xs text-amber-700 font-medium">
+              ⏳ Pending teacher review — score will be updated once marked.
+            </p>
+          )}
+          {q.is_correct === true && (
+            <p className="text-xs text-green-700 font-semibold">✓ Marked correct by teacher</p>
+          )}
+          {q.is_correct === false && (
+            <p className="text-xs text-red-600 font-semibold">✗ Marked incorrect by teacher</p>
+          )}
+        </div>
+      );
+
     default:
       return <p className="text-gray-500 text-sm">Unknown question type</p>;
   }

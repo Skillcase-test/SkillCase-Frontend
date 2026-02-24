@@ -96,7 +96,7 @@ import { initPushNotifications } from "./notifications/pushNotifications";
 import InternalLeadForm from "./pages/InternalLeadForm";
 import ProductTour from "./tour/ProductTour";
 
-export const APP_VERSION = "1.0.6";
+export const APP_VERSION = "1.0.7";
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 2000;
 const PLAY_STORE_URL = "market://details?id=com.skillcase.app";
