@@ -41,6 +41,7 @@ import {
   BookOpen,
   Volume2,
   FileText,
+  Image as ImageIcon,
 } from "lucide-react";
 
 import {
@@ -64,7 +65,7 @@ import { CSS } from "@dnd-kit/utilities";
 const QUESTION_TYPES = [
   { value: "mcq_single", label: "MCQ — Single Answer" },
   { value: "mcq_multi", label: "MCQ — Multiple Answers" },
-  { value: "true_false", label: "True / False" },
+  { value: "true_false", label: "Richtig / Falsch" },
   { value: "fill_typing", label: "Fill Blank — Typing" },
   { value: "fill_options", label: "Fill Blank — Options" },
   { value: "composite_question", label: "Composite Question" },
@@ -76,6 +77,7 @@ const QUESTION_TYPES = [
   { value: "reading_passage", label: "📖 Reading Passage" },
   { value: "content_block", label: "📝 Content Block" },
   { value: "audio_block", label: "🔊 Audio Block" },
+  { value: "image_block", label: "🖼️ Image Block" },
 ];
 
 function getDefaultData(type) {
@@ -133,6 +135,8 @@ function getDefaultData(type) {
       return { passage: "" };
     case "content_block":
       return { content: "" };
+    case "image_block":
+      return { image_url: "", alt: "" };
     case "audio_block":
       return {};
     default:
@@ -209,6 +213,14 @@ function normalizeQuestionData(type, rawData) {
     merged.content = merged.content || "";
   }
 
+  if (type === "image_block") {
+    merged.image_url = merged.image_url || "";
+    merged.alt = merged.alt || "";
+  }
+
+  // Preserve question_image on any question type
+  if (merged.question_image === undefined) delete merged.question_image;
+
   if (type === "fill_typing") {
     merged.placeholder = merged.placeholder || "";
   }
@@ -219,123 +231,45 @@ function normalizeQuestionData(type, rawData) {
 // QUESTION FORM BUILDERS
 // — Renders type-specific inputs
 
-function MCQSingleForm({ data, onChange }) {
+function MCQSingleForm({ data, onChange, onOptionFileChange, onQuestionImageFileChange }) {
   const update = (key, val) => onChange({ ...data, [key]: val });
+
+  // When ANY option is an image, correct is stored as an index (integer)
+  const hasImg = data.options.some(
+    (o) => o && typeof o === "object" && o.type === "image",
+  );
+
   const updateOption = (idx, val) => {
     const opts = [...data.options];
     opts[idx] = val;
-    update("options", opts);
+    // If the correct answer was this option, reset it
+    let newCorrect = data.correct;
+    if (hasImg) {
+      if (newCorrect === idx) newCorrect = null;
+    } else {
+      if (newCorrect === data.options[idx]) newCorrect = "";
+    }
+    onChange({ ...data, options: opts, correct: newCorrect });
   };
   const addOption = () => update("options", [...data.options, ""]);
   const removeOption = (idx) => {
     const opts = data.options.filter((_, i) => i !== idx);
-    // If the removed option was the correct answer, clear it
-    const newCorrect = data.correct === data.options[idx] ? "" : data.correct;
+    let newCorrect = data.correct;
+    if (hasImg) {
+      if (newCorrect === idx) newCorrect = null;
+    } else {
+      if (newCorrect === data.options[idx]) newCorrect = "";
+    }
     onChange({ ...data, options: opts, correct: newCorrect });
   };
 
   return (
     <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Question *
-        </label>
-        <input
-          value={data.question}
-          onChange={(e) => update("question", e.target.value)}
-          className="w-full px-3 py-2 border rounded-lg text-sm"
-          placeholder="Enter question text..."
-        />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Options *
-        </label>
-        <div className="space-y-2">
-          {data.options.map((opt, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => update("correct", opt)}
-                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
-                  data.correct === opt && opt !== ""
-                    ? "border-green-500 bg-green-500"
-                    : "border-gray-300"
-                }`}
-              >
-                {data.correct === opt && opt !== "" && (
-                  <svg
-                    className="w-3 h-3 text-white"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                )}
-              </button>
-              <input
-                value={opt}
-                onChange={(e) => updateOption(idx, e.target.value)}
-                className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                placeholder={`Option ${idx + 1}`}
-              />
-              {data.options.length > 2 && (
-                <button
-                  type="button"
-                  onClick={() => removeOption(idx)}
-                  className="text-red-400 hover:text-red-600"
-                >
-                  <MinusCircle className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={addOption}
-          className="mt-2 text-xs text-blue-600 hover:underline flex items-center gap-1"
-        >
-          <Plus className="w-3 h-3" /> Add option
-        </button>
-        <p className="text-xs text-gray-400 mt-1">
-          Click the circle to mark the correct answer.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function MCQMultiForm({ data, onChange }) {
-  const update = (key, val) => onChange({ ...data, [key]: val });
-  const updateOption = (idx, val) => {
-    const opts = [...data.options];
-    opts[idx] = val;
-    update("options", opts);
-  };
-  const addOption = () => update("options", [...data.options, ""]);
-  const removeOption = (idx) => {
-    const opts = data.options.filter((_, i) => i !== idx);
-    const removedValue = data.options[idx];
-    const correct = (data.correct || []).filter((c) => c !== removedValue);
-    onChange({ ...data, options: opts, correct });
-  };
-  const toggleCorrect = (optValue) => {
-    const correct = [...(data.correct || [])];
-    const idx = correct.indexOf(optValue);
-    if (idx > -1) correct.splice(idx, 1);
-    else correct.push(optValue);
-    update("correct", correct);
-  };
-
-  return (
-    <div className="space-y-4">
+      <QuestionImagePicker
+        data={data}
+        onChange={onChange}
+        onFileChange={onQuestionImageFileChange}
+      />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Question *
@@ -353,45 +287,161 @@ function MCQMultiForm({ data, onChange }) {
         </label>
         <div className="space-y-2">
           {data.options.map((opt, idx) => {
-            const isCorrect = (data.correct || []).includes(opt) && opt !== "";
+            const isCorrect = hasImg
+              ? data.correct === idx
+              : data.correct === opt && opt !== "";
             return (
-              <div key={idx} className="flex items-center gap-2">
+              <div key={idx} className="flex items-start gap-2">
                 <button
                   type="button"
-                  onClick={() => opt !== "" && toggleCorrect(opt)}
-                  className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                  onClick={() =>
+                    update("correct", hasImg ? idx : opt)
+                  }
+                  className={`w-5 h-5 mt-2.5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${
                     isCorrect
                       ? "border-green-500 bg-green-500"
                       : "border-gray-300"
                   }`}
                 >
                   {isCorrect && (
-                    <svg
-                      className="w-3 h-3 text-white"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={3}
-                        d="M5 13l4 4L19 7"
-                      />
+                    <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </button>
-                <input
+                <ImageOptionInput
                   value={opt}
-                  onChange={(e) => updateOption(idx, e.target.value)}
-                  className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                  onValueChange={(val) => updateOption(idx, val)}
+                  onFileChange={(file) => onOptionFileChange(idx, file)}
                   placeholder={`Option ${idx + 1}`}
                 />
                 {data.options.length > 2 && (
                   <button
                     type="button"
                     onClick={() => removeOption(idx)}
-                    className="text-red-400 hover:text-red-600"
+                    className="text-red-400 hover:text-red-600 mt-2"
+                  >
+                    <MinusCircle className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={addOption}
+          className="mt-2 text-xs text-blue-600 hover:underline flex items-center gap-1"
+        >
+          <Plus className="w-3 h-3" /> Add option
+        </button>
+        <p className="text-xs text-gray-400 mt-1">
+          Click the circle to mark the correct answer.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MCQMultiForm({ data, onChange, onOptionFileChange, onQuestionImageFileChange }) {
+  const update = (key, val) => onChange({ ...data, [key]: val });
+
+  const hasImg = data.options.some(
+    (o) => o && typeof o === "object" && o.type === "image",
+  );
+
+  const updateOption = (idx, val) => {
+    const opts = [...data.options];
+    opts[idx] = val;
+    // Remove the changed option from correct if it was there
+    let correct = [...(data.correct || [])];
+    if (hasImg) {
+      correct = correct.filter((c) => c !== idx);
+    } else {
+      correct = correct.filter((c) => c !== data.options[idx]);
+    }
+    onChange({ ...data, options: opts, correct });
+  };
+  const addOption = () => update("options", [...data.options, ""]);
+  const removeOption = (idx) => {
+    const opts = data.options.filter((_, i) => i !== idx);
+    let correct = [...(data.correct || [])];
+    if (hasImg) {
+      correct = correct.filter((c) => c !== idx);
+    } else {
+      correct = correct.filter((c) => c !== data.options[idx]);
+    }
+    onChange({ ...data, options: opts, correct });
+  };
+  const toggleCorrect = (opt, idx) => {
+    let correct = [...(data.correct || [])];
+    if (hasImg) {
+      const i = correct.indexOf(idx);
+      if (i > -1) correct.splice(i, 1);
+      else correct.push(idx);
+    } else {
+      const i = correct.indexOf(opt);
+      if (i > -1) correct.splice(i, 1);
+      else correct.push(opt);
+    }
+    update("correct", correct);
+  };
+
+  return (
+    <div className="space-y-4">
+      <QuestionImagePicker
+        data={data}
+        onChange={onChange}
+        onFileChange={onQuestionImageFileChange}
+      />
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Question *
+        </label>
+        <input
+          value={data.question}
+          onChange={(e) => update("question", e.target.value)}
+          className="w-full px-3 py-2 border rounded-lg text-sm"
+          placeholder="Enter question text..."
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Options *
+        </label>
+        <div className="space-y-2">
+          {data.options.map((opt, idx) => {
+            const isCorrect = hasImg
+              ? (data.correct || []).includes(idx)
+              : (data.correct || []).includes(opt) && opt !== "";
+            return (
+              <div key={idx} className="flex items-start gap-2">
+                <button
+                  type="button"
+                  onClick={() => (opt !== "" || hasImg) && toggleCorrect(opt, idx)}
+                  className={`w-5 h-5 mt-2.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                    isCorrect
+                      ? "border-green-500 bg-green-500"
+                      : "border-gray-300"
+                  }`}
+                >
+                  {isCorrect && (
+                    <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                </button>
+                <ImageOptionInput
+                  value={opt}
+                  onValueChange={(val) => updateOption(idx, val)}
+                  onFileChange={(file) => onOptionFileChange(idx, file)}
+                  placeholder={`Option ${idx + 1}`}
+                />
+                {data.options.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => removeOption(idx)}
+                    className="text-red-400 hover:text-red-600 mt-2"
                   >
                     <MinusCircle className="w-4 h-4" />
                   </button>
@@ -445,7 +495,7 @@ function TrueFalseForm({ data, onChange }) {
                   : "border-gray-200 hover:border-gray-300"
               }`}
             >
-              {val ? "True" : "False"}
+              {val ? "Richtig" : "Falsch"}
             </button>
           ))}
         </div>
@@ -506,22 +556,41 @@ function FillTypingForm({ data, onChange }) {
   );
 }
 
-function FillOptionsForm({ data, onChange }) {
+function FillOptionsForm({ data, onChange, onOptionFileChange, onQuestionImageFileChange }) {
   const update = (key, val) => onChange({ ...data, [key]: val });
+  const hasImg = data.options.some(
+    (o) => o && typeof o === "object" && o.type === "image",
+  );
   const updateOption = (idx, val) => {
     const opts = [...data.options];
     opts[idx] = val;
-    update("options", opts);
+    let newCorrect = data.correct;
+    if (hasImg) {
+      if (newCorrect === idx) newCorrect = null;
+    } else {
+      if (newCorrect === data.options[idx]) newCorrect = "";
+    }
+    onChange({ ...data, options: opts, correct: newCorrect });
   };
   const addOption = () => update("options", [...data.options, ""]);
   const removeOption = (idx) => {
     const opts = data.options.filter((_, i) => i !== idx);
-    const newCorrect = data.correct === data.options[idx] ? "" : data.correct;
+    let newCorrect = data.correct;
+    if (hasImg) {
+      if (newCorrect === idx) newCorrect = null;
+    } else {
+      if (newCorrect === data.options[idx]) newCorrect = "";
+    }
     onChange({ ...data, options: opts, correct: newCorrect });
   };
 
   return (
     <div className="space-y-4">
+      <QuestionImagePicker
+        data={data}
+        onChange={onChange}
+        onFileChange={onQuestionImageFileChange}
+      />
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Question *
@@ -538,50 +607,45 @@ function FillOptionsForm({ data, onChange }) {
           Options *
         </label>
         <div className="space-y-2">
-          {data.options.map((opt, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => opt !== "" && update("correct", opt)}
-                className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                  data.correct === opt && opt !== ""
-                    ? "border-green-500 bg-green-500"
-                    : "border-gray-300"
-                }`}
-              >
-                {data.correct === opt && opt !== "" && (
-                  <svg
-                    className="w-3 h-3 text-white"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={3}
-                      d="M5 13l4 4L19 7"
-                    />
-                  </svg>
-                )}
-              </button>
-              <input
-                value={opt}
-                onChange={(e) => updateOption(idx, e.target.value)}
-                className="flex-1 px-3 py-2 border rounded-lg text-sm"
-                placeholder={`Option ${idx + 1}`}
-              />
-              {data.options.length > 2 && (
+          {data.options.map((opt, idx) => {
+            const isCorrect = hasImg
+              ? data.correct === idx
+              : data.correct === opt && opt !== "";
+            return (
+              <div key={idx} className="flex items-start gap-2">
                 <button
                   type="button"
-                  onClick={() => removeOption(idx)}
-                  className="text-red-400 hover:text-red-600"
+                  onClick={() => (opt !== "" || hasImg) && update("correct", hasImg ? idx : opt)}
+                  className={`w-5 h-5 mt-2.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                    isCorrect
+                      ? "border-green-500 bg-green-500"
+                      : "border-gray-300"
+                  }`}
                 >
-                  <MinusCircle className="w-4 h-4" />
+                  {isCorrect && (
+                    <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
                 </button>
-              )}
-            </div>
-          ))}
+                <ImageOptionInput
+                  value={opt}
+                  onValueChange={(val) => updateOption(idx, val)}
+                  onFileChange={(file) => onOptionFileChange(idx, file)}
+                  placeholder={`Option ${idx + 1}`}
+                />
+                {data.options.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => removeOption(idx)}
+                    className="text-red-400 hover:text-red-600 mt-2"
+                  >
+                    <MinusCircle className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
         <button
           type="button"
@@ -1180,6 +1244,338 @@ function ContentBlockForm({ data, onChange }) {
   );
 }
 
+// ─── IMAGE BLOCK FORM ─────────────────────────────────────────────────────────
+// Stores the chosen image in two ways:
+//   - imageFile  (File object) → sent as multipart field "image_block_file"
+//   - data.image_url (string)  → used if admin chose URL instead of file
+// The parent's qForm.question_data holds { image_url, alt }.
+// The parent reads imageFile from a separate imageBlockFile state.
+function ImageBlockForm({ data, onChange, onFileChange }) {
+  const [mode, setMode] = useState(data.image_url ? "url" : "file");
+  const [preview, setPreview] = useState(data.image_url || "");
+  const [urlInput, setUrlInput] = useState(data.image_url || "");
+
+  const handleFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+    onFileChange(file);
+    // Clear stored URL since we're using a file
+    onChange({ ...data, image_url: "" });
+  };
+
+  const handleUrlLoad = () => {
+    setPreview(urlInput.trim());
+    onChange({ ...data, image_url: urlInput.trim() });
+    onFileChange(null);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Mode toggle */}
+      <div className="flex gap-2">
+        {["file", "url"].map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+              mode === m
+                ? "bg-[#002856] text-white border-[#002856]"
+                : "bg-white text-gray-600 border-gray-300"
+            }`}
+          >
+            {m === "file" ? "📁 Upload File" : "🔗 Paste URL"}
+          </button>
+        ))}
+      </div>
+
+      {mode === "file" ? (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Image File *
+          </label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFile}
+            className="w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
+          />
+        </div>
+      ) : (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Image URL *
+          </label>
+          <div className="flex gap-2">
+            <input
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              className="flex-1 px-3 py-2 border rounded-lg text-sm"
+              placeholder="https://..."
+            />
+            <button
+              type="button"
+              onClick={handleUrlLoad}
+              className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold"
+            >
+              Load
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Alt text */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Alt Text (optional)
+        </label>
+        <input
+          value={data.alt || ""}
+          onChange={(e) => onChange({ ...data, alt: e.target.value })}
+          className="w-full px-3 py-2 border rounded-lg text-sm"
+          placeholder="Describe the image for accessibility"
+        />
+      </div>
+
+      {/* Preview */}
+      {preview && (
+        <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+          <p className="text-xs font-semibold text-gray-500 mb-2 uppercase">Preview</p>
+          <img
+            src={preview}
+            alt={data.alt || ""}
+            style={{ display: "block" }}
+            className="rounded-lg"
+            onError={() => setPreview("")}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── IMAGE OPTION INPUT ────────────────────────────────────────────────────────
+// Used in option lists. Each option can be a plain string OR
+// an image object { type: "image", url, alt }.
+// When an option is changed to image mode the parent receives a File object
+// via onFileChange(idx, file); the option value in question_data is set to
+// { type: "image", url: "<objectURL-for-preview>", alt: "" } as a placeholder
+// — the real Cloudinary URL is written by the backend after upload.
+function ImageOptionInput({ value, onValueChange, onFileChange, placeholder }) {
+  const isImage = value && typeof value === "object" && value.type === "image";
+  const [mode, setMode] = useState(isImage ? "image" : "text");
+  const [urlInput, setUrlInput] = useState(
+    isImage && !value.url.startsWith("blob:") ? value.url : "",
+  );
+
+  const switchToText = () => {
+    setMode("text");
+    onValueChange("");
+    onFileChange(null);
+  };
+
+  const switchToImage = () => {
+    setMode("image");
+    onValueChange({ type: "image", url: "", alt: "" });
+  };
+
+  const handleFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    onValueChange({ type: "image", url: objectUrl, alt: "" });
+    onFileChange(file);
+  };
+
+  const handleUrlLoad = () => {
+    const url = urlInput.trim();
+    if (!url) return;
+    onValueChange({ type: "image", url, alt: "" });
+    onFileChange(null);
+  };
+
+  return (
+    <div className="flex-1 space-y-1.5">
+      {/* Toggle */}
+      <div className="flex gap-1">
+        <button
+          type="button"
+          onClick={switchToText}
+          className={`px-2 py-0.5 rounded text-xs font-medium border ${
+            mode === "text"
+              ? "bg-[#002856] text-white border-[#002856]"
+              : "bg-white text-gray-500 border-gray-200"
+          }`}
+        >
+          Text
+        </button>
+        <button
+          type="button"
+          onClick={switchToImage}
+          className={`px-2 py-0.5 rounded text-xs font-medium border ${
+            mode === "image"
+              ? "bg-[#002856] text-white border-[#002856]"
+              : "bg-white text-gray-500 border-gray-200"
+          }`}
+        >
+          Image
+        </button>
+      </div>
+
+      {mode === "text" ? (
+        <input
+          value={typeof value === "string" ? value : ""}
+          onChange={(e) => onValueChange(e.target.value)}
+          className="w-full px-3 py-2 border rounded-lg text-sm"
+          placeholder={placeholder}
+        />
+      ) : (
+        <div className="space-y-1.5">
+          <div className="flex gap-2">
+            <label className="flex-1 cursor-pointer">
+              <span className="block text-xs text-gray-500 mb-1">Upload file</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFile}
+                className="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-600"
+              />
+            </label>
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              className="flex-1 px-2 py-1.5 border rounded text-xs"
+              placeholder="or paste URL..."
+            />
+            <button
+              type="button"
+              onClick={handleUrlLoad}
+              className="px-2 py-1.5 bg-blue-600 text-white rounded text-xs font-semibold"
+            >
+              Load
+            </button>
+          </div>
+          {isImage && value.url && (
+            <img
+              src={value.url}
+              alt={value.alt || ""}
+              style={{ display: "block", maxHeight: 120 }}
+              className="rounded border border-gray-200"
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── QUESTION IMAGE PICKER ─────────────────────────────────────────────────────
+// Shown in every question form to add an optional image above the question text.
+function QuestionImagePicker({ data, onChange, onFileChange }) {
+  const [show, setShow] = useState(!!data.question_image);
+  const [mode, setMode] = useState("file");
+  const [urlInput, setUrlInput] = useState(data.question_image || "");
+  const [preview, setPreview] = useState(data.question_image || "");
+
+  const handleFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+    onFileChange(file);
+    onChange({ ...data, question_image: "" });
+  };
+
+  const handleUrlLoad = () => {
+    const url = urlInput.trim();
+    setPreview(url);
+    onChange({ ...data, question_image: url });
+    onFileChange(null);
+  };
+
+  const handleRemove = () => {
+    setShow(false);
+    setPreview("");
+    onFileChange(null);
+    const { question_image: _, ...rest } = data;
+    onChange(rest);
+  };
+
+  if (!show) {
+    return (
+      <button
+        type="button"
+        onClick={() => setShow(true)}
+        className="text-xs text-blue-600 hover:underline flex items-center gap-1 mb-2"
+      >
+        + Add image above question
+      </button>
+    );
+  }
+
+  return (
+    <div className="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-200 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold text-blue-700">Question Image</span>
+        <button type="button" onClick={handleRemove} className="text-red-400 text-xs hover:underline">Remove</button>
+      </div>
+      <div className="flex gap-2">
+        {["file", "url"].map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={`px-2 py-0.5 rounded text-xs font-medium border ${
+              mode === m
+                ? "bg-[#002856] text-white border-[#002856]"
+                : "bg-white text-gray-500 border-gray-200"
+            }`}
+          >
+            {m === "file" ? "File" : "URL"}
+          </button>
+        ))}
+      </div>
+      {mode === "file" ? (
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleFile}
+          className="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-medium file:bg-white file:text-blue-600"
+        />
+      ) : (
+        <div className="flex gap-2">
+          <input
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            className="flex-1 px-2 py-1.5 border rounded text-xs"
+            placeholder="https://..."
+          />
+          <button
+            type="button"
+            onClick={handleUrlLoad}
+            className="px-2 py-1.5 bg-blue-600 text-white rounded text-xs font-semibold"
+          >
+            Load
+          </button>
+        </div>
+      )}
+      {preview && (
+        <img
+          src={preview}
+          alt="question"
+          style={{ display: "block", maxWidth: "100%" }}
+          className="rounded-lg border border-blue-200"
+          onError={() => setPreview("")}
+        />
+      )}
+    </div>
+  );
+}
+
 function CompositeQuestionForm({ data, onChange }) {
   const update = (key, val) => onChange({ ...data, [key]: val });
   const items = Array.isArray(data.items) ? data.items : [];
@@ -1548,12 +1944,12 @@ function CompositeQuestionForm({ data, onChange }) {
 }
 
 // QUESTION FORM ROUTER
-function QuestionFormBuilder({ type, data, onChange }) {
+function QuestionFormBuilder({ type, data, onChange, onOptionFileChange, onQuestionImageFileChange, onImageBlockFileChange }) {
   switch (type) {
     case "mcq_single":
-      return <MCQSingleForm data={data} onChange={onChange} />;
+      return <MCQSingleForm data={data} onChange={onChange} onOptionFileChange={onOptionFileChange} onQuestionImageFileChange={onQuestionImageFileChange} />;
     case "mcq_multi":
-      return <MCQMultiForm data={data} onChange={onChange} />;
+      return <MCQMultiForm data={data} onChange={onChange} onOptionFileChange={onOptionFileChange} onQuestionImageFileChange={onQuestionImageFileChange} />;
     case "composite_question":
       return <CompositeQuestionForm data={data} onChange={onChange} />;
     case "true_false":
@@ -1561,7 +1957,7 @@ function QuestionFormBuilder({ type, data, onChange }) {
     case "fill_typing":
       return <FillTypingForm data={data} onChange={onChange} />;
     case "fill_options":
-      return <FillOptionsForm data={data} onChange={onChange} />;
+      return <FillOptionsForm data={data} onChange={onChange} onOptionFileChange={onOptionFileChange} onQuestionImageFileChange={onQuestionImageFileChange} />;
     case "sentence_ordering":
       return <SentenceOrderingForm data={data} onChange={onChange} />;
     case "sentence_correction":
@@ -1578,6 +1974,8 @@ function QuestionFormBuilder({ type, data, onChange }) {
       return <ContentBlockForm data={data} onChange={onChange} />;
     case "audio_block":
       return <AudioBlockForm />;
+    case "image_block":
+      return <ImageBlockForm data={data} onChange={onChange} onFileChange={onImageBlockFileChange} />;
     default:
       return <p className="text-gray-500 text-sm">Unsupported question type</p>;
   }
@@ -1602,6 +2000,7 @@ function SortableQuestionItem({ q, idx, qNum, onEdit, onDelete }) {
   const isPassage = q.question_type === "reading_passage";
   const isContentBlock = q.question_type === "content_block";
   const isAudioBlock = q.question_type === "audio_block";
+  const isImageBlock = q.question_type === "image_block";
   // Page Break — render as a dashed divider
   if (isPageBreak) {
     return (
@@ -1760,6 +2159,49 @@ function SortableQuestionItem({ q, idx, qNum, onEdit, onDelete }) {
       </div>
     );
   }
+  // Image Block — purple styling with image icon
+  if (isImageBlock) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="bg-violet-50 border border-violet-200 rounded-lg p-3 flex items-center justify-between"
+      >
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-gray-600 shrink-0"
+          >
+            <GripVertical className="w-4 h-4" />
+          </button>
+          <ImageIcon className="w-4 h-4 text-violet-500 shrink-0" />
+          <div className="min-w-0">
+            <span className="text-xs font-semibold text-violet-600 uppercase">
+              Image Block
+            </span>
+            <p className="text-sm text-gray-500 truncate">
+              {q.question_data?.image_url ? "Image uploaded ✓" : "⚠ No image"}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={onEdit}
+            className="p-1.5 text-gray-400 hover:text-violet-600"
+          >
+            <Edit3 className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-1.5 text-gray-400 hover:text-red-600"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
   // Normal question
   return (
     <div
@@ -1835,6 +2277,10 @@ export default function AdminExamManager() {
   });
   const [audioFile, setAudioFile] = useState(null);
   const [audioLink, setAudioLink] = useState("");
+  // Image file state — cleared after each save
+  const [imageBlockFile, setImageBlockFile] = useState(null);
+  const [questionImageFile, setQuestionImageFile] = useState(null);
+  const [optionImageFiles, setOptionImageFiles] = useState({}); // { [optIdx]: File }
   const [editingQuestionId, setEditingQuestionId] = useState(null);
 
   const [visData, setVisData] = useState({ batches: [], students: [] });
@@ -2048,6 +2494,11 @@ export default function AdminExamManager() {
       formData.append("points", qForm.points);
       if (audioFile) formData.append("audio", audioFile);
       if (audioLink.trim()) formData.append("audio_url", audioLink.trim());
+      if (imageBlockFile) formData.append("image_block_file", imageBlockFile);
+      if (questionImageFile) formData.append("question_image_file", questionImageFile);
+      Object.entries(optionImageFiles).forEach(([idx, file]) => {
+        if (file) formData.append(`option_image_file_${idx}`, file);
+      });
       await addQuestion(selectedExam.test_id, formData);
       setQForm({
         question_type: "mcq_single",
@@ -2056,6 +2507,9 @@ export default function AdminExamManager() {
       });
       setAudioFile(null);
       setAudioLink("");
+      setImageBlockFile(null);
+      setQuestionImageFile(null);
+      setOptionImageFiles({});
       await openDetail(selectedExam);
     } catch (err) {
       setError(err.response?.data?.msg || "Failed to add question");
@@ -2074,6 +2528,11 @@ export default function AdminExamManager() {
       formData.append("points", qForm.points);
       if (audioFile) formData.append("audio", audioFile);
       if (audioLink.trim()) formData.append("audio_url", audioLink.trim());
+      if (imageBlockFile) formData.append("image_block_file", imageBlockFile);
+      if (questionImageFile) formData.append("question_image_file", questionImageFile);
+      Object.entries(optionImageFiles).forEach(([idx, file]) => {
+        if (file) formData.append(`option_image_file_${idx}`, file);
+      });
       await editQuestion(selectedExam.test_id, editingQuestionId, formData);
       setEditingQuestionId(null);
       setQForm({
@@ -2083,6 +2542,9 @@ export default function AdminExamManager() {
       });
       setAudioFile(null);
       setAudioLink("");
+      setImageBlockFile(null);
+      setQuestionImageFile(null);
+      setOptionImageFiles({});
       await openDetail(selectedExam);
     } catch (err) {
       setError(err.response?.data?.msg || "Failed to edit question");
@@ -2635,6 +3097,7 @@ export default function AdminExamManager() {
                         "reading_passage",
                         "audio_block",
                         "content_block",
+                        "image_block",
                       ]);
                       return examQuestions.map((q, idx) => {
                         const isNonQ = NON_Q.has(q.question_type);
@@ -2757,11 +3220,12 @@ export default function AdminExamManager() {
               </select>
             </div>
 
-            {/* Points (hide for page_break / reading_passage / audio_block / content_block) */}
+            {/* Points (hide for layout/display types) */}
             {qForm.question_type !== "page_break" &&
               qForm.question_type !== "reading_passage" &&
               qForm.question_type !== "audio_block" &&
-              qForm.question_type !== "content_block" && (
+              qForm.question_type !== "content_block" &&
+              qForm.question_type !== "image_block" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Points
@@ -2781,10 +3245,11 @@ export default function AdminExamManager() {
                 </div>
               )}
 
-            {/* Audio (hide for page_break / reading_passage / content_block) */}
+            {/* Audio (hide for layout/display types) */}
             {qForm.question_type !== "page_break" &&
               qForm.question_type !== "reading_passage" &&
-              qForm.question_type !== "content_block" && (
+              qForm.question_type !== "content_block" &&
+              qForm.question_type !== "image_block" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Audio (optional)
@@ -2841,6 +3306,11 @@ export default function AdminExamManager() {
               onChange={(newData) =>
                 setQForm({ ...qForm, question_data: newData })
               }
+              onOptionFileChange={(idx, file) =>
+                setOptionImageFiles((prev) => ({ ...prev, [idx]: file }))
+              }
+              onQuestionImageFileChange={(file) => setQuestionImageFile(file)}
+              onImageBlockFileChange={(file) => setImageBlockFile(file)}
             />
 
             {/* Submit */}

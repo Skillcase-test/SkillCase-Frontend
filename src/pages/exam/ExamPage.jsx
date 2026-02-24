@@ -917,7 +917,8 @@ export default function ExamPage() {
       q.question_type !== "page_break" &&
       q.question_type !== "reading_passage" &&
       q.question_type !== "audio_block" &&
-      q.question_type !== "content_block",
+      q.question_type !== "content_block" &&
+      q.question_type !== "image_block",
   );
   const answeredCount = answerableQuestions.filter(
     (q) =>
@@ -980,6 +981,21 @@ export default function ExamPage() {
                   <AudioBlockPlayer key={q.question_id} src={q.audio_url} />
                 );
               }
+              // image_block — display image at natural dimensions
+              if (q.question_type === "image_block") {
+                return (
+                  <div key={q.question_id} className="rounded-xl px-3 py-3 bg-gray-50 border border-gray-200 mb-1 flex justify-center">
+                    {q.question_data?.image_url && (
+                      <img
+                        src={q.question_data.image_url}
+                        alt={q.question_data.alt || ""}
+                        style={{ display: "block", maxWidth: "100%" }}
+                        className="rounded-lg"
+                      />
+                    )}
+                  </div>
+                );
+              }
               // Reading passage — render as a styled text block
               if (q.question_type === "reading_passage") {
                 return (
@@ -1039,6 +1055,15 @@ export default function ExamPage() {
                   <p className="text-xs font-semibold text-gray-400 mb-2 mt-2 uppercase tracking-wider">
                     Question {globalQNumber} of {answerableQuestions.length}
                   </p>
+                  {/* Per-question image above question text */}
+                  {q.question_data.question_image && (
+                    <img
+                      src={q.question_data.question_image}
+                      alt=""
+                      style={{ display: "block", maxWidth: "100%" }}
+                      className="mb-3 rounded-lg"
+                    />
+                  )}
                   <QuestionAudioPlayer src={q.audio_url} />
                   <h2
                     className={`text-base font-medium leading-relaxed text-[#181d27] whitespace-pre-wrap break-words ${
@@ -1128,7 +1153,8 @@ export default function ExamPage() {
                     q.question_type !== "reading_passage" &&
                     q.question_type !== "audio_block" &&
                     q.question_type !== "content_block" &&
-                    q.question_type !== "page_break",
+                    q.question_type !== "page_break" &&
+                    q.question_type !== "image_block",
                 );
                 const pageAnswered = pageAnswerable.filter(
                   (q) =>
@@ -1338,6 +1364,23 @@ function renderPassageText(text, textColor = "#111827") {
   return parts;
 }
 
+// Render an option that may be plain text OR an image object { type:"image", url, alt }
+function OptionContent({ opt }) {
+  if (opt && typeof opt === "object" && opt.type === "image") {
+    return (
+      <span className="block min-w-0">
+        <img
+          src={opt.url}
+          alt={opt.alt || ""}
+          className="max-w-full max-h-40 w-auto object-contain rounded"
+          style={{ display: "block" }}
+        />
+      </span>
+    );
+  }
+  return <span className="break-words break-all min-w-0">{opt}</span>;
+}
+
 // QUESTION RENDERER FUNCTION
 function renderQuestion(
   q,
@@ -1366,13 +1409,13 @@ function renderQuestion(
               <button
                 key={i}
                 onClick={() => handleAnswer(qId, i)}
-                className={`w-full p-3.5 rounded-xl border-2 text-left text-base font-medium transition-all ${
+                className={`w-full p-3.5 rounded-xl border-2 text-left text-base font-medium transition-all overflow-hidden ${
                   isSelected
                     ? "border-[#002856] bg-[#edfaff] text-[#002856]"
                     : "border-gray-200 bg-gray-50 hover:border-gray-300"
                 }`}
               >
-                <span className="flex items-center gap-3">
+                <span className="flex items-center gap-3 min-w-0">
                   <span
                     className={`w-7 h-7 rounded-md border flex items-center justify-center text-[11px] font-semibold ${
                       isSelected
@@ -1382,7 +1425,7 @@ function renderQuestion(
                   >
                     {toAlphaLabel(i)}
                   </span>
-                  <span className="break-words break-all">{opt}</span>
+                  <OptionContent opt={opt} />
                 </span>
               </button>
             );
@@ -1407,13 +1450,13 @@ function renderQuestion(
                   else current.push(i);
                   handleAnswer(qId, current);
                 }}
-                className={`w-full p-3.5 rounded-xl border-2 text-left text-base font-medium transition-all ${
+                className={`w-full p-3.5 rounded-xl border-2 text-left text-base font-medium transition-all overflow-hidden ${
                   isSelected
                     ? "border-[#002856] bg-[#edfaff] text-[#002856]"
                     : "border-gray-200 bg-gray-50 hover:border-gray-300"
                 }`}
               >
-                <span className="flex items-center gap-3">
+                <span className="flex items-center gap-3 min-w-0">
                   <span
                     className={`w-7 h-7 rounded-md border flex items-center justify-center text-[11px] font-semibold ${
                       isSelected
@@ -1423,7 +1466,7 @@ function renderQuestion(
                   >
                     {toAlphaLabel(i)}
                   </span>
-                  <span className="break-words break-all">{opt}</span>
+                  <OptionContent opt={opt} />
                 </span>
               </button>
             );
@@ -1457,7 +1500,7 @@ function renderQuestion(
                   >
                     {toAlphaLabel(idx)}
                   </span>
-                  <span>{val ? "True" : "False"}</span>
+                  <span>{val ? "Richtig" : "Falsch"}</span>
                 </span>
               </button>
             );
@@ -1483,7 +1526,10 @@ function renderQuestion(
       );
 
     case "fill_options":
-    case "fill_blank_options":
+    case "fill_blank_options": {
+      const hasImg = qData.options?.some(
+        (o) => o && typeof o === "object" && o.type === "image",
+      );
       return (
         <div className="space-y-3">
           {qData.explanation && (
@@ -1491,18 +1537,19 @@ function renderQuestion(
           )}
           <div className="space-y-2">
             {qData.options?.map((opt, i) => {
-              const isSelected = answer === opt;
+              // For image options: answer is index; for text options: answer is the value
+              const isSelected = hasImg ? answer === i : answer === opt;
               return (
                 <button
                   key={i}
-                  onClick={() => handleAnswer(qId, opt)}
-                  className={`w-full p-3.5 rounded-xl border-2 text-left text-base font-medium transition-all ${
+                  onClick={() => handleAnswer(qId, hasImg ? i : opt)}
+                  className={`w-full p-3.5 rounded-xl border-2 text-left text-base font-medium transition-all overflow-hidden ${
                     isSelected
                       ? "border-[#002856] bg-[#edfaff] text-[#002856]"
                       : "border-gray-200 bg-gray-50 hover:border-gray-300"
                   }`}
                 >
-                  <span className="inline-flex items-center gap-3">
+                  <span className="inline-flex items-center gap-3 min-w-0">
                     <span
                       className={`w-7 h-7 rounded-md border flex items-center justify-center text-[11px] font-semibold ${
                         isSelected
@@ -1512,7 +1559,7 @@ function renderQuestion(
                     >
                       {toAlphaLabel(i)}
                     </span>
-                    <span className="break-words break-all">{opt}</span>
+                    <OptionContent opt={opt} />
                   </span>
                 </button>
               );
@@ -1520,6 +1567,7 @@ function renderQuestion(
           </div>
         </div>
       );
+    }
 
     case "composite_question": {
       const items = Array.isArray(qData.items) ? qData.items : [];
@@ -1592,7 +1640,7 @@ function renderQuestion(
                             >
                               {toAlphaLabel(optIdx)}
                             </span>
-                            <span className="break-words break-all">{opt}</span>
+                            <OptionContent opt={opt} />
                           </span>
                         </button>
                       );

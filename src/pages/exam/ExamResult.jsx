@@ -328,13 +328,18 @@ export default function ExamResult() {
         <div className="space-y-4">
           {questions
             .filter(
-              (q) =>
-                q.question_type !== "page_break" &&
-                q.question_type !== "reading_passage" &&
-                q.question_type !== "audio_block" &&
-                q.question_type !== "content_block",
+                          (q) =>
+              q.question_type !== "page_break" &&
+              q.question_type !== "reading_passage" &&
+              q.question_type !== "audio_block" &&
+              q.question_type !== "content_block",
             )
-            .map((q, idx) => {
+            .map((q, idx, arr) => {
+              const isImageBlock = q.question_type === "image_block";
+              // Calculate question number excluding image blocks
+              const qNum = isImageBlock
+                ? null
+                : arr.slice(0, idx + 1).filter((x) => x.question_type !== "image_block").length;
               const isCorrect = q.is_correct === true;
               const isWrong = q.is_correct === false;
               const unanswered =
@@ -351,7 +356,8 @@ export default function ExamResult() {
                       : "border-gray-200"
                   }`}
                 >
-                  {/* Question header */}
+                                  {/* Question header — hide for image_block blocks */}
+                  {!isImageBlock && (
                   <div
                     className={`px-4 py-2.5 flex items-center justify-between ${
                       isCorrect
@@ -362,11 +368,11 @@ export default function ExamResult() {
                     }`}
                   >
                     <span className="text-sm font-bold text-gray-600">
-                      Q{idx + 1}
+                      Q{qNum}
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium text-gray-400">
-                        {q.points_earned || 0}/{q.points} pts
+                        {parseFloat(q.points_earned || 0).toFixed(2)}/{parseFloat(q.points || 0).toFixed(2)} pts
                       </span>
                       {isCorrect ? (
                         <CheckCircle2 className="w-5 h-5 text-green-500" />
@@ -377,20 +383,44 @@ export default function ExamResult() {
                       )}
                     </div>
                   </div>
+                  )}
 
-                  <div className="p-4">
-                    <ResultAudioPlayer src={q.audio_url} />
-                    <p className="text-[15px] font-medium leading-relaxed text-[#181d27] mb-3 whitespace-pre-wrap break-words">
-                      {q.question_data.question ||
-                        (q.question_type === "composite_question"
-                          ? "Answer the following"
-                          : "") ||
-                        (q.question_type === "dialogue_dropdown"
-                          ? "Complete the dialogue"
-                          : "")}
-                    </p>
-                    {renderResultDetail(q)}
-                  </div>
+                  {/* image_block: render inline, no score strip */}
+                  {q.question_type === "image_block" ? (
+                    <div className="p-4 flex justify-center">
+                      {q.question_data?.image_url && (
+                        <img
+                          src={q.question_data.image_url}
+                          alt={q.question_data?.alt || ""}
+                          style={{ display: "block", maxWidth: "100%" }}
+                          className="rounded-lg"
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-4">
+                      <ResultAudioPlayer src={q.audio_url} />
+                      {/* Per-question image above question text */}
+                      {q.question_data.question_image && (
+                        <img
+                          src={q.question_data.question_image}
+                          alt=""
+                          style={{ display: "block", maxWidth: "100%" }}
+                          className="mb-3 rounded-lg"
+                        />
+                      )}
+                      <p className="text-[15px] font-medium leading-relaxed text-[#181d27] mb-3 whitespace-pre-wrap break-words">
+                        {q.question_data.question ||
+                          (q.question_type === "composite_question"
+                            ? "Answer the following"
+                            : "") ||
+                          (q.question_type === "dialogue_dropdown"
+                            ? "Complete the dialogue"
+                            : "")}
+                      </p>
+                      {renderResultDetail(q)}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -411,6 +441,23 @@ export default function ExamResult() {
 }
 
 // RESULT DETAIL RENDERER
+// Renders an option that may be plain text OR { type:"image", url, alt }
+function OptionContent({ opt }) {
+  if (opt && typeof opt === "object" && opt.type === "image") {
+    return (
+      <span className="block min-w-0">
+        <img
+          src={opt.url}
+          alt={opt.alt || ""}
+          className="max-w-full max-h-40 w-auto object-contain rounded my-1"
+          style={{ display: "block" }}
+        />
+      </span>
+    );
+  }
+  return <span className="break-words break-all min-w-0">{opt}</span>;
+}
+
 function renderResultDetail(q) {
   const qType = q.question_type;
   const qData = q.question_data;
@@ -418,11 +465,17 @@ function renderResultDetail(q) {
 
   switch (qType) {
     case "mcq_single":
-    case "mcq":
+    case "mcq": {
+      const hasImg = qData.options?.some(
+        (o) => o && typeof o === "object" && o.type === "image",
+      );
       return (
         <div className="space-y-2">
           {qData.options?.map((opt, i) => {
-            const isCorrectOption = opt === qData.correct;
+            // When options contain images, correct is an index
+            const isCorrectOption = hasImg
+              ? i === qData.correct
+              : opt === qData.correct;
             const isSelected = userAnswer === i;
             let cls = "border-gray-200 bg-gray-50";
             if (isCorrectOption)
@@ -437,7 +490,7 @@ function renderResultDetail(q) {
                   <span className="w-6 h-6 rounded-md border border-gray-300 bg-white text-[11px] text-gray-600 font-semibold flex items-center justify-center shrink-0">
                     {toAlphaLabel(i)}
                   </span>
-                  <span className="break-words break-all">{opt}</span>
+                  <OptionContent opt={opt} />
                   <span>
                     {isCorrectOption && "✓"}{" "}
                     {isSelected && !isCorrectOption && "✗"}
@@ -448,14 +501,21 @@ function renderResultDetail(q) {
           })}
         </div>
       );
+    }
 
     case "mcq_multi": {
       const userArr = Array.isArray(userAnswer) ? userAnswer : [];
       const correctArr = qData.correct || [];
+      const hasImg = qData.options?.some(
+        (o) => o && typeof o === "object" && o.type === "image",
+      );
       return (
         <div className="space-y-2">
           {qData.options?.map((opt, i) => {
-            const isCorrectOption = correctArr.includes(opt);
+            // When options contain images, correctArr holds indices
+            const isCorrectOption = hasImg
+              ? correctArr.includes(i)
+              : correctArr.includes(opt);
             const isSelected = userArr.includes(i);
             let cls = "border-gray-200 bg-gray-50";
             if (isCorrectOption)
@@ -470,7 +530,7 @@ function renderResultDetail(q) {
                   <span className="w-6 h-6 rounded-md border border-gray-300 bg-white text-[11px] text-gray-600 font-semibold flex items-center justify-center shrink-0">
                     {toAlphaLabel(i)}
                   </span>
-                  <span className="break-words break-all">{opt}</span>
+                  <OptionContent opt={opt} />
                   <span>
                     {isCorrectOption && "✓"}{" "}
                     {isSelected && !isCorrectOption && "✗"}
@@ -502,7 +562,7 @@ function renderResultDetail(q) {
                   <span className="w-6 h-6 rounded-md border border-gray-300 bg-white text-[11px] text-gray-600 font-semibold flex items-center justify-center shrink-0">
                     {toAlphaLabel(idx)}
                   </span>
-                  <span>{val ? "True" : "False"}</span>
+                  <span>{val ? "Richtig" : "Falsch"}</span>
                   <span>
                     {isCorrect && "✓"} {isSelected && !isCorrect && "✗"}
                   </span>
@@ -541,12 +601,17 @@ function renderResultDetail(q) {
       );
 
     case "fill_options":
-    case "fill_blank_options":
+    case "fill_blank_options": {
+      const hasImg = qData.options?.some(
+        (o) => o && typeof o === "object" && o.type === "image",
+      );
       return (
         <div className="space-y-2">
           {qData.options?.map((opt, i) => {
-            const isCorrectOption = opt === qData.correct;
-            const isSelected = userAnswer === opt;
+            const isCorrectOption = hasImg
+              ? i === qData.correct
+              : opt === qData.correct;
+            const isSelected = hasImg ? userAnswer === i : userAnswer === opt;
             let cls = "border-gray-200";
             if (isCorrectOption)
               cls = "border-green-500 bg-green-50 text-green-700";
@@ -560,13 +625,14 @@ function renderResultDetail(q) {
                   <span className="w-6 h-6 rounded-md border border-gray-300 bg-white text-[11px] text-gray-600 font-semibold flex items-center justify-center shrink-0">
                     {toAlphaLabel(i)}
                   </span>
-                  <span className="break-words break-all">{opt}</span>
+                  <OptionContent opt={opt} />
                 </span>
               </div>
             );
           })}
         </div>
       );
+    }
 
     case "sentence_ordering":
     case "sentence_reorder": {
