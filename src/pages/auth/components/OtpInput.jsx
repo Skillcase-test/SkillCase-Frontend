@@ -99,7 +99,39 @@ const OtpInput = ({ value, onChange, disabled = false, onAutoFill }) => {
   };
 
   return (
-    <div className="otp-container">
+    <div className="otp-container" style={{ position: "relative" }}>
+      {/* Hidden single input — Chrome's keyboard OTP suggestion attaches here.
+          Positioned over the visible boxes so Chrome "sees" it as focused.
+          Opacity 0 keeps it invisible but fully functional. */}
+      {!Capacitor.isNativePlatform() && (
+        <input
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          value={value}
+          onChange={(e) => {
+            const digits = e.target.value.replace(/\D/g, "").slice(0, 6);
+            if (digits.length === 6) {
+              onChange(digits);
+              if (onAutoFill) onAutoFill(digits);
+            }
+          }}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            opacity: 0,
+            pointerEvents: "none",
+            zIndex: 1,
+          }}
+          tabIndex={-1}
+          aria-hidden="true"
+        />
+      )}
+
       {[0, 1, 2, 3, 4, 5].map((index) => (
         <input
           key={index}
@@ -114,7 +146,6 @@ const OtpInput = ({ value, onChange, disabled = false, onAutoFill }) => {
           onPaste={handlePaste}
           disabled={disabled}
           placeholder="0"
-          autoComplete="one-time-code"
         />
       ))}
     </div>
