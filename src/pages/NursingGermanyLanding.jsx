@@ -62,9 +62,9 @@ export default function NursingGermanyLanding() {
       // Store nonce in sessionStorage
       sessionStorage.setItem("thankYouNonce", nonce);
 
-      // Submit to Pabbly (triggers WhatsApp drip campaign)
+      // Submit to n8n (triggers WhatsApp drip campaign)
       await fetch(
-        "https://connect.pabbly.com/workflow/sendwebhookdata/IjU3NjcwNTZjMDYzMTA0MzU1MjZlNTUzMzUxMzUi_pc",
+        "https://n8n.skillcase.in/webhook/nursing-page-lead",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
