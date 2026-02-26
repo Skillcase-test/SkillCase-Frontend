@@ -1,29 +1,84 @@
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
+import { Capacitor, registerPlugin } from "@capacitor/core";
+
+// Extracts first 6-digit sequence from SMS text
+function extractOtp(smsText) {
+  const match = smsText?.match(/\b(\d{6})\b/);
+  return match ? match[1] : null;
+}
+
+// Custom native Capacitor plugin (SmsPlugin.java in android project)
+const SmsPlugin = registerPlugin("SmsPlugin");
 
 // 6-digit OTP Input Component
-const OtpInput = ({ value, onChange, disabled = false }) => {
+// onAutoFill(code) — called when OTP is auto-read so parent can auto-submit
+const OtpInput = ({ value, onChange, disabled = false, onAutoFill }) => {
   const inputRefs = useRef([]);
+
+  // Web OTP API (Chrome on Android — browser only)
+  useEffect(() => {
+    if (!("OTPCredential" in window) || Capacitor.isNativePlatform()) return;
+
+    const ac = new AbortController();
+    navigator.credentials
+      .get({ otp: { transport: ["sms"] }, signal: ac.signal })
+      .then((credential) => {
+        const code = credential.code;
+        onChange(code);
+        if (onAutoFill) onAutoFill(code);
+      })
+      .catch(() => {});
+
+    return () => ac.abort();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Native SMS User Consent API
+  // Uses SmsPlugin.java
+  // Shows Google's native "Allow SkillCase to read this message?" dialog.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let listenerHandle = null;
+
+    const init = async () => {
+      try {
+        // Register listener BEFORE starting the consent watcher
+        listenerHandle = await SmsPlugin.addListener("smsReceived", (data) => {
+          const code = extractOtp(data?.message || "");
+          if (code) {
+            onChange(code);
+            if (onAutoFill) onAutoFill(code);
+          }
+        });
+
+        // Start watching for incoming OTP SMS
+        await SmsPlugin.startSmsUserConsent();
+      } catch (_) {
+        // Plugin not available on this platform — silently skip
+      }
+    };
+
+    init();
+    return () => {
+      listenerHandle?.remove();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleChange = (index, e) => {
     const val = e.target.value;
-
-    // Only allow single digit
     if (val.length > 1) return;
     if (val && !/^\d$/.test(val)) return;
 
-    // Update value
     const newOtp = value.split("");
     newOtp[index] = val;
     onChange(newOtp.join(""));
 
-    // Auto-focus next input
     if (val && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
   };
 
   const handleKeyDown = (index, e) => {
-    // Handle backspace - move to previous input
     if (e.key === "Backspace" && !value[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
@@ -31,7 +86,6 @@ const OtpInput = ({ value, onChange, disabled = false }) => {
 
   const handlePaste = (e) => {
     e.preventDefault();
-
     const pastedData = e.clipboardData
       .getData("text")
       .replace(/\D/g, "")
@@ -39,7 +93,6 @@ const OtpInput = ({ value, onChange, disabled = false }) => {
 
     if (pastedData.length > 0) {
       onChange(pastedData.padEnd(6, "").slice(0, 6));
-      // Focus last filled input or first empty
       const focusIndex = Math.min(pastedData.length, 5);
       inputRefs.current[focusIndex]?.focus();
     }
@@ -61,6 +114,7 @@ const OtpInput = ({ value, onChange, disabled = false }) => {
           onPaste={handlePaste}
           disabled={disabled}
           placeholder="0"
+          autoComplete="one-time-code"
         />
       ))}
     </div>

@@ -151,8 +151,10 @@ const LoginPage = () => {
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (otp.length < 6) {
+  // otpOverride — used by auto-fill to pass code directly (avoids stale state)
+  const handleVerifyOtp = async (otpOverride) => {
+    const otpToVerify = otpOverride || otp;
+    if (otpToVerify.length < 6) {
       setError("Please enter complete OTP");
       return;
     }
@@ -163,7 +165,7 @@ const LoginPage = () => {
     try {
       const response = await api.post("/auth/login/verify-otp", {
         phone: savedPhone,
-        otp,
+        otp: otpToVerify,
         timer,
       });
       if (response.data.status === "success") {
@@ -184,6 +186,12 @@ const LoginPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Called by OtpInput when SMS is auto-read — sets state and immediately verifies
+  const handleAutoFill = (code) => {
+    setOtp(code);
+    handleVerifyOtp(code);
   };
 
   const handleResendOtp = async () => {
@@ -242,7 +250,12 @@ const LoginPage = () => {
           {showOtp && (
             <>
               <div className="form-group">
-                <OtpInput value={otp} onChange={setOtp} disabled={loading} />
+                <OtpInput
+                  value={otp}
+                  onChange={setOtp}
+                  disabled={loading}
+                  onAutoFill={handleAutoFill}
+                />
               </div>
 
               {/* Resend Timer */}
@@ -280,6 +293,7 @@ const LoginPage = () => {
               className="msf-btn-primary"
               onClick={() => { hapticMedium(); handleVerifyOtp(); }}
               disabled={loading || otp.length < 6}
+              id="otp-verify-btn"
             >
               {loading ? "Verifying..." : "Login"}
             </button>

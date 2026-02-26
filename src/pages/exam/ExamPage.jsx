@@ -824,6 +824,7 @@ export default function ExamPage() {
 
   const handleConfirmSubmit = async () => {
     setShowSubmitConfirmModal(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
     await handleManualSubmit();
   };
 

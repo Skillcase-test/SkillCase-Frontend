@@ -177,8 +177,10 @@ const SignupPage = () => {
   };
 
   // Verify OTP and proceed to personal details
-  const handleVerifyOtp = async () => {
-    if (otp.length < 6) {
+  // otpOverride — used by auto-fill to pass code directly (avoids stale state)
+  const handleVerifyOtp = async (otpOverride) => {
+    const otpToVerify = otpOverride || otp;
+    if (otpToVerify.length < 6) {
       setError("Please enter all 6 digits.");
       return;
     }
@@ -189,11 +191,10 @@ const SignupPage = () => {
     try {
       const response = await api.post("/auth/signup/verify-otp", {
         phone: savedPhone,
-        otp,
+        otp: otpToVerify,
       });
 
       if (response.data.status === "success") {
-        // Proceed to personal details form
         setCurrentStep(2);
         setError("");
       } else if (response.data.status === "expired") {
@@ -208,6 +209,12 @@ const SignupPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Called by OtpInput when SMS is auto-read — sets state and immediately verifies
+  const handleAutoFill = (code) => {
+    setOtp(code);
+    handleVerifyOtp(code);
   };
 
   const handleResendOtp = async () => {
@@ -364,7 +371,12 @@ const SignupPage = () => {
               {showOtp && (
                 <>
                   <div className="form-group">
-                    <OtpInput value={otp} onChange={setOtp} disabled={loading} />
+                    <OtpInput
+                      value={otp}
+                      onChange={setOtp}
+                      disabled={loading}
+                      onAutoFill={handleAutoFill}
+                    />
                   </div>
 
                   {/* Resend Timer */}
