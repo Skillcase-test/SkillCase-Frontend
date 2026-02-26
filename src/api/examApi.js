@@ -70,6 +70,11 @@ export const getSubmissionDetail = (submissionId) =>
 export const overrideAnswer = (submissionId, questionId) =>
   api.put(`/admin/exam/submission/${submissionId}/answer/${questionId}/override`);
 
+export const overrideAnswerPoints = (submissionId, questionId, pointsEarned) =>
+  api.put(`/admin/exam/submission/${submissionId}/answer/${questionId}/override-points`, {
+    points_earned: pointsEarned,
+  });
+
 // BATCH ENDPOINTS
 export const createBatch = (data) => api.post("/admin/batch", data);
 
@@ -90,3 +95,6 @@ export const removeStudentFromBatch = (batchId, userId) =>
   api.delete(`/admin/batch/${batchId}/students/${userId}`);
 
 export const listAllStudents = () => api.get("/admin/batch/students/all");
+
+export const exportExamExcel = (testId) =>
+  api.get(`/admin/exam/${testId}/export/excel`, { responseType: "blob" });

@@ -17,6 +17,8 @@ import {
   resetSubmissionForRetest,
   getSubmissionDetail,
   overrideAnswer,
+  overrideAnswerPoints,
+  exportExamExcel,
   listBatches,
 } from "../../../api/examApi";
 import {
@@ -38,6 +40,7 @@ import {
   Music,
   CheckCircle,
   Circle,
+  Download,
   MinusCircle,
   SeparatorHorizontal,
   BookOpen,
@@ -2320,6 +2323,8 @@ export default function AdminExamManager() {
   const [selectedBatchIds, setSelectedBatchIds] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [submissionDetail, setSubmissionDetail] = useState(null); // { submission, questions }
+  // Per-item overrides for composite questions: { [questionId]: { [itemIdx]: boolean } }
+  const [itemOverrides, setItemOverrides] = useState({});
 
   // Drag-and-drop sensors
   const dndSensors = useSensors(
@@ -2713,6 +2718,31 @@ export default function AdminExamManager() {
       }));
     } catch (err) {
       setError("Failed to override answer");
+    }
+  };
+
+  const handleOverrideAnswerPoints = async (questionId, computedPoints) => {
+    if (!submissionDetail) return;
+    try {
+      const res = await overrideAnswerPoints(
+        submissionDetail.submission.submission_id,
+        questionId,
+        computedPoints,
+      );
+      const { is_correct, points_earned, earned_points, score } = res.data;
+      setSubmissionDetail((prev) => ({
+        ...prev,
+        submission: { ...prev.submission, earned_points, score },
+        questions: prev.questions.map((q) =>
+          q.question_id === questionId
+            ? { ...q, is_correct, points_earned }
+            : q,
+        ),
+      }));
+      // Clear local overrides for this question after save
+      setItemOverrides((prev) => { const n = { ...prev }; delete n[questionId]; return n; });
+    } catch (err) {
+      setError("Failed to save corrections");
     }
   };
 
@@ -3474,9 +3504,32 @@ export default function AdminExamManager() {
           >
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
-            Submissions — {selectedExam.title}
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-gray-900">
+              Submissions — {selectedExam.title}
+            </h2>
+            <button
+              onClick={async () => {
+                try {
+                  const res = await exportExamExcel(selectedExam.test_id);
+                  const url = URL.createObjectURL(new Blob([res.data], {
+                    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                  }));
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `${selectedExam.title.replace(/[^a-z0-9_\-]/gi, "_")}_submissions.xlsx`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                } catch (err) {
+                  alert(err.response?.data?.msg || "Export failed");
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-semibold transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Export Excel
+            </button>
+          </div>
           {submissions.length === 0 ? (
             <p className="text-gray-400 text-sm py-4 text-center">
               No submissions yet.
@@ -3755,10 +3808,20 @@ export default function AdminExamManager() {
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2 shrink-0">
+                        {/* Points label — always show actual points_earned for composite */}
                         <span className={`text-xs font-bold ${labelColor}`}>
-                          {unanswered ? "—" : isPending ? "Pending review" : correct ? `+${parseFloat(q.points_earned || 0).toFixed(2)} pts` : `0 / ${q.points} pts`}
+                          {unanswered
+                            ? "—"
+                            : isPending
+                            ? "Pending review"
+                            : correct
+                            ? `+${parseFloat(q.points_earned || 0).toFixed(2)} pts`
+                            : q.question_type === "composite_question"
+                            ? `${parseFloat(q.points_earned || 0).toFixed(2)} / ${q.points} pts`
+                            : `0 / ${q.points} pts`}
                         </span>
-                        {(!unanswered) && (
+                        {/* Non-composite: regular mark correct/wrong */}
+                        {!unanswered && q.question_type !== "composite_question" && (
                           <button
                             onClick={() => handleOverrideAnswer(q.question_id)}
                             className={`text-xs px-2.5 py-1.5 rounded-lg font-semibold border transition-all ${
@@ -3772,6 +3835,86 @@ export default function AdminExamManager() {
                         )}
                       </div>
                     </div>
+                    {/* Composite: per-item toggles — full width below, wraps naturally */}
+                    {!unanswered && q.question_type === "composite_question" && (() => {
+                      const ans = (() => {
+                        try { return typeof q.user_answer === "string" ? JSON.parse(q.user_answer) : q.user_answer; }
+                        catch { return q.user_answer; }
+                      })();
+                      const items = ans && typeof ans === "object" && !Array.isArray(ans)
+                        ? Object.keys(ans).sort((a, b) => Number(a) - Number(b))
+                        : [];
+                      const localOverrides = itemOverrides[q.question_id] || {};
+                      const qItems = q.question_data?.items || [];
+                      const getItemAutoCorrect = (idx) => {
+                        const item = qItems[idx];
+                        if (!item) return false;
+                        const userVal = ans[String(idx)];
+                        if (item.correct === undefined || item.correct === null) return false;
+                        if (Array.isArray(item.correct)) {
+                          const userBlanks = Array.isArray(userVal) ? userVal : [userVal];
+                          return item.correct.every((c, i) =>
+                            String(c ?? "").trim().toLowerCase() === String(userBlanks[i] ?? "").trim().toLowerCase()
+                          );
+                        }
+                        return String(item.correct ?? "").trim().toLowerCase() === String(userVal ?? "").trim().toLowerCase();
+                      };
+                      const itemStates = items.map((k, i) =>
+                        k in localOverrides ? localOverrides[k] : getItemAutoCorrect(i)
+                      );
+                      const correctCount = itemStates.filter(Boolean).length;
+                      const computedPoints = items.length > 0
+                        ? (correctCount / items.length) * parseFloat(q.points || 0)
+                        : 0;
+                      const hasLocalChanges = Object.keys(localOverrides).length > 0;
+                      return (
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs text-gray-400">
+                              Click chips to toggle individual sub-item grades
+                            </p>
+                            <p className="text-xs font-semibold text-gray-600">
+                              {correctCount}/{items.length} correct → {computedPoints.toFixed(2)} pts
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            {items.map((k, i) => {
+                              const isOk = itemStates[i];
+                              return (
+                                <button
+                                  key={k}
+                                  title={`Item ${Number(k)+1}: ${isOk ? "Correct — click to mark wrong" : "Wrong — click to mark correct"}`}
+                                  onClick={() => setItemOverrides((prev) => ({
+                                    ...prev,
+                                    [q.question_id]: {
+                                      ...(prev[q.question_id] || {}),
+                                      [k]: !isOk,
+                                    },
+                                  }))}
+                                  className={`text-xs px-2 py-0.5 rounded font-semibold border transition-all ${
+                                    isOk
+                                      ? "bg-green-100 border-green-400 text-green-700 hover:bg-green-200"
+                                      : "bg-red-50 border-red-300 text-red-600 hover:bg-red-100"
+                                  }`}
+                                >
+                                  {Number(k)+1} {isOk ? "✓" : "✗"}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <button
+                            onClick={() => handleOverrideAnswerPoints(q.question_id, computedPoints)}
+                            className={`text-xs px-3 py-1.5 rounded-lg font-semibold border transition-all ${
+                              hasLocalChanges
+                                ? "bg-blue-600 border-blue-600 text-white hover:bg-blue-700"
+                                : "border-blue-300 text-blue-600 hover:bg-blue-50"
+                            }`}
+                          >
+                            Save Corrections
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}
