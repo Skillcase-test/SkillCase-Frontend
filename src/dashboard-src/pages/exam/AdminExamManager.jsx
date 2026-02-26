@@ -3700,6 +3700,25 @@ export default function AdminExamManager() {
                       ? <img src={opt.url} alt="" className="max-h-10"/>
                       : <span>{String(opt)}</span>;
                   }
+                  // Composite question: stored as plain object {0: "ans0", 1: "ans1", ...}
+                  if (typeof ans === "object" && ans !== null) {
+                    const entries = Object.keys(ans).sort((a, b) => Number(a) - Number(b));
+                    if (entries.length === 0) return <span className="italic text-gray-400">No answer</span>;
+                    return (
+                      <div className="space-y-1 mt-1">
+                        {entries.map((key) => (
+                          <div key={key} className="flex gap-2 text-sm">
+                            <span className="text-gray-400 shrink-0">{Number(key) + 1}.</span>
+                            <span className="font-medium break-words">
+                              {Array.isArray(ans[key])
+                                ? ans[key].join(", ")
+                                : String(ans[key] ?? "(blank)")}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  }
                   return <span>{String(ans)}</span>;
                 };
 
