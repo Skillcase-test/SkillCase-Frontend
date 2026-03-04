@@ -74,6 +74,7 @@ export default function NursingGermanyLanding() {
             qualification: formData.qualification,
             experience: formData.experience,
             source: "Website",
+            adSet: "Landing Page",
           }),
         },
       );
@@ -455,6 +456,7 @@ export default function NursingGermanyLanding() {
                         />
                         <input type="hidden" name="returnURL" value="null" />
                         <input type="hidden" name="Tag" value="Google Ads" />
+                        <input type="hidden" name="CONTACTCF8" value="Landing Page" />
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1.5">
                             Full Name <span className="text-red-500">*</span>

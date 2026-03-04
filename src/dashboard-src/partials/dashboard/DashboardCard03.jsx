@@ -17,6 +17,12 @@ function DashboardCard03() {
   const [usersLoading, setUsersLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Inline edit state
+  const [savingUserId, setSavingUserId] = useState(null);
+  const [rowErrors, setRowErrors] = useState({});
+
+  const PROFICIENCY_LEVELS = ["A1", "A2", "B1", "B2"];
+
   useEffect(() => {
     const fetchTotalUsers = async () => {
       try {
@@ -48,6 +54,46 @@ function DashboardCard03() {
     } finally {
       setUsersLoading(false);
     }
+  };
+
+  const updateUser = async (userId, fields, revertFn) => {
+    setSavingUserId(userId);
+    setRowErrors((prev) => ({ ...prev, [userId]: null }));
+    try {
+      await api.patch(`/admin/users/${userId}`, fields);
+    } catch (err) {
+      console.error("Error updating user:", err);
+      revertFn();
+      setRowErrors((prev) => ({
+        ...prev,
+        [userId]: "Save failed, reverted.",
+      }));
+    } finally {
+      setSavingUserId(null);
+    }
+  };
+
+  const handleLevelChange = (userId, newLevel) => {
+    const prevUsers = allUsers;
+    setAllUsers((prev) =>
+      prev.map((u) =>
+        u.user_id === userId
+          ? { ...u, current_profeciency_level: newLevel }
+          : u,
+      ),
+    );
+    updateUser(userId, { current_profeciency_level: newLevel }, () =>
+      setAllUsers(prevUsers),
+    );
+  };
+
+  const handlePaidToggle = (userId, currentPaid) => {
+    const newPaid = !currentPaid;
+    const prevUsers = allUsers;
+    setAllUsers((prev) =>
+      prev.map((u) => (u.user_id === userId ? { ...u, is_paid: newPaid } : u)),
+    );
+    updateUser(userId, { is_paid: newPaid }, () => setAllUsers(prevUsers));
   };
 
   const filteredUsers = allUsers.filter((user) => {
@@ -264,56 +310,100 @@ function DashboardCard03() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredUsers.map((user, idx) => (
-                      <tr
-                        key={user.user_id}
-                        className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="py-2.5 pr-4 text-gray-400">{idx + 1}</td>
-                        <td className="py-2.5 pr-4">
-                          <div className="font-medium text-gray-800">
-                            {user.fullname || user.username}
-                          </div>
-                          {user.fullname && user.fullname !== user.username && (
-                            <div className="text-xs text-gray-400">
-                              @{user.username}
+                    {filteredUsers.map((user, idx) => {
+                      const isSaving = savingUserId === user.user_id;
+                      const rowError = rowErrors[user.user_id];
+                      return (
+                        <tr
+                          key={user.user_id}
+                          className={`border-b border-gray-100 transition-colors ${
+                            isSaving ? "bg-blue-50/50" : "hover:bg-gray-50"
+                          }`}
+                        >
+                          <td className="py-2.5 pr-4 text-gray-400">
+                            {idx + 1}
+                          </td>
+                          <td className="py-2.5 pr-4">
+                            <div className="font-medium text-gray-800">
+                              {user.fullname || user.username}
                             </div>
-                          )}
-                        </td>
-                        <td className="py-2.5 pr-4 text-gray-600">
-                          {user.phone || "—"}
-                        </td>
-                        <td className="py-2.5 pr-4">
-                          <span
-                            className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                              user.current_profeciency_level?.toUpperCase() ===
-                              "A2"
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-blue-100 text-blue-700"
-                            }`}
-                          >
-                            {user.current_profeciency_level || "A1"}
-                          </span>
-                        </td>
-                        <td className="py-2.5 pr-4">
-                          <span
-                            className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
-                              user.is_paid
-                                ? "bg-green-100 text-green-700"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {user.is_paid ? "Paid" : "Not Paid"}
-                          </span>
-                        </td>
-                        <td className="py-2.5 pr-4 text-gray-600">
-                          {formatDate(user.created_at)}
-                        </td>
-                        <td className="py-2.5 text-gray-600">
-                          {formatLastUsage(user.last_activity_at)}
-                        </td>
-                      </tr>
-                    ))}
+                            {user.fullname &&
+                              user.fullname !== user.username && (
+                                <div className="text-xs text-gray-400">
+                                  @{user.username}
+                                </div>
+                              )}
+                            {rowError && (
+                              <div className="text-xs text-red-500 mt-0.5">
+                                {rowError}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-2.5 pr-4 text-gray-600">
+                            {user.phone || "—"}
+                          </td>
+
+                          {/* Level — inline dropdown */}
+                          <td className="py-2.5 pr-4">
+                            <select
+                              value={user.current_profeciency_level || "A1"}
+                              onChange={(e) =>
+                                handleLevelChange(user.user_id, e.target.value)
+                              }
+                              disabled={isSaving}
+                              className={`text-xs font-medium rounded-full px-2 py-0.5 border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                                (
+                                  user.current_profeciency_level || "A1"
+                                ).toUpperCase() === "A2"
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : (
+                                        user.current_profeciency_level || "A1"
+                                      ).toUpperCase() === "B1" ||
+                                      (
+                                        user.current_profeciency_level || "A1"
+                                      ).toUpperCase() === "B2"
+                                    ? "bg-purple-100 text-purple-700"
+                                    : "bg-blue-100 text-blue-700"
+                              } disabled:opacity-60`}
+                            >
+                              {PROFICIENCY_LEVELS.map((lvl) => (
+                                <option key={lvl} value={lvl}>
+                                  {lvl}
+                                </option>
+                              ))}
+                            </select>
+                          </td>
+
+                          {/* Payment — toggle button */}
+                          <td className="py-2.5 pr-4">
+                            <button
+                              onClick={() =>
+                                handlePaidToggle(user.user_id, user.is_paid)
+                              }
+                              disabled={isSaving}
+                              className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium transition-all cursor-pointer hover:opacity-80 disabled:opacity-60 disabled:cursor-not-allowed ${
+                                user.is_paid
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {isSaving
+                                ? "Saving…"
+                                : user.is_paid
+                                  ? "Paid"
+                                  : "Not Paid"}
+                            </button>
+                          </td>
+
+                          <td className="py-2.5 pr-4 text-gray-600">
+                            {formatDate(user.created_at)}
+                          </td>
+                          <td className="py-2.5 text-gray-600">
+                            {formatLastUsage(user.last_activity_at)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                     {filteredUsers.length === 0 && (
                       <tr>
                         <td
