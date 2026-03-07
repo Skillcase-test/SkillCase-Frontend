@@ -193,9 +193,6 @@ function AppContent() {
 
   const initLiveUpdate = async () => {
     // Always confirm the currently active bundle — must run before any early return.
-    // Without this, Capawesome's watchdog rolls back to the previous bundle
-    // (e.g. after LiveUpdate.reload(), sessionStorage still has ota_checked set,
-    // so without this line here, ready() would never be called for the new bundle).
     try {
       await LiveUpdate.ready();
     } catch (e) {
