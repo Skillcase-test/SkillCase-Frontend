@@ -9,6 +9,7 @@ import {
   BookOpenText,
 } from "lucide-react";
 import { getReadingContent, saveReadingProgress } from "../../../api/a2Api";
+import UmlautKeyboard from "../../../components/a2/UmlautKeyboard";
 import ReadingRenderer from "../../../components/a2/ReadingRenderer";
 import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
 import {
@@ -264,12 +265,14 @@ export default function A2Reading() {
     };
     fetchContent();
   }, [user, chapterId, navigate]);
+
   const handleVocabClick = (word) => {
     const vocab = currentContent?.vocabulary?.find(
       (v) => v.word.toLowerCase() === word.toLowerCase(),
     );
     if (vocab) setSelectedVocab(vocab);
   };
+
   const renderVocabContent = () => {
     if (!currentContent?.content) return null;
     const text = currentContent.content;
@@ -293,6 +296,7 @@ export default function A2Reading() {
       return <span key={i}>{word}</span>;
     });
   };
+
   const handleAnswer = (qIdx, answer) =>
     setAnswers({ ...answers, [qIdx]: answer });
 
@@ -325,14 +329,26 @@ export default function A2Reading() {
     setAnswers({});
     setShowAnswers(false);
   };
-  const handleNext = () => {
+
+  const handleNext = async () => {
+    // Save progress for current content before advancing
+    try {
+      await saveReadingProgress({
+        contentId: currentContent.id,
+        isCompleted: true,
+      });
+    } catch {
+      // Non-blocking — proceed even if progress save fails
+    }
     if (currentIndex < contentList.length - 1) {
       setCurrentIndex((p) => p + 1);
       setPhase("reading");
       setAnswers({});
       setShowAnswers(false);
+      window.scrollTo(0, 0);
     }
   };
+
   const handleFinish = async () => {
     setIsFinishing(true);
     try {
@@ -380,9 +396,21 @@ export default function A2Reading() {
         >
           <ChevronLeft className="w-4 h-4" /> Back
         </button>
-        <div className="flex-1" />
+        <div className="flex-1 flex justify-center">
+          {contentList.length > 1 && (
+            <span className="text-xs font-semibold text-[#7b7b7b] bg-gray-100 px-2.5 py-1 rounded-full capitalize">
+              {currentContent?.content_type || "Reading"} &middot;{" "}
+              {currentIndex + 1} of {contentList.length}
+            </span>
+          )}
+          {contentList.length <= 1 && (
+            <span className="text-sm font-semibold text-[#7b7b7b] capitalize">
+              {currentContent?.content_type || "Reading"}
+            </span>
+          )}
+        </div>
         {phase === "reading" ? (
-          <span className="text-sm font-semibold text-[#7b7b7b]">Reading</span>
+          <span className="w-16" />
         ) : (
           <button
             onClick={() => setPhase("reading")}
@@ -604,6 +632,7 @@ export default function A2Reading() {
                           </p>
                         )}
                         <input
+                          id={`reading-fill-${qIdx}`}
                           type="text"
                           value={userAns || ""}
                           onChange={(e) => handleAnswer(qIdx, e.target.value)}
@@ -617,6 +646,35 @@ export default function A2Reading() {
                               : "border-gray-200 focus:border-[#002856] focus:outline-none"
                           }`}
                         />
+                        {!showAnswers && (
+                          <UmlautKeyboard
+                            onInsert={(char) => {
+                              const input = document.getElementById(
+                                `reading-fill-${qIdx}`,
+                              );
+                              if (!input) {
+                                handleAnswer(qIdx, (userAns || "") + char);
+                                return;
+                              }
+                              const start =
+                                input.selectionStart ?? (userAns || "").length;
+                              const end = input.selectionEnd ?? start;
+                              const newVal =
+                                (userAns || "").slice(0, start) +
+                                char +
+                                (userAns || "").slice(end);
+                              handleAnswer(qIdx, newVal);
+                              requestAnimationFrame(() => {
+                                input.focus();
+                                input.setSelectionRange(
+                                  start + char.length,
+                                  start + char.length,
+                                );
+                              });
+                            }}
+                          />
+                        )}
+
                         {showAnswers && !isCorrect && (
                           <p className="text-sm text-gray-600">
                             Correct:{" "}
@@ -680,6 +738,7 @@ export default function A2Reading() {
                           </p>
                         )}
                         <input
+                          id={`reading-correction-${qIdx}`}
                           type="text"
                           value={userAns || ""}
                           onChange={(e) => handleAnswer(qIdx, e.target.value)}
@@ -693,6 +752,36 @@ export default function A2Reading() {
                               : "border-gray-200 focus:border-[#002856] focus:outline-none"
                           }`}
                         />
+
+                        {!showAnswers && (
+                          <UmlautKeyboard
+                            onInsert={(char) => {
+                              const input = document.getElementById(
+                                `reading-correction-${qIdx}`,
+                              );
+                              if (!input) {
+                                handleAnswer(qIdx, (userAns || "") + char);
+                                return;
+                              }
+                              const start =
+                                input.selectionStart ?? (userAns || "").length;
+                              const end = input.selectionEnd ?? start;
+                              const newVal =
+                                (userAns || "").slice(0, start) +
+                                char +
+                                (userAns || "").slice(end);
+                              handleAnswer(qIdx, newVal);
+                              requestAnimationFrame(() => {
+                                input.focus();
+                                input.setSelectionRange(
+                                  start + char.length,
+                                  start + char.length,
+                                );
+                              });
+                            }}
+                          />
+                        )}
+
                         {showAnswers && !isCorrect && (
                           <p className="text-sm text-gray-600">
                             Correct:{" "}
@@ -803,6 +892,9 @@ export default function A2Reading() {
               <Volume2 className="w-6 h-6" />
             </button>
             <h3 className="text-2xl font-bold text-[#002856] text-center mb-2">
+              {selectedVocab.article
+                ? `${selectedVocab.article.toLowerCase()} `
+                : ""}
               {selectedVocab.word}
             </h3>
             <p className="text-gray-600 text-center text-lg mb-6">
@@ -844,14 +936,14 @@ export default function A2Reading() {
               onClick={handleFinish}
               className="px-8 py-3 bg-[#019035] text-white rounded-xl font-semibold"
             >
-              Finish
+              Complete Topic
             </button>
           ) : (
             <button
               onClick={handleNext}
-              className="px-8 py-3 bg-[#002856] text-white rounded-xl font-semibold"
+              className="px-8 py-3 bg-[#002856] text-white rounded-xl font-semibold capitalize"
             >
-              Next
+              Move to {contentList[currentIndex + 1]?.content_type || "Next"}
             </button>
           ))}
         {phase === "quiz" && !showAnswers && (
@@ -867,18 +959,12 @@ export default function A2Reading() {
                 <Loader2 className="w-5 h-5 animate-spin" /> Checking...
               </>
             ) : (
-              "Submit"
+              "Submit Answers"
             )}
           </button>
         )}
         {phase === "quiz" && showAnswers && (
           <>
-            <button
-              onClick={handleTryAgain}
-              className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-semibold"
-            >
-              Try Again
-            </button>
             {currentIndex === contentList.length - 1 ? (
               <button
                 onClick={handleFinish}
@@ -890,15 +976,15 @@ export default function A2Reading() {
                     <Loader2 className="w-5 h-5 animate-spin" /> Finishing...
                   </>
                 ) : (
-                  "Finish"
+                  "Complete Topic"
                 )}
               </button>
             ) : (
               <button
                 onClick={handleNext}
-                className="px-8 py-3 bg-[#002856] text-white rounded-xl font-semibold"
+                className="px-8 py-3 bg-[#002856] text-white rounded-xl font-semibold capitalize"
               >
-                Next
+                Move to {contentList[currentIndex + 1]?.content_type || "Next"}
               </button>
             )}
           </>

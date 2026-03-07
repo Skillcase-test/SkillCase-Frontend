@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Send,
   CheckCircle,
@@ -12,6 +12,7 @@ import {
   Search,
   ChevronDown,
   Users,
+  Smartphone,
 } from "lucide-react";
 import api from "../../../api/axios";
 
@@ -92,6 +93,23 @@ export default function SendNotification() {
   // Target level state
   const [targetLevel, setTargetLevel] = useState("all"); // all, a1, a2
 
+  // Version filter state
+  const [availableVersions, setAvailableVersions] = useState([]);
+  const [versionFilterType, setVersionFilterType] = useState("all"); // all | exact | range
+  const [exactVersion, setExactVersion] = useState("");
+  const [minVersion, setMinVersion] = useState("");
+  const [maxVersion, setMaxVersion] = useState("");
+
+  // Fetch available versions on mount
+  useEffect(() => {
+    api
+      .get("/notifications/versions")
+      .then((res) => {
+        setAvailableVersions(res.data.versions || []);
+      })
+      .catch(() => {});
+  }, []);
+
   // Filter deep links based on search
   const filteredRoutes = useMemo(() => {
     if (!deepLinkSearch) return DEEP_LINK_ROUTES;
@@ -152,11 +170,41 @@ export default function SendNotification() {
     }
   };
 
+  const buildVersionFilter = () => {
+    if (versionFilterType === "exact" && exactVersion) {
+      return { type: "exact", exact: exactVersion };
+    }
+    if (versionFilterType === "range" && (minVersion || maxVersion)) {
+      return {
+        type: "range",
+        minVersion: minVersion || undefined,
+        maxVersion: maxVersion || undefined,
+      };
+    }
+    return { type: "all" };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!title || !body) {
       setStatus({ type: "error", message: "Title and message are required" });
+      return;
+    }
+
+    if (versionFilterType === "exact" && !exactVersion) {
+      setStatus({
+        type: "error",
+        message: "Please select a version or switch to All Versions",
+      });
+      return;
+    }
+
+    if (versionFilterType === "range" && !minVersion && !maxVersion) {
+      setStatus({
+        type: "error",
+        message: "Please set at least one bound for the version range",
+      });
       return;
     }
 
@@ -185,6 +233,8 @@ export default function SendNotification() {
       payload.targetLevel = targetLevel;
     }
 
+    payload.versionFilter = buildVersionFilter();
+
     try {
       const res = await api.post("/notifications/broadcast", payload);
       setStatus({
@@ -204,6 +254,10 @@ export default function SendNotification() {
       setImageUrl("");
       setImageSource("none");
       setTargetLevel("all");
+      setVersionFilterType("all");
+      setExactVersion("");
+      setMinVersion("");
+      setMaxVersion("");
     } catch (err) {
       setStatus({
         type: "error",
@@ -312,6 +366,109 @@ export default function SendNotification() {
           <p className="text-xs text-gray-500 mt-2">
             Send notification to specific proficiency level users
           </p>
+        </div>
+
+        {/* App Version Filter */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            <Smartphone className="w-4 h-4 inline mr-2" />
+            App Version
+            {availableVersions.length > 0 && (
+              <span className="ml-2 text-xs text-gray-400 font-normal">
+                {availableVersions.length} version
+                {availableVersions.length !== 1 ? "s" : ""} in DB
+              </span>
+            )}
+          </label>
+
+          <div className="flex gap-3 mb-4">
+            {[
+              { value: "all", label: "All Versions" },
+              { value: "exact", label: "Exact Version" },
+              { value: "range", label: "Version Range" },
+            ].map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  setVersionFilterType(value);
+                  setExactVersion("");
+                  setMinVersion("");
+                  setMaxVersion("");
+                }}
+                className={`px-4 py-2 rounded-lg border transition ${
+                  versionFilterType === value
+                    ? "bg-blue-50 border-blue-500 text-blue-700"
+                    : "border-gray-300 text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {versionFilterType === "exact" && (
+            <div>
+              <select
+                value={exactVersion}
+                onChange={(e) => setExactVersion(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select a version...</option>
+                {availableVersions.map((v) => (
+                  <option key={v} value={v}>
+                    v{v}
+                  </option>
+                ))}
+              </select>
+              {availableVersions.length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">
+                  No versions recorded yet. They appear automatically once users
+                  open the app.
+                </p>
+              )}
+            </div>
+          )}
+
+          {versionFilterType === "range" && (
+            <div className="flex gap-4 items-center">
+              <div className="flex-1">
+                <label className="text-xs text-gray-500 mb-1 block">
+                  Min version (from)
+                </label>
+                <select
+                  value={minVersion}
+                  onChange={(e) => setMinVersion(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                >
+                  <option value="">Any</option>
+                  {availableVersions.map((v) => (
+                    <option key={v} value={v}>
+                      v{v}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <span className="text-gray-400 mt-5">–</span>
+              <div className="flex-1">
+                <label className="text-xs text-gray-500 mb-1 block">
+                  Max version (to)
+                </label>
+                <select
+                  value={maxVersion}
+                  onChange={(e) => setMaxVersion(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                >
+                  <option value="">Any</option>
+                  {availableVersions.map((v) => (
+                    <option key={v} value={v}>
+                      v{v}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Image Section */}
@@ -622,11 +779,27 @@ export default function SendNotification() {
           className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           <Send className="w-5 h-5" />
-          {loading
-            ? "Sending..."
-            : targetLevel === "all"
-            ? "Send to All Users"
-            : `Send to ${targetLevel.toUpperCase()} Users`}
+          {(() => {
+            const level =
+              targetLevel === "all"
+                ? "All Users"
+                : `${targetLevel.toUpperCase()} Users`;
+            if (versionFilterType === "exact" && exactVersion)
+              return `${loading ? "Sending..." : "Send"} to ${level} on v${exactVersion}`;
+
+            if (versionFilterType === "range" && (minVersion || maxVersion)) {
+              const range = [
+                minVersion && `v${minVersion}`,
+                maxVersion && `v${maxVersion}`,
+              ]
+                .filter(Boolean)
+                .join(" – ");
+
+              return `${loading ? "Sending..." : "Send"} to ${level} (${range})`;
+            }
+
+            return loading ? "Sending..." : `Send to ${level}`;
+          })()}
         </button>
       </form>
     </div>

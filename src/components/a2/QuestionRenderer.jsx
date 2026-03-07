@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { Check, X } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Check, X, ChevronRight } from "lucide-react";
+import UmlautKeyboard from "./UmlautKeyboard";
 import {
   DndContext,
   closestCenter,
@@ -28,8 +29,8 @@ function WordItem({ word, isDragging, isOverlay }) {
         isOverlay
           ? "bg-[#002856] text-white shadow-2xl scale-110 cursor-grabbing z-50"
           : isDragging
-          ? "opacity-30 scale-95 bg-gray-200"
-          : "bg-white text-[#002856] border-2 border-[#002856] shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
+            ? "opacity-30 scale-95 bg-gray-200"
+            : "bg-white text-[#002856] border-2 border-[#002856] shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
       }`}
     >
       {word}
@@ -163,17 +164,19 @@ function SentenceOrderingQuestion({
               <>
                 ✗ Not quite right.
                 <br />
-                <span className="text-sm">
+                <span className="text-sm text-green-600">
                   Correct sentence:{" "}
-                  <strong>
-                    "{Array.isArray(question_data?.correct_order)
+                  <strong className="text-green-600">
+                    "
+                    {Array.isArray(question_data?.correct_order)
                       ? typeof question_data.correct_order[0] === "number" &&
                         Array.isArray(question_data?.words)
                         ? question_data.correct_order
                             .map((i) => question_data.words[i])
                             .join(" ")
                         : question_data.correct_order.join(" ")
-                      : question_data?.correct_sentence || "N/A"}"
+                      : question_data?.correct_sentence || "N/A"}
+                    "
                   </strong>
                 </span>
               </>
@@ -195,17 +198,19 @@ function MatchingQuestion({
 }) {
   const { question_data } = question;
   const [selected, setSelected] = useState(null);
-  const [matchedPairs, setMatchedPairs] = useState([]);
   const [leftItems, setLeftItems] = useState([]);
   const [rightItems, setRightItems] = useState([]);
-  const [matches, setMatches] = useState({}); // { leftIdx: rightIdx }
+  const [matches, setMatches] = useState({});
+  const [arrows, setArrows] = useState([]);
+
+  const containerRef = useRef(null);
+  const leftRefs = useRef([]);
+  const rightRefs = useRef([]);
 
   useEffect(() => {
     let left = [];
     let right = [];
-    let correctMap = {};
 
-    // Format 1: pairs: [{de, en}] (Grammar module)
     if (question_data?.pairs && Array.isArray(question_data.pairs)) {
       left = question_data.pairs.map((p, i) => ({
         id: i,
@@ -216,9 +221,7 @@ function MatchingQuestion({
         text: p.en || p.right || p.english || String(p),
         correctIdx: i,
       }));
-    }
-    // Format 2: left_items/right_items (Test)
-    else if (question_data?.left_items && question_data?.right_items) {
+    } else if (question_data?.left_items && question_data?.right_items) {
       left = question_data.left_items.map((text, i) => ({ id: i, text }));
       const correctPairs =
         question_data.correct_pairs || question_data.right_items;
@@ -227,9 +230,7 @@ function MatchingQuestion({
         text,
         correctIdx: correctPairs ? correctPairs.indexOf(text) : i,
       }));
-    }
-    // Format 3: items array (alternative)
-    else if (question_data?.items && Array.isArray(question_data.items)) {
+    } else if (question_data?.items && Array.isArray(question_data.items)) {
       left = question_data.items.map((item, i) => ({
         id: i,
         text: item.left || item.de || item.german,
@@ -241,35 +242,69 @@ function MatchingQuestion({
       }));
     }
 
-    // Shuffle right column only (keep left as reference)
     const shuffledRight = [...right].sort(() => Math.random() - 0.5);
 
     setLeftItems(left);
     setRightItems(shuffledRight);
     setMatches({});
     setSelected(null);
+    setArrows([]);
   }, [question_data]);
+
+  // Recalculate arrow positions whenever matches change
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const newArrows = [];
+
+    Object.entries(matches).forEach(([leftIdxStr, rightIdx]) => {
+      const leftIdx = parseInt(leftIdxStr);
+      const leftEl = leftRefs.current[leftIdx];
+      const rightEl = rightRefs.current[rightIdx];
+      if (!leftEl || !rightEl) return;
+
+      const lr = leftEl.getBoundingClientRect();
+      const rr = rightEl.getBoundingClientRect();
+
+      newArrows.push({
+        leftIdx,
+        rightIdx,
+        x1: lr.right - containerRect.left,
+        y1: lr.top + lr.height / 2 - containerRect.top,
+        x2: rr.left - containerRect.left,
+        y2: rr.top + rr.height / 2 - containerRect.top,
+      });
+    });
+
+    setArrows(newArrows);
+  }, [matches]);
 
   const handleLeftClick = (idx) => {
     if (showResult) return;
-    setSelected({ type: "left", idx });
+    setSelected(
+      selected?.type === "left" && selected?.idx === idx
+        ? null
+        : { type: "left", idx },
+    );
   };
 
   const handleRightClick = (idx) => {
     if (showResult) return;
     if (selected?.type === "left") {
-      // Make a match
       const newMatches = { ...matches, [selected.idx]: idx };
       setMatches(newMatches);
-      // Report answer as array of pairs for backend
-      const answer = Object.entries(newMatches).map(([leftIdx, rightIdx]) => ({
-        de: leftItems[parseInt(leftIdx)]?.text,
-        en: rightItems[rightIdx]?.text,
+      const answer = Object.entries(newMatches).map(([li, ri]) => ({
+        de: leftItems[parseInt(li)]?.text,
+        en: rightItems[ri]?.text,
       }));
       onAnswer(answer);
       setSelected(null);
     } else {
-      setSelected({ type: "right", idx });
+      setSelected(
+        selected?.type === "right" && selected?.idx === idx
+          ? null
+          : { type: "right", idx },
+      );
     }
   };
 
@@ -277,22 +312,21 @@ function MatchingQuestion({
     if (!showResult) return null;
     const rightIdx = matches[leftIdx];
     if (rightIdx === undefined) return "unanswered";
-    const leftItem = leftItems[leftIdx];
-    const rightItem = rightItems[rightIdx];
-    // Check if this pair is correct
-    return rightItem?.correctIdx === leftIdx ? "correct" : "incorrect";
+    return rightItems[rightIdx]?.correctIdx === leftIdx
+      ? "correct"
+      : "incorrect";
   };
 
   return (
     <div className="space-y-4">
       <p className="text-lg font-medium text-gray-800 mb-2">Match the items:</p>
       <p className="text-xs text-gray-500 mb-4">
-        Click a German word, then click its English translation
+        Tap a word on the left, then its match on the right
       </p>
 
-      <div className="flex gap-4">
+      <div ref={containerRef} className="relative flex gap-1 overflow-hidden">
         {/* Left Column (German) */}
-        <div className="flex-1 space-y-2">
+        <div className="flex-1 min-w-0 space-y-2">
           <p className="text-xs font-bold text-gray-400 uppercase text-center mb-2">
             German
           </p>
@@ -305,20 +339,23 @@ function MatchingQuestion({
             return (
               <button
                 key={idx}
+                ref={(el) => {
+                  leftRefs.current[idx] = el;
+                }}
                 onClick={() => handleLeftClick(idx)}
                 disabled={showResult}
-                className={`w-full px-4 py-3 rounded-xl font-semibold text-sm transition-all border-2 ${
+                className={`w-full px-3 py-3 rounded-xl font-semibold text-sm transition-all border-2 text-left break-words ${
                   showResult
                     ? status === "correct"
                       ? "border-green-500 bg-green-50 text-green-700"
                       : status === "incorrect"
-                      ? "border-red-500 bg-red-50 text-red-700"
-                      : "border-gray-200 bg-gray-50"
+                        ? "border-red-500 bg-red-50 text-red-700"
+                        : "border-gray-200 bg-gray-50 text-gray-500"
                     : isSelected
-                    ? "border-[#002856] bg-[#002856] text-white scale-105 shadow-md"
-                    : isMatched
-                    ? "border-[#002856] bg-[#edfaff] text-[#002856]"
-                    : "border-gray-200 bg-white hover:border-gray-300"
+                      ? "border-[#002856] bg-[#002856] text-white shadow-md"
+                      : isMatched
+                        ? "border-[#002856]/40 bg-[#edfaff] text-[#002856]"
+                        : "border-gray-200 bg-white hover:border-gray-300"
                 }`}
               >
                 {item.text}
@@ -327,8 +364,11 @@ function MatchingQuestion({
           })}
         </div>
 
+        {/* Middle spacer (where arrows pass through) */}
+        <div className="w-10 flex-shrink-0" />
+
         {/* Right Column (English) */}
-        <div className="flex-1 space-y-2">
+        <div className="flex-1 min-w-0 space-y-2">
           <p className="text-xs font-bold text-gray-400 uppercase text-center mb-2">
             English
           </p>
@@ -336,9 +376,8 @@ function MatchingQuestion({
             const isSelected =
               selected?.type === "right" && selected?.idx === idx;
             const isMatched = Object.values(matches).includes(idx);
-            // Find if this right item is correctly matched
             const matchedLeftIdx = Object.entries(matches).find(
-              ([l, r]) => r === idx,
+              ([, r]) => r === idx,
             )?.[0];
             const status =
               showResult && matchedLeftIdx !== undefined
@@ -350,20 +389,23 @@ function MatchingQuestion({
             return (
               <button
                 key={idx}
+                ref={(el) => {
+                  rightRefs.current[idx] = el;
+                }}
                 onClick={() => handleRightClick(idx)}
                 disabled={showResult}
-                className={`w-full px-4 py-3 rounded-xl font-semibold text-sm transition-all border-2 ${
+                className={`w-full px-3 py-3 rounded-xl font-semibold text-sm transition-all border-2 text-left break-words ${
                   showResult
                     ? status === "correct"
                       ? "border-green-500 bg-green-50 text-green-700"
                       : status === "incorrect"
-                      ? "border-red-500 bg-red-50 text-red-700"
-                      : "border-gray-200 bg-gray-50"
+                        ? "border-red-500 bg-red-50 text-red-700"
+                        : "border-gray-200 bg-gray-50 text-gray-500"
                     : isSelected
-                    ? "border-[#002856] bg-[#002856] text-white scale-105 shadow-md"
-                    : isMatched
-                    ? "border-[#002856] bg-[#edfaff] text-[#002856]"
-                    : "border-gray-200 bg-white hover:border-gray-300"
+                      ? "border-[#002856] bg-[#002856] text-white shadow-md"
+                      : isMatched
+                        ? "border-[#002856]/40 bg-[#edfaff] text-[#002856]"
+                        : "border-gray-200 bg-white hover:border-gray-300"
                 }`}
               >
                 {item.text}
@@ -371,39 +413,109 @@ function MatchingQuestion({
             );
           })}
         </div>
+
+        {/* SVG Arrow Overlay */}
+        <svg
+          className="absolute inset-0 pointer-events-none"
+          style={{ width: "100%", height: "100%", overflow: "visible" }}
+        >
+          <defs>
+            <marker
+              id="qr-arrow-navy"
+              markerWidth="6"
+              markerHeight="6"
+              refX="6"
+              refY="3"
+              orient="auto"
+            >
+              <polygon points="0,0 6,3 0,6" fill="#002856" />
+            </marker>
+            <marker
+              id="qr-arrow-correct"
+              markerWidth="6"
+              markerHeight="6"
+              refX="6"
+              refY="3"
+              orient="auto"
+            >
+              <polygon points="0,0 6,3 0,6" fill="#16a34a" />
+            </marker>
+            <marker
+              id="qr-arrow-incorrect"
+              markerWidth="6"
+              markerHeight="6"
+              refX="6"
+              refY="3"
+              orient="auto"
+            >
+              <polygon points="0,0 6,3 0,6" fill="#dc2626" />
+            </marker>
+          </defs>
+          <style>{`
+            @keyframes qr-fade {
+              from { opacity: 0; transform: scale(0.92); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+          {arrows.map(({ leftIdx, x1, y1, x2, y2 }) => {
+            const status = getMatchStatus(leftIdx);
+            const markerId = showResult
+              ? status === "correct"
+                ? "qr-arrow-correct"
+                : "qr-arrow-incorrect"
+              : "qr-arrow-navy";
+            const color = showResult
+              ? status === "correct"
+                ? "#16a34a"
+                : "#dc2626"
+              : "#002856";
+            return (
+              <g
+                key={leftIdx}
+                style={{ animation: "qr-fade 0.2s ease-out both" }}
+              >
+                <line
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke={color}
+                  strokeWidth="1.5"
+                  strokeOpacity="0.85"
+                  markerEnd={`url(#${markerId})`}
+                />
+                <circle cx={x1} cy={y1} r="3.5" fill={color} />
+              </g>
+            );
+          })}
+        </svg>
       </div>
 
-      {/* Matches Preview */}
-      {Object.keys(matches).length > 0 && (
-        <div className="mt-4 pt-3 border-t border-gray-200">
-          <p className="text-xs font-bold text-gray-400 uppercase mb-2">
-            Your Matches ({Object.keys(matches).length}/{leftItems.length})
-          </p>
-          <div className="space-y-1">
-            {Object.entries(matches).map(([leftIdx, rightIdx]) => {
-              const status = getMatchStatus(parseInt(leftIdx));
+      {/* Correct answer review — shown after Check Answer */}
+      {showResult && (
+        <div className="mt-4 rounded-xl border border-[#002856]/20 overflow-hidden">
+          <div className="px-4 py-2 bg-[#edfaff] border-b border-[#002856]/10">
+            <p className="text-xs font-bold text-[#002856] uppercase tracking-wider">
+              Correct Pairs
+            </p>
+          </div>
+          <div className="divide-y divide-[#002856]/10">
+            {leftItems.map((leftItem, leftIdx) => {
+              const correctRightItem = rightItems.find(
+                (r) => r.correctIdx === leftIdx,
+              );
               return (
                 <div
                   key={leftIdx}
-                  className={`flex items-center gap-2 p-2 rounded-lg text-sm ${
-                    showResult
-                      ? status === "correct"
-                        ? "bg-green-50"
-                        : "bg-red-50"
-                      : "bg-gray-50"
-                  }`}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-[#edfaff]/60"
                 >
-                  <span className="font-medium">
-                    {leftItems[parseInt(leftIdx)]?.text}
+                  <span className="text-sm font-semibold text-[#002856] flex-1">
+                    {leftItem.text}
                   </span>
-                  <span className="text-gray-400">→</span>
-                  <span>{rightItems[rightIdx]?.text}</span>
-                  {showResult &&
-                    (status === "correct" ? (
-                      <Check className="w-4 h-4 text-green-500 ml-auto" />
-                    ) : (
-                      <X className="w-4 h-4 text-red-500 ml-auto" />
-                    ))}
+                  <span className="text-[#002856]/40 text-xs">→</span>
+                  <span className="text-sm text-[#002856] flex-1 text-right">
+                    {correctRightItem?.text ?? "—"}
+                  </span>
                 </div>
               );
             })}
@@ -482,8 +594,8 @@ export default function QuestionRenderer({
                       : "border-red-500 bg-red-50"
                     : "border-[#002856] bg-[#edfaff]"
                   : showResult && option === getCorrectAnswer()
-                  ? "border-green-500 bg-green-50"
-                  : "border-gray-200 hover:border-gray-300"
+                    ? "border-green-500 bg-green-50"
+                    : "border-gray-200 hover:border-gray-300"
               }`}
             >
               <div className="flex items-center justify-between">
@@ -516,12 +628,12 @@ export default function QuestionRenderer({
           {getOptions().map((option, idx) => {
             // For mcq_multi, correct may be indices or values
             const correctArr = question_data?.correct || [];
-            const isCorrectOption = Array.isArray(correctArr) && (
-              correctArr.includes(option) || 
-              correctArr.includes(idx) ||
-              correctArr.includes(String(idx))
-            );
-            
+            const isCorrectOption =
+              Array.isArray(correctArr) &&
+              (correctArr.includes(option) ||
+                correctArr.includes(idx) ||
+                correctArr.includes(String(idx)));
+
             return (
               <button
                 key={idx}
@@ -554,13 +666,17 @@ export default function QuestionRenderer({
                     {multiAnswer.includes(option) && (
                       <Check className="w-3 h-3 text-white" />
                     )}
-                    {showResult && isCorrectOption && !multiAnswer.includes(option) && (
-                      <Check className="w-3 h-3 text-green-500" />
-                    )}
+                    {showResult &&
+                      isCorrectOption &&
+                      !multiAnswer.includes(option) && (
+                        <Check className="w-3 h-3 text-green-500" />
+                      )}
                   </div>
                   <span>{option}</span>
                   {showResult && isCorrectOption && (
-                    <span className="ml-auto text-xs text-green-600 font-medium">✓ Correct</span>
+                    <span className="ml-auto text-xs text-green-600 font-medium">
+                      ✓ Correct
+                    </span>
                   )}
                 </div>
               </button>
@@ -574,7 +690,9 @@ export default function QuestionRenderer({
                   const correctArr = question_data?.correct || [];
                   const opts = question_data?.options || [];
                   if (typeof correctArr[0] === "number") {
-                    return correctArr.map(i => opts[i] || `[${i}]`).join(", ");
+                    return correctArr
+                      .map((i) => opts[i] || `[${i}]`)
+                      .join(", ");
                   }
                   return correctArr.join(", ");
                 })()}
@@ -605,8 +723,8 @@ export default function QuestionRenderer({
                         : "border-red-500 bg-red-50 text-red-700"
                       : "border-[#002856] bg-[#edfaff] text-[#002856]"
                     : showResult && value === getCorrectAnswer()
-                    ? "border-green-500 bg-green-50 text-green-700"
-                    : "border-gray-200 hover:border-gray-300 text-gray-600"
+                      ? "border-green-500 bg-green-50 text-green-700"
+                      : "border-gray-200 hover:border-gray-300 text-gray-600"
                 }`}
               >
                 {value ? "True" : "False"}
@@ -617,7 +735,10 @@ export default function QuestionRenderer({
       );
 
     case "fill_typing":
-    case "fill_blank_typing":
+    case "fill_blank_typing": {
+      const fillInputId = `qr-fill-${question_type}-${
+        question_data?.question?.slice(0, 10) || Math.random()
+      }`;
       return (
         <div className="space-y-4">
           <p className="text-lg font-medium text-gray-800">
@@ -629,6 +750,7 @@ export default function QuestionRenderer({
             </p>
           )}
           <input
+            id={fillInputId}
             type="text"
             value={localAnswer || ""}
             onChange={(e) => {
@@ -645,6 +767,33 @@ export default function QuestionRenderer({
                 : "border-gray-200 focus:border-[#002856] focus:outline-none"
             }`}
           />
+          {!showResult && (
+            <UmlautKeyboard
+              onInsert={(char) => {
+                const input = document.getElementById(fillInputId);
+                const current = localAnswer || "";
+                if (!input) {
+                  const newVal = current + char;
+                  setLocalAnswer(newVal);
+                  onAnswer(newVal);
+                  return;
+                }
+                const start = input.selectionStart ?? current.length;
+                const end = input.selectionEnd ?? start;
+                const newVal =
+                  current.slice(0, start) + char + current.slice(end);
+                setLocalAnswer(newVal);
+                onAnswer(newVal);
+                requestAnimationFrame(() => {
+                  input.focus();
+                  input.setSelectionRange(
+                    start + char.length,
+                    start + char.length,
+                  );
+                });
+              }}
+            />
+          )}
           {showResult && !isCorrect && (
             <p className="text-sm text-gray-600">
               Correct answer:{" "}
@@ -655,6 +804,7 @@ export default function QuestionRenderer({
           )}
         </div>
       );
+    }
 
     case "fill_options":
     case "fill_blank_options":
@@ -682,8 +832,8 @@ export default function QuestionRenderer({
                         : "border-red-500 bg-red-50 text-red-700"
                       : "border-[#002856] bg-[#002856] text-white"
                     : showResult && option === getCorrectAnswer()
-                    ? "border-green-500 bg-green-50 text-green-700"
-                    : "border-gray-200 hover:border-gray-300"
+                      ? "border-green-500 bg-green-50 text-green-700"
+                      : "border-gray-200 hover:border-gray-300"
                 }`}
               >
                 {option}
@@ -714,6 +864,9 @@ export default function QuestionRenderer({
       const correctText =
         question_data?.correct_sentence || question_data?.correct || "";
       const hintText = question_data?.hint_en || question_data?.hint || "";
+      const corrInputId = `qr-correction-${incorrectText
+        .slice(0, 10)
+        .replace(/\s/g, "")}`;
 
       return (
         <div className="space-y-4">
@@ -727,6 +880,7 @@ export default function QuestionRenderer({
             <p className="text-sm text-gray-500">Hint: {hintText}</p>
           )}
           <input
+            id={corrInputId}
             type="text"
             value={localAnswer || ""}
             onChange={(e) => {
@@ -743,6 +897,33 @@ export default function QuestionRenderer({
                 : "border-gray-200 focus:border-[#002856] focus:outline-none"
             }`}
           />
+          {!showResult && (
+            <UmlautKeyboard
+              onInsert={(char) => {
+                const input = document.getElementById(corrInputId);
+                const current = localAnswer || "";
+                if (!input) {
+                  const newVal = current + char;
+                  setLocalAnswer(newVal);
+                  onAnswer(newVal);
+                  return;
+                }
+                const start = input.selectionStart ?? current.length;
+                const end = input.selectionEnd ?? start;
+                const newVal =
+                  current.slice(0, start) + char + current.slice(end);
+                setLocalAnswer(newVal);
+                onAnswer(newVal);
+                requestAnimationFrame(() => {
+                  input.focus();
+                  input.setSelectionRange(
+                    start + char.length,
+                    start + char.length,
+                  );
+                });
+              }}
+            />
+          )}
           {showResult && !isCorrect && (
             <p className="text-sm text-gray-600">
               Correct:{" "}

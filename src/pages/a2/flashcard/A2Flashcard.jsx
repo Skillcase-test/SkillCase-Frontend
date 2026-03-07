@@ -20,6 +20,8 @@ import A2FlashcardDeck from "../../../components/a2/A2FlashcardDeck";
 import ProgressBar from "../../../components/a2/ProgressBar";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
+import UmlautKeyboard from "../../../components/a2/UmlautKeyboard";
+
 import {
   DndContext,
   closestCenter,
@@ -156,30 +158,75 @@ function QuizSentenceReorder({ question, value, onChange }) {
 
 // Matching Question for Quiz - NO AUTO-FEEDBACK, blue only, green/red after submit
 function QuizMatching({ question, value, onChange, showResult }) {
-  const [selected, setSelected] = useState(null);
-  const [matches, setMatches] = useState({}); // { leftIdx: rightIdx }
+  const { question_data } = question;
+  const leftItems = question_data?.left_items || [];
+  const rightItemsRaw = question_data?.right_items || [];
+  const correctPairs = question_data?.correct_pairs || rightItemsRaw;
 
-  const leftItems = question.question_data?.left_items || [];
-  const rightItems = question.question_data?.right_items || [];
-  const correctPairs = question.question_data?.correct_pairs || [];
+  const [rightItems] = useState(() =>
+    [...rightItemsRaw].sort(() => Math.random() - 0.5),
+  );
+  const [selected, setSelected] = useState(null);
+  const [matches, setMatches] = useState({});
+  const [arrows, setArrows] = useState([]);
+
+  const containerRef = useRef(null);
+  const leftRefs = useRef([]);
+  const rightRefs = useRef([]);
+
+  // Recalculate arrow positions whenever matches change
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const newArrows = [];
+
+    Object.entries(matches).forEach(([leftIdxStr, rightIdx]) => {
+      const leftIdx = parseInt(leftIdxStr);
+      const leftEl = leftRefs.current[leftIdx];
+      const rightEl = rightRefs.current[rightIdx];
+      if (!leftEl || !rightEl) return;
+
+      const lr = leftEl.getBoundingClientRect();
+      const rr = rightEl.getBoundingClientRect();
+
+      newArrows.push({
+        leftIdx,
+        rightIdx,
+        x1: lr.right - containerRect.left,
+        y1: lr.top + lr.height / 2 - containerRect.top,
+        x2: rr.left - containerRect.left,
+        y2: rr.top + rr.height / 2 - containerRect.top,
+      });
+    });
+    setArrows(newArrows);
+  }, [matches]);
 
   const handleLeftClick = (idx) => {
     if (showResult) return;
-    setSelected({ type: "left", idx });
+    setSelected(
+      selected?.type === "left" && selected?.idx === idx
+        ? null
+        : { type: "left", idx },
+    );
   };
 
-  const handleRightClick = (idx) => {
+  const handleRightClick = (rightIdx) => {
     if (showResult) return;
     if (selected?.type === "left") {
-      // Make match - no instant feedback
-      const newMatches = { ...matches, [selected.idx]: idx };
+      const newMatches = { ...matches, [selected.idx]: rightIdx };
       setMatches(newMatches);
-      // Report answer as array matching left to right
-      const answer = leftItems.map((_, i) => rightItems[newMatches[i]]);
+      const answer = Object.entries(newMatches).map(([li, ri]) => ({
+        left: leftItems[parseInt(li)],
+        right: rightItems[ri],
+      }));
       onChange(answer);
       setSelected(null);
     } else {
-      setSelected({ type: "right", idx });
+      setSelected(
+        selected?.type === "right" && selected?.idx === rightIdx
+          ? null
+          : { type: "right", idx: rightIdx },
+      );
     }
   };
 
@@ -187,7 +234,7 @@ function QuizMatching({ question, value, onChange, showResult }) {
     if (!showResult) return null;
     const rightIdx = matches[leftIdx];
     if (rightIdx === undefined) return "unanswered";
-    return correctPairs[leftIdx] === rightItems[rightIdx]
+    return rightItems[rightIdx] === correctPairs[leftIdx]
       ? "correct"
       : "incorrect";
   };
@@ -198,36 +245,38 @@ function QuizMatching({ question, value, onChange, showResult }) {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-4">
+    <div className="space-y-3">
+      <p className="text-xs text-gray-500">
+        Tap a word on the left, then its match on the right
+      </p>
+      <div ref={containerRef} className="relative flex gap-1 overflow-hidden">
         {/* Left Column */}
-        <div className="flex-1 space-y-2">
-          <p className="text-xs font-bold text-gray-400 uppercase text-center mb-2">
-            German
-          </p>
+        <div className="flex-1 min-w-0 space-y-2">
           {leftItems.map((item, idx) => {
-            const status = getMatchStatus(idx);
-            const matched = isMatched("left", idx);
             const isSelected =
               selected?.type === "left" && selected?.idx === idx;
-
+            const isMatched = matches[idx] !== undefined;
+            const status = getMatchStatus(idx);
             return (
               <button
-                key={`left-${idx}`}
+                key={idx}
+                ref={(el) => {
+                  leftRefs.current[idx] = el;
+                }}
                 onClick={() => handleLeftClick(idx)}
                 disabled={showResult}
-                className={`w-full px-4 py-3 rounded-xl font-semibold text-sm transition-all border-2 ${
+                className={`w-full px-3 py-2.5 rounded-xl font-semibold text-sm transition-all border-2 text-left break-words ${
                   showResult
                     ? status === "correct"
-                      ? "bg-green-50 border-green-400 text-green-700"
+                      ? "border-green-500 bg-green-50 text-green-700"
                       : status === "incorrect"
-                        ? "bg-red-50 border-red-400 text-red-600"
-                        : "bg-gray-50 border-gray-200"
+                        ? "border-red-500 bg-red-50 text-red-700"
+                        : "border-gray-200 bg-gray-50 text-gray-500"
                     : isSelected
-                      ? "bg-[#002856] text-white border-[#002856] scale-105 shadow-md"
-                      : matched
-                        ? "bg-[#edfaff] border-[#002856] text-[#002856]"
-                        : "bg-white text-[#181d27] border-gray-100 hover:border-blue-200"
+                      ? "border-[#002856] bg-[#002856] text-white shadow-md"
+                      : isMatched
+                        ? "border-[#002856]/40 bg-[#edfaff] text-[#002856]"
+                        : "border-gray-200 bg-white hover:border-gray-300"
                 }`}
               >
                 {item}
@@ -235,43 +284,45 @@ function QuizMatching({ question, value, onChange, showResult }) {
             );
           })}
         </div>
+
+        {/* Middle spacer */}
+        <div className="w-10 flex-shrink-0" />
+
         {/* Right Column */}
-        <div className="flex-1 space-y-2">
-          <p className="text-xs font-bold text-gray-400 uppercase text-center mb-2">
-            English
-          </p>
+        <div className="flex-1 min-w-0 space-y-2">
           {rightItems.map((item, idx) => {
-            const matched = isMatched("right", idx);
             const isSelected =
               selected?.type === "right" && selected?.idx === idx;
-            // Find if this right item is correctly matched
+            const isMatched = Object.values(matches).includes(idx);
             const matchedLeftIdx = Object.entries(matches).find(
-              ([l, r]) => parseInt(r) === idx,
+              ([, r]) => r === idx,
             )?.[0];
             const status =
               showResult && matchedLeftIdx !== undefined
-                ? correctPairs[parseInt(matchedLeftIdx)] === item
+                ? rightItems[idx] === correctPairs[parseInt(matchedLeftIdx)]
                   ? "correct"
                   : "incorrect"
                 : null;
-
             return (
               <button
-                key={`right-${idx}`}
+                key={idx}
+                ref={(el) => {
+                  rightRefs.current[idx] = el;
+                }}
                 onClick={() => handleRightClick(idx)}
                 disabled={showResult}
-                className={`w-full px-4 py-3 rounded-xl font-semibold text-sm transition-all border-2 ${
+                className={`w-full px-3 py-2.5 rounded-xl font-semibold text-sm transition-all border-2 text-left break-words ${
                   showResult
                     ? status === "correct"
-                      ? "bg-green-50 border-green-400 text-green-700"
+                      ? "border-green-500 bg-green-50 text-green-700"
                       : status === "incorrect"
-                        ? "bg-red-50 border-red-400 text-red-600"
-                        : "bg-gray-50 border-gray-200"
+                        ? "border-red-500 bg-red-50 text-red-700"
+                        : "border-gray-200 bg-gray-50 text-gray-500"
                     : isSelected
-                      ? "bg-[#002856] text-white border-[#002856] scale-105 shadow-md"
-                      : matched
-                        ? "bg-[#edfaff] border-[#002856] text-[#002856]"
-                        : "bg-white text-[#181d27] border-gray-100 hover:border-blue-200"
+                      ? "border-[#002856] bg-[#002856] text-white shadow-md"
+                      : isMatched
+                        ? "border-[#002856]/40 bg-[#edfaff] text-[#002856]"
+                        : "border-gray-200 bg-white hover:border-gray-300"
                 }`}
               >
                 {item}
@@ -279,46 +330,83 @@ function QuizMatching({ question, value, onChange, showResult }) {
             );
           })}
         </div>
+
+        {/* SVG Arrow Overlay */}
+        <svg
+          className="absolute inset-0 pointer-events-none"
+          style={{ width: "100%", height: "100%", overflow: "visible" }}
+        >
+          <defs>
+            <marker
+              id="fc-arrow-navy"
+              markerWidth="6"
+              markerHeight="6"
+              refX="6"
+              refY="3"
+              orient="auto"
+            >
+              <polygon points="0,0 6,3 0,6" fill="#002856" />
+            </marker>
+            <marker
+              id="fc-arrow-correct"
+              markerWidth="6"
+              markerHeight="6"
+              refX="6"
+              refY="3"
+              orient="auto"
+            >
+              <polygon points="0,0 6,3 0,6" fill="#16a34a" />
+            </marker>
+            <marker
+              id="fc-arrow-incorrect"
+              markerWidth="6"
+              markerHeight="6"
+              refX="6"
+              refY="3"
+              orient="auto"
+            >
+              <polygon points="0,0 6,3 0,6" fill="#dc2626" />
+            </marker>
+          </defs>
+          <style>{`
+            @keyframes fc-fade {
+              from { opacity: 0; transform: scale(0.92); }
+              to   { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+          {arrows.map(({ leftIdx, x1, y1, x2, y2 }) => {
+            const status = getMatchStatus(leftIdx);
+            const markerId = showResult
+              ? status === "correct"
+                ? "fc-arrow-correct"
+                : "fc-arrow-incorrect"
+              : "fc-arrow-navy";
+            const color = showResult
+              ? status === "correct"
+                ? "#16a34a"
+                : "#dc2626"
+              : "#002856";
+            return (
+              <g
+                key={leftIdx}
+                style={{ animation: "fc-fade 0.2s ease-out both" }}
+              >
+                <line
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke={color}
+                  strokeWidth="1.5"
+                  strokeOpacity="0.85"
+                  markerEnd={`url(#${markerId})`}
+                />
+                <circle cx={x1} cy={y1} r="3.5" fill={color} />
+              </g>
+            );
+          })}
+        </svg>
       </div>
-      {/* Matches Preview */}
-      {Object.keys(matches).length > 0 && (
-        <div className="mt-4 p-3 bg-gray-50 rounded-xl">
-          <p className="text-xs font-bold text-gray-400 uppercase mb-2">
-            Matched: {Object.keys(matches).length}/{leftItems.length}
-          </p>
-          <div className="space-y-1">
-            {Object.entries(matches).map(([leftIdx, rightIdx]) => {
-              const status = getMatchStatus(parseInt(leftIdx));
-              return (
-                <div
-                  key={leftIdx}
-                  className={`flex items-center justify-between text-sm p-2 rounded-lg border ${
-                    showResult
-                      ? status === "correct"
-                        ? "bg-green-50 border-green-200"
-                        : "bg-red-50 border-red-200"
-                      : "bg-white border-gray-100"
-                  }`}
-                >
-                  <span className="font-medium text-[#002856]">
-                    {leftItems[parseInt(leftIdx)]}
-                  </span>
-                  <span className="text-gray-400">→</span>
-                  <span className="font-medium text-gray-600">
-                    {rightItems[rightIdx]}
-                  </span>
-                  {showResult &&
-                    (status === "correct" ? (
-                      <Check className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <X className="w-4 h-4 text-red-500" />
-                    ))}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -350,6 +438,13 @@ export default function A2Flashcard() {
   const [testResults, setTestResults] = useState(null);
   const [completedTests, setCompletedTests] = useState(new Set());
   const [isFinalTest, setIsFinalTest] = useState(false);
+
+  // Tracks which questions are locked correct from previous retry rounds
+  const [lockedCorrectSet, setLockedCorrectSet] = useState(new Set());
+  // Always the original question count so denominator never shrinks on retry
+  const [originalTestTotal, setOriginalTestTotal] = useState(0);
+  // Indices of questions currently active (all on first attempt, only wrong on retry)
+  const [activeQIndices, setActiveQIndices] = useState([]);
 
   // Streak tracking - like A1 FlashCard
   const flippedCardsRef = useRef(new Set());
@@ -693,7 +788,12 @@ export default function A2Flashcard() {
       } else if (type === "sentence_correction") {
         const words = c.front_de.split(" ");
         if (words.length > 1) {
-          const wrongWord = words[0] + "xx";
+          const w = words[0];
+          const midIdx = Math.floor(w.length / 2);
+          const wrongWord =
+            w.slice(0, midIdx) +
+            (w[midIdx] === "e" ? "a" : "e") +
+            w.slice(midIdx + 1);
           const incorrect = [wrongWord, ...words.slice(1)].join(" ");
           qs.push({
             type: "sentence_correction",
@@ -729,26 +829,34 @@ export default function A2Flashcard() {
     const n = currentCard + 1;
     const isFin = n >= totalCards;
     const alreadyPassed = completedTests.has(n);
-    setTestQuestions(
-      generateTestQuestions(
-        isFin
-          ? Array.from({ length: totalCards }, (_, i) => i)
-              .sort(() => Math.random() - 0.5)
-              .slice(0, 25)
-          : Array.from(
-              { length: Math.min(20, n) },
-              (_, i) => n - Math.min(20, n) + i,
-            ),
-        isFin,
-      ),
+    const qs = generateTestQuestions(
+      isFin
+        ? Array.from({ length: totalCards }, (_, i) => i)
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 25)
+        : Array.from(
+            { length: Math.min(20, n) },
+            (_, i) => n - Math.min(20, n) + i,
+          ),
+      isFin,
     );
+
+    const allIdx = Array.from({ length: qs.length }, (_, i) => i);
+    setTestQuestions(qs);
+    setOriginalTestTotal(qs.length);
+    setActiveQIndices(allIdx);
+    setLockedCorrectSet(new Set());
     setShowTest(true);
     setShowTestPrompt(false);
     setIsFinalTest(isFin);
     setUserAnswers({});
     if (alreadyPassed) {
-      setTestResults({ correct: 10, total: 10, passed: true });
-      setTestSubmitted(true);
+      setTestResults({
+        correct: qs.length,
+        total: qs.length,
+        passed: true,
+        wrongIndices: [],
+      });
     } else {
       setTestSubmitted(false);
       setTestResults(null);
@@ -777,7 +885,19 @@ export default function A2Flashcard() {
           .trim()
       );
     }
-    if (q.type === "mcq_multi" || q.type === "matching") {
+    if (q.type === "matching") {
+      // ans = [{left, right}, ...]; correctAnswer = [rightText0, rightText1, ...]
+      if (!Array.isArray(ans)) return false;
+      const leftItems = q.question_data?.left_items || [];
+      const correctPairs = q.correctAnswer || [];
+      if (ans.length !== leftItems.length) return false;
+      const correctMap = {};
+      leftItems.forEach((l, i) => {
+        correctMap[l] = correctPairs[i];
+      });
+      return ans.every((pair) => pair.right === correctMap[pair.left]);
+    }
+    if (q.type === "mcq_multi") {
       return (
         JSON.stringify([...(ans || [])].sort()) ===
         JSON.stringify([...(q.correctAnswer || [])].sort())
@@ -792,12 +912,22 @@ export default function A2Flashcard() {
   const submitTest = () => {
     setIsSubmitting(true);
     setTimeout(() => {
-      let c = 0;
-      testQuestions.forEach((q, i) => {
-        if (checkAnswer(q, userAnswers[i])) c++;
+      const newCorrectIndices = [];
+      const wrongIndices = [];
+      activeQIndices.forEach((origIdx) => {
+        if (lockedCorrectSet.has(origIdx)) return;
+        if (checkAnswer(testQuestions[origIdx], userAnswers[origIdx])) {
+          newCorrectIndices.push(origIdx);
+        } else {
+          wrongIndices.push(origIdx);
+        }
       });
-      const p = c >= Math.ceil(testQuestions.length * 0.6);
-      setTestResults({ correct: c, total: testQuestions.length, passed: p });
+      const newLocked = new Set([...lockedCorrectSet, ...newCorrectIndices]);
+      setLockedCorrectSet(newLocked);
+      const total = originalTestTotal || testQuestions.length;
+      const correct = newLocked.size;
+      const p = correct >= Math.ceil(total * 0.6);
+      setTestResults({ correct, total, passed: p, wrongIndices });
       if (isFinalTest && p)
         saveFlashcardProgress({
           setId,
@@ -811,6 +941,7 @@ export default function A2Flashcard() {
       }
       setTestSubmitted(true);
       setIsSubmitting(false);
+      window.scrollTo(0, 0);
     }, 1500);
   };
 
@@ -872,7 +1003,7 @@ export default function A2Flashcard() {
             <div className="flex items-center justify-center gap-2 mb-6">
               <div className="px-3 py-1 bg-[#f0f0f0] rounded-full">
                 <span className="text-xs font-medium text-[#002856]">
-                  {isFinalTest ? "25 questions" : "10 questions"}
+                  {isFinalTest ? "Upto 25 questions" : "Upto 10 questions"}
                 </span>
               </div>
               <div className="px-3 py-1 bg-[#f0f0f0] rounded-full">
@@ -919,8 +1050,13 @@ export default function A2Flashcard() {
 
   // TEST VIEW
   if (showTest) {
-    const answeredCount = Object.keys(userAnswers).length;
-    const progress = (answeredCount / testQuestions.length) * 100;
+    const unlocked = activeQIndices.filter((i) => !lockedCorrectSet.has(i));
+    const answeredCount = unlocked.filter(
+      (i) => userAnswers[i] !== undefined,
+    ).length;
+    const totalActive = unlocked.length;
+    const progress =
+      totalActive > 0 ? (answeredCount / totalActive) * 100 : 100;
 
     return (
       <div className="min-h-screen bg-white flex flex-col">
@@ -940,7 +1076,7 @@ export default function A2Flashcard() {
               {isFinalTest ? "Final Test" : "Quick Test"}
             </span>
             <span className="text-xs font-medium text-[#7b7b7b] bg-[#f0f0f0] px-2 py-1 rounded-full">
-              {answeredCount}/{testQuestions.length}
+              {answeredCount}/{totalActive}
             </span>
           </div>
           <div className="h-1.5 bg-[#f0f0f0] rounded-full overflow-hidden">
@@ -955,136 +1091,61 @@ export default function A2Flashcard() {
         <div className="flex-1 px-4 py-6 overflow-y-auto">
           {!testSubmitted ? (
             <div className="space-y-4 max-w-2xl mx-auto">
-              {testQuestions.map((q, qIndex) => (
-                <div
-                  key={qIndex}
-                  className={`bg-white border rounded-2xl p-5 transition-all ${
-                    userAnswers[qIndex] !== undefined
-                      ? "border-[#edb843] shadow-sm"
-                      : "border-[#e0e0e0]"
-                  }`}
-                >
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest font-medium mb-2">
-                    {q.questionLabel}
-                  </p>
-                  <p className="text-lg font-bold text-[#002856] mb-4 leading-snug">
-                    <span className="inline-flex items-center justify-center w-6 h-6 bg-[#002856] text-white text-xs rounded-full mr-2">
-                      {qIndex + 1}
-                    </span>
-                    {q.type === "truefalse"
-                      ? `"${q.question}" = "${q.displayAnswer}"`
-                      : q.type === "sentence_correction"
-                        ? q.question_data?.incorrect_sentence
-                        : q.type === "sentence_reorder"
-                          ? `Arrange: ${q.question_data?.hint_en}`
-                          : q.type === "matching"
-                            ? "Match the pairs below"
-                            : q.question || ""}
-                  </p>
-                  <div className="space-y-2">
-                    {(q.type === "mcq" || q.type === "fill_options") &&
-                      q.options?.map((opt, oIndex) => (
-                        <div
-                          key={oIndex}
-                          onClick={() =>
-                            setUserAnswers({ ...userAnswers, [qIndex]: opt })
-                          }
-                          className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                            userAnswers[qIndex] === opt
-                              ? "border-[#edb843] bg-[#fffbf0]"
-                              : "border-[#e0e0e0] hover:border-[#edb843]"
-                          }`}
-                        >
-                          <div
-                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              userAnswers[qIndex] === opt
-                                ? "border-[#edb843] bg-[#edb843]"
-                                : "border-[#d0d0d0]"
-                            }`}
-                          >
-                            {userAnswers[qIndex] === opt && (
-                              <Check className="w-3 h-3 text-white" />
-                            )}
-                          </div>
-                          <span className="text-sm text-[#181d27]">{opt}</span>
-                        </div>
-                      ))}
-                    {q.type === "truefalse" && (
-                      <div className="flex gap-3">
-                        {[true, false].map((val) => (
-                          <div
-                            key={String(val)}
-                            onClick={() =>
-                              setUserAnswers({ ...userAnswers, [qIndex]: val })
-                            }
-                            className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                              userAnswers[qIndex] === val
-                                ? "border-[#002856] bg-[#edfaff]"
-                                : "border-[#e0e0e0] hover:border-[#888]"
-                            }`}
-                          >
-                            <span
-                              className={`text-sm font-semibold ${
-                                userAnswers[qIndex] === val
-                                  ? "text-[#002856]"
-                                  : "text-[#555]"
-                              }`}
-                            >
-                              {val ? "True" : "False"}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {(q.type === "fill_typing" ||
-                      q.type === "sentence_correction") && (
-                      <input
-                        type="text"
-                        className="w-full p-4 border rounded-xl"
-                        placeholder={
-                          q.type === "sentence_correction"
-                            ? "Type corrected sentence"
-                            : "Type your answer"
-                        }
-                        value={userAnswers[qIndex] || ""}
-                        onChange={(e) =>
-                          setUserAnswers({
-                            ...userAnswers,
-                            [qIndex]: e.target.value,
-                          })
-                        }
-                      />
-                    )}
-                    {q.type === "mcq_multi" &&
-                      q.options?.map((opt, oIndex) => {
-                        const current = userAnswers[qIndex] || [];
-                        const isSel = current.includes(opt);
-                        return (
+              {activeQIndices.map((origIdx) => {
+                const q = testQuestions[origIdx];
+                const qIndex = origIdx;
+                const isLocked = lockedCorrectSet.has(qIndex);
+                return (
+                  <div
+                    key={qIndex}
+                    className={`border rounded-2xl p-5 transition-all ${
+                      isLocked
+                        ? "border-green-300 bg-green-50/50 opacity-60"
+                        : userAnswers[qIndex] !== undefined
+                          ? "border-[#edb843] bg-white shadow-sm"
+                          : "border-[#e0e0e0] bg-white"
+                    }`}
+                    style={isLocked ? { pointerEvents: "none" } : {}}
+                  >
+                    <p className="text-[10px] text-gray-400 uppercase tracking-widest font-medium mb-2">
+                      {q.questionLabel}
+                    </p>
+                    <p className="text-lg font-bold text-[#002856] mb-4 leading-snug">
+                      <span className="inline-flex items-center justify-center w-6 h-6 bg-[#002856] text-white text-xs rounded-full mr-2">
+                        {qIndex + 1}
+                      </span>
+                      {q.type === "truefalse"
+                        ? `"${q.question}" = "${q.displayAnswer}"`
+                        : q.type === "sentence_correction"
+                          ? q.question_data?.incorrect_sentence
+                          : q.type === "sentence_reorder"
+                            ? `Arrange: ${q.question_data?.hint_en}`
+                            : q.type === "matching"
+                              ? "Match the pairs below"
+                              : q.question || ""}
+                    </p>
+                    <div className="space-y-2">
+                      {(q.type === "mcq" || q.type === "fill_options") &&
+                        q.options?.map((opt, oIndex) => (
                           <div
                             key={oIndex}
-                            onClick={() => {
-                              const newArr = isSel
-                                ? current.filter((x) => x !== opt)
-                                : [...current, opt];
-                              setUserAnswers({
-                                ...userAnswers,
-                                [qIndex]: newArr,
-                              });
-                            }}
+                            onClick={() =>
+                              setUserAnswers({ ...userAnswers, [qIndex]: opt })
+                            }
                             className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                              isSel
+                              userAnswers[qIndex] === opt
                                 ? "border-[#edb843] bg-[#fffbf0]"
-                                : "border-[#e0e0e0]"
+                                : "border-[#e0e0e0] hover:border-[#edb843]"
                             }`}
                           >
                             <div
-                              className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                isSel
+                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                userAnswers[qIndex] === opt
                                   ? "border-[#edb843] bg-[#edb843]"
                                   : "border-[#d0d0d0]"
                               }`}
                             >
-                              {isSel && (
+                              {userAnswers[qIndex] === opt && (
                                 <Check className="w-3 h-3 text-white" />
                               )}
                             </div>
@@ -1092,37 +1153,159 @@ export default function A2Flashcard() {
                               {opt}
                             </span>
                           </div>
-                        );
-                      })}
-                    {q.type === "sentence_reorder" && (
-                      <QuizSentenceReorder
-                        question={q}
-                        value={userAnswers[qIndex]}
-                        onChange={(val) =>
-                          setUserAnswers({ ...userAnswers, [qIndex]: val })
-                        }
-                      />
-                    )}
-                    {q.type === "matching" && (
-                      <QuizMatching
-                        question={q}
-                        value={userAnswers[qIndex]}
-                        onChange={(val) =>
-                          setUserAnswers({ ...userAnswers, [qIndex]: val })
-                        }
-                        showResult={false}
-                      />
-                    )}
+                        ))}
+                      {q.type === "truefalse" && (
+                        <div className="flex gap-3">
+                          {[true, false].map((val) => (
+                            <div
+                              key={String(val)}
+                              onClick={() =>
+                                setUserAnswers({
+                                  ...userAnswers,
+                                  [qIndex]: val,
+                                })
+                              }
+                              className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                userAnswers[qIndex] === val
+                                  ? "border-[#002856] bg-[#edfaff]"
+                                  : "border-[#e0e0e0] hover:border-[#888]"
+                              }`}
+                            >
+                              <span
+                                className={`text-sm font-semibold ${
+                                  userAnswers[qIndex] === val
+                                    ? "text-[#002856]"
+                                    : "text-[#555]"
+                                }`}
+                              >
+                                {val ? "True" : "False"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {(q.type === "fill_typing" ||
+                        q.type === "sentence_correction") && (
+                        <div className="space-y-0">
+                          <input
+                            id={`fc-test-input-${qIndex}`}
+                            type="text"
+                            className="w-full p-4 border rounded-xl"
+                            placeholder={
+                              q.type === "sentence_correction"
+                                ? "Type corrected sentence"
+                                : "Type your answer"
+                            }
+                            value={userAnswers[qIndex] || ""}
+                            onChange={(e) =>
+                              setUserAnswers({
+                                ...userAnswers,
+                                [qIndex]: e.target.value,
+                              })
+                            }
+                          />
+                          <UmlautKeyboard
+                            onInsert={(char) => {
+                              const input = document.getElementById(
+                                `fc-test-input-${qIndex}`,
+                              );
+                              const current = userAnswers[qIndex] || "";
+                              if (!input) {
+                                setUserAnswers({
+                                  ...userAnswers,
+                                  [qIndex]: current + char,
+                                });
+                                return;
+                              }
+                              const start =
+                                input.selectionStart ?? current.length;
+                              const end = input.selectionEnd ?? start;
+                              const newVal =
+                                current.slice(0, start) +
+                                char +
+                                current.slice(end);
+                              setUserAnswers({
+                                ...userAnswers,
+                                [qIndex]: newVal,
+                              });
+                              requestAnimationFrame(() => {
+                                input.focus();
+                                input.setSelectionRange(
+                                  start + char.length,
+                                  start + char.length,
+                                );
+                              });
+                            }}
+                          />
+                        </div>
+                      )}
+                      {q.type === "mcq_multi" &&
+                        q.options?.map((opt, oIndex) => {
+                          const current = userAnswers[qIndex] || [];
+                          const isSel = current.includes(opt);
+                          return (
+                            <div
+                              key={oIndex}
+                              onClick={() => {
+                                const newArr = isSel
+                                  ? current.filter((x) => x !== opt)
+                                  : [...current, opt];
+                                setUserAnswers({
+                                  ...userAnswers,
+                                  [qIndex]: newArr,
+                                });
+                              }}
+                              className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                isSel
+                                  ? "border-[#edb843] bg-[#fffbf0]"
+                                  : "border-[#e0e0e0]"
+                              }`}
+                            >
+                              <div
+                                className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                  isSel
+                                    ? "border-[#edb843] bg-[#edb843]"
+                                    : "border-[#d0d0d0]"
+                                }`}
+                              >
+                                {isSel && (
+                                  <Check className="w-3 h-3 text-white" />
+                                )}
+                              </div>
+                              <span className="text-sm text-[#181d27]">
+                                {opt}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      {q.type === "sentence_reorder" && (
+                        <QuizSentenceReorder
+                          question={q}
+                          value={userAnswers[qIndex]}
+                          onChange={(val) =>
+                            setUserAnswers({ ...userAnswers, [qIndex]: val })
+                          }
+                        />
+                      )}
+                      {q.type === "matching" && (
+                        <QuizMatching
+                          question={q}
+                          value={userAnswers[qIndex]}
+                          onChange={(val) =>
+                            setUserAnswers({ ...userAnswers, [qIndex]: val })
+                          }
+                          showResult={false}
+                        />
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               <button
                 onClick={submitTest}
-                disabled={
-                  answeredCount !== testQuestions.length || isSubmitting
-                }
+                disabled={answeredCount !== totalActive || isSubmitting}
                 className={`w-full py-4 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${
-                  answeredCount === testQuestions.length && !isSubmitting
+                  answeredCount === totalActive && !isSubmitting
                     ? "bg-[#002856] text-white hover:bg-[#003a70] shadow-lg"
                     : "bg-[#e0e0e0] text-[#999] cursor-not-allowed"
                 }`}
@@ -1166,16 +1349,13 @@ export default function A2Flashcard() {
               </p>
               <div className="bg-[#f8f8f8] rounded-2xl p-6 w-full mb-6">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-[#7b7b7b]">Your Score</span>
+                  <span className="text-sm text-[#7b7b7b]">Words Mastered</span>
                   <span
                     className={`text-2xl font-bold ${
                       testResults.passed ? "text-[#019035]" : "text-[#dc2626]"
                     }`}
                   >
-                    {Math.round(
-                      (testResults.correct / testResults.total) * 100,
-                    )}
-                    %
+                    {testResults.correct} / {testResults.total}
                   </span>
                 </div>
                 <div className="mt-2 h-2 bg-[#e0e0e0] rounded-full overflow-hidden">
@@ -1191,9 +1371,121 @@ export default function A2Flashcard() {
                   />
                 </div>
                 <p className="text-xs text-[#7b7b7b] mt-2 text-center">
-                  {testResults.correct} of {testResults.total} correct
+                  {testResults.passed
+                    ? "You need 60% to progress — great job!"
+                    : `${testResults.total - testResults.correct} word${
+                        testResults.total - testResults.correct !== 1 ? "s" : ""
+                      } still need practice`}
                 </p>
               </div>
+
+              {/* Review wrong answers only */}
+              {(testResults.wrongIndices || []).length > 0 && (
+                <div className="w-full mt-2 mb-6">
+                  <p className="text-sm font-bold text-[#002856] mb-3">
+                    Review Incorrect Answers
+                  </p>
+                  <div className="space-y-3">
+                    {(testResults.wrongIndices || []).map((i) => {
+                      const q = testQuestions[i];
+                      if (!q) return null;
+                      const qText =
+                        q.type === "matching"
+                          ? "Match the pairs"
+                          : q.type === "sentence_correction"
+                            ? q.question_data?.incorrect_sentence
+                            : q.type === "sentence_reorder"
+                              ? q.question_data?.hint_en
+                              : q.type === "truefalse"
+                                ? `"${q.question}" = "${q.displayAnswer}"`
+                                : q.question || "";
+                      const ansText = Array.isArray(q.correctAnswer)
+                        ? q.correctAnswer.join(", ")
+                        : q.type === "fill_typing"
+                          ? q.correct || q.correctAnswer || ""
+                          : q.type === "sentence_correction"
+                            ? q.question_data?.correct_sentence ||
+                              q.correctAnswer ||
+                              ""
+                            : q.type === "truefalse"
+                              ? q.correctAnswer
+                                ? "True"
+                                : "False"
+                              : String(q.correctAnswer ?? "");
+                      return (
+                        <div
+                          key={i}
+                          className="bg-red-50 border border-red-200 rounded-2xl p-4"
+                        >
+                          <div className="flex items-start gap-3">
+                            <span className="inline-flex items-center justify-center w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex-shrink-0 mt-0.5">
+                              {i + 1}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs text-red-400 font-medium uppercase tracking-wide mb-1">
+                                {q.questionLabel}
+                              </p>
+                              <p className="text-sm text-[#181d27] font-medium leading-relaxed">
+                                {qText}
+                              </p>
+                              <div className="mt-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                                <p className="text-xs text-green-600 font-medium mb-1">
+                                  Correct answer:
+                                </p>
+                                {q.type === "matching" &&
+                                Array.isArray(q.question_data?.left_items) ? (
+                                  <div className="space-y-1">
+                                    {q.question_data.left_items.map(
+                                      (left, pi) => {
+                                        const correctRight = (q.question_data
+                                          .correct_pairs ||
+                                          q.question_data.right_items)?.[pi];
+                                        return (
+                                          <p
+                                            key={pi}
+                                            className="text-sm text-green-800 font-semibold"
+                                          >
+                                            {left} → {correctRight ?? "?"}
+                                          </p>
+                                        );
+                                      },
+                                    )}
+                                  </div>
+                                ) : q.type === "matching" &&
+                                  Array.isArray(q.question_data?.pairs) ? (
+                                  <div className="space-y-1">
+                                    {q.question_data.pairs.map((pair, pi) => (
+                                      <p
+                                        key={pi}
+                                        className="text-sm text-green-800 font-semibold"
+                                      >
+                                        {pair.de ||
+                                          pair.left ||
+                                          pair.german ||
+                                          "?"}{" "}
+                                        →{" "}
+                                        {pair.en ||
+                                          pair.right ||
+                                          pair.english ||
+                                          "?"}
+                                      </p>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-green-800 font-semibold">
+                                    {ansText}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {testResults.passed ? (
                 <button
                   onClick={continueAfterTest}
@@ -1205,12 +1497,17 @@ export default function A2Flashcard() {
                 <div className="flex gap-3 w-full">
                   <button
                     onClick={() => {
-                      setTestSubmitted(false);
+                      const allIdx = Array.from(
+                        { length: testQuestions.length },
+                        (_, i) => i,
+                      );
+                      setActiveQIndices(allIdx);
                       setUserAnswers({});
+                      setTestSubmitted(false);
                     }}
                     className="flex-1 py-4 bg-[#edb843] text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#d9a53a]"
                   >
-                    <RefreshCw className="w-5 h-5" /> Retry
+                    <RefreshCw className="w-5 h-5" /> Retry Wrong
                   </button>
                   {!isFinalTest && (
                     <button

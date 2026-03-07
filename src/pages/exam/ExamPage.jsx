@@ -48,6 +48,7 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import UmlautKeyboard from "../../components/a2/UmlautKeyboard";
 
 // CUSTOM DROPDOWN (reused from listening)
 const CustomDropdown = ({
@@ -260,8 +261,8 @@ function WordItem({ word, isDragging, isOverlay }) {
         isOverlay
           ? "bg-[#002856] text-white shadow-2xl scale-110 cursor-grabbing z-50"
           : isDragging
-          ? "opacity-30 scale-95 bg-gray-200"
-          : "bg-white text-[#002856] border-2 border-[#002856] shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md"
+            ? "opacity-30 scale-95 bg-gray-200"
+            : "bg-white text-[#002856] border-2 border-[#002856] shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md"
       }`}
     >
       {word}
@@ -572,6 +573,10 @@ export default function ExamPage() {
   const [orderedWords, setOrderedWords] = useState({});
   const [activeId, setActiveId] = useState(null);
   const [activeWord, setActiveWord] = useState(null);
+
+  // focusedInput: { qId, blankIdx?, isComposite? } for umlaut keyboard
+  const [focusedInput, setFocusedInput] = useState(null);
+  const focusedTextareaRef = useRef(null);
 
   const warningCountRef = useRef(0);
   const timerRef = useRef(null);
@@ -985,7 +990,10 @@ export default function ExamPage() {
               // image_block — display image at natural dimensions
               if (q.question_type === "image_block") {
                 return (
-                  <div key={q.question_id} className="rounded-xl px-3 py-3 bg-gray-50 border border-gray-200 mb-1 flex justify-center">
+                  <div
+                    key={q.question_id}
+                    className="rounded-xl px-3 py-3 bg-gray-50 border border-gray-200 mb-1 flex justify-center"
+                  >
                     {q.question_data?.image_url && (
                       <img
                         src={q.question_data.image_url}
@@ -1050,7 +1058,10 @@ export default function ExamPage() {
                     (aq) => aq.question_id === q.question_id,
                   ) + 1;
                 return (
-                  <div key={q.question_id} className="bg-white p-1 pb-6 border-b border-gray-200">
+                  <div
+                    key={q.question_id}
+                    className="bg-white p-1 pb-6 border-b border-gray-200"
+                  >
                     <p className="text-xs font-semibold text-gray-400 mb-2 mt-2 uppercase tracking-wider">
                       Question {globalQNumber} of {answerableQuestions.length}
                     </p>
@@ -1070,7 +1081,9 @@ export default function ExamPage() {
                       className="w-full min-h-[140px] p-3 border-2 border-gray-200 rounded-xl text-sm leading-relaxed focus:border-[#002856] focus:outline-none resize-y transition-colors"
                       placeholder="Write your answer here..."
                       defaultValue={typeof answer === "string" ? answer : ""}
-                      onBlur={(e) => handleAnswer(q.question_id, e.target.value)}
+                      onBlur={(e) =>
+                        handleAnswer(q.question_id, e.target.value)
+                      }
                     />
                     {wordLimit > 0 && (
                       <p className="text-xs text-gray-400 mt-1 text-right">
@@ -1128,6 +1141,8 @@ export default function ExamPage() {
                     setActiveId,
                     activeWord,
                     setActiveWord,
+                    setFocusedInput,
+                    focusedTextareaRef,
                   )}
                 </div>
               );
@@ -1135,6 +1150,56 @@ export default function ExamPage() {
           })()}
         </div>
       </div>
+
+      {/* Umlaut Keyboard — shows above bottom nav when a text input is focused */}
+      {focusedInput && (
+        <div className="sticky bottom-[65px] z-50 bg-white border-t border-gray-100 px-2 py-1">
+          <UmlautKeyboard
+            onInsert={(char) => {
+              const el = focusedTextareaRef.current;
+              if (!el) return;
+              const start = el.selectionStart;
+              const end = el.selectionEnd;
+              const currentVal = el.value;
+              const newVal =
+                currentVal.slice(0, start) + char + currentVal.slice(end);
+              // Trigger React onChange
+              const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                window.HTMLTextAreaElement.prototype,
+                "value",
+              ).set;
+              nativeInputValueSetter.call(el, newVal);
+              el.dispatchEvent(new Event("input", { bubbles: true }));
+              // Restore cursor
+              requestAnimationFrame(() => {
+                el.selectionStart = el.selectionEnd = start + char.length;
+                el.focus();
+              });
+              // Also trigger handleAnswer directly
+              if (focusedInput.qId) {
+                if (focusedInput.type === "composite") {
+                  const {
+                    qId,
+                    compositeIdx,
+                    compositeKey,
+                    blankIdx,
+                    userAnswers,
+                    blankAnswers,
+                  } = focusedInput;
+                  const nextAnswers = [...blankAnswers];
+                  nextAnswers[blankIdx] = newVal;
+                  handleAnswer(qId, {
+                    ...userAnswers,
+                    [compositeIdx ?? compositeKey]: nextAnswers,
+                  });
+                } else {
+                  handleAnswer(focusedInput.qId, newVal);
+                }
+              }
+            }}
+          />
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       <div className="bg-white border-t border-gray-200 p-4 flex items-center justify-between sticky bottom-0 z-40">
@@ -1216,8 +1281,8 @@ export default function ExamPage() {
                       isCurrent
                         ? "bg-[#002856] text-white"
                         : allAnswered
-                        ? "bg-green-50 text-green-700 border border-green-200"
-                        : "bg-gray-50 text-gray-600 border border-gray-200"
+                          ? "bg-green-50 text-green-700 border border-green-200"
+                          : "bg-gray-50 text-gray-600 border border-gray-200"
                     }`}
                   >
                     <span className="font-bold text-sm">
@@ -1433,6 +1498,8 @@ function renderQuestion(
   setActiveId,
   activeWord,
   setActiveWord,
+  setFocusedInput,
+  focusedTextareaRef,
 ) {
   const qId = q.question_id;
   const qType = q.question_type;
@@ -1558,6 +1625,15 @@ function renderQuestion(
           <AutoGrowTextarea
             value={answer || ""}
             onChange={(e) => handleAnswer(qId, e.target.value)}
+            onFocus={(e) => {
+              if (focusedTextareaRef) focusedTextareaRef.current = e.target;
+              if (setFocusedInput) setFocusedInput({ qId, type: "simple" });
+            }}
+            onBlur={() => {
+              setTimeout(() => {
+                if (setFocusedInput) setFocusedInput(null);
+              }, 200);
+            }}
             placeholder={qData.placeholder || "Type your answer"}
             className="w-full p-3.5 rounded-xl border-2 border-gray-200 text-base font-medium leading-relaxed whitespace-pre-wrap break-words break-all placeholder:text-base placeholder:font-medium placeholder:leading-relaxed placeholder:text-gray-400 focus:border-[#002856] focus:outline-none transition-all"
             minRows={1}
@@ -1626,14 +1702,14 @@ function renderQuestion(
               item?.type === "option"
                 ? "option"
                 : item?.type === "dropdown"
-                ? "dropdown"
-                : "blank";
+                  ? "dropdown"
+                  : "blank";
             const itemAnswer = userAnswers[idx] ?? userAnswers[String(idx)];
             const expectedBlankCount = Number.isInteger(item?.blank_count)
               ? Math.max(1, item.blank_count)
               : Array.isArray(item?.correct)
-              ? Math.max(1, item.correct.length)
-              : 1;
+                ? Math.max(1, item.correct.length)
+                : 1;
             const blankCorrects = Array.from({ length: expectedBlankCount });
             const blankAnswers = Array.isArray(itemAnswer)
               ? itemAnswer
@@ -1809,6 +1885,15 @@ function renderQuestion(
           <textarea
             value={answer || ""}
             onChange={(e) => handleAnswer(qId, e.target.value)}
+            onFocus={(e) => {
+              if (focusedTextareaRef) focusedTextareaRef.current = e.target;
+              if (setFocusedInput) setFocusedInput({ qId, type: "simple" });
+            }}
+            onBlur={() => {
+              setTimeout(() => {
+                if (setFocusedInput) setFocusedInput(null);
+              }, 200);
+            }}
             placeholder="Type the corrected sentence..."
             className="w-full p-3.5 rounded-xl border-2 border-gray-200 text-base font-medium leading-relaxed whitespace-pre-wrap break-words break-all placeholder:text-base placeholder:font-medium placeholder:leading-relaxed placeholder:text-gray-400 focus:border-[#002856] focus:outline-none transition-all"
             rows={3}

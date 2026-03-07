@@ -55,13 +55,6 @@ const SpeakingAssessmentResults = ({ result, cardData, onRetry }) => {
           })}
         </div>
       </div>
-      <button
-        onClick={onRetry}
-        className="mt-3 w-32 flex items-center justify-center gap-2 px-3 py-2 bg-white border border-[#d9d9d9] rounded-lg shadow-sm"
-      >
-        <RotateCcw className="w-4 h-4" />
-        <span className="text-sm font-semibold">Try Again</span>
-      </button>
     </div>
   );
 };

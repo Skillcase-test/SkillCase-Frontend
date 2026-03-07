@@ -31,7 +31,7 @@ const SpeakingCardDeck = ({
   tourSpeakingStep,
 }) => {
   return (
-    <div id="a2-speaking-container" className="relative w-[280px] h-[390px]">
+    <div id="a2-speaking-container" className="relative w-[280px] h-[440px]">
       {[0, 1, 2].map((position) => {
         const cardIndex = currentIndex + (2 - position);
         const cardData =
@@ -71,7 +71,7 @@ const SpeakingCardDeck = ({
         return (
           <div
             key={`card-${position}-${deckRotation}`}
-            className={`absolute w-[280px] h-[370px] rounded-[20px] ${
+            className={`absolute w-[280px] h-[420px] rounded-[20px] ${
               isFrontCard ? "cursor-grab select-none" : ""
             }`}
             style={{

@@ -292,33 +292,43 @@ export default function A2Speaking() {
           />
         )}
       </div>
-      <div className="flex items-center justify-center gap-4 pb-8">
-        <button
-          onClick={handlePreviousButton}
-          disabled={currentIndex === 0 || isRecording || isUploading}
-          className="w-12 h-12 bg-white border border-[#e5e7eb] rounded-xl flex items-center justify-center ml-8 disabled:opacity-40 hover:border-[#d1d5db] transition-colors shadow-sm"
-        >
-          <ChevronLeft className="w-5 h-5 text-[#414651]" />
-        </button>
-        {currentIndex === totalCards - 1 ? (
+      <div className="flex flex-col items-center gap-3 pb-8">
+        {assessmentResult && !isUploading && (
           <button
-            onClick={handleFinish}
-            disabled={isRecording || isUploading}
-            className="px-8 py-3 bg-[#019035] text-white rounded-xl font-semibold hover:bg-[#017a2d] transition-colors shadow-sm"
+            onClick={resetRecording}
+            className="flex items-center gap-2 px-6 py-2.5 bg-white border border-[#d9d9d9] rounded-xl shadow-sm text-sm font-semibold -mt-6 ml-6"
           >
-            Finish
-          </button>
-        ) : (
-          <button
-            onClick={handleNextButton}
-            disabled={
-              currentIndex >= totalCards - 1 || isRecording || isUploading
-            }
-            className="w-12 h-12 bg-white border border-[#e5e7eb] rounded-xl flex items-center justify-center mr-4 disabled:opacity-40 hover:border-[#d1d5db] transition-colors shadow-sm"
-          >
-            <ChevronRight className="w-5 h-5 text-[#414651]" />
+            <span className="inline-block rotate-[-30deg]">↺</span> Try Again
           </button>
         )}
+        <div className="flex items-center justify-center gap-4">
+          <button
+            onClick={handlePreviousButton}
+            disabled={currentIndex === 0 || isRecording || isUploading}
+            className="w-12 h-12 bg-white border border-[#e5e7eb] rounded-xl flex items-center justify-center disabled:opacity-40 hover:border-[#d1d5db] transition-colors shadow-sm ml-6"
+          >
+            <ChevronLeft className="w-5 h-5 text-[#414651]" />
+          </button>
+          {currentIndex === totalCards - 1 ? (
+            <button
+              onClick={handleFinish}
+              disabled={isRecording || isUploading}
+              className="px-8 py-3 bg-[#019035] text-white rounded-xl font-semibold hover:bg-[#017a2d] transition-colors shadow-sm"
+            >
+              Finish
+            </button>
+          ) : (
+            <button
+              onClick={handleNextButton}
+              disabled={
+                currentIndex >= totalCards - 1 || isRecording || isUploading
+              }
+              className="w-12 h-12 bg-white border border-[#e5e7eb] rounded-xl flex items-center justify-center disabled:opacity-40 hover:border-[#d1d5db] transition-colors shadow-sm"
+            >
+              <ChevronRight className="w-5 h-5 text-[#414651]" />
+            </button>
+          )}
+        </div>
       </div>
 
       <StreakCelebrationModal

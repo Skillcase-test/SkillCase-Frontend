@@ -93,13 +93,12 @@ export default function A2Quiz({ setId, quizType, onComplete, onSkip }) {
           {passed ? "Quiz Passed!" : "Keep Practicing!"}
         </h2>
         <p className="text-gray-600 mb-4">
-          You got {finalResult.correct} out of {finalResult.total} correct (
-          {Math.round(finalResult.score)}%)
+          {finalResult.correct} / {finalResult.total} words mastered
         </p>
         <p className="text-sm text-gray-500 mb-8">
           {passed
             ? "Great job! You can proceed."
-            : "You need 60% to pass. Try again!"}
+            : "Master at least 60% of words to pass. Try again!"}
         </p>
         <button
           onClick={() => onComplete(passed)}
@@ -157,8 +156,8 @@ export default function A2Quiz({ setId, quizType, onComplete, onSkip }) {
                       : "border-red-500 bg-red-50"
                     : "border-[#002856] bg-[#edfaff]"
                   : showResult && option === currentQ.correct
-                  ? "border-green-500 bg-green-50"
-                  : "border-gray-200 hover:border-gray-300"
+                    ? "border-green-500 bg-green-50"
+                    : "border-gray-200 hover:border-gray-300"
               }`}
             >
               {option}
