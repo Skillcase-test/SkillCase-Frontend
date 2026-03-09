@@ -86,6 +86,13 @@ function QuizSentenceReorder({ question, value, onChange }) {
   const [activeId, setActiveId] = useState(null);
   const [activeWord, setActiveWord] = useState(null);
 
+  // Auto-submit initial order so submit button is active without needing to drag
+  useEffect(() => {
+    if (orderedWords.length > 0 && !value) {
+      onChange(orderedWords);
+    }
+  }, []);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, {
@@ -749,7 +756,7 @@ export default function A2Flashcard() {
           type: "fill_typing",
           question: `What is the German for "${c.front_meaning}"?`,
           questionLabel: "Type in German",
-          correct: c.front_de.toLowerCase().trim(),
+          correct: c.front_de.trim(),
         });
       } else if (type === "fill_options" && wrongOpts.length >= 3) {
         qs.push({
@@ -772,7 +779,7 @@ export default function A2Flashcard() {
           correctAnswer: [c.front_meaning],
         });
       } else if (type === "sentence_reorder") {
-        const words = c.front_de.split(" ");
+        const words = c.front_de.trim().split(/\s+/);
         if (words.length > 1) {
           qs.push({
             type: "sentence_reorder",
@@ -786,7 +793,7 @@ export default function A2Flashcard() {
           });
         }
       } else if (type === "sentence_correction") {
-        const words = c.front_de.split(" ");
+        const words = c.front_de.trim().split(/\s+/);
         if (words.length > 1) {
           const w = words[0];
           const midIdx = Math.floor(w.length / 2);
@@ -797,13 +804,13 @@ export default function A2Flashcard() {
           const incorrect = [wrongWord, ...words.slice(1)].join(" ");
           qs.push({
             type: "sentence_correction",
-            questionLabel: "Correct the sentence",
+            questionLabel: "Correct the phrase",
             question_data: {
               incorrect_sentence: incorrect,
               correct_sentence: c.front_de,
               hint_en: c.front_meaning,
             },
-            correctAnswer: c.front_de.toLowerCase().trim(),
+            correctAnswer: c.front_de.trim(),
           });
         }
       } else if (type === "matching" && shuffled.length >= 4) {
@@ -1193,7 +1200,7 @@ export default function A2Flashcard() {
                             className="w-full p-4 border rounded-xl"
                             placeholder={
                               q.type === "sentence_correction"
-                                ? "Type corrected sentence"
+                                ? "Type corrected phrase"
                                 : "Type your answer"
                             }
                             value={userAnswers[qIndex] || ""}

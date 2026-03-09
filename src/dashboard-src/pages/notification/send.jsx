@@ -94,6 +94,8 @@ export default function SendNotification() {
   const [targetLevel, setTargetLevel] = useState("all"); // all, a1, a2
 
   // Version filter state
+  const [isManualExactVersion, setIsManualExactVersion] = useState(false);
+  const [isManualRangeVersion, setIsManualRangeVersion] = useState(false);
   const [availableVersions, setAvailableVersions] = useState([]);
   const [versionFilterType, setVersionFilterType] = useState("all"); // all | exact | range
   const [exactVersion, setExactVersion] = useState("");
@@ -409,63 +411,122 @@ export default function SendNotification() {
 
           {versionFilterType === "exact" && (
             <div>
-              <select
-                value={exactVersion}
-                onChange={(e) => setExactVersion(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Select a version...</option>
-                {availableVersions.map((v) => (
-                  <option key={v} value={v}>
-                    v{v}
-                  </option>
-                ))}
-              </select>
-              {availableVersions.length === 0 && (
-                <p className="text-xs text-amber-600 mt-1">
-                  No versions recorded yet. They appear automatically once users
-                  open the app.
-                </p>
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-xs text-gray-500">Target Version</label>
+                <button
+                  type="button"
+                  onClick={() => setIsManualExactVersion(!isManualExactVersion)}
+                  className="text-xs text-blue-600 hover:text-blue-800"
+                >
+                  {isManualExactVersion
+                    ? "Choose from list"
+                    : "Enter manually"}
+                </button>
+              </div>
+
+              {isManualExactVersion ? (
+                <input
+                  type="text"
+                  value={exactVersion}
+                  onChange={(e) => setExactVersion(e.target.value)}
+                  placeholder="e.g. 1.1.0"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              ) : (
+                <>
+                  <select
+                    value={exactVersion}
+                    onChange={(e) => setExactVersion(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Select a version...</option>
+                    {availableVersions.map((v) => (
+                      <option key={v} value={v}>
+                        v{v}
+                      </option>
+                    ))}
+                  </select>
+                  {availableVersions.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      No versions recorded yet. You can click "Enter manually" to type one.
+                    </p>
+                  )}
+                </>
               )}
             </div>
           )}
 
           {versionFilterType === "range" && (
-            <div className="flex gap-4 items-center">
-              <div className="flex-1">
-                <label className="text-xs text-gray-500 mb-1 block">
-                  Min version (from)
-                </label>
-                <select
-                  value={minVersion}
-                  onChange={(e) => setMinVersion(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-xs text-gray-500">Target Range</label>
+                <button
+                  type="button"
+                  onClick={() => setIsManualRangeVersion(!isManualRangeVersion)}
+                  className="text-xs text-blue-600 hover:text-blue-800"
                 >
-                  <option value="">Any</option>
-                  {availableVersions.map((v) => (
-                    <option key={v} value={v}>
-                      v{v}
-                    </option>
-                  ))}
-                </select>
+                  {isManualRangeVersion
+                    ? "Choose from list"
+                    : "Enter manually"}
+                </button>
               </div>
-              <span className="text-gray-400 mt-5">–</span>
-              <div className="flex-1">
-                <label className="text-xs text-gray-500 mb-1 block">
-                  Max version (to)
-                </label>
-                <select
-                  value={maxVersion}
-                  onChange={(e) => setMaxVersion(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                >
-                  <option value="">Any</option>
-                  {availableVersions.map((v) => (
-                    <option key={v} value={v}>
-                      v{v}
-                    </option>
-                  ))}
-                </select>
+
+              <div className="flex gap-4 items-center">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 mb-1 block">
+                    Min version (from)
+                  </label>
+                  {isManualRangeVersion ? (
+                    <input
+                      type="text"
+                      value={minVersion}
+                      onChange={(e) => setMinVersion(e.target.value)}
+                      placeholder="e.g. 1.0.0"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                  ) : (
+                    <select
+                      value={minVersion}
+                      onChange={(e) => setMinVersion(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    >
+                      <option value="">Any</option>
+                      {availableVersions.map((v) => (
+                        <option key={v} value={v}>
+                          v{v}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <span className="text-gray-400 mt-5">–</span>
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 mb-1 block">
+                    Max version (to)
+                  </label>
+                  {isManualRangeVersion ? (
+                    <input
+                      type="text"
+                      value={maxVersion}
+                      onChange={(e) => setMaxVersion(e.target.value)}
+                      placeholder="e.g. 1.1.0"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    />
+                  ) : (
+                    <select
+                      value={maxVersion}
+                      onChange={(e) => setMaxVersion(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    >
+                      <option value="">Any</option>
+                      {availableVersions.map((v) => (
+                        <option key={v} value={v}>
+                          v{v}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
               </div>
             </div>
           )}
