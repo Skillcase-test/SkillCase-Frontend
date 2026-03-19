@@ -56,6 +56,14 @@ export default function FeatureCardsGrid() {
       enabled: true,
     },
     {
+      id: "news",
+      title: "News",
+      description: "Read top headlines in German and English",
+      image: images.news,
+      link: `/news`,
+      enabled: true,
+    },
+    {
       id: "interview",
       title: "Interview Practice",
       description: "Prepare for job interviews",
@@ -116,6 +124,14 @@ export default function FeatureCardsGrid() {
       link: "/a2/test",
       enabled: true,
     },
+    {
+      id: "a2-news",
+      title: "News",
+      description: "Daily India headlines with language toggle",
+      image: images.news,
+      link: "/news",
+      enabled: true,
+    },
   ];
 
   const features = isA2 ? a2Features : a1Features;
@@ -127,12 +143,14 @@ export default function FeatureCardsGrid() {
       "mock-test": "test-card",
       listener: "listener-card",
       stories: "stories-card",
+      news: "news-card",
       "a2-flashcards": "a2-flashcard-card",
       "a2-grammar": "a2-grammar-card",
       "a2-listening": "a2-listening-card",
       "a2-speaking": "a2-speaking-card",
       "a2-reading": "a2-reading-card",
       "a2-test": "a2-test-card",
+      "a2-news": "a2-news-card",
     };
     return tourIds[id] || undefined;
   };

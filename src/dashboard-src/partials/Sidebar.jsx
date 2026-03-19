@@ -217,6 +217,41 @@ function Sidebar({
                 </button>
               </li>
 
+              {/* Landing Page Management */}
+              {/* Landing Page */}
+              <li
+                className={`pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 bg-linear-to-r ${
+                  activePage === "landing-page" &&
+                  "from-blue-500/[0.12] to-blue-500/[0.04]"
+                }`}
+              >
+                <button
+                  onClick={() => setActivePage("landing-page")}
+                  className={`block text-gray-800 truncate transition duration-150 cursor-pointer ${
+                    activePage === "landing-page" ? "" : "hover:text-gray-900"
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <svg
+                      className={`shrink-0 fill-current ${
+                        activePage === "landing-page"
+                          ? "text-blue-500"
+                          : "text-gray-400"
+                      }`}
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M3 3h18a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zm1 2v14h16V5H4zm2 2h12v2H6V7zm0 4h12v2H6v-2zm0 4h7v2H6v-2z" />
+                    </svg>
+                    <span className="text-sm font-medium ml-4 lg:opacity-0 lg:sidebar-expanded:opacity-100 2xl:opacity-100 duration-200">
+                      Landing Page
+                    </span>
+                  </div>
+                </button>
+              </li>
+
               {/* Manage Exam */}
               <li
                 className={`pl-4 pr-3 py-2 rounded-lg mb-0.5 last:mb-0 bg-linear-to-r ${

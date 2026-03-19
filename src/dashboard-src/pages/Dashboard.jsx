@@ -34,6 +34,9 @@ import A2TestManage from "./a2/test/manage";
 import AdminExamManager from "./exam/AdminExamManager";
 import AdminBatchManager from "./exam/AdminBatchManager";
 
+// Dynamic Landing page
+import LandingPageManagement from "./LandingPageManagement";
+
 function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activePage, setActivePage] = useState("analytics");
@@ -110,6 +113,9 @@ function Dashboard() {
       case "batch-manage":
         return <AdminBatchManager />;
 
+      case "landing-page":
+        return <LandingPageManagement />;
+        
       default:
         return <div>Select an option from the sidebar</div>;
     }

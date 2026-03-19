@@ -83,6 +83,10 @@ import ExamLobby from "./pages/exam/ExamLobby";
 import ExamPage from "./pages/exam/ExamPage";
 import ExamResult from "./pages/exam/ExamResult";
 
+//News Module
+import NewsHome from "./pages/news/NewsHome";
+import NewsPage from "./pages/news/NewsPage";
+
 //fallback page
 import FallbackPage from "./pages/FallbackPage";
 
@@ -98,7 +102,7 @@ import { initPushNotifications } from "./notifications/pushNotifications";
 import InternalLeadForm from "./pages/InternalLeadForm";
 import ProductTour from "./tour/ProductTour";
 
-export const APP_VERSION = "1.1.1";
+export const APP_VERSION = "1.1.2";
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 2000;
 const PLAY_STORE_URL = "market://details?id=com.skillcase.app";
@@ -207,7 +211,6 @@ function AppContent() {
 
     const attemptUpdate = async () => {
       try {
-
         const bundles = await LiveUpdate.getBundles();
         const response = await api.get(`/updates/check?version=${APP_VERSION}`);
         const data = response.data;
@@ -444,6 +447,10 @@ function AppContent() {
             <Route path="/exam/:testId" element={<ExamLobby />} />
             <Route path="/exam/:testId/take" element={<ExamPage />} />
             <Route path="/exam/:testId/result" element={<ExamResult />} />
+
+            {/* News Module */}
+            <Route path="/news" element={<NewsHome />} />
+            <Route path="/news/:newsId" element={<NewsPage />} />
           </Routes>
 
           <ConditionalFooter />
@@ -459,7 +466,8 @@ function ConditionalFooter() {
   const hideFooter =
     location.pathname === "/register" ||
     location.pathname === "/thank-you" ||
-    location.pathname === "/internal/lead-form";
+    location.pathname === "/internal/lead-form" ||
+    location.pathname.startsWith("/news");
 
   if (hideFooter) return null;
   return <Footer />;

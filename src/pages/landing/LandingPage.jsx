@@ -1,25 +1,16 @@
-import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
-// Learn German Tab Components
 import LevelProgress from "./components/LevelProgress";
 import FeatureCardsGrid from "./components/FeatureCardsGrid";
 import DemoClassSection from "./components/DemoClassSection";
 import SalaryInfoCard from "./components/SalaryInfoCard";
-import PricingCard from "./components/PricingCard";
-import ExploreJobsCTA from "./components/ExploreJobsCTA";
-import MockInterviewSection from "./components/MockInterviewSection";
-
-// Shared Components (used by both tabs)
 import TalkToTeamSection from "./components/TalkToTeamSection";
-import CompleteProfileCTA from "./components/CompleteProfileCTA";
 import StreakWidget from "../../components/StreakWidget";
+import { useLandingSections } from "../../hooks/useLandingSections";
 
 export default function LandingPage() {
   const { user } = useSelector((state) => state.auth);
-  const navigate = useNavigate();
-
   const currentLevel = user?.user_prof_level || "A1";
+  const { sections } = useLandingSections(currentLevel);
 
   return (
     <div className="min-h-screen bg-white">
@@ -27,16 +18,12 @@ export default function LandingPage() {
         <LevelProgress currentLevel={currentLevel} />
         <FeatureCardsGrid />
         <StreakWidget />
-        <DemoClassSection />
-        <SalaryInfoCard />
-        <TalkToTeamSection />
-        {/* <PricingCard /> */}
-        {/* <CompleteProfileCTA /> */}
+        <DemoClassSection data={sections?.demo_class} />
+        <SalaryInfoCard data={sections?.salary_info} />
+        <TalkToTeamSection data={sections?.talk_to_team} />
         <div className="px-4">
           <hr className="border-gray-200" />
         </div>
-        {/* <ExploreJobsCTA /> */}
-        {/* <MockInterviewSection /> */}
       </main>
     </div>
   );

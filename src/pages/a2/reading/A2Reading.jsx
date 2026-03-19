@@ -209,6 +209,7 @@ export default function A2Reading() {
   const [showAnswers, setShowAnswers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
+  const [navWarning, setNavWarning] = useState({ open: false, targetIndex: null });
 
   // --- Streak tracking ---
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
@@ -388,6 +389,39 @@ export default function A2Reading() {
   const contentType = currentContent.content_type || "article";
   return (
     <div className="min-h-screen bg-white flex flex-col">
+      {/* Nav warning modal */}
+      {navWarning.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <h3 className="text-base font-bold text-[#002856] mb-2">Leave this quiz?</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Your quiz progress will be lost if you switch to another reading.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setNavWarning({ open: false, targetIndex: null })}
+                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const idx = navWarning.targetIndex;
+                  setNavWarning({ open: false, targetIndex: null });
+                  setCurrentIndex(idx);
+                  setPhase("reading");
+                  setAnswers({});
+                  setShowAnswers(false);
+                  window.scrollTo(0, 0);
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-[#002856] text-white text-sm font-semibold hover:bg-[#003d83] transition-colors"
+              >
+                Move anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="px-4 py-2.5 flex items-center justify-between border-b border-gray-100">
         <button
@@ -396,18 +430,31 @@ export default function A2Reading() {
         >
           <ChevronLeft className="w-4 h-4" /> Back
         </button>
-        <div className="flex-1 flex justify-center">
-          {contentList.length > 1 && (
-            <span className="text-xs font-semibold text-[#7b7b7b] bg-gray-100 px-2.5 py-1 rounded-full capitalize">
-              {currentContent?.content_type || "Reading"} &middot;{" "}
-              {currentIndex + 1} of {contentList.length}
-            </span>
-          )}
-          {contentList.length <= 1 && (
-            <span className="text-sm font-semibold text-[#7b7b7b] capitalize">
-              {currentContent?.content_type || "Reading"}
-            </span>
-          )}
+        <div className="flex-1 flex justify-center items-center gap-1.5">
+          {contentList.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => {
+                if (idx === currentIndex) return;
+                if (phase === "quiz") {
+                  setNavWarning({ open: true, targetIndex: idx });
+                  return;
+                }
+                setCurrentIndex(idx);
+                setPhase("reading");
+                setAnswers({});
+                setShowAnswers(false);
+                window.scrollTo(0, 0);
+              }}
+              className={`w-7 h-7 rounded-md text-xs font-bold transition-all ${
+                idx === currentIndex
+                  ? "bg-[#002856] text-white shadow-sm"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+              }`}
+            >
+              {idx + 1}
+            </button>
+          ))}
         </div>
         {phase === "reading" ? (
           <span className="w-16" />
