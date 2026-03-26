@@ -37,9 +37,19 @@ import AdminBatchManager from "./exam/AdminBatchManager";
 // Dynamic Landing page
 import LandingPageManagement from "./LandingPageManagement";
 
+// Interview
+import InterviewToolsPositionsPage from "../../pages/interviewTools/InterviewToolsPositionsPage";
+import InterviewToolsBuilderPage from "../../pages/interviewTools/InterviewToolsBuilderPage";
+import InterviewToolsCandidatesPage from "../../pages/interviewTools/InterviewToolsCandidatePage";
+import InterviewToolsReviewPage from "../../pages/interviewTools/InterviewToolsReviewPage";
+
 function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activePage, setActivePage] = useState("analytics");
+  const [selectedInterviewPositionId, setSelectedInterviewPositionId] =
+    useState(null);
+  const [selectedInterviewSubmissionId, setSelectedInterviewSubmissionId] =
+    useState(null);
   const renderPage = () => {
     switch (activePage) {
       case "flashcards-add":
@@ -115,7 +125,40 @@ function Dashboard() {
 
       case "landing-page":
         return <LandingPageManagement />;
-        
+
+      case "interview-tools-positions":
+        return (
+          <InterviewToolsPositionsPage
+            setActivePage={setActivePage}
+            setSelectedInterviewPositionId={setSelectedInterviewPositionId}
+          />
+        );
+
+      //Interview
+      case "interview-tools-builder":
+        return (
+          <InterviewToolsBuilderPage
+            selectedInterviewPositionId={selectedInterviewPositionId}
+            setActivePage={setActivePage}
+          />
+        );
+      case "interview-tools-candidates":
+        return (
+          <InterviewToolsCandidatesPage
+            selectedInterviewPositionId={selectedInterviewPositionId}
+            setSelectedInterviewSubmissionId={setSelectedInterviewSubmissionId}
+            setActivePage={setActivePage}
+          />
+        );
+      case "interview-tools-review":
+        return (
+          <InterviewToolsReviewPage
+            selectedInterviewPositionId={selectedInterviewPositionId}
+            selectedInterviewSubmissionId={selectedInterviewSubmissionId}
+            setActivePage={setActivePage}
+          />
+        );
+
       default:
         return <div>Select an option from the sidebar</div>;
     }

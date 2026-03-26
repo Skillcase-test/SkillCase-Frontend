@@ -87,6 +87,9 @@ import ExamResult from "./pages/exam/ExamResult";
 import NewsHome from "./pages/news/NewsHome";
 import NewsPage from "./pages/news/NewsPage";
 
+// Interview
+import PublicInterviewPage from "./pages/interviewTools/PublicInterviewPage";
+
 //fallback page
 import FallbackPage from "./pages/FallbackPage";
 
@@ -451,6 +454,9 @@ function AppContent() {
             {/* News Module */}
             <Route path="/news" element={<NewsHome />} />
             <Route path="/news/:newsId" element={<NewsPage />} />
+
+            {/* Interview */}
+            <Route path="/interview/:slug" element={<PublicInterviewPage />} />
           </Routes>
 
           <ConditionalFooter />
