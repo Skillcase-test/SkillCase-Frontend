@@ -151,9 +151,9 @@ function AppContent() {
     "/manage-event",
     "/events",
   ];
-  const isPublicRoute = publicRoutes.some((route) =>
-    location.pathname.startsWith(route),
-  );
+  const isPublicRoute =
+    publicRoutes.some((route) => location.pathname.startsWith(route)) ||
+    /^\/interview\/[^/]+$/.test(location.pathname);
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
