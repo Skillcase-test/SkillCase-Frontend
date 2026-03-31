@@ -173,28 +173,6 @@ export default function ExamCards() {
           exam.results_visible &&
           !seenResultExamIds.includes(exam.test_id);
 
-        // Format schedule info
-        let scheduleInfo = null;
-        if (availableFrom && !isNotYetOpen) {
-          const fromStr = availableFrom.toLocaleString(undefined, {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          });
-          const untilStr = availableUntil
-            ? availableUntil.toLocaleString(undefined, {
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : null;
-          scheduleInfo = untilStr
-            ? `${fromStr} – ${untilStr}`
-            : `Opens ${fromStr}`;
-        }
-
         const cardContent = (
           <div
             style={
@@ -227,9 +205,6 @@ export default function ExamCards() {
                     questions
                   </span>
                 </div>
-                {scheduleInfo && (
-                  <p className="text-xs text-white/50 mt-1">{scheduleInfo}</p>
-                )}
               </div>
               <div className="flex flex-col items-end gap-2">
                 {statusBadge}
@@ -257,8 +232,8 @@ export default function ExamCards() {
               canTake || isInProgress
                 ? `/exam/${exam.test_id}`
                 : isCompleted && exam.results_visible
-                ? `/exam/${exam.test_id}/result`
-                : `/exam/${exam.test_id}`
+                  ? `/exam/${exam.test_id}/result`
+                  : `/exam/${exam.test_id}`
             }
             onClick={() => {
               if (isCompleted && exam.results_visible) {
