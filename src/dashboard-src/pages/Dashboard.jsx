@@ -16,6 +16,7 @@ import StoryManagement from "../../pages/StoryManagement";
 import AddConversation from "./conversation/add";
 import DeleteConversation from "./conversation/delete";
 import SendNotification from "./notification/send";
+import InterviewToolsPasswordModal from "../components/InterviewToolsPasswordModal";
 
 // A2 Admin Imports
 import A2FlashcardAdd from "./a2/flashcard/add";
@@ -43,6 +44,8 @@ import InterviewToolsBuilderPage from "../../pages/interviewTools/InterviewTools
 import InterviewToolsCandidatesPage from "../../pages/interviewTools/InterviewToolsCandidatePage";
 import InterviewToolsReviewPage from "../../pages/interviewTools/InterviewToolsReviewPage";
 
+const SESSION_KEY = "interview_tools_unlocked";
+
 function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activePage, setActivePage] = useState("analytics");
@@ -50,6 +53,34 @@ function Dashboard() {
     useState(null);
   const [selectedInterviewSubmissionId, setSelectedInterviewSubmissionId] =
     useState(null);
+
+  const [interviewToolsUnlocked, setInterviewToolsUnlocked] = useState(
+    () => sessionStorage.getItem(SESSION_KEY) === "true"
+  );
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [pendingInterviewPage, setPendingInterviewPage] = useState(null);
+
+  const handleSetActivePage = (page) => {
+    if (page.startsWith("interview-tools") && !interviewToolsUnlocked) {
+      setPendingInterviewPage(page);
+      setShowPasswordModal(true);
+      return;
+    }
+    setActivePage(page);
+  };
+
+  const handlePasswordSuccess = () => {
+    sessionStorage.setItem(SESSION_KEY, "true");
+    setInterviewToolsUnlocked(true);
+    setShowPasswordModal(false);
+    setActivePage("interview-tools-positions");
+    setPendingInterviewPage(null);
+  };
+
+  const handlePasswordCancel = () => {
+    setShowPasswordModal(false);
+    setPendingInterviewPage(null);
+  };
   const renderPage = () => {
     switch (activePage) {
       case "flashcards-add":
@@ -166,12 +197,19 @@ function Dashboard() {
 
   return (
     <div className="flex min-h-screen">
+      {showPasswordModal && (
+        <InterviewToolsPasswordModal
+          onSuccess={handlePasswordSuccess}
+          onCancel={handlePasswordCancel}
+        />
+      )}
+
       {/* Sidebar */}
       <Sidebar
         setSidebarOpen={setSidebarOpen}
         sidebarOpen={sidebarOpen}
         activePage={activePage}
-        setActivePage={setActivePage}
+        setActivePage={handleSetActivePage}
       />
 
       {/* Content area */}
