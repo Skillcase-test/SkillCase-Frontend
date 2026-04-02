@@ -46,8 +46,39 @@ export default function FeaturedEventPage() {
     }
   };
 
+  const getIstDateKey = (dateValue) => {
+    if (!dateValue) return null;
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return null;
+
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+
+    const year = parts.find((part) => part.type === "year")?.value;
+    const month = parts.find((part) => part.type === "month")?.value;
+    const day = parts.find((part) => part.type === "day")?.value;
+
+    if (!year || !month || !day) return null;
+    return `${year}-${month}-${day}`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const eventIstDateKey = getIstDateKey(event?.start_datetime);
+    const todayIstDateKey = getIstDateKey(new Date());
+    if (
+      eventIstDateKey &&
+      todayIstDateKey &&
+      eventIstDateKey < todayIstDateKey
+    ) {
+      setError("This event was in the past. You cannot register.");
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
     try {
@@ -55,7 +86,7 @@ export default function FeaturedEventPage() {
       setRegistered(true);
     } catch (err) {
       setError(
-        err.response?.data?.msg || "Registration failed. Please try again."
+        err.response?.data?.msg || "Registration failed. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -105,6 +136,13 @@ export default function FeaturedEventPage() {
         timeStyle: "short",
       })
     : "Date TBA";
+
+  const eventIstDateKey = getIstDateKey(event.start_datetime);
+  const todayIstDateKey = getIstDateKey(new Date());
+  const isPastEvent =
+    Boolean(eventIstDateKey) &&
+    Boolean(todayIstDateKey) &&
+    eventIstDateKey < todayIstDateKey;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
@@ -190,12 +228,22 @@ export default function FeaturedEventPage() {
                 </div>
               )}
 
+              {isPastEvent && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-lg">
+                  This event was in the past. You cannot register.
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={submitting}
+                disabled={submitting || isPastEvent}
                 className="w-full bg-[#163B72] text-white px-6 py-4 rounded-lg text-lg font-semibold hover:bg-[#0f2d5a] transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? "Registering..." : "Register for Event"}
+                {submitting
+                  ? "Registering..."
+                  : isPastEvent
+                    ? "Registration Closed"
+                    : "Register for Event"}
               </button>
             </form>
           </div>

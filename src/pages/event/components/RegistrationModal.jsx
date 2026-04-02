@@ -49,10 +49,44 @@ export default function RegistrationModal({
     return null;
   };
 
+  const getIstDateKey = (dateValue) => {
+    if (!dateValue) return null;
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return null;
+
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+
+    const year = parts.find((part) => part.type === "year")?.value;
+    const month = parts.find((part) => part.type === "month")?.value;
+    const day = parts.find((part) => part.type === "day")?.value;
+
+    if (!year || !month || !day) return null;
+    return `${year}-${month}-${day}`;
+  };
+
+  const eventDateForValidation =
+    instanceDate || event?.next_instance_date || event?.start_datetime;
+  const eventIstDateKey = getIstDateKey(eventDateForValidation);
+  const todayIstDateKey = getIstDateKey(new Date());
+  const isPastEvent =
+    Boolean(eventIstDateKey) &&
+    Boolean(todayIstDateKey) &&
+    eventIstDateKey < todayIstDateKey;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setPhoneError(null);
+
+    if (isPastEvent) {
+      setError("This event was in the past. You cannot register.");
+      return;
+    }
 
     // Validate phone
     const phoneValidationError = validatePhone(formData.phone);
@@ -126,7 +160,7 @@ export default function RegistrationModal({
                 {eventDateDisplay}
               </p>
             )}
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -182,12 +216,21 @@ export default function RegistrationModal({
                 )}
               </div>
               {error && <p className="text-red-600 text-sm">{error}</p>}
+              {isPastEvent && (
+                <p className="text-amber-700 text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  This event was in the past. You cannot register.
+                </p>
+              )}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || isPastEvent}
                 className="w-full bg-[#163B72] text-white py-3 rounded-lg font-semibold hover:bg-[#0f2d5a] transition disabled:opacity-50"
               >
-                {loading ? "Registering..." : "Register"}
+                {loading
+                  ? "Registering..."
+                  : isPastEvent
+                    ? "Registration Closed"
+                    : "Register"}
               </button>
             </form>
           </>

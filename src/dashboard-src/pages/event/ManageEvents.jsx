@@ -30,8 +30,8 @@ function Toast({ message, type, onClose }) {
     type === "success"
       ? "bg-green-600"
       : type === "error"
-      ? "bg-red-600"
-      : "bg-blue-600";
+        ? "bg-red-600"
+        : "bg-blue-600";
 
   return (
     <div
@@ -369,6 +369,7 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
   const [selectedEventId, setSelectedEventId] = useState(null);
   const [registrations, setRegistrations] = useState([]);
   const [loadingRegistrations, setLoadingRegistrations] = useState(false);
+  const [registrationFilter, setRegistrationFilter] = useState("all");
 
   const getApi = () => {
     if (useAccessCodeAuth) {
@@ -463,7 +464,7 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
     try {
       await activeApi.post(
         `/admin/events/${editChoiceEvent.event_id}/override`,
-        overrideData
+        overrideData,
       );
       showToast("Instance time overridden successfully!");
       fetchEvents();
@@ -556,7 +557,7 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
 
     try {
       await activeApi.delete(
-        `/admin/events/${deleteModalEvent.event_id}/permanent`
+        `/admin/events/${deleteModalEvent.event_id}/permanent`,
       );
       showToast("Event permanently deleted!");
       setShowDeleteModal(false);
@@ -584,7 +585,7 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
         is_featured: !event.is_featured,
       });
       showToast(
-        event.is_featured ? "Removed from featured" : "Set as featured!"
+        event.is_featured ? "Removed from featured" : "Set as featured!",
       );
       fetchEvents();
     } catch (err) {
@@ -628,6 +629,7 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
 
   const handleViewRegistrations = async (eventId) => {
     setSelectedEventId(eventId);
+    setRegistrationFilter("all");
     setLoadingRegistrations(true);
     setRegistrations([]); // Clear previous registrations
     setShowRegistrations(true); // Show modal immediately with loader
@@ -642,7 +644,6 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
     }
   };
 
-
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -655,7 +656,7 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
         formDataUpload,
         {
           headers: { "Content-Type": "multipart/form-data" },
-        }
+        },
       );
       if (res.data.success) {
         setFormData({ ...formData, cover_image_url: res.data.url });
@@ -677,6 +678,45 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
     setTimeout(() => setCopiedEventId(null), 2000);
   };
 
+  const getIstDateKey = (dateValue) => {
+    if (!dateValue) return null;
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return null;
+
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(date);
+
+    const year = parts.find((part) => part.type === "year")?.value;
+    const month = parts.find((part) => part.type === "month")?.value;
+    const day = parts.find((part) => part.type === "day")?.value;
+
+    if (!year || !month || !day) return null;
+    return `${year}-${month}-${day}`;
+  };
+
+  const selectedEvent = events.find(
+    (event) => String(event.event_id) === String(selectedEventId),
+  );
+  const isRecurringSelectedEvent = selectedEvent?.event_type === "recurring";
+  const todayIstKey = getIstDateKey(new Date());
+
+  const filteredRegistrations = isRecurringSelectedEvent
+    ? registrations.filter((registration) => {
+        const instanceDateKey = getIstDateKey(registration.instance_date);
+        if (!instanceDateKey) return false;
+        if (registrationFilter === "today") {
+          return instanceDateKey === todayIstKey;
+        }
+        if (registrationFilter === "upcoming") {
+          return instanceDateKey > todayIstKey;
+        }
+        return true;
+      })
+    : registrations;
 
   if (loading) {
     return (
@@ -790,7 +830,7 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
                           day: "numeric",
                           month: "short",
                           year: "numeric",
-                        }
+                        },
                       )
                     ) : (
                       "TBA"
@@ -1143,7 +1183,7 @@ Leave an empty line for a new paragraph."
                           if (formData.start_datetime) {
                             const start = new Date(formData.start_datetime);
                             start.setMinutes(
-                              start.getMinutes() + parseInt(e.target.value)
+                              start.getMinutes() + parseInt(e.target.value),
                             );
                             setFormData({
                               ...formData,
@@ -1261,7 +1301,7 @@ Leave an empty line for a new paragraph."
           <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl flex justify-between items-center">
               <h2 className="text-2xl font-bold text-[#004E92]">
-                Registrations ({registrations.length})
+                Registrations ({filteredRegistrations.length})
               </h2>
               <button
                 onClick={() => setShowRegistrations(false)}
@@ -1271,14 +1311,39 @@ Leave an empty line for a new paragraph."
               </button>
             </div>
             <div className="p-6">
+              {isRecurringSelectedEvent && (
+                <div className="mb-4 flex items-center gap-2">
+                  {[
+                    { label: "All", value: "all" },
+                    { label: "Today", value: "today" },
+                    { label: "Upcoming", value: "upcoming" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setRegistrationFilter(option.value)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                        registrationFilter === option.value
+                          ? "bg-[#004E92] text-white"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               {loadingRegistrations ? (
                 <div className="text-center py-8">
                   <Loader2 className="animate-spin mx-auto mb-2" size={32} />
                   <span>Loading...</span>
                 </div>
-              ) : registrations.length === 0 ? (
+              ) : filteredRegistrations.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  No registrations yet
+                  {isRecurringSelectedEvent && registrationFilter !== "all"
+                    ? `No ${registrationFilter} registrations`
+                    : "No registrations yet"}
                 </div>
               ) : (
                 <table className="w-full">
@@ -1302,7 +1367,7 @@ Leave an empty line for a new paragraph."
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {registrations.map((reg) => (
+                    {filteredRegistrations.map((reg) => (
                       <tr key={reg.registration_id}>
                         <td className="px-4 py-3">{reg.name}</td>
                         <td className="px-4 py-3">{reg.email}</td>
@@ -1316,7 +1381,7 @@ Leave an empty line for a new paragraph."
                                   day: "numeric",
                                   month: "short",
                                   year: "numeric",
-                                }
+                                },
                               )}
                             </span>
                           ) : (
@@ -1326,7 +1391,9 @@ Leave an empty line for a new paragraph."
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {(() => {
                             const rawDate = new Date(reg.registered_at);
-                            const correctedDate = new Date(rawDate.getTime() - (5.5 * 60 * 60 * 1000));
+                            const correctedDate = new Date(
+                              rawDate.getTime() - 5.5 * 60 * 60 * 1000,
+                            );
                             return correctedDate.toLocaleString("en-IN", {
                               timeZone: "Asia/Kolkata",
                               year: "numeric",
