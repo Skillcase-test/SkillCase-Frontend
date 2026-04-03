@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import api from "../../../api/axios.js";
 import axios from "axios";
+import { RRule } from "rrule";
 
 import {
   Calendar,
@@ -349,6 +350,7 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
   const [showEditChoice, setShowEditChoice] = useState(false);
   const [editChoiceEvent, setEditChoiceEvent] = useState(null);
   const [copiedEventId, setCopiedEventId] = useState(null);
+  const [formError, setFormError] = useState("");
 
   const [formData, setFormData] = useState({
     title: "",
@@ -424,6 +426,7 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
       recurrence_rule: "",
       recurrence_timezone: "Asia/Kolkata",
     });
+    setFormError("");
     setShowModal(true);
   };
 
@@ -457,6 +460,7 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
       recurrence_rule: event.recurrence_rule || "",
       recurrence_timezone: event.recurrence_timezone || "Asia/Kolkata",
     });
+    setFormError("");
     setShowModal(true);
   };
 
@@ -503,8 +507,74 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
+  const handleFormError = (msg) => {
+    setFormError(msg);
+    document.querySelector('.max-h-\\[90vh\\]')?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError("");
+
+    // Basic field validation
+    if (!formData.title || formData.title.trim() === "") {
+      handleFormError("Event Title is required.");
+      return;
+    }
+
+    if (!formData.meeting_link || !/^https?:\/\//i.test(formData.meeting_link.trim())) {
+      handleFormError("A valid Meeting Link starting with http:// or https:// is required.");
+      return;
+    }
+
+    if (formData.slug && !/^[a-z0-9-]+$/.test(formData.slug)) {
+      handleFormError("Slug can only contain lowercase letters, numbers, and hyphens (no spaces).");
+      return;
+    }
+
+    // Validate datetime required
+    if (!formData.start_datetime) {
+      handleFormError("Start Date & Time is required.");
+      return;
+    }
+
+    if (formData.event_type === "one_time") {
+      if (!formData.end_datetime) {
+        handleFormError("End Date & Time is required for one-time events.");
+        return;
+      }
+      if (new Date(formData.end_datetime) <= new Date(formData.start_datetime)) {
+        handleFormError("End Date & Time must be strictly after Start Date & Time.");
+        return;
+      }
+    } else if (formData.event_type === "recurring") {
+      if (!formData.recurrence_rule || formData.recurrence_rule.trim() === "") {
+        handleFormError("Recurrence Rule string is required for recurring events.");
+        return;
+      }
+      
+      const rruleCode = formData.recurrence_rule.trim();
+
+      if (/^RRULE:/i.test(rruleCode)) {
+        handleFormError("Please remove 'RRULE:' at the beginning. Just use the properties (e.g. FREQ=WEEKLY;INTERVAL=2).");
+        return;
+      }
+
+      // Check for dangling equal signs, e.g. "COUNT=" or "INTERVAL=;"
+      if (/=\s*(;|$)/.test(rruleCode)) {
+        handleFormError("Invalid Recurrence Rule: You have an empty property value (like 'COUNT='). Please assign a value or remove the property.");
+        return;
+      }
+
+      try {
+        const testDtStart = new Date(formData.start_datetime).toISOString().replace(/[-:]/g, "").split(".")[0];
+        RRule.fromString(`DTSTART:${testDtStart}Z\nRRULE:${rruleCode}`);
+      } catch (err) {
+        handleFormError(`Invalid Recurrence Rule format: ${err.message}`);
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       // Convert local times to UTC before sending
@@ -527,7 +597,9 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
       fetchEvents();
     } catch (err) {
       console.error("Error saving event:", err);
-      showToast("Failed to save event", "error");
+      // Catch specific backend constraints like duplicate slugs
+      const backendError = err.response?.data?.msg || "Failed to save event. Please check inputs and try again.";
+      handleFormError(backendError);
     } finally {
       setSaving(false);
     }
@@ -961,6 +1033,13 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {formError && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+                  <AlertTriangle size={18} />
+                  <span>{formError}</span>
+                </div>
+              )}
+
               {/* Title */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
