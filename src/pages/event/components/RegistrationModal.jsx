@@ -73,20 +73,11 @@ export default function RegistrationModal({
     instanceDate || event?.next_instance_date || event?.start_datetime;
   const eventIstDateKey = getIstDateKey(eventDateForValidation);
   const todayIstDateKey = getIstDateKey(new Date());
-  const isPastEvent =
-    Boolean(eventIstDateKey) &&
-    Boolean(todayIstDateKey) &&
-    eventIstDateKey < todayIstDateKey;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
     setPhoneError(null);
-
-    if (isPastEvent) {
-      setError("This event was in the past. You cannot register.");
-      return;
-    }
 
     // Validate phone
     const phoneValidationError = validatePhone(formData.phone);
@@ -216,21 +207,14 @@ export default function RegistrationModal({
                 )}
               </div>
               {error && <p className="text-red-600 text-sm">{error}</p>}
-              {isPastEvent && (
-                <p className="text-amber-700 text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                  This event was in the past. You cannot register.
-                </p>
-              )}
               <button
                 type="submit"
-                disabled={loading || isPastEvent}
+                disabled={loading}
                 className="w-full bg-[#163B72] text-white py-3 rounded-lg font-semibold hover:bg-[#0f2d5a] transition disabled:opacity-50"
               >
                 {loading
                   ? "Registering..."
-                  : isPastEvent
-                    ? "Registration Closed"
-                    : "Register"}
+                  : "Register"}
               </button>
             </form>
           </>

@@ -68,16 +68,6 @@ export default function FeaturedEventPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const eventIstDateKey = getIstDateKey(event?.start_datetime);
-    const todayIstDateKey = getIstDateKey(new Date());
-    if (
-      eventIstDateKey &&
-      todayIstDateKey &&
-      eventIstDateKey < todayIstDateKey
-    ) {
-      setError("This event was in the past. You cannot register.");
-      return;
-    }
 
     setSubmitting(true);
     setError(null);
@@ -139,10 +129,6 @@ export default function FeaturedEventPage() {
 
   const eventIstDateKey = getIstDateKey(event.start_datetime);
   const todayIstDateKey = getIstDateKey(new Date());
-  const isPastEvent =
-    Boolean(eventIstDateKey) &&
-    Boolean(todayIstDateKey) &&
-    eventIstDateKey < todayIstDateKey;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
@@ -228,22 +214,14 @@ export default function FeaturedEventPage() {
                 </div>
               )}
 
-              {isPastEvent && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-lg">
-                  This event was in the past. You cannot register.
-                </div>
-              )}
-
               <button
                 type="submit"
-                disabled={submitting || isPastEvent}
+                disabled={submitting}
                 className="w-full bg-[#163B72] text-white px-6 py-4 rounded-lg text-lg font-semibold hover:bg-[#0f2d5a] transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting
                   ? "Registering..."
-                  : isPastEvent
-                    ? "Registration Closed"
-                    : "Register for Event"}
+                  : "Register for Event"}
               </button>
             </form>
           </div>
