@@ -90,6 +90,9 @@ import NewsPage from "./pages/news/NewsPage";
 // Interview
 import PublicInterviewPage from "./pages/interviewTools/PublicInterviewPage";
 
+// Wise
+import WisePublic from "./pages/internal/WisePublic";
+
 //fallback page
 import FallbackPage from "./pages/FallbackPage";
 
@@ -150,6 +153,7 @@ function AppContent() {
     "/internal/lead-form",
     "/manage-event",
     "/events",
+    "/internal/wise",
   ];
   const isPublicRoute =
     publicRoutes.some((route) => location.pathname.startsWith(route)) ||
@@ -330,7 +334,7 @@ function AppContent() {
 
   // Redirect to signup if not authenticated and trying to access protected route
   if (!isAuthenticated && !isPublicRoute) {
-    return <Navigate to="/signup" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   return (
@@ -457,6 +461,9 @@ function AppContent() {
 
             {/* Interview */}
             <Route path="/interview/:slug" element={<PublicInterviewPage />} />
+
+            {/* Wise */}
+            <Route path="/internal/wise" element={<WisePublic />} />
           </Routes>
 
           <ConditionalFooter />

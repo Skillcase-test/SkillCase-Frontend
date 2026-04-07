@@ -25,3 +25,4 @@ dist-ssr
 .env
 android
 capacitor.config.json
+*.md
