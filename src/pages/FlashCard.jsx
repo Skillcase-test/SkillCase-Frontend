@@ -21,9 +21,11 @@ import {
 } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
+import { usePostHog } from "@posthog/react";
 
 const FlashcardStudyPage = () => {
   const { user } = useSelector((state) => state.auth);
+  const posthog = usePostHog();
 
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -164,6 +166,14 @@ const FlashcardStudyPage = () => {
           setCurrentCard(userState[0].current_index || 0);
           setCompletedFinalTest(userState[0].test_status || false);
         }
+        
+        // Track started event
+        posthog?.capture('learning_module_started', {
+          module: 'Flashcards',
+          set_id: set_id,
+          set_name: set_name,
+          total_cards: flashcards.length
+        });
       } catch (err) {
         console.log(err);
       }
@@ -615,6 +625,13 @@ const FlashcardStudyPage = () => {
     });
 
     if (isFinalTest && passed) {
+      posthog?.capture('learning_module_completed', {
+        module: 'Flashcards',
+        set_id: set_id,
+        set_name: set_name,
+        score: correct,
+        total_questions: testQuestions.length
+      });
       const saveState = async () => {
         try {
           const res = await api.post("/practice/saveFS", {

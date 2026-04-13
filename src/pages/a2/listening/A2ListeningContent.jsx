@@ -44,6 +44,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import KaraokeSubtitles from "../../../components/a2/KaraokeSubtitles";
 import A2AudioPlayer from "../../../components/a2/A2AudioPlayer";
+import { usePostHog } from "@posthog/react";
 
 import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
@@ -346,6 +347,7 @@ function SentenceOrderingInline({
 export default function A2ListeningContent() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
+  const posthog = usePostHog();
 
   const [content, setContent] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -410,6 +412,12 @@ export default function A2ListeningContent() {
         const res = await getListeningContent(chapterId);
         const data = res?.data || res || [];
         setContent(Array.isArray(data) ? data : []);
+        posthog?.capture("learning_module_started", {
+          module: "A2 Listening",
+          level: "A2",
+          chapter_id: chapterId,
+          total_items: Array.isArray(data) ? data.length : 0,
+        });
       } catch (err) {
         console.error("Error fetching listening content:", err);
       } finally {
@@ -505,6 +513,20 @@ export default function A2ListeningContent() {
         contentId: currentItem.id,
         answers: Object.values(answers),
       });
+      posthog?.capture("learning_module_submitted", {
+        module: "A2 Listening",
+        level: "A2",
+        chapter_id: chapterId,
+        content_id: currentItem.id,
+        question_count: currentItem.questions?.length || 0,
+      });
+      posthog?.capture("listening_quiz_submitted", {
+        module: "A2 Listening",
+        level: "A2",
+        chapter_id: chapterId,
+        content_id: currentItem.id,
+        question_count: currentItem.questions?.length || 0,
+      });
       // Don't show score, just show answers
       setResults(res.data);
       setShowAnswers(true);
@@ -513,6 +535,14 @@ export default function A2ListeningContent() {
         questionIndex: currentItem.questions?.length || 0,
         isCompleted: true,
         score: res.data.score,
+      });
+      posthog?.capture("learning_module_completed", {
+        module: "A2 Listening",
+        level: "A2",
+        chapter_id: chapterId,
+        content_id: currentItem.id,
+        score: res.data.score,
+        question_count: currentItem.questions?.length || 0,
       });
 
       // Streak: +1 per question attempted

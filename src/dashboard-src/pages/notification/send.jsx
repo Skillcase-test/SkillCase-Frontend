@@ -26,8 +26,8 @@ const DEEP_LINK_ROUTES = [
 
   // A1 Routes
   {
-    path: "/practice/A1",
-    label: "A1 Flashcard Chapters",
+    path: "/a1",
+    label: "A1 Flashcards (Auto Route)",
     category: "A1 Level",
   },
   {
@@ -418,9 +418,7 @@ export default function SendNotification() {
                   onClick={() => setIsManualExactVersion(!isManualExactVersion)}
                   className="text-xs text-blue-600 hover:text-blue-800"
                 >
-                  {isManualExactVersion
-                    ? "Choose from list"
-                    : "Enter manually"}
+                  {isManualExactVersion ? "Choose from list" : "Enter manually"}
                 </button>
               </div>
 
@@ -448,7 +446,8 @@ export default function SendNotification() {
                   </select>
                   {availableVersions.length === 0 && (
                     <p className="text-xs text-amber-600 mt-1">
-                      No versions recorded yet. You can click "Enter manually" to type one.
+                      No versions recorded yet. You can click "Enter manually"
+                      to type one.
                     </p>
                   )}
                 </>
@@ -465,9 +464,7 @@ export default function SendNotification() {
                   onClick={() => setIsManualRangeVersion(!isManualRangeVersion)}
                   className="text-xs text-blue-600 hover:text-blue-800"
                 >
-                  {isManualRangeVersion
-                    ? "Choose from list"
-                    : "Enter manually"}
+                  {isManualRangeVersion ? "Choose from list" : "Enter manually"}
                 </button>
               </div>
 
@@ -759,7 +756,7 @@ export default function SendNotification() {
                 type="text"
                 value={customDeepLink}
                 onChange={(e) => setCustomDeepLink(e.target.value)}
-                placeholder="/practice/A1/chapter-5"
+                placeholder="/a1/flashcard/1"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <p className="text-xs text-gray-500 mt-1">

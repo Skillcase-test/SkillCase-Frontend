@@ -43,6 +43,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import { usePostHog } from "@posthog/react";
 
 // DnD Word Component
 function WordItem({ word, isDragging, isOverlay }) {
@@ -423,6 +424,7 @@ export default function A2Flashcard() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
+  const posthog = usePostHog();
 
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -548,6 +550,12 @@ export default function A2Flashcard() {
         const cardArray = data?.cards || data || [];
         setFlashcardSet(cardArray);
         setSetId(data?.setId);
+        posthog?.capture("learning_module_started", {
+          module: "A2 Flashcard",
+          level: "A2",
+          chapter_id: chapterId,
+          total_cards: cardArray.length,
+        });
         // Priority: URL start_index param (from StreakWidget) > saved progress
         const urlStartIndex = parseInt(searchParams.get("start_index"));
         if (!isNaN(urlStartIndex) && urlStartIndex > 0) {
@@ -715,12 +723,12 @@ export default function A2Flashcard() {
       "truefalse",
       "fill_typing",
       "fill_options",
-      "mcq_multi",
       "sentence_reorder",
       "sentence_correction",
       "matching",
     ];
 
+    let matchingCardOffset = 0;
     for (let i = 0; i < count && i < shuffled.length; i++) {
       const c = shuffled[i];
       const type = types[i % types.length];
@@ -813,8 +821,15 @@ export default function A2Flashcard() {
             correctAnswer: c.front_de.trim(),
           });
         }
-      } else if (type === "matching" && shuffled.length >= 4) {
-        const subset = shuffled.slice(0, 4);
+      } else if (
+        type === "matching" &&
+        shuffled.length >= matchingCardOffset + 4
+      ) {
+        const subset = shuffled.slice(
+          matchingCardOffset,
+          matchingCardOffset + 4,
+        );
+        matchingCardOffset += 4;
         qs.push({
           type: "matching",
           questionLabel: "Match pairs",
@@ -849,6 +864,16 @@ export default function A2Flashcard() {
     );
 
     const allIdx = Array.from({ length: qs.length }, (_, i) => i);
+
+    // Pre-populate sentence_reorder answers with initial word order
+    // so the Submit button is enabled when order is already correct
+    const prefilledAnswers = {};
+    qs.forEach((q, idx) => {
+      if (q.type === "sentence_reorder") {
+        prefilledAnswers[idx] = q.question_data?.words || [];
+      }
+    });
+
     setTestQuestions(qs);
     setOriginalTestTotal(qs.length);
     setActiveQIndices(allIdx);
@@ -856,7 +881,7 @@ export default function A2Flashcard() {
     setShowTest(true);
     setShowTestPrompt(false);
     setIsFinalTest(isFin);
-    setUserAnswers({});
+    setUserAnswers(prefilledAnswers);
     if (alreadyPassed) {
       setTestResults({
         correct: qs.length,
@@ -934,6 +959,22 @@ export default function A2Flashcard() {
       const total = originalTestTotal || testQuestions.length;
       const correct = newLocked.size;
       const p = correct >= Math.ceil(total * 0.6);
+      posthog?.capture("learning_module_submitted", {
+        module: "A2 Flashcard",
+        level: "A2",
+        chapter_id: chapterId,
+        quiz_type: isFinalTest ? "final" : "mini",
+        score_percent: total > 0 ? (correct / total) * 100 : 0,
+        passed: p,
+      });
+      posthog?.capture("flashcard_quiz_submitted", {
+        module: "A2 Flashcard",
+        level: "A2",
+        chapter_id: chapterId,
+        quiz_type: isFinalTest ? "final" : "mini",
+        score_percent: total > 0 ? (correct / total) * 100 : 0,
+        passed: p,
+      });
       setTestResults({ correct, total, passed: p, wrongIndices });
       if (isFinalTest && p)
         saveFlashcardProgress({
@@ -954,8 +995,15 @@ export default function A2Flashcard() {
 
   const continueAfterTest = () => {
     setShowTest(false);
-    if (isFinalTest) navigate("/a2/flashcard");
-    else {
+    if (isFinalTest) {
+      posthog?.capture("learning_module_completed", {
+        module: "A2 Flashcard",
+        level: "A2",
+        chapter_id: chapterId,
+        total_cards: totalCards,
+      });
+      navigate("/a2/flashcard");
+    } else {
       setCurrentCard(currentCard + 1);
       setDeckRotation((p) => (p + 1) % 3);
     }
@@ -1508,8 +1556,14 @@ export default function A2Flashcard() {
                         { length: testQuestions.length },
                         (_, i) => i,
                       );
+                      const retryPrefilled = {};
+                      testQuestions.forEach((q, idx) => {
+                        if (q.type === "sentence_reorder") {
+                          retryPrefilled[idx] = q.question_data?.words || [];
+                        }
+                      });
                       setActiveQIndices(allIdx);
-                      setUserAnswers({});
+                      setUserAnswers(retryPrefilled);
                       setTestSubmitted(false);
                     }}
                     className="flex-1 py-4 bg-[#edb843] text-white rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#d9a53a]"

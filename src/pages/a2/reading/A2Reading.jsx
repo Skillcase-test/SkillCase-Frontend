@@ -32,6 +32,7 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { usePostHog } from "@posthog/react";
 
 import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
@@ -199,6 +200,7 @@ export default function A2Reading() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
+  const posthog = usePostHog();
   const { isSpeaking, speakText } = useTextToSpeech();
   const [contentList, setContentList] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -209,7 +211,10 @@ export default function A2Reading() {
   const [showAnswers, setShowAnswers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
-  const [navWarning, setNavWarning] = useState({ open: false, targetIndex: null });
+  const [navWarning, setNavWarning] = useState({
+    open: false,
+    targetIndex: null,
+  });
 
   // --- Streak tracking ---
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
@@ -258,6 +263,12 @@ export default function A2Reading() {
         const res = await getReadingContent(chapterId);
         const data = Array.isArray(res.data) ? res.data : [res.data];
         setContentList(data.filter(Boolean));
+        posthog?.capture("learning_module_started", {
+          module: "A2 Reading",
+          level: "A2",
+          chapter_id: chapterId,
+          total_items: data.length,
+        });
       } catch (err) {
         console.error(err);
       } finally {
@@ -302,6 +313,13 @@ export default function A2Reading() {
     setAnswers({ ...answers, [qIdx]: answer });
 
   const handleSubmitQuiz = () => {
+    posthog?.capture("learning_module_submitted", {
+      module: "A2 Reading",
+      level: "A2",
+      chapter_id: chapterId,
+      content_id: currentContent?.id,
+      question_count: currentContent?.questions?.length || 0,
+    });
     setShowAnswers(true);
     // Streak: +1 per question attempted
     const questionCount = currentContent?.questions?.length || 0;
@@ -352,6 +370,12 @@ export default function A2Reading() {
 
   const handleFinish = async () => {
     setIsFinishing(true);
+    posthog?.capture("learning_module_completed", {
+      module: "A2 Reading",
+      level: "A2",
+      chapter_id: chapterId,
+      content_id: currentContent.id,
+    });
     try {
       // Pass contentId, not chapterId - backend expects contentId
       await saveReadingProgress({
@@ -393,13 +417,17 @@ export default function A2Reading() {
       {navWarning.open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <h3 className="text-base font-bold text-[#002856] mb-2">Leave this quiz?</h3>
+            <h3 className="text-base font-bold text-[#002856] mb-2">
+              Leave this quiz?
+            </h3>
             <p className="text-sm text-gray-500 mb-6">
               Your quiz progress will be lost if you switch to another reading.
             </p>
             <div className="flex gap-3">
               <button
-                onClick={() => setNavWarning({ open: false, targetIndex: null })}
+                onClick={() =>
+                  setNavWarning({ open: false, targetIndex: null })
+                }
                 className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
               >
                 Cancel

@@ -16,6 +16,7 @@ import {
 } from "../../../api/a2Api";
 import QuestionRenderer from "../../../components/a2/QuestionRenderer";
 import A2GrammarExplanation from "./A2GrammarExplanation";
+import { usePostHog } from "@posthog/react";
 
 import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
@@ -25,6 +26,7 @@ export default function A2GrammarPractice() {
   const { topicId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const posthog = usePostHog();
 
   const isReviewMode = searchParams.get("mode") === "review";
 
@@ -88,6 +90,14 @@ export default function A2GrammarPractice() {
         setTopic(topicRes.data);
         setQuestions(questionsRes.data.questions);
 
+        posthog?.capture("learning_module_started", {
+          module: "A2 Grammar",
+          level: "A2",
+          topic_id: topicId,
+          topic_name: topicRes.data.name,
+          total_questions: questionsRes.data.questions?.length || 0,
+        });
+
         const progress = questionsRes.data.currentIndex || 0;
         const totalQ = questionsRes.data.questions?.length || 0;
 
@@ -141,6 +151,13 @@ export default function A2GrammarPractice() {
         questionId: questions[currentIndex].id,
         answer: userAnswer,
       });
+      posthog?.capture("learning_module_submitted", {
+        module: "A2 Grammar",
+        level: "A2",
+        topic_id: topicId,
+        question_index: currentIndex,
+        is_correct: !!res.data?.isCorrect,
+      });
       setIsCorrect(res.data.isCorrect);
       setShowResult(true);
 
@@ -187,6 +204,13 @@ export default function A2GrammarPractice() {
         setShowResult(false);
         setIsCorrect(null);
       } else {
+        posthog?.capture("learning_module_completed", {
+          module: "A2 Grammar",
+          level: "A2",
+          topic_id: topicId,
+          topic_name: topic?.name,
+          total_questions: questions.length,
+        });
         navigate("/a2/grammar");
       }
     } finally {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { usePostHog } from "@posthog/react";
 
 import { Calendar, Clock, CheckCircle } from "lucide-react";
 
@@ -45,6 +46,7 @@ export default function EventDetailPage() {
   const [registered, setRegistered] = useState(false);
 
   const location = useLocation();
+  const posthog = usePostHog();
   const instanceDate = location.state?.instanceDate;
   const customStartTimeFromNav = location.state?.custom_start_time;
   const customEndTimeFromNav = location.state?.custom_end_time;
@@ -68,6 +70,11 @@ export default function EventDetailPage() {
         : `/events/${slug}`;
       const res = await api.get(url);
       setEvent(res.data.event);
+      posthog?.capture('event_viewed', { 
+        event_slug: slug, 
+        event_title: res.data.event.title, 
+        is_featured: res.data.event.is_featured 
+      });
     } catch (err) {
       setError("Event not found");
     } finally {
@@ -355,7 +362,14 @@ export default function EventDetailPage() {
           `}</style>
           <div className="max-w-7xl mx-auto">
             <button
-              onClick={() => setShowRegister(true)}
+              onClick={() => {
+                posthog?.capture('event_registration_started', {
+                  event_slug: slug,
+                  event_title: event?.title,
+                  is_featured: event?.is_featured,
+                });
+                setShowRegister(true);
+              }}
               className="w-full bg-[#163B72] text-white py-4 px-6 rounded-xl text-lg font-semibold hover:bg-blue-700 transition shadow-lg"
             >
               Register

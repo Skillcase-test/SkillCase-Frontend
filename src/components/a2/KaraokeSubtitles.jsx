@@ -7,6 +7,9 @@ export default function KaraokeSubtitles({
   isVisible,
   onToggle,
   onSeek,
+  subtitleButtonId = "a2-listening-subtitle-btn",
+  subtitlesAreaId = "a2-listening-subtitles-area",
+  subtitleToggleEventName = "tour:a2ListeningSubtitle",
 }) {
   const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef(null);
@@ -83,9 +86,11 @@ export default function KaraokeSubtitles({
     <div className="mt-4">
       {/* Toggle Button */}
       <button
-        id="a2-listening-subtitle-btn"
+        id={subtitleButtonId}
         onClick={() => {
-          window.dispatchEvent(new Event("tour:a2ListeningSubtitle"));
+          if (subtitleToggleEventName) {
+            window.dispatchEvent(new Event(subtitleToggleEventName));
+          }
           onToggle();
         }}
         className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium text-gray-600 transition-colors mb-3 "
@@ -100,7 +105,7 @@ export default function KaraokeSubtitles({
 
       {/* Wheel Picker Container */}
       <div
-        id="a2-listening-subtitles-area"
+        id={subtitlesAreaId}
         className={`
           transition-all duration-500 ease-out overflow-hidden
           ${isVisible ? "max-h-[200px] opacity-100" : "max-h-0 opacity-0"}

@@ -91,6 +91,7 @@ export default function NewsReelCard({
         <div className="absolute top-4 right-4 z-20">
           <button
             type="button"
+            id={isActive ? "A1-news-language-toggle" : undefined}
             onClick={() => {
               hapticMedium();
               setLanguage((l) => (l === "de" ? "en" : "de"));

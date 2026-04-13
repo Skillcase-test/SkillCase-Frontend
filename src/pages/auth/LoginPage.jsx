@@ -14,6 +14,8 @@ import { hapticMedium } from "../../utils/haptics";
 import OtpInput from "./components/OtpInput";
 import customI18n from "./constants/countryNames";
 
+import { usePostHog } from "@posthog/react";
+
 import "./auth.css";
 
 const LoginPage = () => {
@@ -22,6 +24,7 @@ const LoginPage = () => {
   const { isAuthenticated } = useSelector((state) => state.auth);
   const phoneInputRef = useRef(null);
   const itiRef = useRef(null);
+  const posthog = usePostHog();
 
   // If already logged in, redirect to home
   useEffect(() => {
@@ -115,7 +118,7 @@ const LoginPage = () => {
     e.preventDefault();
 
     const phoneNumber = getPhoneNumber();
-    
+
     if (!phoneNumber || phoneNumber.length < 10) {
       setError("Please enter a valid phone number");
       return;
@@ -126,25 +129,42 @@ const LoginPage = () => {
     setError("");
 
     try {
-      const response = await api.post("/auth/login/send-otp", { phone: phoneNumber });
+      const response = await api.post("/auth/login/send-otp", {
+        phone: phoneNumber,
+      });
 
       if (response.data.status === "sendotp") {
+        posthog?.capture('otp_requested', { type: 'login' });
         setShowOtp(true);
         setTimer(90);
         setCanResend(false);
         toast.success("OTP sent to your phone!");
-        // Make phone readonly
         if (phoneInputRef.current) {
           phoneInputRef.current.setAttribute("readonly", true);
         }
-      } else if (response.data.status === "not_found") {
-        setError("No record found! Please Signup");
       }
     } catch (err) {
-      const message = err.response?.data?.message || "Failed to send OTP";
-      setError(message);
       if (err.response?.data?.status === "not_found") {
-        toast.error("Please signup first", { icon: "ℹ️" });
+        // Number not registered — silently send signup OTP and redirect
+        try {
+          await api.post("/auth/signup/send-otp", {
+            phone: phoneNumber,
+            countrycode: countryCode,
+          });
+          toast.success("Redirecting you to signup...");
+          navigate("/signup", {
+            state: {
+              phone: phoneNumber,
+              countryCode,
+              otpSent: true,
+            },
+          });
+        } catch {
+          setError("Number not registered. Please go to the signup page.");
+        }
+      } else {
+        const message = err.response?.data?.message || "Failed to send OTP";
+        setError(message);
       }
     } finally {
       setLoading(false);
@@ -169,9 +189,19 @@ const LoginPage = () => {
         timer,
       });
       if (response.data.status === "success") {
+        posthog?.capture('otp_verified', { type: 'login' });
         dispatch(
-          loginSuccess({ token: response.data.token, user: response.data.user })
+          loginSuccess({
+            token: response.data.token,
+            user: response.data.user,
+          }),
         );
+        posthog?.identify(String(response.data.user.user_id), {
+          phone: savedPhone,
+        });
+        posthog?.capture('user_logged_in', {
+          country_code: countryCode,
+        });
         toast.success("Login successful!");
         navigate("/");
       } else if (response.data.status === "expired") {
@@ -224,7 +254,8 @@ const LoginPage = () => {
         {/* Title - Centered for Login */}
         <div className="msf-title center">Login</div>
         <div className="msf-subtitle">
-          Let us help you find the right healthcare opportunity abroad — faster, smoother, and at zero recruitment cost.
+          Let us help you find the right healthcare opportunity abroad — faster,
+          smoother, and at zero recruitment cost.
         </div>
 
         <form onSubmit={handleSendOtp}>
@@ -291,7 +322,10 @@ const LoginPage = () => {
             <button
               type="button"
               className="msf-btn-primary"
-              onClick={() => { hapticMedium(); handleVerifyOtp(); }}
+              onClick={() => {
+                hapticMedium();
+                handleVerifyOtp();
+              }}
               disabled={loading || otp.length < 6}
               id="otp-verify-btn"
             >
@@ -301,7 +335,7 @@ const LoginPage = () => {
         </form>
 
         {/* Footer */}
-        <div className="buttonoptions" style={{ marginTop: '24px' }}>
+        <div className="buttonoptions" style={{ marginTop: "24px" }}>
           <div className="msf-footer-text">
             Dont have account ? <Link to="/signup">Signup</Link>
           </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getExamResult } from "../../api/examApi";
+import { usePostHog } from "@posthog/react";
 import {
   ChevronLeft,
   Loader2,
@@ -206,6 +207,7 @@ export default function ExamResult() {
   const [examData, setExamData] = useState(null);
   const [submission, setSubmission] = useState(null);
   const [questions, setQuestions] = useState([]);
+  const posthog = usePostHog();
 
   useEffect(() => {
     const fetch = async () => {
@@ -214,6 +216,18 @@ export default function ExamResult() {
         setExamData(res.data?.exam);
         setSubmission(res.data?.submission);
         setQuestions(res.data?.questions || []);
+        const sub = res.data?.submission;
+        if (sub) {
+          const score = parseFloat(sub.score || 0);
+          posthog?.capture('exam_result_viewed', {
+            exam_id: testId,
+            exam_title: res.data?.exam?.title,
+            score: score,
+            passed: score >= 60,
+            earned_points: sub.earned_points,
+            total_points: sub.total_points,
+          });
+        }
       } catch (err) {
         setError(err.response?.data?.msg || "Failed to load results");
       } finally {
@@ -221,7 +235,7 @@ export default function ExamResult() {
       }
     };
     fetch();
-  }, [testId]);
+  }, [testId, posthog]);
 
   if (loading) {
     return (

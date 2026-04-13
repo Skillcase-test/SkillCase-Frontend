@@ -125,11 +125,32 @@ const useVoiceRecorder = (referenceText) => {
   };
   const formatTime = (s) =>
     `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+  
   const resetRecording = () => {
+    // Release mic and audio context so next startRecording works cleanly
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+      mediaStreamRef.current = null;
+    }
+    if (scriptNodeRef.current) {
+      try {
+        scriptNodeRef.current.disconnect();
+      } catch {}
+      scriptNodeRef.current = null;
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+    audioDataRef.current = [];
+    clearInterval(timerRef.current);
+    setIsRecording(false);
+    setIsUploading(false);
     setAssessmentResult(null);
     setUploadStatus("");
     setRecordingTime(0);
   };
+
   return {
     isRecording,
     isUploading,

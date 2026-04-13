@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import api from "../../api/axios";
 import { useTour } from "../../tour/TourContext";
 import { TOUR_PAGES } from "../../tour/tourSteps";
+import { usePostHog } from "@posthog/react";
 
 // Components
 import FlashcardDeck from "./components/FlashcardDeck";
@@ -32,6 +33,7 @@ const FlashcardStudyPage = () => {
   const isTourMode = isTourActive && tourPage === TOUR_PAGES.FLASHCARD_PRACTICE;
   const navigate = useNavigate();
   const { prof_level, set_id } = useParams();
+  const posthog = usePostHog();
   const [searchParams] = useSearchParams();
   const set_name = searchParams.get("set_name");
   const startIndexParam = searchParams.get("start_index");
@@ -440,6 +442,14 @@ const FlashcardStudyPage = () => {
         current_index: currentCard,
       });
       setCompletedFinalTest(true);
+      posthog?.capture('flashcard_set_completed', {
+        set_id,
+        set_name,
+        prof_level,
+        total_cards: totalCards,
+        score: c,
+        total_questions: testQuestions.length,
+      });
     }
     if (!isFinalTest && p) {
       const nc = new Set(completedTests);

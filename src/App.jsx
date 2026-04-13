@@ -78,6 +78,23 @@ import A2TestLevel from "./pages/a2/test/A2TestLevel";
 import A2TestQuestions from "./pages/a2/test/A2TestQuestions";
 import A2ProductTour from "./tour/A2ProductTour";
 
+// A1 Revamp
+import A1EntryResolver from "./components/a1/A1EntryResolver";
+import A1FlashcardSelect from "./pages/a1/flashcard/A1FlashcardSelect";
+import A1Flashcard from "./pages/a1/flashcard/A1Flashcard";
+import A1GrammarSelect from "./pages/a1/grammar/A1GrammarSelect";
+import A1GrammarPractice from "./pages/a1/grammar/A1GrammarPractice";
+import A1ListeningSelect from "./pages/a1/listening/A1ListeningSelect";
+import A1ListeningContent from "./pages/a1/listening/A1ListeningContent";
+import A1ReadingSelect from "./pages/a1/reading/A1ReadingSelect";
+import A1Reading from "./pages/a1/reading/A1Reading";
+import A1SpeakingSelect from "./pages/a1/speaking/A1SpeakingSelect";
+import A1Speaking from "./pages/a1/speaking/A1Speaking";
+import A1TestSelect from "./pages/a1/test/A1TestSelect";
+import A1TestLevel from "./pages/a1/test/A1TestLevel";
+import A1TestQuestions from "./pages/a1/test/A1TestQuestions";
+import A1ProductTour from "./tour/A1ProductTour";
+
 //Hard Core Test
 import ExamLobby from "./pages/exam/ExamLobby";
 import ExamPage from "./pages/exam/ExamPage";
@@ -108,7 +125,7 @@ import { initPushNotifications } from "./notifications/pushNotifications";
 import InternalLeadForm from "./pages/InternalLeadForm";
 import ProductTour from "./tour/ProductTour";
 
-export const APP_VERSION = "1.1.2";
+export const APP_VERSION = "1.1.3";
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 2000;
 const PLAY_STORE_URL = "market://details?id=com.skillcase.app";
@@ -357,36 +374,37 @@ function AppContent() {
       />
 
       <ProductTour>
-        <A2ProductTour>
-          <GoogleAnalyticsTracker />
-          <Toaster position="top-right" />
-          <ConditionalNav />
+        <A1ProductTour>
+          <A2ProductTour>
+            <GoogleAnalyticsTracker />
+            <Toaster position="top-right" />
+            <ConditionalNav />
 
-          <Routes>
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/test/:prof_level" element={<TestSelect />} />
-            {/* <Route path ='/interview/:prof_level' element = {<InterviewSelect/>}/> */}
-            <Route path="/practice/:prof_level" element={<ChapterSelect />} />
-            <Route
-              path="/pronounce/:prof_level"
-              element={<PronounceSelect />}
-            />
-            <Route
-              path="/practice/:prof_level/:set_id"
-              element={<FlashcardStudyPage />}
-            />
-            <Route path="/admin" element={<Dashboard />} />
-            <Route
-              path="/pronounce/:prof_level/:pronounce_id"
-              element={<Pronounce />}
-            />
-            {/* <Route path="/Login" element={<LoginSignupPage />} /> */}
-            <Route path="/stories" element={<ShortStoryHome />} />
-            <Route path="/story/:slug" element={<StoryPage />} />
+            <Routes>
+              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/test/:prof_level" element={<TestSelect />} />
+              {/* <Route path ='/interview/:prof_level' element = {<InterviewSelect/>}/> */}
+              <Route path="/practice/:prof_level" element={<ChapterSelect />} />
+              <Route
+                path="/pronounce/:prof_level"
+                element={<PronounceSelect />}
+              />
+              <Route
+                path="/practice/:prof_level/:set_id"
+                element={<FlashcardStudyPage />}
+              />
+              <Route path="/admin" element={<Dashboard />} />
+              <Route
+                path="/pronounce/:prof_level/:pronounce_id"
+                element={<Pronounce />}
+              />
+              {/* <Route path="/Login" element={<LoginSignupPage />} /> */}
+              <Route path="/stories" element={<ShortStoryHome />} />
+              <Route path="/story/:slug" element={<StoryPage />} />
 
-            {/* <Route path="/resume" element={<ResumePage />} />
+              {/* <Route path="/resume" element={<ResumePage />} />
         <Route path="/resume/ai-builder" element={<AIResumeBuilder />} />
         <Route
           path="/resume/manual-builder"
@@ -395,79 +413,129 @@ function AppContent() {
         <Route path="/resume/my-resumes" element={<MyResumes />} />
         <Route path="/resume/edit/:resumeId" element={<AIResumeBuilder />} /> */}
 
-            <Route
-              path="/conversation/:prof_level"
-              element={<ConversationSelect />}
-            />
-            <Route
-              path="/conversation/:prof_level/:conversation_id"
-              element={<ConversationPlayer />}
-            />
-            <Route path="/register" element={<NursingGermanyLanding />} />
-            <Route path="/thank-you" element={<ThankYouPage />} />
-            <Route path="/open-app" element={<FallbackPage />} />
-            <Route path="/continue" element={<ContinuePractice />} />
-            <Route path="/internal/lead-form" element={<InternalLeadForm />} />
-            <Route path="/events" element={<AllEventsPage />} />
-            <Route path="/events/featured" element={<FeaturedEventPage />} />
-            <Route path="/events/:slug" element={<EventDetailPage />} />
-            <Route path="/manage-event" element={<ManageEventsPublic />} />
+              <Route
+                path="/conversation/:prof_level"
+                element={<ConversationSelect />}
+              />
+              <Route
+                path="/conversation/:prof_level/:conversation_id"
+                element={<ConversationPlayer />}
+              />
+              <Route path="/register" element={<NursingGermanyLanding />} />
+              <Route path="/thank-you" element={<ThankYouPage />} />
+              <Route path="/open-app" element={<FallbackPage />} />
+              <Route path="/continue" element={<ContinuePractice />} />
+              <Route
+                path="/internal/lead-form"
+                element={<InternalLeadForm />}
+              />
+              <Route path="/events" element={<AllEventsPage />} />
+              <Route path="/events/featured" element={<FeaturedEventPage />} />
+              <Route path="/events/:slug" element={<EventDetailPage />} />
+              <Route path="/manage-event" element={<ManageEventsPublic />} />
 
-            <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/profile" element={<ProfilePage />} />
 
-            {/* A2 ROUTES */}
-            {/* A2 Flashcard */}
-            <Route path="/a2/flashcard" element={<A2FlashcardSelect />} />
-            <Route path="/a2/flashcard/:chapterId" element={<A2Flashcard />} />
+              {/* A1 REVAMP ROUTES */}
+              <Route path="/a1" element={<A1EntryResolver />} />
 
-            {/* A2 Grammar */}
-            <Route path="/a2/grammar" element={<A2GrammarSelect />} />
-            <Route
-              path="/a2/grammar/:topicId"
-              element={<A2GrammarPractice />}
-            />
+              {/* A1 Flashcard */}
+              <Route path="/a1/flashcard" element={<A1FlashcardSelect />} />
+              <Route
+                path="/a1/flashcard/:chapterId"
+                element={<A1Flashcard />}
+              />
 
-            {/* A2 Listening */}
-            <Route path="/a2/listening" element={<A2ListeningSelect />} />
-            <Route
-              path="/a2/listening/:chapterId"
-              element={<A2ListeningContent />}
-            />
+              {/* A1 Grammar */}
+              <Route path="/a1/grammar" element={<A1GrammarSelect />} />
+              <Route
+                path="/a1/grammar/:topicId"
+                element={<A1GrammarPractice />}
+              />
 
-            {/* A2 Speaking */}
-            <Route path="/a2/speaking" element={<A2SpeakingSelect />} />
-            <Route path="/a2/speaking/:chapterId" element={<A2Speaking />} />
+              {/* A1 Listening */}
+              <Route path="/a1/listening" element={<A1ListeningSelect />} />
+              <Route
+                path="/a1/listening/:chapterId"
+                element={<A1ListeningContent />}
+              />
 
-            {/* A2 Reading */}
-            <Route path="/a2/reading" element={<A2ReadingSelect />} />
-            <Route path="/a2/reading/:chapterId" element={<A2Reading />} />
+              {/* A1 Speaking */}
+              <Route path="/a1/speaking" element={<A1SpeakingSelect />} />
+              <Route path="/a1/speaking/:chapterId" element={<A1Speaking />} />
 
-            {/* A2 Test */}
-            <Route path="/a2/test" element={<A2TestSelect />} />
-            <Route path="/a2/test/:topicId" element={<A2TestLevel />} />
-            <Route
-              path="/a2/test/:topicId/:level"
-              element={<A2TestQuestions />}
-            />
+              {/* A1 Reading */}
+              <Route path="/a1/reading" element={<A1ReadingSelect />} />
+              <Route path="/a1/reading/:chapterId" element={<A1Reading />} />
 
-            {/* Hard Core Test */}
-            <Route path="/exam/:testId" element={<ExamLobby />} />
-            <Route path="/exam/:testId/take" element={<ExamPage />} />
-            <Route path="/exam/:testId/result" element={<ExamResult />} />
+              {/* A1 Test */}
+              <Route path="/a1/test" element={<A1TestSelect />} />
+              <Route path="/a1/test/:topicId" element={<A1TestLevel />} />
+              <Route
+                path="/a1/test/:topicId/:level"
+                element={<A1TestQuestions />}
+              />
 
-            {/* News Module */}
-            <Route path="/news" element={<NewsHome />} />
-            <Route path="/news/:newsId" element={<NewsPage />} />
+              {/* A2 ROUTES */}
+              {/* A2 Flashcard */}
+              <Route path="/a2/flashcard" element={<A2FlashcardSelect />} />
+              <Route
+                path="/a2/flashcard/:chapterId"
+                element={<A2Flashcard />}
+              />
 
-            {/* Interview */}
-            <Route path="/interview/:slug" element={<PublicInterviewPage />} />
+              {/* A2 Grammar */}
+              <Route path="/a2/grammar" element={<A2GrammarSelect />} />
+              <Route
+                path="/a2/grammar/:topicId"
+                element={<A2GrammarPractice />}
+              />
 
-            {/* Wise */}
-            <Route path="/internal/wise" element={<WisePublic />} />
-          </Routes>
+              {/* A2 Listening */}
+              <Route path="/a2/listening" element={<A2ListeningSelect />} />
+              <Route
+                path="/a2/listening/:chapterId"
+                element={<A2ListeningContent />}
+              />
 
-          <ConditionalFooter />
-        </A2ProductTour>
+              {/* A2 Speaking */}
+              <Route path="/a2/speaking" element={<A2SpeakingSelect />} />
+              <Route path="/a2/speaking/:chapterId" element={<A2Speaking />} />
+
+              {/* A2 Reading */}
+              <Route path="/a2/reading" element={<A2ReadingSelect />} />
+              <Route path="/a2/reading/:chapterId" element={<A2Reading />} />
+
+              {/* A2 Test */}
+              <Route path="/a2/test" element={<A2TestSelect />} />
+              <Route path="/a2/test/:topicId" element={<A2TestLevel />} />
+              <Route
+                path="/a2/test/:topicId/:level"
+                element={<A2TestQuestions />}
+              />
+
+              {/* Hard Core Test */}
+              <Route path="/exam/:testId" element={<ExamLobby />} />
+              <Route path="/exam/:testId/take" element={<ExamPage />} />
+              <Route path="/exam/:testId/result" element={<ExamResult />} />
+
+              {/* News Module */}
+              <Route path="/news" element={<NewsHome />} />
+              <Route path="/news/:newsId" element={<NewsPage />} />
+
+              {/* Interview */}
+              <Route
+                path="/interview/:slug"
+                element={<PublicInterviewPage />}
+              />
+
+              {/* Wise */}
+              <Route path="/internal/wise" element={<WisePublic />} />
+            </Routes>
+
+            <ConditionalFooter />
+          </A2ProductTour>
+        </A1ProductTour>
       </ProductTour>
     </>
   );

@@ -37,6 +37,11 @@ const authSlice = createSlice({
         state.user.onboarding_completed = true;
       }
     },
+    setA1OnboardingComplete: (state) => {
+      if (state.user) {
+        state.user.a1_onboarding_completed = true;
+      }
+    },
     setA2OnboardingComplete: (state) => {
       if (state.user) {
         state.user.a2_onboarding_completed = true;
@@ -56,6 +61,7 @@ export const {
   loginFailure,
   setUser,
   setOnboardingComplete,
+  setA1OnboardingComplete,
   setA2OnboardingComplete,
   logout,
 } = authSlice.actions;

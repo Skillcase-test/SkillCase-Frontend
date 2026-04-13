@@ -10,6 +10,7 @@ import {
   Loader2,
   Play,
 } from "lucide-react";
+import { usePostHog } from "@posthog/react";
 
 export default function ExamLobby() {
   const { testId } = useParams();
@@ -18,6 +19,7 @@ export default function ExamLobby() {
   const [submission, setSubmission] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const posthog = usePostHog();
 
   useEffect(() => {
     const fetchInfo = async () => {
@@ -25,6 +27,7 @@ export default function ExamLobby() {
         const res = await getExamInfo(testId);
         setExam(res.data?.exam);
         setSubmission(res.data?.submission);
+        posthog?.capture('exam_lobby_viewed', { exam_id: testId, exam_title: res.data?.exam?.title });
       } catch (err) {
         setError(err.response?.data?.msg || "Failed to load exam info");
       } finally {
@@ -160,7 +163,16 @@ export default function ExamLobby() {
         {/* Action Button */}
         {canStart && (
           <button
-            onClick={() => navigate(`/exam/${testId}/take`)}
+            onClick={() => {
+              posthog?.capture('exam_started', {
+                exam_id: testId,
+                exam_title: exam?.title,
+                duration_minutes: exam?.duration_minutes,
+                total_questions: exam?.total_questions,
+                is_resuming: isInProgress,
+              });
+              navigate(`/exam/${testId}/take`);
+            }}
             className="w-full py-4 bg-[#002856] text-white rounded-xl font-bold text-lg flex items-center justify-center gap-3 shadow-lg hover:bg-[#003366] active:scale-[0.98] transition-all"
           >
             <Play className="w-5 h-5 fill-current" />

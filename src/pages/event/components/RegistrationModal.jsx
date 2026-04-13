@@ -5,6 +5,7 @@ import { X, CheckCircle } from "lucide-react";
 import { useSelector } from "react-redux";
 
 import api from "../../../api/axios.js";
+import { usePostHog } from "@posthog/react";
 
 export default function RegistrationModal({
   event,
@@ -19,6 +20,7 @@ export default function RegistrationModal({
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
   const [phoneError, setPhoneError] = useState(null);
+  const posthog = usePostHog();
 
   useEffect(() => {
     if (user) {
@@ -91,6 +93,12 @@ export default function RegistrationModal({
     try {
       await api.post(`/events/${event.slug}/register`, {
         ...formData,
+        instance_date: instanceDate || null,
+      });
+      posthog?.capture('event_registered', {
+        event_slug: event.slug,
+        event_title: event.title,
+        is_featured: event.is_featured,
         instance_date: instanceDate || null,
       });
       setSuccess(true);

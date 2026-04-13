@@ -78,7 +78,7 @@ export default function NewsHome() {
   const hasData = useMemo(() => articles.length > 0, [articles]);
 
   return (
-    <div 
+    <div
       className="h-[calc(100dvh-55px-env(safe-area-inset-top))] lg:h-[calc(100dvh-72px-env(safe-area-inset-top))] bg-[#f6f8fc] overflow-hidden overscroll-none flex flex-col"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
@@ -97,16 +97,18 @@ export default function NewsHome() {
         </div>
         {hasData && (
           <div className="absolute bottom-0 left-0 w-full h-[2px]">
-            <div 
-              className="h-full bg-[#002856] transition-all duration-300 ease-out" 
-              style={{ width: `${((currentReelIndex + 1) / articles.length) * 100}%` }} 
+            <div
+              className="h-full bg-[#002856] transition-all duration-300 ease-out"
+              style={{
+                width: `${((currentReelIndex + 1) / articles.length) * 100}%`,
+              }}
             />
           </div>
         )}
       </div>
 
       <div className="flex-1 w-full max-w-3xl mx-auto px-3 md:px-4 py-2 md:py-3 min-h-0">
-        <div className="h-full w-full">
+        <div id="A1-news-list" className="h-full w-full">
           {loading ? (
             <div className="h-full w-full flex items-center justify-center bg-[#f6f8fc]">
               <NewsSkeleton />

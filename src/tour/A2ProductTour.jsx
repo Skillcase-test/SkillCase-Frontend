@@ -76,8 +76,7 @@ const PHASE_LABEL_MAP = {
   "test:level": "test_level",
 };
 
-// ─── Tap overlay helpers ────────────────────────────────────────
-
+// Tap overlay helpers
 function injectTapOverlay(selector, label = "Tap") {
   cleanupTapOverlays();
   const el = document.querySelector(selector);
@@ -112,8 +111,6 @@ function cleanupTapOverlays() {
     .forEach((el) => el.remove());
 }
 
-// ─────────────────────────────────────────────────────────────────
-
 export default function A2ProductTour({ children }) {
   const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
@@ -136,7 +133,7 @@ export default function A2ProductTour({ children }) {
     activeFeatureRef.current = activeFeature;
   }, [activeFeature]);
 
-  // ─── Helpers ───────────────────────────────────────────────────
+  //Helpers
 
   const markDone = useCallback(
     (phase) => {
@@ -185,11 +182,10 @@ export default function A2ProductTour({ children }) {
       destroyDriver();
 
       const d = driver({
-        showProgress: true,
+        showProgress: false,
         nextBtnText: "Next",
         prevBtnText: "Back",
         doneBtnText: "Got it",
-        progressText: "{{current}} / {{total}}",
         allowClose: true,
         allowClickMaskNextStep: true,
         stagePadding: 8,
@@ -255,8 +251,7 @@ export default function A2ProductTour({ children }) {
     return () => clearInterval(check);
   }, []);
 
-  // ─── Route detection ──────────────────────────────────────────
-
+  // Route detection
   useEffect(() => {
     if (!isA2 || isDone) {
       // Clean up any pending tour
@@ -343,7 +338,7 @@ export default function A2ProductTour({ children }) {
     user?.id,
   ]);
 
-  // ─── Start tour when feature/phase changes ────────────────────
+  // Start tour when feature/phase changes
 
   useEffect(() => {
     if (!activeFeature || !activePhase || !isA2 || isDone) return;
@@ -522,7 +517,7 @@ export default function A2ProductTour({ children }) {
     waitForElement,
   ]);
 
-  // ─── Custom event listeners ───────────────────────────────────
+  // Custom event listeners
 
   // Flashcard flip → success + done
   useEffect(() => {
@@ -653,7 +648,7 @@ export default function A2ProductTour({ children }) {
     return () => window.removeEventListener("tour:a2TestPrerequisite", handler);
   }, [destroyDriver, startDriver]);
 
-  // ─── Context + Render ─────────────────────────────────────────
+  // Context + Render
 
   const ctx = {
     isTourActive: !!activeFeature && isA2 && !isDone,

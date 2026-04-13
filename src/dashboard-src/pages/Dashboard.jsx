@@ -18,6 +18,20 @@ import DeleteConversation from "./conversation/delete";
 import SendNotification from "./notification/send";
 import InterviewToolsPasswordModal from "../components/InterviewToolsPasswordModal";
 
+// A1 Revamp Admin Imports
+import A1FlashcardAdd from "./a1/flashcard/add";
+import A1FlashcardManage from "./a1/flashcard/manage";
+import A1GrammarAdd from "./a1/grammar/add";
+import A1GrammarManage from "./a1/grammar/manage";
+import A1ListeningAdd from "./a1/listening/add";
+import A1ListeningManage from "./a1/listening/manage";
+import A1ReadingAdd from "./a1/reading/add";
+import A1ReadingManage from "./a1/reading/manage";
+import A1SpeakingAdd from "./a1/speaking/add";
+import A1SpeakingManage from "./a1/speaking/manage";
+import A1TestAdd from "./a1/test/add";
+import A1TestManage from "./a1/test/manage";
+
 // A2 Admin Imports
 import A2FlashcardAdd from "./a2/flashcard/add";
 import A2FlashcardManage from "./a2/flashcard/manage";
@@ -55,7 +69,7 @@ function Dashboard() {
     useState(null);
 
   const [interviewToolsUnlocked, setInterviewToolsUnlocked] = useState(
-    () => sessionStorage.getItem(SESSION_KEY) === "true"
+    () => sessionStorage.getItem(SESSION_KEY) === "true",
   );
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [pendingInterviewPage, setPendingInterviewPage] = useState(null);
@@ -111,6 +125,42 @@ function Dashboard() {
         return <DeleteConversation />;
       case "notifications":
         return <SendNotification />;
+
+      // A1 Revamp Flashcard
+      case "a1-flashcard-add":
+        return <A1FlashcardAdd />;
+      case "a1-flashcard-manage":
+        return <A1FlashcardManage />;
+
+      // A1 Revamp Grammar
+      case "a1-grammar-add":
+        return <A1GrammarAdd />;
+      case "a1-grammar-manage":
+        return <A1GrammarManage />;
+
+      // A1 Revamp Listening
+      case "a1-listening-add":
+        return <A1ListeningAdd />;
+      case "a1-listening-manage":
+        return <A1ListeningManage />;
+
+      // A1 Revamp Reading
+      case "a1-reading-add":
+        return <A1ReadingAdd />;
+      case "a1-reading-manage":
+        return <A1ReadingManage />;
+
+      // A1 Revamp Speaking
+      case "a1-speaking-add":
+        return <A1SpeakingAdd />;
+      case "a1-speaking-manage":
+        return <A1SpeakingManage />;
+
+      // A1 Revamp Test
+      case "a1-test-add":
+        return <A1TestAdd />;
+      case "a1-test-manage":
+        return <A1TestManage />;
 
       // A2 Flashcard
       case "a2-flashcard-add":

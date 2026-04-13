@@ -19,11 +19,13 @@ import {
 } from "../../../api/a2Api";
 import api from "../../../api/axios";
 import QuestionRenderer from "../../../components/a2/QuestionRenderer";
+import { usePostHog } from "@posthog/react";
 
 export default function A2TestQuestions() {
   const { topicId, level } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const posthog = usePostHog();
 
   const isReviewMode = searchParams.get("mode") === "review";
 
@@ -70,6 +72,14 @@ export default function A2TestQuestions() {
           const res = await getTestSet(topicId, level, set);
           setQuestions(res.data.questions);
           setAnswers(new Array(res.data.questions.length).fill(null));
+          posthog?.capture("learning_module_started", {
+            module: "A2 Test",
+            level: "A2",
+            topic_id: Number(topicId),
+            test_level: Number(level),
+            set_number: set,
+            total_questions: res.data.questions.length,
+          });
         }
       } catch (err) {
         console.error("Error:", err);
@@ -106,6 +116,26 @@ export default function A2TestQuestions() {
         questions, // Send questions so backend scores against same shuffled data
       });
       setResult(res.data);
+      posthog?.capture("learning_module_submitted", {
+        module: "A2 Test",
+        level: "A2",
+        topic_id: Number(topicId),
+        test_level: Number(level),
+        set_number: currentSet,
+        score: res.data?.score,
+        passed: !!res.data?.passed,
+      });
+
+      if (res.data?.passed) {
+        posthog?.capture("learning_module_completed", {
+          module: "A2 Test",
+          level: "A2",
+          topic_id: Number(topicId),
+          test_level: Number(level),
+          set_number: currentSet,
+          score: res.data?.score,
+        });
+      }
 
       try {
         const streakRes = await api.post("/streak/log", { points: 20 });

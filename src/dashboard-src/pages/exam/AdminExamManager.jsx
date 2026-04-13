@@ -1252,7 +1252,7 @@ function ContentBlockForm({ data, onChange }) {
   );
 }
 
-// ─── IMAGE BLOCK FORM ─────────────────────────────────────────────────────────
+// IMAGE BLOCK FORM
 // Stores the chosen image in two ways:
 //   - imageFile  (File object) → sent as multipart field "image_block_file"
 //   - data.image_url (string)  → used if admin chose URL instead of file
@@ -1364,7 +1364,7 @@ function ImageBlockForm({ data, onChange, onFileChange }) {
   );
 }
 
-// ─── IMAGE OPTION INPUT ────────────────────────────────────────────────────────
+// IMAGE OPTION INPUT
 // Used in option lists. Each option can be a plain string OR
 // an image object { type: "image", url, alt }.
 // When an option is changed to image mode the parent receives a File object
@@ -1481,7 +1481,7 @@ function ImageOptionInput({ value, onValueChange, onFileChange, placeholder }) {
   );
 }
 
-// ─── QUESTION IMAGE PICKER ─────────────────────────────────────────────────────
+// QUESTION IMAGE PICKER
 // Shown in every question form to add an optional image above the question text.
 function QuestionImagePicker({ data, onChange, onFileChange }) {
   const [show, setShow] = useState(!!data.question_image);
@@ -3672,7 +3672,7 @@ export default function AdminExamManager() {
             {/* Per-question list */}
             <div className="space-y-3">
               {questions.map((q, idx) => {
-                // ── CONTEXT BLOCKS (read-only reference for admin) ─────────
+                // CONTEXT BLOCKS (read-only reference for admin) 
                 if (q.question_type === "page_break") {
                   return (
                     <div key={q.question_id} className="border-t-2 border-dashed border-gray-300 my-2 flex items-center justify-center">
@@ -3718,7 +3718,7 @@ export default function AdminExamManager() {
                   );
                 }
 
-                // ── ANSWERABLE QUESTION CARDS ──────────────────────────────
+                // ANSWERABLE QUESTION CARDS 
                 const unanswered = q.user_answer === null || q.user_answer === undefined;
                 const correct = q.is_correct;
                 const isPending = correct === null && !unanswered; // paragraph pending admin review

@@ -3,6 +3,7 @@ import { Flame, Info, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import api from "../api/axios";
+import { getA1EntryRoute } from "../api/a1Api";
 import { hapticMedium } from "../utils/haptics";
 
 export default function StreakWidget() {
@@ -14,6 +15,7 @@ export default function StreakWidget() {
     dailyGoalMet: false,
   });
   const [lastChapter, setLastChapter] = useState(null);
+  const [a1EntryRoute, setA1EntryRoute] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showInfo, setShowInfo] = useState(false);
   const profLevel = user?.user_prof_level?.toUpperCase() || "A1";
@@ -22,12 +24,19 @@ export default function StreakWidget() {
     if (!user?.user_id) return;
     const fetchData = async () => {
       try {
-        const [streakRes, chapterRes] = await Promise.all([
-          api.get("/streak"),
-          api.get("/streak/last-chapter"),
-        ]);
+        const isA1User = profLevel === "A1";
+        const requests = [api.get("/streak"), api.get("/streak/last-chapter")];
+        if (isA1User) {
+          requests.push(getA1EntryRoute());
+        }
+
+        const [streakRes, chapterRes, a1RouteRes] = await Promise.all(requests);
+
         if (streakRes.data) setStreakData(streakRes.data);
         if (chapterRes.data?.hasProgress) setLastChapter(chapterRes.data);
+        if (isA1User) {
+          setA1EntryRoute(a1RouteRes?.data?.route || "/a1/flashcard");
+        }
       } catch (err) {
         console.error("Error fetching streak data:", err);
       } finally {
@@ -63,11 +72,18 @@ export default function StreakWidget() {
     );
   }
 
-  // Build continue link - handle A2 vs A1 default routing
+  const isRevampA1User =
+    profLevel === "A1" &&
+    typeof a1EntryRoute === "string" &&
+    a1EntryRoute.startsWith("/a1");
+
+  // Build continue link - resolve A1 legacy/revamp path correctly
   let continueLink =
     profLevel === "A2"
-      ? "/a2/flashcard" // A2 default
-      : `/practice/${profLevel}`; // A1 default
+      ? "/a2/flashcard"
+      : isRevampA1User
+        ? a1EntryRoute || "/a1/flashcard"
+        : "/a1";
 
   if (lastChapter?.hasProgress) {
     if (lastChapter.isA2) {
@@ -75,6 +91,15 @@ export default function StreakWidget() {
       continueLink = `/a2/flashcard/${lastChapter.chapterId}?start_index=${
         lastChapter.currentIndex || 0
       }`;
+    } else if (isRevampA1User) {
+      if (lastChapter.chapterId || lastChapter.setId) {
+        const targetChapterId = lastChapter.chapterId || lastChapter.setId;
+        continueLink = `/a1/flashcard/${targetChapterId}?start_index=${
+          lastChapter.currentIndex || 0
+        }&name=${encodeURIComponent(lastChapter.setName || "Chapter")}`;
+      } else {
+        continueLink = a1EntryRoute || "/a1/flashcard";
+      }
     } else if (lastChapter.setId) {
       // A1 user - route to A1 practice
       continueLink = `/practice/${lastChapter.proficiencyLevel}/${

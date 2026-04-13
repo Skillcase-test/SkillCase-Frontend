@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { BookOpen, CheckCircle } from "lucide-react";
 
-const A2TestPrerequisiteModal = ({ topic, onDismiss }) => {
+const A2TestPrerequisiteModal = ({
+  topic,
+  onDismiss,
+  modalId = "a2-test-prerequisite-modal",
+  gotItButtonId = "a2-test-got-it-btn",
+}) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
@@ -39,13 +44,13 @@ const A2TestPrerequisiteModal = ({ topic, onDismiss }) => {
       }`}
     >
       <div
-        id="a2-test-prerequisite-modal"
+        id={modalId}
         className={`bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl transform transition-all duration-300 ${
           isClosing
             ? "scale-95 opacity-0"
             : isVisible
-            ? "scale-100 opacity-100"
-            : "scale-95 opacity-0"
+              ? "scale-100 opacity-100"
+              : "scale-95 opacity-0"
         }`}
       >
         <div className="flex items-center gap-3 mb-4">
@@ -77,7 +82,7 @@ const A2TestPrerequisiteModal = ({ topic, onDismiss }) => {
           ))}
         </div>
         <button
-          id="a2-test-got-it-btn"
+          id={gotItButtonId}
           onClick={handleDismiss}
           className="w-full py-3 bg-[#002856] text-white rounded-xl font-semibold hover:bg-[#003d83] transition-colors"
         >

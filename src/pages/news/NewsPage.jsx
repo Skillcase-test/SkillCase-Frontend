@@ -58,7 +58,10 @@ export default function NewsPage() {
             News article not found.
           </div>
         ) : (
-          <article className="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm">
+          <article
+            id="A1-news-detail"
+            className="bg-white border border-gray-100 rounded-3xl overflow-hidden shadow-sm"
+          >
             {article.imageUrl ? (
               <img
                 src={article.imageUrl}
@@ -108,6 +111,7 @@ export default function NewsPage() {
               <div className="grid grid-cols-2 gap-2 mt-5">
                 <button
                   type="button"
+                  id="A1-news-normal-btn"
                   disabled={isLoadingAudio}
                   onClick={() =>
                     isSpeaking && activeSpeed === "normal"
@@ -138,6 +142,7 @@ export default function NewsPage() {
                 </button>
                 <button
                   type="button"
+                  id="A1-news-slow-btn"
                   disabled={isLoadingAudio}
                   onClick={() =>
                     isSpeaking && activeSpeed === "slow"

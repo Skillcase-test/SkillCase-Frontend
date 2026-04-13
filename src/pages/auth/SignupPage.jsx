@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import intlTelInput from "intl-tel-input";
 import "intl-tel-input/build/css/intlTelInput.css";
@@ -11,6 +11,8 @@ import { loginSuccess } from "../../redux/auth/authSlice";
 import api from "../../api/axios";
 import { hapticMedium } from "../../utils/haptics";
 import { Capacitor } from "@capacitor/core";
+
+import { usePostHog } from "@posthog/react";
 
 import OtpInput from "./components/OtpInput";
 import CustomDropdown from "./components/CustomDropdown";
@@ -29,6 +31,8 @@ const SignupPage = () => {
   const { isAuthenticated } = useSelector((state) => state.auth);
   const phoneInputRef = useRef(null);
   const itiRef = useRef(null);
+  const location = useLocation();
+  const posthog = usePostHog();
 
   // If already logged in, redirect to home
   useEffect(() => {
@@ -64,6 +68,21 @@ const SignupPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
+
+  // Handle pre-filled state when redirected from Login (number not found)
+  useEffect(() => {
+    const state = location.state;
+    if (state?.otpSent && state?.phone) {
+      setPhone(state.phone);
+      setSavedPhone(state.phone);
+      setShowOtp(true);
+      setTimer(90);
+      setCanResend(false);
+      if (state.countryCode) {
+        setCountryCode(state.countryCode);
+      }
+    }
+  }, []);
 
   // Initialize intl-tel-input
   useEffect(() => {
@@ -140,7 +159,7 @@ const SignupPage = () => {
     e.preventDefault();
 
     const phoneNumber = getPhoneNumber();
-    
+
     if (!phoneNumber || phoneNumber.length < 10) {
       setError("Please enter a valid phone number");
       return;
@@ -157,6 +176,7 @@ const SignupPage = () => {
       });
 
       if (response.data.status === "sendotp") {
+        posthog?.capture('otp_requested', { type: 'signup' });
         setShowOtp(true);
         setTimer(90);
         setCanResend(false);
@@ -195,6 +215,7 @@ const SignupPage = () => {
       });
 
       if (response.data.status === "success") {
+        posthog?.capture('otp_verified', { type: 'signup' });
         setCurrentStep(2);
         setError("");
       } else if (response.data.status === "expired") {
@@ -296,8 +317,27 @@ const SignupPage = () => {
 
       if (response.data.status === "success") {
         dispatch(
-          loginSuccess({ token: response.data.token, user: response.data.user })
+          loginSuccess({
+            token: response.data.token,
+            user: response.data.user,
+          }),
         );
+        posthog?.identify(String(response.data.user.user_id), {
+          name: formData.fullname,
+          email: formData.email,
+          phone: savedPhone,
+          qualification: formData.qualification,
+          language_level: formData.language_level,
+          experience: formData.experience,
+          signup_source: Capacitor.isNativePlatform() ? "app" : "web",
+        });
+        posthog?.capture('user_signed_up', {
+          qualification: formData.qualification,
+          language_level: formData.language_level,
+          experience: formData.experience,
+          signup_source: Capacitor.isNativePlatform() ? "app" : "web",
+          country_code: countryCode,
+        });
         toast.success("Signup successful!");
         navigate("/");
       } else if (response.data.status === "emailalready") {
@@ -345,7 +385,8 @@ const SignupPage = () => {
 
             <div className="msf-title">Register to get started</div>
             <div className="msf-subtitle">
-              Let us help you find the right healthcare opportunity abroad — faster, smoother, and at zero recruitment cost.
+              Let us help you find the right healthcare opportunity abroad —
+              faster, smoother, and at zero recruitment cost.
             </div>
 
             <form onSubmit={handleSendOtp}>
@@ -357,7 +398,9 @@ const SignupPage = () => {
                   type="tel"
                   className="msf-input"
                   placeholder="Enter your number"
-                  value={(loading || showOtp) && savedPhone ? savedPhone : phone}
+                  value={
+                    (loading || showOtp) && savedPhone ? savedPhone : phone
+                  }
                   onChange={handlePhoneChange}
                   maxLength={10}
                   disabled={showOtp}
@@ -383,8 +426,12 @@ const SignupPage = () => {
                   <div className="resendcontainer">
                     {timer > 0 ? (
                       <>
-                        <span className="resend-link disabled">Resend OTP in</span>
-                        <span className="timer">&nbsp;{formatTimer(timer)}</span>
+                        <span className="resend-link disabled">
+                          Resend OTP in
+                        </span>
+                        <span className="timer">
+                          &nbsp;{formatTimer(timer)}
+                        </span>
                       </>
                     ) : (
                       <span className="resend-link" onClick={handleResendOtp}>
@@ -412,7 +459,10 @@ const SignupPage = () => {
                 <button
                   type="button"
                   className="msf-btn-primary"
-                  onClick={() => { hapticMedium(); handleVerifyOtp(); }}
+                  onClick={() => {
+                    hapticMedium();
+                    handleVerifyOtp();
+                  }}
                   disabled={loading || otp.length < 6}
                 >
                   {loading ? "Verifying..." : "Sign Up"}
@@ -445,7 +495,8 @@ const SignupPage = () => {
 
             <div className="msf-title">Tell us about yourself</div>
             <div className="msf-subtitle">
-              Let us help you find the right healthcare opportunity abroad — faster, smoother, and at zero recruitment cost.
+              Let us help you find the right healthcare opportunity abroad —
+              faster, smoother, and at zero recruitment cost.
             </div>
 
             {/* Full Name */}
@@ -453,14 +504,16 @@ const SignupPage = () => {
               <label className="formlabels">Fullname *</label>
               <input
                 type="text"
-                className={`msf-input ${fieldErrors.fullname ? 'invalid-input' : ''}`}
+                className={`msf-input ${fieldErrors.fullname ? "invalid-input" : ""}`}
                 name="fullname"
                 placeholder="Full Name *"
                 value={formData.fullname}
                 onChange={(e) => handleChange("fullname", e.target.value)}
                 required
               />
-              {fieldErrors.fullname && <div className="error-message">{fieldErrors.fullname}</div>}
+              {fieldErrors.fullname && (
+                <div className="error-message">{fieldErrors.fullname}</div>
+              )}
             </div>
 
             {/* Email */}
@@ -468,14 +521,16 @@ const SignupPage = () => {
               <label className="formlabels">Email *</label>
               <input
                 type="email"
-                className={`msf-input ${fieldErrors.email ? 'invalid-input' : ''}`}
+                className={`msf-input ${fieldErrors.email ? "invalid-input" : ""}`}
                 name="email"
                 placeholder="you@company.com"
                 value={formData.email}
                 onChange={(e) => handleChange("email", e.target.value)}
                 required
               />
-              {fieldErrors.email && <div className="error-message">{fieldErrors.email}</div>}
+              {fieldErrors.email && (
+                <div className="error-message">{fieldErrors.email}</div>
+              )}
             </div>
 
             {/* Qualification Dropdown */}
@@ -489,12 +544,16 @@ const SignupPage = () => {
                 name="qualification"
                 error={!!fieldErrors.qualification}
               />
-              {fieldErrors.qualification && <div className="error-message">{fieldErrors.qualification}</div>}
+              {fieldErrors.qualification && (
+                <div className="error-message">{fieldErrors.qualification}</div>
+              )}
             </div>
 
             {/* Language Dropdown */}
             <div className="form-group">
-              <label className="formlabels">German Language Proficiency *</label>
+              <label className="formlabels">
+                German Language Proficiency *
+              </label>
               <CustomDropdown
                 options={LANGUAGE_OPTIONS}
                 value={formData.language_level}
@@ -503,7 +562,11 @@ const SignupPage = () => {
                 name="language"
                 error={!!fieldErrors.language_level}
               />
-              {fieldErrors.language_level && <div className="error-message">{fieldErrors.language_level}</div>}
+              {fieldErrors.language_level && (
+                <div className="error-message">
+                  {fieldErrors.language_level}
+                </div>
+              )}
             </div>
 
             {/* Experience Dropdown */}
@@ -517,7 +580,9 @@ const SignupPage = () => {
                 name="experience"
                 error={!!fieldErrors.experience}
               />
-              {fieldErrors.experience && <div className="error-message">{fieldErrors.experience}</div>}
+              {fieldErrors.experience && (
+                <div className="error-message">{fieldErrors.experience}</div>
+              )}
             </div>
 
             {/* Error Message */}

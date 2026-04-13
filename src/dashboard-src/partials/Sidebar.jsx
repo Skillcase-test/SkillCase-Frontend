@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 
 import SidebarLinkGroup from "./SidebarLinkGroup";
+import { ChevronDown } from "lucide-react";
 
 function Sidebar({
   sidebarOpen,
@@ -463,7 +464,7 @@ function Sidebar({
                           <li className="mb-1 last:mb-0">
                             <button
                               onClick={() => setActivePage("flashcards-add")}
-                              className={({ activePage }) =>
+                              className={
                                 "block transition duration-150 truncate " +
                                 (activePage === "flashcards-add"
                                   ? "text-blue-500"
@@ -480,9 +481,9 @@ function Sidebar({
                               onClick={() => {
                                 setActivePage("flashcards-delete");
                               }}
-                              className={({ activePage }) =>
+                              className={
                                 "block transition duration-150 truncate " +
-                                (activePage === "flashcard-delete"
+                                (activePage === "flashcards-delete"
                                   ? "text-blue-500"
                                   : "text-gray-500/90  hover:text-gray-700 ")
                               }
@@ -558,7 +559,7 @@ function Sidebar({
                               onClick={() => {
                                 setActivePage("pronounce-add");
                               }}
-                              className={({ activePage }) =>
+                              className={
                                 "block transition duration-150 truncate " +
                                 (activePage === "pronounce-add"
                                   ? "text-blue-500"
@@ -573,7 +574,7 @@ function Sidebar({
                           <li className="mb-1 last:mb-0">
                             <button
                               onClick={() => setActivePage("pronounce-delete")}
-                              className={({ activePage }) =>
+                              className={
                                 "block transition duration-150 truncate " +
                                 (activePage === "pronounce-delete"
                                   ? "text-blue-500"
@@ -647,7 +648,7 @@ function Sidebar({
                           <li className="mb-1 last:mb-0">
                             <button
                               onClick={() => setActivePage("test-add")}
-                              className={({ isActive }) =>
+                              className={
                                 "block transition duration-150 truncate " +
                                 (activePage === "test-add"
                                   ? "text-blue-500"
@@ -662,7 +663,7 @@ function Sidebar({
                           <li className="mb-1 last:mb-0">
                             <button
                               onClick={() => setActivePage("test-delete")}
-                              className={({ activePage }) =>
+                              className={
                                 "block transition duration-150 truncate " +
                                 (activePage === "test-delete"
                                   ? "text-blue-500"
@@ -738,9 +739,8 @@ function Sidebar({
                         <ul className={`pl-8 mt-1 ${!open && "hidden"}`}>
                           <li className="mb-1 last:mb-0">
                             <button
-                              end
-                              to="/interview/add"
-                              className={({ activePage }) =>
+                              onClick={() => setActivePage("interview-add")}
+                              className={
                                 "block transition duration-150 truncate " +
                                 (activePage === "interview-add"
                                   ? "text-blue-500"
@@ -754,9 +754,8 @@ function Sidebar({
                           </li>
                           <li className="mb-1 last:mb-0">
                             <button
-                              end
-                              to="/interview/delete"
-                              className={({ activePage }) =>
+                              onClick={() => setActivePage("interview-delete")}
+                              className={
                                 "block transition duration-150 truncate " +
                                 (activePage === "interview-delete"
                                   ? "text-blue-500"
@@ -832,7 +831,7 @@ function Sidebar({
                           <li className="mb-1 last:mb-0">
                             <button
                               onClick={() => setActivePage("stories")}
-                              className={({ activePage }) =>
+                              className={
                                 "block transition duration-150 truncate " +
                                 (activePage === "stories"
                                   ? "text-blue-500"
@@ -907,7 +906,7 @@ function Sidebar({
                           <li className="mb-1 last:mb-0">
                             <button
                               onClick={() => setActivePage("conversation-add")}
-                              className={({ activePage }) =>
+                              className={
                                 "block transition duration-150 truncate " +
                                 (activePage === "conversation-add"
                                   ? "text-blue-500"
@@ -924,7 +923,7 @@ function Sidebar({
                               onClick={() =>
                                 setActivePage("conversation-delete")
                               }
-                              className={({ activePage }) =>
+                              className={
                                 "block transition duration-150 truncate " +
                                 (activePage === "conversation-delete"
                                   ? "text-blue-500"
@@ -945,6 +944,451 @@ function Sidebar({
             </ul>
           </div>
         </div>
+
+        {/* ====== A1 REVAMP FEATURES SECTION ====== */}
+        <li className="px-3 py-2 rounded-sm mb-0.5 last:mb-0">
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            A1 Revamp Features
+          </span>
+        </li>
+
+        {/* A1 Flashcards */}
+        <SidebarLinkGroup activecondition={activePage.includes("a1-flashcard")}>
+          {(handleClick, open) => (
+            <React.Fragment>
+              <a
+                href="#0"
+                className={`block text-gray-800 truncate transition duration-150 ${
+                  activePage.includes("a1-flashcard")
+                    ? "text-indigo-500"
+                    : "hover:text-gray-900"
+                }`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleClick();
+                  setSidebarExpanded(true);
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <svg
+                      className="shrink-0 h-6 w-6"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
+                      <line x1="7" y1="10" x2="17" y2="10" />
+                      <line x1="7" y1="14" x2="12" y2="14" />
+                    </svg>
+                    <span className="text-sm font-medium ml-3">
+                      A1 Flashcards
+                    </span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 shrink-0 ml-1 transition-transform duration-200 ${
+                      open && "rotate-180"
+                    }`}
+                  />
+                </div>
+              </a>
+              <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
+                <ul className={`pl-9 mt-1 ${!open && "hidden"}`}>
+                  <li className="mb-1 last:mb-0">
+                    <button
+                      onClick={() => setActivePage("a1-flashcard-add")}
+                      className={`block text-sm ${
+                        activePage === "a1-flashcard-add"
+                          ? "text-indigo-500"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Add
+                    </button>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <button
+                      onClick={() => setActivePage("a1-flashcard-manage")}
+                      className={`block text-sm ${
+                        activePage === "a1-flashcard-manage"
+                          ? "text-indigo-500"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Manage & Reorder
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </React.Fragment>
+          )}
+        </SidebarLinkGroup>
+
+        {/* A1 Grammar */}
+        <SidebarLinkGroup activecondition={activePage.includes("a1-grammar")}>
+          {(handleClick, open) => (
+            <React.Fragment>
+              <a
+                href="#0"
+                className={`block text-gray-800 truncate transition duration-150 ${
+                  activePage.includes("a1-grammar")
+                    ? "text-indigo-500"
+                    : "hover:text-gray-900"
+                }`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleClick();
+                  setSidebarExpanded(true);
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <svg
+                      className="shrink-0 h-6 w-6"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                    </svg>
+                    <span className="text-sm font-medium ml-3">A1 Grammar</span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 shrink-0 ml-1 transition-transform duration-200 ${
+                      open && "rotate-180"
+                    }`}
+                  />
+                </div>
+              </a>
+              <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
+                <ul className={`pl-9 mt-1 ${!open && "hidden"}`}>
+                  <li className="mb-1 last:mb-0">
+                    <button
+                      onClick={() => setActivePage("a1-grammar-add")}
+                      className={`block text-sm ${
+                        activePage === "a1-grammar-add"
+                          ? "text-indigo-500"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Add
+                    </button>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <button
+                      onClick={() => setActivePage("a1-grammar-manage")}
+                      className={`block text-sm ${
+                        activePage === "a1-grammar-manage"
+                          ? "text-indigo-500"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Manage & Reorder
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </React.Fragment>
+          )}
+        </SidebarLinkGroup>
+
+        {/* A1 Listening */}
+        <SidebarLinkGroup activecondition={activePage.includes("a1-listening")}>
+          {(handleClick, open) => (
+            <React.Fragment>
+              <a
+                href="#0"
+                className={`block text-gray-800 truncate transition duration-150 ${
+                  activePage.includes("a1-listening")
+                    ? "text-indigo-500"
+                    : "hover:text-gray-900"
+                }`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleClick();
+                  setSidebarExpanded(true);
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <svg
+                      className="shrink-0 h-6 w-6"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M12 6v12" />
+                      <path d="M8 9v6" />
+                      <path d="M16 9v6" />
+                      <path d="M4 12h0" />
+                      <path d="M20 12h0" />
+                      <rect x="3" y="4" width="18" height="16" rx="2" />
+                    </svg>
+                    <span className="text-sm font-medium ml-3">
+                      A1 Listening
+                    </span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 shrink-0 ml-1 transition-transform duration-200 ${
+                      open && "rotate-180"
+                    }`}
+                  />
+                </div>
+              </a>
+              <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
+                <ul className={`pl-9 mt-1 ${!open && "hidden"}`}>
+                  <li className="mb-1 last:mb-0">
+                    <button
+                      onClick={() => setActivePage("a1-listening-add")}
+                      className={`block text-sm ${
+                        activePage === "a1-listening-add"
+                          ? "text-indigo-500"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Add
+                    </button>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <button
+                      onClick={() => setActivePage("a1-listening-manage")}
+                      className={`block text-sm ${
+                        activePage === "a1-listening-manage"
+                          ? "text-indigo-500"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Manage & Reorder
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </React.Fragment>
+          )}
+        </SidebarLinkGroup>
+
+        {/* A1 Speaking */}
+        <SidebarLinkGroup activecondition={activePage.includes("a1-speaking")}>
+          {(handleClick, open) => (
+            <React.Fragment>
+              <a
+                href="#0"
+                className={`block text-gray-800 truncate transition duration-150 ${
+                  activePage.includes("a1-speaking")
+                    ? "text-indigo-500"
+                    : "hover:text-gray-900"
+                }`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleClick();
+                  setSidebarExpanded(true);
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <svg
+                      className="shrink-0 h-6 w-6"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M12 1a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                      <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+                      <path d="M12 18v5" />
+                      <path d="M8 23h8" />
+                    </svg>
+                    <span className="text-sm font-medium ml-3">
+                      A1 Speaking
+                    </span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 shrink-0 ml-1 transition-transform duration-200 ${
+                      open && "rotate-180"
+                    }`}
+                  />
+                </div>
+              </a>
+              <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
+                <ul className={`pl-9 mt-1 ${!open && "hidden"}`}>
+                  <li className="mb-1 last:mb-0">
+                    <button
+                      onClick={() => setActivePage("a1-speaking-add")}
+                      className={`block text-sm ${
+                        activePage === "a1-speaking-add"
+                          ? "text-indigo-500"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Add
+                    </button>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <button
+                      onClick={() => setActivePage("a1-speaking-manage")}
+                      className={`block text-sm ${
+                        activePage === "a1-speaking-manage"
+                          ? "text-indigo-500"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Manage & Reorder
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </React.Fragment>
+          )}
+        </SidebarLinkGroup>
+
+        {/* A1 Reading */}
+        <SidebarLinkGroup activecondition={activePage.includes("a1-reading")}>
+          {(handleClick, open) => (
+            <React.Fragment>
+              <a
+                href="#0"
+                className={`block text-gray-800 truncate transition duration-150 ${
+                  activePage.includes("a1-reading")
+                    ? "text-indigo-500"
+                    : "hover:text-gray-900"
+                }`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleClick();
+                  setSidebarExpanded(true);
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <svg
+                      className="shrink-0 h-6 w-6"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                    </svg>
+                    <span className="text-sm font-medium ml-3">A1 Reading</span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 shrink-0 ml-1 transition-transform duration-200 ${
+                      open && "rotate-180"
+                    }`}
+                  />
+                </div>
+              </a>
+              <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
+                <ul className={`pl-9 mt-1 ${!open && "hidden"}`}>
+                  <li className="mb-1 last:mb-0">
+                    <button
+                      onClick={() => setActivePage("a1-reading-add")}
+                      className={`block text-sm ${
+                        activePage === "a1-reading-add"
+                          ? "text-indigo-500"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Add
+                    </button>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <button
+                      onClick={() => setActivePage("a1-reading-manage")}
+                      className={`block text-sm ${
+                        activePage === "a1-reading-manage"
+                          ? "text-indigo-500"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Manage & Reorder
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </React.Fragment>
+          )}
+        </SidebarLinkGroup>
+
+        {/* A1 Test */}
+        <SidebarLinkGroup activecondition={activePage.includes("a1-test")}>
+          {(handleClick, open) => (
+            <React.Fragment>
+              <a
+                href="#0"
+                className={`block text-gray-800 truncate transition duration-150 ${
+                  activePage.includes("a1-test")
+                    ? "text-indigo-500"
+                    : "hover:text-gray-900"
+                }`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleClick();
+                  setSidebarExpanded(true);
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <svg
+                      className="shrink-0 h-6 w-6"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="16" y1="13" x2="8" y2="13" />
+                      <line x1="16" y1="17" x2="8" y2="17" />
+                      <polyline points="10 9 9 9 8 9" />
+                    </svg>
+                    <span className="text-sm font-medium ml-3">A1 Test</span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 shrink-0 ml-1 transition-transform duration-200 ${
+                      open && "rotate-180"
+                    }`}
+                  />
+                </div>
+              </a>
+              <div className="lg:hidden lg:sidebar-expanded:block 2xl:block">
+                <ul className={`pl-9 mt-1 ${!open && "hidden"}`}>
+                  <li className="mb-1 last:mb-0">
+                    <button
+                      onClick={() => setActivePage("a1-test-add")}
+                      className={`block text-sm ${
+                        activePage === "a1-test-add"
+                          ? "text-indigo-500"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Add
+                    </button>
+                  </li>
+                  <li className="mb-1 last:mb-0">
+                    <button
+                      onClick={() => setActivePage("a1-test-manage")}
+                      className={`block text-sm ${
+                        activePage === "a1-test-manage"
+                          ? "text-indigo-500"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      Manage & Reorder
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </React.Fragment>
+          )}
+        </SidebarLinkGroup>
+
+        {/* ====== END A1 REVAMP FEATURES ====== */}
 
         {/* ====== A2 FEATURES SECTION ====== */}
         <div className="space-y-8">

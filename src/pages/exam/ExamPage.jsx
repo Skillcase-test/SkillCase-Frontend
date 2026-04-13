@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
+import { usePostHog } from "@posthog/react";
 import {
   startExam,
   saveAnswer,
@@ -551,6 +552,7 @@ function AutoGrowTextarea({
 export default function ExamPage() {
   const { testId } = useParams();
   const navigate = useNavigate();
+  const posthog = usePostHog();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -818,6 +820,12 @@ export default function ExamPage() {
 
     try {
       await submitExam(testId);
+      posthog?.capture('exam_submitted', {
+        exam_id: testId,
+        exam_title: exam?.title,
+        answers_count: Object.keys(answers).length,
+        total_questions: questions.length,
+      });
       setExamClosed(true);
       setClosedReason("submitted");
     } catch (err) {
@@ -846,6 +854,10 @@ export default function ExamPage() {
         const res = await saveAnswer(testId, {
           question_id: questionId,
           answer,
+        });
+        posthog?.capture('exam_progress_saved', {
+          exam_id: testId,
+          question_id: questionId,
         });
         if (res.data?.expired) {
           handleAutoSubmit("time");

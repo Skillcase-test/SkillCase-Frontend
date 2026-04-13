@@ -6,6 +6,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import { setOnboardingComplete } from "../redux/auth/authSlice";
 import api from "../api/axios";
+import { getA1MigrationStatus } from "../api/a1Api";
 import { TourContext } from "./TourContext";
 import {
   TOUR_PAGES,
@@ -36,6 +37,53 @@ export default function ProductTour({ children }) {
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [listenerTaps, setListenerTaps] = useState(0);
   const [pronounceStep, setPronounceStep] = useState(0); // 0=listen, 1=record, 2=speaking, 3=stop, 4=done
+  const [a1MigrationStatus, setA1MigrationStatus] = useState(null);
+  const [migrationLoading, setMigrationLoading] = useState(false);
+  const isA1 = user?.user_prof_level?.toLowerCase() === "a1";
+  const canRunLegacyTour = !isA1 || a1MigrationStatus === "legacy_acknowledged";
+
+  useEffect(() => {
+    if (!user?.user_id || !isA1) {
+      setA1MigrationStatus(null);
+      setMigrationLoading(false);
+      return;
+    }
+
+    let mounted = true;
+    setMigrationLoading(true);
+    getA1MigrationStatus()
+      .then((res) => {
+        if (!mounted) return;
+        setA1MigrationStatus(res?.data?.status || "legacy_a1");
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setA1MigrationStatus("legacy_a1");
+      })
+      .finally(() => {
+        if (mounted) setMigrationLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.user_id, isA1]);
+
+  useEffect(() => {
+    const onMigrationChange = (event) => {
+      const nextStatus = event?.detail?.status;
+      if (!nextStatus) return;
+      setA1MigrationStatus(nextStatus);
+      setMigrationLoading(false);
+    };
+
+    window.addEventListener("a1:migration-status-changed", onMigrationChange);
+    return () =>
+      window.removeEventListener(
+        "a1:migration-status-changed",
+        onMigrationChange,
+      );
+  }, []);
 
   // Show success animation then continue button
   const showSuccessThenContinue = () => {
@@ -48,7 +96,12 @@ export default function ProductTour({ children }) {
 
   // Load saved tour state
   useEffect(() => {
-    if (user && user.onboarding_completed === false) {
+    if (
+      user &&
+      user.onboarding_completed === false &&
+      !migrationLoading &&
+      canRunLegacyTour
+    ) {
       const saved = localStorage.getItem(TOUR_STATE_KEY);
       if (saved) {
         const { page } = JSON.parse(saved);
@@ -56,8 +109,10 @@ export default function ProductTour({ children }) {
       } else {
         setTourPage(TOUR_PAGES.LANDING);
       }
+    } else if (isA1 && !canRunLegacyTour) {
+      setTourPage(null);
     }
-  }, [user]);
+  }, [user, migrationLoading, canRunLegacyTour, isA1]);
 
   const saveTourState = useCallback((page) => {
     localStorage.setItem(TOUR_STATE_KEY, JSON.stringify({ page }));
@@ -84,7 +139,14 @@ export default function ProductTour({ children }) {
 
   // Start tour based on current page
   useEffect(() => {
-    if (!user || user.onboarding_completed !== false || !tourPage) return;
+    if (
+      !user ||
+      user.onboarding_completed !== false ||
+      !tourPage ||
+      migrationLoading ||
+      !canRunLegacyTour
+    )
+      return;
 
     const profLevel = user.user_prof_level || "A1";
     const path = location.pathname;
@@ -307,7 +369,15 @@ export default function ProductTour({ children }) {
 
       waitForTarget();
     }
-  }, [location.pathname, tourPage, user, skipTour, saveTourState]);
+  }, [
+    location.pathname,
+    tourPage,
+    user,
+    skipTour,
+    saveTourState,
+    migrationLoading,
+    canRunLegacyTour,
+  ]);
 
   const handleTourComplete = useCallback(() => {
     const profLevel = user?.user_prof_level || "A1";
@@ -344,7 +414,7 @@ export default function ProductTour({ children }) {
   useEffect(() => {
     const handleFlashcardRevealed = () => {
       if (tourPage !== TOUR_PAGES.FLASHCARD_PRACTICE) return;
-        // Destroy active tour popover
+      // Destroy active tour popover
       if (driverRef.current) {
         driverRef.current.destroy();
         driverRef.current = null;
@@ -357,7 +427,7 @@ export default function ProductTour({ children }) {
     return () =>
       window.removeEventListener(
         "tour:flashcardRevealed",
-        handleFlashcardRevealed
+        handleFlashcardRevealed,
       );
   }, [tourPage]);
 
@@ -404,12 +474,12 @@ export default function ProductTour({ children }) {
 
     window.addEventListener(
       "tour:listenerInteraction",
-      handleListenerInteraction
+      handleListenerInteraction,
     );
     return () =>
       window.removeEventListener(
         "tour:listenerInteraction",
-        handleListenerInteraction
+        handleListenerInteraction,
       );
   }, [tourPage]);
 
@@ -465,8 +535,8 @@ export default function ProductTour({ children }) {
           {tourPage === TOUR_PAGES.LISTENER_VIEW
             ? "Continue to Stories →"
             : tourPage === TOUR_PAGES.PRONOUNCE_PRACTICE
-            ? "Continue to Listener →"
-            : "Continue to Pronunciation →"}
+              ? "Continue to Listener →"
+              : "Continue to Pronunciation →"}
         </button>
       )}
     </TourContext.Provider>

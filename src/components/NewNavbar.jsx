@@ -93,6 +93,45 @@ export default function Navbar({ minimal = false, disableNavigation = false }) {
                   Test
                 </Link>
               </>
+            ) : profLevel === "A1" ? (
+              <>
+                <Link
+                  to="/a1/flashcard"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Flashcards
+                </Link>
+                <Link
+                  to="/a1/grammar"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Grammar
+                </Link>
+                <Link
+                  to="/a1/listening"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Listening
+                </Link>
+                <Link
+                  to="/a1/reading"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Reading
+                </Link>
+                <Link
+                  to="/a1/speaking"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Speaking
+                </Link>
+                <Link
+                  to="/a1/test"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Test
+                </Link>
+              </>
             ) : (
               <>
                 <Link
@@ -290,6 +329,51 @@ export default function Navbar({ minimal = false, disableNavigation = false }) {
                   Test
                 </Link>
               </>
+            ) : profLevel === "A1" ? (
+              <>
+                <Link
+                  to="/a1/flashcard"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Flashcards
+                </Link>
+                <Link
+                  to="/a1/grammar"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Grammar
+                </Link>
+                <Link
+                  to="/a1/listening"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Listening
+                </Link>
+                <Link
+                  to="/a1/reading"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Reading
+                </Link>
+                <Link
+                  to="/a1/speaking"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Speaking
+                </Link>
+                <Link
+                  to="/a1/test"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Test
+                </Link>
+              </>
             ) : (
               <>
                 <Link
@@ -330,8 +414,67 @@ export default function Navbar({ minimal = false, disableNavigation = false }) {
               </>
             )}
 
-            {/* Divider */}
+            {/* Global Features */}
             <div className="border-t border-[#efefef] my-2"></div>
+            <button
+              onClick={() => {
+                setIsMenuOpen(false);
+                if (location.pathname !== "/") {
+                  navigate("/", { state: { openLeaderboard: true } });
+                } else {
+                  document.dispatchEvent(new CustomEvent("openLeaderboard"));
+                }
+              }}
+              className="group relative w-full flex items-center justify-between gap-3 px-4 py-2 rounded-xl bg-gradient-to-r from-[#fff8e8] via-[#fff2cf] to-[#ffe8c2] border border-[#f2cc7a] shadow-[0_8px_24px_rgba(240,155,35,0.16)] hover:shadow-[0_12px_28px_rgba(240,155,35,0.24)] transition-all duration-200 active:scale-[0.98] overflow-hidden"
+            >
+              <div className="absolute right-0 top-0 h-full w-16 bg-gradient-to-l from-orange-200/40 to-transparent pointer-events-none" />
+
+              <span className="flex items-center gap-3 text-left relative z-10">
+                <span className="w-9 h-9 rounded-xl bg-white/80 border border-[#f4d187] flex items-center justify-center shadow-sm shrink-0">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-orange-600"
+                  >
+                    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+                  </svg>
+                </span>
+                <span>
+                  <span className="block text-[10px] font-semibold tracking-wide uppercase text-[#9a6a06]">
+                    Daily Streak
+                  </span>
+                  <span className="block text-sm font-extrabold text-[#5f4306] leading-tight">
+                    Check Your Rank
+                  </span>
+                </span>
+              </span>
+
+              <span className="relative z-10 flex items-center gap-2 text-xs font-extrabold text-[#7a5100] bg-white/85 border border-[#f4d187] rounded-full px-3 py-1.5 shrink-0 group-hover:bg-white transition-colors">
+                Top 5
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </span>
+            </button>
+
+            {/* Divider */}
 
             {/* Auth Section - Mobile */}
             {isAuthenticated ? (

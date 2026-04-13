@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { usePostHog } from "@posthog/react";
 
 import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
@@ -79,6 +80,7 @@ export default function A2Speaking() {
   // Tour integration
   const { isTourActive, currentFeature, speakingStep } = useA2Tour();
   const isTourMode = isTourActive && currentFeature === "speaking";
+  const posthog = usePostHog();
 
   // Tour-aware recording handlers
   const handleTourStartRecording = () => {
@@ -92,6 +94,21 @@ export default function A2Speaking() {
 
   const handleTourStopRecording = () => {
     stopRecording(currentCard?.text_de);
+    posthog?.capture("learning_module_submitted", {
+      module: "A2 Speaking",
+      level: "A2",
+      chapter_id: chapterId,
+      card_index: currentIndex,
+      total_cards: totalCards,
+      submission_type: "recording",
+    });
+    posthog?.capture("speaking_recording_submitted", {
+      module: "A2 Speaking",
+      level: "A2",
+      chapter_id: chapterId,
+      card_index: currentIndex,
+      total_cards: totalCards,
+    });
     if (isTourMode && speakingStep === 2) {
       window.dispatchEvent(
         new CustomEvent("tour:a2SpeakingStep", { detail: { step: 3 } }),
@@ -187,6 +204,13 @@ export default function A2Speaking() {
     if (currentCard?.text_de) speakText(currentCard.text_de, "de-DE");
   };
   const handleFinish = async () => {
+    posthog?.capture("learning_module_completed", {
+      module: "A2 Speaking",
+      level: "A2",
+      chapter_id: chapterId,
+      total_cards: totalCards,
+      cards_recorded: recordedCardsRef.current.size,
+    });
     try {
       await saveSpeakingProgress({
         chapterId: parseInt(chapterId),
@@ -207,6 +231,12 @@ export default function A2Speaking() {
         const res = await getSpeakingContent(chapterId);
         setContent(res.data.content || []);
         setCurrentIndex(res.data.progress?.current_content_index || 0);
+        posthog?.capture("learning_module_started", {
+          module: "A2 Speaking",
+          level: "A2",
+          chapter_id: chapterId,
+          total_cards: res.data.content?.length || 0,
+        });
       } catch (err) {
         console.error(err);
       } finally {

@@ -29,9 +29,10 @@ const SpeakingCardDeck = ({
   onRetry,
   isTourMode,
   tourSpeakingStep,
+  containerId = "a2-speaking-container",
 }) => {
   return (
-    <div id="a2-speaking-container" className="relative w-[280px] h-[440px]">
+    <div id={containerId} className="relative w-[280px] h-[440px]">
       {[0, 1, 2].map((position) => {
         const cardIndex = currentIndex + (2 - position);
         const cardData =
