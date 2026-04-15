@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Loader2,
   RefreshCw,
-  Users,
   Activity,
   BookOpen,
   TrendingUp,
@@ -12,17 +11,29 @@ import {
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 function makeApi(accessCode) {
-  return async function apiFetch(path, params = {}) {
+  async function request(path, { method = "GET", params = {}, body } = {}) {
     const url = new URL(`${BACKEND_URL}${path}`);
     Object.entries(params).forEach(([k, v]) => {
       if (v !== null && v !== undefined) url.searchParams.set(k, v);
     });
+
     const res = await fetch(url.toString(), {
-      headers: { "x-wise-access-code": accessCode },
+      method,
+      headers: {
+        "x-wise-access-code": accessCode,
+        "Content-Type": "application/json",
+      },
+      body: body ? JSON.stringify(body) : undefined,
     });
+
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "API error");
     return data;
+  }
+
+  return {
+    get: (path, params = {}) => request(path, { method: "GET", params }),
+    patch: (path, body = {}) => request(path, { method: "PATCH", body }),
   };
 }
 
@@ -53,7 +64,6 @@ function scoreColor(score) {
   return { color: "#b91c1c", bg: "#fee2e2" };
 }
 
-// Stat Card
 function StatCard({ icon: Icon, label, value, sub }) {
   return (
     <div style={styles.statCard}>
@@ -62,19 +72,16 @@ function StatCard({ icon: Icon, label, value, sub }) {
       </div>
       <div>
         <p style={styles.statLabel}>{label}</p>
-        <p style={styles.statValue}>{value ?? "—"}</p>
+        <p style={styles.statValue}>{value ?? "-"}</p>
         {sub && <p style={styles.statSub}>{sub}</p>}
       </div>
     </div>
   );
 }
 
-// Candidate Table 
 function CandidateTable({ candidates }) {
   if (!candidates || candidates.length === 0) {
-    return (
-      <p style={styles.emptyMsg}>No candidates found for this selection.</p>
-    );
+    return <p style={styles.emptyMsg}>No candidates found for this selection.</p>;
   }
 
   return (
@@ -102,9 +109,7 @@ function CandidateTable({ candidates }) {
                 <td style={{ ...styles.td, fontWeight: 500, color: "#111827" }}>
                   {c.name}
                 </td>
-                <td style={{ ...styles.td, textAlign: "center" }}>
-                  {c.totalClasses}
-                </td>
+                <td style={{ ...styles.td, textAlign: "center" }}>{c.totalClasses}</td>
                 <td style={{ ...styles.td, textAlign: "center" }}>
                   <span
                     style={{
@@ -130,7 +135,7 @@ function CandidateTable({ candidates }) {
                       backgroundColor: cs.bg,
                     }}
                   >
-                    {c.cumulatedScore}
+                    {c.cumulatedScore ?? "N/A"}
                   </span>
                 </td>
                 <td style={{ ...styles.td, textAlign: "center" }}>
@@ -157,7 +162,6 @@ function CandidateTable({ candidates }) {
   );
 }
 
-// Attendance Grid
 function AttendanceGrid({ grid }) {
   if (!grid || !grid.dates || grid.dates.length === 0) return null;
 
@@ -166,9 +170,7 @@ function AttendanceGrid({ grid }) {
       <table style={styles.table}>
         <thead>
           <tr style={styles.thead}>
-            <th style={{ ...styles.th, textAlign: "left", minWidth: 140 }}>
-              Name
-            </th>
+            <th style={{ ...styles.th, textAlign: "left", minWidth: 140 }}>Name</th>
             {grid.dates.map((d) => (
               <th key={d} style={{ ...styles.th, minWidth: 64, fontSize: 12 }}>
                 {formatDate(d)}
@@ -188,29 +190,13 @@ function AttendanceGrid({ grid }) {
               {row.attendance.map((status, j) => (
                 <td key={j} style={{ ...styles.td, textAlign: "center" }}>
                   {status === "present" && (
-                    <span
-                      style={{
-                        color: "#15803d",
-                        fontWeight: 700,
-                        fontSize: 16,
-                      }}
-                    >
-                      ✓
-                    </span>
+                    <span style={{ color: "#15803d", fontWeight: 700 }}>Yes</span>
                   )}
                   {status === "absent" && (
-                    <span
-                      style={{
-                        color: "#b91c1c",
-                        fontWeight: 700,
-                        fontSize: 16,
-                      }}
-                    >
-                      ✗
-                    </span>
+                    <span style={{ color: "#b91c1c", fontWeight: 700 }}>No</span>
                   )}
                   {status === "no_class" && (
-                    <span style={{ color: "#d1d5db", fontSize: 16 }}>—</span>
+                    <span style={{ color: "#d1d5db", fontSize: 16 }}>-</span>
                   )}
                 </td>
               ))}
@@ -222,7 +208,86 @@ function AttendanceGrid({ grid }) {
   );
 }
 
-// Main Dashboard 
+function LeaderboardTable({ data, mode }) {
+  const metrics = data?.metrics || {};
+  const rows = [
+    {
+      key: "interactive",
+      label: mode === "least" ? "Least Interactive" : "Most Interactive",
+      unit: "score",
+      items: metrics.interactive || [],
+    },
+    {
+      key: "improved",
+      label: mode === "least" ? "Least Improved" : "Most Improved",
+      unit: "delta",
+      items: metrics.improved || [],
+    },
+    {
+      key: "attendance",
+      label:
+        mode === "least"
+          ? "Lowest Attendance"
+          : "Perfect Attendance (95%+) / Highest",
+      unit: "attendance",
+      items: metrics.attendance || [],
+    },
+  ];
+
+  return (
+    <div style={styles.tableWrap}>
+      <table style={styles.table}>
+        <thead>
+          <tr style={styles.thead}>
+            <th style={{ ...styles.th, textAlign: "left" }}>Metric</th>
+            <th style={styles.th}>Rank 1</th>
+            <th style={styles.th}>Rank 2</th>
+            <th style={styles.th}>Rank 3</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr
+              key={row.key}
+              style={{ backgroundColor: i % 2 === 0 ? "#ffffff" : "#f8fafc" }}
+            >
+              <td style={{ ...styles.td, fontWeight: 600, color: "#111827" }}>
+                {row.label}
+              </td>
+              {[0, 1, 2].map((idx) => {
+                const item = row.items[idx];
+                return (
+                  <td key={idx} style={{ ...styles.td, verticalAlign: "top" }}>
+                    {!item ? (
+                      <span style={{ color: "#9ca3af", fontSize: 12 }}>N/A</span>
+                    ) : (
+                      <div style={{ display: "grid", gap: 2 }}>
+                        <span style={{ fontWeight: 600, color: "#1f2937" }}>
+                          {item.candidateName}
+                        </span>
+                        <span style={{ color: "#6b7280", fontSize: 12 }}>
+                          {item.batchName}
+                        </span>
+                        <span style={{ color: "#334155", fontSize: 12 }}>
+                          {row.unit === "attendance"
+                            ? `${item.metricValue}%`
+                            : row.unit === "delta"
+                              ? `${item.metricValue >= 0 ? "+" : ""}${item.metricValue}`
+                              : `${item.metricValue}`}
+                        </span>
+                      </div>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function WiseDashboard({ accessCode }) {
   const api = makeApi(accessCode);
   const def = getDefaultRange();
@@ -230,38 +295,55 @@ export default function WiseDashboard({ accessCode }) {
   const [batches, setBatches] = useState([]);
   const [totalActive, setTotalActive] = useState(null);
   const [selectedBatch, setSelectedBatch] = useState("");
+  const [batchStatusFilter, setBatchStatusFilter] = useState("active");
   const [startDate, setStartDate] = useState(def.startDate);
   const [endDate, setEndDate] = useState(def.endDate);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [batchLoading, setBatchLoading] = useState(true);
+  const [statusUpdating, setStatusUpdating] = useState(false);
 
-  // Load batches on mount
-  useEffect(() => {
-    async function loadBatches() {
-      try {
-        const res = await api("/wise/batches");
-        setBatches(res.batches || []);
-        setTotalActive(res.totalActive ?? null);
-        if (res.batches && res.batches.length > 0) {
-          setSelectedBatch(res.batches[0].id);
-        }
-      } catch (e) {
-        setError(e.message || "Failed to load batches");
-      } finally {
-        setBatchLoading(false);
-      }
+  const [leaderboardMode, setLeaderboardMode] = useState("most");
+  const [leaderboardData, setLeaderboardData] = useState(null);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+
+  const selectedBatchObj = batches.find((b) => b.id === selectedBatch) || null;
+
+  const loadBatches = useCallback(async () => {
+    setBatchLoading(true);
+    try {
+      const res = await api.get("/wise/batches", { status: batchStatusFilter });
+      const nextBatches = res.batches || [];
+      setBatches(nextBatches);
+      setTotalActive(res.totalActive ?? null);
+
+      setSelectedBatch((prev) => {
+        if (prev && nextBatches.some((b) => b.id === prev)) return prev;
+        return nextBatches[0]?.id || "";
+      });
+    } catch (e) {
+      setError(e.message || "Failed to load batches");
+      setBatches([]);
+      setSelectedBatch("");
+    } finally {
+      setBatchLoading(false);
     }
+  }, [accessCode, batchStatusFilter]);
+
+  useEffect(() => {
     loadBatches();
-  }, []);
+  }, [loadBatches]);
 
   const fetchDashboard = useCallback(async () => {
-    if (!selectedBatch || !startDate || !endDate) return;
+    if (!selectedBatch || !startDate || !endDate) {
+      setData(null);
+      return;
+    }
     setLoading(true);
     setError("");
     try {
-      const res = await api("/wise/dashboard-data", {
+      const res = await api.get("/wise/dashboard-data", {
         batchId: selectedBatch,
         startDate,
         endDate,
@@ -275,10 +357,53 @@ export default function WiseDashboard({ accessCode }) {
     }
   }, [selectedBatch, startDate, endDate, accessCode]);
 
-  // Auto-fetch when batch or date changes
+  const fetchLeaderboard = useCallback(async () => {
+    if (!startDate || !endDate) return;
+    setLeaderboardLoading(true);
+    try {
+      const res = await api.get("/wise/leaderboard", {
+        startDate,
+        endDate,
+        mode: leaderboardMode,
+      });
+      setLeaderboardData(res);
+    } catch (e) {
+      setError((prev) => prev || e.message || "Failed to load leaderboard");
+      setLeaderboardData(null);
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  }, [startDate, endDate, leaderboardMode, accessCode]);
+
   useEffect(() => {
     if (selectedBatch) fetchDashboard();
   }, [fetchDashboard]);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [fetchLeaderboard]);
+
+  async function handleBatchStatusToggle() {
+    if (!selectedBatchObj) return;
+    setStatusUpdating(true);
+    setError("");
+    try {
+      const targetActive = !selectedBatchObj.isActive;
+      await api.patch(`/wise/batches/${selectedBatchObj.id}/status`, {
+        isActive: targetActive,
+      });
+      await loadBatches();
+      await fetchLeaderboard();
+    } catch (e) {
+      setError(e.message || "Failed to update batch status");
+    } finally {
+      setStatusUpdating(false);
+    }
+  }
+
+  async function handleRefresh() {
+    await Promise.all([fetchDashboard(), fetchLeaderboard(), loadBatches()]);
+  }
 
   const summary = data?.summary || {};
   const candidates = data?.candidates || [];
@@ -286,32 +411,46 @@ export default function WiseDashboard({ accessCode }) {
 
   return (
     <div style={styles.page}>
-      {/* Header */}
       <div style={styles.header}>
         <div>
           <h1 style={styles.pageTitle}>Wise Dashboard</h1>
-          <p style={styles.pageSubtitle}>
-            Batch performance and attendance analytics
-          </p>
+          <p style={styles.pageSubtitle}>Batch performance and attendance analytics</p>
         </div>
         <button
-          onClick={fetchDashboard}
-          disabled={loading || batchLoading}
+          onClick={handleRefresh}
+          disabled={loading || batchLoading || leaderboardLoading}
           style={{
             ...styles.refreshBtn,
-            opacity: loading || batchLoading ? 0.5 : 1,
+            opacity: loading || batchLoading || leaderboardLoading ? 0.5 : 1,
           }}
         >
           <RefreshCw
             size={15}
-            style={loading ? { animation: "spin 1s linear infinite" } : {}}
+            style={
+              loading || batchLoading || leaderboardLoading
+                ? { animation: "spin 1s linear infinite" }
+                : {}
+            }
           />
           Refresh
         </button>
       </div>
 
-      {/* Filters */}
       <div style={styles.filterRow}>
+        <div style={styles.filterGroup}>
+          <label style={styles.filterLabel}>Batch List Filter</label>
+          <select
+            value={batchStatusFilter}
+            onChange={(e) => setBatchStatusFilter(e.target.value)}
+            style={styles.select}
+            disabled={batchLoading || statusUpdating}
+          >
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="all">All</option>
+          </select>
+        </div>
+
         <div style={styles.filterGroup}>
           <label style={styles.filterLabel}>Batch</label>
           <select
@@ -321,12 +460,28 @@ export default function WiseDashboard({ accessCode }) {
             disabled={batchLoading}
           >
             {batchLoading && <option>Loading...</option>}
+            {!batchLoading && batches.length === 0 && <option value="">No batches</option>}
             {batches.map((b) => (
               <option key={b.id} value={b.id}>
-                {b.name}
+                {b.name} ({b.effectiveStatus})
               </option>
             ))}
           </select>
+        </div>
+
+        <div style={styles.filterGroup}>
+          <label style={styles.filterLabel}>Set Status</label>
+          <button
+            onClick={handleBatchStatusToggle}
+            disabled={!selectedBatchObj || statusUpdating}
+            style={{
+              ...styles.statusBtn,
+              backgroundColor: selectedBatchObj?.isActive ? "#b91c1c" : "#15803d",
+              opacity: !selectedBatchObj || statusUpdating ? 0.5 : 1,
+            }}
+          >
+            {statusUpdating ? "Updating..." : selectedBatchObj?.isActive ? "Mark Inactive" : "Mark Active"}
+          </button>
         </div>
 
         <div style={styles.filterGroup}>
@@ -353,10 +508,8 @@ export default function WiseDashboard({ accessCode }) {
         </div>
       </div>
 
-      {/* Error */}
       {error && <div style={styles.errorBanner}>{error}</div>}
 
-      {/* Loading overlay */}
       {loading && (
         <div style={styles.loadingRow}>
           <Loader2
@@ -370,103 +523,102 @@ export default function WiseDashboard({ accessCode }) {
         </div>
       )}
 
-      {/* Stat Cards */}
       {!loading && (
         <div style={styles.statGrid}>
           <StatCard
             icon={Activity}
             label="Overall Health"
             value={
-              summary.overallHealth !== null &&
-              summary.overallHealth !== undefined
+              summary.overallHealth !== null && summary.overallHealth !== undefined
                 ? `${summary.overallHealth}%`
-                : "—"
+                : "-"
             }
             sub="Avg cumulated score"
           />
           <StatCard
             icon={Calendar}
             label="Batch Start Date"
-            value={
-              selectedBatch && batches.find((b) => b.id === selectedBatch)?.createdAt
-                ? formatDate(batches.find((b) => b.id === selectedBatch).createdAt)
-                : "—"
-            }
-            sub={
-              selectedBatch
-                ? batches.find((b) => b.id === selectedBatch)?.name || ""
-                : ""
-            }
+            value={selectedBatchObj?.createdAt ? formatDate(selectedBatchObj.createdAt) : "-"}
+            sub={selectedBatchObj?.name || ""}
           />
           <StatCard
             icon={BookOpen}
             label="Classes in Range"
-            value={summary.totalClassesInRange ?? "—"}
+            value={summary.totalClassesInRange ?? "-"}
             sub={
               summary.dateRange
-                ? `${formatDate(summary.dateRange.startDate)} – ${formatDate(summary.dateRange.endDate)}`
+                ? `${formatDate(summary.dateRange.startDate)} - ${formatDate(summary.dateRange.endDate)}`
                 : ""
             }
           />
           <StatCard
             icon={TrendingUp}
-            label="Candidates"
-            value={candidates.length || "—"}
-            sub={
-              selectedBatch
-                ? batches.find((b) => b.id === selectedBatch)?.name || ""
-                : ""
-            }
+            label="Active Batches"
+            value={totalActive ?? "-"}
+            sub="Across Wise"
           />
         </div>
       )}
 
-      {/* Score legend */}
       {!loading && data && (
         <div style={styles.legendRow}>
-          <span
-            style={{
-              ...styles.legendDot,
-              background: "#dcfce7",
-              color: "#15803d",
-            }}
-          >
-            ≥ 70 Good
+          <span style={{ ...styles.legendDot, background: "#dcfce7", color: "#15803d" }}>
+            &gt;= 70 Good
           </span>
-          <span
-            style={{
-              ...styles.legendDot,
-              background: "#fef3c7",
-              color: "#92400e",
-            }}
-          >
+          <span style={{ ...styles.legendDot, background: "#fef3c7", color: "#92400e" }}>
             40 - 69 Fair
           </span>
-          <span
-            style={{
-              ...styles.legendDot,
-              background: "#fee2e2",
-              color: "#b91c1c",
-            }}
-          >
+          <span style={{ ...styles.legendDot, background: "#fee2e2", color: "#b91c1c" }}>
             &lt; 40 At Risk
           </span>
         </div>
       )}
 
-      {/* Candidate Performance Table */}
       {!loading && data && (
         <section style={styles.section}>
           <h2 style={styles.sectionTitle}>Candidate Performance</h2>
           <p style={styles.sectionNote}>
-            Cumulated Score = Attendance (60%) + Avg Interaction (40%)
-            &nbsp;·&nbsp; MTD = Previous full calendar month score
+            Cumulated Score = Attendance (60%) + Avg Interaction (40%) � MTD = Previous full calendar month score (N/A if no sessions)
           </p>
           <CandidateTable candidates={candidates} />
         </section>
       )}
 
-      {/* Attendance Grid */}
+      <section style={styles.section}>
+        <div style={styles.sectionHeaderRow}>
+          <div>
+            <h2 style={styles.sectionTitle}>Top/Bottom Students (All Active Batches)</h2>
+            <p style={styles.sectionNote}>
+              Interactive, Improved (vs previous month), and Attendance leaderboards (top/bottom 3)
+            </p>
+          </div>
+          <select
+            value={leaderboardMode}
+            onChange={(e) => setLeaderboardMode(e.target.value)}
+            style={styles.selectSmall}
+            disabled={leaderboardLoading}
+          >
+            <option value="most">Most</option>
+            <option value="least">Least</option>
+          </select>
+        </div>
+
+        {leaderboardLoading ? (
+          <div style={styles.loadingRow}>
+            <Loader2
+              size={20}
+              color="#163B72"
+              style={{ animation: "spin 1s linear infinite" }}
+            />
+            <span style={{ color: "#6b7280", fontSize: 14, marginLeft: 10 }}>
+              Loading leaderboard...
+            </span>
+          </div>
+        ) : (
+          <LeaderboardTable data={leaderboardData} mode={leaderboardMode} />
+        )}
+      </section>
+
       {!loading && grid && grid.rows && grid.rows.length > 0 && (
         <section style={styles.section}>
           <h2 style={styles.sectionTitle}>Last 7 Days Attendance</h2>
@@ -483,13 +635,12 @@ export default function WiseDashboard({ accessCode }) {
   );
 }
 
-// Styles
 const styles = {
   page: {
     minHeight: "100vh",
     backgroundColor: "#f8fafc",
     padding: "28px 24px",
-    maxWidth: 1200,
+    maxWidth: 1280,
     margin: "0 auto",
     fontFamily: "Inter, system-ui, sans-serif",
   },
@@ -553,6 +704,16 @@ const styles = {
     minWidth: 200,
     cursor: "pointer",
   },
+  selectSmall: {
+    padding: "8px 12px",
+    border: "1px solid #d1d5db",
+    borderRadius: 8,
+    fontSize: 14,
+    color: "#111827",
+    backgroundColor: "#fff",
+    minWidth: 120,
+    cursor: "pointer",
+  },
   dateInput: {
     padding: "8px 12px",
     border: "1px solid #d1d5db",
@@ -560,6 +721,15 @@ const styles = {
     fontSize: 14,
     color: "#111827",
     backgroundColor: "#fff",
+  },
+  statusBtn: {
+    border: "none",
+    color: "#fff",
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 600,
+    padding: "9px 12px",
+    cursor: "pointer",
   },
   errorBanner: {
     backgroundColor: "#fef2f2",
@@ -574,7 +744,7 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "40px 0",
+    padding: "24px 0",
   },
   statGrid: {
     display: "grid",
@@ -639,6 +809,14 @@ const styles = {
     marginBottom: 20,
     boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
     border: "1px solid #e5e7eb",
+  },
+  sectionHeaderRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 8,
+    flexWrap: "wrap",
   },
   sectionTitle: {
     fontSize: 16,
