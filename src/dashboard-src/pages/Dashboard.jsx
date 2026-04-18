@@ -1,5 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import {
+  ChevronDown,
+  ChevronRight,
   NavLink,
   Navigate,
   Route,
@@ -252,9 +254,11 @@ function SidebarModuleGroups({ title, modules }) {
                 className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
               >
                 <span>{moduleItem.label}</span>
-                <span className="text-xs text-slate-400">
-                  {open ? "Ôû¥" : "Ôû©"}
-                </span>
+                {open ? (
+                  <ChevronDown className="h-4 w-4 text-slate-400" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-slate-400" />
+                )}
               </button>
               {open && (
                 <div className="border-t border-slate-100 px-2 py-2">
