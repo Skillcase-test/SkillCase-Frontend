@@ -2325,6 +2325,16 @@ export default function AdminExamManager() {
   const [submissionDetail, setSubmissionDetail] = useState(null); // { submission, questions }
   // Per-item overrides for composite questions: { [questionId]: { [itemIdx]: boolean } }
   const [itemOverrides, setItemOverrides] = useState({});
+  const [actionLoading, setActionLoading] = useState({ active: false, label: "" });
+
+  const runWithActionLoading = async (label, fn) => {
+    setActionLoading({ active: true, label });
+    try {
+      return await fn();
+    } finally {
+      setActionLoading({ active: false, label: "" });
+    }
+  };
 
   // Drag-and-drop sensors
   const dndSensors = useSensors(
@@ -2444,8 +2454,10 @@ export default function AdminExamManager() {
     )
       return;
     try {
-      await deleteExam(testId);
-      await fetchExams();
+      await runWithActionLoading("Deleting exam...", async () => {
+        await deleteExam(testId);
+        await fetchExams();
+      });
     } catch (err) {
       setError("Failed to delete exam");
     }
@@ -2454,9 +2466,11 @@ export default function AdminExamManager() {
   const toggleResults = async () => {
     if (!selectedExam) return;
     try {
-      const res = await updateExam(selectedExam.test_id, {
-        results_visible: !selectedExam.results_visible,
-      });
+      const res = await runWithActionLoading("Updating result visibility...", () =>
+        updateExam(selectedExam.test_id, {
+          results_visible: !selectedExam.results_visible,
+        }),
+      );
       setSelectedExam(res.data?.exam);
     } catch (err) {
       setError("Failed to toggle results");
@@ -2466,11 +2480,14 @@ export default function AdminExamManager() {
   const toggleActive = async () => {
     if (!selectedExam) return;
     try {
-      const res = await updateExam(selectedExam.test_id, {
-        is_active: !selectedExam.is_active,
+      const res = await runWithActionLoading("Updating exam status...", async () => {
+        const updateRes = await updateExam(selectedExam.test_id, {
+          is_active: !selectedExam.is_active,
+        });
+        await fetchExams(); // Refresh list to show updated status
+        return updateRes;
       });
       setSelectedExam(res.data?.exam);
-      await fetchExams(); // Refresh list to show updated status
     } catch (err) {
       setError("Failed to toggle active status");
     }
@@ -2504,14 +2521,16 @@ export default function AdminExamManager() {
     }
     setSaving(true);
     try {
-      const res = await updateExam(selectedExam.test_id, {
-        title: editSettings.title.trim(),
-        description: editSettings.description || null,
-        proficiency_level: editSettings.proficiency_level,
-        duration_minutes: parseInt(editSettings.duration_minutes),
-        available_from: toUTC(editSettings.available_from),
-        available_until: toUTC(editSettings.available_until),
-      });
+      const res = await runWithActionLoading("Saving exam settings...", () =>
+        updateExam(selectedExam.test_id, {
+          title: editSettings.title.trim(),
+          description: editSettings.description || null,
+          proficiency_level: editSettings.proficiency_level,
+          duration_minutes: parseInt(editSettings.duration_minutes),
+          available_from: toUTC(editSettings.available_from),
+          available_until: toUTC(editSettings.available_until),
+        }),
+      );
       setSelectedExam(res.data?.exam);
       setShowEditSettings(false);
       await fetchExams();
@@ -2526,29 +2545,34 @@ export default function AdminExamManager() {
     if (!selectedExam) return;
     setSaving(true);
     try {
-      const formData = new FormData();
-      formData.append("question_type", qForm.question_type);
-      formData.append("question_data", JSON.stringify(qForm.question_data));
-      formData.append("points", qForm.points);
-      if (audioFile) formData.append("audio", audioFile);
-      formData.append("audio_url", audioLink.trim()); // always send; empty string = clear audio
-      if (imageBlockFile) formData.append("image_block_file", imageBlockFile);
-      if (questionImageFile) formData.append("question_image_file", questionImageFile);
-      Object.entries(optionImageFiles).forEach(([idx, file]) => {
-        if (file) formData.append(`option_image_file_${idx}`, file);
-      });
-      await addQuestion(selectedExam.test_id, formData);
-      setQForm({
-        question_type: "mcq_single",
-        question_data: getDefaultData("mcq_single"),
-        points: 1,
-      });
-      setAudioFile(null);
-      setAudioLink("");
-      setImageBlockFile(null);
-      setQuestionImageFile(null);
-      setOptionImageFiles({});
-      await openDetail(selectedExam);
+      await runWithActionLoading(
+        editingQuestionId ? "Updating question..." : "Adding question...",
+        async () => {
+          const formData = new FormData();
+          formData.append("question_type", qForm.question_type);
+          formData.append("question_data", JSON.stringify(qForm.question_data));
+          formData.append("points", qForm.points);
+          if (audioFile) formData.append("audio", audioFile);
+          formData.append("audio_url", audioLink.trim()); // always send; empty string = clear audio
+          if (imageBlockFile) formData.append("image_block_file", imageBlockFile);
+          if (questionImageFile) formData.append("question_image_file", questionImageFile);
+          Object.entries(optionImageFiles).forEach(([idx, file]) => {
+            if (file) formData.append(`option_image_file_${idx}`, file);
+          });
+          await addQuestion(selectedExam.test_id, formData);
+          setQForm({
+            question_type: "mcq_single",
+            question_data: getDefaultData("mcq_single"),
+            points: 1,
+          });
+          setAudioFile(null);
+          setAudioLink("");
+          setImageBlockFile(null);
+          setQuestionImageFile(null);
+          setOptionImageFiles({});
+          await openDetail(selectedExam);
+        },
+      );
     } catch (err) {
       setError(err.response?.data?.msg || "Failed to add question");
     } finally {
@@ -2560,30 +2584,32 @@ export default function AdminExamManager() {
     if (!selectedExam || !editingQuestionId) return;
     setSaving(true);
     try {
-      const formData = new FormData();
-      formData.append("question_type", qForm.question_type);
-      formData.append("question_data", JSON.stringify(qForm.question_data));
-      formData.append("points", qForm.points);
-      if (audioFile) formData.append("audio", audioFile);
-      formData.append("audio_url", audioLink.trim()); // always send; empty string = clear audio
-      if (imageBlockFile) formData.append("image_block_file", imageBlockFile);
-      if (questionImageFile) formData.append("question_image_file", questionImageFile);
-      Object.entries(optionImageFiles).forEach(([idx, file]) => {
-        if (file) formData.append(`option_image_file_${idx}`, file);
+      await runWithActionLoading("Saving question edits...", async () => {
+        const formData = new FormData();
+        formData.append("question_type", qForm.question_type);
+        formData.append("question_data", JSON.stringify(qForm.question_data));
+        formData.append("points", qForm.points);
+        if (audioFile) formData.append("audio", audioFile);
+        formData.append("audio_url", audioLink.trim()); // always send; empty string = clear audio
+        if (imageBlockFile) formData.append("image_block_file", imageBlockFile);
+        if (questionImageFile) formData.append("question_image_file", questionImageFile);
+        Object.entries(optionImageFiles).forEach(([idx, file]) => {
+          if (file) formData.append(`option_image_file_${idx}`, file);
+        });
+        await editQuestion(selectedExam.test_id, editingQuestionId, formData);
+        setEditingQuestionId(null);
+        setQForm({
+          question_type: "mcq_single",
+          question_data: getDefaultData("mcq_single"),
+          points: 1,
+        });
+        setAudioFile(null);
+        setAudioLink("");
+        setImageBlockFile(null);
+        setQuestionImageFile(null);
+        setOptionImageFiles({});
+        await openDetail(selectedExam);
       });
-      await editQuestion(selectedExam.test_id, editingQuestionId, formData);
-      setEditingQuestionId(null);
-      setQForm({
-        question_type: "mcq_single",
-        question_data: getDefaultData("mcq_single"),
-        points: 1,
-      });
-      setAudioFile(null);
-      setAudioLink("");
-      setImageBlockFile(null);
-      setQuestionImageFile(null);
-      setOptionImageFiles({});
-      await openDetail(selectedExam);
     } catch (err) {
       setError(err.response?.data?.msg || "Failed to edit question");
     } finally {
@@ -2594,8 +2620,10 @@ export default function AdminExamManager() {
   const handleDeleteQuestion = async (questionId) => {
     if (!window.confirm("Delete this question?")) return;
     try {
-      await deleteQuestion(selectedExam.test_id, questionId);
-      await openDetail(selectedExam);
+      await runWithActionLoading("Deleting question...", async () => {
+        await deleteQuestion(selectedExam.test_id, questionId);
+        await openDetail(selectedExam);
+      });
     } catch (err) {
       setError("Failed to delete question");
     }
@@ -2615,10 +2643,11 @@ export default function AdminExamManager() {
 
   const openVisibility = async () => {
     try {
-      const [visRes, batchRes] = await Promise.all([
-        getExamVisibility(selectedExam.test_id),
-        listBatches(),
-      ]);
+      const [visRes, batchRes] = await runWithActionLoading(
+        "Loading visibility settings...",
+        () =>
+          Promise.all([getExamVisibility(selectedExam.test_id), listBatches()]),
+      );
       setVisData(visRes.data || { batches: [], students: [] });
       setBatches(batchRes.data?.batches || []);
       setSelectedBatchIds([]);
@@ -2631,9 +2660,11 @@ export default function AdminExamManager() {
   const handleAddVisibility = async () => {
     if (selectedBatchIds.length === 0) return;
     try {
-      await setExamVisibility(selectedExam.test_id, {
-        batch_ids: selectedBatchIds,
-      });
+      await runWithActionLoading("Updating batch visibility...", () =>
+        setExamVisibility(selectedExam.test_id, {
+          batch_ids: selectedBatchIds,
+        }),
+      );
       const visRes = await getExamVisibility(selectedExam.test_id);
       setVisData(visRes.data || { batches: [], students: [] });
       setSelectedBatchIds([]);
@@ -2644,7 +2675,9 @@ export default function AdminExamManager() {
 
   const handleRemoveVis = async (visId) => {
     try {
-      await removeExamVisibility(selectedExam.test_id, visId);
+      await runWithActionLoading("Removing visibility...", () =>
+        removeExamVisibility(selectedExam.test_id, visId),
+      );
       const visRes = await getExamVisibility(selectedExam.test_id);
       setVisData(visRes.data || { batches: [], students: [] });
     } catch (err) {
@@ -2654,7 +2687,9 @@ export default function AdminExamManager() {
 
   const openSubmissions = async () => {
     try {
-      const res = await getExamSubmissions(selectedExam.test_id);
+      const res = await runWithActionLoading("Loading submissions...", () =>
+        getExamSubmissions(selectedExam.test_id),
+      );
       setSubmissions(res.data?.submissions || []);
       setView("submissions");
     } catch (err) {
@@ -2665,7 +2700,9 @@ export default function AdminExamManager() {
   const handleReopen = async (submissionId) => {
     if (!window.confirm("Reopen this exam for the student?")) return;
     try {
-      await reopenSubmission(submissionId);
+      await runWithActionLoading("Reopening submission...", () =>
+        reopenSubmission(submissionId),
+      );
       const res = await getExamSubmissions(selectedExam.test_id);
       setSubmissions(res.data?.submissions || []);
     } catch (err) {
@@ -2681,7 +2718,9 @@ export default function AdminExamManager() {
     )
       return;
     try {
-      await resetSubmissionForRetest(submissionId);
+      await runWithActionLoading("Resetting and reopening submission...", () =>
+        resetSubmissionForRetest(submissionId),
+      );
       const res = await getExamSubmissions(selectedExam.test_id);
       setSubmissions(res.data?.submissions || []);
     } catch (err) {
@@ -2691,7 +2730,9 @@ export default function AdminExamManager() {
 
   const openSubmissionDetail = async (submissionId) => {
     try {
-      const res = await getSubmissionDetail(submissionId);
+      const res = await runWithActionLoading("Loading submission details...", () =>
+        getSubmissionDetail(submissionId),
+      );
       setSubmissionDetail(res.data);
       setView("submission_detail");
     } catch (err) {
@@ -2702,9 +2743,11 @@ export default function AdminExamManager() {
   const handleOverrideAnswer = async (questionId) => {
     if (!submissionDetail) return;
     try {
-      const res = await overrideAnswer(
-        submissionDetail.submission.submission_id,
-        questionId,
+      const res = await runWithActionLoading("Saving answer override...", () =>
+        overrideAnswer(
+          submissionDetail.submission.submission_id,
+          questionId,
+        ),
       );
       const { is_correct, points_earned, earned_points, score } = res.data;
       setSubmissionDetail((prev) => ({
@@ -2724,10 +2767,12 @@ export default function AdminExamManager() {
   const handleOverrideAnswerPoints = async (questionId, computedPoints) => {
     if (!submissionDetail) return;
     try {
-      const res = await overrideAnswerPoints(
-        submissionDetail.submission.submission_id,
-        questionId,
-        computedPoints,
+      const res = await runWithActionLoading("Saving score correction...", () =>
+        overrideAnswerPoints(
+          submissionDetail.submission.submission_id,
+          questionId,
+          computedPoints,
+        ),
       );
       const { is_correct, points_earned, earned_points, score } = res.data;
       setSubmissionDetail((prev) => ({
@@ -2756,6 +2801,12 @@ export default function AdminExamManager() {
 
   return (
     <div className="p-6 max-w-4xl">
+      {actionLoading.active && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          {actionLoading.label || "Loading..."}
+        </div>
+      )}
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center justify-between">
           {error}{" "}
@@ -3511,7 +3562,9 @@ export default function AdminExamManager() {
             <button
               onClick={async () => {
                 try {
-                  const res = await exportExamExcel(selectedExam.test_id);
+                  const res = await runWithActionLoading("Exporting submissions...", () =>
+                    exportExamExcel(selectedExam.test_id),
+                  );
                   const url = URL.createObjectURL(new Blob([res.data], {
                     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                   }));

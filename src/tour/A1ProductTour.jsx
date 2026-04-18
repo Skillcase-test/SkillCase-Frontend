@@ -658,20 +658,6 @@ export default function A1ProductTour({ children }) {
 
   useEffect(() => {
     const handler = () => {
-      if (activeFeatureRef.current !== "reading") return;
-      destroyDriver();
-      showSuccess();
-      markDone("reading");
-      phaseLabelRef.current = null;
-      setActiveFeature(null);
-      setActivePhase(null);
-    };
-    window.addEventListener("tour:A1ReadingQuiz", handler);
-    return () => window.removeEventListener("tour:A1ReadingQuiz", handler);
-  }, [destroyDriver, markDone, showSuccess]);
-
-  useEffect(() => {
-    const handler = () => {
       if (activeFeatureRef.current !== "test") return;
       destroyDriver();
       setTimeout(() => {

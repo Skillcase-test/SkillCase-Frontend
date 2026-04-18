@@ -358,29 +358,6 @@ export const getA2TestSelectSteps = () => [
   },
 ];
 
-export const getA2TestPrerequisiteSteps = () => [
-  {
-    element: "#a2-test-prerequisite-modal",
-    popover: {
-      title: `${ICONS.fileText} Prerequisites`,
-      description:
-        "These are topics you should learn before attempting this test for the best experience.",
-      side: "bottom",
-      popoverClass: "centered-popover popover-bottom",
-    },
-  },
-  {
-    element: "#a2-test-got-it-btn",
-    isTapStep: true,
-    popover: {
-      title: `${ICONS.tap} Got it!`,
-      description: 'Tap "Got it!" to continue to the test levels.',
-      side: "top",
-      showButtons: [],
-    },
-  },
-];
-
 export const getA2TestLevelSteps = () => [
   {
     element: "#a2-test-levels",

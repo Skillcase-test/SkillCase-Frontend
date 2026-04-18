@@ -14,10 +14,31 @@ import {
 // Gmail-style Email Renderer
 export const EmailView = ({ content, onWordClick, renderContent }) => {
   // Parse email metadata from content (if structured)
-  const from = "Anna Müller <anna.mueller@beispiel.de>";
-  const to = "thomas.schmidt@beispiel.de";
-  const subject = content.title || "Betreff: Deine Nachricht";
-  const date = "22. Jan. 2026, 14:30";
+  const from =
+    content.from ||
+    content.from_email ||
+    content.sender_email ||
+    "Anna Müller <anna.mueller@beispiel.de>";
+  const to =
+    content.to ||
+    content.to_email ||
+    content.receiver_email ||
+    "tom.schmidth@beispiel.de";
+  const subject =
+    content.title || content.subject || "Betreff: Deine Nachricht";
+  const date = content.date || content.timestamp || "22. Jan. 2026, 14:30";
+  const fromName =
+    content.from_name ||
+    content.sender_name ||
+    (String(from).split("<")[0] || "Anna Müller").trim() ||
+    "Anna Müller";
+  const fromEmail =
+    content.from_email ||
+    content.sender_email ||
+    (String(from).includes("<")
+      ? String(from).split("<")[1]?.replace(">", "").trim()
+      : String(from)) ||
+    "anna.mueller@beispiel.de";
   return (
     <div className="bg-white rounded-xl border border-[#dadce0] overflow-hidden shadow-sm">
       {/* Email Header - Gmail Style */}
@@ -35,7 +56,7 @@ export const EmailView = ({ content, onWordClick, renderContent }) => {
         </div>
 
         {/* Sender Info Row */}
-        <div className="px-4 pb-3 flex items-start gap-3">
+        <div className="px-4 pb-1 flex items-start gap-3">
           {/* Avatar */}
           <div className="w-10 h-10 rounded-full bg-[#1a73e8] flex items-center justify-center flex-shrink-0">
             <span className="text-white text-sm font-medium">AM</span>
@@ -45,14 +66,14 @@ export const EmailView = ({ content, onWordClick, renderContent }) => {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-medium text-[#202124] text-sm">
-                Anna Müller
+                {fromName}
               </span>
               <span className="text-xs text-[#5f6368]">
-                &lt;anna.mueller@beispiel.de&gt;
+                &lt;{fromEmail}&gt;
               </span>
             </div>
             <div className="flex items-center gap-1 text-xs text-[#5f6368] mt-0.5">
-              <span>an mich</span>
+              <span>an tom</span>
               <ChevronDown className="w-3 h-3" />
             </div>
           </div>
@@ -111,6 +132,17 @@ export const SmsView = ({ content, onWordClick, renderContent }) => {
 
   // Split by newlines to create multiple bubbles
   const messages = contentText.split("\n\n").filter((m) => m.trim());
+  const senderName =
+    content.sender_name || content.sender || content.from || "Paul";
+  const receiverName =
+    content.receiver_name || content.receiver || content.to || "Anna";
+  const senderInitial =
+    String(senderName).trim().charAt(0).toUpperCase() || "P";
+  const receiverInitial =
+    String(receiverName).trim().charAt(0).toUpperCase() || "A";
+  const chatStatus = content.status || "Online";
+  const contextText =
+    typeof content.context === "string" ? content.context : "";
 
   return (
     <div className="bg-[#f0f4f8] rounded-xl p-4 min-h-[200px]">
@@ -120,23 +152,37 @@ export const SmsView = ({ content, onWordClick, renderContent }) => {
           <User className="w-5 h-5 text-white" />
         </div>
         <div>
-          <p className="font-semibold text-[#202124] text-sm">Maria</p>
-          <p className="text-xs text-[#5f6368]">Online</p>
+          <p className="font-semibold text-[#202124] text-sm">{senderName}</p>
+          <p className="text-xs text-[#5f6368]">{chatStatus}</p>
         </div>
       </div>
 
+      {contextText && (
+        <div className="mb-3 rounded-xl border border-[#c8d6e5] bg-white/70 px-3 py-2.5">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#5f6368]">
+            Context
+          </p>
+          <p className="text-sm text-[#202124] mt-1">{contextText}</p>
+        </div>
+      )}
+
       {/* Messages with integrated vocabulary highlighting */}
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {messages.map((msg, idx) => {
           // Alternate sides for visual effect (even = received, odd = sent)
           const isReceived = idx % 2 === 0;
           return (
             <div
               key={idx}
-              className={`flex ${isReceived ? "justify-start" : "justify-end"}`}
+              className={`flex items-end ${isReceived ? "justify-start pr-10" : "justify-end pl-10"}`}
             >
+              {isReceived && (
+                <div className="w-5 h-5 mr-2 rounded-full bg-[#002856] text-white text-[10px] font-semibold flex items-center justify-center flex-shrink-0">
+                  {senderInitial}
+                </div>
+              )}
               <div
-                className={`max-w-[80%] px-4 py-2.5 rounded-2xl ${
+                className={`max-w-[80%] px-3 py-2 rounded-2xl ${
                   isReceived
                     ? "bg-white text-[#202124] rounded-bl-md"
                     : "bg-[#002856] text-white rounded-br-md"
@@ -145,17 +191,15 @@ export const SmsView = ({ content, onWordClick, renderContent }) => {
                   boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
                 }}
               >
-                <p className="text-[15px] leading-relaxed">
+                <p className="text-[14px] leading-relaxed">
                   {renderTextWithVocab(msg.trim())}
                 </p>
-                <p
-                  className={`text-[10px] mt-1 text-right ${
-                    isReceived ? "text-[#5f6368]" : "text-white/70"
-                  }`}
-                >
-                  {isReceived ? "14:30" : "14:32"}
-                </p>
               </div>
+              {!isReceived && (
+                <div className="w-5 h-5 ml-2 rounded-full bg-[#002856] text-white text-[10px] font-semibold flex items-center justify-center flex-shrink-0">
+                  {receiverInitial}
+                </div>
+              )}
             </div>
           );
         })}

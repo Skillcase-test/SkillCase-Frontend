@@ -20,6 +20,40 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+function shuffleNonIdentity(items, identityRef = items) {
+  const arr = Array.isArray(items) ? [...items] : [];
+  if (arr.length <= 1) return arr;
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    arr.sort(() => Math.random() - 0.5);
+    const changed = arr.some((item, idx) => item !== identityRef[idx]);
+    if (changed) return [...arr];
+  }
+
+  const fallback = [...items];
+  const first = fallback.shift();
+  fallback.push(first);
+  return fallback;
+}
+
+function capitalizeFirst(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+export function formatGermanArticleWord(card = {}) {
+  const article = String(
+    card.article || card.word_article || card.wordArticle || "",
+  )
+    .trim()
+    .toLowerCase();
+  const noun = capitalizeFirst(card.word_de || card.word || "");
+
+  if (!article) return noun;
+  return `${article} ${noun}`.trim();
+}
+
 // DnD Word Component
 export function WordItem({ word, isDragging, isOverlay }) {
   return (
@@ -67,7 +101,7 @@ export function QuizMatching({ question, value, onChange, showResult }) {
   );
 
   const [rightItems] = useState(() =>
-    [...rightItemsRaw].sort(() => Math.random() - 0.5),
+    shuffleNonIdentity(rightItemsRaw, rightItemsRaw),
   );
   const [selected, setSelected] = useState(null);
   const [matches, setMatches] = useState({});
@@ -351,7 +385,7 @@ export const generateTestQuestions = (flashcardSet, indices, isFinal) => {
     front_image_url:
       card.front_image_url || card.front_image || card.image_url || null,
   }));
-  const shuffled = [...withNormalizedImage].sort(() => Math.random() - 0.5);
+  const shuffled = shuffleNonIdentity(withNormalizedImage, withNormalizedImage);
   let qs = [];
   const count = isFinal ? 25 : 10;
 
@@ -383,12 +417,14 @@ export const generateTestQuestions = (flashcardSet, indices, isFinal) => {
     const wrongOptsDe = shuffled
       .filter((_, j) => j !== i)
       .slice(0, 3)
-      .map((x) => x.word_de);
+      .map((x) => formatGermanArticleWord(x));
+
+    const formattedGerman = formatGermanArticleWord(c);
 
     if (type === "mcq" && wrongOptsEn.length >= 3) {
       qs.push({
         type: "mcq",
-        question: c.word_de,
+        question: formattedGerman,
         questionLabel: "Choose correct meaning",
         options: [c.meaning_en, ...wrongOptsEn].sort(() => Math.random() - 0.5),
         correctAnswer: c.meaning_en,
@@ -403,15 +439,17 @@ export const generateTestQuestions = (flashcardSet, indices, isFinal) => {
         question: "", // Image is used instead
         question_image: c.front_image_url,
         questionLabel: "Match the correct word to this image",
-        options: [c.word_de, ...wrongOptsDe].sort(() => Math.random() - 0.5),
-        correctAnswer: c.word_de,
+        options: [formattedGerman, ...wrongOptsDe].sort(
+          () => Math.random() - 0.5,
+        ),
+        correctAnswer: formattedGerman,
       });
     } else if (type === "truefalse") {
       const isCorrect = Math.random() > 0.5;
       const wrongIdx = (i + 1) % shuffled.length;
       qs.push({
         type: "truefalse",
-        question: c.word_de,
+        question: formattedGerman,
         displayAnswer: isCorrect ? c.meaning_en : shuffled[wrongIdx].meaning_en,
         questionLabel: "Is this correct?",
         correctAnswer: isCorrect,
@@ -426,7 +464,7 @@ export const generateTestQuestions = (flashcardSet, indices, isFinal) => {
     } else if (type === "fill_options" && wrongOptsEn.length >= 3) {
       qs.push({
         type: "fill_options",
-        question: `Select the meaning of "${c.word_de}"`,
+        question: `Select the meaning of "${formattedGerman}"`,
         questionLabel: "Select correct option",
         options: [c.meaning_en, ...wrongOptsEn].sort(() => Math.random() - 0.5),
         correctAnswer: c.meaning_en,
@@ -457,26 +495,29 @@ export const generateTestQuestions = (flashcardSet, indices, isFinal) => {
       const subset = shuffled.slice(0, 4);
       const useImages =
         Math.random() > 0.5 && subset.every((x) => x.front_image_url);
+      const matchingRightItems = shuffleNonIdentity(
+        subset.map((x) =>
+          useImages ? formatGermanArticleWord(x) : x.meaning_en,
+        ),
+      );
 
       qs.push({
         type: "matching",
         questionLabel: useImages ? "Match images with words" : "Match pairs",
         question_data: {
           left_items: subset.map((x) =>
-            useImages ? x.front_image_url : x.word_de,
+            useImages ? x.front_image_url : formatGermanArticleWord(x),
           ),
-          right_items: subset
-            .map((x) => (useImages ? x.word_de : x.meaning_en))
-            .sort(() => Math.random() - 0.5),
+          right_items: matchingRightItems,
           correct_pairs: subset.map((x) =>
-            useImages ? x.word_de : x.meaning_en,
+            useImages ? formatGermanArticleWord(x) : x.meaning_en,
           ),
         },
         correctAnswer: subset.map((x) =>
-          useImages ? x.word_de : x.meaning_en,
+          useImages ? formatGermanArticleWord(x) : x.meaning_en,
         ),
       });
     }
   }
-  return qs.sort(() => Math.random() - 0.5);
+  return shuffleNonIdentity(qs, qs);
 };

@@ -315,13 +315,14 @@ export const getA1ReadingSteps = () => [
     },
   },
   {
-    element: "#A1-reading-quiz-btn",
-    isTapStep: true,
+    element: "#A1-reading-questions",
     popover: {
-      title: `${ICONS.tap} Take Quiz`,
-      description: "Tap to attempt the reading quiz.",
+      title: `${ICONS.check} Questions Section`,
+      description:
+        "Answer the reading questions below, then submit when ready.",
       side: "top",
-      showButtons: [],
+      showButtons: ["next"],
+      nextBtnText: "Done",
     },
   },
 ];

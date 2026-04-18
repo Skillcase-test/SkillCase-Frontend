@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 
 import api from "../../../api/axios.js";
-import axios from "axios";
 import { RRule } from "rrule";
 
 import {
@@ -335,7 +334,7 @@ const PRESET_RRULES = [
   { label: "Custom", value: "custom" },
 ];
 
-export default function ManageEvents({ useAccessCodeAuth = false }) {
+export default function ManageEvents() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -373,21 +372,7 @@ export default function ManageEvents({ useAccessCodeAuth = false }) {
   const [loadingRegistrations, setLoadingRegistrations] = useState(false);
   const [registrationFilter, setRegistrationFilter] = useState("all");
 
-  const getApi = () => {
-    if (useAccessCodeAuth) {
-      const code = sessionStorage.getItem("event_access_code");
-      const instance = axios.create({
-        baseURL: import.meta.env.VITE_BACKEND_URL,
-      });
-      instance.interceptors.request.use((config) => {
-        config.headers["x-access-code"] = code;
-        return config;
-      });
-      return instance;
-    }
-    return api;
-  };
-  const activeApi = getApi();
+  const activeApi = api;
 
   useEffect(() => {
     fetchEvents();

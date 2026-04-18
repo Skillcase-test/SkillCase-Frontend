@@ -60,7 +60,6 @@ import NursingGermanyLanding from "./pages/NursingGermanyLanding";
 import AllEventsPage from "./pages/event/AllEventsPage";
 import EventDetailPage from "./pages/event/EventDetailPage";
 import FeaturedEventPage from "./pages/event/FeaturedEventPage";
-import ManageEventsPublic from "./pages/event/ManageEventsPublic";
 
 // A2 Imports
 import A2FlashcardSelect from "./pages/a2/flashcard/A2FlashcardSelect";
@@ -108,12 +107,12 @@ import NewsPage from "./pages/news/NewsPage";
 import PublicInterviewPage from "./pages/interviewTools/PublicInterviewPage";
 
 // Wise
-import WisePublic from "./pages/internal/WisePublic";
 
 //fallback page
 import FallbackPage from "./pages/FallbackPage";
 
 import ContinuePractice from "./pages/ContinuePractice";
+import TermsRequiredPage from "./pages/TermsRequiredPage";
 
 //capacitor app
 import { Capacitor } from "@capacitor/core";
@@ -122,10 +121,9 @@ import { LiveUpdate } from "@capawesome/capacitor-live-update";
 import { App as CapApp } from "@capacitor/app";
 import { initPushNotifications } from "./notifications/pushNotifications";
 
-import InternalLeadForm from "./pages/InternalLeadForm";
 import ProductTour from "./tour/ProductTour";
 
-export const APP_VERSION = "1.1.3";
+export const APP_VERSION = "1.1.4";
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 2000;
 const PLAY_STORE_URL = "market://details?id=com.skillcase.app";
@@ -157,6 +155,7 @@ function AppContent() {
   const dispatch = useDispatch();
   const { token, user, isAuthenticated } = useSelector((state) => state.auth);
   const location = useLocation();
+  const [authBootstrapping, setAuthBootstrapping] = useState(Boolean(token));
 
   const [otaState, setOtaState] = useState(null); // null | 'play_store' | 'ota_downloading' | 'ota_ready'
 
@@ -167,14 +166,18 @@ function AppContent() {
     "/register",
     "/open-app",
     "/thank-you",
-    "/internal/lead-form",
-    "/manage-event",
     "/events",
-    "/internal/wise",
   ];
   const isPublicRoute =
     publicRoutes.some((route) => location.pathname.startsWith(route)) ||
     /^\/interview\/[^/]+$/.test(location.pathname);
+  const isTermsRoute = location.pathname === "/terms-required";
+  const requiresTermsAcceptance =
+    isAuthenticated &&
+    user?.role === "user" &&
+    user?.is_paid &&
+    user?.terms_required &&
+    !user?.terms_accepted;
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
@@ -335,23 +338,55 @@ function AppContent() {
   };
 
   useEffect(() => {
+    let active = true;
+
     const fetchUser = async () => {
-      if (token) {
-        try {
-          const res = await api.post("/user/me");
-          dispatch(setUser(res.data.user));
-        } catch (err) {
-          console.error("Token expired or invalid");
-          dispatch(logout());
-        }
+      if (!token) {
+        if (active) setAuthBootstrapping(false);
+        return;
+      }
+
+      if (active) setAuthBootstrapping(true);
+      try {
+        const res = await api.post("/user/me");
+        if (!active) return;
+        dispatch(setUser(res.data.user));
+      } catch (err) {
+        if (!active) return;
+        console.error("Token expired or invalid");
+        dispatch(logout());
+      } finally {
+        if (active) setAuthBootstrapping(false);
       }
     };
     fetchUser();
+
+    return () => {
+      active = false;
+    };
   }, [token, dispatch]);
+
+  if (token && authBootstrapping) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">
+        Loading your account...
+      </div>
+    );
+  }
 
   // Redirect to signup if not authenticated and trying to access protected route
   if (!isAuthenticated && !isPublicRoute) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (requiresTermsAcceptance && !isTermsRoute) {
+    return (
+      <Navigate
+        to="/terms-required"
+        replace
+        state={{ from: `${location.pathname}${location.search}` }}
+      />
+    );
   }
 
   return (
@@ -395,7 +430,7 @@ function AppContent() {
                 path="/practice/:prof_level/:set_id"
                 element={<FlashcardStudyPage />}
               />
-              <Route path="/admin" element={<Dashboard />} />
+              <Route path="/admin/*" element={<Dashboard />} />
               <Route
                 path="/pronounce/:prof_level/:pronounce_id"
                 element={<Pronounce />}
@@ -424,15 +459,19 @@ function AppContent() {
               <Route path="/register" element={<NursingGermanyLanding />} />
               <Route path="/thank-you" element={<ThankYouPage />} />
               <Route path="/open-app" element={<FallbackPage />} />
+              <Route path="/terms-required" element={<TermsRequiredPage />} />
               <Route path="/continue" element={<ContinuePractice />} />
               <Route
                 path="/internal/lead-form"
-                element={<InternalLeadForm />}
+                element={<Navigate to="/admin/internal-leads" replace />}
               />
               <Route path="/events" element={<AllEventsPage />} />
               <Route path="/events/featured" element={<FeaturedEventPage />} />
               <Route path="/events/:slug" element={<EventDetailPage />} />
-              <Route path="/manage-event" element={<ManageEventsPublic />} />
+              <Route
+                path="/manage-event"
+                element={<Navigate to="/admin/events" replace />}
+              />
 
               <Route path="/profile" element={<ProfilePage />} />
 
@@ -530,7 +569,10 @@ function AppContent() {
               />
 
               {/* Wise */}
-              <Route path="/internal/wise" element={<WisePublic />} />
+              <Route
+                path="/internal/wise"
+                element={<Navigate to="/admin/wise" replace />}
+              />
             </Routes>
 
             <ConditionalFooter />
@@ -548,6 +590,7 @@ function ConditionalFooter() {
     location.pathname === "/register" ||
     location.pathname === "/thank-you" ||
     location.pathname === "/internal/lead-form" ||
+    location.pathname === "/terms-required" ||
     location.pathname.startsWith("/news");
 
   if (hideFooter) return null;
@@ -560,7 +603,8 @@ function ConditionalNav() {
   const hideNav =
     location.pathname === "/register" ||
     location.pathname === "/thank-you" ||
-    location.pathname === "/internal/lead-form";
+    location.pathname === "/internal/lead-form" ||
+    location.pathname === "/terms-required";
 
   const disableNav = /^\/exam\/[^/]+\/take$/.test(location.pathname);
 

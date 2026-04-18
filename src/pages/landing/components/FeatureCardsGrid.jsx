@@ -137,7 +137,7 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
   const a1RevampFeatures = [
     {
       id: "a1-revamp-flashcard",
-      title: "A1 Flashcards",
+      title: "Flashcards",
       description: "Learn image-based vocabulary with quiz checkpoints",
       image: images.flashcards,
       link: "/a1/flashcard",
@@ -145,15 +145,15 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
     },
     {
       id: "a1-revamp-grammar",
-      title: "A1 Grammar",
-      description: "Learn chapter-wise grammar in revamped A1",
+      title: "Grammar",
+      description: "Learn chapter-wise grammar in A1",
       image: images.grammar || images.flashcards,
       link: "/a1/grammar",
       enabled: true,
     },
     {
       id: "a1-revamp-listening",
-      title: "A1 Listening",
+      title: "Listening",
       description: "Train your ear with guided beginner audio tasks",
       image: images.speakToAI,
       link: "/a1/listening",
@@ -161,7 +161,7 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
     },
     {
       id: "a1-revamp-speaking",
-      title: "A1 Speaking",
+      title: "Speaking",
       description: "Practice pronunciation with guided speaking cards",
       image: images.interview,
       link: "/a1/speaking",
@@ -169,16 +169,16 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
     },
     {
       id: "a1-revamp-reading",
-      title: "A1 Reading",
-      description: "Practice reading comprehension in revamped A1",
+      title: "Reading",
+      description: "Practice reading comprehension in A1",
       image: images.vocabulary,
       link: "/a1/reading",
       enabled: true,
     },
     {
       id: "a1-revamp-test",
-      title: "A1 Test",
-      description: "Take level-wise revamped A1 tests",
+      title: "Test",
+      description: "Take level-wise A1 tests",
       image: images.mockTest,
       link: "/a1/test",
       enabled: true,

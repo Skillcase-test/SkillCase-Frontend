@@ -184,10 +184,12 @@ export default function InterviewToolsReviewPage({
               <InterviewVideoPlayer
                 src={activeAnswer.question_video_url}
                 title="Question Prompt"
+                initialDurationSeconds={Number(activeAnswer.video_duration_seconds || 0)}
               />
               <InterviewVideoPlayer
                 src={activeAnswer.answer_video_url}
                 title="Candidate Answer"
+                initialDurationSeconds={Number(activeAnswer.answer_duration_seconds || 0)}
               />
             </div>
 

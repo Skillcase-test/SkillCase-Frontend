@@ -1,12 +1,9 @@
 import { useState, useRef } from "react";
-import { CheckCircle, Loader2, Eye, EyeOff } from "lucide-react";
+import { CheckCircle, Loader2 } from "lucide-react";
 
 export default function InternalLeadForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false);
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
 
   const formRef = useRef(null);
 
@@ -47,50 +44,6 @@ export default function InternalLeadForm() {
       setSubmitSuccess(true);
     }, 2000);
   };
-
-  if (!authenticated) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-lg">
-          <h2 className="text-2xl font-bold text-[#002856] mb-6 text-center">
-            Access Required
-          </h2>
-          <div className="relative mb-4">
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Enter access code"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1976D2]"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 cursor-pointer"
-            >
-              {showPassword ? (
-                <EyeOff className="w-5 h-5" />
-              ) : (
-                <Eye className="w-5 h-5" />
-              )}
-            </button>
-          </div>
-          <button
-            onClick={() => {
-              if (password === import.meta.env.VITE_PASSWORD) {
-                setAuthenticated(true);
-              } else {
-                alert("Invalid access code");
-              }
-            }}
-            className="w-full bg-[#1980d8] text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition-all cursor-pointer"
-          >
-            Access Form
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">

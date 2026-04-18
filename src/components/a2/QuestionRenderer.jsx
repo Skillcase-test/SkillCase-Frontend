@@ -22,6 +22,36 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+function shuffleNonIdentity(items, identityRef = items) {
+  const arr = Array.isArray(items) ? [...items] : [];
+  if (arr.length <= 1) return arr;
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    arr.sort(() => Math.random() - 0.5);
+    const changed = arr.some((item, idx) => item !== identityRef[idx]);
+    if (changed) return [...arr];
+  }
+
+  const fallback = [...items];
+  const first = fallback.shift();
+  fallback.push(first);
+  return fallback;
+}
+
+function normalizeBool(value) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    if (v === "true") return true;
+    if (v === "false") return false;
+  }
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
+  return null;
+}
+
 function WordItem({ word, isDragging, isOverlay }) {
   return (
     <div
@@ -68,7 +98,10 @@ function SentenceOrderingQuestion({
 
   useEffect(() => {
     if (question_data?.words) {
-      const shuffled = [...question_data.words].sort(() => Math.random() - 0.5);
+      const shuffled = shuffleNonIdentity(
+        question_data.words,
+        question_data.correct_order || question_data.words,
+      );
       setOrderedWords(shuffled);
     }
   }, [question_data]);
@@ -242,7 +275,7 @@ function MatchingQuestion({
       }));
     }
 
-    const shuffledRight = [...right].sort(() => Math.random() - 0.5);
+    const shuffledRight = shuffleNonIdentity(right, right);
 
     setLeftItems(left);
     setRightItems(shuffledRight);
@@ -563,9 +596,12 @@ export default function QuestionRenderer({
   const getOptions = () => question_data?.options || [];
   const getCorrectAnswer = () => {
     // Check for string correct answers first
-    if (question_data?.correct) return question_data.correct;
-    if (question_data?.correct_answer) return question_data.correct_answer;
-    if (question_data?.correctAnswer) return question_data.correctAnswer;
+    if (question_data && question_data.correct !== undefined)
+      return question_data.correct;
+    if (question_data && question_data.correct_answer !== undefined)
+      return question_data.correct_answer;
+    if (question_data && question_data.correctAnswer !== undefined)
+      return question_data.correctAnswer;
     // Handle correct_answers array (fill_blank_typing uses this)
     if (Array.isArray(question_data?.correct_answers)) {
       return question_data.correct_answers.join(" / ");
@@ -703,36 +739,43 @@ export default function QuestionRenderer({
       );
 
     case "true_false":
-    case "truefalse":
+    case "truefalse": {
+      const normalizedCorrect = normalizeBool(getCorrectAnswer());
       return (
         <div className="space-y-4">
           <p className="text-lg font-medium text-gray-800 mb-4">
             {getQuestionText()}
           </p>
           <div className="flex gap-4">
-            {[true, false].map((value) => (
-              <button
-                key={String(value)}
-                onClick={() => !showResult && handleSelect(value)}
-                disabled={showResult}
-                className={`flex-1 p-4 rounded-xl border-2 font-semibold transition-all ${
-                  localAnswer === value
-                    ? showResult
-                      ? isCorrect
+            {[true, false].map((value) => {
+              const isSelected = normalizeBool(localAnswer) === value;
+              const isCorrectOption = normalizedCorrect === value;
+
+              return (
+                <button
+                  key={String(value)}
+                  onClick={() => !showResult && handleSelect(value)}
+                  disabled={showResult}
+                  className={`flex-1 p-4 rounded-xl border-2 font-semibold transition-all ${
+                    isSelected
+                      ? showResult
+                        ? isCorrectOption
+                          ? "border-green-500 bg-green-50 text-green-700"
+                          : "border-red-500 bg-red-50 text-red-700"
+                        : "border-[#002856] bg-[#edfaff] text-[#002856]"
+                      : showResult && isCorrectOption
                         ? "border-green-500 bg-green-50 text-green-700"
-                        : "border-red-500 bg-red-50 text-red-700"
-                      : "border-[#002856] bg-[#edfaff] text-[#002856]"
-                    : showResult && value === getCorrectAnswer()
-                      ? "border-green-500 bg-green-50 text-green-700"
-                      : "border-gray-200 hover:border-gray-300 text-gray-600"
-                }`}
-              >
-                {value ? "True" : "False"}
-              </button>
-            ))}
+                        : "border-gray-200 hover:border-gray-300 text-gray-600"
+                  }`}
+                >
+                  {value ? "True" : "False"}
+                </button>
+              );
+            })}
           </div>
         </div>
       );
+    }
 
     case "fill_typing":
     case "fill_blank_typing": {
@@ -818,25 +861,39 @@ export default function QuestionRenderer({
               {question_data.explanation}
             </p>
           )}
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {getOptions().map((option, idx) => (
               <button
                 key={idx}
                 onClick={() => !showResult && handleSelect(option)}
                 disabled={showResult}
-                className={`px-4 py-2 rounded-full border-2 font-medium transition-all ${
+                className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
                   localAnswer === option
                     ? showResult
                       ? isCorrect
                         ? "border-green-500 bg-green-50 text-green-700"
                         : "border-red-500 bg-red-50 text-red-700"
-                      : "border-[#002856] bg-[#002856] text-white"
+                      : "border-[#002856] bg-[#edfaff] text-[#002856]"
                     : showResult && option === getCorrectAnswer()
                       ? "border-green-500 bg-green-50 text-green-700"
-                      : "border-gray-200 hover:border-gray-300"
+                      : "border-gray-200 bg-gray-50 hover:border-gray-300"
                 }`}
               >
-                {option}
+                <div className="flex items-center justify-between">
+                  <span>{option}</span>
+                  {showResult &&
+                    localAnswer === option &&
+                    (isCorrect ? (
+                      <Check className="w-5 h-5 text-green-500" />
+                    ) : (
+                      <X className="w-5 h-5 text-red-500" />
+                    ))}
+                  {showResult &&
+                    !isCorrect &&
+                    option === getCorrectAnswer() && (
+                      <Check className="w-5 h-5 text-green-500" />
+                    )}
+                </div>
               </button>
             ))}
           </div>

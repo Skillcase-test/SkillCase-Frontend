@@ -948,7 +948,7 @@ function Sidebar({
         {/* ====== A1 REVAMP FEATURES SECTION ====== */}
         <li className="px-3 py-2 rounded-sm mb-0.5 last:mb-0">
           <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-            A1 Revamp Features
+            A1
           </span>
         </li>
 

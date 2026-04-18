@@ -170,7 +170,7 @@ export default function Navbar({ minimal = false, disableNavigation = false }) {
             {/* Auth Buttons - Desktop */}
             {isAuthenticated ? (
               <div className="flex items-center gap-4 ml-4">
-                {user?.role === "admin" && (
+                {["admin","super_admin"].includes(user?.role) && (
                   <Link
                     to="/admin"
                     className="bg-[#002856] text-white px-4 py-2 rounded-lg hover:bg-[#003d83] transition font-semibold text-sm"
@@ -479,7 +479,7 @@ export default function Navbar({ minimal = false, disableNavigation = false }) {
             {/* Auth Section - Mobile */}
             {isAuthenticated ? (
               <>
-                {user?.role === "admin" && (
+                {["admin","super_admin"].includes(user?.role) && (
                   <Link
                     to="/admin"
                     className="block px-4 py-3 rounded-lg bg-[#002856] text-white font-semibold text-center"

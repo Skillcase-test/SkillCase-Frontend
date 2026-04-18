@@ -145,7 +145,7 @@ export default function ChapterSelectTemplate({
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base font-semibold text-[#181d27] flex-1 pr-2 whitespace-nowrap">
+                  <h3 className="text-sm font-semibold text-[#181d27] flex-1 pr-2 whitespace-nowrap">
                     {chapter.chapter_name || `Chapter ${index + 1}`}
                   </h3>
                   <div className="flex items-center gap-1 flex-shrink-0">
@@ -155,7 +155,7 @@ export default function ChapterSelectTemplate({
                       } px-2.5 py-1 rounded-full`}
                     >
                       <span
-                        className={`text-[13px] font-medium whitespace-nowrap ${
+                        className={`text-[12px] font-medium whitespace-nowrap ${
                           isLocked ? "text-gray-500" : badgeStyle.text
                         }`}
                       >

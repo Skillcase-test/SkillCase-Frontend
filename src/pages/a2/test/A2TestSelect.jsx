@@ -3,21 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import ChapterSelectTemplate from "../../../components/a2/ChapterSelectTemplate";
 import { getTestTopics } from "../../../api/a2Api";
-import A2TestPrerequisiteModal from "../../../components/a2/A2TestPrerequisiteModal";
 export default function A2TestSelect() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTopic, setSelectedTopic] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-
-  // Dispatch tour event when prerequisite modal is shown
-  useEffect(() => {
-    if (showModal) {
-      window.dispatchEvent(new Event("tour:a2TestPrerequisite"));
-    }
-  }, [showModal]);
   useEffect(() => {
     if (!user) {
       navigate("/login");
@@ -71,29 +61,7 @@ export default function A2TestSelect() {
     }
   };
   const handleTopicClick = (topic) => {
-    let prerequisites = [];
-    if (topic.prerequisites) {
-      if (Array.isArray(topic.prerequisites)) {
-        prerequisites = topic.prerequisites;
-      } else if (typeof topic.prerequisites === "string") {
-        try {
-          prerequisites = JSON.parse(topic.prerequisites);
-        } catch {
-          prerequisites = [];
-        }
-      }
-    }
-
-    if (prerequisites.length > 0) {
-      setSelectedTopic({ ...topic, prerequisites });
-      setShowModal(true);
-    } else {
-      navigate(`/a2/test/${topic.topic_id}`);
-    }
-  };
-  const handleModalDismiss = () => {
-    setShowModal(false);
-    navigate(`/a2/test/${selectedTopic.topic_id}`);
+    navigate(`/a2/test/${topic.topic_id}`);
   };
   const getProgress = (chapter) => ({
     completed: chapter.completedCount || 0,
@@ -111,12 +79,6 @@ export default function A2TestSelect() {
         backPath="/"
         showTourIds
       />
-      {showModal && selectedTopic && (
-        <A2TestPrerequisiteModal
-          topic={selectedTopic}
-          onDismiss={handleModalDismiss}
-        />
-      )}
     </>
   );
 }

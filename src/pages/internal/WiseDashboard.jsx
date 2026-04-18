@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Loader2,
   RefreshCw,
@@ -7,35 +7,7 @@ import {
   TrendingUp,
   Calendar,
 } from "lucide-react";
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
-function makeApi(accessCode) {
-  async function request(path, { method = "GET", params = {}, body } = {}) {
-    const url = new URL(`${BACKEND_URL}${path}`);
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== null && v !== undefined) url.searchParams.set(k, v);
-    });
-
-    const res = await fetch(url.toString(), {
-      method,
-      headers: {
-        "x-wise-access-code": accessCode,
-        "Content-Type": "application/json",
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "API error");
-    return data;
-  }
-
-  return {
-    get: (path, params = {}) => request(path, { method: "GET", params }),
-    patch: (path, body = {}) => request(path, { method: "PATCH", body }),
-  };
-}
+import api from "../../api/axios";
 
 function toDateString(date) {
   return date.toISOString().split("T")[0];
@@ -288,8 +260,21 @@ function LeaderboardTable({ data, mode }) {
   );
 }
 
-export default function WiseDashboard({ accessCode }) {
-  const api = makeApi(accessCode);
+function makeWiseApi() {
+  return {
+    get: async (path, params = {}) => {
+      const res = await api.get(path, { params });
+      return res.data;
+    },
+    patch: async (path, body = {}) => {
+      const res = await api.patch(path, body);
+      return res.data;
+    },
+  };
+}
+
+export default function WiseDashboard() {
+  const wiseApi = useMemo(() => makeWiseApi(), []);
   const def = getDefaultRange();
 
   const [batches, setBatches] = useState([]);
@@ -313,7 +298,7 @@ export default function WiseDashboard({ accessCode }) {
   const loadBatches = useCallback(async () => {
     setBatchLoading(true);
     try {
-      const res = await api.get("/wise/batches", { status: batchStatusFilter });
+      const res = await wiseApi.get("/wise/batches", { status: batchStatusFilter });
       const nextBatches = res.batches || [];
       setBatches(nextBatches);
       setTotalActive(res.totalActive ?? null);
@@ -329,7 +314,7 @@ export default function WiseDashboard({ accessCode }) {
     } finally {
       setBatchLoading(false);
     }
-  }, [accessCode, batchStatusFilter]);
+  }, [wiseApi, batchStatusFilter]);
 
   useEffect(() => {
     loadBatches();
@@ -343,7 +328,7 @@ export default function WiseDashboard({ accessCode }) {
     setLoading(true);
     setError("");
     try {
-      const res = await api.get("/wise/dashboard-data", {
+      const res = await wiseApi.get("/wise/dashboard-data", {
         batchId: selectedBatch,
         startDate,
         endDate,
@@ -355,13 +340,13 @@ export default function WiseDashboard({ accessCode }) {
     } finally {
       setLoading(false);
     }
-  }, [selectedBatch, startDate, endDate, accessCode]);
+  }, [selectedBatch, startDate, endDate, wiseApi]);
 
   const fetchLeaderboard = useCallback(async () => {
     if (!startDate || !endDate) return;
     setLeaderboardLoading(true);
     try {
-      const res = await api.get("/wise/leaderboard", {
+      const res = await wiseApi.get("/wise/leaderboard", {
         startDate,
         endDate,
         mode: leaderboardMode,
@@ -373,7 +358,7 @@ export default function WiseDashboard({ accessCode }) {
     } finally {
       setLeaderboardLoading(false);
     }
-  }, [startDate, endDate, leaderboardMode, accessCode]);
+  }, [startDate, endDate, leaderboardMode, wiseApi]);
 
   useEffect(() => {
     if (selectedBatch) fetchDashboard();
@@ -389,7 +374,7 @@ export default function WiseDashboard({ accessCode }) {
     setError("");
     try {
       const targetActive = !selectedBatchObj.isActive;
-      await api.patch(`/wise/batches/${selectedBatchObj.id}/status`, {
+      await wiseApi.patch(`/wise/batches/${selectedBatchObj.id}/status`, {
         isActive: targetActive,
       });
       await loadBatches();
@@ -621,7 +606,7 @@ export default function WiseDashboard({ accessCode }) {
 
       {!loading && grid && grid.rows && grid.rows.length > 0 && (
         <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>Last 7 Days Attendance</h2>
+          <h2 style={styles.sectionTitle}>7 Days Attendance (Ending {formatDate(endDate)})</h2>
           <AttendanceGrid grid={grid} />
         </section>
       )}

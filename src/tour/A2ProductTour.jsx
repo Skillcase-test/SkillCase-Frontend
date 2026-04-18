@@ -21,7 +21,6 @@ import {
   getA2ReadingSelectSteps,
   getA2ReadingSteps,
   getA2TestSelectSteps,
-  getA2TestPrerequisiteSteps,
   getA2TestLevelSteps,
 } from "./a2TourSteps";
 
@@ -620,33 +619,6 @@ export default function A2ProductTour({ children }) {
     window.addEventListener("tour:a2ReadingQuiz", handler);
     return () => window.removeEventListener("tour:a2ReadingQuiz", handler);
   }, [destroyDriver, markDone, showSuccess]);
-
-  // Test prerequisite modal shown
-  useEffect(() => {
-    const handler = () => {
-      if (activeFeatureRef.current !== "test") return;
-      destroyDriver();
-      setTimeout(() => {
-        const steps = getA2TestPrerequisiteSteps();
-        const el = steps[0]?.element;
-        const waitId = setInterval(() => {
-          if (el && document.querySelector(el)) {
-            clearInterval(waitId);
-            startDriver(steps, {
-              onComplete: () => {
-                // Modal tour done; test level tour starts when user navigates
-                setActiveFeature(null);
-                setActivePhase(null);
-              },
-            });
-          }
-        }, 300);
-        setTimeout(() => clearInterval(waitId), 10000);
-      }, 300);
-    };
-    window.addEventListener("tour:a2TestPrerequisite", handler);
-    return () => window.removeEventListener("tour:a2TestPrerequisite", handler);
-  }, [destroyDriver, startDriver]);
 
   // Context + Render
 

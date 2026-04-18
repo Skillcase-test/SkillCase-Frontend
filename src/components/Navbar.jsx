@@ -89,7 +89,7 @@ export default function Navbar() {
 
             {isAuthenticated ? (
               <>
-                {user?.role === "admin" && (
+                {["admin","super_admin"].includes(user?.role) && (
                   <Link
                     to="/admin"
                     className="bg-[#153A71] text-white px-6 py-2 rounded-lg hover:bg-[#153A50] transition font-semibold"
@@ -203,7 +203,7 @@ export default function Navbar() {
 
             {isAuthenticated ? (
               <>
-                {user?.role === "admin" && (
+                {["admin","super_admin"].includes(user?.role) && (
                   <Link
                     to="/admin"
                     className="block w-full bg-[#153A71] text-white px-6 py-2 rounded-lg text-center font-semibold hover:bg-[#153A50] transition"

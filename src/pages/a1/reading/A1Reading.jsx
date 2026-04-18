@@ -1,14 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Volume2,
-  Loader2,
-  BookOpen,
-  BookOpenText,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Volume2, Loader2 } from "lucide-react";
 import { getReadingContent, saveReadingProgress } from "../../../api/a1Api";
 import UmlautKeyboard from "../../../components/a2/UmlautKeyboard";
 import ReadingRenderer from "../../../components/a2/ReadingRenderer";
@@ -38,6 +31,36 @@ import { CSS } from "@dnd-kit/utilities";
 import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
+
+function shuffleNonIdentity(items, identityRef = items) {
+  const arr = Array.isArray(items) ? [...items] : [];
+  if (arr.length <= 1) return arr;
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    arr.sort(() => Math.random() - 0.5);
+    const changed = arr.some((item, idx) => item !== identityRef[idx]);
+    if (changed) return [...arr];
+  }
+
+  const fallback = [...items];
+  const first = fallback.shift();
+  fallback.push(first);
+  return fallback;
+}
+
+function normalizeBool(value) {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    if (v === "true") return true;
+    if (v === "false") return false;
+  }
+  if (typeof value === "number") {
+    if (value === 1) return true;
+    if (value === 0) return false;
+  }
+  return null;
+}
 
 // Drag-and-drop sentence ordering components
 function WordItem({ word, isDragging, isOverlay }) {
@@ -84,7 +107,7 @@ function SentenceOrderingInline({ question, onAnswer, showResult, isCorrect }) {
 
   useEffect(() => {
     if (words.length > 0 && orderedWords.length === 0) {
-      const shuffled = [...words].sort(() => Math.random() - 0.5);
+      const shuffled = shuffleNonIdentity(words, correctOrder || words);
       setOrderedWords(shuffled);
     }
   }, [words]);
@@ -207,15 +230,10 @@ export default function A1Reading() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedVocab, setSelectedVocab] = useState(null);
-  const [phase, setPhase] = useState("reading");
   const [answers, setAnswers] = useState({});
   const [showAnswers, setShowAnswers] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
-  const [navWarning, setNavWarning] = useState({
-    open: false,
-    targetIndex: null,
-  });
 
   // --- Streak tracking ---
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
@@ -362,7 +380,6 @@ export default function A1Reading() {
     }
     if (currentIndex < contentList.length - 1) {
       setCurrentIndex((p) => p + 1);
-      setPhase("reading");
       setAnswers({});
       setShowAnswers(false);
       window.scrollTo(0, 0);
@@ -371,7 +388,6 @@ export default function A1Reading() {
 
   const applyScreenChange = (idx) => {
     setCurrentIndex(idx);
-    setPhase("reading");
     setAnswers({});
     setShowAnswers(false);
     window.scrollTo(0, 0);
@@ -379,10 +395,6 @@ export default function A1Reading() {
 
   const requestScreenChange = (idx) => {
     if (idx < 0 || idx >= contentList.length || idx === currentIndex) return;
-    if (phase === "quiz") {
-      setNavWarning({ open: true, targetIndex: idx });
-      return;
-    }
     applyScreenChange(idx);
   };
 
@@ -441,40 +453,6 @@ export default function A1Reading() {
   const contentType = currentContent.content_type || "article";
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* Nav warning modal */}
-      {navWarning.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-            <h3 className="text-base font-bold text-[#002856] mb-2">
-              Leave this quiz?
-            </h3>
-            <p className="text-sm text-gray-500 mb-6">
-              Your quiz progress will be lost if you switch to another reading.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() =>
-                  setNavWarning({ open: false, targetIndex: null })
-                }
-                className="flex-1 py-2.5 rounded-xl border-2 border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  const idx = navWarning.targetIndex;
-                  setNavWarning({ open: false, targetIndex: null });
-                  applyScreenChange(idx);
-                }}
-                className="flex-1 py-2.5 rounded-xl bg-[#002856] text-white text-sm font-semibold hover:bg-[#003d83] transition-colors"
-              >
-                Move anyway
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="px-4 py-2.5 flex items-center justify-between border-b border-gray-100 gap-2">
         <button
@@ -520,294 +498,148 @@ export default function A1Reading() {
           )}
         </div>
 
-        {phase === "reading" ? (
-          <span className="w-16" />
-        ) : (
-          <button
-            onClick={() => setPhase("reading")}
-            className="flex items-center gap-1 px-3 py-0.5 bg-[#edfaff] border border-[#002856] text-[#002856] text-sm font-semibold rounded-lg hover:bg-[#002856] hover:text-white transition-colors"
-            title="Back to Content"
-          >
-            <BookOpenText className="w-4 h-4" />
-            <span>Read</span>
-          </button>
-        )}
+        <span className="w-16" />
       </div>
 
       {/* Content */}
       <div id="A1-reading-content" className="flex-1 p-4 overflow-y-auto">
-        {phase === "reading" && (
-          <ReadingRenderer
-            content={currentContent}
-            type={contentType}
-            onWordClick={handleVocabClick}
-            renderContent={renderVocabContent}
-          />
-        )}
-        {phase === "quiz" && (
-          <div className="space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xl font-bold text-[#002856]">
-                Comprehension Quiz
-              </h2>
-              <span className="text-sm font-medium text-gray-500">
-                {questions.length} Questions
-              </span>
-            </div>
-            {questions.map((q, qIdx) => {
-              const userAns = answers[qIdx];
-              const qType = q.type;
+        <ReadingRenderer
+          content={currentContent}
+          type={contentType}
+          onWordClick={handleVocabClick}
+          renderContent={renderVocabContent}
+        />
 
-              // Calculate isCorrect based on question type
-              let isCorrect = false;
-              if (qType === "true_false" || qType === "truefalse") {
-                isCorrect = userAns === q.correct;
-              } else if (qType === "mcq_multi") {
-                // Multi-select: compare selected option TEXTS to correct array
-                const correctArr = q.correct || [];
-                const userArr = Array.isArray(userAns) ? userAns : [];
-                // Convert user indices to option texts for comparison
-                const userTexts = userArr
-                  .map((idx) => q.options?.[idx])
-                  .filter(Boolean);
-                isCorrect =
-                  correctArr.length === userTexts.length &&
-                  correctArr.every((c) => userTexts.includes(c));
-              } else if (
-                qType === "fill_typing" ||
-                qType === "fill_blank_typing" ||
-                qType === "sentence_correction"
-              ) {
-                // Text input: compare strings (case-insensitive, punctuation-stripped)
-                const stripPunctuation = (str) =>
-                  str
-                    .replace(/[.,!?;:'"()]/g, "")
-                    .replace(/\s+/g, " ")
-                    .trim();
-                const correctText = stripPunctuation(
-                  (
-                    q.correct ||
-                    q.correct_answer ||
-                    q.correct_sentence ||
-                    ""
-                  ).toLowerCase(),
-                );
-                const userText = stripPunctuation(
-                  (userAns || "").toLowerCase(),
-                );
-                isCorrect = userText === correctText;
-              } else if (
-                qType === "sentence_ordering" ||
-                qType === "sentence_reorder"
-              ) {
-                // Sentence ordering: compare arrays
-                const correctOrder = q.correct_order || [];
-                const userOrder = Array.isArray(userAns) ? userAns : [];
-                isCorrect =
-                  correctOrder.length === userOrder.length &&
-                  correctOrder.every((word, idx) => userOrder[idx] === word);
-              } else if (
-                qType === "fill_options" ||
-                qType === "fill_blank_options"
-              ) {
-                isCorrect = userAns === q.correct;
-              } else {
-                // MCQ single
-                isCorrect =
-                  userAns !== undefined && q.options?.[userAns] === q.correct;
-              }
+        {hasQuestions && (
+          <div id="A1-reading-questions" className="mt-8">
+            <h2 className="text-xl font-bold text-[#002856] mb-1">
+              Comprehension Quiz
+            </h2>
+            <p className="text-sm font-medium text-gray-500 mb-4">
+              {questions.length} Questions
+            </p>
 
-              return (
-                <div key={qIdx}>
-                  <p className="text-sm text-gray-400 mb-2 mt-2 font-semibold">
-                    Question {qIdx + 1} of {questions.length}
-                  </p>
-                  <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
-                    <p className="font-medium text-gray-800 mb-2">
-                      {q.question}
+            <div className="space-y-4">
+              {questions.map((q, qIdx) => {
+                const userAns = answers[qIdx];
+                const qType = q.type;
+
+                // Calculate isCorrect based on question type
+                let isCorrect = false;
+                if (qType === "true_false" || qType === "truefalse") {
+                  isCorrect =
+                    normalizeBool(userAns) === normalizeBool(q.correct);
+                } else if (qType === "mcq_multi") {
+                  // Multi-select: compare selected option TEXTS to correct array
+                  const correctArr = q.correct || [];
+                  const userArr = Array.isArray(userAns) ? userAns : [];
+                  // Convert user indices to option texts for comparison
+                  const userTexts = userArr
+                    .map((idx) => q.options?.[idx])
+                    .filter(Boolean);
+                  isCorrect =
+                    correctArr.length === userTexts.length &&
+                    correctArr.every((c) => userTexts.includes(c));
+                } else if (
+                  qType === "fill_typing" ||
+                  qType === "fill_blank_typing" ||
+                  qType === "sentence_correction"
+                ) {
+                  // Text input: compare strings (case-insensitive, punctuation-stripped)
+                  const stripPunctuation = (str) =>
+                    str
+                      .replace(/[.,!?;:'"()]/g, "")
+                      .replace(/\s+/g, " ")
+                      .trim();
+                  const correctText = stripPunctuation(
+                    (
+                      q.correct ||
+                      q.correct_answer ||
+                      q.correct_sentence ||
+                      ""
+                    ).toLowerCase(),
+                  );
+                  const userText = stripPunctuation(
+                    (userAns || "").toLowerCase(),
+                  );
+                  isCorrect = userText === correctText;
+                } else if (
+                  qType === "sentence_ordering" ||
+                  qType === "sentence_reorder"
+                ) {
+                  // Sentence ordering: compare arrays
+                  const correctOrder = q.correct_order || [];
+                  const userOrder = Array.isArray(userAns) ? userAns : [];
+                  isCorrect =
+                    correctOrder.length === userOrder.length &&
+                    correctOrder.every((word, idx) => userOrder[idx] === word);
+                } else if (
+                  qType === "fill_options" ||
+                  qType === "fill_blank_options"
+                ) {
+                  isCorrect = userAns === q.correct;
+                } else {
+                  // MCQ single
+                  isCorrect =
+                    userAns !== undefined && q.options?.[userAns] === q.correct;
+                }
+
+                return (
+                  <div key={qIdx}>
+                    <p className="text-sm text-gray-400 mb-2 mt-2 font-semibold">
+                      Question {qIdx + 1} of {questions.length}
                     </p>
-                    {qType === "true_false" || qType === "truefalse" ? (
-                      <div className="flex gap-3">
-                        {[true, false].map((val, i) => {
-                          const isSelected = userAns === val;
-                          const isCorrectOpt = val === q.correct;
-                          let cls =
-                            "border-gray-200 bg-white hover:border-gray-300";
-                          if (showAnswers) {
-                            if (isCorrectOpt)
+                    <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+                      <p className="font-medium text-gray-800 mb-2">
+                        {q.question}
+                      </p>
+                      {qType === "true_false" || qType === "truefalse" ? (
+                        <div className="flex gap-3">
+                          {[true, false].map((val, i) => {
+                            const isSelected = userAns === val;
+                            const isCorrectOpt = val === q.correct;
+                            let cls =
+                              "border-gray-200 bg-white hover:border-gray-300";
+                            if (showAnswers) {
+                              if (isCorrectOpt)
+                                cls =
+                                  "border-green-500 bg-green-50 text-green-700";
+                              else if (isSelected)
+                                cls = "border-red-500 bg-red-50 text-red-700";
+                            } else if (isSelected)
                               cls =
-                                "border-green-500 bg-green-50 text-green-700";
-                            else if (isSelected)
-                              cls = "border-red-500 bg-red-50 text-red-700";
-                          } else if (isSelected)
-                            cls =
-                              "border-[#002856] bg-[#edfaff] text-[#002856]";
-                          return (
-                            <button
-                              key={i}
-                              onClick={() =>
-                                !showAnswers && handleAnswer(qIdx, val)
-                              }
-                              disabled={showAnswers}
-                              className={`flex-1 py-3 rounded-xl border-2 font-medium transition-all ${cls}`}
-                            >
-                              {val ? "True" : "False"}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : qType === "mcq_multi" ? (
-                      /* MCQ Multi-select */
-                      <div className="space-y-2 ">
-                        <p className="text-sm text-gray-500 mb-2">
-                          Select all that apply
-                        </p>
-                        {q.options?.map((opt, i) => {
-                          const correctArr = q.correct || [];
-                          const userArr = Array.isArray(userAns) ? userAns : [];
-                          const isSelected = userArr.includes(i);
-                          const isCorrectOpt =
-                            correctArr.includes(i) || correctArr.includes(opt);
-                          let cls =
-                            "border-gray-200 bg-gray-50 hover:border-gray-300";
-
-                          if (showAnswers) {
-                            if (isCorrectOpt)
-                              cls =
-                                "border-green-500 bg-green-50 text-green-700";
-                            else if (isSelected)
-                              cls = "border-red-500 bg-red-50 text-red-700";
-                          } else if (isSelected) {
-                            cls =
-                              "border-[#002856] bg-[#edfaff] text-[#002856]";
-                          }
-
-                          return (
-                            <button
-                              key={i}
-                              onClick={() => {
-                                if (showAnswers) return;
-                                const current = Array.isArray(userAns)
-                                  ? [...userAns]
-                                  : [];
-                                const idx = current.indexOf(i);
-                                if (idx > -1) current.splice(idx, 1);
-                                else current.push(i);
-                                handleAnswer(qIdx, current);
-                              }}
-                              disabled={showAnswers}
-                              className={`w-full p-3.5 rounded-xl border-2 text-left font-medium transition-all ${cls}`}
-                            >
-                              <span className="flex items-center gap-3">
-                                <span
-                                  className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                    showAnswers && isCorrectOpt
-                                      ? "border-green-500 bg-green-500"
-                                      : showAnswers && isSelected
-                                        ? "border-red-500 bg-red-500"
-                                        : isSelected
-                                          ? "border-[#002856] bg-[#002856]"
-                                          : "border-gray-300"
-                                  }`}
-                                >
-                                  {isSelected && (
-                                    <svg
-                                      className="w-3 h-3 text-white"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={3}
-                                        d="M5 13l4 4L19 7"
-                                      />
-                                    </svg>
-                                  )}
-                                </span>
-                                {opt}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : qType === "fill_typing" ||
-                      qType === "fill_blank_typing" ? (
-                      /* Fill-in-the-blank Typing */
-                      <div className=" space-y-3">
-                        {q.explanation && (
-                          <p className="text-sm text-gray-500 italic">
-                            {q.explanation}
+                                "border-[#002856] bg-[#edfaff] text-[#002856]";
+                            return (
+                              <button
+                                key={i}
+                                onClick={() =>
+                                  !showAnswers && handleAnswer(qIdx, val)
+                                }
+                                disabled={showAnswers}
+                                className={`flex-1 py-3 rounded-xl border-2 font-medium transition-all ${cls}`}
+                              >
+                                {val ? "True" : "False"}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : qType === "mcq_multi" ? (
+                        /* MCQ Multi-select */
+                        <div className="space-y-2 ">
+                          <p className="text-sm text-gray-500 mb-2">
+                            Select all that apply
                           </p>
-                        )}
-                        <input
-                          id={`reading-fill-${qIdx}`}
-                          type="text"
-                          value={userAns || ""}
-                          onChange={(e) => handleAnswer(qIdx, e.target.value)}
-                          disabled={showAnswers}
-                          placeholder="Type your answer..."
-                          className={`w-full p-3.5 rounded-xl border-2 text-lg font-medium transition-all ${
-                            showAnswers
-                              ? isCorrect
-                                ? "border-green-500 bg-green-50 text-green-700"
-                                : "border-red-500 bg-red-50 text-red-700"
-                              : "border-gray-200 focus:border-[#002856] focus:outline-none"
-                          }`}
-                        />
-                        {!showAnswers && (
-                          <UmlautKeyboard
-                            onInsert={(char) => {
-                              const input = document.getElementById(
-                                `reading-fill-${qIdx}`,
-                              );
-                              if (!input) {
-                                handleAnswer(qIdx, (userAns || "") + char);
-                                return;
-                              }
-                              const start =
-                                input.selectionStart ?? (userAns || "").length;
-                              const end = input.selectionEnd ?? start;
-                              const newVal =
-                                (userAns || "").slice(0, start) +
-                                char +
-                                (userAns || "").slice(end);
-                              handleAnswer(qIdx, newVal);
-                              requestAnimationFrame(() => {
-                                input.focus();
-                                input.setSelectionRange(
-                                  start + char.length,
-                                  start + char.length,
-                                );
-                              });
-                            }}
-                          />
-                        )}
-                        {showAnswers && !isCorrect && (
-                          <p className="text-sm text-gray-600">
-                            Correct:{" "}
-                            <span className="font-semibold text-green-600">
-                              {q.correct || q.correct_answer}
-                            </span>
-                          </p>
-                        )}
-                      </div>
-                    ) : qType === "fill_options" ||
-                      qType === "fill_blank_options" ? (
-                      /* Fill-in-the-blank with Options */
-                      <div className=" space-y-3">
-                        {q.explanation && (
-                          <p className="text-sm text-gray-500 italic mb-2">
-                            {q.explanation}
-                          </p>
-                        )}
-                        <div className="flex flex-wrap gap-2">
                           {q.options?.map((opt, i) => {
-                            const isSelected = userAns === opt;
-                            const isCorrectOpt = opt === q.correct;
-                            let cls = "border-gray-200 hover:border-gray-300";
+                            const correctArr = q.correct || [];
+                            const userArr = Array.isArray(userAns)
+                              ? userAns
+                              : [];
+                            const isSelected = userArr.includes(i);
+                            const isCorrectOpt =
+                              correctArr.includes(i) ||
+                              correctArr.includes(opt);
+                            let cls =
+                              "border-gray-200 bg-gray-50 hover:border-gray-300";
 
                             if (showAnswers) {
                               if (isCorrectOpt)
@@ -816,166 +648,341 @@ export default function A1Reading() {
                               else if (isSelected)
                                 cls = "border-red-500 bg-red-50 text-red-700";
                             } else if (isSelected) {
-                              cls = "border-[#002856] bg-[#002856] text-white";
+                              cls =
+                                "border-[#002856] bg-[#edfaff] text-[#002856]";
                             }
 
                             return (
                               <button
                                 key={i}
-                                onClick={() =>
-                                  !showAnswers && handleAnswer(qIdx, opt)
-                                }
+                                onClick={() => {
+                                  if (showAnswers) return;
+                                  const current = Array.isArray(userAns)
+                                    ? [...userAns]
+                                    : [];
+                                  const idx = current.indexOf(i);
+                                  if (idx > -1) current.splice(idx, 1);
+                                  else current.push(i);
+                                  handleAnswer(qIdx, current);
+                                }}
                                 disabled={showAnswers}
-                                className={`px-4 py-2 rounded-full border-2 font-medium transition-all ${cls}`}
+                                className={`w-full p-3.5 rounded-xl border-2 text-left font-medium transition-all ${cls}`}
                               >
-                                {opt}
+                                <span className="flex items-center gap-3">
+                                  <span
+                                    className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                      showAnswers && isCorrectOpt
+                                        ? "border-green-500 bg-green-500"
+                                        : showAnswers && isSelected
+                                          ? "border-red-500 bg-red-500"
+                                          : isSelected
+                                            ? "border-[#002856] bg-[#002856]"
+                                            : "border-gray-300"
+                                    }`}
+                                  >
+                                    {isSelected && (
+                                      <svg
+                                        className="w-3 h-3 text-white"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={3}
+                                          d="M5 13l4 4L19 7"
+                                        />
+                                      </svg>
+                                    )}
+                                  </span>
+                                  {opt}
+                                </span>
                               </button>
                             );
                           })}
                         </div>
-                      </div>
-                    ) : qType === "sentence_correction" ? (
-                      /* Sentence Correction */
-                      <div className=" space-y-3">
-                        <div className="p-4 bg-red-50 rounded-xl border-2 border-red-200">
-                          <p className="text-red-800 font-medium">
-                            {q.incorrect_sentence || q.incorrect || q.sentence}
-                          </p>
-                        </div>
-                        {q.hint_en && (
-                          <p className="text-sm text-gray-500">
-                            Hint: {q.hint_en}
-                          </p>
-                        )}
-                        <input
-                          id={`reading-correction-${qIdx}`}
-                          type="text"
-                          value={userAns || ""}
-                          onChange={(e) => handleAnswer(qIdx, e.target.value)}
-                          disabled={showAnswers}
-                          placeholder="Type the corrected sentence..."
-                          className={`w-full p-3.5 rounded-xl border-2 text-lg font-medium transition-all ${
-                            showAnswers
-                              ? isCorrect
-                                ? "border-green-500 bg-green-50 text-green-700"
-                                : "border-red-500 bg-red-50 text-red-700"
-                              : "border-gray-200 focus:border-[#002856] focus:outline-none"
-                          }`}
-                        />
-                        {!showAnswers && (
-                          <UmlautKeyboard
-                            onInsert={(char) => {
-                              const input = document.getElementById(
-                                `reading-correction-${qIdx}`,
-                              );
-                              if (!input) {
-                                handleAnswer(qIdx, (userAns || "") + char);
-                                return;
-                              }
-                              const start =
-                                input.selectionStart ?? (userAns || "").length;
-                              const end = input.selectionEnd ?? start;
-                              const newVal =
-                                (userAns || "").slice(0, start) +
-                                char +
-                                (userAns || "").slice(end);
-                              handleAnswer(qIdx, newVal);
-                              requestAnimationFrame(() => {
-                                input.focus();
-                                input.setSelectionRange(
-                                  start + char.length,
-                                  start + char.length,
-                                );
-                              });
-                            }}
+                      ) : qType === "fill_typing" ||
+                        qType === "fill_blank_typing" ? (
+                        /* Fill-in-the-blank Typing */
+                        <div className=" space-y-3">
+                          {q.explanation && (
+                            <p className="text-sm text-gray-500 italic">
+                              {q.explanation}
+                            </p>
+                          )}
+                          <input
+                            id={`reading-fill-${qIdx}`}
+                            type="text"
+                            value={userAns || ""}
+                            onChange={(e) => handleAnswer(qIdx, e.target.value)}
+                            disabled={showAnswers}
+                            placeholder="Type your answer..."
+                            className={`w-full p-3.5 rounded-xl border-2 text-lg font-medium transition-all ${
+                              showAnswers
+                                ? isCorrect
+                                  ? "border-green-500 bg-green-50 text-green-700"
+                                  : "border-red-500 bg-red-50 text-red-700"
+                                : "border-gray-200 focus:border-[#002856] focus:outline-none"
+                            }`}
                           />
-                        )}
-                        {showAnswers && !isCorrect && (
-                          <p className="text-sm text-gray-600">
-                            Correct:{" "}
-                            <span className="font-semibold text-green-600">
-                              {q.correct_sentence || q.correct}
-                            </span>
-                          </p>
-                        )}
-                      </div>
-                    ) : qType === "sentence_ordering" ||
-                      qType === "sentence_reorder" ? (
-                      /* Sentence Ordering - Drag and Drop */
-                      <div className="">
-                        <SentenceOrderingInline
-                          question={q}
-                          onAnswer={(order) => handleAnswer(qIdx, order)}
-                          showResult={showAnswers}
-                          isCorrect={isCorrect}
-                        />
-                      </div>
-                    ) : (
-                      /* Default: MCQ Single */
-                      <div className="space-y-2 ">
-                        {q.options?.map((opt, i) => {
-                          const isSelected = userAns === i;
-                          const isCorrectOpt = opt === q.correct;
-                          let cls =
-                            "border-gray-200 bg-gray-50 hover:border-gray-300";
-                          if (showAnswers) {
-                            if (isCorrectOpt)
-                              cls =
-                                "border-green-500 bg-green-50 text-green-700";
-                            else if (isSelected)
-                              cls = "border-red-500 bg-red-50 text-red-700";
-                          } else if (isSelected)
-                            cls =
-                              "border-[#002856] bg-[#edfaff] text-[#002856]";
-                          return (
-                            <button
-                              key={i}
-                              onClick={() =>
-                                !showAnswers && handleAnswer(qIdx, i)
-                              }
-                              disabled={showAnswers}
-                              className={`w-full p-3.5 rounded-xl border-2 text-left font-medium transition-all ${cls}`}
-                            >
-                              <span className="flex items-center gap-3">
-                                <span
-                                  className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                    showAnswers && isCorrectOpt
-                                      ? "border-green-500 bg-green-500"
-                                      : showAnswers && isSelected
-                                        ? "border-red-500 bg-red-500"
-                                        : isSelected
-                                          ? "border-[#002856] bg-[#002856]"
-                                          : "border-gray-300"
-                                  }`}
-                                >
-                                  {(isSelected ||
-                                    (showAnswers && isCorrectOpt)) && (
-                                    <svg
-                                      className="w-3 h-3 text-white"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="currentColor"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={3}
-                                        d="M5 13l4 4L19 7"
-                                      />
-                                    </svg>
-                                  )}
-                                </span>
-                                {opt}
+                          {!showAnswers && (
+                            <UmlautKeyboard
+                              onInsert={(char) => {
+                                const input = document.getElementById(
+                                  `reading-fill-${qIdx}`,
+                                );
+                                if (!input) {
+                                  handleAnswer(qIdx, (userAns || "") + char);
+                                  return;
+                                }
+                                const start =
+                                  input.selectionStart ??
+                                  (userAns || "").length;
+                                const end = input.selectionEnd ?? start;
+                                const newVal =
+                                  (userAns || "").slice(0, start) +
+                                  char +
+                                  (userAns || "").slice(end);
+                                handleAnswer(qIdx, newVal);
+                                requestAnimationFrame(() => {
+                                  input.focus();
+                                  input.setSelectionRange(
+                                    start + char.length,
+                                    start + char.length,
+                                  );
+                                });
+                              }}
+                            />
+                          )}
+                          {showAnswers && !isCorrect && (
+                            <p className="text-sm text-gray-600">
+                              Correct:{" "}
+                              <span className="font-semibold text-green-600">
+                                {q.correct || q.correct_answer}
                               </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
+                            </p>
+                          )}
+                        </div>
+                      ) : qType === "fill_options" ||
+                        qType === "fill_blank_options" ? (
+                        /* Fill-in-the-blank with Options */
+                        <div className="space-y-3">
+                          {q.explanation && (
+                            <p className="text-sm text-gray-500 italic mb-2">
+                              {q.explanation}
+                            </p>
+                          )}
+                          <div className="space-y-2">
+                            {q.options?.map((opt, i) => {
+                              const isSelected = userAns === opt;
+                              const isCorrectOpt =
+                                opt === q.correct || i === q.correct;
+                              let cls =
+                                "border-gray-200 bg-gray-50 hover:border-gray-300";
+
+                              if (showAnswers) {
+                                if (isCorrectOpt)
+                                  cls =
+                                    "border-green-500 bg-green-50 text-green-700";
+                                else if (isSelected)
+                                  cls = "border-red-500 bg-red-50 text-red-700";
+                              } else if (isSelected) {
+                                cls =
+                                  "border-[#002856] bg-[#edfaff] text-[#002856]";
+                              }
+
+                              return (
+                                <button
+                                  key={i}
+                                  onClick={() =>
+                                    !showAnswers && handleAnswer(qIdx, opt)
+                                  }
+                                  disabled={showAnswers}
+                                  className={`w-full p-3.5 rounded-xl border-2 text-left font-medium transition-all ${cls}`}
+                                >
+                                  <span className="flex items-center gap-3">
+                                    <span
+                                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                        showAnswers && isCorrectOpt
+                                          ? "border-green-500 bg-green-500"
+                                          : showAnswers && isSelected
+                                            ? "border-red-500 bg-red-500"
+                                            : isSelected
+                                              ? "border-[#002856] bg-[#002856]"
+                                              : "border-gray-300"
+                                      }`}
+                                    >
+                                      {(isSelected ||
+                                        (showAnswers && isCorrectOpt)) && (
+                                        <svg
+                                          className="w-3 h-3 text-white"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={3}
+                                            d="M5 13l4 4L19 7"
+                                          />
+                                        </svg>
+                                      )}
+                                    </span>
+                                    {opt}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : qType === "sentence_correction" ? (
+                        /* Sentence Correction */
+                        <div className=" space-y-3">
+                          <div className="p-4 bg-red-50 rounded-xl border-2 border-red-200">
+                            <p className="text-red-800 font-medium">
+                              {q.incorrect_sentence ||
+                                q.incorrect ||
+                                q.sentence}
+                            </p>
+                          </div>
+                          {q.hint_en && (
+                            <p className="text-sm text-gray-500">
+                              Hint: {q.hint_en}
+                            </p>
+                          )}
+                          <input
+                            id={`reading-correction-${qIdx}`}
+                            type="text"
+                            value={userAns || ""}
+                            onChange={(e) => handleAnswer(qIdx, e.target.value)}
+                            disabled={showAnswers}
+                            placeholder="Type the corrected sentence..."
+                            className={`w-full p-3.5 rounded-xl border-2 text-lg font-medium transition-all ${
+                              showAnswers
+                                ? isCorrect
+                                  ? "border-green-500 bg-green-50 text-green-700"
+                                  : "border-red-500 bg-red-50 text-red-700"
+                                : "border-gray-200 focus:border-[#002856] focus:outline-none"
+                            }`}
+                          />
+                          {!showAnswers && (
+                            <UmlautKeyboard
+                              onInsert={(char) => {
+                                const input = document.getElementById(
+                                  `reading-correction-${qIdx}`,
+                                );
+                                if (!input) {
+                                  handleAnswer(qIdx, (userAns || "") + char);
+                                  return;
+                                }
+                                const start =
+                                  input.selectionStart ??
+                                  (userAns || "").length;
+                                const end = input.selectionEnd ?? start;
+                                const newVal =
+                                  (userAns || "").slice(0, start) +
+                                  char +
+                                  (userAns || "").slice(end);
+                                handleAnswer(qIdx, newVal);
+                                requestAnimationFrame(() => {
+                                  input.focus();
+                                  input.setSelectionRange(
+                                    start + char.length,
+                                    start + char.length,
+                                  );
+                                });
+                              }}
+                            />
+                          )}
+                          {showAnswers && !isCorrect && (
+                            <p className="text-sm text-gray-600">
+                              Correct:{" "}
+                              <span className="font-semibold text-green-600">
+                                {q.correct_sentence || q.correct}
+                              </span>
+                            </p>
+                          )}
+                        </div>
+                      ) : qType === "sentence_ordering" ||
+                        qType === "sentence_reorder" ? (
+                        /* Sentence Ordering - Drag and Drop */
+                        <div className="">
+                          <SentenceOrderingInline
+                            question={q}
+                            onAnswer={(order) => handleAnswer(qIdx, order)}
+                            showResult={showAnswers}
+                            isCorrect={isCorrect}
+                          />
+                        </div>
+                      ) : (
+                        /* Default: MCQ Single */
+                        <div className="space-y-2 ">
+                          {q.options?.map((opt, i) => {
+                            const isSelected = userAns === i;
+                            const isCorrectOpt = opt === q.correct;
+                            let cls =
+                              "border-gray-200 bg-gray-50 hover:border-gray-300";
+                            if (showAnswers) {
+                              if (isCorrectOpt)
+                                cls =
+                                  "border-green-500 bg-green-50 text-green-700";
+                              else if (isSelected)
+                                cls = "border-red-500 bg-red-50 text-red-700";
+                            } else if (isSelected)
+                              cls =
+                                "border-[#002856] bg-[#edfaff] text-[#002856]";
+                            return (
+                              <button
+                                key={i}
+                                onClick={() =>
+                                  !showAnswers && handleAnswer(qIdx, i)
+                                }
+                                disabled={showAnswers}
+                                className={`w-full p-3.5 rounded-xl border-2 text-left font-medium transition-all ${cls}`}
+                              >
+                                <span className="flex items-center gap-3">
+                                  <span
+                                    className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                      showAnswers && isCorrectOpt
+                                        ? "border-green-500 bg-green-500"
+                                        : showAnswers && isSelected
+                                          ? "border-red-500 bg-red-500"
+                                          : isSelected
+                                            ? "border-[#002856] bg-[#002856]"
+                                            : "border-gray-300"
+                                    }`}
+                                  >
+                                    {(isSelected ||
+                                      (showAnswers && isCorrectOpt)) && (
+                                      <svg
+                                        className="w-3 h-3 text-white"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={3}
+                                          d="M5 13l4 4L19 7"
+                                        />
+                                      </svg>
+                                    )}
+                                  </span>
+                                  {opt}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -1027,21 +1034,7 @@ export default function A1Reading() {
 
       {/* Navigation */}
       <div className="flex items-center justify-center gap-3 p-4 border-t border-gray-100">
-        {phase === "reading" && hasQuestions && (
-          <button
-            id="A1-reading-quiz-btn"
-            onClick={() => {
-              window.dispatchEvent(new Event("tour:A1ReadingQuiz"));
-              setPhase("quiz");
-              window.scrollTo(0, 0);
-            }}
-            className="px-8 py-3 bg-[#002856] text-white rounded-xl font-semibold"
-          >
-            Take Quiz
-          </button>
-        )}
-        {phase === "reading" &&
-          !hasQuestions &&
+        {!hasQuestions &&
           (currentIndex === contentList.length - 1 ? (
             <button
               onClick={handleFinish}
@@ -1057,8 +1050,10 @@ export default function A1Reading() {
               Move to {contentList[currentIndex + 1]?.content_type || "Next"}
             </button>
           ))}
-        {phase === "quiz" && !showAnswers && (
+
+        {hasQuestions && !showAnswers && (
           <button
+            id="A1-reading-submit-btn"
             onClick={handleSubmitQuiz}
             disabled={
               Object.keys(answers).length < questions.length || isSubmitting
@@ -1074,7 +1069,8 @@ export default function A1Reading() {
             )}
           </button>
         )}
-        {phase === "quiz" && showAnswers && (
+
+        {hasQuestions && showAnswers && (
           <>
             {currentIndex === contentList.length - 1 ? (
               <button

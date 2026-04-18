@@ -215,6 +215,22 @@ function DraggableWord({ id, word }) {
   );
 }
 
+function shuffleNonIdentity(items, identityRef = items) {
+  const arr = Array.isArray(items) ? [...items] : [];
+  if (arr.length <= 1) return arr;
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    arr.sort(() => Math.random() - 0.5);
+    const changed = arr.some((item, idx) => item !== identityRef[idx]);
+    if (changed) return [...arr];
+  }
+
+  const fallback = [...items];
+  const first = fallback.shift();
+  fallback.push(first);
+  return fallback;
+}
+
 function SentenceOrderingInline({
   question,
   onAnswer,
@@ -232,8 +248,7 @@ function SentenceOrderingInline({
 
   useEffect(() => {
     if (words.length > 0 && orderedWords.length === 0) {
-      // Shuffle words initially
-      const shuffled = [...words].sort(() => Math.random() - 0.5);
+      const shuffled = shuffleNonIdentity(words, correctOrder || words);
       setOrderedWords(shuffled);
     }
   }, [words]);
@@ -1111,15 +1126,7 @@ export default function A1ListeningContent() {
                                         className="w-full h-28 object-cover rounded-lg mb-2"
                                       />
                                     )}
-                                    {AUDIO_QUESTION_TYPES.has(qType) ? (
-                                      <div onClick={(e) => e.stopPropagation()}>
-                                        <TtsOptionButton
-                                          text={getOptionLabel(opt)}
-                                        />
-                                      </div>
-                                    ) : (
-                                      getOptionLabel(opt)
-                                    )}
+                                    {getOptionLabel(opt)}
                                   </span>
                                 </span>
                               </button>
@@ -1173,14 +1180,14 @@ export default function A1ListeningContent() {
                               {q.explanation}
                             </p>
                           )}
-                          <div className={`flex flex-wrap gap-2`}>
+                          <div className="space-y-2">
                             {q.options?.map((opt, i) => {
                               const optionValue = getOptionValue(opt);
                               const isSelected = userAns === optionValue;
                               const isCorrectOption =
                                 optionValue === q.correct || i === q.correct;
                               let btnClass =
-                                "border-gray-200 hover:border-gray-300";
+                                "border-gray-200 bg-gray-50 hover:border-gray-300";
 
                               if (showAnswers) {
                                 if (isCorrectOption)
@@ -1191,7 +1198,7 @@ export default function A1ListeningContent() {
                                     "border-red-500 bg-red-50 text-red-700";
                               } else if (isSelected) {
                                 btnClass =
-                                  "border-[#002856] bg-[#002856] text-white";
+                                  "border-[#002856] bg-[#edfaff] text-[#002856]";
                               }
 
                               return (
@@ -1202,9 +1209,39 @@ export default function A1ListeningContent() {
                                     handleAnswer(qIdx, optionValue)
                                   }
                                   disabled={showAnswers}
-                                  className={`px-4 py-2 rounded-full border-2 font-medium transition-all ${btnClass}`}
+                                  className={`w-full p-3.5 rounded-xl border-2 text-left font-medium transition-all ${btnClass}`}
                                 >
-                                  {getOptionLabel(opt)}
+                                  <span className="flex items-center gap-3">
+                                    <span
+                                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                        showAnswers && isCorrectOption
+                                          ? "border-green-500 bg-green-500"
+                                          : showAnswers && isSelected
+                                            ? "border-red-500 bg-red-500"
+                                            : isSelected
+                                              ? "border-[#002856] bg-[#002856]"
+                                              : "border-gray-300"
+                                      }`}
+                                    >
+                                      {(isSelected ||
+                                        (showAnswers && isCorrectOption)) && (
+                                        <svg
+                                          className="w-3 h-3 text-white"
+                                          viewBox="0 0 24 24"
+                                          fill="none"
+                                          stroke="currentColor"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={3}
+                                            d="M5 13l4 4L19 7"
+                                          />
+                                        </svg>
+                                      )}
+                                    </span>
+                                    {getOptionLabel(opt)}
+                                  </span>
                                 </button>
                               );
                             })}
@@ -1397,13 +1434,7 @@ export default function A1ListeningContent() {
                                         className="w-full h-28 object-cover rounded-lg mb-2"
                                       />
                                     )}
-                                    {AUDIO_QUESTION_TYPES.has(qType) ? (
-                                      <div onClick={(e) => e.stopPropagation()}>
-                                        <TtsOptionButton text={optionLabel} />
-                                      </div>
-                                    ) : (
-                                      optionLabel
-                                    )}
+                                    {optionLabel}
                                   </span>
                                 </span>
                               </button>
