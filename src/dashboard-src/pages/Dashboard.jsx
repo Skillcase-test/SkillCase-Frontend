@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import {
   NavLink,
   Navigate,
@@ -19,6 +19,10 @@ import InterviewToolsPositionsPage from "../../pages/interviewTools/InterviewToo
 import InterviewToolsBuilderPage from "../../pages/interviewTools/InterviewToolsBuilderPage";
 import InterviewToolsCandidatesPage from "../../pages/interviewTools/InterviewToolsCandidatePage";
 import InterviewToolsReviewPage from "../../pages/interviewTools/InterviewToolsReviewPage";
+import SkillcaseInterviewToolsPositionsPage from "../../pages/interviewTools/SkillcaseInterviewToolsPositionsPage";
+import SkillcaseInterviewToolsBuilderPage from "../../pages/interviewTools/SkillcaseInterviewToolsBuilderPage";
+import SkillcaseInterviewToolsCandidatesPage from "../../pages/interviewTools/SkillcaseInterviewToolsCandidatePage";
+import SkillcaseInterviewToolsReviewPage from "../../pages/interviewTools/SkillcaseInterviewToolsReviewPage";
 import WiseDashboard from "../../pages/internal/WiseDashboard";
 import InternalLeadForm from "../../pages/InternalLeadForm";
 import AdminAccessManagement from "./AdminAccessManagement";
@@ -123,6 +127,69 @@ function InterviewToolsModule() {
   );
 }
 
+function SkillcaseInterviewsModule({ isSuperAdmin = false }) {
+  const navigate = useNavigate();
+  const [selectedInterviewPositionId, setSelectedInterviewPositionId] =
+    useState(null);
+  const [selectedInterviewSubmissionId, setSelectedInterviewSubmissionId] =
+    useState(null);
+
+  const setActivePage = (page) => {
+    if (page === "interview-tools-positions")
+      navigate("/admin/skillcase-interviews");
+    if (page === "interview-tools-builder")
+      navigate("/admin/skillcase-interviews/builder");
+    if (page === "interview-tools-candidates")
+      navigate("/admin/skillcase-interviews/candidates");
+    if (page === "interview-tools-review")
+      navigate("/admin/skillcase-interviews/review");
+  };
+
+  return (
+    <Routes>
+      <Route
+        index
+        element={
+          <SkillcaseInterviewToolsPositionsPage
+            setActivePage={setActivePage}
+            setSelectedInterviewPositionId={setSelectedInterviewPositionId}
+            isSuperAdmin={isSuperAdmin}
+          />
+        }
+      />
+      <Route
+        path="builder"
+        element={
+          <SkillcaseInterviewToolsBuilderPage
+            selectedInterviewPositionId={selectedInterviewPositionId}
+            setActivePage={setActivePage}
+          />
+        }
+      />
+      <Route
+        path="candidates"
+        element={
+          <SkillcaseInterviewToolsCandidatesPage
+            selectedInterviewPositionId={selectedInterviewPositionId}
+            setSelectedInterviewSubmissionId={setSelectedInterviewSubmissionId}
+            setActivePage={setActivePage}
+          />
+        }
+      />
+      <Route
+        path="review"
+        element={
+          <SkillcaseInterviewToolsReviewPage
+            selectedInterviewPositionId={selectedInterviewPositionId}
+            selectedInterviewSubmissionId={selectedInterviewSubmissionId}
+            setActivePage={setActivePage}
+          />
+        }
+      />
+    </Routes>
+  );
+}
+
 function SidebarSection({ title, items }) {
   if (!items.length) return null;
   return (
@@ -186,7 +253,7 @@ function SidebarModuleGroups({ title, modules }) {
               >
                 <span>{moduleItem.label}</span>
                 <span className="text-xs text-slate-400">
-                  {open ? "▾" : "▸"}
+                  {open ? "Ôû¥" : "Ôû©"}
                 </span>
               </button>
               {open && (
@@ -304,6 +371,12 @@ export default function Dashboard() {
         label: "Interview Tools",
         path: "/admin/interview-tools",
         module: "interview_tools",
+      },
+      {
+        key: "skillcase-interviews",
+        label: "Skillcase Interviews",
+        path: "/admin/skillcase-interviews",
+        module: "skillcase_interviews",
       },
       {
         key: "wise",
@@ -481,6 +554,16 @@ export default function Dashboard() {
               element={
                 <Guard allowed={hasPermission(me, "interview_tools")}>
                   <InterviewToolsModule />
+                </Guard>
+              }
+            />
+            <Route
+              path="skillcase-interviews/*"
+              element={
+                <Guard allowed={hasPermission(me, "skillcase_interviews")}>
+                  <SkillcaseInterviewsModule
+                    isSuperAdmin={me.role === "super_admin"}
+                  />
                 </Guard>
               }
             />

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Copy,
   Eye,
@@ -11,7 +11,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import { interviewToolsApi } from "../../api/interviewToolsApi";
+import { skillcaseInterviewToolsApi } from "../../api/skillcaseInterviewToolsApi";
 
 const STATUS_META = {
   draft: "bg-slate-100 text-slate-700",
@@ -19,9 +19,10 @@ const STATUS_META = {
   published_closed: "bg-amber-100 text-amber-700",
 };
 
-export default function InterviewToolsPositionsPage({
+export default function SkillcaseInterviewToolsPositionsPage({
   setActivePage,
   setSelectedInterviewPositionId,
+  isSuperAdmin = false,
 }) {
   const [positions, setPositions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,11 +31,11 @@ export default function InterviewToolsPositionsPage({
   const loadPositions = async () => {
     setLoading(true);
     try {
-      const res = await interviewToolsApi.listPositions();
+      const res = await skillcaseInterviewToolsApi.listPositions();
       setPositions(res.data.data || []);
     } catch (error) {
       console.error(error);
-      setStatus("Could not fetch interview positions");
+      setStatus("Could not fetch interviews");
     } finally {
       setLoading(false);
     }
@@ -46,7 +47,10 @@ export default function InterviewToolsPositionsPage({
 
   const updateStatus = async (positionId, nextStatus) => {
     try {
-      await interviewToolsApi.updatePositionStatus(positionId, nextStatus);
+      await skillcaseInterviewToolsApi.updatePositionStatus(
+        positionId,
+        nextStatus,
+      );
       await loadPositions();
     } catch (error) {
       console.error(error);
@@ -66,19 +70,17 @@ export default function InterviewToolsPositionsPage({
 
   const deletePosition = async (position) => {
     const confirmed = window.confirm(
-      `Delete "${position.title}"?\n\nThis will permanently delete the position, all candidate submissions, and all related videos from S3.`,
+      `Delete "${position.title}"?\n\nThis will permanently delete the interview, all learner submissions, and all related videos from S3.`,
     );
 
     if (!confirmed) return;
 
     try {
-      await interviewToolsApi.deletePosition(position.position_id);
+      await skillcaseInterviewToolsApi.deletePosition(position.position_id);
       await loadPositions();
     } catch (error) {
       console.error(error);
-      setStatus(
-        error?.response?.data?.message || "Could not delete interview position",
-      );
+      setStatus(error?.response?.data?.message || "Could not delete interview");
     }
   };
 
@@ -86,10 +88,12 @@ export default function InterviewToolsPositionsPage({
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between font-sans">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Interview Tools</h1>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            Skillcase Interviews
+          </h1>
           <p className="mt-2 text-sm text-slate-500 font-medium">
-            Create async interview positions, open public links, and review
-            candidate submissions.
+            Create learning interview flows, share public links, and review
+            learner submissions.
           </p>
         </div>
 
@@ -109,7 +113,7 @@ export default function InterviewToolsPositionsPage({
             className="inline-flex items-center gap-2 rounded-xl bg-[#083262] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#052243] shadow-sm"
           >
             <Plus className="h-4 w-4" />
-            Create Position
+            Create Interview
           </button>
         </div>
       </div>
@@ -125,10 +129,13 @@ export default function InterviewToolsPositionsPage({
           <table className="min-w-full">
             <thead className="bg-slate-50 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">
               <tr>
-                <th className="px-6 py-4">Position</th>
+                <th className="px-6 py-4">Interview</th>
+                {isSuperAdmin ? (
+                  <th className="px-6 py-4">Created By</th>
+                ) : null}
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Questions</th>
-                <th className="px-6 py-4">Candidates</th>
+                <th className="px-6 py-4">Learners</th>
                 <th className="px-6 py-4">Share Link</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
@@ -138,15 +145,25 @@ export default function InterviewToolsPositionsPage({
                 const publicLink = `${window.location.origin}/interview/${position.slug}`;
 
                 return (
-                  <tr key={position.position_id} className="hover:bg-slate-50 transition-colors">
+                  <tr
+                    key={position.position_id}
+                    className="hover:bg-slate-50 transition-colors"
+                  >
                     <td className="px-6 py-5 align-top">
                       <div className="font-bold text-slate-900">
                         {position.title}
                       </div>
                       <div className="mt-1 text-xs text-slate-500 font-medium">
-                        {position.role_title}
+                        {position.details || position.role_title}
                       </div>
                     </td>
+                    {isSuperAdmin ? (
+                      <td className="px-6 py-5 align-top text-xs text-slate-500 font-medium">
+                        {position.created_by_username ||
+                          position.created_by ||
+                          "-"}
+                      </td>
+                    ) : null}
                     <td className="px-6 py-5 align-top">
                       <span
                         className={`inline-flex rounded-md px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${
@@ -170,7 +187,9 @@ export default function InterviewToolsPositionsPage({
                             <span>{publicLink}</span>
                             <button
                               type="button"
-                              onClick={() => navigator.clipboard.writeText(publicLink)}
+                              onClick={() =>
+                                navigator.clipboard.writeText(publicLink)
+                              }
                               className="shrink-0 p-1 text-slate-400 hover:text-[#083262] hover:bg-slate-200 rounded transition-colors opacity-0 group-hover:opacity-100"
                               title="Copy Link"
                             >
@@ -188,7 +207,7 @@ export default function InterviewToolsPositionsPage({
                           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 shadow-sm"
                         >
                           <Users className="h-4 w-4 text-slate-500" />
-                          Candidates
+                          Learners
                         </button>
 
                         <button

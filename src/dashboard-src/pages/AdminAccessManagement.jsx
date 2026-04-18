@@ -9,6 +9,7 @@ const MODULE_OPTIONS = [
   { key: "a2_content", label: "A2" },
   { key: "events", label: "Events" },
   { key: "interview_tools", label: "Interview Tools" },
+  { key: "skillcase_interviews", label: "Skillcase Interviews" },
   { key: "exam", label: "Exam Manager" },
   { key: "batch", label: "Batch" },
   { key: "landing_page", label: "Landing Page" },
