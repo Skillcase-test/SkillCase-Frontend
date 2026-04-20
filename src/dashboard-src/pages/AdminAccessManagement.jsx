@@ -201,11 +201,11 @@ export default function AdminAccessManagement() {
 
   const canManage = true;
 
-  async function loadUsers(showRefresh = false) {
+  async function loadUsers(showRefresh = false, searchText = query) {
     if (showRefresh) setRefreshing(true);
     setUsersLoading(true);
     try {
-      const res = await adminAccessApi.listUsers(query);
+      const res = await adminAccessApi.listUsers(searchText);
       setUsers(res.data.users || []);
     } finally {
       setUsersLoading(false);
@@ -249,18 +249,31 @@ export default function AdminAccessManagement() {
   }
 
   useEffect(() => {
-    loadUsers();
+    loadUsers(false, "");
     loadWiseBatches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      loadUsers(false, query);
+    }, 250);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
 
   const filteredUsers = useMemo(
     () =>
-      users.filter((user) => {
-        const hay =
-          `${user.fullname || ""} ${user.username || ""} ${user.email || ""} ${user.phone || ""}`.toLowerCase();
-        return hay.includes(query.toLowerCase());
+      [...users].sort((a, b) => {
+        const rank = { super_admin: 1, admin: 2, user: 3 };
+        const byRole = (rank[a.role] || 99) - (rank[b.role] || 99);
+        if (byRole !== 0) return byRole;
+        return String(a.fullname || a.username || "").localeCompare(
+          String(b.fullname || b.username || ""),
+        );
       }),
-    [users, query],
+    [users],
   );
 
   const selectedBatchList = useMemo(() => {
@@ -382,7 +395,7 @@ export default function AdminAccessManagement() {
                     </span>
                   </div>
                   <p className="text-xs text-slate-500">
-                    {user.email || user.phone}
+                    {user.phone || user.number || "-"}
                   </p>
                 </button>
               ))}

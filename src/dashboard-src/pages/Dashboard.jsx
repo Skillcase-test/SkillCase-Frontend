@@ -337,19 +337,41 @@ export default function Dashboard() {
 
   useEffect(() => {
     let mounted = true;
-    adminAccessApi
-      .getMyAccess()
-      .then((res) => {
-        if (mounted) setMe(res.data);
-      })
-      .catch(() => {
-        if (mounted) setMe(null);
-      })
-      .finally(() => {
-        if (mounted) setLoading(false);
-      });
+
+    const fetchAccess = (showLoading = false) => {
+      if (showLoading && mounted) setLoading(true);
+      return adminAccessApi
+        .getMyAccess()
+        .then((res) => {
+          if (mounted) setMe(res.data);
+        })
+        .catch(() => {
+          if (mounted) setMe(null);
+        })
+        .finally(() => {
+          if (mounted) setLoading(false);
+        });
+    };
+
+    fetchAccess(true);
+
+    const onFocus = () => {
+      fetchAccess(false);
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchAccess(false);
+      }
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
     return () => {
       mounted = false;
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, []);
 
