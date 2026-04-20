@@ -1,7 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import {
-  ChevronDown,
-  ChevronRight,
   NavLink,
   Navigate,
   Route,
@@ -9,6 +7,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { adminAccessApi } from "../../api/adminAccessApi";
 import Analytics from "./Analytics";
 import ManageEvents from "./event/ManageEvents";
