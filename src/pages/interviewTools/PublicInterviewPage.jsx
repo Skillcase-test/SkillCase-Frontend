@@ -27,6 +27,15 @@ function formatSeconds(value) {
   return `${Math.floor(value)}s`;
 }
 
+function getMediaExtensionFromMime(mimeType = "") {
+  const lower = String(mimeType).toLowerCase();
+  if (lower.includes("mp4")) return "mp4";
+  if (lower.includes("quicktime")) return "mov";
+  if (lower.includes("ogg")) return "ogg";
+  if (lower.includes("webm")) return "webm";
+  return "webm";
+}
+
 function Surface({ children, className = "" }) {
   return (
     <div
@@ -82,6 +91,8 @@ export default function PublicInterviewPage() {
     recordedBlob,
     isRecording,
     recordingSeconds,
+    recordingHasAudioSignal,
+    error: recorderError,
     requestStream,
     startRecording,
     stopRecording,
@@ -89,11 +100,28 @@ export default function PublicInterviewPage() {
     resetRecording,
   } = useInterviewRecorder();
 
+  const handleRequestStream = async () => {
+    try {
+      await requestStream();
+      setStatusMessage("");
+    } catch (error) {
+      console.error(error);
+      setStatusMessage(
+        "Microphone is not capturing audio. Please allow camera and mic access, then try again.",
+      );
+    }
+  };
+
   useEffect(() => {
     if (streamVideoRef.current && stream) {
       streamVideoRef.current.srcObject = stream;
     }
   }, [stream, stage]);
+
+  useEffect(() => {
+    if (!recorderError) return;
+    setStatusMessage(recorderError);
+  }, [recorderError]);
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -203,6 +231,11 @@ export default function PublicInterviewPage() {
   const startSubmissionFlow = async () => {
     try {
       setIsStarting(true);
+
+      // Force media permission check here as well, so candidates who skip
+      // the separate enable button still get a browser prompt/error.
+      await requestStream();
+
       const existingSessionToken = localStorage.getItem(getStorageKey(slug));
       const res = await interviewToolsApi.startSubmission(slug, {
         ...form,
@@ -223,7 +256,8 @@ export default function PublicInterviewPage() {
     } catch (error) {
       console.error(error);
       setStatusMessage(
-        error?.response?.data?.message || "Could not start this interview",
+        error?.response?.data?.message ||
+          "Camera/microphone permission is required to start this interview.",
       );
     } finally {
       setIsStarting(false);
@@ -233,6 +267,16 @@ export default function PublicInterviewPage() {
   const beginQuestionRecording = async () => {
     resetRecording();
     setRetakesUsed(0);
+
+    try {
+      await requestStream();
+    } catch (error) {
+      setStatusMessage(
+        "Microphone is not capturing audio. Please allow camera and mic access, then try again.",
+      );
+      return;
+    }
+
     const thinkingTime = Number(position?.thinking_time_seconds || 3);
     setThinkingRemaining(thinkingTime > 0 ? thinkingTime : 3);
     setStage("thinking");
@@ -245,7 +289,9 @@ export default function PublicInterviewPage() {
       setStage("recording");
     } catch (error) {
       console.error(error);
-      setStatusMessage("Could not start recording. Please try again.");
+      setStatusMessage(
+        "Microphone is not capturing audio. Please check mic permissions and try again.",
+      );
     }
   };
 
@@ -257,28 +303,47 @@ export default function PublicInterviewPage() {
   const handleRetake = async () => {
     resetRecording();
     setRetakesUsed((prev) => prev + 1);
-    await startRecording();
-    setStage("recording");
+    try {
+      await startRecording();
+      setStage("recording");
+      setStatusMessage("");
+    } catch (error) {
+      console.error(error);
+      setStatusMessage(
+        "Microphone is not capturing audio. Please check mic permissions and try again.",
+      );
+    }
   };
 
   const handleAutoSubmit = async () => {
     const blob = await stopRecording();
+    setStage("reviewless-stop");
     await submitCurrentAnswer(blob || recordedBlob);
   };
 
   const submitCurrentAnswer = async (finalBlob = recordedBlob) => {
     if (!finalBlob || !submission || !activeQuestion) return;
 
+    if (!recordingHasAudioSignal) {
+      setStatusMessage(
+        "No voice was detected in this recording. Please retake after verifying your microphone input.",
+      );
+      return;
+    }
+
     setSubmittingAnswer(true);
 
     try {
+      const answerMimeType = finalBlob.type || "video/webm";
+      const answerExtension = getMediaExtensionFromMime(answerMimeType);
+
       const uploadUrlRes = await interviewToolsApi.getPublicUploadUrl(
         submission.submission_id,
         {
           session_token: submission.session_token,
           question_id: activeQuestion.question_id,
-          fileName: "answer.webm",
-          contentType: "video/webm",
+          fileName: `answer.${answerExtension}`,
+          contentType: answerMimeType,
         },
       );
 
@@ -287,7 +352,7 @@ export default function PublicInterviewPage() {
       await uploadFileToSignedUrl({
         file: finalBlob,
         uploadUrl,
-        contentType: "video/webm",
+        contentType: answerMimeType,
       });
 
       await interviewToolsApi.saveAnswer(submission.submission_id, {
@@ -430,7 +495,7 @@ export default function PublicInterviewPage() {
                   {!stream ? (
                     <button
                       type="button"
-                      onClick={requestStream}
+                      onClick={handleRequestStream}
                       className="flex w-full items-center justify-center gap-2 rounded-full bg-[#083262] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#062446] shadow-md"
                     >
                       <ShieldCheck className="h-4 w-4" />
@@ -556,7 +621,7 @@ export default function PublicInterviewPage() {
                   {!stream ? (
                     <button
                       type="button"
-                      onClick={requestStream}
+                      onClick={handleRequestStream}
                       className="flex w-full items-center justify-center gap-2 rounded-full bg-[#083262] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#062446] shadow-md"
                     >
                       <ShieldCheck className="h-4 w-4" />
