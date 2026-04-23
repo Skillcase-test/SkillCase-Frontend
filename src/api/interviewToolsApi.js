@@ -9,6 +9,9 @@ export const interviewToolsApi = {
   createPosition: (payload) =>
     api.post("/admin/interview-tools/positions", payload),
 
+  duplicatePosition: (positionId) =>
+    api.post(`/admin/interview-tools/positions/${positionId}/duplicate`),
+
   updatePosition: (positionId, payload) =>
     api.put(`/admin/interview-tools/positions/${positionId}`, payload),
 

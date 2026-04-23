@@ -112,7 +112,7 @@ import PublicInterviewPage from "./pages/interviewTools/PublicInterviewPage";
 import FallbackPage from "./pages/FallbackPage";
 
 import ContinuePractice from "./pages/ContinuePractice";
-import TermsRequiredPage from "./pages/TermsRequiredPage";
+import TermsSignPage from "./pages/terms/TermsSignPage";
 
 //capacitor app
 import { Capacitor } from "@capacitor/core";
@@ -167,17 +167,11 @@ function AppContent() {
     "/open-app",
     "/thank-you",
     "/events",
+    "/terms/sign",
   ];
   const isPublicRoute =
     publicRoutes.some((route) => location.pathname.startsWith(route)) ||
     /^\/interview\/[^/]+$/.test(location.pathname);
-  const isTermsRoute = location.pathname === "/terms-required";
-  const requiresTermsAcceptance =
-    isAuthenticated &&
-    user?.role === "user" &&
-    user?.is_paid &&
-    user?.terms_required &&
-    !user?.terms_accepted;
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
@@ -379,16 +373,6 @@ function AppContent() {
     return <Navigate to="/login" replace />;
   }
 
-  if (requiresTermsAcceptance && !isTermsRoute) {
-    return (
-      <Navigate
-        to="/terms-required"
-        replace
-        state={{ from: `${location.pathname}${location.search}` }}
-      />
-    );
-  }
-
   return (
     <>
       <OtaUpdateModal
@@ -459,7 +443,7 @@ function AppContent() {
               <Route path="/register" element={<NursingGermanyLanding />} />
               <Route path="/thank-you" element={<ThankYouPage />} />
               <Route path="/open-app" element={<FallbackPage />} />
-              <Route path="/terms-required" element={<TermsRequiredPage />} />
+              <Route path="/terms/sign/:token" element={<TermsSignPage />} />
               <Route path="/continue" element={<ContinuePractice />} />
               <Route
                 path="/internal/lead-form"
@@ -590,7 +574,7 @@ function ConditionalFooter() {
     location.pathname === "/register" ||
     location.pathname === "/thank-you" ||
     location.pathname === "/internal/lead-form" ||
-    location.pathname === "/terms-required" ||
+    location.pathname.startsWith("/terms/sign") ||
     location.pathname.startsWith("/news");
 
   if (hideFooter) return null;
@@ -604,7 +588,7 @@ function ConditionalNav() {
     location.pathname === "/register" ||
     location.pathname === "/thank-you" ||
     location.pathname === "/internal/lead-form" ||
-    location.pathname === "/terms-required";
+    location.pathname.startsWith("/terms/sign");
 
   const disableNav = /^\/exam\/[^/]+\/take$/.test(location.pathname);
 

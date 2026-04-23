@@ -26,6 +26,7 @@ export default function InterviewToolsPositionsPage({
   const [positions, setPositions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
+  const [duplicatingPositionId, setDuplicatingPositionId] = useState(null);
 
   const loadPositions = async () => {
     setLoading(true);
@@ -56,12 +57,12 @@ export default function InterviewToolsPositionsPage({
 
   const openBuilder = (positionId = null) => {
     setSelectedInterviewPositionId(positionId);
-    setActivePage("interview-tools-builder");
+    setActivePage("interview-tools-builder", { positionId });
   };
 
   const openCandidates = (positionId) => {
     setSelectedInterviewPositionId(positionId);
-    setActivePage("interview-tools-candidates");
+    setActivePage("interview-tools-candidates", { positionId });
   };
 
   const deletePosition = async (position) => {
@@ -79,6 +80,31 @@ export default function InterviewToolsPositionsPage({
       setStatus(
         error?.response?.data?.message || "Could not delete interview position",
       );
+    }
+  };
+
+  const duplicatePosition = async (position) => {
+    if (duplicatingPositionId) return;
+
+    setDuplicatingPositionId(position.position_id);
+    setStatus("");
+
+    try {
+      const res = await interviewToolsApi.duplicatePosition(position.position_id);
+      const newPositionId = res?.data?.data?.position_id;
+
+      await loadPositions();
+
+      if (newPositionId) {
+        openBuilder(newPositionId);
+      }
+    } catch (error) {
+      console.error(error);
+      setStatus(
+        error?.response?.data?.message || "Could not duplicate interview position",
+      );
+    } finally {
+      setDuplicatingPositionId(null);
     }
   };
 
@@ -198,6 +224,18 @@ export default function InterviewToolsPositionsPage({
                         >
                           <SquarePen className="h-4 w-4 text-slate-500" />
                           Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={Boolean(duplicatingPositionId)}
+                          onClick={() => duplicatePosition(position)}
+                          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <Copy className="h-4 w-4 text-slate-500" />
+                          {duplicatingPositionId === position.position_id
+                            ? "Duplicating..."
+                            : "Duplicate"}
                         </button>
 
                         {position.status === "published_open" ? (

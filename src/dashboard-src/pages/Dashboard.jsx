@@ -13,7 +13,7 @@ import Analytics from "./Analytics";
 import ManageEvents from "./event/ManageEvents";
 import LandingPageManagement from "./LandingPageManagement";
 import SendNotification from "./notification/send";
-import TcAgreements from "./TcAgreements";
+import TermsManager from "./TermsManager";
 import AdminExamManager from "./exam/AdminExamManager";
 import AdminBatchManager from "./exam/AdminBatchManager";
 import InterviewToolsPositionsPage from "../../pages/interviewTools/InterviewToolsPositionsPage";
@@ -67,21 +67,48 @@ function Guard({ allowed, children }) {
 }
 
 function InterviewToolsModule() {
+  const location = useLocation();
   const navigate = useNavigate();
   const [selectedInterviewPositionId, setSelectedInterviewPositionId] =
     useState(null);
   const [selectedInterviewSubmissionId, setSelectedInterviewSubmissionId] =
     useState(null);
 
-  const setActivePage = (page) => {
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const positionId = params.get("positionId");
+    const submissionId = params.get("submissionId");
+
+    setSelectedInterviewPositionId(positionId || null);
+    setSelectedInterviewSubmissionId(submissionId || null);
+  }, [location.search]);
+
+  const setActivePage = (page, options = {}) => {
+    const positionId =
+      options.positionId ?? selectedInterviewPositionId ?? null;
+    const submissionId =
+      options.submissionId ?? selectedInterviewSubmissionId ?? null;
+    const params = new URLSearchParams();
+
+    if (positionId) {
+      params.set("positionId", String(positionId));
+    }
+
+    if (submissionId) {
+      params.set("submissionId", String(submissionId));
+    }
+
+    const search = params.toString();
+    const suffix = search ? `?${search}` : "";
+
     if (page === "interview-tools-positions")
       navigate("/admin/interview-tools");
     if (page === "interview-tools-builder")
-      navigate("/admin/interview-tools/builder");
+      navigate(`/admin/interview-tools/builder${suffix}`);
     if (page === "interview-tools-candidates")
-      navigate("/admin/interview-tools/candidates");
+      navigate(`/admin/interview-tools/candidates${suffix}`);
     if (page === "interview-tools-review")
-      navigate("/admin/interview-tools/review");
+      navigate(`/admin/interview-tools/review${suffix}`);
   };
 
   return (
@@ -129,21 +156,48 @@ function InterviewToolsModule() {
 }
 
 function SkillcaseInterviewsModule({ isSuperAdmin = false }) {
+  const location = useLocation();
   const navigate = useNavigate();
   const [selectedInterviewPositionId, setSelectedInterviewPositionId] =
     useState(null);
   const [selectedInterviewSubmissionId, setSelectedInterviewSubmissionId] =
     useState(null);
 
-  const setActivePage = (page) => {
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const positionId = params.get("positionId");
+    const submissionId = params.get("submissionId");
+
+    setSelectedInterviewPositionId(positionId || null);
+    setSelectedInterviewSubmissionId(submissionId || null);
+  }, [location.search]);
+
+  const setActivePage = (page, options = {}) => {
+    const positionId =
+      options.positionId ?? selectedInterviewPositionId ?? null;
+    const submissionId =
+      options.submissionId ?? selectedInterviewSubmissionId ?? null;
+    const params = new URLSearchParams();
+
+    if (positionId) {
+      params.set("positionId", String(positionId));
+    }
+
+    if (submissionId) {
+      params.set("submissionId", String(submissionId));
+    }
+
+    const search = params.toString();
+    const suffix = search ? `?${search}` : "";
+
     if (page === "interview-tools-positions")
       navigate("/admin/skillcase-interviews");
     if (page === "interview-tools-builder")
-      navigate("/admin/skillcase-interviews/builder");
+      navigate(`/admin/skillcase-interviews/builder${suffix}`);
     if (page === "interview-tools-candidates")
-      navigate("/admin/skillcase-interviews/candidates");
+      navigate(`/admin/skillcase-interviews/candidates${suffix}`);
     if (page === "interview-tools-review")
-      navigate("/admin/skillcase-interviews/review");
+      navigate(`/admin/skillcase-interviews/review${suffix}`);
   };
 
   return (
@@ -440,10 +494,10 @@ export default function Dashboard() {
         module: "notifications",
       },
       {
-        key: "agreements",
-        label: "T&C Agreements",
-        path: "/admin/agreements",
-        module: "agreements",
+        key: "terms",
+        label: "Terms & Signatures",
+        path: "/admin/terms",
+        module: "terms",
       },
     ].filter((item) => hasPermission(me, item.module, "view"));
 
@@ -641,10 +695,10 @@ export default function Dashboard() {
               }
             />
             <Route
-              path="agreements"
+              path="terms"
               element={
-                <Guard allowed={hasPermission(me, "agreements")}>
-                  <TcAgreements />
+                <Guard allowed={hasPermission(me, "terms")}>
+                  <TermsManager />
                 </Guard>
               }
             />

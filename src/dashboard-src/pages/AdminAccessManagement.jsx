@@ -16,10 +16,11 @@ const MODULE_OPTIONS = [
   { key: "notifications", label: "Notifications" },
   { key: "wise", label: "Wise Dashboard" },
   { key: "internal", label: "Internal Forms" },
-  { key: "agreements", label: "Agreements" },
+  { key: "terms", label: "Terms & Signatures" },
 ];
 
 const ACTION_OPTIONS = ["view", "create", "edit", "delete", "manage"];
+const SKILLCASE_INTERVIEW_MODULE = "skillcase_interviews";
 
 function normalizeBatch(batch) {
   const id = batch.id ?? batch.batch_id ?? batch.value;
@@ -66,6 +67,18 @@ function PermissionPicker({ value, onChange }) {
     onChange(next);
   };
 
+  const toggleSkillcaseInterviewSuperAccess = () => {
+    const existing = normalized[SKILLCASE_INTERVIEW_MODULE] || [];
+    const actionSet = new Set(existing);
+    if (actionSet.has("manage")) {
+      actionSet.delete("manage");
+    } else {
+      actionSet.add("manage");
+      actionSet.add("view");
+    }
+    setModuleActions(SKILLCASE_INTERVIEW_MODULE, [...actionSet]);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
@@ -105,6 +118,21 @@ function PermissionPicker({ value, onChange }) {
                   {moduleDef.label}
                 </p>
                 <div className="flex gap-1">
+                  {moduleDef.key === SKILLCASE_INTERVIEW_MODULE ? (
+                    <button
+                      type="button"
+                      onClick={toggleSkillcaseInterviewSuperAccess}
+                      className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${
+                        selected.includes("manage")
+                          ? "border-amber-200 bg-amber-50 text-amber-700"
+                          : "border-slate-200 bg-white text-slate-600"
+                      }`}
+                    >
+                      {selected.includes("manage")
+                        ? "super access on"
+                        : "super access"}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => setModuleActions(moduleDef.key, ["view"])}

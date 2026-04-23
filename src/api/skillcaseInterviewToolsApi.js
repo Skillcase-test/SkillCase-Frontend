@@ -9,6 +9,9 @@ export const skillcaseInterviewToolsApi = {
   createPosition: (payload) =>
     api.post("/admin/skillcase-interviews/positions", payload),
 
+  duplicatePosition: (positionId) =>
+    api.post(`/admin/skillcase-interviews/positions/${positionId}/duplicate`),
+
   updatePosition: (positionId, payload) =>
     api.put(`/admin/skillcase-interviews/positions/${positionId}`, payload),
 

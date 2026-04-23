@@ -121,7 +121,10 @@ export default function InterviewToolsCandidatesPage({
                       type="button"
                       onClick={() => {
                         setSelectedInterviewSubmissionId(item.submission_id);
-                        setActivePage("interview-tools-review");
+                        setActivePage("interview-tools-review", {
+                          positionId: selectedInterviewPositionId,
+                          submissionId: item.submission_id,
+                        });
                       }}
                       className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-black"
                     >

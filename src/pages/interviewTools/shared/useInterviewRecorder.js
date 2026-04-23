@@ -1,11 +1,25 @@
 import { useCallback, useRef, useState } from "react";
 
 const RECORDER_MIME_CANDIDATES = [
-  "video/webm;codecs=vp8,opus",
-  "video/webm;codecs=vp9,opus",
-  "video/webm",
+  "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
   "video/mp4",
+  "video/webm;codecs=vp8,opus",
+  "video/webm",
 ];
+
+function canPlaybackMimeType(mimeType) {
+  if (typeof document === "undefined" || !mimeType) {
+    return true;
+  }
+
+  const video = document.createElement("video");
+  const normalized = String(mimeType).split(";")[0];
+
+  return (
+    video.canPlayType(mimeType) !== "" ||
+    video.canPlayType(normalized) !== ""
+  );
+}
 
 function getSupportedRecorderMimeType() {
   if (typeof MediaRecorder === "undefined") {
@@ -13,7 +27,10 @@ function getSupportedRecorderMimeType() {
   }
 
   for (const mimeType of RECORDER_MIME_CANDIDATES) {
-    if (MediaRecorder.isTypeSupported?.(mimeType)) {
+    if (
+      MediaRecorder.isTypeSupported?.(mimeType) &&
+      canPlaybackMimeType(mimeType)
+    ) {
       return mimeType;
     }
   }

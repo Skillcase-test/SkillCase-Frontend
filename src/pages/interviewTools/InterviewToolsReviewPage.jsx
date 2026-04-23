@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Download, Save } from "lucide-react";
 import { interviewToolsApi } from "../../api/interviewToolsApi";
 import InterviewVideoPlayer from "./shared/InterviewVideoPlayer";
 
@@ -90,7 +90,11 @@ export default function InterviewToolsReviewPage({
       <div className="flex items-center justify-between">
         <button
           type="button"
-          onClick={() => setActivePage("interview-tools-candidates")}
+          onClick={() =>
+            setActivePage("interview-tools-candidates", {
+              positionId: selectedInterviewPositionId,
+            })
+          }
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 shadow-sm"
         >
           <ArrowLeft className="h-4 w-4 text-slate-500" />
@@ -181,16 +185,50 @@ export default function InterviewToolsReviewPage({
 
           <div className="space-y-6 flex flex-col h-full">
             <div className="grid lg:grid-cols-2 gap-4">
-              <InterviewVideoPlayer
-                src={activeAnswer.question_video_url}
-                title="Question Prompt"
-                initialDurationSeconds={Number(activeAnswer.video_duration_seconds || 0)}
-              />
-              <InterviewVideoPlayer
-                src={activeAnswer.answer_video_url}
-                title="Candidate Answer"
-                initialDurationSeconds={Number(activeAnswer.answer_duration_seconds || 0)}
-              />
+              <div className="space-y-3">
+                <InterviewVideoPlayer
+                  src={activeAnswer.question_video_url}
+                  title="Question Prompt"
+                  initialDurationSeconds={Number(activeAnswer.video_duration_seconds || 0)}
+                />
+                {activeAnswer.question_video_download_url ||
+                activeAnswer.question_video_url ? (
+                  <a
+                    href={
+                      activeAnswer.question_video_download_url ||
+                      activeAnswer.question_video_url
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Question Video
+                  </a>
+                ) : null}
+              </div>
+              <div className="space-y-3">
+                <InterviewVideoPlayer
+                  src={activeAnswer.answer_video_url}
+                  title="Candidate Answer"
+                  initialDurationSeconds={Number(activeAnswer.answer_duration_seconds || 0)}
+                />
+                {activeAnswer.answer_video_download_url ||
+                activeAnswer.answer_video_url ? (
+                  <a
+                    href={
+                      activeAnswer.answer_video_download_url ||
+                      activeAnswer.answer_video_url
+                    }
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Answer Video
+                  </a>
+                ) : null}
+              </div>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

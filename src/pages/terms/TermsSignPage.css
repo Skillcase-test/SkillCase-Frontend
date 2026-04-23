@@ -1,0 +1,166 @@
+.terms-pdf-frame {
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  line-height: 0;
+}
+
+.terms-overlay-layer {
+  position: absolute;
+  inset: 1px;
+}
+
+.terms-overlay-field {
+  position: absolute;
+  box-sizing: border-box;
+  font-size: var(--terms-field-font-size, 11px);
+  line-height: 1;
+}
+
+.terms-overlay-control {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+}
+
+.terms-overlay-label {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.8);
+  background: rgba(255, 255, 255, 0.92);
+  color: #334155;
+  padding: var(--terms-field-pad-y, 1px) var(--terms-field-pad-x, 4px);
+  font-weight: 500;
+}
+
+.terms-overlay-input {
+  border: 1px solid rgba(148, 163, 184, 0.85);
+  background: rgba(255, 255, 255, 0.95);
+  color: #0f172a;
+  padding: var(--terms-field-pad-y, 1px) var(--terms-field-pad-x, 4px);
+  font: inherit;
+  font-size: inherit;
+  line-height: 1;
+}
+
+.terms-overlay-input:focus {
+  outline: none;
+  border-color: #334155;
+}
+
+.terms-overlay-textarea {
+  resize: none;
+  line-height: 1.2;
+}
+
+.terms-overlay-checkbox-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(148, 163, 184, 0.85);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.terms-overlay-checkbox-wrap input {
+  width: 12px;
+  height: 12px;
+}
+
+.terms-overlay-signature {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid #60a5fa;
+  background: rgba(239, 246, 255, 0.95);
+  color: #1d4ed8;
+  font-weight: 700;
+  font-size: calc(var(--terms-field-font-size, 11px) * 1.25);
+  padding: var(--terms-field-pad-y, 1px) var(--terms-field-pad-x, 4px);
+}
+
+.terms-overlay-readonly {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  font-weight: 500;
+  padding: 0 var(--terms-field-pad-x, 4px);
+}
+
+.terms-overlay-checkbox-readonly {
+  justify-content: center;
+  font-weight: 700;
+}
+
+.terms-overlay-signature-static {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  font-size: calc(var(--terms-field-font-size, 11px) * 1.3);
+  font-weight: 700;
+  padding: 0;
+}
+
+.terms-overlay-signature-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.terms-pdf-frame .react-pdf__Page,
+.terms-pdf-frame .react-pdf__Page__canvas {
+  display: block;
+}
+
+.terms-pdf-frame .react-pdf__Page__canvas {
+  width: 100% !important;
+  height: auto !important;
+}
+
+@media (max-width: 639px) {
+  .terms-pdf-frame {
+    --terms-field-font-size: clamp(5.5px, 1.8vw, 7.5px);
+    --terms-field-pad-x: 1px;
+    --terms-field-pad-y: 0;
+  }
+
+  .terms-overlay-control {
+    border-radius: 2px;
+  }
+
+  .terms-overlay-checkbox-wrap input {
+    width: 10px;
+    height: 10px;
+  }
+
+  .terms-overlay-input,
+  .terms-overlay-label,
+  .terms-overlay-signature,
+  .terms-overlay-textarea {
+    font-size: var(--terms-field-font-size) !important;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .terms-pdf-frame {
+    --terms-field-font-size: clamp(8px, 1.5vw, 10px);
+    --terms-field-pad-x: 3px;
+    --terms-field-pad-y: 1px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .terms-pdf-frame {
+    --terms-field-font-size: clamp(10px, 0.85vw, 12px);
+    --terms-field-pad-x: 4px;
+    --terms-field-pad-y: 1px;
+  }
+}
