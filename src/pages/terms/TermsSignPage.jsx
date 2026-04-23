@@ -104,6 +104,21 @@ function getDisplayValue(field, fieldValues) {
   return String(getPrefilledValue(field) || "");
 }
 
+function isSignatureField(field) {
+  return field?.field_type === "signature";
+}
+
+function isUserRequiredSignatureField(field) {
+  if (!isSignatureField(field) || !field?.required) return false;
+  const config = field?.config_json || {};
+  const locked = Boolean(config.locked);
+  const defaultText = String(config.default_value || "").trim();
+  const defaultImage = String(
+    config.default_signature_image_data_url || "",
+  ).trim();
+  return !(locked && (defaultText || defaultImage));
+}
+
 function SignaturePad({ onChange }) {
   const canvasRef = useRef(null);
   const drawingRef = useRef(false);
@@ -369,6 +384,15 @@ export default function TermsSignPage() {
     [fields],
   );
 
+  const candidateSignatureFieldKeys = useMemo(
+    () =>
+      fields
+        .filter((field) => isUserRequiredSignatureField(field))
+        .map((field) => String(field.field_key || "").trim())
+        .filter(Boolean),
+    [fields],
+  );
+
   const typedFont = useMemo(() => {
     const variants = [
       '"Brush Script MT", "Segoe Script", cursive',
@@ -388,6 +412,13 @@ export default function TermsSignPage() {
     fieldValues.full_name,
     fieldValues.name,
   ]);
+
+  const handleSignatureModeChange = (nextMode) => {
+    setSignatureMode(nextMode);
+    if (nextMode === "typed") {
+      setSignatureImage("");
+    }
+  };
 
   useEffect(() => {
     const node = viewerRef.current;
@@ -624,6 +655,11 @@ export default function TermsSignPage() {
     if (requiresCandidateSignature && signatureMode === "typed") {
       const typedValue = typedSignature.trim();
       payloadValues.signature = typedValue;
+      if (candidateSignatureFieldKeys.length) {
+        candidateSignatureFieldKeys.forEach((key) => {
+          payloadValues[key] = typedValue;
+        });
+      }
       signatureImageDataUrl = createTypedSignatureImageDataUrl(typedValue, typedFont);
       if (!signatureImageDataUrl) {
         setError("Failed to render typed signature image. Please try again.");
@@ -800,7 +836,7 @@ export default function TermsSignPage() {
           onClose={() => setShowSignatureModal(false)}
           onSubmit={handleSubmit}
           signatureMode={signatureMode}
-          setSignatureMode={setSignatureMode}
+          setSignatureMode={handleSignatureModeChange}
           typedSignature={typedSignature}
           setTypedSignature={setTypedSignature}
           signatureImage={signatureImage}
@@ -890,7 +926,7 @@ export default function TermsSignPage() {
                 <button
                   key={mode}
                   type="button"
-                  onClick={() => setSignatureMode(mode)}
+                  onClick={() => handleSignatureModeChange(mode)}
                   className={`rounded-md border px-3 py-2 text-xs font-semibold ${
                     signatureMode === mode
                       ? "border-slate-900 bg-slate-900 text-white"
