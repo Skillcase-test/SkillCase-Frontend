@@ -144,7 +144,7 @@
 .terms-next-floating {
   position: fixed;
   right: 14px;
-  bottom: 18px;
+  bottom: calc(18px + var(--terms-kb-offset, 0px));
   z-index: 40;
   display: inline-flex;
   align-items: center;
@@ -243,7 +243,7 @@
 
   .terms-next-floating {
     right: 10px;
-    bottom: 14px;
+    bottom: calc(14px + var(--terms-kb-offset, 0px));
     padding: 4px 9px;
     font-size: 10px;
   }

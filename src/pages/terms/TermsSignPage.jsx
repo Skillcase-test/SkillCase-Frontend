@@ -362,6 +362,7 @@ export default function TermsSignPage() {
   const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [activeFieldKey, setActiveFieldKey] = useState("");
   const [toastMessage, setToastMessage] = useState("");
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
 
   const viewerRef = useRef(null);
   const inputRefMap = useRef(new Map());
@@ -407,6 +408,24 @@ export default function TermsSignPage() {
         }),
     [fields],
   );
+
+  const firstFillableFieldKey = useMemo(() => {
+    const firstField = fields
+      .filter(
+        (field) =>
+          isFieldVisibleToCandidate(field) &&
+          field.field_type !== "label" &&
+          field.field_type !== "signature",
+      )
+      .sort((a, b) => {
+        const pageDiff =
+          Number(a.page_number || 1) - Number(b.page_number || 1);
+        if (pageDiff !== 0) return pageDiff;
+        return Number(a.field_order || 0) - Number(b.field_order || 0);
+      })[0];
+
+    return String(firstField?.field_key || "");
+  }, [fields]);
 
   const requiresCandidateSignature = useMemo(
     () =>
@@ -511,6 +530,42 @@ export default function TermsSignPage() {
   }, [showSignatureModal]);
 
   useEffect(() => {
+    if (!isMobile) {
+      setKeyboardOffset(0);
+      return undefined;
+    }
+    if (typeof window === "undefined") return undefined;
+
+    const viewport = window.visualViewport;
+    if (!viewport) return undefined;
+
+    const updateKeyboardOffset = () => {
+      const occluded = Math.max(
+        0,
+        Math.round(
+          window.innerHeight - (viewport.height + viewport.offsetTop),
+        ),
+      );
+      // Ignore tiny viewport changes (browser UI bars), react only to keyboard-size shifts.
+      setKeyboardOffset(occluded > 80 ? occluded : 0);
+    };
+
+    updateKeyboardOffset();
+    viewport.addEventListener("resize", updateKeyboardOffset);
+    viewport.addEventListener("scroll", updateKeyboardOffset);
+
+    return () => {
+      viewport.removeEventListener("resize", updateKeyboardOffset);
+      viewport.removeEventListener("scroll", updateKeyboardOffset);
+      setKeyboardOffset(0);
+    };
+  }, [isMobile]);
+
+  const nextButtonStyle = isMobile
+    ? { "--terms-kb-offset": `${keyboardOffset}px` }
+    : undefined;
+
+  useEffect(() => {
     if (!token) return;
     hasAutoFocusedRef.current = false;
     let mounted = true;
@@ -552,16 +607,16 @@ export default function TermsSignPage() {
   }, [token]);
 
   useEffect(() => {
-    if (loading || !template || !fillableRequiredFields.length) return undefined;
+    if (loading || !template || !firstFillableFieldKey) return undefined;
     if (hasAutoFocusedRef.current) return undefined;
     const timer = window.setTimeout(() => {
       const missing = getMissingRequiredFieldKeys();
-      if (!missing.length) return;
-      const focused = focusFieldByKey(missing[0]);
+      const targetKey = missing[0] || firstFillableFieldKey;
+      const focused = focusFieldByKey(targetKey);
       if (focused) hasAutoFocusedRef.current = true;
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [loading, template, fillableRequiredFields]);
+  }, [loading, template, firstFillableFieldKey, fieldValues]);
 
   function setValue(fieldKey, nextValue) {
     setFieldValues((prev) => ({ ...prev, [fieldKey]: nextValue }));
@@ -604,6 +659,19 @@ export default function TermsSignPage() {
     const missing = getMissingRequiredFieldKeys();
     if (!missing.length) return false;
     return focusFieldByKey(missing[0]);
+  }
+
+  function jumpToFirstMissingRequiredField() {
+    const missing = getMissingRequiredFieldKeys();
+    if (!missing.length) return true;
+    const targetKey = missing[0];
+    const focusedNow = focusFieldByKey(targetKey);
+    if (!focusedNow) {
+      window.setTimeout(() => {
+        focusFieldByKey(targetKey);
+      }, 140);
+    }
+    return focusedNow;
   }
 
   function goToNextMissingRequiredField() {
@@ -766,7 +834,7 @@ export default function TermsSignPage() {
     const missing = validateRequiredFields();
     if (missing.length) {
       showToast("Please fill all required fields before signing.");
-      goToFirstMissingRequiredField();
+      jumpToFirstMissingRequiredField();
       setError(`Please fill all required fields: ${missing.join(", ")}`);
       return;
     }
@@ -780,7 +848,7 @@ export default function TermsSignPage() {
     const missing = validateRequiredFields();
     if (missing.length) {
       showToast("Please fill all required fields before signing.");
-      goToFirstMissingRequiredField();
+      jumpToFirstMissingRequiredField();
       setError(`Please fill all required fields: ${missing.join(", ")}`);
       return;
     }
@@ -1001,6 +1069,7 @@ export default function TermsSignPage() {
           type="button"
           onClick={goToNextMissingRequiredField}
           className="terms-next-floating"
+          style={nextButtonStyle}
         >
           <span className="terms-next-label">Next</span>
           <span className="terms-next-chevron" aria-hidden="true">→</span>
@@ -1165,6 +1234,7 @@ export default function TermsSignPage() {
         type="button"
         onClick={goToNextMissingRequiredField}
         className="terms-next-floating"
+        style={nextButtonStyle}
       >
         <span className="terms-next-label">Next</span>
         <span className="terms-next-chevron" aria-hidden="true">→</span>
