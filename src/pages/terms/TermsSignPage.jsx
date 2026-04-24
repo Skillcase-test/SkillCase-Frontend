@@ -367,6 +367,8 @@ export default function TermsSignPage() {
   const viewerRef = useRef(null);
   const inputRefMap = useRef(new Map());
   const hasAutoFocusedRef = useRef(false);
+  const signaturePanelRef = useRef(null);
+  const signatureSubmitButtonRef = useRef(null);
   const [viewerWidth, setViewerWidth] = useState(900);
 
   const renderWidth = useMemo(
@@ -432,7 +434,9 @@ export default function TermsSignPage() {
       fields.some((field) => {
         if (field.field_type !== "signature" || !field.required) return false;
         const locked = Boolean(field?.config_json?.locked);
-        const defaultText = String(field?.config_json?.default_value || "").trim();
+        const defaultText = String(
+          field?.config_json?.default_value || "",
+        ).trim();
         const defaultImage = String(
           field?.config_json?.default_signature_image_data_url || "",
         ).trim();
@@ -542,9 +546,7 @@ export default function TermsSignPage() {
     const updateKeyboardOffset = () => {
       const occluded = Math.max(
         0,
-        Math.round(
-          window.innerHeight - (viewport.height + viewport.offsetTop),
-        ),
+        Math.round(window.innerHeight - (viewport.height + viewport.offsetTop)),
       );
       // Ignore tiny viewport changes (browser UI bars), react only to keyboard-size shifts.
       setKeyboardOffset(occluded > 80 ? occluded : 0);
@@ -612,11 +614,10 @@ export default function TermsSignPage() {
     const timer = window.setTimeout(() => {
       const missing = getMissingRequiredFieldKeys();
       const targetKey = missing[0] || firstFillableFieldKey;
-      const focused = focusFieldByKey(targetKey);
-      if (focused) hasAutoFocusedRef.current = true;
+      focusFieldByKeyWithRetry(targetKey, 10);
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [loading, template, firstFillableFieldKey, fieldValues]);
+  }, [loading, template, firstFillableFieldKey]);
 
   function setValue(fieldKey, nextValue) {
     setFieldValues((prev) => ({ ...prev, [fieldKey]: nextValue }));
@@ -651,7 +652,41 @@ export default function TermsSignPage() {
     if (!target || typeof target.focus !== "function") return false;
     target.scrollIntoView({ behavior: "smooth", block: "center" });
     target.focus({ preventScroll: true });
+    if (
+      target.tagName === "INPUT" &&
+      String(target.type || "").toLowerCase() === "date"
+    ) {
+      if (typeof target.showPicker === "function") {
+        try {
+          target.showPicker();
+        } catch {
+          target.click();
+        }
+      } else {
+        target.click();
+      }
+    }
     setActiveFieldKey(String(fieldKey));
+    return true;
+  }
+
+  function focusFieldByKeyWithRetry(fieldKey, maxAttempts = 8) {
+    const key = String(fieldKey || "");
+    if (!key) return false;
+    let attemptsLeft = Math.max(1, Number(maxAttempts || 1));
+
+    const attempt = () => {
+      const focused = focusFieldByKey(key);
+      if (focused) {
+        hasAutoFocusedRef.current = true;
+        return;
+      }
+      attemptsLeft -= 1;
+      if (attemptsLeft <= 0) return;
+      window.setTimeout(attempt, 140);
+    };
+
+    attempt();
     return true;
   }
 
@@ -667,9 +702,7 @@ export default function TermsSignPage() {
     const targetKey = missing[0];
     const focusedNow = focusFieldByKey(targetKey);
     if (!focusedNow) {
-      window.setTimeout(() => {
-        focusFieldByKey(targetKey);
-      }, 140);
+      focusFieldByKeyWithRetry(targetKey, 8);
     }
     return focusedNow;
   }
@@ -677,13 +710,24 @@ export default function TermsSignPage() {
   function goToNextMissingRequiredField() {
     const missing = getMissingRequiredFieldKeys();
     if (!missing.length) {
-      showToast("All required fields are filled. You can sign now.");
+      if (isMobile) {
+        setShowSignatureModal(true);
+      } else {
+        signaturePanelRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        signatureSubmitButtonRef.current?.focus?.({ preventScroll: true });
+      }
       return;
     }
     const currentIndex = missing.findIndex((key) => key === activeFieldKey);
     const nextKey =
       currentIndex >= 0 ? missing[currentIndex + 1] || missing[0] : missing[0];
-    focusFieldByKey(nextKey);
+    const focusedNow = focusFieldByKey(nextKey);
+    if (!focusedNow) {
+      focusFieldByKeyWithRetry(nextKey, 8);
+    }
   }
 
   function validateRequiredFields() {
@@ -700,10 +744,15 @@ export default function TermsSignPage() {
       activeFieldKey === key &&
       field.field_type !== "checkbox" &&
       String(value || "").trim().length > 0;
-    const signatureImage = field?.config_json?.default_signature_image_data_url || "";
+    const signatureImage =
+      field?.config_json?.default_signature_image_data_url || "";
 
     if (field.field_type === "label") {
-      return <div className="terms-overlay-control terms-overlay-label">{field.label || ""}</div>;
+      return (
+        <div className="terms-overlay-control terms-overlay-label">
+          {field.label || ""}
+        </div>
+      );
     }
 
     if (locked) {
@@ -743,7 +792,9 @@ export default function TermsSignPage() {
       return (
         <div className="terms-overlay-input-wrap">
           {showBubble ? (
-            <div className="terms-overlay-placeholder-bubble">{placeholder}</div>
+            <div className="terms-overlay-placeholder-bubble">
+              {placeholder}
+            </div>
           ) : null}
           <textarea
             ref={(node) => {
@@ -753,7 +804,9 @@ export default function TermsSignPage() {
             value={fieldValues[field.field_key] || ""}
             onChange={(e) => setValue(field.field_key, e.target.value)}
             onFocus={() => setActiveFieldKey(key)}
-            onBlur={() => setActiveFieldKey((prev) => (prev === key ? "" : prev))}
+            onBlur={() =>
+              setActiveFieldKey((prev) => (prev === key ? "" : prev))
+            }
             placeholder={placeholder}
             className="terms-overlay-control terms-overlay-input terms-overlay-textarea"
           />
@@ -773,7 +826,9 @@ export default function TermsSignPage() {
             checked={Boolean(fieldValues[field.field_key])}
             onChange={(e) => setValue(field.field_key, e.target.checked)}
             onFocus={() => setActiveFieldKey(key)}
-            onBlur={() => setActiveFieldKey((prev) => (prev === key ? "" : prev))}
+            onBlur={() =>
+              setActiveFieldKey((prev) => (prev === key ? "" : prev))
+            }
           />
         </label>
       );
@@ -783,7 +838,9 @@ export default function TermsSignPage() {
       return (
         <div className="terms-overlay-input-wrap">
           {showBubble ? (
-            <div className="terms-overlay-placeholder-bubble">{placeholder}</div>
+            <div className="terms-overlay-placeholder-bubble">
+              {placeholder}
+            </div>
           ) : null}
           <input
             ref={(node) => {
@@ -794,7 +851,9 @@ export default function TermsSignPage() {
             value={fieldValues[field.field_key] || ""}
             onChange={(e) => setValue(field.field_key, e.target.value)}
             onFocus={() => setActiveFieldKey(key)}
-            onBlur={() => setActiveFieldKey((prev) => (prev === key ? "" : prev))}
+            onBlur={() =>
+              setActiveFieldKey((prev) => (prev === key ? "" : prev))
+            }
             className="terms-overlay-control terms-overlay-input"
           />
         </div>
@@ -852,7 +911,11 @@ export default function TermsSignPage() {
       setError(`Please fill all required fields: ${missing.join(", ")}`);
       return;
     }
-    if (requiresCandidateSignature && signatureMode === "typed" && !typedSignature.trim()) {
+    if (
+      requiresCandidateSignature &&
+      signatureMode === "typed" &&
+      !typedSignature.trim()
+    ) {
       setError("Please enter your typed signature.");
       return;
     }
@@ -875,7 +938,10 @@ export default function TermsSignPage() {
           payloadValues[key] = typedValue;
         });
       }
-      signatureImageDataUrl = createTypedSignatureImageDataUrl(typedValue, typedFont);
+      signatureImageDataUrl = createTypedSignatureImageDataUrl(
+        typedValue,
+        typedFont,
+      );
       if (!signatureImageDataUrl) {
         setError("Failed to render typed signature image. Please try again.");
         return;
@@ -1063,7 +1129,9 @@ export default function TermsSignPage() {
           submitting={submitting}
         />
 
-        {toastMessage ? <div className="terms-toast">{toastMessage}</div> : null}
+        {toastMessage ? (
+          <div className="terms-toast">{toastMessage}</div>
+        ) : null}
 
         <button
           type="button"
@@ -1072,7 +1140,9 @@ export default function TermsSignPage() {
           style={nextButtonStyle}
         >
           <span className="terms-next-label">Next</span>
-          <span className="terms-next-chevron" aria-hidden="true">→</span>
+          <span className="terms-next-chevron" aria-hidden="true">
+            →
+          </span>
         </button>
       </div>
     );
@@ -1149,7 +1219,10 @@ export default function TermsSignPage() {
         </div>
 
         {/* Signature Panel */}
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
+        <div
+          ref={signaturePanelRef}
+          className="rounded-lg border border-slate-200 bg-white p-4"
+        >
           <h3 className="mb-4 font-semibold text-slate-900">Your Signature</h3>
           <div className="mb-4 space-y-3">
             <div className="flex gap-2">
@@ -1218,6 +1291,7 @@ export default function TermsSignPage() {
           </div>
 
           <button
+            ref={signatureSubmitButtonRef}
             type="button"
             onClick={handleSubmit}
             disabled={submitting}
@@ -1237,7 +1311,9 @@ export default function TermsSignPage() {
         style={nextButtonStyle}
       >
         <span className="terms-next-label">Next</span>
-        <span className="terms-next-chevron" aria-hidden="true">→</span>
+        <span className="terms-next-chevron" aria-hidden="true">
+          →
+        </span>
       </button>
     </div>
   );
