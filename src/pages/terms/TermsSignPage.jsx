@@ -92,6 +92,22 @@ function isFieldLocked(field) {
   return Boolean(field?.config_json?.locked);
 }
 
+function isFieldVisibleToCandidate(field) {
+  if (!field || field.field_type === "signature") return false;
+  if (isFieldLocked(field)) return false;
+  return true;
+}
+
+function getFieldPlaceholder(field) {
+  const explicit = String(field?.placeholder || "").trim();
+  if (explicit) return explicit;
+  const label = String(field?.label || "").trim();
+  if (label) return label;
+  return String(field?.field_key || "")
+    .replace(/[_-]+/g, " ")
+    .trim();
+}
+
 function getDisplayValue(field, fieldValues) {
   const key = String(field?.field_key || "");
   const inputValue = key ? fieldValues[key] : "";
@@ -344,8 +360,12 @@ export default function TermsSignPage() {
   const [signatureImage, setSignatureImage] = useState("");
   const [mobileStep, setMobileStep] = useState("document");
   const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [activeFieldKey, setActiveFieldKey] = useState("");
+  const [toastMessage, setToastMessage] = useState("");
 
   const viewerRef = useRef(null);
+  const inputRefMap = useRef(new Map());
+  const hasAutoFocusedRef = useRef(false);
   const [viewerWidth, setViewerWidth] = useState(900);
 
   const renderWidth = useMemo(
@@ -369,6 +389,24 @@ export default function TermsSignPage() {
     });
     return map;
   }, [fields]);
+
+  const fillableRequiredFields = useMemo(
+    () =>
+      fields
+        .filter(
+          (field) =>
+            isFieldVisibleToCandidate(field) &&
+            field.required &&
+            field.field_type !== "label",
+        )
+        .sort((a, b) => {
+          const pageDiff =
+            Number(a.page_number || 1) - Number(b.page_number || 1);
+          if (pageDiff !== 0) return pageDiff;
+          return Number(a.field_order || 0) - Number(b.field_order || 0);
+        }),
+    [fields],
+  );
 
   const requiresCandidateSignature = useMemo(
     () =>
@@ -420,6 +458,10 @@ export default function TermsSignPage() {
     }
   };
 
+  const showToast = (message) => {
+    setToastMessage(String(message || ""));
+  };
+
   useEffect(() => {
     const node = viewerRef.current;
     if (!node) return undefined;
@@ -430,6 +472,14 @@ export default function TermsSignPage() {
     setViewerWidth(node.clientWidth || 900);
     return () => observer.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (!toastMessage) return undefined;
+    const timer = window.setTimeout(() => {
+      setToastMessage("");
+    }, 2800);
+    return () => window.clearTimeout(timer);
+  }, [toastMessage]);
 
   useEffect(() => {
     if (!alreadySigned) return undefined;
@@ -462,6 +512,7 @@ export default function TermsSignPage() {
 
   useEffect(() => {
     if (!token) return;
+    hasAutoFocusedRef.current = false;
     let mounted = true;
 
     async function fetchInvite() {
@@ -500,6 +551,18 @@ export default function TermsSignPage() {
     };
   }, [token]);
 
+  useEffect(() => {
+    if (loading || !template || !fillableRequiredFields.length) return undefined;
+    if (hasAutoFocusedRef.current) return undefined;
+    const timer = window.setTimeout(() => {
+      const missing = getMissingRequiredFieldKeys();
+      if (!missing.length) return;
+      const focused = focusFieldByKey(missing[0]);
+      if (focused) hasAutoFocusedRef.current = true;
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [loading, template, fillableRequiredFields]);
+
   function setValue(fieldKey, nextValue) {
     setFieldValues((prev) => ({ ...prev, [fieldKey]: nextValue }));
   }
@@ -515,30 +578,60 @@ export default function TermsSignPage() {
     reader.readAsDataURL(file);
   }
 
+  function getMissingRequiredFieldKeys() {
+    return fillableRequiredFields
+      .map((field) => {
+        const key = String(field.field_key || "");
+        const value = fieldValues[key];
+        if (field.field_type === "checkbox") {
+          return value === true ? null : key;
+        }
+        return String(value || "").trim() ? null : key;
+      })
+      .filter(Boolean);
+  }
+
+  function focusFieldByKey(fieldKey) {
+    const target = inputRefMap.current.get(String(fieldKey || ""));
+    if (!target || typeof target.focus !== "function") return false;
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    target.focus({ preventScroll: true });
+    setActiveFieldKey(String(fieldKey));
+    return true;
+  }
+
+  function goToFirstMissingRequiredField() {
+    const missing = getMissingRequiredFieldKeys();
+    if (!missing.length) return false;
+    return focusFieldByKey(missing[0]);
+  }
+
+  function goToNextMissingRequiredField() {
+    const missing = getMissingRequiredFieldKeys();
+    if (!missing.length) {
+      showToast("All required fields are filled. You can sign now.");
+      return;
+    }
+    const currentIndex = missing.findIndex((key) => key === activeFieldKey);
+    const nextKey =
+      currentIndex >= 0 ? missing[currentIndex + 1] || missing[0] : missing[0];
+    focusFieldByKey(nextKey);
+  }
+
   function validateRequiredFields() {
-    const missing = [];
-    fields.forEach((field) => {
-      if (
-        !field.required ||
-        field.field_type === "label" ||
-        field.field_type === "signature"
-      ) {
-        return;
-      }
-      const key = field.field_key;
-      const value = fieldValues[key];
-      if (field.field_type === "checkbox") {
-        if (value !== true) missing.push(key);
-        return;
-      }
-      if (!String(value || "").trim()) missing.push(key);
-    });
-    return missing;
+    return getMissingRequiredFieldKeys();
   }
 
   function renderOverlayFieldControl(field) {
+    if (!isFieldVisibleToCandidate(field)) return null;
+    const key = String(field.field_key || "");
     const locked = isFieldLocked(field);
     const value = getDisplayValue(field, fieldValues);
+    const placeholder = getFieldPlaceholder(field);
+    const showBubble =
+      activeFieldKey === key &&
+      field.field_type !== "checkbox" &&
+      String(value || "").trim().length > 0;
     const signatureImage = field?.config_json?.default_signature_image_data_url || "";
 
     if (field.field_type === "label") {
@@ -580,11 +673,23 @@ export default function TermsSignPage() {
 
     if (field.field_type === "textarea") {
       return (
-        <textarea
-          value={fieldValues[field.field_key] || ""}
-          onChange={(e) => setValue(field.field_key, e.target.value)}
-          className="terms-overlay-control terms-overlay-input terms-overlay-textarea"
-        />
+        <div className="terms-overlay-input-wrap">
+          {showBubble ? (
+            <div className="terms-overlay-placeholder-bubble">{placeholder}</div>
+          ) : null}
+          <textarea
+            ref={(node) => {
+              if (node) inputRefMap.current.set(key, node);
+              else inputRefMap.current.delete(key);
+            }}
+            value={fieldValues[field.field_key] || ""}
+            onChange={(e) => setValue(field.field_key, e.target.value)}
+            onFocus={() => setActiveFieldKey(key)}
+            onBlur={() => setActiveFieldKey((prev) => (prev === key ? "" : prev))}
+            placeholder={placeholder}
+            className="terms-overlay-control terms-overlay-input terms-overlay-textarea"
+          />
+        </div>
       );
     }
 
@@ -592,9 +697,15 @@ export default function TermsSignPage() {
       return (
         <label className="terms-overlay-control terms-overlay-checkbox-wrap">
           <input
+            ref={(node) => {
+              if (node) inputRefMap.current.set(key, node);
+              else inputRefMap.current.delete(key);
+            }}
             type="checkbox"
             checked={Boolean(fieldValues[field.field_key])}
             onChange={(e) => setValue(field.field_key, e.target.checked)}
+            onFocus={() => setActiveFieldKey(key)}
+            onBlur={() => setActiveFieldKey((prev) => (prev === key ? "" : prev))}
           />
         </label>
       );
@@ -602,12 +713,23 @@ export default function TermsSignPage() {
 
     if (field.field_type === "date") {
       return (
-        <input
-          type="date"
-          value={fieldValues[field.field_key] || ""}
-          onChange={(e) => setValue(field.field_key, e.target.value)}
-          className="terms-overlay-control terms-overlay-input"
-        />
+        <div className="terms-overlay-input-wrap">
+          {showBubble ? (
+            <div className="terms-overlay-placeholder-bubble">{placeholder}</div>
+          ) : null}
+          <input
+            ref={(node) => {
+              if (node) inputRefMap.current.set(key, node);
+              else inputRefMap.current.delete(key);
+            }}
+            type="date"
+            value={fieldValues[field.field_key] || ""}
+            onChange={(e) => setValue(field.field_key, e.target.value)}
+            onFocus={() => setActiveFieldKey(key)}
+            onBlur={() => setActiveFieldKey((prev) => (prev === key ? "" : prev))}
+            className="terms-overlay-control terms-overlay-input"
+          />
+        </div>
       );
     }
 
@@ -620,12 +742,35 @@ export default function TermsSignPage() {
     }
 
     return (
-      <input
-        value={fieldValues[field.field_key] || ""}
-        onChange={(e) => setValue(field.field_key, e.target.value)}
-        className="terms-overlay-control terms-overlay-input"
-      />
+      <div className="terms-overlay-input-wrap">
+        {showBubble ? (
+          <div className="terms-overlay-placeholder-bubble">{placeholder}</div>
+        ) : null}
+        <input
+          ref={(node) => {
+            if (node) inputRefMap.current.set(key, node);
+            else inputRefMap.current.delete(key);
+          }}
+          value={fieldValues[field.field_key] || ""}
+          onChange={(e) => setValue(field.field_key, e.target.value)}
+          onFocus={() => setActiveFieldKey(key)}
+          onBlur={() => setActiveFieldKey((prev) => (prev === key ? "" : prev))}
+          placeholder={placeholder}
+          className="terms-overlay-control terms-overlay-input"
+        />
+      </div>
     );
+  }
+
+  function handleOpenSignatureModal() {
+    const missing = validateRequiredFields();
+    if (missing.length) {
+      showToast("Please fill all required fields before signing.");
+      goToFirstMissingRequiredField();
+      setError(`Please fill all required fields: ${missing.join(", ")}`);
+      return;
+    }
+    setShowSignatureModal(true);
   }
 
   async function handleSubmit() {
@@ -634,6 +779,8 @@ export default function TermsSignPage() {
     setSuccess("");
     const missing = validateRequiredFields();
     if (missing.length) {
+      showToast("Please fill all required fields before signing.");
+      goToFirstMissingRequiredField();
       setError(`Please fill all required fields: ${missing.join(", ")}`);
       return;
     }
@@ -786,7 +933,9 @@ export default function TermsSignPage() {
             >
               {Array.from({ length: docPages || 1 }).map((_, idx) => {
                 const pageNumber = idx + 1;
-                const pageFields = groupedFields.get(pageNumber) || [];
+                const pageFields = (groupedFields.get(pageNumber) || []).filter(
+                  (field) => isFieldVisibleToCandidate(field),
+                );
                 return (
                   <div key={pageNumber} className="mb-4">
                     <h2 className="mb-2 px-1 text-xs font-semibold text-slate-700">
@@ -823,7 +972,7 @@ export default function TermsSignPage() {
 
             <button
               type="button"
-              onClick={() => setShowSignatureModal(true)}
+              onClick={handleOpenSignatureModal}
               className="mt-6 w-full rounded-lg bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600"
             >
               Sign Document
@@ -845,6 +994,17 @@ export default function TermsSignPage() {
           handleUploadSignature={handleUploadSignature}
           submitting={submitting}
         />
+
+        {toastMessage ? <div className="terms-toast">{toastMessage}</div> : null}
+
+        <button
+          type="button"
+          onClick={goToNextMissingRequiredField}
+          className="terms-next-floating"
+        >
+          <span className="terms-next-label">Next</span>
+          <span className="terms-next-chevron" aria-hidden="true">→</span>
+        </button>
       </div>
     );
   }
@@ -881,7 +1041,9 @@ export default function TermsSignPage() {
           >
             {Array.from({ length: docPages || 1 }).map((_, idx) => {
               const pageNumber = idx + 1;
-              const pageFields = groupedFields.get(pageNumber) || [];
+              const pageFields = (groupedFields.get(pageNumber) || []).filter(
+                (field) => isFieldVisibleToCandidate(field),
+              );
               return (
                 <div key={pageNumber} className="mb-6">
                   <h2 className="mb-2 text-sm font-semibold text-slate-700">
@@ -996,6 +1158,17 @@ export default function TermsSignPage() {
           </button>
         </div>
       </div>
+
+      {toastMessage ? <div className="terms-toast">{toastMessage}</div> : null}
+
+      <button
+        type="button"
+        onClick={goToNextMissingRequiredField}
+        className="terms-next-floating"
+      >
+        <span className="terms-next-label">Next</span>
+        <span className="terms-next-chevron" aria-hidden="true">→</span>
+      </button>
     </div>
   );
 }

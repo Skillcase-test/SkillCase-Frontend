@@ -44,6 +44,32 @@
   line-height: 1;
 }
 
+.terms-overlay-input-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.terms-overlay-placeholder-bubble {
+  position: absolute;
+  top: -14px;
+  left: 2px;
+  z-index: 6;
+  width: max-content;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: nowrap;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #fff;
+  padding: 1px 6px;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 600;
+  pointer-events: none;
+}
+
 .terms-overlay-input:focus {
   outline: none;
   border-color: #334155;
@@ -115,6 +141,73 @@
   object-fit: contain;
 }
 
+.terms-next-floating {
+  position: fixed;
+  right: 14px;
+  bottom: 18px;
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #002856;
+  background: #002856;
+  color: #fff;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 22px rgba(29, 78, 216, 0.32);
+  transition: transform 140ms ease, box-shadow 160ms ease, filter 160ms ease;
+  will-change: transform;
+}
+
+.terms-next-floating:hover {
+  filter: brightness(1.03);
+  box-shadow: 0 10px 24px rgba(30, 64, 175, 0.38);
+}
+
+.terms-next-floating:active {
+  transform: scale(0.94);
+  box-shadow: 0 5px 14px rgba(30, 64, 175, 0.3);
+}
+
+.terms-next-floating:focus-visible {
+  outline: 2px solid rgba(147, 197, 253, 0.9);
+  outline-offset: 2px;
+}
+
+.terms-next-label {
+  display: inline-block;
+}
+
+.terms-next-chevron {
+  font-size: 12px;
+  line-height: 1;
+  transform: translateX(0);
+  transition: transform 160ms ease;
+}
+
+.terms-next-floating:hover .terms-next-chevron {
+  transform: translateX(2px);
+}
+
+.terms-toast {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  background: #fff7ed;
+  color: #9a3412;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.14);
+}
+
 .terms-pdf-frame .react-pdf__Page,
 .terms-pdf-frame .react-pdf__Page__canvas {
   display: block;
@@ -146,6 +239,20 @@
   .terms-overlay-signature,
   .terms-overlay-textarea {
     font-size: var(--terms-field-font-size) !important;
+  }
+
+  .terms-next-floating {
+    right: 10px;
+    bottom: 14px;
+    padding: 4px 9px;
+    font-size: 10px;
+  }
+
+  .terms-toast {
+    top: 8px;
+    width: calc(100% - 24px);
+    border-radius: 10px;
+    text-align: center;
   }
 }
 

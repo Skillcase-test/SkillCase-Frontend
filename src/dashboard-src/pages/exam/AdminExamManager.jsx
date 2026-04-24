@@ -3603,7 +3603,14 @@ export default function AdminExamManager() {
                 <tbody>
                   {submissions.map((s) => (
                     <tr key={s.submission_id} className="border-b">
-                      <td className="p-2">{s.fullname || s.username}</td>
+                      <td className="p-2">
+                        <div className="leading-tight">
+                          <div className="font-medium text-gray-900">{s.fullname || s.username}</div>
+                          {s.number ? (
+                            <div className="mt-0.5 text-xs text-gray-500">{s.number}</div>
+                          ) : null}
+                        </div>
+                      </td>
                       <td className="p-2">
                         <span
                           className={`text-xs font-semibold px-2 py-0.5 rounded ${
