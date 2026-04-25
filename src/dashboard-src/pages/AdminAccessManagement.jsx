@@ -79,6 +79,18 @@ function PermissionPicker({ value, onChange }) {
     setModuleActions(SKILLCASE_INTERVIEW_MODULE, [...actionSet]);
   };
 
+  const toggleSkillcaseInterviewDownloadAccess = () => {
+    const existing = normalized[SKILLCASE_INTERVIEW_MODULE] || [];
+    const actionSet = new Set(existing);
+    if (actionSet.has("download")) {
+      actionSet.delete("download");
+    } else {
+      actionSet.add("download");
+      actionSet.add("view");
+    }
+    setModuleActions(SKILLCASE_INTERVIEW_MODULE, [...actionSet]);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
@@ -119,19 +131,34 @@ function PermissionPicker({ value, onChange }) {
                 </p>
                 <div className="flex gap-1">
                   {moduleDef.key === SKILLCASE_INTERVIEW_MODULE ? (
-                    <button
-                      type="button"
-                      onClick={toggleSkillcaseInterviewSuperAccess}
-                      className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${
-                        selected.includes("manage")
-                          ? "border-amber-200 bg-amber-50 text-amber-700"
-                          : "border-slate-200 bg-white text-slate-600"
-                      }`}
-                    >
-                      {selected.includes("manage")
-                        ? "super access on"
-                        : "super access"}
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={toggleSkillcaseInterviewSuperAccess}
+                        className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${
+                          selected.includes("manage")
+                            ? "border-amber-200 bg-amber-50 text-amber-700"
+                            : "border-slate-200 bg-white text-slate-600"
+                        }`}
+                      >
+                        {selected.includes("manage")
+                          ? "super access on"
+                          : "super access"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={toggleSkillcaseInterviewDownloadAccess}
+                        className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${
+                          selected.includes("download")
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border-slate-200 bg-white text-slate-600"
+                        }`}
+                      >
+                        {selected.includes("download")
+                          ? "download on"
+                          : "download"}
+                      </button>
+                    </>
                   ) : null}
                   <button
                     type="button"

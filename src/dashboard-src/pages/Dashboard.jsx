@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   NavLink,
   Navigate,
@@ -155,7 +155,10 @@ function InterviewToolsModule() {
   );
 }
 
-function SkillcaseInterviewsModule({ isSuperAdmin = false }) {
+function SkillcaseInterviewsModule({
+  isSuperAdmin = false,
+  canDownload = false,
+}) {
   const location = useLocation();
   const navigate = useNavigate();
   const [selectedInterviewPositionId, setSelectedInterviewPositionId] =
@@ -238,6 +241,7 @@ function SkillcaseInterviewsModule({ isSuperAdmin = false }) {
             selectedInterviewPositionId={selectedInterviewPositionId}
             selectedInterviewSubmissionId={selectedInterviewSubmissionId}
             setActivePage={setActivePage}
+            canDownload={canDownload}
           />
         }
       />
@@ -642,6 +646,11 @@ export default function Dashboard() {
                 <Guard allowed={hasPermission(me, "skillcase_interviews")}>
                   <SkillcaseInterviewsModule
                     isSuperAdmin={me.role === "super_admin"}
+                    canDownload={hasPermission(
+                      me,
+                      "skillcase_interviews",
+                      "download",
+                    )}
                   />
                 </Guard>
               }
@@ -678,6 +687,7 @@ export default function Dashboard() {
                 </Guard>
               }
             />
+
             <Route
               path="landing"
               element={
@@ -702,7 +712,6 @@ export default function Dashboard() {
                 </Guard>
               }
             />
-
             <Route
               path="a1/flashcard/add"
               element={

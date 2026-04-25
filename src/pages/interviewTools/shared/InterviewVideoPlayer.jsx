@@ -203,8 +203,14 @@ export default function InterviewVideoPlayer({
       message: mediaError?.message,
     });
     setPlaying(false);
-    setForceNativeControls(true);
-    setLoadError("Playback issue detected. Trying browser-native player fallback.");
+    
+    if (mediaError?.code === 4) {
+      setForceNativeControls(false);
+      setLoadError("This video appears to be corrupted or incomplete. The candidate's recording may have been interrupted.");
+    } else {
+      setForceNativeControls(true);
+      setLoadError("Playback issue detected. Trying browser-native player fallback.");
+    }
   };
 
   const toggleFullscreen = (event) => {

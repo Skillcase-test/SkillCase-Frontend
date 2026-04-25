@@ -9,6 +9,7 @@ export default function SkillcaseInterviewToolsReviewPage({
   selectedInterviewPositionId,
   selectedInterviewSubmissionId,
   setActivePage,
+  canDownload = false,
 }) {
   const [detail, setDetail] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -199,8 +200,8 @@ export default function SkillcaseInterviewToolsReviewPage({
                     activeAnswer.video_duration_seconds || 0,
                   )}
                 />
-                {activeAnswer.question_video_download_url ||
-                activeAnswer.question_video_url ? (
+                {canDownload && (activeAnswer.question_video_download_url ||
+                activeAnswer.question_video_url) ? (
                   <a
                     href={
                       activeAnswer.question_video_download_url ||
@@ -223,8 +224,8 @@ export default function SkillcaseInterviewToolsReviewPage({
                     activeAnswer.answer_duration_seconds || 0,
                   )}
                 />
-                {activeAnswer.answer_video_download_url ||
-                activeAnswer.answer_video_url ? (
+                {canDownload && (activeAnswer.answer_video_download_url ||
+                activeAnswer.answer_video_url) ? (
                   <a
                     href={
                       activeAnswer.answer_video_download_url ||

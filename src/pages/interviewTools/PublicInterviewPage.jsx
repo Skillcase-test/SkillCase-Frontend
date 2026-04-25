@@ -112,6 +112,19 @@ export default function PublicInterviewPage() {
     }
   };
 
+  // Prevent user from closing tab during active recording or submission to avoid corrupted videos
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isRecording || submittingAnswer) {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isRecording, submittingAnswer]);
+
   useEffect(() => {
     if (streamVideoRef.current && stream) {
       streamVideoRef.current.srcObject = stream;
