@@ -41,6 +41,8 @@ const defaultForm = {
   status: "draft",
   thinking_time_seconds: 3,
   answer_time_seconds: "",
+  overall_time_limit_minutes: "",
+  enable_global_timer: false,
   allowed_retakes: 0,
   intro_video_title: "",
   intro_video_description: "",
@@ -554,6 +556,8 @@ export default function SkillcaseInterviewToolsBuilderPage({
           status: data.status || "draft",
           thinking_time_seconds: data.thinking_time_seconds ?? 3,
           answer_time_seconds: data.answer_time_seconds ?? "",
+          overall_time_limit_minutes: data.overall_time_limit_minutes ?? "",
+          enable_global_timer: Boolean(data.overall_time_limit_minutes),
           allowed_retakes: data.allowed_retakes ?? 0,
           intro_video_title: data.intro_video_title || "",
           intro_video_description: data.intro_video_description || "",
@@ -715,6 +719,9 @@ export default function SkillcaseInterviewToolsBuilderPage({
         answer_time_seconds: form.answer_time_seconds
           ? Number(form.answer_time_seconds)
           : null,
+        overall_time_limit_minutes: (form.enable_global_timer && form.overall_time_limit_minutes)
+          ? Number(form.overall_time_limit_minutes)
+          : null,
         allowed_retakes: Number(form.allowed_retakes || 0),
         intro_video_key: introVideoKey || null,
         intro_video_title: form.intro_video_title,
@@ -838,6 +845,37 @@ export default function SkillcaseInterviewToolsBuilderPage({
                 className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-[#083262] focus:ring-4 focus:ring-[#083262]/5 transition shadow-sm"
               />
             </div>
+          </div>
+          
+          <div className="mt-8 pt-6 border-t border-slate-100">
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.enable_global_timer}
+                onChange={(e) =>
+                  setForm((pr) => ({ ...pr, enable_global_timer: e.target.checked }))
+                }
+                className="w-5 h-5 rounded border-slate-300 text-[#083262] focus:ring-[#083262]"
+              />
+              <span className="text-sm font-bold text-slate-700">Enforce Global Interview Time Limit</span>
+            </label>
+            
+            {form.enable_global_timer && (
+              <div className="mt-4 max-w-xs">
+                <label className="block text-[11px] font-bold text-slate-500 mb-2 ml-1 uppercase tracking-wider">
+                  Overall Time Limit (Minutes)
+                </label>
+                <input
+                  type="number"
+                  placeholder="e.g. 20"
+                  value={form.overall_time_limit_minutes}
+                  onChange={(e) =>
+                    setForm((pr) => ({ ...pr, overall_time_limit_minutes: e.target.value }))
+                  }
+                  className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-[#083262] focus:ring-4 focus:ring-[#083262]/5 transition shadow-sm"
+                />
+              </div>
+            )}
           </div>
         </section>
 

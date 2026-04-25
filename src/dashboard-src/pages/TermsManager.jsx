@@ -97,6 +97,7 @@ export default function TermsManager() {
   const [sendingInvite, setSendingInvite] = useState(false);
   const [deletingTemplate, setDeletingTemplate] = useState(false);
   const [viewingEnvelopeId, setViewingEnvelopeId] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -140,6 +141,18 @@ export default function TermsManager() {
     );
     return map;
   }, [fields]);
+
+  const filteredEnvelopes = useMemo(() => {
+    if (!searchQuery.trim()) return envelopes;
+    const lowerQ = searchQuery.toLowerCase();
+    return envelopes.filter((env) => 
+      (env.recipient_name || "").toLowerCase().includes(lowerQ) ||
+      (env.recipient_email || "").toLowerCase().includes(lowerQ) ||
+      (env.recipient_phone || "").toLowerCase().includes(lowerQ) ||
+      (env.envelope_id || "").toLowerCase().includes(lowerQ) ||
+      (env.document_id || "").toLowerCase().includes(lowerQ)
+    );
+  }, [envelopes, searchQuery]);
 
   const renderWidth = useMemo(
     () => clamp(Math.floor(viewerWidth - 40), 400, 750),
@@ -363,13 +376,7 @@ export default function TermsManager() {
         ),
         field_order: index,
       }));
-      for (const field of payload) {
-        const lowerKey = String(field.field_key).toLowerCase();
-        if (seenKeys.has(lowerKey)) {
-          throw new Error(`Duplicate field key: ${field.field_key}`);
-        }
-        seenKeys.add(lowerKey);
-      }
+      // Duplicate keys are now allowed to support auto-filling identical fields.
       setFields(payload);
       await termsApi.saveTemplateFields(selectedTemplateId, payload);
       setStatusMessage("Field mapping saved.");
@@ -927,19 +934,39 @@ export default function TermsManager() {
                           ) : null}
                         </div>
                       ) : selectedField.field_type === "date" ? (
-                        <input
-                          type="date"
-                          value={String(selectedField.config_json?.default_value || "")}
-                          onChange={(e) =>
-                            handleFieldUpdate(selectedField.field_id, {
-                              config_json: {
-                                ...(selectedField.config_json || {}),
-                                default_value: e.target.value,
-                              },
-                            })
-                          }
-                          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 outline-none focus:border-slate-500"
-                        />
+                        <div className="space-y-2">
+                          <label className="flex items-center gap-2 text-sm text-slate-700">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(selectedField.config_json?.use_today)}
+                              onChange={(e) =>
+                                handleFieldUpdate(selectedField.field_id, {
+                                  config_json: {
+                                    ...(selectedField.config_json || {}),
+                                    use_today: e.target.checked,
+                                    default_value: e.target.checked ? "" : selectedField.config_json?.default_value || "",
+                                  },
+                                })
+                              }
+                            />
+                            Use submission date (Today)
+                          </label>
+                          {!selectedField.config_json?.use_today ? (
+                            <input
+                              type="date"
+                              value={String(selectedField.config_json?.default_value || "")}
+                              onChange={(e) =>
+                                handleFieldUpdate(selectedField.field_id, {
+                                  config_json: {
+                                    ...(selectedField.config_json || {}),
+                                    default_value: e.target.value,
+                                  },
+                                })
+                              }
+                              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 outline-none focus:border-slate-500"
+                            />
+                          ) : null}
+                        </div>
                       ) : (
                         <input
                           value={String(selectedField.config_json?.default_value || "")}
@@ -1042,9 +1069,18 @@ export default function TermsManager() {
           {/* Envelope Activity Table */}
           {envelopes.length > 0 ? (
             <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4">
-              <h3 className="mb-4 font-semibold text-slate-900">
-                Envelope Activity
-              </h3>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+                <h3 className="font-semibold text-slate-900">
+                  Envelope Activity
+                </h3>
+                <input
+                  type="text"
+                  placeholder="Search name, phone, or doc ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full max-w-xs rounded-md border border-slate-300 px-3 py-1.5 text-sm outline-none focus:border-slate-500"
+                />
+              </div>
               <div className="overflow-auto">
                 <table className="min-w-full text-left text-sm">
                   <thead>
@@ -1067,9 +1103,16 @@ export default function TermsManager() {
                     </tr>
                   </thead>
                   <tbody>
-                    {envelopes.map((item) => (
-                      <tr
-                        key={item.envelope_id}
+                    {filteredEnvelopes.length === 0 ? (
+                      <tr>
+                        <td colSpan="5" className="px-3 py-4 text-center text-slate-500">
+                          No envelopes found matching your search.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredEnvelopes.map((item) => (
+                        <tr
+                          key={item.envelope_id}
                         className="border-b border-slate-100"
                       >
                         <td className="px-3 py-3">
@@ -1102,7 +1145,7 @@ export default function TermsManager() {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                    )))}
                   </tbody>
                 </table>
               </div>

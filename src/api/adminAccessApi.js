@@ -13,4 +13,8 @@ export const adminAccessApi = {
     api.get(`/admin/access/users/${userId}/wise-access`),
   putUserWiseAccess: (userId, wisePayload) =>
     api.put(`/admin/access/users/${userId}/wise-access`, wisePayload),
+  getUserTermsAccess: (userId) =>
+    api.get(`/admin/access/users/${userId}/terms-access`),
+  putUserTermsAccess: (userId, termsPayload) =>
+    api.put(`/admin/access/users/${userId}/terms-access`, termsPayload),
 };

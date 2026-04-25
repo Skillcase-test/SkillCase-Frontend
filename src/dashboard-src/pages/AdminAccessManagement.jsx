@@ -247,14 +247,25 @@ export default function AdminAccessManagement() {
   });
   const [wiseBatches, setWiseBatches] = useState([]);
   const [batchToAdd, setBatchToAdd] = useState("");
+  
+  const [termsPayload, setTermsPayload] = useState({
+    has_full_access: false,
+    template_ids: [],
+  });
+  const [termsTemplates, setTermsTemplates] = useState([]);
+  const [templateToAdd, setTemplateToAdd] = useState("");
+
   const [usersLoading, setUsersLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [batchesLoading, setBatchesLoading] = useState(false);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [roleSaving, setRoleSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [currentRole, setCurrentRole] = useState(null);
+  const [roleLoading, setRoleLoading] = useState(true);
 
-  const canManage = true;
+  const canManage = currentRole === "super_admin";
 
   async function loadUsers(showRefresh = false, searchText = query) {
     if (showRefresh) setRefreshing(true);
@@ -283,14 +294,28 @@ export default function AdminAccessManagement() {
     }
   }
 
+  async function loadTermsTemplates() {
+    setTemplatesLoading(true);
+    try {
+      const res = await api.get("/admin/terms/templates");
+      const normalized = (res.data?.templates || []).filter((t) => t.template_id);
+      setTermsTemplates(normalized);
+    } catch (_err) {
+      setTermsTemplates([]);
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }
+
   async function selectUser(user) {
     setSelectedUser(user);
     setBatchToAdd("");
     setDetailLoading(true);
     try {
-      const [permRes, wiseRes] = await Promise.all([
+      const [permRes, wiseRes, termsRes] = await Promise.all([
         adminAccessApi.getUserPermissions(user.user_id),
         adminAccessApi.getUserWiseAccess(user.user_id),
+        adminAccessApi.getUserTermsAccess(user.user_id).catch(() => ({ data: { terms: {} } })),
       ]);
       setPermissions(permRes.data.permissions || {});
       const wise = wiseRes.data.wise || {};
@@ -298,14 +323,35 @@ export default function AdminAccessManagement() {
         has_full_access: Boolean(wise.has_full_access),
         batch_ids: (wise.batch_ids || []).map((id) => String(id)),
       });
+      const terms = termsRes.data.terms || {};
+      setTermsPayload({
+        has_full_access: Boolean(terms.has_full_access),
+        template_ids: (terms.template_ids || []).map((id) => String(id)),
+      });
     } finally {
       setDetailLoading(false);
     }
   }
 
   useEffect(() => {
+    setRoleLoading(true);
+    adminAccessApi
+      .getMyAccess()
+      .then((res) => {
+        setCurrentRole(res.data?.role || null);
+      })
+      .catch(() => {
+        setCurrentRole(null);
+      })
+      .finally(() => {
+        setRoleLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
     loadUsers(false, "");
     loadWiseBatches();
+    loadTermsTemplates();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -315,7 +361,6 @@ export default function AdminAccessManagement() {
     }, 250);
 
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
   const filteredUsers = useMemo(
@@ -347,6 +392,22 @@ export default function AdminAccessManagement() {
     return wiseBatches.filter((batch) => !selected.has(String(batch.id)));
   }, [wiseBatches, wisePayload.batch_ids]);
 
+  const selectedTemplateList = useMemo(() => {
+    const allById = new Map(
+      termsTemplates.map((t) => [String(t.template_id), t]),
+    );
+    return termsPayload.template_ids
+      .map((id) => allById.get(String(id)))
+      .filter(Boolean);
+  }, [termsTemplates, termsPayload.template_ids]);
+
+  const availableTemplateOptions = useMemo(() => {
+    const selected = new Set(
+      (termsPayload.template_ids || []).map((id) => String(id)),
+    );
+    return termsTemplates.filter((t) => !selected.has(String(t.template_id)));
+  }, [termsTemplates, termsPayload.template_ids]);
+
   async function handleRoleChange(nextRole) {
     if (!selectedUser) return;
     setRoleSaving(true);
@@ -366,11 +427,20 @@ export default function AdminAccessManagement() {
       await Promise.all([
         adminAccessApi.putUserPermissions(selectedUser.user_id, permissions),
         adminAccessApi.putUserWiseAccess(selectedUser.user_id, wisePayload),
+        adminAccessApi.putUserTermsAccess(selectedUser.user_id, termsPayload),
       ]);
       await loadUsers();
     } finally {
       setSaving(false);
     }
+  }
+
+  if (roleLoading) {
+    return (
+      <div className="animate-pulse rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-400">
+        Checking access...
+      </div>
+    );
   }
 
   if (!canManage) {
@@ -399,6 +469,7 @@ export default function AdminAccessManagement() {
             onClick={() => {
               loadUsers(true);
               loadWiseBatches();
+              loadTermsTemplates();
             }}
             disabled={refreshing}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
@@ -595,6 +666,105 @@ export default function AdminAccessManagement() {
                                           batch_ids: prev.batch_ids.filter(
                                             (id) =>
                                               String(id) !== String(batch.id),
+                                          ),
+                                        }))
+                                      }
+                                      className="rounded-full border border-slate-200 px-1.5 text-[10px] text-slate-500 hover:bg-white"
+                                    >
+                                      x
+                                    </button>
+                                  </span>
+                                ))
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl border border-slate-200 p-3">
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Terms & Signatures Scope
+                    </p>
+                    <label className="mb-3 flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={termsPayload.has_full_access}
+                        onChange={(e) =>
+                          setTermsPayload((prev) => ({
+                            ...prev,
+                            has_full_access: e.target.checked,
+                          }))
+                        }
+                      />
+                      Full Terms access
+                    </label>
+
+                    {!termsPayload.has_full_access && (
+                      <div className="space-y-3">
+                        {templatesLoading ? (
+                          <p className="text-xs text-slate-500">
+                            Loading templates...
+                          </p>
+                        ) : (
+                          <>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <select
+                                value={templateToAdd}
+                                onChange={(e) => setTemplateToAdd(e.target.value)}
+                                className="min-w-[240px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                              >
+                                <option value="">
+                                  Select a template to grant access
+                                </option>
+                                {availableTemplateOptions.map((t) => (
+                                  <option key={t.template_id} value={t.template_id}>
+                                    {t.title}
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                disabled={!templateToAdd}
+                                onClick={() => {
+                                  if (!templateToAdd) return;
+                                  setTermsPayload((prev) => ({
+                                    ...prev,
+                                    template_ids: [
+                                      ...new Set([
+                                        ...prev.template_ids,
+                                        templateToAdd,
+                                      ]),
+                                    ],
+                                  }));
+                                  setTemplateToAdd("");
+                                }}
+                                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 disabled:opacity-50"
+                              >
+                                Add Template
+                              </button>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              {selectedTemplateList.length === 0 ? (
+                                <p className="text-xs text-slate-500">
+                                  No restricted templates selected yet.
+                                </p>
+                              ) : (
+                                selectedTemplateList.map((t) => (
+                                  <span
+                                    key={t.template_id}
+                                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700"
+                                  >
+                                    {t.title}
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setTermsPayload((prev) => ({
+                                          ...prev,
+                                          template_ids: prev.template_ids.filter(
+                                            (id) => String(id) !== String(t.template_id),
                                           ),
                                         }))
                                       }

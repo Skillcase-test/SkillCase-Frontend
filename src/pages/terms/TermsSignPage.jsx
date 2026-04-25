@@ -236,7 +236,7 @@ function SignatureModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-black/50 p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-black/50 p-4"
       onWheel={(event) => event.preventDefault()}
       onTouchMove={(event) => event.preventDefault()}
     >
@@ -319,7 +319,7 @@ function SignatureModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+            className="flex-1 rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
           >
             Back
           </button>
@@ -327,9 +327,14 @@ function SignatureModal({
             type="button"
             onClick={onSubmit}
             disabled={submitting}
-            className="flex-1 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60"
+            className="flex-1 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 flex items-center justify-center gap-2 rounded-full"
           >
-            {submitting ? "Submitting..." : "Sign & Submit"}
+            {submitting ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Submitting...
+              </>
+            ) : "Sign & Submit"}
           </button>
         </div>
       </div>
@@ -348,6 +353,7 @@ export default function TermsSignPage() {
   const [success, setSuccess] = useState("");
   const [alreadySigned, setAlreadySigned] = useState(false);
   const [justSubmitted, setJustSubmitted] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
 
   const [invite, setInvite] = useState(null);
   const [template, setTemplate] = useState(null);
@@ -360,7 +366,7 @@ export default function TermsSignPage() {
   const [signatureImage, setSignatureImage] = useState("");
   const [mobileStep, setMobileStep] = useState("document");
   const [showSignatureModal, setShowSignatureModal] = useState(false);
-  const [activeFieldKey, setActiveFieldKey] = useState("");
+  const [activeFieldId, setActiveFieldId] = useState("");
   const [toastMessage, setToastMessage] = useState("");
   const [keyboardOffset, setKeyboardOffset] = useState(0);
 
@@ -411,7 +417,7 @@ export default function TermsSignPage() {
     [fields],
   );
 
-  const firstFillableFieldKey = useMemo(() => {
+  const firstFillableFieldId = useMemo(() => {
     const firstField = fields
       .filter(
         (field) =>
@@ -426,8 +432,25 @@ export default function TermsSignPage() {
         return Number(a.field_order || 0) - Number(b.field_order || 0);
       })[0];
 
-    return String(firstField?.field_key || "");
+    return String(firstField?.field_id || "");
   }, [fields]);
+
+  const fillableFields = useMemo(
+    () =>
+      fields
+        .filter(
+          (field) =>
+            isFieldVisibleToCandidate(field) &&
+            field.field_type !== "label",
+        )
+        .sort((a, b) => {
+          const pageDiff =
+            Number(a.page_number || 1) - Number(b.page_number || 1);
+          if (pageDiff !== 0) return pageDiff;
+          return Number(a.field_order || 0) - Number(b.field_order || 0);
+        }),
+    [fields],
+  );
 
   const requiresCandidateSignature = useMemo(
     () =>
@@ -590,7 +613,11 @@ export default function TermsSignPage() {
 
         const defaults = {};
         mappedFields.forEach((field) => {
-          defaults[field.field_key] = getPrefilledValue(field);
+          if (field.field_type === "date" && field.config_json?.use_today) {
+            defaults[field.field_key] = new Date().toISOString().split("T")[0];
+          } else {
+            defaults[field.field_key] = getPrefilledValue(field);
+          }
         });
         setFieldValues(defaults);
       } catch (requestError) {
@@ -608,17 +635,12 @@ export default function TermsSignPage() {
     };
   }, [token]);
 
-  useEffect(() => {
-    if (loading || !template || !firstFillableFieldKey) return undefined;
-    if (hasAutoFocusedRef.current) return undefined;
-    const timer = window.setTimeout(() => {
-      const missing = getMissingRequiredFieldKeys();
-      const targetKey = missing[0] || firstFillableFieldKey;
-      focusFieldByKeyWithRetry(targetKey, 10);
-    }, 700);
-    return () => window.clearTimeout(timer);
-  }, [loading, template, firstFillableFieldKey]);
+  // Auto-focus has been intentionally removed so that the user can review the document first.
+  // They must explicitly click 'Start Document' in the bottom nav to focus the first field.
 
+  // Write to fieldValues by field_key. Because duplicate-key fields share the
+  // same entry in fieldValues, every field rendered with that key will
+  // automatically display the updated value — this is the auto-fill mechanism.
   function setValue(fieldKey, nextValue) {
     setFieldValues((prev) => ({ ...prev, [fieldKey]: nextValue }));
   }
@@ -634,21 +656,21 @@ export default function TermsSignPage() {
     reader.readAsDataURL(file);
   }
 
-  function getMissingRequiredFieldKeys() {
+  function getMissingRequiredFieldIds() {
     return fillableRequiredFields
       .map((field) => {
         const key = String(field.field_key || "");
         const value = fieldValues[key];
         if (field.field_type === "checkbox") {
-          return value === true ? null : key;
+          return value === true ? null : String(field.field_id);
         }
-        return String(value || "").trim() ? null : key;
+        return String(value || "").trim() ? null : String(field.field_id);
       })
       .filter(Boolean);
   }
 
-  function focusFieldByKey(fieldKey) {
-    const target = inputRefMap.current.get(String(fieldKey || ""));
+  function focusFieldById(fieldId) {
+    const target = inputRefMap.current.get(String(fieldId || ""));
     if (!target || typeof target.focus !== "function") return false;
     target.scrollIntoView({ behavior: "smooth", block: "center" });
     target.focus({ preventScroll: true });
@@ -666,17 +688,17 @@ export default function TermsSignPage() {
         target.click();
       }
     }
-    setActiveFieldKey(String(fieldKey));
+    setActiveFieldId(String(fieldId));
     return true;
   }
 
-  function focusFieldByKeyWithRetry(fieldKey, maxAttempts = 8) {
-    const key = String(fieldKey || "");
-    if (!key) return false;
+  function focusFieldByIdWithRetry(fieldId, maxAttempts = 8) {
+    const id = String(fieldId || "");
+    if (!id) return false;
     let attemptsLeft = Math.max(1, Number(maxAttempts || 1));
 
     const attempt = () => {
-      const focused = focusFieldByKey(key);
+      const focused = focusFieldById(id);
       if (focused) {
         hasAutoFocusedRef.current = true;
         return;
@@ -691,24 +713,24 @@ export default function TermsSignPage() {
   }
 
   function goToFirstMissingRequiredField() {
-    const missing = getMissingRequiredFieldKeys();
+    const missing = getMissingRequiredFieldIds();
     if (!missing.length) return false;
-    return focusFieldByKey(missing[0]);
+    return focusFieldById(missing[0]);
   }
 
   function jumpToFirstMissingRequiredField() {
-    const missing = getMissingRequiredFieldKeys();
+    const missing = getMissingRequiredFieldIds();
     if (!missing.length) return true;
-    const targetKey = missing[0];
-    const focusedNow = focusFieldByKey(targetKey);
+    const targetId = missing[0];
+    const focusedNow = focusFieldById(targetId);
     if (!focusedNow) {
-      focusFieldByKeyWithRetry(targetKey, 8);
+      focusFieldByIdWithRetry(targetId, 8);
     }
     return focusedNow;
   }
 
   function goToNextMissingRequiredField() {
-    const missing = getMissingRequiredFieldKeys();
+    const missing = getMissingRequiredFieldIds();
     if (!missing.length) {
       if (isMobile) {
         setShowSignatureModal(true);
@@ -721,30 +743,85 @@ export default function TermsSignPage() {
       }
       return;
     }
-    const currentIndex = missing.findIndex((key) => key === activeFieldKey);
-    const nextKey =
+    const currentIndex = missing.findIndex((id) => id === activeFieldId);
+    const nextId =
       currentIndex >= 0 ? missing[currentIndex + 1] || missing[0] : missing[0];
-    const focusedNow = focusFieldByKey(nextKey);
+    const focusedNow = focusFieldById(nextId);
     if (!focusedNow) {
-      focusFieldByKeyWithRetry(nextKey, 8);
+      focusFieldByIdWithRetry(nextId, 8);
     }
   }
 
+  function handleBottomNavNextOrSign() {
+    if (getMissingRequiredFieldIds().length === 0) {
+      if (isMobile) {
+        setShowSignatureModal(true);
+      } else {
+        signaturePanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+        signatureSubmitButtonRef.current?.focus?.({ preventScroll: true });
+      }
+    } else {
+      goToNextField();
+    }
+  }
+
+  function goToNextField() {
+    if (!fillableFields.length) return;
+    const currentIndex = fillableFields.findIndex((f) => String(f.field_id) === activeFieldId);
+    let nextIndex = currentIndex + 1;
+    if (nextIndex >= fillableFields.length) {
+      const missing = getMissingRequiredFieldIds();
+      if (missing.length > 0) {
+        showToast("Please fill all required fields before signing.");
+        jumpToFirstMissingRequiredField();
+      } else {
+        if (isMobile) {
+          setShowSignatureModal(true);
+        } else {
+          signaturePanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+          signatureSubmitButtonRef.current?.focus?.({ preventScroll: true });
+        }
+      }
+      return;
+    }
+    const nextId = fillableFields[nextIndex].field_id;
+    const focusedNow = focusFieldById(nextId);
+    if (!focusedNow) {
+      focusFieldByIdWithRetry(nextId, 8);
+    }
+  }
+
+  function goToPreviousField() {
+    if (!fillableFields.length) return;
+    const currentIndex = fillableFields.findIndex((f) => String(f.field_id) === activeFieldId);
+    if (currentIndex <= 0) return;
+    const prevId = fillableFields[currentIndex - 1].field_id;
+    const focusedNow = focusFieldById(prevId);
+    if (!focusedNow) {
+      focusFieldByIdWithRetry(prevId, 8);
+    }
+  }
+
+  function handleStart() {
+    setHasStarted(true);
+  }
+
   function validateRequiredFields() {
-    return getMissingRequiredFieldKeys();
+    return getMissingRequiredFieldIds();
   }
 
   function renderOverlayFieldControl(field) {
     if (!isFieldVisibleToCandidate(field)) return null;
+    const id = String(field.field_id || "");
     const key = String(field.field_key || "");
     const locked = isFieldLocked(field);
     const value = getDisplayValue(field, fieldValues);
     const placeholder = getFieldPlaceholder(field);
     const showBubble =
-      activeFieldKey === key &&
+      activeFieldId === id &&
       field.field_type !== "checkbox" &&
       String(value || "").trim().length > 0;
-    const signatureImage =
+    const signatureImageUrl =
       field?.config_json?.default_signature_image_data_url || "";
 
     if (field.field_type === "label") {
@@ -764,11 +841,11 @@ export default function TermsSignPage() {
         );
       }
       if (field.field_type === "signature") {
-        if (signatureImage) {
+        if (signatureImageUrl) {
           return (
             <div className="terms-overlay-control terms-overlay-signature-static">
               <img
-                src={signatureImage}
+                src={signatureImageUrl}
                 alt="Stamp"
                 className="terms-overlay-signature-image"
               />
@@ -798,15 +875,14 @@ export default function TermsSignPage() {
           ) : null}
           <textarea
             ref={(node) => {
-              if (node) inputRefMap.current.set(key, node);
-              else inputRefMap.current.delete(key);
+              // Key by field_id so each field gets its own ref slot even when
+              // two fields share the same field_key (duplicate auto-fill).
+              if (node) inputRefMap.current.set(id, node);
+              else inputRefMap.current.delete(id);
             }}
-            value={fieldValues[field.field_key] || ""}
-            onChange={(e) => setValue(field.field_key, e.target.value)}
-            onFocus={() => setActiveFieldKey(key)}
-            onBlur={() =>
-              setActiveFieldKey((prev) => (prev === key ? "" : prev))
-            }
+            value={fieldValues[key] || ""}
+            onChange={(e) => setValue(key, e.target.value)}
+            onFocus={() => setActiveFieldId(id)}
             placeholder={placeholder}
             className="terms-overlay-control terms-overlay-input terms-overlay-textarea"
           />
@@ -819,16 +895,13 @@ export default function TermsSignPage() {
         <label className="terms-overlay-control terms-overlay-checkbox-wrap">
           <input
             ref={(node) => {
-              if (node) inputRefMap.current.set(key, node);
-              else inputRefMap.current.delete(key);
+              if (node) inputRefMap.current.set(id, node);
+              else inputRefMap.current.delete(id);
             }}
             type="checkbox"
-            checked={Boolean(fieldValues[field.field_key])}
-            onChange={(e) => setValue(field.field_key, e.target.checked)}
-            onFocus={() => setActiveFieldKey(key)}
-            onBlur={() =>
-              setActiveFieldKey((prev) => (prev === key ? "" : prev))
-            }
+            checked={Boolean(fieldValues[key])}
+            onChange={(e) => setValue(key, e.target.checked)}
+            onFocus={() => setActiveFieldId(id)}
           />
         </label>
       );
@@ -844,16 +917,13 @@ export default function TermsSignPage() {
           ) : null}
           <input
             ref={(node) => {
-              if (node) inputRefMap.current.set(key, node);
-              else inputRefMap.current.delete(key);
+              if (node) inputRefMap.current.set(id, node);
+              else inputRefMap.current.delete(id);
             }}
             type="date"
-            value={fieldValues[field.field_key] || ""}
-            onChange={(e) => setValue(field.field_key, e.target.value)}
-            onFocus={() => setActiveFieldKey(key)}
-            onBlur={() =>
-              setActiveFieldKey((prev) => (prev === key ? "" : prev))
-            }
+            value={fieldValues[key] || ""}
+            onChange={(e) => setValue(key, e.target.value)}
+            onFocus={() => setActiveFieldId(id)}
             className="terms-overlay-control terms-overlay-input"
           />
         </div>
@@ -875,13 +945,12 @@ export default function TermsSignPage() {
         ) : null}
         <input
           ref={(node) => {
-            if (node) inputRefMap.current.set(key, node);
-            else inputRefMap.current.delete(key);
+            if (node) inputRefMap.current.set(id, node);
+            else inputRefMap.current.delete(id);
           }}
-          value={fieldValues[field.field_key] || ""}
-          onChange={(e) => setValue(field.field_key, e.target.value)}
-          onFocus={() => setActiveFieldKey(key)}
-          onBlur={() => setActiveFieldKey((prev) => (prev === key ? "" : prev))}
+          value={fieldValues[key] || ""}
+          onChange={(e) => setValue(key, e.target.value)}
+          onFocus={() => setActiveFieldId(id)}
           placeholder={placeholder}
           className="terms-overlay-control terms-overlay-input"
         />
@@ -1035,28 +1104,38 @@ export default function TermsSignPage() {
   if (isMobile) {
     return (
       <div className="min-h-screen bg-white p-4">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">
-            {template?.title}
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">{template?.description}</p>
-        </div>
-
-        {error ? (
-          <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-            {error}
-          </div>
-        ) : null}
-        {success ? (
-          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-            {success}
-          </div>
-        ) : null}
-
         {mobileStep === "document" ? (
+          !hasStarted ? (
+            <div className="flex items-center justify-center min-h-[70vh]">
+              <div className="w-full max-w-md bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden">
+                <div className="bg-slate-50 border-b border-slate-200 px-6 py-5 text-center">
+                  <h2 className="text-xl font-bold text-slate-900">{template?.title || "Document Signature"}</h2>
+                  <p className="text-sm text-slate-500 mt-1">Please review and sign the document</p>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="flex justify-between pb-3 border-b border-slate-100">
+                    <span className="text-sm font-medium text-slate-500">Document</span>
+                    <span className="text-sm font-semibold text-slate-900 text-right">{template?.title}</span>
+                  </div>
+                  <div className="flex justify-between pb-3 border-b border-slate-100">
+                    <span className="text-sm font-medium text-slate-500">Sender</span>
+                    <span className="text-sm font-semibold text-slate-900 text-right">Skillcase</span>
+                  </div>
+                  <div className="flex justify-between pb-3 border-b border-slate-100">
+                    <span className="text-sm font-medium text-slate-500">Receiver</span>
+                    <span className="text-sm font-semibold text-slate-900 text-right">{invite?.recipient_name || invite?.recipient_email}</span>
+                  </div>
+                  <div className="flex justify-between pb-3">
+                    <span className="text-sm font-medium text-slate-500">Date</span>
+                    <span className="text-sm font-semibold text-slate-900 text-right">{new Date(invite?.sent_at || Date.now()).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
           <div
             ref={viewerRef}
-            className="rounded-lg border border-slate-200 bg-white p-3"
+            className="rounded-lg border border-slate-200 bg-white p-3 pb-24"
           >
             <Document
               file={template?.source_pdf_url || ""}
@@ -1080,7 +1159,7 @@ export default function TermsSignPage() {
                         className="terms-pdf-frame relative inline-block overflow-hidden rounded-lg border border-slate-200 bg-slate-50"
                         style={{ width: renderWidth }}
                       >
-                        <Page
+                          <Page
                           pageNumber={pageNumber}
                           width={renderWidth}
                           renderTextLayer={false}
@@ -1104,14 +1183,8 @@ export default function TermsSignPage() {
               })}
             </Document>
 
-            <button
-              type="button"
-              onClick={handleOpenSignatureModal}
-              className="mt-6 w-full rounded-lg bg-emerald-700 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-600"
-            >
-              Sign Document
-            </button>
           </div>
+          )
         ) : null}
 
         <SignatureModal
@@ -1133,17 +1206,33 @@ export default function TermsSignPage() {
           <div className="terms-toast">{toastMessage}</div>
         ) : null}
 
-        <button
-          type="button"
-          onClick={goToNextMissingRequiredField}
-          className="terms-next-floating"
-          style={nextButtonStyle}
-        >
-          <span className="terms-next-label">Next</span>
-          <span className="terms-next-chevron" aria-hidden="true">
-            →
-          </span>
-        </button>
+        <div className="terms-bottom-nav" style={nextButtonStyle}>
+          {!hasStarted ? (
+            <button onClick={handleStart} className="terms-bottom-nav-btn terms-bottom-nav-btn-primary w-full max-w-md mx-auto">
+              Proceed to Document
+            </button>
+          ) : !activeFieldId ? (
+            <button onClick={() => goToNextField()} className="terms-bottom-nav-btn terms-bottom-nav-btn-primary w-full max-w-md mx-auto">
+              Start Document
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={goToPreviousField}
+                className="terms-bottom-nav-btn terms-bottom-nav-btn-outline"
+                disabled={fillableFields.findIndex((f) => String(f.field_id) === activeFieldId) <= 0}
+              >
+                Previous
+              </button>
+              <button
+                onClick={handleBottomNavNextOrSign}
+                className="terms-bottom-nav-btn terms-bottom-nav-btn-primary"
+              >
+                {getMissingRequiredFieldIds().length === 0 ? "Sign Document" : "Next"}
+              </button>
+            </>
+          )}
+        </div>
       </div>
     );
   }
@@ -1167,7 +1256,35 @@ export default function TermsSignPage() {
         </div>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      {!hasStarted ? (
+        <div className="flex items-center justify-center min-h-[70vh]">
+          <div className="w-full max-w-md bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden">
+            <div className="bg-slate-50 border-b border-slate-200 px-6 py-5 text-center">
+              <h2 className="text-xl font-bold text-slate-900">{template?.title || "Document Signature"}</h2>
+              <p className="text-sm text-slate-500 mt-1">Please review and sign the document</p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between pb-3 border-b border-slate-100">
+                <span className="text-sm font-medium text-slate-500">Document</span>
+                <span className="text-sm font-semibold text-slate-900 text-right">{template?.title}</span>
+              </div>
+              <div className="flex justify-between pb-3 border-b border-slate-100">
+                <span className="text-sm font-medium text-slate-500">Sender</span>
+                <span className="text-sm font-semibold text-slate-900 text-right">Skillcase</span>
+              </div>
+              <div className="flex justify-between pb-3 border-b border-slate-100">
+                <span className="text-sm font-medium text-slate-500">Receiver</span>
+                <span className="text-sm font-semibold text-slate-900 text-right">{invite?.recipient_name || invite?.recipient_email}</span>
+              </div>
+              <div className="flex justify-between pb-3">
+                <span className="text-sm font-medium text-slate-500">Date</span>
+                <span className="text-sm font-semibold text-slate-900 text-right">{new Date(invite?.sent_at || Date.now()).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px] pb-24">
         {/* PDF Viewer + Fields */}
         <div
           ref={viewerRef}
@@ -1295,26 +1412,48 @@ export default function TermsSignPage() {
             type="button"
             onClick={handleSubmit}
             disabled={submitting}
-            className="w-full rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-60"
+            className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 flex items-center justify-center gap-2"
           >
-            {submitting ? "Submitting..." : "Sign & Submit"}
+            {submitting ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Submitting...
+              </>
+            ) : "Sign & Submit"}
           </button>
         </div>
       </div>
+      )}
 
       {toastMessage ? <div className="terms-toast">{toastMessage}</div> : null}
 
-      <button
-        type="button"
-        onClick={goToNextMissingRequiredField}
-        className="terms-next-floating"
-        style={nextButtonStyle}
-      >
-        <span className="terms-next-label">Next</span>
-        <span className="terms-next-chevron" aria-hidden="true">
-          →
-        </span>
-      </button>
+        <div className="terms-bottom-nav" style={nextButtonStyle}>
+          {!hasStarted ? (
+            <button onClick={handleStart} className="terms-bottom-nav-btn terms-bottom-nav-btn-primary w-full max-w-md mx-auto">
+              Proceed to Document
+            </button>
+          ) : !activeFieldId ? (
+            <button onClick={() => goToNextField()} className="terms-bottom-nav-btn terms-bottom-nav-btn-primary w-full max-w-md mx-auto">
+              Start Document
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={goToPreviousField}
+                className="terms-bottom-nav-btn terms-bottom-nav-btn-outline"
+                disabled={fillableFields.findIndex((f) => String(f.field_id) === activeFieldId) <= 0}
+              >
+                Previous
+              </button>
+              <button
+                onClick={handleBottomNavNextOrSign}
+                className="terms-bottom-nav-btn terms-bottom-nav-btn-primary"
+              >
+                {getMissingRequiredFieldIds().length === 0 ? "Sign Document" : "Next"}
+              </button>
+            </>
+          )}
+        </div>
     </div>
   );
 }

@@ -62,6 +62,18 @@ function MetricCard({ label, value, tone = "default" }) {
   );
 }
 
+// Stages where the candidate is actively engaged in the interview.
+// Navigation away from these stages risks losing progress.
+const ACTIVE_STAGES = new Set([
+  "instructions",
+  "intro",
+  "question",
+  "thinking",
+  "recording",
+  "reviewless-stop",
+  "farewell",
+]);
+
 export default function PublicInterviewPage() {
   const { slug } = useParams();
   const [position, setPosition] = useState(null);
@@ -72,6 +84,9 @@ export default function PublicInterviewPage() {
     candidate_email: "",
     candidate_phone: "",
   });
+  const [globalTimeLeft, setGlobalTimeLeft] = useState(null);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const pendingNavigationRef = useRef(null);
   const [stage, setStage] = useState("loading");
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [thinkingRemaining, setThinkingRemaining] = useState(0);
@@ -85,6 +100,11 @@ export default function PublicInterviewPage() {
   const [retakesUsed, setRetakesUsed] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
   const streamVideoRef = useRef(null);
+  const stageRef = useRef(stage);
+  const submissionRef = useRef(submission);
+  const handleAutoSubmitRef = useRef(null);
+  const recordedBlobRef = useRef(null);
+  const timerExpireSubmitRef = useRef(null);
 
   const {
     stream,
@@ -100,6 +120,12 @@ export default function PublicInterviewPage() {
     resetRecording,
   } = useInterviewRecorder();
 
+  // Keep refs in sync with latest state so the timer interval
+  // can always read the current values without being a dependency.
+  useEffect(() => { stageRef.current = stage; }, [stage]);
+  useEffect(() => { submissionRef.current = submission; }, [submission]);
+  useEffect(() => { recordedBlobRef.current = recordedBlob; }, [recordedBlob]);
+
   const handleRequestStream = async () => {
     try {
       await requestStream();
@@ -112,10 +138,45 @@ export default function PublicInterviewPage() {
     }
   };
 
-  // Prevent user from closing tab during active recording or submission to avoid corrupted videos
+  // Block in-app React Router navigation when the candidate is mid-interview.
+  const isInterviewActive = ACTIVE_STAGES.has(stage);
+
+  // Intercept browser back/forward buttons.
+  useEffect(() => {
+    if (!isInterviewActive) return;
+    window.history.pushState({ interviewGuard: true }, "");
+    const handlePopstate = () => {
+      if (ACTIVE_STAGES.has(stageRef.current)) {
+        window.history.pushState({ interviewGuard: true }, "");
+        pendingNavigationRef.current = () => window.history.go(-2);
+        setShowLeaveModal(true);
+      }
+    };
+    window.addEventListener("popstate", handlePopstate);
+    return () => window.removeEventListener("popstate", handlePopstate);
+  }, [isInterviewActive]);
+
+  // Intercept in-app link clicks (navbar, etc.) in the capture phase.
+  useEffect(() => {
+    if (!isInterviewActive) return;
+    const handleClick = (e) => {
+      const anchor = e.target.closest("a[href]");
+      if (!anchor || anchor.target === "_blank") return;
+      if (!ACTIVE_STAGES.has(stageRef.current)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const href = anchor.getAttribute("href");
+      pendingNavigationRef.current = () => { window.location.href = href; };
+      setShowLeaveModal(true);
+    };
+    document.addEventListener("click", handleClick, true);
+    return () => document.removeEventListener("click", handleClick, true);
+  }, [isInterviewActive]);
+
+  // Prevent browser refresh / tab close during active interview.
   useEffect(() => {
     const handleBeforeUnload = (e) => {
-      if (isRecording || submittingAnswer) {
+      if (ACTIVE_STAGES.has(stage)) {
         e.preventDefault();
         e.returnValue = "";
         return "";
@@ -123,8 +184,7 @@ export default function PublicInterviewPage() {
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isRecording, submittingAnswer]);
-
+  }, [stage]);
   useEffect(() => {
     if (streamVideoRef.current && stream) {
       streamVideoRef.current.srcObject = stream;
@@ -260,6 +320,11 @@ export default function PublicInterviewPage() {
         getStorageKey(slug),
         res.data.data.submission.session_token,
       );
+      
+      if (!localStorage.getItem(`interview_started_${slug}`)) {
+         localStorage.setItem(`interview_started_${slug}`, Date.now().toString());
+      }
+      
       const nextStage = res.data.data.position?.intro_video_url
         ? "intro"
         : "question";
@@ -333,6 +398,103 @@ export default function PublicInterviewPage() {
     setStage("reviewless-stop");
     await submitCurrentAnswer(blob || recordedBlob);
   };
+  // Always keep the ref pointing to the latest version.
+  handleAutoSubmitRef.current = handleAutoSubmit;
+
+  // Called exclusively by the global timer when time runs out.
+  // Bypasses the audio-signal guard and forces finish after saving.
+  const timerExpireSubmit = async (blobToSave) => {
+    const currentSubmission = submissionRef.current;
+    if (!currentSubmission || !activeQuestion) {
+      setStage("done");
+      return;
+    }
+
+    setSubmittingAnswer(true);
+    try {
+      if (blobToSave) {
+        const answerMimeType = blobToSave.type || "video/webm";
+        const answerExtension = getMediaExtensionFromMime(answerMimeType);
+        const uploadUrlRes = await interviewToolsApi.getPublicUploadUrl(
+          currentSubmission.submission_id,
+          {
+            session_token: currentSubmission.session_token,
+            question_id: activeQuestion.question_id,
+            fileName: `answer.${answerExtension}`,
+            contentType: answerMimeType,
+          },
+        );
+        const { uploadUrl, key } = uploadUrlRes.data.data;
+        await uploadFileToSignedUrl({ file: blobToSave, uploadUrl, contentType: answerMimeType });
+        await interviewToolsApi.saveAnswer(currentSubmission.submission_id, {
+          session_token: currentSubmission.session_token,
+          question_id: activeQuestion.question_id,
+          answer_order: activeQuestionIndex + 1,
+          answer_video_key: key,
+          answer_duration_seconds: recordingSeconds,
+          retake_count: retakesUsed,
+          next_question_index: activeQuestionIndex + 1,
+        });
+      }
+    } catch (err) {
+      console.error("Timer-expiry save failed", err);
+    } finally {
+      setSubmittingAnswer(false);
+    }
+
+    // Force-finish regardless of remaining questions.
+    try {
+      await interviewToolsApi.finishSubmission(currentSubmission.submission_id, {
+        session_token: currentSubmission.session_token,
+      });
+    } catch (_) {}
+    localStorage.removeItem(getStorageKey(slug));
+    localStorage.removeItem(`interview_started_${slug}`);
+    setStage("done");
+  };
+  timerExpireSubmitRef.current = timerExpireSubmit;
+
+  useEffect(() => {
+    if (!position?.overall_time_limit_minutes) return;
+
+    const startedAt = localStorage.getItem(`interview_started_${slug}`);
+    if (!startedAt) return;
+
+    const limitMs = Number(position.overall_time_limit_minutes) * 60 * 1000;
+
+    const interval = setInterval(() => {
+      const elapsedMs = Date.now() - Number(startedAt);
+      const remainingMs = limitMs - elapsedMs;
+
+      if (remainingMs <= 0) {
+        clearInterval(interval);
+        setGlobalTimeLeft(0);
+
+        const currentStage = stageRef.current;
+
+        (async () => {
+          if (currentStage === "recording") {
+            // Still actively recording — stop mic, upload, force finish.
+            const blob = await stopRecording();
+            await timerExpireSubmitRef.current?.(blob || recordedBlobRef.current);
+          } else if (currentStage === "reviewless-stop" && recordedBlobRef.current) {
+            // Stopped recording manually but hasn't submitted yet — save blob then finish.
+            await timerExpireSubmitRef.current?.(recordedBlobRef.current);
+          } else {
+            // No pending blob — just force finish the interview.
+            await timerExpireSubmitRef.current?.(null);
+          }
+        })();
+      } else {
+        setGlobalTimeLeft(Math.floor(remainingMs / 1000));
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  // Only start/restart the timer when position or slug changes.
+  // Stage changes must NOT restart the interval.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [position, slug]);
 
   const submitCurrentAnswer = async (finalBlob = recordedBlob) => {
     if (!finalBlob || !submission || !activeQuestion) return;
@@ -417,6 +579,7 @@ export default function PublicInterviewPage() {
         session_token: submission.session_token,
       });
       localStorage.removeItem(getStorageKey(slug));
+      localStorage.removeItem(`interview_started_${slug}`);
       setStage("done");
     } catch (error) {
       console.error(error);
@@ -467,6 +630,53 @@ export default function PublicInterviewPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <div className="mx-auto max-w-5xl px-0 py-0 md:px-8 md:py-8">
+        {globalTimeLeft !== null && (
+          <div className="fixed top-4 right-4 z-50 bg-rose-600 text-white px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 tabular-nums">
+            <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+            {Math.floor(globalTimeLeft / 60)}:{(globalTimeLeft % 60).toString().padStart(2, "0")} left
+          </div>
+        )}
+
+        {showLeaveModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+            <div className="w-full max-w-sm rounded-3xl bg-white shadow-2xl p-8 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-rose-100 mx-auto mb-5">
+                <AlertCircle className="h-7 w-7 text-rose-600" />
+              </div>
+              <h2 className="text-xl font-extrabold text-slate-900">Leave Interview?</h2>
+              <p className="mt-3 text-sm font-medium leading-relaxed text-slate-500">
+                Your progress may not be saved if you leave now. Recorded answers that have not been submitted will be lost.
+              </p>
+              <div className="mt-7 flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    pendingNavigationRef.current = null;
+                    setShowLeaveModal(false);
+                  }}
+                  className="w-full rounded-full bg-[#083262] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#062446]"
+                >
+                  Stay in Interview
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setShowLeaveModal(false);
+                    if (isRecording) {
+                      try { await stopRecording(); } catch (_) {}
+                    }
+                    pendingNavigationRef.current?.();
+                    pendingNavigationRef.current = null;
+                  }}
+                  className="w-full rounded-full border border-slate-200 px-6 py-3.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
+                >
+                  Leave Anyway
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {statusMessage ? (
           <div className="mb-6 flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
