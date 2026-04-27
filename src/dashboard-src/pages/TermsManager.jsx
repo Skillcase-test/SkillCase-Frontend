@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeft, Pencil, Check, X } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { termsApi } from "../../api/termsApi";
 
@@ -104,6 +105,8 @@ export default function TermsManager() {
   const [docPages, setDocPages] = useState(0);
   const [newFieldType, setNewFieldType] = useState("text");
   const [selectedFieldId, setSelectedFieldId] = useState("");
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState("");
 
   const [uploadForm, setUploadForm] = useState({
     title: "",
@@ -229,9 +232,6 @@ export default function TermsManager() {
       const response = await termsApi.listTemplates();
       const list = response.data?.templates || [];
       setTemplates(list);
-      if (!selectedTemplateId && list.length) {
-        setSelectedTemplateId(list[0].template_id);
-      }
     } catch {
       setErrorMessage("Failed to load templates.");
     } finally {
@@ -406,6 +406,28 @@ export default function TermsManager() {
       setErrorMessage("Failed to update template status.");
     } finally {
       setUpdatingStatus(false);
+    }
+  }
+
+  async function handleUpdateTitle() {
+    if (!selectedTemplateId || !tempTitle.trim()) {
+      setIsEditingTitle(false);
+      return;
+    }
+    setErrorMessage("");
+    setStatusMessage("");
+    try {
+      const res = await termsApi.updateTemplateTitle(selectedTemplateId, tempTitle.trim());
+      setSelectedTemplate(res.data.template);
+      setTemplates((prev) =>
+        prev.map((t) =>
+          t.template_id === selectedTemplateId ? { ...t, title: res.data.template.title } : t
+        )
+      );
+      setStatusMessage("Title updated.");
+      setIsEditingTitle(false);
+    } catch (error) {
+      setErrorMessage("Failed to update title.");
     }
   }
 
@@ -592,16 +614,61 @@ export default function TermsManager() {
       ) : null}
 
       {/* Header with Back Button */}
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <button
-          onClick={() => setSelectedTemplateId("")}
-          className="text-sm font-semibold text-slate-900 hover:text-slate-700"
-        >
-          Back to Templates
-        </button>
-        <h1 className="flex-1 text-2xl font-bold text-slate-900">
-          {selectedTemplate?.title || "Template"}
-        </h1>
+      <div className="mb-6 flex flex-col gap-4">
+        <div>
+          <button
+            onClick={() => setSelectedTemplateId("")}
+            className="inline-flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-900"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Back to Templates
+          </button>
+        </div>
+        <div className="flex items-center gap-3">
+          {isEditingTitle ? (
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus
+                type="text"
+                value={tempTitle}
+                onChange={(e) => setTempTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleUpdateTitle();
+                  if (e.key === "Escape") setIsEditingTitle(false);
+                }}
+                className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xl font-bold text-slate-900 outline-none focus:border-slate-500"
+              />
+              <button
+                onClick={handleUpdateTitle}
+                className="rounded-md bg-emerald-50 p-1.5 text-emerald-600 hover:bg-emerald-100"
+              >
+                <Check className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setIsEditingTitle(false)}
+                className="rounded-md bg-rose-50 p-1.5 text-rose-600 hover:bg-rose-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 group">
+              <h1 className="text-2xl font-bold text-slate-900">
+                {selectedTemplate?.title || "Template"}
+              </h1>
+              <button
+                onClick={() => {
+                  setTempTitle(selectedTemplate?.title || "");
+                  setIsEditingTitle(true);
+                }}
+                className="opacity-0 group-hover:opacity-100 rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-opacity"
+                title="Edit Title"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {loadingDetail ? (
@@ -738,10 +805,12 @@ export default function TermsManager() {
                                         originY: Number(field.y),
                                       });
                                     }}
-                                    className={`absolute cursor-move rounded-md border-2 px-1 text-[10px] sm:text-xs font-bold leading-none ${
+                                    className={`absolute cursor-move rounded-md px-1 text-[10px] sm:text-xs font-bold leading-none ${
                                       selectedFieldId === field.field_id
-                                        ? "border-slate-900 bg-slate-900 text-white"
-                                        : "border-blue-400 bg-blue-100 text-blue-900"
+                                        ? "border-2 border-slate-900 bg-slate-900 text-white z-10"
+                                        : Boolean(field.config_json?.locked)
+                                          ? "border-2 border-transparent bg-transparent text-slate-900"
+                                          : "border-2 border-blue-400 bg-blue-100 text-blue-900"
                                     }`}
                                     style={{
                                       left: `${field.x * 100}%`,
@@ -751,11 +820,28 @@ export default function TermsManager() {
                                       display: "flex",
                                       alignItems: "center",
                                       overflow: "hidden",
+                                      containerType: "size",
                                     }}
                                   >
-                                    <div className="flex w-full items-center justify-between gap-1">
-                                      <span className="truncate">
-                                        {field.field_key}
+                                    <div className="flex w-full items-center justify-between gap-1 h-full">
+                                      <span className="truncate flex-1 h-full flex items-center">
+                                        {Boolean(field.config_json?.locked) ? (
+                                          <div className="flex items-center gap-1 overflow-hidden h-full w-full">
+                                            {field.field_type === "signature" && field.config_json?.default_signature_image_data_url ? (
+                                              <img src={field.config_json.default_signature_image_data_url} alt="Stamp" className="h-[84cqh] w-auto m-auto object-contain" />
+                                            ) : field.field_type === "checkbox" ? (
+                                              <span className={`font-bold ${selectedFieldId === field.field_id ? "text-white" : "text-slate-900"}`} style={{ fontSize: "68cqh" }}>
+                                                {field.config_json?.default_value ? "✓" : ""}
+                                              </span>
+                                            ) : (
+                                              <span className={`truncate font-bold ${selectedFieldId === field.field_id ? "text-white" : "text-slate-900"}`} style={{ fontSize: field.field_type === "label" ? "72cqh" : "68cqh" }}>
+                                                {String(field.config_json?.default_value || "")}
+                                              </span>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <span style={{ fontSize: "60cqh" }}>{field.field_key}</span>
+                                        )}
                                       </span>
                                       <button
                                         type="button"

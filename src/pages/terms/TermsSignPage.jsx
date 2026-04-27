@@ -232,6 +232,14 @@ function SignatureModal({
   handleUploadSignature,
   submitting,
 }) {
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen && signatureMode === "typed" && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isOpen, signatureMode]);
+
   if (!isOpen) return null;
 
   return (
@@ -272,17 +280,23 @@ function SignatureModal({
           {signatureMode === "typed" ? (
             <div className="space-y-3">
               <input
+                ref={inputRef}
                 type="text"
                 value={typedSignature}
                 onChange={(e) => setTypedSignature(e.target.value)}
                 className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 outline-none focus:border-slate-500"
                 placeholder="Type your full name"
               />
-              <div
-                className="rounded-md border border-slate-200 bg-slate-50 px-4 py-6 text-3xl text-slate-900"
-                style={{ fontFamily: typedFont }}
-              >
-                {typedSignature || "Signature preview"}
+              <div>
+                <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Signature Preview
+                </p>
+                <div
+                  className="rounded-md border border-slate-200 bg-slate-50 px-4 py-6 text-3xl text-slate-900 min-h-[80px]"
+                  style={{ fontFamily: typedFont }}
+                >
+                  {typedSignature || ""}
+                </div>
               </div>
             </div>
           ) : null}
@@ -375,6 +389,7 @@ export default function TermsSignPage() {
   const hasAutoFocusedRef = useRef(false);
   const signaturePanelRef = useRef(null);
   const signatureSubmitButtonRef = useRef(null);
+  const desktopSignatureInputRef = useRef(null);
   const [viewerWidth, setViewerWidth] = useState(900);
 
   const renderWidth = useMemo(
@@ -739,7 +754,9 @@ export default function TermsSignPage() {
           behavior: "smooth",
           block: "center",
         });
-        signatureSubmitButtonRef.current?.focus?.({ preventScroll: true });
+        setTimeout(() => {
+          desktopSignatureInputRef.current?.focus();
+        }, 500);
       }
       return;
     }
@@ -758,7 +775,9 @@ export default function TermsSignPage() {
         setShowSignatureModal(true);
       } else {
         signaturePanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-        signatureSubmitButtonRef.current?.focus?.({ preventScroll: true });
+        setTimeout(() => {
+          desktopSignatureInputRef.current?.focus();
+        }, 500);
       }
     } else {
       goToNextField();
@@ -779,7 +798,9 @@ export default function TermsSignPage() {
           setShowSignatureModal(true);
         } else {
           signaturePanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-          signatureSubmitButtonRef.current?.focus?.({ preventScroll: true });
+          setTimeout(() => {
+            desktopSignatureInputRef.current?.focus();
+          }, 500);
         }
       }
       return;
@@ -1046,6 +1067,15 @@ export default function TermsSignPage() {
     }
   }
 
+  useEffect(() => {
+    if (activeFieldId) {
+      const el = inputRefMap.current.get(activeFieldId);
+      if (el && typeof el.scrollIntoView === "function") {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }
+  }, [activeFieldId]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-6">
@@ -1135,7 +1165,7 @@ export default function TermsSignPage() {
           ) : (
           <div
             ref={viewerRef}
-            className="rounded-lg border border-slate-200 bg-white p-3 pb-24"
+            className="rounded-lg border border-slate-200 bg-white p-3 pb-[50vh]"
           >
             <Document
               file={template?.source_pdf_url || ""}
@@ -1284,7 +1314,7 @@ export default function TermsSignPage() {
           </div>
         </div>
       ) : (
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px] pb-24">
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px] pb-[50vh]">
         {/* PDF Viewer + Fields */}
         <div
           ref={viewerRef}
@@ -1364,19 +1394,25 @@ export default function TermsSignPage() {
             </div>
 
             {signatureMode === "typed" ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <input
+                  ref={desktopSignatureInputRef}
                   type="text"
                   value={typedSignature}
                   onChange={(e) => setTypedSignature(e.target.value)}
                   className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500"
                   placeholder="Type your name"
                 />
-                <div
-                  className="rounded-md border border-slate-200 bg-slate-50 px-3 py-4 text-2xl text-slate-900"
-                  style={{ fontFamily: typedFont }}
-                >
-                  {typedSignature || "Signature"}
+                <div>
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    Signature Preview
+                  </p>
+                  <div
+                    className="rounded-md border border-slate-200 bg-slate-50 px-3 py-4 text-2xl text-slate-900 min-h-[60px]"
+                    style={{ fontFamily: typedFont }}
+                  >
+                    {typedSignature || ""}
+                  </div>
                 </div>
               </div>
             ) : null}

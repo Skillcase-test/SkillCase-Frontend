@@ -11,6 +11,8 @@ export const termsApi = {
     api.put(`/admin/terms/templates/${templateId}/fields`, { fields }),
   updateTemplateStatus: (templateId, status) =>
     api.patch(`/admin/terms/templates/${templateId}/status`, { status }),
+  updateTemplateTitle: (templateId, title) =>
+    api.patch(`/admin/terms/templates/${templateId}/title`, { title }),
   deleteTemplate: (templateId) => api.delete(`/admin/terms/templates/${templateId}`),
   sendInvite: (templateId, payload) =>
     api.post(`/admin/terms/templates/${templateId}/send`, payload),

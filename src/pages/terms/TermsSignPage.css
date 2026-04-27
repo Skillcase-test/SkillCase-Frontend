@@ -12,7 +12,7 @@
 .terms-overlay-field {
   position: absolute;
   box-sizing: border-box;
-  font-size: var(--terms-field-font-size, 11px);
+  container-type: size;
   line-height: 1;
 }
 
@@ -30,17 +30,18 @@
   border: 1px solid rgba(148, 163, 184, 0.8);
   background: rgba(255, 255, 255, 0.92);
   color: #334155;
-  padding: var(--terms-field-pad-y, 1px) var(--terms-field-pad-x, 4px);
+  padding: 0 4px;
   font-weight: 500;
+  font-size: 72cqh;
 }
 
 .terms-overlay-input {
   border: 1px solid #059669;
   background: rgba(209, 250, 229, 0.95);
   color: #0f172a;
-  padding: var(--terms-field-pad-y, 1px) var(--terms-field-pad-x, 4px);
+  padding: 0 4px;
   font: inherit;
-  font-size: inherit;
+  font-size: 68cqh;
   line-height: 1;
 }
 
@@ -102,8 +103,8 @@
   background: rgba(239, 246, 255, 0.95);
   color: #1d4ed8;
   font-weight: 700;
-  font-size: calc(var(--terms-field-font-size, 11px) * 1.25);
-  padding: var(--terms-field-pad-y, 1px) var(--terms-field-pad-x, 4px);
+  font-size: 95cqh;
+  padding: 0 4px;
 }
 
 .terms-overlay-readonly {
@@ -114,7 +115,8 @@
   background: transparent;
   color: #0f172a;
   font-weight: 500;
-  padding: 0 var(--terms-field-pad-x, 4px);
+  padding: 0 4px;
+  font-size: 68cqh;
 }
 
 .terms-overlay-checkbox-readonly {
@@ -130,14 +132,15 @@
   border: none;
   background: transparent;
   color: #0f172a;
-  font-size: calc(var(--terms-field-font-size, 11px) * 1.3);
+  font-size: 95cqh;
   font-weight: 700;
   padding: 0;
 }
 
 .terms-overlay-signature-image {
-  width: 100%;
-  height: 100%;
+  width: auto;
+  height: 84cqh;
+  margin: auto;
   object-fit: contain;
 }
 
