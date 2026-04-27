@@ -15,6 +15,9 @@
   container-type: size;
   line-height: 1;
 }
+.terms-overlay-field.active {
+  z-index: 20;
+}
 
 .terms-overlay-control {
   box-sizing: border-box;
@@ -43,6 +46,8 @@
   font: inherit;
   font-size: 68cqh;
   line-height: 1;
+  scroll-margin-top: 120px;
+  scroll-margin-bottom: 45vh;
 }
 
 .terms-overlay-input-wrap {
@@ -87,6 +92,8 @@
   justify-content: center;
   border: 1px solid #059669;
   background: rgba(209, 250, 229, 0.95);
+  scroll-margin-top: 120px;
+  scroll-margin-bottom: 45vh;
 }
 
 .terms-overlay-checkbox-wrap input {

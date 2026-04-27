@@ -836,6 +836,7 @@ export default function TermsSignPage() {
     const id = String(field.field_id || "");
     const key = String(field.field_key || "");
     const locked = isFieldLocked(field);
+    const isActive = activeFieldId === id;
     const value = getDisplayValue(field, fieldValues);
     const placeholder = getFieldPlaceholder(field);
     const showBubble =
@@ -953,7 +954,7 @@ export default function TermsSignPage() {
 
     if (field.field_type === "signature") {
       return (
-        <div className="terms-overlay-control terms-overlay-signature">
+        <div className={`terms-overlay-control terms-overlay-signature ${isActive ? 'active' : ''}`}>
           Sign
         </div>
       );
@@ -1199,7 +1200,7 @@ export default function TermsSignPage() {
                           {pageFields.map((field) => (
                             <div
                               key={field.field_id}
-                              className="terms-overlay-field"
+                              className={`terms-overlay-field ${activeFieldId === String(field.field_id) ? "active" : ""}`}
                               style={getFieldBoxStyle(field, true)}
                             >
                               {renderOverlayFieldControl(field)}
