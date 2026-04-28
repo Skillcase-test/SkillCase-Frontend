@@ -247,11 +247,13 @@ function SentenceOrderingInline({
   const [activeWord, setActiveWord] = useState(null);
 
   useEffect(() => {
-    if (words.length > 0 && orderedWords.length === 0) {
+    if (words.length > 0) {
       const shuffled = shuffleNonIdentity(words, correctOrder || words);
       setOrderedWords(shuffled);
+    } else {
+      setOrderedWords([]);
     }
-  }, [words]);
+  }, [JSON.stringify(words)]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
