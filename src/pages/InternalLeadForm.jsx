@@ -185,7 +185,7 @@ export default function InternalLeadForm() {
                   <option value="Inbound">Inbound</option>
                   <option value="Influencer">Influencer</option>
                   <option value="Referral">Referral</option>
-                  <option value="AppInstall">App Install</option>
+                  <option value="App Install">App Install</option>
                 </select>
               </div>
 
