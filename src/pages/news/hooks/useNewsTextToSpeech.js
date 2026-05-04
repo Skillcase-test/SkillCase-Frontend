@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import api from "../../../api/axios";
 
 const buildStructuredSpeechText = ({
@@ -26,8 +26,13 @@ const useNewsTextToSpeech = () => {
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
   const [activeSpeed, setActiveSpeed] = useState(null);
   const audioRef = useRef(null);
+  const ttsCacheRef = useRef(new Map());
+  const TTS_TTL_MS = 60 * 1000;
 
-  const speakText = async (text, language = "de-DE", options = {}) => {
+  const getTtsKey = (speechText, language, speed) =>
+    JSON.stringify({ speechText, language, speed });
+
+  const speakText = useCallback(async (text, language = "de-DE", options = {}) => {
     const speed = options?.speed || "normal";
     const hasStructured =
       options?.structured === true ||
@@ -48,21 +53,32 @@ const useNewsTextToSpeech = () => {
       setIsSpeaking(true);
       setActiveSpeed(speed);
 
-      const response = await api.post(
-        "/tts/speak",
-        {
-          text: speechText,
-          language,
-          speed,
-          structured: hasStructured,
-          title: options?.title || "",
-          newsText: options?.newsText || text || "",
-        },
-        { responseType: "blob" },
-      );
+      const key = getTtsKey(speechText, language, speed);
+      const now = Date.now();
+      const cached = ttsCacheRef.current.get(key);
+      let audioUrl = null;
 
-      const audioBlob = new Blob([response.data], { type: "audio/mpeg" });
-      const audioUrl = URL.createObjectURL(audioBlob);
+      if (cached && now < cached.expiresAt) {
+        audioUrl = cached.audioUrl;
+      } else {
+        const response = await api.post(
+          "/tts/speak",
+          {
+            text: speechText,
+            language,
+            speed,
+            structured: hasStructured,
+            title: options?.title || "",
+            newsText: options?.newsText || text || "",
+          },
+          { responseType: "blob" },
+        );
+
+        const audioBlob = new Blob([response.data], { type: "audio/mpeg" });
+        audioUrl = URL.createObjectURL(audioBlob);
+        ttsCacheRef.current.set(key, { audioUrl, expiresAt: now + TTS_TTL_MS });
+      }
+
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
 
@@ -71,7 +87,6 @@ const useNewsTextToSpeech = () => {
         setIsLoadingAudio(false);
         setActiveSpeed(null);
         audioRef.current = null;
-        URL.revokeObjectURL(audioUrl);
       };
 
       audio.onerror = () => {
@@ -101,9 +116,9 @@ const useNewsTextToSpeech = () => {
         window.speechSynthesis.speak(utterance);
       }
     }
-  };
+  }, []);
 
-  const cancelSpeech = () => {
+  const cancelSpeech = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -118,7 +133,7 @@ const useNewsTextToSpeech = () => {
     setIsSpeaking(false);
     setIsLoadingAudio(false);
     setActiveSpeed(null);
-  };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -126,7 +141,7 @@ const useNewsTextToSpeech = () => {
         cancelSpeech();
       }
     };
-  }, []);
+  }, [cancelSpeech]);
 
   return {
     isSpeaking,

@@ -5,7 +5,7 @@ Sentry.init({
   sendDefaultPii: true,
 });
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -21,6 +21,8 @@ import NewNavbar from "./components/NewNavbar";
 import NewFooter from "./components/NewFooter";
 import Footer from "./components/Footer";
 import OtaUpdateModal from "./components/OtaUpdateModal";
+import MaintenanceModal from "./components/MaintenanceModal";
+import PullToRefreshIndicator from "./components/PullToRefreshIndicator";
 import { useDispatch, useSelector } from "react-redux";
 import ChapterSelect from "./pages/flashcard/ChapterSelect";
 import TestSelect from "./pages/testSelect";
@@ -120,8 +122,15 @@ import { Fullscreen } from "@boengli/capacitor-fullscreen";
 import { LiveUpdate } from "@capawesome/capacitor-live-update";
 import { App as CapApp } from "@capacitor/app";
 import { initPushNotifications } from "./notifications/pushNotifications";
+import { FirebaseAnalytics } from "@capacitor-firebase/analytics";
 
 import ProductTour from "./tour/ProductTour";
+import { usePullToRefresh } from "./hooks/usePullToRefresh";
+import {
+  getMaintenanceStatus,
+  setMaintenanceStatus,
+  subscribeMaintenanceStatus,
+} from "./utils/maintenanceSignal";
 
 export const APP_VERSION = "1.1.4";
 const MAX_RETRY_ATTEMPTS = 3;
@@ -158,6 +167,8 @@ function AppContent() {
   const [authBootstrapping, setAuthBootstrapping] = useState(Boolean(token));
 
   const [otaState, setOtaState] = useState(null); // null | 'play_store' | 'ota_downloading' | 'ota_ready'
+  const [otaProgress, setOtaProgress] = useState(0);
+  const [maintenanceOpen, setMaintenanceOpen] = useState(getMaintenanceStatus());
 
   // Public routes that don't require auth
   const publicRoutes = [
@@ -172,6 +183,21 @@ function AppContent() {
   const isPublicRoute =
     publicRoutes.some((route) => location.pathname.startsWith(route)) ||
     /^\/interview\/[^/]+$/.test(location.pathname);
+  const disablePullToRefresh = useMemo(
+    () =>
+      /^\/exam\/[^/]+\/take$/.test(location.pathname) ||
+      /^\/interview\/[^/]+$/.test(location.pathname),
+    [location.pathname],
+  );
+
+  const refreshWholeApp = useCallback(async () => {
+    window.location.reload();
+  }, []);
+
+  const { pullProgress, isRefreshing, containerProps } = usePullToRefresh(
+    refreshWholeApp,
+    Capacitor.isNativePlatform() && !disablePullToRefresh,
+  );
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
@@ -182,6 +208,9 @@ function AppContent() {
       if (token) {
         initPushNotifications();
       }
+
+      // Log native app_opened event
+      FirebaseAnalytics.logEvent({ name: "app_opened" }).catch(console.error);
     }
   }, [token]);
 
@@ -265,6 +294,13 @@ function AppContent() {
             }
 
             setOtaState("ota_downloading");
+            setOtaProgress(0);
+
+            let pseudoProgress = 0;
+            const progressTimer = setInterval(() => {
+              pseudoProgress = Math.min(pseudoProgress + 4, 92);
+              setOtaProgress(pseudoProgress);
+            }, 350);
 
             api
               .post("/updates/log", {
@@ -273,10 +309,16 @@ function AppContent() {
               })
               .catch(() => {});
 
-            await LiveUpdate.downloadBundle({
-              url: data.url,
-              bundleId: data.version,
-            });
+            try {
+              await LiveUpdate.downloadBundle({
+                url: data.url,
+                bundleId: data.version,
+              });
+            } finally {
+              clearInterval(progressTimer);
+            }
+
+            setOtaProgress(100);
 
             await LiveUpdate.setNextBundle({ bundleId: data.version });
 
@@ -325,6 +367,7 @@ function AppContent() {
         console.error("OTA update failed after all retry attempts");
         // Dismiss the spinner modal — do not leave user stuck on a loading screen
         setOtaState(null);
+        setOtaProgress(0);
       }
     };
 
@@ -360,6 +403,55 @@ function AppContent() {
     };
   }, [token, dispatch]);
 
+  useEffect(() => {
+    const unsubscribe = subscribeMaintenanceStatus(setMaintenanceOpen);
+    return unsubscribe;
+  }, []);
+
+  const checkHealth = useCallback(async (retriesLeft = 2) => {
+    // Skip polling when the tab is not visible — avoids false triggers
+    // caused by OS-level network suspension on background tabs.
+    if (document.visibilityState !== "visible") return;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const baseUrl = import.meta.env.VITE_BACKEND_URL;
+      const healthUrl = new URL("/health", baseUrl).toString();
+      const response = await fetch(healthUrl, {
+        method: "GET",
+        cache: "no-store",
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        setMaintenanceStatus(false);
+        setMaintenanceOpen(false);
+      } else {
+        throw new Error("Backend unhealthy");
+      }
+    } catch (error) {
+      clearTimeout(timeoutId);
+      
+      if (retriesLeft > 0) {
+        // Wait 2 seconds and retry transparently in the background
+        setTimeout(() => checkHealth(retriesLeft - 1), 2000);
+      } else {
+        // All retries exhausted, actually show the maintenance modal
+        setMaintenanceStatus(true);
+        setMaintenanceOpen(true);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    checkHealth();
+    const timer = setInterval(checkHealth, 60000);
+    return () => clearInterval(timer);
+  }, [checkHealth]);
+
   if (token && authBootstrapping) {
     return (
       <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">
@@ -374,9 +466,14 @@ function AppContent() {
   }
 
   return (
-    <>
+    <div {...containerProps}>
+      <PullToRefreshIndicator
+        pullProgress={pullProgress}
+        isRefreshing={isRefreshing}
+      />
       <OtaUpdateModal
-        otaState={otaState}
+        otaState={maintenanceOpen ? null : otaState}
+        otaProgress={otaProgress}
         onSkip={() => setOtaState(null)}
         onRestart={async () => {
           try {
@@ -391,6 +488,7 @@ function AppContent() {
         }}
         onOpenPlayStore={openPlayStore}
       />
+      <MaintenanceModal open={maintenanceOpen} onRetry={checkHealth} />
 
       <ProductTour>
         <A1ProductTour>
@@ -563,7 +661,7 @@ function AppContent() {
           </A2ProductTour>
         </A1ProductTour>
       </ProductTour>
-    </>
+    </div>
   );
 }
 

@@ -57,6 +57,8 @@ export default function WebinarSection() {
           <img
             src={images.salaryImage}
             alt="Nurses in Germany"
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover"
           />
         </div>

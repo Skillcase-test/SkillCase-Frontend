@@ -29,6 +29,8 @@ export default function TalkToTeamSection({ data }) {
               <img
                 src={d.avatar_image_url || images.avatarTeam}
                 alt="Team member"
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
               />
             </div>

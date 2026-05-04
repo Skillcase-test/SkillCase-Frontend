@@ -1,7 +1,7 @@
 import api from "./axios";
 
 export const fetchSectionsByLevel = (level) =>
-  api.get(`/landing-page/sections/${level}`);
+  api.cachedGet(`/landing-page/sections/${level}`, {}, "LONG_PUBLIC");
 
 export const saveDemoClass = (level, fields) =>
   api.put(`/admin/landing-page/demo-class/${level}`, fields);

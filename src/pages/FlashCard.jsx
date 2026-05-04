@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -40,8 +40,8 @@ const FlashcardStudyPage = () => {
   const [isFinalTest, setIsFinalTest] = useState(false);
   const [showTestPrompt, setShowTestPrompt] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [Progress, setProgress] = useState(0);
   const [order, setOrder] = useState(null);
+  const ttsCacheRef = useRef(new Map());
 
   // Swipe animation states
   const [swipeDirection, setSwipeDirection] = useState(null);
@@ -63,26 +63,33 @@ const FlashcardStudyPage = () => {
     try {
       setIsLoadingAudio(true);
       setIsSpeaking(true);
-      const response = await api.post(
-        "/tts/speak",
-        {
-          text,
-          language,
-        },
-        {
-          responseType: "blob", // Important: receive audio as blob
-        }
-      );
-      // Create audio URL from blob
-      const audioBlob = new Blob([response.data], { type: "audio/mpeg" });
-      const audioUrl = URL.createObjectURL(audioBlob);
+      const key = `${language}:${text}`;
+      const now = Date.now();
+      const cached = ttsCacheRef.current.get(key);
+      let audioUrl;
+      if (cached && now < cached.expiresAt) {
+        audioUrl = cached.url;
+      } else {
+        const response = await api.post(
+          "/tts/speak",
+          {
+            text,
+            language,
+          },
+          {
+            responseType: "blob", // Important: receive audio as blob
+          }
+        );
+        const audioBlob = new Blob([response.data], { type: "audio/mpeg" });
+        audioUrl = URL.createObjectURL(audioBlob);
+        ttsCacheRef.current.set(key, { url: audioUrl, expiresAt: now + 60_000 });
+      }
 
       // Play audio
       const audio = new Audio(audioUrl);
 
       audio.onended = () => {
         setIsSpeaking(false);
-        URL.revokeObjectURL(audioUrl); // Clean up
       };
 
       audio.onerror = () => {
@@ -124,19 +131,19 @@ const FlashcardStudyPage = () => {
   // }
   // },[currentCard,flashcardSet,isFlipped])
 
-  const handleSpeakFront = async (e) => {
+  const handleSpeakFront = useCallback(async (e) => {
     e.stopPropagation();
     if (flashcardSet[currentCard]?.front_content) {
       await speakText(flashcardSet[currentCard].front_content, "en-US");
     }
-  };
+  }, [currentCard, flashcardSet]);
 
-  const handleSpeakBack = async (e) => {
+  const handleSpeakBack = useCallback(async (e) => {
     e.stopPropagation();
     if (flashcardSet[currentCard]?.back_content) {
       await speakText(flashcardSet[currentCard].back_content, "de-DE");
     }
-  };
+  }, [currentCard, flashcardSet]);
 
   useEffect(() => {
     const getCards = async () => {
@@ -182,24 +189,19 @@ const FlashcardStudyPage = () => {
   }, [set_id]);
 
   useEffect(() => {
-    try {
-      const saveSate = async () => {
-        try {
-          const res = await api.post("/practice/saveFS", {
-            user_id: user.user_id,
-            set_id: set_id,
-            status: completedFinalTest,
-            order: JSON.stringify(Array.from(order.entries())),
-            current_index: currentCard,
-          });
-        } catch (err) {
-          console.log(err);
-        }
-      };
-      saveSate();
-    } catch (err) {
-      console.log(err);
-    }
+    if (!user?.user_id || !order) return;
+    const timeout = setTimeout(() => {
+      api
+        .post("/practice/saveFS", {
+          user_id: user.user_id,
+          set_id: set_id,
+          status: completedFinalTest,
+          order: JSON.stringify(Array.from(order.entries())),
+          current_index: currentCard,
+        })
+        .catch((err) => console.log(err));
+    }, 400);
+    return () => clearTimeout(timeout);
   }, [currentCard, user, set_id, completedFinalTest, order]);
 
   useEffect(() => {
@@ -232,10 +234,9 @@ const FlashcardStudyPage = () => {
   }, [user, navigate]);
 
   const totalCards = flashcardSet.length;
-
-  useEffect(() => {
-    const progress = ((currentCard + 1) / totalCards) * 100;
-    setProgress(progress);
+  const progress = useMemo(() => {
+    if (!totalCards) return 0;
+    return ((currentCard + 1) / totalCards) * 100;
   }, [currentCard, totalCards]);
 
   const handleTestClick = () => {
@@ -253,7 +254,7 @@ const FlashcardStudyPage = () => {
     return breakpoints;
   };
 
-  const testBreakpoints = getTestBreakpoints();
+  const testBreakpoints = useMemo(() => getTestBreakpoints(), [totalCards]);
 
   const getTestStatus = (breakpoint) => {
     return completedTests.has(breakpoint) ? "completed" : "pending";
@@ -585,9 +586,11 @@ const FlashcardStudyPage = () => {
     setIsFlipped(false);
     setShowTestPrompt(false);
     setCompletedTests(new Set());
+    const nextOrder = new Map();
     shuffle.forEach((item, idx) => {
-      order.set(idx, item.card_id);
+      nextOrder.set(idx, item.card_id);
     });
+    setOrder(nextOrder);
     setCurrentCard(0);
   };
 
@@ -1247,7 +1250,7 @@ const FlashcardStudyPage = () => {
           <div className="relative w-full h-3 bg-slate-100 rounded-full overflow-visible">
             <div
               className="h-full bg-gradient-to-r from-slate-700 to-slate-800 rounded-full transition-all duration-300"
-              style={{ width: `${Progress}%` }}
+              style={{ width: `${progress}%` }}
             ></div>
 
             {testBreakpoints.map((breakpoint) => {

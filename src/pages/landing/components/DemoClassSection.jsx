@@ -57,6 +57,9 @@ export default function DemoClassSection({ data }) {
           <img
             src={d.image_url || images.demoCards}
             alt="Demo class"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
             className="w-full h-full object-cover"
           />
         </div>

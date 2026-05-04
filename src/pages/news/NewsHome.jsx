@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getNewsFeed } from "../../api/newsApi";
@@ -61,19 +61,19 @@ export default function NewsHome() {
     fetchNews();
   }, []);
 
-  const handleSpeak = (title, news, lang) =>
+  const handleSpeak = useCallback((title, news, lang) =>
     speakText(news || title || "", lang === "de" ? "de-DE" : "en-US", {
       speed: "normal",
       title,
       newsText: news,
-    });
+    }), [speakText]);
 
-  const handleSpeakSlow = (title, news, lang) =>
+  const handleSpeakSlow = useCallback((title, news, lang) =>
     speakText(news || title || "", lang === "de" ? "de-DE" : "en-US", {
       speed: "slow",
       title,
       newsText: news,
-    });
+    }), [speakText]);
 
   const hasData = useMemo(() => articles.length > 0, [articles]);
 

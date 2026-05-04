@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { memo, useEffect, useState, useRef } from "react";
 import { Volume2, Rabbit, Languages, Square } from "lucide-react";
 import { hapticMedium } from "../../../utils/haptics";
 
-export default function NewsReelCard({
+function NewsReelCard({
   article,
   onSpeak,
   onSpeakSlow,
@@ -73,6 +73,8 @@ export default function NewsReelCard({
           <img
             src={article.imageUrl}
             alt={title}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover"
             onError={(e) => {
               e.currentTarget.style.display = "none";
@@ -187,3 +189,5 @@ export default function NewsReelCard({
     </article>
   );
 }
+
+export default memo(NewsReelCard);

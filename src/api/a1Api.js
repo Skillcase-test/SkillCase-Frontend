@@ -1,71 +1,80 @@
 import api from "./axios";
 
 // Migration
-export const getA1MigrationStatus = () => api.get("/a1-migration/status");
+export const getA1MigrationStatus = () =>
+  api.cachedGet("/a1-migration/status", {}, "SHORT_PRIVATE");
 export const saveA1MigrationDecision = (action) =>
   api.post("/a1-migration/decision", { action });
-export const getA1EntryRoute = () => api.get("/a1-migration/entry-route");
+export const getA1EntryRoute = () =>
+  api.cachedGet("/a1-migration/entry-route", {}, "SHORT_PRIVATE");
 
 // Flashcard
-export const getFlashcardChapters = () => api.get("/a1/flashcard/chapters");
+export const getFlashcardChapters = () =>
+  api.cachedGet("/a1/flashcard/chapters", {}, "MEDIUM_PRIVATE");
 export const getFlashcards = (chapterId) =>
-  api.get(`/a1/flashcard/cards/${chapterId}`);
+  api.cachedGet(`/a1/flashcard/cards/${chapterId}`, {}, "MEDIUM_PRIVATE");
 export const saveFlashcardProgress = (data) =>
   api.post("/a1/flashcard/progress", data);
 export const generateMiniQuiz = (setId) =>
-  api.get(`/a1/flashcard/quiz/mini/${setId}`);
+  api.cachedGet(`/a1/flashcard/quiz/mini/${setId}`, {}, "MEDIUM_PRIVATE");
 export const generateFinalQuiz = (setId) =>
-  api.get(`/a1/flashcard/quiz/final/${setId}`);
+  api.cachedGet(`/a1/flashcard/quiz/final/${setId}`, {}, "MEDIUM_PRIVATE");
 export const submitFlashcardQuiz = (data) =>
   api.post("/a1/flashcard/quiz/submit", data);
 
 // Grammar
-export const getGrammarTopics = () => api.get("/a1/grammar/topics");
+export const getGrammarTopics = () =>
+  api.cachedGet("/a1/grammar/topics", {}, "MEDIUM_PRIVATE");
 export const getGrammarTopicDetail = (topicId) =>
-  api.get(`/a1/grammar/topic/${topicId}`);
+  api.cachedGet(`/a1/grammar/topic/${topicId}`, {}, "MEDIUM_PRIVATE");
 export const getGrammarQuestions = (topicId) =>
-  api.get(`/a1/grammar/questions/${topicId}`);
+  api.cachedGet(`/a1/grammar/questions/${topicId}`, {}, "MEDIUM_PRIVATE");
 export const saveGrammarProgress = (data) =>
   api.post("/a1/grammar/progress", data);
 export const checkGrammarAnswer = (data) => api.post("/a1/grammar/check", data);
 
 // Reading
-export const getReadingChapters = () => api.get("/a1/reading/chapters");
+export const getReadingChapters = () =>
+  api.cachedGet("/a1/reading/chapters", {}, "MEDIUM_PRIVATE");
 export const getReadingContent = (chapterId) =>
-  api.get(`/a1/reading/content/${chapterId}`);
+  api.cachedGet(`/a1/reading/content/${chapterId}`, {}, "MEDIUM_PRIVATE");
 export const saveReadingProgress = (data) =>
   api.post("/a1/reading/progress", data);
 export const checkReadingAnswers = (data) =>
   api.post("/a1/reading/check", data);
 
 // Listening
-export const getListeningChapters = () => api.get("/a1/listening/chapters");
+export const getListeningChapters = () =>
+  api.cachedGet("/a1/listening/chapters", {}, "MEDIUM_PRIVATE");
 export const getListeningContent = (chapterId) =>
-  api.get(`/a1/listening/content/${chapterId}`);
+  api.cachedGet(`/a1/listening/content/${chapterId}`, {}, "MEDIUM_PRIVATE");
 export const saveListeningProgress = (data) =>
   api.post("/a1/listening/progress", data);
 export const checkListeningAnswers = (data) =>
   api.post("/a1/listening/check", data);
 
 // Speaking
-export const getSpeakingChapters = () => api.get("/a1/speaking/chapters");
+export const getSpeakingChapters = () =>
+  api.cachedGet("/a1/speaking/chapters", {}, "MEDIUM_PRIVATE");
 export const getSpeakingContent = (chapterId) =>
-  api.get(`/a1/speaking/content/${chapterId}`);
+  api.cachedGet(`/a1/speaking/content/${chapterId}`, {}, "MEDIUM_PRIVATE");
 export const saveSpeakingProgress = (data) =>
   api.post("/a1/speaking/progress", data);
 export const saveSpeakingAssessment = (data) =>
   api.post("/a1/speaking/assessment", data);
 
 // Test
-export const getTestTopics = () => api.get("/a1/test/topics");
+export const getTestTopics = () =>
+  api.cachedGet("/a1/test/topics", {}, "MEDIUM_PRIVATE");
 export const getTestProgress = (topicId) =>
-  api.get(`/a1/test/progress/${topicId}`);
+  api.cachedGet(`/a1/test/progress/${topicId}`, {}, "MEDIUM_PRIVATE");
 export const getTestSet = (topicId, level, setNumber) =>
-  api.get(`/a1/test/set/${topicId}/${level}/${setNumber}`);
+  api.cachedGet(`/a1/test/set/${topicId}/${level}/${setNumber}`, {}, "MEDIUM_PRIVATE");
 export const submitTest = (data) => api.post("/a1/test/submit", data);
-export const getTestReview = (topicId) => api.get(`/a1/test/review/${topicId}`);
+export const getTestReview = (topicId) =>
+  api.cachedGet(`/a1/test/review/${topicId}`, {}, "MEDIUM_PRIVATE");
 export const getTestResults = (topicId, level) =>
-  api.get(`/a1/test/${topicId}/${level}/results`);
+  api.cachedGet(`/a1/test/${topicId}/${level}/results`, {}, "MEDIUM_PRIVATE");
 
 // ADMIN FUNCTIONS
 export const getA1Chapters = (module) =>

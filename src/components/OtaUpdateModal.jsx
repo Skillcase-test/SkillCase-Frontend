@@ -1,4 +1,10 @@
-const OtaUpdateModal = ({ otaState, onSkip, onRestart, onOpenPlayStore }) => {
+const OtaUpdateModal = ({
+  otaState,
+  otaProgress = 0,
+  onSkip,
+  onRestart,
+  onOpenPlayStore,
+}) => {
   if (!otaState) return null;
 
   return (
@@ -59,9 +65,18 @@ const OtaUpdateModal = ({ otaState, onSkip, onRestart, onOpenPlayStore }) => {
               Downloading the latest update in the background. This will only
               take a moment.
             </p>
-            {/* Spinner */}
-            <div className="w-10 h-10 border-4 border-[#002856]/20 border-t-[#002856] rounded-full animate-spin mb-4" />
-            <p className="text-xs text-slate-400">Please wait...</p>
+            <div className="w-full mb-3">
+              <div className="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-[#002856] transition-all duration-200"
+                  style={{ width: `${Math.max(0, Math.min(100, otaProgress))}%` }}
+                />
+              </div>
+            </div>
+            <p className="text-sm font-semibold text-slate-700">
+              {Math.max(0, Math.min(100, Math.round(otaProgress)))}%
+            </p>
+            <p className="text-xs text-slate-400 mt-1">Downloading update...</p>
           </>
         )}
 

@@ -1,28 +1,36 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { X, Volume2, Loader2 } from "lucide-react";
 
 import api from "../../api/axios";
 
 export default function VocabularyModal({ word, meaning, onClose }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const ttsCacheRef = useRef(new Map());
   const handleSpeak = async () => {
     if (isSpeaking) return;
 
     setIsSpeaking(true);
     try {
-      const response = await api.post(
-        "/tts/synthesize",
-        { text: word, language: "de-DE" },
-        { responseType: "arraybuffer" },
-      );
-
-      const audioBlob = new Blob([response.data], { type: "audio/mpeg" });
-      const audioUrl = URL.createObjectURL(audioBlob);
+      const key = `de-DE:${word}`;
+      const now = Date.now();
+      const cached = ttsCacheRef.current.get(key);
+      let audioUrl;
+      if (cached && now < cached.expiresAt) {
+        audioUrl = cached.url;
+      } else {
+        const response = await api.post(
+          "/tts/speak",
+          { text: word, language: "de-DE" },
+          { responseType: "blob" },
+        );
+        const audioBlob = new Blob([response.data], { type: "audio/mpeg" });
+        audioUrl = URL.createObjectURL(audioBlob);
+        ttsCacheRef.current.set(key, { url: audioUrl, expiresAt: now + 60_000 });
+      }
       const audio = new Audio(audioUrl);
 
       audio.onended = () => {
         setIsSpeaking(false);
-        URL.revokeObjectURL(audioUrl);
       };
 
       audio.play();

@@ -56,4 +56,18 @@ export const interviewToolsApi = {
 
   finishSubmission: (submissionId, payload) =>
     api.post(`/interview-tools/submissions/${submissionId}/finish`, payload),
+
+  getPositionEventLog: (positionId) =>
+    api.get(`/admin/interview-tools/positions/${positionId}/events`),
+
+  downloadCandidatePDF: (positionId, submissionId) =>
+    api.get(
+      `/admin/interview-tools/positions/${positionId}/candidates/${submissionId}/pdf`,
+      { responseType: "blob" },
+    ),
+
+  downloadInterviewPDF: (positionId) =>
+    api.get(`/admin/interview-tools/positions/${positionId}/pdf`, {
+      responseType: "blob",
+    }),
 };

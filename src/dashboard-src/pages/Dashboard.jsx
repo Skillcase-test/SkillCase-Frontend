@@ -66,7 +66,7 @@ function Guard({ allowed, children }) {
   return children;
 }
 
-function InterviewToolsModule() {
+function InterviewToolsModule({ isSuperAdmin = false }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [selectedInterviewPositionId, setSelectedInterviewPositionId] =
@@ -119,6 +119,7 @@ function InterviewToolsModule() {
           <InterviewToolsPositionsPage
             setActivePage={setActivePage}
             setSelectedInterviewPositionId={setSelectedInterviewPositionId}
+            isSuperAdmin={isSuperAdmin}
           />
         }
       />
@@ -138,6 +139,7 @@ function InterviewToolsModule() {
             selectedInterviewPositionId={selectedInterviewPositionId}
             setSelectedInterviewSubmissionId={setSelectedInterviewSubmissionId}
             setActivePage={setActivePage}
+            isSuperAdmin={isSuperAdmin}
           />
         }
       />
@@ -148,6 +150,7 @@ function InterviewToolsModule() {
             selectedInterviewPositionId={selectedInterviewPositionId}
             selectedInterviewSubmissionId={selectedInterviewSubmissionId}
             setActivePage={setActivePage}
+            isSuperAdmin={isSuperAdmin}
           />
         }
       />
@@ -231,6 +234,7 @@ function SkillcaseInterviewsModule({
             selectedInterviewPositionId={selectedInterviewPositionId}
             setSelectedInterviewSubmissionId={setSelectedInterviewSubmissionId}
             setActivePage={setActivePage}
+            isSuperAdmin={isSuperAdmin}
           />
         }
       />
@@ -242,6 +246,7 @@ function SkillcaseInterviewsModule({
             selectedInterviewSubmissionId={selectedInterviewSubmissionId}
             setActivePage={setActivePage}
             canDownload={canDownload}
+            isSuperAdmin={isSuperAdmin}
           />
         }
       />
@@ -636,7 +641,9 @@ export default function Dashboard() {
               path="interview-tools/*"
               element={
                 <Guard allowed={hasPermission(me, "interview_tools")}>
-                  <InterviewToolsModule />
+                  <InterviewToolsModule
+                    isSuperAdmin={me.role === "super_admin"}
+                  />
                 </Guard>
               }
             />
@@ -645,7 +652,11 @@ export default function Dashboard() {
               element={
                 <Guard allowed={hasPermission(me, "skillcase_interviews")}>
                   <SkillcaseInterviewsModule
-                    isSuperAdmin={me.role === "super_admin"}
+                    isSuperAdmin={hasPermission(
+                      me,
+                      "skillcase_interviews",
+                      "manage",
+                    )}
                     canDownload={hasPermission(
                       me,
                       "skillcase_interviews",

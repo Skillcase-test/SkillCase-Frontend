@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 
 import api from "../../../api/axios";
-import { signalDashboardActive } from "../../../utils/heartbeat";
 
 import { Users, Activity, Smartphone, Globe, Clock } from "lucide-react";
 
@@ -12,15 +11,11 @@ function DashboardCard12() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Signal that dashboard is active for heartbeat tracking
-    signalDashboardActive();
-
     // Initial fetch
     fetchActiveUsers();
 
-    // Auto-refresh every 30 seconds and signal dashboard is active
+    // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
-      signalDashboardActive();
       fetchActiveUsers();
     }, 30000);
 

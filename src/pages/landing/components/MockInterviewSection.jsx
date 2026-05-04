@@ -36,6 +36,8 @@ export default function MockInterviewSection() {
               <img
                 src={images.avatar}
                 alt="Mock interview preview"
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
               />
             </div>

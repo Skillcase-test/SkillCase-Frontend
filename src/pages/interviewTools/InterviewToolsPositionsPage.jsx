@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Copy,
   Eye,
@@ -10,8 +10,10 @@ import {
   SquarePen,
   Trash2,
   Users,
+  Download,
 } from "lucide-react";
 import { interviewToolsApi } from "../../api/interviewToolsApi";
+import { formatDateTimeIST } from "../../utils/dateTime";
 
 const STATUS_META = {
   draft: "bg-slate-100 text-slate-700",
@@ -22,6 +24,7 @@ const STATUS_META = {
 export default function InterviewToolsPositionsPage({
   setActivePage,
   setSelectedInterviewPositionId,
+  isSuperAdmin = false,
 }) {
   const [positions, setPositions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -153,6 +156,9 @@ export default function InterviewToolsPositionsPage({
               <tr>
                 <th className="px-6 py-4">Position</th>
                 <th className="px-6 py-4">Status</th>
+                {isSuperAdmin ? (
+                  <th className="px-6 py-4">Created On (IST)</th>
+                ) : null}
                 <th className="px-6 py-4">Questions</th>
                 <th className="px-6 py-4">Candidates</th>
                 <th className="px-6 py-4">Share Link</th>
@@ -182,6 +188,11 @@ export default function InterviewToolsPositionsPage({
                         {position.status}
                       </span>
                     </td>
+                    {isSuperAdmin ? (
+                      <td className="px-6 py-5 align-top text-xs text-slate-500 font-medium whitespace-nowrap">
+                        {formatDateTimeIST(position.created_at)}
+                      </td>
+                    ) : null}
                     <td className="px-6 py-5 align-top">
                       {position.question_count}
                     </td>
@@ -285,6 +296,31 @@ export default function InterviewToolsPositionsPage({
                           <Trash2 className="h-4 w-4" />
                           Delete
                         </button>
+
+                        {isSuperAdmin && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                const res = await interviewToolsApi.downloadInterviewPDF(position.position_id);
+                                const url = window.URL.createObjectURL(new Blob([res.data]));
+                                const link = document.createElement("a");
+                                link.href = url;
+                                link.setAttribute("download", `InterviewReport-${position.position_id}.pdf`);
+                                document.body.appendChild(link);
+                                link.click();
+                                link.remove();
+                              } catch (error) {
+                                console.error("PDF download failed:", error);
+                                alert("Could not download PDF report");
+                              }
+                            }}
+                            className="inline-flex items-center gap-2 rounded-xl border border-[#083262] bg-white px-3.5 py-2.5 text-xs font-bold text-[#083262] transition hover:bg-blue-50 shadow-sm"
+                          >
+                            <Download className="h-4 w-4" />
+                            Report
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

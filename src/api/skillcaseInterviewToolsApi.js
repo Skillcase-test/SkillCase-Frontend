@@ -39,4 +39,18 @@ export const skillcaseInterviewToolsApi = {
       `/admin/skillcase-interviews/positions/${positionId}/candidates/${submissionId}/review`,
       payload,
     ),
+
+  getPositionEventLog: (positionId) =>
+    api.get(`/admin/skillcase-interviews/positions/${positionId}/events`),
+
+  downloadCandidatePDF: (positionId, submissionId) =>
+    api.get(
+      `/admin/skillcase-interviews/positions/${positionId}/candidates/${submissionId}/pdf`,
+      { responseType: "blob" },
+    ),
+
+  downloadInterviewPDF: (positionId) =>
+    api.get(`/admin/skillcase-interviews/positions/${positionId}/pdf`, {
+      responseType: "blob",
+    }),
 };

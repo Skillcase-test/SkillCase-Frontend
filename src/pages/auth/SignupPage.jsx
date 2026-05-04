@@ -11,6 +11,7 @@ import { loginSuccess } from "../../redux/auth/authSlice";
 import api from "../../api/axios";
 import { hapticMedium } from "../../utils/haptics";
 import { Capacitor } from "@capacitor/core";
+import { FirebaseAnalytics } from "@capacitor-firebase/analytics";
 
 import { usePostHog } from "@posthog/react";
 
@@ -338,6 +339,14 @@ const SignupPage = () => {
           signup_source: Capacitor.isNativePlatform() ? "app" : "web",
           country_code: countryCode,
         });
+
+        if (Capacitor.isNativePlatform()) {
+          FirebaseAnalytics.logEvent({
+            name: "sign_up",
+            params: { method: "phone_otp" }
+          }).catch(console.error);
+        }
+
         toast.success("Signup successful!");
         navigate("/");
       } else if (response.data.status === "emailalready") {

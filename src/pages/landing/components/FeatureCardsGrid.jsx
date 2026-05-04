@@ -283,7 +283,13 @@ function FeatureCard({
     >
       {/* Image */}
       <div className="h-16 md:h-40 rounded-md overflow-hidden">
-        <img src={image} alt={title} className="w-full h-full object-cover" />
+        <img
+          src={image}
+          alt={title}
+          loading="lazy"
+          decoding="async"
+          className="w-full h-full object-cover"
+        />
       </div>
 
       {/* Content */}
