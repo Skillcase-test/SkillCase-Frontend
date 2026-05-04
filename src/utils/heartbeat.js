@@ -1,5 +1,5 @@
 import api from "../api/axios";
-import { APP_VERSION } from "../App";
+import { APP_VERSION } from "../config/appVersion";
 import { Capacitor } from "@capacitor/core";
 
 let heartbeatInterval = null;

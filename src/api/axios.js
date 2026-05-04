@@ -1,7 +1,7 @@
 import axios from "axios";
 import { store } from "../redux/store";
-import * as Sentry from "@sentry/react";
 import { setMaintenanceStatus } from "../utils/maintenanceSignal";
+import { addSentryBreadcrumb, captureApiError } from "../observability/sentry";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL,
@@ -46,10 +46,14 @@ function getCacheKey(url, params, authScope) {
 
 api.cachedGet = async (url, config = {}, cacheProfile = "NO_CACHE") => {
   const authScope = ensureAuthScopeFresh();
+  const requestConfig = {
+    ...config,
+    meta: { ...(config.meta || {}), cacheProfile },
+  };
   const ttl = GET_CACHE_TTLS[cacheProfile] ?? 0;
-  if (!ttl) return api.get(url, config);
+  if (!ttl) return api.get(url, requestConfig);
 
-  const key = getCacheKey(url, config?.params, authScope);
+  const key = getCacheKey(url, requestConfig?.params, authScope);
   const now = Date.now();
   const existing = getCache.get(key);
   if (existing && now < existing.expiresAt) {
@@ -59,7 +63,7 @@ api.cachedGet = async (url, config = {}, cacheProfile = "NO_CACHE") => {
   if (!inFlightGet.has(key)) {
     inFlightGet.set(
       key,
-      api.get(url, config).then((response) => {
+      api.get(url, requestConfig).then((response) => {
         getCache.set(key, { response, expiresAt: Date.now() + ttl });
         return response;
       }),
@@ -77,6 +81,8 @@ api.clearGetCache = clearGetCaches;
 
 api.interceptors.request.use((config) => {
   ensureAuthScopeFresh();
+  config.meta = { ...(config.meta || {}), startedAt: Date.now() };
+
   const token = store.getState().auth.token;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -91,19 +97,41 @@ api.interceptors.response.use(
   },
   (error) => {
     const statusCode = error?.response?.status;
+    const method = (error?.config?.method || "get").toUpperCase();
+    const requestUrl = error?.config?.url || "unknown";
+    const cacheProfile = error?.config?.meta?.cacheProfile || "NO_CACHE";
+    const durationMs = error?.config?.meta?.startedAt
+      ? Date.now() - error.config.meta.startedAt
+      : null;
 
-    // Only treat an explicit 503 as a maintenance signal.
-    // Cancelled requests, CORS errors, timeouts, and other network
-    // blips must NOT trigger the maintenance modal — the periodic
-    // health-check in App.jsx owns that responsibility.
     if (statusCode === 503) {
       setMaintenanceStatus(true);
     }
 
-    // Do not report cancelled/aborted requests to Sentry — they are
-    // intentional (e.g. component unmount, route change).
     if (!axios.isCancel(error) && error?.code !== "ERR_CANCELED") {
-      Sentry.captureException(error);
+      addSentryBreadcrumb({
+        category: "api",
+        message: "api-failure",
+        level: "error",
+        data: {
+          method,
+          requestUrl,
+          statusCode: statusCode || "network_error",
+          durationBucket:
+            durationMs == null
+              ? "unknown"
+              : durationMs < 300
+                ? "<300ms"
+                : durationMs < 1000
+                  ? "300ms-1s"
+                  : ">=1s",
+        },
+      });
+
+      captureApiError(error, {
+        featureArea: "api",
+        cacheProfile,
+      });
     }
 
     return Promise.reject(error);

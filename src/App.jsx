@@ -1,10 +1,3 @@
-import * as Sentry from "@sentry/react";
-
-Sentry.init({
-  dsn: import.meta.env.VITE_SENTRY_DSN,
-  sendDefaultPii: true,
-});
-
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import {
   BrowserRouter,
@@ -64,6 +57,12 @@ import {
   setMaintenanceStatus,
   subscribeMaintenanceStatus,
 } from "./utils/maintenanceSignal";
+import { APP_VERSION } from "./config/appVersion";
+import {
+  addSentryBreadcrumb,
+  captureFeatureError,
+  setSentryUserFromAuth,
+} from "./observability/sentry";
 
 //Hard Core Test
 const FlashcardStudyPage = lazy(() => import("./pages/flashcard/FlashCard"));
@@ -130,7 +129,6 @@ const Dashboard = lazy(() => import("./dashboard-src/pages/Dashboard"));
 
 //fallback page
 
-export const APP_VERSION = "1.1.4";
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 2000;
 const PLAY_STORE_URL = "market://details?id=com.skillcase.app";
@@ -223,7 +221,12 @@ function AppContent() {
 
       // Only init push notifications if authenticated
       if (token) {
-        initPushNotifications();
+        initPushNotifications().catch((error) => {
+          captureFeatureError(error, {
+            featureArea: "push_notifications",
+            tags: { action: "init" },
+          });
+        });
       }
 
       // Log native app_opened event
@@ -237,6 +240,18 @@ function AppContent() {
   }, [location.pathname]);
 
   useEffect(() => {
+    addSentryBreadcrumb({
+      category: "navigation",
+      message: "route-change",
+      data: {
+        path: location.pathname,
+        search: location.search,
+      },
+    });
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    setSentryUserFromAuth(user);
     if (user) {
       // Start heartbeat for all users, but it only sends when dashboard is active
       startHeartbeat();
@@ -289,6 +304,11 @@ function AppContent() {
             return;
 
           case "play_store":
+            addSentryBreadcrumb({
+              category: "ota",
+              message: "play-store-update-required",
+              data: { currentVersion: data.currentVersion },
+            });
             api
               .post("/updates/log", {
                 event: "play_store_redirect",
@@ -303,6 +323,11 @@ function AppContent() {
             const bundleExists = bundles.bundleIds?.includes(data.version);
 
             if (bundleExists) {
+              addSentryBreadcrumb({
+                category: "ota",
+                message: "bundle-already-exists",
+                data: { version: data.version },
+              });
               console.log(
                 `Bundle ${data.version} already exists, setting as next bundle`,
               );
@@ -312,6 +337,11 @@ function AppContent() {
 
             setOtaState("ota_downloading");
             setOtaProgress(0);
+            addSentryBreadcrumb({
+              category: "ota",
+              message: "download-started",
+              data: { version: data.version },
+            });
 
             let pseudoProgress = 0;
             const progressTimer = setInterval(() => {
@@ -348,6 +378,11 @@ function AppContent() {
 
             console.log(`OTA update downloaded: ${data.version}`);
             setOtaState("ota_ready");
+            addSentryBreadcrumb({
+              category: "ota",
+              message: "download-ready",
+              data: { version: data.version },
+            });
             return;
           }
 
@@ -366,6 +401,11 @@ function AppContent() {
           .catch(() => {});
 
         console.error(`OTA update attempt ${retryCount} failed:`, err.message);
+        captureFeatureError(err, {
+          featureArea: "ota_update",
+          tags: { action: "attempt_failed" },
+          extra: { retryCount, appVersion: APP_VERSION },
+        });
 
         if (retryCount < MAX_RETRY_ATTEMPTS) {
           console.log(`Retrying in ${RETRY_DELAY_MS}ms...`);
@@ -382,6 +422,11 @@ function AppContent() {
           .catch(() => {});
 
         console.error("OTA update failed after all retry attempts");
+        captureFeatureError(err, {
+          featureArea: "ota_update",
+          tags: { action: "all_attempts_failed" },
+          extra: { maxRetryAttempts: MAX_RETRY_ATTEMPTS, appVersion: APP_VERSION },
+        });
         // Dismiss the spinner modal — do not leave user stuck on a loading screen
         setOtaState(null);
         setOtaProgress(0);
@@ -446,6 +491,10 @@ function AppContent() {
       if (response.ok) {
         setMaintenanceStatus(false);
         setMaintenanceOpen(false);
+        addSentryBreadcrumb({
+          category: "maintenance",
+          message: "health-check-ok",
+        });
       } else {
         throw new Error("Backend unhealthy");
       }
@@ -459,6 +508,11 @@ function AppContent() {
         // All retries exhausted, actually show the maintenance modal
         setMaintenanceStatus(true);
         setMaintenanceOpen(true);
+        captureFeatureError(error, {
+          featureArea: "maintenance",
+          tags: { action: "health-check-failed" },
+          extra: { retriesExhausted: true },
+        });
       }
     }
   }, []);

@@ -11,6 +11,10 @@ import "./index.css"
 import posthog from 'posthog-js';
 import { PostHogProvider, PostHogErrorBoundary } from '@posthog/react';
 import { Capacitor } from '@capacitor/core';
+import * as Sentry from "@sentry/react";
+import { initSentry } from "./observability/sentry";
+
+initSentry();
 
 posthog.init(import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN, {
   api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
@@ -26,11 +30,13 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <PostHogProvider client={posthog}>
     <PostHogErrorBoundary>
-      <Provider store={store}>
-        <PersistGate loading={null} persistor={persistor}>
-            <App />
-        </PersistGate>
-      </Provider>
+      <Sentry.ErrorBoundary fallback={<div>Something went wrong.</div>}>
+        <Provider store={store}>
+          <PersistGate loading={null} persistor={persistor}>
+              <App />
+          </PersistGate>
+        </Provider>
+      </Sentry.ErrorBoundary>
     </PostHogErrorBoundary>
   </PostHogProvider>
 );
