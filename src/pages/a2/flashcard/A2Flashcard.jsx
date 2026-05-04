@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { memo, useEffect, useState, useRef, useCallback } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -46,7 +46,7 @@ import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
 import { usePostHog } from "@posthog/react";
 
 // DnD Word Component
-function WordItem({ word, isDragging, isOverlay }) {
+const WordItem = memo(function WordItem({ word, isDragging, isOverlay }) {
   return (
     <div
       className={`px-4 py-2.5 rounded-xl font-semibold text-base select-none touch-none transition-all ${
@@ -60,7 +60,7 @@ function WordItem({ word, isDragging, isOverlay }) {
       {word}
     </div>
   );
-}
+});
 
 function DraggableWord({ id, word }) {
   const {

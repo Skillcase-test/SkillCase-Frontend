@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { memo, useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -52,7 +52,7 @@ import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
 import { usePostHog } from "@posthog/react";
 
-const CustomDropdown = ({
+const CustomDropdown = memo(({
   options,
   value,
   onChange,
@@ -179,10 +179,10 @@ const CustomDropdown = ({
         )}
     </div>
   );
-};
+});
 
 // Drag-and-drop sentence ordering components
-function WordItem({ word, isDragging, isOverlay }) {
+const WordItem = memo(function WordItem({ word, isDragging, isOverlay }) {
   return (
     <div
       className={`px-4 py-2.5 rounded-xl font-semibold text-base select-none touch-none transition-all ${
@@ -196,7 +196,7 @@ function WordItem({ word, isDragging, isOverlay }) {
       {word}
     </div>
   );
-}
+});
 
 function DraggableWord({ id, word }) {
   const {

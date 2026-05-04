@@ -5,7 +5,7 @@ Sentry.init({
   sendDefaultPii: true,
 });
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -24,17 +24,9 @@ import OtaUpdateModal from "./components/OtaUpdateModal";
 import MaintenanceModal from "./components/MaintenanceModal";
 import PullToRefreshIndicator from "./components/PullToRefreshIndicator";
 import { useDispatch, useSelector } from "react-redux";
-import ChapterSelect from "./pages/flashcard/ChapterSelect";
-import TestSelect from "./pages/testSelect";
-import FlashcardStudyPage from "./pages/flashcard/FlashCard";
 import api from "./api/axios";
 import { setUser, logout } from "./redux/auth/authSlice";
-import PronounceSelect from "./pages/pronounce/PronounceSelect";
-import Pronounce from "./pages/pronounce/Pronounce";
 import Dashboard from "./dashboard-src/pages/Dashboard";
-import ShortStoryHome from "./pages/ShortStoryHome";
-import StoryPage from "./pages/StoryPage";
-import ThankYouPage from "./pages/ThankYouPage";
 
 if (typeof global === "undefined") {
   window.global = window;
@@ -53,77 +45,19 @@ import "./dashboard-src/css/style.css";
 // import ManualResumeBuilder from "./pages/ManualResumeBuilder";
 // import MyResumes from "./pages/MyResumes";
 
-import ProfilePage from "./pages/ProfilePage";
-
-import ConversationSelect from "./pages/ConversationSelect";
-import ConversationPlayer from "./pages/ConversationPlayer";
-import NursingGermanyLanding from "./pages/NursingGermanyLanding";
-
-import AllEventsPage from "./pages/event/AllEventsPage";
-import EventDetailPage from "./pages/event/EventDetailPage";
-import FeaturedEventPage from "./pages/event/FeaturedEventPage";
 
 // A2 Imports
-import A2FlashcardSelect from "./pages/a2/flashcard/A2FlashcardSelect";
-import A2Flashcard from "./pages/a2/flashcard/A2Flashcard";
-import A2GrammarSelect from "./pages/a2/grammar/A2GrammarSelect";
-import A2GrammarPractice from "./pages/a2/grammar/A2GrammarPractice";
-import A2ListeningSelect from "./pages/a2/listening/A2ListeningSelect";
-import A2ListeningContent from "./pages/a2/listening/A2ListeningContent";
-import A2SpeakingSelect from "./pages/a2/speaking/A2SpeakingSelect";
-import A2Speaking from "./pages/a2/speaking/A2Speaking";
-import A2ReadingSelect from "./pages/a2/reading/A2ReadingSelect";
-import A2Reading from "./pages/a2/reading/A2Reading";
-import A2TestSelect from "./pages/a2/test/A2TestSelect";
-import A2TestLevel from "./pages/a2/test/A2TestLevel";
-import A2TestQuestions from "./pages/a2/test/A2TestQuestions";
 import A2ProductTour from "./tour/A2ProductTour";
 
 // A1 Revamp
 import A1EntryResolver from "./components/a1/A1EntryResolver";
-import A1FlashcardSelect from "./pages/a1/flashcard/A1FlashcardSelect";
-import A1Flashcard from "./pages/a1/flashcard/A1Flashcard";
-import A1GrammarSelect from "./pages/a1/grammar/A1GrammarSelect";
-import A1GrammarPractice from "./pages/a1/grammar/A1GrammarPractice";
-import A1ListeningSelect from "./pages/a1/listening/A1ListeningSelect";
-import A1ListeningContent from "./pages/a1/listening/A1ListeningContent";
-import A1ReadingSelect from "./pages/a1/reading/A1ReadingSelect";
-import A1Reading from "./pages/a1/reading/A1Reading";
-import A1SpeakingSelect from "./pages/a1/speaking/A1SpeakingSelect";
-import A1Speaking from "./pages/a1/speaking/A1Speaking";
-import A1TestSelect from "./pages/a1/test/A1TestSelect";
-import A1TestLevel from "./pages/a1/test/A1TestLevel";
-import A1TestQuestions from "./pages/a1/test/A1TestQuestions";
 import A1ProductTour from "./tour/A1ProductTour";
-
-//Hard Core Test
-import ExamLobby from "./pages/exam/ExamLobby";
-import ExamPage from "./pages/exam/ExamPage";
-import ExamResult from "./pages/exam/ExamResult";
-
-//News Module
-import NewsHome from "./pages/news/NewsHome";
-import NewsPage from "./pages/news/NewsPage";
-
-// Interview
-import PublicInterviewPage from "./pages/interviewTools/PublicInterviewPage";
-
-// Wise
-
-//fallback page
-import FallbackPage from "./pages/FallbackPage";
-
-import ContinuePractice from "./pages/ContinuePractice";
-import TermsSignPage from "./pages/terms/TermsSignPage";
-
-//capacitor app
 import { Capacitor } from "@capacitor/core";
 import { Fullscreen } from "@boengli/capacitor-fullscreen";
 import { LiveUpdate } from "@capawesome/capacitor-live-update";
 import { App as CapApp } from "@capacitor/app";
 import { initPushNotifications } from "./notifications/pushNotifications";
 import { FirebaseAnalytics } from "@capacitor-firebase/analytics";
-
 import ProductTour from "./tour/ProductTour";
 import { usePullToRefresh } from "./hooks/usePullToRefresh";
 import {
@@ -131,6 +65,70 @@ import {
   setMaintenanceStatus,
   subscribeMaintenanceStatus,
 } from "./utils/maintenanceSignal";
+
+//Hard Core Test
+const FlashcardStudyPage = lazy(() => import("./pages/flashcard/FlashCard"));
+const ChapterSelect = lazy(() => import("./pages/flashcard/ChapterSelect"));
+const TestSelect = lazy(() => import("./pages/testSelect"));
+const PronounceSelect = lazy(() => import("./pages/pronounce/PronounceSelect"));
+const Pronounce = lazy(() => import("./pages/pronounce/Pronounce"));
+const ShortStoryHome = lazy(() => import("./pages/ShortStoryHome"));
+const StoryPage = lazy(() => import("./pages/StoryPage"));
+const ThankYouPage = lazy(() => import("./pages/ThankYouPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const ConversationSelect = lazy(() => import("./pages/ConversationSelect"));
+const ConversationPlayer = lazy(() => import("./pages/ConversationPlayer"));
+const NursingGermanyLanding = lazy(() => import("./pages/NursingGermanyLanding"));
+const AllEventsPage = lazy(() => import("./pages/event/AllEventsPage"));
+const EventDetailPage = lazy(() => import("./pages/event/EventDetailPage"));
+const FeaturedEventPage = lazy(() => import("./pages/event/FeaturedEventPage"));
+const A2FlashcardSelect = lazy(() => import("./pages/a2/flashcard/A2FlashcardSelect"));
+const A2Flashcard = lazy(() => import("./pages/a2/flashcard/A2Flashcard"));
+const A2GrammarSelect = lazy(() => import("./pages/a2/grammar/A2GrammarSelect"));
+const A2GrammarPractice = lazy(() => import("./pages/a2/grammar/A2GrammarPractice"));
+const A2ListeningSelect = lazy(() => import("./pages/a2/listening/A2ListeningSelect"));
+const A1ListeningContent = lazy(() =>
+  import("./pages/a1/listening/A1ListeningContent"),
+);
+const A2ListeningContent = lazy(() =>
+  import("./pages/a2/listening/A2ListeningContent"),
+);
+const A2SpeakingSelect = lazy(() => import("./pages/a2/speaking/A2SpeakingSelect"));
+const A2Speaking = lazy(() => import("./pages/a2/speaking/A2Speaking"));
+const A2ReadingSelect = lazy(() => import("./pages/a2/reading/A2ReadingSelect"));
+const A2Reading = lazy(() => import("./pages/a2/reading/A2Reading"));
+const A2TestSelect = lazy(() => import("./pages/a2/test/A2TestSelect"));
+const A2TestLevel = lazy(() => import("./pages/a2/test/A2TestLevel"));
+const A2TestQuestions = lazy(() => import("./pages/a2/test/A2TestQuestions"));
+const A1FlashcardSelect = lazy(() => import("./pages/a1/flashcard/A1FlashcardSelect"));
+const A1Flashcard = lazy(() => import("./pages/a1/flashcard/A1Flashcard"));
+const A1GrammarSelect = lazy(() => import("./pages/a1/grammar/A1GrammarSelect"));
+const A1GrammarPractice = lazy(() => import("./pages/a1/grammar/A1GrammarPractice"));
+const A1ListeningSelect = lazy(() => import("./pages/a1/listening/A1ListeningSelect"));
+const A1ReadingSelect = lazy(() => import("./pages/a1/reading/A1ReadingSelect"));
+const A1Reading = lazy(() => import("./pages/a1/reading/A1Reading"));
+const A1SpeakingSelect = lazy(() => import("./pages/a1/speaking/A1SpeakingSelect"));
+const A1Speaking = lazy(() => import("./pages/a1/speaking/A1Speaking"));
+const A1TestSelect = lazy(() => import("./pages/a1/test/A1TestSelect"));
+const A1TestLevel = lazy(() => import("./pages/a1/test/A1TestLevel"));
+const A1TestQuestions = lazy(() => import("./pages/a1/test/A1TestQuestions"));
+const ExamLobby = lazy(() => import("./pages/exam/ExamLobby"));
+const ExamPage = lazy(() => import("./pages/exam/ExamPage"));
+const ExamResult = lazy(() => import("./pages/exam/ExamResult"));
+const NewsHome = lazy(() => import("./pages/news/NewsHome"));
+const NewsPage = lazy(() => import("./pages/news/NewsPage"));
+const PublicInterviewPage = lazy(() => import("./pages/interviewTools/PublicInterviewPage"));
+const FallbackPage = lazy(() => import("./pages/FallbackPage"));
+const ContinuePractice = lazy(() => import("./pages/ContinuePractice"));
+const TermsSignPage = lazy(() => import("./pages/terms/TermsSignPage"));
+
+//News Module
+
+// Interview
+
+// Wise
+
+//fallback page
 
 export const APP_VERSION = "1.1.4";
 const MAX_RETRY_ATTEMPTS = 3;
@@ -198,6 +196,22 @@ function AppContent() {
     refreshWholeApp,
     Capacitor.isNativePlatform() && !disablePullToRefresh,
   );
+
+  useEffect(() => {
+    const preloadTopHeavyScreens = () => {
+      import("./pages/flashcard/FlashCard");
+      import("./pages/a2/flashcard/A2Flashcard");
+      import("./pages/a1/listening/A1ListeningContent");
+      import("./pages/a2/listening/A2ListeningContent");
+      import("./pages/exam/ExamPage");
+    };
+
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(preloadTopHeavyScreens, { timeout: 2500 });
+    } else {
+      setTimeout(preloadTopHeavyScreens, 1500);
+    }
+  }, []);
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
@@ -465,6 +479,12 @@ function AppContent() {
     return <Navigate to="/login" replace />;
   }
 
+  const lazyScreen = (element, title) => (
+    <Suspense fallback={<RouteScreenSkeleton title={title} />}>
+      {element}
+    </Suspense>
+  );
+
   return (
     <div {...containerProps}>
       <PullToRefreshIndicator
@@ -501,25 +521,44 @@ function AppContent() {
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/" element={<LandingPage />} />
-              <Route path="/test/:prof_level" element={<TestSelect />} />
+              <Route
+                path="/test/:prof_level"
+                element={lazyScreen(<TestSelect />, "Loading Tests...")}
+              />
               {/* <Route path ='/interview/:prof_level' element = {<InterviewSelect/>}/> */}
-              <Route path="/practice/:prof_level" element={<ChapterSelect />} />
+              <Route
+                path="/practice/:prof_level"
+                element={lazyScreen(<ChapterSelect />, "Loading Chapters...")}
+              />
               <Route
                 path="/pronounce/:prof_level"
-                element={<PronounceSelect />}
+                element={lazyScreen(
+                  <PronounceSelect />,
+                  "Loading Pronunciation...",
+                )}
               />
               <Route
                 path="/practice/:prof_level/:set_id"
-                element={<FlashcardStudyPage />}
+                element={
+                  <Suspense fallback={<RouteScreenSkeleton title="Loading Flashcards..." />}>
+                    <FlashcardStudyPage />
+                  </Suspense>
+                }
               />
               <Route path="/admin/*" element={<Dashboard />} />
               <Route
                 path="/pronounce/:prof_level/:pronounce_id"
-                element={<Pronounce />}
+                element={lazyScreen(<Pronounce />, "Loading Pronunciation...")}
               />
               {/* <Route path="/Login" element={<LoginSignupPage />} /> */}
-              <Route path="/stories" element={<ShortStoryHome />} />
-              <Route path="/story/:slug" element={<StoryPage />} />
+              <Route
+                path="/stories"
+                element={lazyScreen(<ShortStoryHome />, "Loading Stories...")}
+              />
+              <Route
+                path="/story/:slug"
+                element={lazyScreen(<StoryPage />, "Loading Story...")}
+              />
 
               {/* <Route path="/resume" element={<ResumePage />} />
         <Route path="/resume/ai-builder" element={<AIResumeBuilder />} />
@@ -532,122 +571,261 @@ function AppContent() {
 
               <Route
                 path="/conversation/:prof_level"
-                element={<ConversationSelect />}
+                element={lazyScreen(
+                  <ConversationSelect />,
+                  "Loading Conversation...",
+                )}
               />
               <Route
                 path="/conversation/:prof_level/:conversation_id"
-                element={<ConversationPlayer />}
+                element={lazyScreen(
+                  <ConversationPlayer />,
+                  "Loading Conversation...",
+                )}
               />
-              <Route path="/register" element={<NursingGermanyLanding />} />
-              <Route path="/thank-you" element={<ThankYouPage />} />
-              <Route path="/open-app" element={<FallbackPage />} />
-              <Route path="/terms/sign/:token" element={<TermsSignPage />} />
-              <Route path="/continue" element={<ContinuePractice />} />
+              <Route
+                path="/register"
+                element={lazyScreen(<NursingGermanyLanding />, "Loading...")}
+              />
+              <Route
+                path="/thank-you"
+                element={lazyScreen(<ThankYouPage />, "Loading...")}
+              />
+              <Route
+                path="/open-app"
+                element={lazyScreen(<FallbackPage />, "Loading...")}
+              />
+              <Route
+                path="/terms/sign/:token"
+                element={lazyScreen(<TermsSignPage />, "Loading Terms...")}
+              />
+              <Route
+                path="/continue"
+                element={lazyScreen(<ContinuePractice />, "Loading...")}
+              />
               <Route
                 path="/internal/lead-form"
                 element={<Navigate to="/admin/internal-leads" replace />}
               />
-              <Route path="/events" element={<AllEventsPage />} />
-              <Route path="/events/featured" element={<FeaturedEventPage />} />
-              <Route path="/events/:slug" element={<EventDetailPage />} />
+              <Route
+                path="/events"
+                element={lazyScreen(<AllEventsPage />, "Loading Events...")}
+              />
+              <Route
+                path="/events/featured"
+                element={lazyScreen(<FeaturedEventPage />, "Loading Event...")}
+              />
+              <Route
+                path="/events/:slug"
+                element={lazyScreen(<EventDetailPage />, "Loading Event...")}
+              />
               <Route
                 path="/manage-event"
                 element={<Navigate to="/admin/events" replace />}
               />
 
-              <Route path="/profile" element={<ProfilePage />} />
+              <Route
+                path="/profile"
+                element={lazyScreen(<ProfilePage />, "Loading Profile...")}
+              />
 
               {/* A1 REVAMP ROUTES */}
               <Route path="/a1" element={<A1EntryResolver />} />
 
               {/* A1 Flashcard */}
-              <Route path="/a1/flashcard" element={<A1FlashcardSelect />} />
+              <Route
+                path="/a1/flashcard"
+                element={lazyScreen(
+                  <A1FlashcardSelect />,
+                  "Loading A1 Flashcards...",
+                )}
+              />
               <Route
                 path="/a1/flashcard/:chapterId"
-                element={<A1Flashcard />}
+                element={lazyScreen(<A1Flashcard />, "Loading A1 Flashcards...")}
               />
 
               {/* A1 Grammar */}
-              <Route path="/a1/grammar" element={<A1GrammarSelect />} />
+              <Route
+                path="/a1/grammar"
+                element={lazyScreen(<A1GrammarSelect />, "Loading A1 Grammar...")}
+              />
               <Route
                 path="/a1/grammar/:topicId"
-                element={<A1GrammarPractice />}
+                element={lazyScreen(<A1GrammarPractice />, "Loading A1 Grammar...")}
               />
 
               {/* A1 Listening */}
-              <Route path="/a1/listening" element={<A1ListeningSelect />} />
+              <Route
+                path="/a1/listening"
+                element={lazyScreen(
+                  <A1ListeningSelect />,
+                  "Loading A1 Listening...",
+                )}
+              />
               <Route
                 path="/a1/listening/:chapterId"
-                element={<A1ListeningContent />}
+                element={
+                  <Suspense fallback={<RouteScreenSkeleton title="Loading A1 Listening..." />}>
+                    <A1ListeningContent />
+                  </Suspense>
+                }
               />
 
               {/* A1 Speaking */}
-              <Route path="/a1/speaking" element={<A1SpeakingSelect />} />
-              <Route path="/a1/speaking/:chapterId" element={<A1Speaking />} />
+              <Route
+                path="/a1/speaking"
+                element={lazyScreen(<A1SpeakingSelect />, "Loading A1 Speaking...")}
+              />
+              <Route
+                path="/a1/speaking/:chapterId"
+                element={lazyScreen(<A1Speaking />, "Loading A1 Speaking...")}
+              />
 
               {/* A1 Reading */}
-              <Route path="/a1/reading" element={<A1ReadingSelect />} />
-              <Route path="/a1/reading/:chapterId" element={<A1Reading />} />
+              <Route
+                path="/a1/reading"
+                element={lazyScreen(<A1ReadingSelect />, "Loading A1 Reading...")}
+              />
+              <Route
+                path="/a1/reading/:chapterId"
+                element={lazyScreen(<A1Reading />, "Loading A1 Reading...")}
+              />
 
               {/* A1 Test */}
-              <Route path="/a1/test" element={<A1TestSelect />} />
-              <Route path="/a1/test/:topicId" element={<A1TestLevel />} />
+              <Route
+                path="/a1/test"
+                element={lazyScreen(<A1TestSelect />, "Loading A1 Tests...")}
+              />
+              <Route
+                path="/a1/test/:topicId"
+                element={lazyScreen(<A1TestLevel />, "Loading A1 Test...")}
+              />
               <Route
                 path="/a1/test/:topicId/:level"
-                element={<A1TestQuestions />}
+                element={lazyScreen(
+                  <A1TestQuestions />,
+                  "Loading A1 Questions...",
+                )}
               />
 
               {/* A2 ROUTES */}
               {/* A2 Flashcard */}
-              <Route path="/a2/flashcard" element={<A2FlashcardSelect />} />
+              <Route
+                path="/a2/flashcard"
+                element={lazyScreen(
+                  <A2FlashcardSelect />,
+                  "Loading A2 Flashcards...",
+                )}
+              />
               <Route
                 path="/a2/flashcard/:chapterId"
-                element={<A2Flashcard />}
+                element={
+                  <Suspense fallback={<RouteScreenSkeleton title="Loading A2 Flashcards..." />}>
+                    <A2Flashcard />
+                  </Suspense>
+                }
               />
 
               {/* A2 Grammar */}
-              <Route path="/a2/grammar" element={<A2GrammarSelect />} />
+              <Route
+                path="/a2/grammar"
+                element={lazyScreen(<A2GrammarSelect />, "Loading A2 Grammar...")}
+              />
               <Route
                 path="/a2/grammar/:topicId"
-                element={<A2GrammarPractice />}
+                element={lazyScreen(<A2GrammarPractice />, "Loading A2 Grammar...")}
               />
 
               {/* A2 Listening */}
-              <Route path="/a2/listening" element={<A2ListeningSelect />} />
+              <Route
+                path="/a2/listening"
+                element={lazyScreen(
+                  <A2ListeningSelect />,
+                  "Loading A2 Listening...",
+                )}
+              />
               <Route
                 path="/a2/listening/:chapterId"
-                element={<A2ListeningContent />}
+                element={
+                  <Suspense fallback={<RouteScreenSkeleton title="Loading A2 Listening..." />}>
+                    <A2ListeningContent />
+                  </Suspense>
+                }
               />
 
               {/* A2 Speaking */}
-              <Route path="/a2/speaking" element={<A2SpeakingSelect />} />
-              <Route path="/a2/speaking/:chapterId" element={<A2Speaking />} />
+              <Route
+                path="/a2/speaking"
+                element={lazyScreen(<A2SpeakingSelect />, "Loading A2 Speaking...")}
+              />
+              <Route
+                path="/a2/speaking/:chapterId"
+                element={lazyScreen(<A2Speaking />, "Loading A2 Speaking...")}
+              />
 
               {/* A2 Reading */}
-              <Route path="/a2/reading" element={<A2ReadingSelect />} />
-              <Route path="/a2/reading/:chapterId" element={<A2Reading />} />
+              <Route
+                path="/a2/reading"
+                element={lazyScreen(<A2ReadingSelect />, "Loading A2 Reading...")}
+              />
+              <Route
+                path="/a2/reading/:chapterId"
+                element={lazyScreen(<A2Reading />, "Loading A2 Reading...")}
+              />
 
               {/* A2 Test */}
-              <Route path="/a2/test" element={<A2TestSelect />} />
-              <Route path="/a2/test/:topicId" element={<A2TestLevel />} />
+              <Route
+                path="/a2/test"
+                element={lazyScreen(<A2TestSelect />, "Loading A2 Tests...")}
+              />
+              <Route
+                path="/a2/test/:topicId"
+                element={lazyScreen(<A2TestLevel />, "Loading A2 Test...")}
+              />
               <Route
                 path="/a2/test/:topicId/:level"
-                element={<A2TestQuestions />}
+                element={lazyScreen(
+                  <A2TestQuestions />,
+                  "Loading A2 Questions...",
+                )}
               />
 
               {/* Hard Core Test */}
-              <Route path="/exam/:testId" element={<ExamLobby />} />
-              <Route path="/exam/:testId/take" element={<ExamPage />} />
-              <Route path="/exam/:testId/result" element={<ExamResult />} />
+              <Route
+                path="/exam/:testId"
+                element={lazyScreen(<ExamLobby />, "Loading Exam...")}
+              />
+              <Route
+                path="/exam/:testId/take"
+                element={
+                  <Suspense fallback={<RouteScreenSkeleton title="Loading Exam..." />}>
+                    <ExamPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/exam/:testId/result"
+                element={lazyScreen(<ExamResult />, "Loading Result...")}
+              />
 
               {/* News Module */}
-              <Route path="/news" element={<NewsHome />} />
-              <Route path="/news/:newsId" element={<NewsPage />} />
+              <Route
+                path="/news"
+                element={lazyScreen(<NewsHome />, "Loading News...")}
+              />
+              <Route
+                path="/news/:newsId"
+                element={lazyScreen(<NewsPage />, "Loading News...")}
+              />
 
               {/* Interview */}
               <Route
                 path="/interview/:slug"
-                element={<PublicInterviewPage />}
+                element={lazyScreen(
+                  <PublicInterviewPage />,
+                  "Loading Interview...",
+                )}
               />
 
               {/* Wise */}
@@ -661,6 +839,22 @@ function AppContent() {
           </A2ProductTour>
         </A1ProductTour>
       </ProductTour>
+    </div>
+  );
+}
+
+function RouteScreenSkeleton({ title }) {
+  return (
+    <div className="min-h-screen bg-[#f6f8fc] px-4 py-6">
+      <div className="max-w-4xl mx-auto">
+        <p className="text-sm text-slate-500 mb-4">{title}</p>
+        <div className="space-y-3 animate-pulse">
+          <div className="h-6 w-56 bg-slate-200 rounded" />
+          <div className="h-40 bg-slate-200 rounded-2xl" />
+          <div className="h-40 bg-slate-200 rounded-2xl" />
+          <div className="h-6 w-40 bg-slate-200 rounded" />
+        </div>
+      </div>
     </div>
   );
 }

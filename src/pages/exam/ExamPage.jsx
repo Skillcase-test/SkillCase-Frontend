@@ -1,4 +1,5 @@
 import React, {
+  memo,
   useState,
   useEffect,
   useRef,
@@ -52,7 +53,7 @@ import { CSS } from "@dnd-kit/utilities";
 import UmlautKeyboard from "../../components/a2/UmlautKeyboard";
 
 // CUSTOM DROPDOWN (reused from listening)
-const CustomDropdown = ({
+const CustomDropdown = memo(({
   options,
   value,
   onChange,
@@ -164,7 +165,7 @@ const CustomDropdown = ({
         )}
     </div>
   );
-};
+});
 
 function toAlphaLabel(index) {
   let value = index + 1;
@@ -255,7 +256,7 @@ function getAudioSourceCandidates(url) {
 }
 
 // DRAGGABLE WORD COMPONENTS
-function WordItem({ word, isDragging, isOverlay }) {
+const WordItem = memo(function WordItem({ word, isDragging, isOverlay }) {
   return (
     <div
       className={`px-2 py-2 rounded-xl font-medium text-xs select-none touch-none transition-all ${
@@ -269,7 +270,7 @@ function WordItem({ word, isDragging, isOverlay }) {
       {word}
     </div>
   );
-}
+});
 
 function DraggableWord({ id, word }) {
   const {
