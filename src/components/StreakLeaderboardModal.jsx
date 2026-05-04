@@ -421,7 +421,7 @@ function TopSpotlight({
               <div className="flex items-center gap-1.5 bg-white/60 px-[7px] py-[3px] rounded-[10px] border border-blue-100 shadow-sm">
                 <Flame size={13} className="text-orange-500" fill="#f97316" />
                 <span className="font-black text-blue-900 text-[13px]">
-                  {entry.current_streak || 1}
+                  {entry.current_streak ?? 0}
                 </span>
               </div>
             </div>
@@ -490,7 +490,7 @@ function TopSpotlight({
                 className="font-black text-[30px] text-orange-600 tracking-tighter leading-none"
                 style={{ textShadow: "0 2px 4px rgba(249,115,22,0.2)" }}
               >
-                {entry.current_streak || 1}
+                {entry.current_streak ?? 0}
               </span>
               <span className="text-[12px] font-black text-orange-500/80 ml-0.5 uppercase tracking-wider mt-1.5">
                 Days
@@ -651,7 +651,7 @@ function RankRow({
               <div className="flex items-center gap-1.5 bg-white/60 px-[7px] py-[3px] rounded-[10px] border border-blue-100">
                 <Flame size={13} className="text-orange-500" fill="#f97316" />
                 <span className="font-black text-blue-900 text-[13px]">
-                  {entry.current_streak || 1}
+                  {entry.current_streak ?? 0}
                 </span>
               </div>
             </div>
@@ -797,7 +797,7 @@ function RankRow({
           <div className="flex items-center gap-1.5 bg-orange-50/80 px-[7px] py-[3px] rounded-[10px] border border-orange-100/80">
             <Flame size={13} className="text-orange-500" fill="#f97316" />
             <span className="font-black text-orange-600 text-[13px]">
-              {entry.current_streak || 1}
+              {entry.current_streak ?? 0}
             </span>
           </div>
           <AnimatePresence>

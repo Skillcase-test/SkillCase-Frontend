@@ -97,7 +97,7 @@ const StreakCelebrationModal = ({
                 <Flame className="w-12 h-12 text-white drop-shadow-md fill-white" />
                 {/* Streak Count on the badge */}
                 <div className="absolute -bottom-2 -right-2 bg-white text-[#FFC107] text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-sm">
-                  {streakInfo.streakDays || 1}
+                  {streakInfo?.streakDays ?? 0}
                 </div>
               </div>
             </div>
@@ -111,7 +111,7 @@ const StreakCelebrationModal = ({
         <p className="text-slate-500 text-sm font-medium px-4 mb-8">
           You completed your daily goal. <br />
           <span className="text-slate-400">
-            Current streak: {streakInfo.streakDays || 1} days
+            Current streak: {streakInfo?.streakDays ?? 0} days
           </span>
         </p>
 
