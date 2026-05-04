@@ -63,6 +63,7 @@ import {
   captureFeatureError,
   setSentryUserFromAuth,
 } from "./observability/sentry";
+import { identifyUserInClarity } from "./observability/clarity";
 
 //Hard Core Test
 const FlashcardStudyPage = lazy(() => import("./pages/flashcard/FlashCard"));
@@ -252,6 +253,7 @@ function AppContent() {
 
   useEffect(() => {
     setSentryUserFromAuth(user);
+    identifyUserInClarity(user);
     if (user) {
       // Start heartbeat for all users, but it only sends when dashboard is active
       startHeartbeat();
