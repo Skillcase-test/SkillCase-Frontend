@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Sparkles, AlertTriangle } from "lucide-react";
+import ModalPortal from "../common/ModalPortal";
 
 export default function A1MigrationModal({
   open,
@@ -51,6 +52,7 @@ export default function A1MigrationModal({
   };
 
   return (
+    <ModalPortal active={isVisible || open}>
     <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
@@ -211,5 +213,6 @@ export default function A1MigrationModal({
         }
       `}</style>
     </div>
+    </ModalPortal>
   );
 }

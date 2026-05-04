@@ -1,10 +1,12 @@
 import React from "react";
 import { Star } from "lucide-react";
+import ModalPortal from "./common/ModalPortal";
 
 export default function PlayStoreRatingModal({ open, onRateNow, onClose }) {
   if (!open) return null;
 
   return (
+    <ModalPortal active={open}>
     <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-black/35 backdrop-blur-sm"
@@ -47,5 +49,6 @@ export default function PlayStoreRatingModal({ open, onRateNow, onClose }) {
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

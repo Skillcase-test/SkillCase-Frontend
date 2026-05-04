@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Capacitor } from "@capacitor/core";
@@ -17,6 +17,7 @@ import { AlertTriangle, Sparkles } from "lucide-react";
 import api from "../../api/axios";
 import { getA1MigrationStatus, saveA1MigrationDecision } from "../../api/a1Api";
 import A1MigrationModal from "../../components/a1/A1MigrationModal";
+import ModalPortal from "../../components/common/ModalPortal";
 
 function getTodayISTKey() {
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -85,7 +86,7 @@ export default function LandingPage() {
 
   const location = useLocation();
 
-  const handleOpenLeaderboard = () => {
+  const handleOpenLeaderboard = useCallback(() => {
     if (!user?.user_id) return;
     setLeaderboardLoading(true);
     setLeaderboardError("");
@@ -106,7 +107,7 @@ export default function LandingPage() {
           setLeaderboardLoading(false);
         });
     });
-  };
+  }, [user?.user_id]);
 
   // 1. Passive Auto-Open (Only on Saturday)
   useEffect(() => {
@@ -127,14 +128,20 @@ export default function LandingPage() {
 
     handleOpenLeaderboard();
     localStorage.setItem(seenKey, "1");
-  }, [user?.user_id, showA1MigrationModal, showSwitchConfirm, isUpgrading]);
+  }, [
+    handleOpenLeaderboard,
+    user?.user_id,
+    showA1MigrationModal,
+    showSwitchConfirm,
+    isUpgrading,
+  ]);
 
   // 2. Global Event Listener from Navbar
   useEffect(() => {
     const listen = () => handleOpenLeaderboard();
     document.addEventListener("openLeaderboard", listen);
     return () => document.removeEventListener("openLeaderboard", listen);
-  }, [user?.user_id]);
+  }, [handleOpenLeaderboard]);
 
   // 3. Location State Drop-in from Navbar (if they were on another page)
   useEffect(() => {
@@ -142,7 +149,7 @@ export default function LandingPage() {
       navigate(location.pathname, { replace: true, state: {} });
       handleOpenLeaderboard();
     }
-  }, [location, user, navigate]);
+  }, [handleOpenLeaderboard, location, user, navigate]);
 
   useEffect(() => {
     if (!user?.user_id) return;
@@ -386,6 +393,7 @@ export default function LandingPage() {
       />
 
       {showSwitchConfirm && (
+        <ModalPortal active={showSwitchConfirm}>
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
           {/* Backdrop */}
           <div
@@ -476,10 +484,12 @@ export default function LandingPage() {
             `}</style>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Full Screen Upgrade Transition Overlay */}
       {isUpgrading && (
+        <ModalPortal active={isUpgrading}>
         <div className="fixed inset-0 z-[2500] bg-white/70 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-300">
           <div className="w-16 h-16 rounded-2xl bg-white shadow-xl flex items-center justify-center mb-6 relative">
             <div className="absolute inset-0 border-4 border-gray-100 rounded-2xl" />
@@ -493,6 +503,7 @@ export default function LandingPage() {
             Almost ready...
           </p>
         </div>
+        </ModalPortal>
       )}
     </div>
   );

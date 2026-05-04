@@ -9,6 +9,7 @@ export default function ContinuePractice() {
   const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
+    let mounted = true;
     const fetchAndRedirect = async () => {
       try {
         const userLevel = (user?.user_prof_level || "A1").toUpperCase();
@@ -27,7 +28,8 @@ export default function ContinuePractice() {
           }
         }
 
-        const res = await api.get("/streak/last-chapter");
+        const res = await api.cachedGet("/streak/last-chapter", {}, "SHORT_PRIVATE");
+        if (!mounted) return;
         if (res.data?.hasProgress) {
           const {
             proficiencyLevel,
@@ -74,13 +76,16 @@ export default function ContinuePractice() {
         }
       } catch (err) {
         console.error("Error fetching last chapter:", err);
-        navigate("/", { replace: true });
+        if (mounted) navigate("/", { replace: true });
       }
     };
 
     if (user) {
       fetchAndRedirect();
     }
+    return () => {
+      mounted = false;
+    };
   }, [user, navigate]);
 
   return (

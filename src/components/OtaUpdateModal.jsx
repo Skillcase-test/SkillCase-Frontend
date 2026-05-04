@@ -1,3 +1,5 @@
+import ModalPortal from "./common/ModalPortal";
+
 const OtaUpdateModal = ({
   otaState,
   otaProgress = 0,
@@ -8,6 +10,7 @@ const OtaUpdateModal = ({
   if (!otaState) return null;
 
   return (
+    <ModalPortal active={Boolean(otaState)}>
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
@@ -104,6 +107,7 @@ const OtaUpdateModal = ({
         )}
       </div>
     </div>
+    </ModalPortal>
   );
 };
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setUser } from "../redux/auth/authSlice";
@@ -73,19 +73,25 @@ export default function ProfilePage() {
   const [uploading, setUploading] = useState(false);
   const [profileStatus, setProfileStatus] = useState(0);
   const [toast, setToast] = useState({ show: false, msg: "", type: "" });
+  const aliveRef = useRef(true);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
-    }
-    fetchProfile();
-  }, [isAuthenticated]);
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
 
-  const fetchProfile = async () => {
+  function showToast(msg, type) {
+    setToast({ show: true, msg, type });
+    setTimeout(() => setToast({ show: false, msg: "", type: "" }), 3000);
+  }
+
+  const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get("/user/profile");
+      if (!aliveRef.current) return;
       const p = res.data.profile;
       setForm({
         fullname: p.fullname || "",
@@ -101,12 +107,22 @@ export default function ProfilePage() {
       setCountryCode(p.countrycode || "+91");
       setProfileStatus(p.status || 0);
     } catch (err) {
-      console.error("Error fetching profile:", err);
-      showToast("Failed to load profile", "error");
+      if (aliveRef.current) {
+        console.error("Error fetching profile:", err);
+        showToast("Failed to load profile", "error");
+      }
     } finally {
-      setLoading(false);
+      if (aliveRef.current) setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    fetchProfile();
+  }, [fetchProfile, isAuthenticated, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -180,11 +196,6 @@ export default function ProfilePage() {
     } finally {
       setUploading(false);
     }
-  };
-
-  const showToast = (msg, type) => {
-    setToast({ show: true, msg, type });
-    setTimeout(() => setToast({ show: false, msg: "", type: "" }), 3000);
   };
 
   const displayName = form.fullname || user?.username || "User";

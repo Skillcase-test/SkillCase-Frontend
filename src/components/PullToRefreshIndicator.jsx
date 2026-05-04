@@ -7,7 +7,7 @@ export default function PullToRefreshIndicator({ pullProgress, isRefreshing }) {
 
   return (
     <div
-      className="fixed left-0 right-0 top-2 z-[998] flex justify-center pointer-events-none"
+      className="fixed left-0 right-0 top-[68px] z-[998] flex justify-center pointer-events-none"
       aria-hidden
     >
       <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md">

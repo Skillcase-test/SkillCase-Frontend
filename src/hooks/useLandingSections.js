@@ -7,11 +7,21 @@ export function useLandingSections(level) {
 
   useEffect(() => {
     if (!level) return;
+    let mounted = true;
     setLoading(true);
     fetchSectionsByLevel(level)
-      .then((res) => setSections(res.data))
-      .catch(() => setSections(null))
-      .finally(() => setLoading(false));
+      .then((res) => {
+        if (mounted) setSections(res.data);
+      })
+      .catch(() => {
+        if (mounted) setSections(null);
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
   }, [level]);
 
   return { sections, loading };

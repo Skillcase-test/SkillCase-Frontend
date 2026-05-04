@@ -19,6 +19,7 @@ import {
   HeartCrack,
   Heart,
 } from "lucide-react";
+import ModalPortal from "./common/ModalPortal";
 
 
 function LoadingState() {
@@ -1000,6 +1001,7 @@ export default function StreakLeaderboardModal({
     !animState.brokenStreak;
 
   return (
+    <ModalPortal active={open}>
     <AnimatePresence>
       {open && (
         <motion.div
@@ -1300,5 +1302,6 @@ export default function StreakLeaderboardModal({
         </motion.div>
       )}
     </AnimatePresence>
+    </ModalPortal>
   );
 }

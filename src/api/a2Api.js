@@ -59,9 +59,9 @@ export const checkReadingAnswers = (data) =>
 export const getTestTopics = () =>
   api.cachedGet("/a2/test/topics", {}, "MEDIUM_PRIVATE");
 export const getTestProgress = (topicId) =>
-  api.cachedGet(`/a2/test/progress/${topicId}`, {}, "MEDIUM_PRIVATE");
+  api.cachedGet(`/a2/test/progress/${topicId}`, {}, "NO_CACHE");
 export const getTestSet = (topicId, level, setNumber) =>
-  api.cachedGet(`/a2/test/set/${topicId}/${level}/${setNumber}`, {}, "MEDIUM_PRIVATE");
+  api.cachedGet(`/a2/test/set/${topicId}/${level}/${setNumber}`, {}, "NO_CACHE");
 export const submitTest = (data) => api.post("/a2/test/submit", data);
 export const getTestReview = (topicId) =>
   api.cachedGet(`/a2/test/review/${topicId}`, {}, "MEDIUM_PRIVATE");

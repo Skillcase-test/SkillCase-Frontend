@@ -46,19 +46,23 @@ export default function NewsHome() {
     useNewsTextToSpeech();
 
   useEffect(() => {
+    let mounted = true;
     const fetchNews = async () => {
       setLoading(true);
       try {
         const res = await getNewsFeed({ level: "ALL", lang: "de", limit: 10 });
-        setArticles(res?.data?.data || []);
+        if (mounted) setArticles(res?.data?.data || []);
       } catch (error) {
         console.error("Failed to fetch news:", error);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
     fetchNews();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const handleSpeak = useCallback((title, news, lang) =>

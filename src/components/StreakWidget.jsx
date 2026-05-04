@@ -22,16 +22,21 @@ export default function StreakWidget() {
 
   useEffect(() => {
     if (!user?.user_id) return;
+    let mounted = true;
     const fetchData = async () => {
       try {
         const isA1User = profLevel === "A1";
-        const requests = [api.get("/streak"), api.get("/streak/last-chapter")];
+        const requests = [
+          api.cachedGet("/streak", {}, "SHORT_PRIVATE"),
+          api.cachedGet("/streak/last-chapter", {}, "SHORT_PRIVATE"),
+        ];
         if (isA1User) {
           requests.push(getA1EntryRoute());
         }
 
         const [streakRes, chapterRes, a1RouteRes] = await Promise.all(requests);
 
+        if (!mounted) return;
         if (streakRes.data) setStreakData(streakRes.data);
         if (chapterRes.data?.hasProgress) setLastChapter(chapterRes.data);
         if (isA1User) {
@@ -40,10 +45,13 @@ export default function StreakWidget() {
       } catch (err) {
         console.error("Error fetching streak data:", err);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
     fetchData();
+    return () => {
+      mounted = false;
+    };
   }, [user?.user_id]);
 
   if (!user?.user_id) return null;

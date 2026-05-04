@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { X, Volume2, Loader2 } from "lucide-react";
 
 import api from "../../api/axios";
+import ModalPortal from "../common/ModalPortal";
 
 export default function VocabularyModal({ word, meaning, onClose }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -41,6 +42,7 @@ export default function VocabularyModal({ word, meaning, onClose }) {
   };
   
   return (
+    <ModalPortal active={true}>
     <div
       className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
       onClick={onClose}
@@ -81,5 +83,6 @@ export default function VocabularyModal({ word, meaning, onClose }) {
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }

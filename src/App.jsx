@@ -26,7 +26,6 @@ import PullToRefreshIndicator from "./components/PullToRefreshIndicator";
 import { useDispatch, useSelector } from "react-redux";
 import api from "./api/axios";
 import { setUser, logout } from "./redux/auth/authSlice";
-import Dashboard from "./dashboard-src/pages/Dashboard";
 
 if (typeof global === "undefined") {
   window.global = window;
@@ -121,6 +120,7 @@ const PublicInterviewPage = lazy(() => import("./pages/interviewTools/PublicInte
 const FallbackPage = lazy(() => import("./pages/FallbackPage"));
 const ContinuePractice = lazy(() => import("./pages/ContinuePractice"));
 const TermsSignPage = lazy(() => import("./pages/terms/TermsSignPage"));
+const Dashboard = lazy(() => import("./dashboard-src/pages/Dashboard"));
 
 //News Module
 
@@ -184,7 +184,8 @@ function AppContent() {
   const disablePullToRefresh = useMemo(
     () =>
       /^\/exam\/[^/]+\/take$/.test(location.pathname) ||
-      /^\/interview\/[^/]+$/.test(location.pathname),
+      /^\/interview\/[^/]+$/.test(location.pathname) ||
+      location.pathname.startsWith("/news"),
     [location.pathname],
   );
 
@@ -194,11 +195,13 @@ function AppContent() {
 
   const { pullProgress, isRefreshing, containerProps } = usePullToRefresh(
     refreshWholeApp,
-    Capacitor.isNativePlatform() && !disablePullToRefresh,
+    Capacitor.isNativePlatform() && !disablePullToRefresh && !maintenanceOpen,
+    { activationY: 96 },
   );
 
   useEffect(() => {
     const preloadTopHeavyScreens = () => {
+      if (document.visibilityState !== "visible") return;
       import("./pages/flashcard/FlashCard");
       import("./pages/a2/flashcard/A2Flashcard");
       import("./pages/a1/listening/A1ListeningContent");
@@ -545,7 +548,10 @@ function AppContent() {
                   </Suspense>
                 }
               />
-              <Route path="/admin/*" element={<Dashboard />} />
+              <Route
+                path="/admin/*"
+                element={lazyScreen(<Dashboard />, "Loading Admin...")}
+              />
               <Route
                 path="/pronounce/:prof_level/:pronounce_id"
                 element={lazyScreen(<Pronounce />, "Loading Pronunciation...")}

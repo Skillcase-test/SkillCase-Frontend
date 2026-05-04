@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { BookOpen, CheckCircle } from "lucide-react";
+import ModalPortal from "../common/ModalPortal";
 
 const A2TestPrerequisiteModal = ({
   topic,
@@ -38,6 +39,7 @@ const A2TestPrerequisiteModal = ({
   };
 
   return (
+    <ModalPortal active={true}>
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 ${
         isClosing ? "bg-black/0" : isVisible ? "bg-black/50" : "bg-black/0"
@@ -90,6 +92,7 @@ const A2TestPrerequisiteModal = ({
         </button>
       </div>
     </div>
+    </ModalPortal>
   );
 };
 

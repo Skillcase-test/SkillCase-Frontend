@@ -116,6 +116,7 @@ export default function A2TestQuestions() {
         questions, // Send questions so backend scores against same shuffled data
       });
       setResult(res.data);
+      api.clearGetCache?.();
       posthog?.capture("learning_module_submitted", {
         module: "A2 Test",
         level: "A2",

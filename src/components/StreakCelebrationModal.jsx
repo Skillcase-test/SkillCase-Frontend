@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { Flame } from "lucide-react";
+import ModalPortal from "./common/ModalPortal";
 
 const StreakCelebrationModal = ({
   showStreakCelebration,
@@ -31,6 +32,7 @@ const StreakCelebrationModal = ({
   if (!isVisible) return null;
 
   return (
+    <ModalPortal active={isVisible}>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
@@ -131,6 +133,7 @@ const StreakCelebrationModal = ({
         }
       `}</style>
     </div>
+    </ModalPortal>
   );
 };
 

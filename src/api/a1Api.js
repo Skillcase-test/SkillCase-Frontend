@@ -67,9 +67,9 @@ export const saveSpeakingAssessment = (data) =>
 export const getTestTopics = () =>
   api.cachedGet("/a1/test/topics", {}, "MEDIUM_PRIVATE");
 export const getTestProgress = (topicId) =>
-  api.cachedGet(`/a1/test/progress/${topicId}`, {}, "MEDIUM_PRIVATE");
+  api.cachedGet(`/a1/test/progress/${topicId}`, {}, "NO_CACHE");
 export const getTestSet = (topicId, level, setNumber) =>
-  api.cachedGet(`/a1/test/set/${topicId}/${level}/${setNumber}`, {}, "MEDIUM_PRIVATE");
+  api.cachedGet(`/a1/test/set/${topicId}/${level}/${setNumber}`, {}, "NO_CACHE");
 export const submitTest = (data) => api.post("/a1/test/submit", data);
 export const getTestReview = (topicId) =>
   api.cachedGet(`/a1/test/review/${topicId}`, {}, "MEDIUM_PRIVATE");

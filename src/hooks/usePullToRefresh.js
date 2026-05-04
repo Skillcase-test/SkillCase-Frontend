@@ -4,10 +4,12 @@ import { hapticLight, hapticMedium } from "../utils/haptics";
 const THRESHOLD = 80;
 const MAX_PULL = 120;
 const RESISTANCE = 0.45;
+const DEFAULT_ACTIVATION_Y = 96;
 
-export function usePullToRefresh(onRefresh, enabled = true) {
+export function usePullToRefresh(onRefresh, enabled = true, options = {}) {
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const activationY = options.activationY ?? DEFAULT_ACTIVATION_Y;
 
   const startY = useRef(null);
   const pulling = useRef(false);
@@ -24,12 +26,13 @@ export function usePullToRefresh(onRefresh, enabled = true) {
     (event) => {
       if (!enabled || isRefreshing) return;
       if (window.scrollY > 0) return;
+      if (event.touches[0].clientY > activationY) return;
 
       startY.current = event.touches[0].clientY;
       pulling.current = true;
       hapticFired.current = false;
     },
-    [enabled, isRefreshing],
+    [activationY, enabled, isRefreshing],
   );
 
   const onTouchMove = useCallback(
@@ -43,6 +46,8 @@ export function usePullToRefresh(onRefresh, enabled = true) {
         setPullDistance(0);
         return;
       }
+
+      event.preventDefault();
 
       const clamped = Math.min(delta * RESISTANCE, MAX_PULL);
       setPullDistance(clamped);
@@ -88,11 +93,6 @@ export function usePullToRefresh(onRefresh, enabled = true) {
       onTouchStart,
       onTouchMove,
       onTouchEnd,
-      style: {
-        transform: pullDistance > 0 ? `translateY(${pullDistance}px)` : undefined,
-        transition: !pulling.current ? "transform 0.3s ease" : "none",
-        willChange: "transform",
-      },
     },
   };
 }

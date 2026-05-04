@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import {
   NavLink,
   Navigate,
@@ -9,50 +9,66 @@ import {
 } from "react-router-dom";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { adminAccessApi } from "../../api/adminAccessApi";
-import Analytics from "./Analytics";
-import ManageEvents from "./event/ManageEvents";
-import LandingPageManagement from "./LandingPageManagement";
-import SendNotification from "./notification/send";
-import TermsManager from "./TermsManager";
-import AdminExamManager from "./exam/AdminExamManager";
-import AdminBatchManager from "./exam/AdminBatchManager";
-import InterviewToolsPositionsPage from "../../pages/interviewTools/InterviewToolsPositionsPage";
-import InterviewToolsBuilderPage from "../../pages/interviewTools/InterviewToolsBuilderPage";
-import InterviewToolsCandidatesPage from "../../pages/interviewTools/InterviewToolsCandidatePage";
-import InterviewToolsReviewPage from "../../pages/interviewTools/InterviewToolsReviewPage";
-import SkillcaseInterviewToolsPositionsPage from "../../pages/interviewTools/SkillcaseInterviewToolsPositionsPage";
-import SkillcaseInterviewToolsBuilderPage from "../../pages/interviewTools/SkillcaseInterviewToolsBuilderPage";
-import SkillcaseInterviewToolsCandidatesPage from "../../pages/interviewTools/SkillcaseInterviewToolsCandidatePage";
-import SkillcaseInterviewToolsReviewPage from "../../pages/interviewTools/SkillcaseInterviewToolsReviewPage";
-import WiseDashboard from "../../pages/internal/WiseDashboard";
-import InternalLeadForm from "../../pages/InternalLeadForm";
-import AdminAccessManagement from "./AdminAccessManagement";
+const Analytics = lazy(() => import("./Analytics"));
+const ManageEvents = lazy(() => import("./event/ManageEvents"));
+const LandingPageManagement = lazy(() => import("./LandingPageManagement"));
+const SendNotification = lazy(() => import("./notification/send"));
+const TermsManager = lazy(() => import("./TermsManager"));
+const AdminExamManager = lazy(() => import("./exam/AdminExamManager"));
+const AdminBatchManager = lazy(() => import("./exam/AdminBatchManager"));
+const InterviewToolsPositionsPage = lazy(
+  () => import("../../pages/interviewTools/InterviewToolsPositionsPage"),
+);
+const InterviewToolsBuilderPage = lazy(
+  () => import("../../pages/interviewTools/InterviewToolsBuilderPage"),
+);
+const InterviewToolsCandidatesPage = lazy(
+  () => import("../../pages/interviewTools/InterviewToolsCandidatePage"),
+);
+const InterviewToolsReviewPage = lazy(
+  () => import("../../pages/interviewTools/InterviewToolsReviewPage"),
+);
+const SkillcaseInterviewToolsPositionsPage = lazy(
+  () => import("../../pages/interviewTools/SkillcaseInterviewToolsPositionsPage"),
+);
+const SkillcaseInterviewToolsBuilderPage = lazy(
+  () => import("../../pages/interviewTools/SkillcaseInterviewToolsBuilderPage"),
+);
+const SkillcaseInterviewToolsCandidatesPage = lazy(
+  () => import("../../pages/interviewTools/SkillcaseInterviewToolsCandidatePage"),
+);
+const SkillcaseInterviewToolsReviewPage = lazy(
+  () => import("../../pages/interviewTools/SkillcaseInterviewToolsReviewPage"),
+);
+const WiseDashboard = lazy(() => import("../../pages/internal/WiseDashboard"));
+const InternalLeadForm = lazy(() => import("../../pages/InternalLeadForm"));
+const AdminAccessManagement = lazy(() => import("./AdminAccessManagement"));
 
-import A1FlashcardAdd from "./a1/flashcard/add";
-import A1FlashcardManage from "./a1/flashcard/manage";
-import A1GrammarAdd from "./a1/grammar/add";
-import A1GrammarManage from "./a1/grammar/manage";
-import A1ListeningAdd from "./a1/listening/add";
-import A1ListeningManage from "./a1/listening/manage";
-import A1ReadingAdd from "./a1/reading/add";
-import A1ReadingManage from "./a1/reading/manage";
-import A1SpeakingAdd from "./a1/speaking/add";
-import A1SpeakingManage from "./a1/speaking/manage";
-import A1TestAdd from "./a1/test/add";
-import A1TestManage from "./a1/test/manage";
+const A1FlashcardAdd = lazy(() => import("./a1/flashcard/add"));
+const A1FlashcardManage = lazy(() => import("./a1/flashcard/manage"));
+const A1GrammarAdd = lazy(() => import("./a1/grammar/add"));
+const A1GrammarManage = lazy(() => import("./a1/grammar/manage"));
+const A1ListeningAdd = lazy(() => import("./a1/listening/add"));
+const A1ListeningManage = lazy(() => import("./a1/listening/manage"));
+const A1ReadingAdd = lazy(() => import("./a1/reading/add"));
+const A1ReadingManage = lazy(() => import("./a1/reading/manage"));
+const A1SpeakingAdd = lazy(() => import("./a1/speaking/add"));
+const A1SpeakingManage = lazy(() => import("./a1/speaking/manage"));
+const A1TestAdd = lazy(() => import("./a1/test/add"));
+const A1TestManage = lazy(() => import("./a1/test/manage"));
 
-import A2FlashcardAdd from "./a2/flashcard/add";
-import A2FlashcardManage from "./a2/flashcard/manage";
-import A2GrammarAdd from "./a2/grammar/add";
-import A2GrammarManage from "./a2/grammar/manage";
-import A2ListeningAdd from "./a2/listening/add";
-import A2ListeningManage from "./a2/listening/manage";
-import A2SpeakingAdd from "./a2/speaking/add";
-import A2SpeakingManage from "./a2/speaking/manage";
-import A2ReadingAdd from "./a2/reading/add";
-import A2ReadingManage from "./a2/reading/manage";
-import A2TestAdd from "./a2/test/add";
-import A2TestManage from "./a2/test/manage";
+const A2FlashcardAdd = lazy(() => import("./a2/flashcard/add"));
+const A2FlashcardManage = lazy(() => import("./a2/flashcard/manage"));
+const A2GrammarAdd = lazy(() => import("./a2/grammar/add"));
+const A2GrammarManage = lazy(() => import("./a2/grammar/manage"));
+const A2ListeningAdd = lazy(() => import("./a2/listening/add"));
+const A2ListeningManage = lazy(() => import("./a2/listening/manage"));
+const A2SpeakingAdd = lazy(() => import("./a2/speaking/add"));
+const A2SpeakingManage = lazy(() => import("./a2/speaking/manage"));
+const A2ReadingAdd = lazy(() => import("./a2/reading/add"));
+const A2ReadingManage = lazy(() => import("./a2/reading/manage"));
+const A2TestAdd = lazy(() => import("./a2/test/add"));
+const A2TestManage = lazy(() => import("./a2/test/manage"));
 
 function hasPermission(me, moduleKey, action = "view") {
   if (!me) return false;
@@ -610,7 +626,8 @@ export default function Dashboard() {
         </aside>
 
         <main className="min-h-[calc(100vh-24px)] rounded-lg border border-slate-200 bg-white p-3 lg:p-4">
-          <Routes>
+          <Suspense fallback={<DashboardShellSkeleton />}>
+            <Routes>
             <Route index element={<Navigate to={defaultPath} replace />} />
             <Route
               path="no-access"
@@ -927,7 +944,8 @@ export default function Dashboard() {
                 )
               }
             />
-          </Routes>
+            </Routes>
+          </Suspense>
         </main>
       </div>
     </div>

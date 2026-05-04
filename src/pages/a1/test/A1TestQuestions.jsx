@@ -128,6 +128,7 @@ export default function A1TestQuestions() {
       });
       console.log("Backend response:", res.data);
       setResult(res.data);
+      api.clearGetCache?.();
       posthog?.capture("learning_module_submitted", {
         module: "A1 Test",
         level: "A1",

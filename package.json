@@ -53,7 +53,6 @@
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.9.3",
     "react-swipeable": "^7.0.2",
-    "recorder-js": "^1.0.7",
     "redux": "^5.0.1",
     "redux-persist": "^6.0.0",
     "rrule": "^2.8.1",

@@ -16,16 +16,40 @@ const GET_CACHE_TTLS = {
 
 const getCache = new Map();
 const inFlightGet = new Map();
+let activeAuthScope = "";
 
-function getCacheKey(url, params) {
-  return `${url}::${JSON.stringify(params || {})}`;
+function getAuthScope() {
+  const state = store.getState().auth;
+  const uid = state?.user?.user_id || "anon";
+  const token = state?.token || "";
+  const tokenFingerprint = token ? token.slice(-12) : "no-token";
+  return `${uid}::${tokenFingerprint}`;
+}
+
+function clearGetCaches() {
+  getCache.clear();
+  inFlightGet.clear();
+}
+
+function ensureAuthScopeFresh() {
+  const currentScope = getAuthScope();
+  if (currentScope !== activeAuthScope) {
+    activeAuthScope = currentScope;
+    clearGetCaches();
+  }
+  return currentScope;
+}
+
+function getCacheKey(url, params, authScope) {
+  return `${authScope}::${url}::${JSON.stringify(params || {})}`;
 }
 
 api.cachedGet = async (url, config = {}, cacheProfile = "NO_CACHE") => {
+  const authScope = ensureAuthScopeFresh();
   const ttl = GET_CACHE_TTLS[cacheProfile] ?? 0;
   if (!ttl) return api.get(url, config);
 
-  const key = getCacheKey(url, config?.params);
+  const key = getCacheKey(url, config?.params, authScope);
   const now = Date.now();
   const existing = getCache.get(key);
   if (existing && now < existing.expiresAt) {
@@ -49,7 +73,10 @@ api.cachedGet = async (url, config = {}, cacheProfile = "NO_CACHE") => {
   }
 };
 
+api.clearGetCache = clearGetCaches;
+
 api.interceptors.request.use((config) => {
+  ensureAuthScopeFresh();
   const token = store.getState().auth.token;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
