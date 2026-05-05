@@ -43,6 +43,7 @@ const SkillcaseInterviewToolsReviewPage = lazy(
 const WiseDashboard = lazy(() => import("../../pages/internal/WiseDashboard"));
 const InternalLeadForm = lazy(() => import("../../pages/InternalLeadForm"));
 const AdminAccessManagement = lazy(() => import("./AdminAccessManagement"));
+const ExploreCandidatesAdmin = lazy(() => import("./ExploreCandidatesAdmin"));
 
 const A1FlashcardAdd = lazy(() => import("./a1/flashcard/add"));
 const A1FlashcardManage = lazy(() => import("./a1/flashcard/manage"));
@@ -524,6 +525,12 @@ export default function Dashboard() {
         path: "/admin/terms",
         module: "terms",
       },
+      {
+        key: "explore-candidates",
+        label: "Explore Candidates",
+        path: "/admin/explore-candidates",
+        module: "explore_candidates",
+      },
     ].filter((item) => hasPermission(me, item.module, "view"));
 
     const a1ContentAllowed = hasPermission(me, "content", "view");
@@ -737,6 +744,14 @@ export default function Dashboard() {
               element={
                 <Guard allowed={hasPermission(me, "terms")}>
                   <TermsManager />
+                </Guard>
+              }
+            />
+            <Route
+              path="explore-candidates"
+              element={
+                <Guard allowed={hasPermission(me, "explore_candidates")}>
+                  <ExploreCandidatesAdmin />
                 </Guard>
               }
             />
