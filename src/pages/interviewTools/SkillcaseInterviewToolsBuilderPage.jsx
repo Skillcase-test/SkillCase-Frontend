@@ -516,7 +516,7 @@ export default function SkillcaseInterviewToolsBuilderPage({
   const [questions, setQuestions] = useState([emptyQuestion()]);
   const [activeQuestionId, setActiveQuestionId] = useState(null);
 
-  const [draftUploadId, setDraftUploadId] = useState(() => crypto.randomUUID());
+
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [recordingTarget, setRecordingTarget] = useState(null);
@@ -537,7 +537,6 @@ export default function SkillcaseInterviewToolsBuilderPage({
     if (!selectedInterviewPositionId) {
       setForm(defaultForm);
       setQuestions([emptyQuestion()]);
-      setDraftUploadId(crypto.randomUUID());
       return;
     }
 
@@ -596,7 +595,7 @@ export default function SkillcaseInterviewToolsBuilderPage({
     if (!file) return { key: "" };
     const uploadUrlRes = await skillcaseInterviewToolsApi.getUploadUrl({
       kind,
-      positionId: selectedInterviewPositionId || draftUploadId,
+      positionId: selectedInterviewPositionId || null,
       questionId,
       fileName: file.name,
       contentType: file.type,
