@@ -136,6 +136,9 @@ function AccountsPage() {
   const navigate = useNavigate();
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState("");
+  const [loginEvents, setLoginEvents] = useState([]);
   const [savingAccount, setSavingAccount] = useState(false);
   const [toggling, setToggling] = useState({});
   const [form, setForm] = useState({
@@ -147,11 +150,25 @@ function AccountsPage() {
 
   async function load() {
     setLoading(true);
+    setEventsLoading(true);
+    setEventsError("");
     try {
-      const res = await exploreCandidatesAdminApi.listAccounts();
-      setAccounts(res.data.data || []);
+      const accountsRes = await exploreCandidatesAdminApi.listAccounts();
+      setAccounts(accountsRes?.data?.data || []);
+    } catch (_error) {
+      setAccounts([]);
     } finally {
       setLoading(false);
+    }
+
+    try {
+      const eventsRes = await exploreCandidatesAdminApi.listRecruiterLoginEvents({ page: 1, limit: 20 });
+      setLoginEvents(eventsRes?.data?.data || []);
+    } catch (error) {
+      setLoginEvents([]);
+      setEventsError(error?.response?.data?.message || "Could not load recruiter login events");
+    } finally {
+      setEventsLoading(false);
     }
   }
 
@@ -228,6 +245,7 @@ function AccountsPage() {
                 <th className="px-6 py-4">Profiles</th>
                 <th className="px-6 py-4 text-center">Mask Contacts</th>
                 <th className="px-6 py-4 text-center">Force Password</th>
+                <th className="px-6 py-4 text-center">Force Terms</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </TableHead>
@@ -277,11 +295,66 @@ function AccountsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-5 align-top">
+                    <div className="flex justify-center items-center gap-2">
+                      <ToggleSwitch
+                        checked={Boolean(account.force_terms_acceptance)}
+                        disabled={toggling[`terms-${account.id}`]}
+                        onChange={async (val) => {
+                          setToggling(prev => ({ ...prev, [`terms-${account.id}`]: true }));
+                          await exploreCandidatesAdminApi.updateAccountSettings(account.id, {
+                            force_terms_acceptance: val,
+                          });
+                          await load();
+                          setToggling(prev => ({ ...prev, [`terms-${account.id}`]: false }));
+                        }}
+                      />
+                      {toggling[`terms-${account.id}`] && <Spinner size="sm" />}
+                    </div>
+                  </td>
+                  <td className="px-6 py-5 align-top">
                     <div className="flex flex-wrap justify-end gap-2">
                       <ActionButton
                         onClick={() => navigate(`/admin/explore-candidates/accounts/${account.id}/profiles`)}
                       >
                         Manage Profiles
+                      </ActionButton>
+                      <ActionButton
+                        onClick={async () => {
+                          const nextEmail = window.prompt("Enter updated recruiter email", account.email || "");
+                          if (!nextEmail || nextEmail.trim().toLowerCase() === String(account.email || "").trim().toLowerCase()) return;
+                          try {
+                            await exploreCandidatesAdminApi.updateAccountIdentity(account.id, {
+                              email: nextEmail.trim(),
+                            });
+                            await load();
+                          } catch (error) {
+                            window.alert(error?.response?.data?.message || "Could not update recruiter email");
+                          }
+                        }}
+                      >
+                        Edit Email
+                      </ActionButton>
+                      <ActionButton
+                        onClick={async () => {
+                          const input = document.createElement("input");
+                          input.type = "file";
+                          input.accept = "image/*";
+                          input.onchange = async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              await exploreCandidatesAdminApi.updateAccountIdentity(account.id, {
+                                partner_logo_file: file,
+                              });
+                              await load();
+                            } catch (error) {
+                              window.alert(error?.response?.data?.message || "Could not update partner logo");
+                            }
+                          };
+                          input.click();
+                        }}
+                      >
+                        Update Logo
                       </ActionButton>
                       <ActionButton
                         onClick={async () => {
@@ -298,7 +371,7 @@ function AccountsPage() {
                       <ActionButton
                         variant="danger"
                         onClick={async () => {
-                          if (window.confirm("Are you sure you want to delete this account?")) {
+                          if (window.confirm(`Delete recruiter account "${account.email}"?\n\nThis will permanently remove the account and all profile assignments.`)) {
                             await exploreCandidatesAdminApi.deleteAccount(account.id);
                             await load();
                           }
@@ -310,6 +383,52 @@ function AccountsPage() {
                   </td>
                 </tr>
               ))}
+            </TableBody>
+          </TableWrapper>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold text-slate-800 px-1">Recruiter Login Events</h2>
+        {eventsLoading ? (
+          <div className="text-sm text-slate-500 px-1">Loading recruiter login events...</div>
+        ) : eventsError ? (
+          <div className="text-sm text-rose-600 px-1">{eventsError}</div>
+        ) : (
+          <TableWrapper>
+            <TableHead>
+              <tr>
+                <th className="px-6 py-4">Recruiter Email</th>
+                <th className="px-6 py-4">Recruiter ID</th>
+                <th className="px-6 py-4">Source</th>
+                <th className="px-6 py-4">Login Time (IST)</th>
+              </tr>
+            </TableHead>
+            <TableBody>
+              {!loginEvents.length ? (
+                <tr>
+                  <td className="px-6 py-5 text-slate-500" colSpan={4}>
+                    No recruiter login events found.
+                  </td>
+                </tr>
+              ) : (
+                loginEvents.map((event) => (
+                  <tr key={event.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-5">{event.recruiter_email || "-"}</td>
+                    <td className="px-6 py-5">{event.account_id || "-"}</td>
+                    <td className="px-6 py-5">{event.source || "-"}</td>
+                    <td className="px-6 py-5">
+                      {event.created_at
+                        ? new Date(event.created_at).toLocaleString("en-IN", {
+                            timeZone: "Asia/Kolkata",
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })
+                        : "-"}
+                    </td>
+                  </tr>
+                ))
+              )}
             </TableBody>
           </TableWrapper>
         )}
@@ -526,6 +645,40 @@ function ProfileFormPage({ mode }) {
   const [newDoc, setNewDoc] = useState({ title: "", display_order: 0, file: null });
   const [createVideos, setCreateVideos] = useState([]);
   const [createDocs, setCreateDocs] = useState([]);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [docInputKey, setDocInputKey] = useState(0);
+  const [videoInputKey, setVideoInputKey] = useState(0);
+
+  const normalizeDateForInput = (value) => {
+    if (!value) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) return String(value);
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toISOString().slice(0, 10);
+  };
+
+  const getDisplayFileName = (value) => {
+    if (!value) return "";
+    if (typeof File !== "undefined" && value instanceof File) return value.name;
+    const raw = String(value);
+    try {
+      const clean = raw.split("?")[0];
+      const parts = clean.split("/");
+      return decodeURIComponent(parts[parts.length - 1] || raw);
+    } catch {
+      return raw;
+    }
+  };
+
+  const getStoredAssetLabel = (url, fallback = "Uploaded file") => {
+    if (!url) return fallback;
+    const clean = String(url).split("?")[0];
+    const candidate = decodeURIComponent(clean.split("/").pop() || "");
+    if (!candidate) return fallback;
+    const stem = candidate.replace(/\.[^.]+$/, "");
+    if (/^[a-z0-9]{12,}$/i.test(stem)) return fallback;
+    return candidate;
+  };
 
   const pickPdfOrReset = (file, inputEl) => {
     if (!file) return null;
@@ -551,7 +704,11 @@ function ProfileFormPage({ mode }) {
     exploreCandidatesAdminApi.getProfileById(profileId).then((res) => {
       const data = res.data.data || {};
       const profile = data.profile || {};
-      setForm((v) => ({ ...v, ...profile }));
+      setForm((v) => ({
+        ...v,
+        ...profile,
+        dob: normalizeDateForInput(profile.dob),
+      }));
       setVideos(data.videos || []);
       setDocuments(data.documents || []);
     });
@@ -645,6 +802,11 @@ function ProfileFormPage({ mode }) {
                   }))
                 }
               />
+              <div className="text-xs text-slate-600">
+                {(typeof File !== "undefined" && form[field] instanceof File)
+                  ? form[field].name
+                  : (form[field] ? getStoredAssetLabel(form[field], `${label.replace(/\s*\(PDF\)\s*/i, "")}.pdf`) : "No file chosen")}
+              </div>
             </div>
           ))}
 
@@ -656,63 +818,76 @@ function ProfileFormPage({ mode }) {
               accept="image/*"
               onChange={(e) => setForm((v) => ({ ...v, photo: e.target.files?.[0] || null }))}
             />
+            <div className="text-xs text-slate-600">
+              {(typeof File !== "undefined" && form.photo instanceof File)
+                ? form.photo.name
+                : (form.photo ? getStoredAssetLabel(form.photo, "Profile photo") : "No file chosen")}
+            </div>
           </div>
         </div>
 
         <div className="mt-6 flex justify-end">
           <PrimaryButton
+            disabled={savingProfile}
             onClick={async () => {
-              const payload = {
-                fullname: form.fullname,
-                email: form.email,
-                countrycode: form.countrycode,
-                phone: form.phone,
-                dob: form.dob,
-                gender: form.gender,
-                qualification: form.qualification,
-                experience: form.experience,
-                language: form.language,
-                photo: form.photo,
-                resume: form.resume,
-                degcert: form.degcert,
-                workcert: form.workcert,
-                langcert: form.langcert,
-              };
+              setSavingProfile(true);
+              try {
+                const payload = {
+                  fullname: form.fullname,
+                  email: form.email,
+                  countrycode: form.countrycode,
+                  phone: form.phone,
+                  dob: form.dob,
+                  gender: form.gender,
+                  qualification: form.qualification,
+                  experience: form.experience,
+                  language: form.language,
+                  photo: form.photo,
+                  resume: form.resume,
+                  degcert: form.degcert,
+                  workcert: form.workcert,
+                  langcert: form.langcert,
+                };
 
-            let profile;
-            if (mode === "edit") {
-              const res = await exploreCandidatesAdminApi.updateProfile(profileId, payload);
-              profile = res.data.data;
-            } else {
-              const res = await exploreCandidatesAdminApi.createProfile(payload);
-              profile = res.data.data;
-              for (const d of createDocs) {
-                if (!d.title || !d.file) continue;
-                await exploreCandidatesAdminApi.addProfileDocument(profile.id, {
-                  title: d.title,
-                  display_order: d.display_order || 0,
-                  document_file_upload: d.file,
-                });
-              }
-              for (const v of createVideos) {
-                if (!v.title || !v.file) continue;
-                await exploreCandidatesAdminApi.addProfileVideo(profile.id, {
-                  title: v.title,
-                  display_order: v.display_order || 0,
-                  video_file_upload: v.file,
-                });
-              }
-            }
+                let profile;
+                if (mode === "edit") {
+                  const res = await exploreCandidatesAdminApi.updateProfile(profileId, payload);
+                  profile = res.data.data;
+                } else {
+                  const res = await exploreCandidatesAdminApi.createProfile(payload);
+                  profile = res.data.data;
+                  for (const d of createDocs) {
+                    if (!d.title || !d.file) continue;
+                    await exploreCandidatesAdminApi.addProfileDocument(profile.id, {
+                      title: d.title,
+                      display_order: d.display_order || 0,
+                      document_file_upload: d.file,
+                    });
+                  }
+                  for (const v of createVideos) {
+                    if (!v.title || !v.file) continue;
+                    await exploreCandidatesAdminApi.addProfileVideo(profile.id, {
+                      title: v.title,
+                      display_order: v.display_order || 0,
+                      video_file_upload: v.file,
+                    });
+                  }
+                }
 
-              if (accountId && profile?.id) {
-                await exploreCandidatesAdminApi.assignProfile(accountId, profile.id, 0);
-                navigate(`/admin/explore-candidates/accounts/${accountId}/profiles`);
-                return;
+                if (accountId && profile?.id) {
+                  await exploreCandidatesAdminApi.assignProfile(accountId, profile.id, 0);
+                  navigate(`/admin/explore-candidates/accounts/${accountId}/profiles`);
+                  return;
+                }
+                navigate("/admin/explore-candidates/library");
+              } catch (error) {
+                window.alert(error?.response?.data?.message || "Could not save profile");
+              } finally {
+                setSavingProfile(false);
               }
-              navigate("/admin/explore-candidates/library");
             }}
           >
-            Save Profile
+            {savingProfile ? "Saving..." : "Save Profile"}
           </PrimaryButton>
         </div>
       </PageCard>
@@ -753,7 +928,7 @@ function ProfileFormPage({ mode }) {
                     </div>
                     <div className="flex-[2] space-y-1">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex justify-between">
-                        File {doc.document_file && <span className="text-[#083262] truncate ml-2 max-w-[150px]" title={doc.document_file}>{doc.document_file.split('/').pop()}</span>}
+                        File {doc.document_file && <span className="text-[#083262] truncate ml-2 max-w-[150px]" title={doc.document_file}>{getStoredAssetLabel(doc.document_file, `${doc.title || "Document"}.pdf`)}</span>}
                       </label>
                       <input
                         className="w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-200 file:px-3 file:py-1.5 file:text-xs file:font-semibold hover:file:bg-slate-300 transition cursor-pointer"
@@ -848,6 +1023,7 @@ function ProfileFormPage({ mode }) {
               <div className="flex-[2] space-y-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">File (PDF)</label>
                 <input
+                  key={`new-doc-file-${docInputKey}`}
                   className="w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-200 file:px-3 file:py-1.5 file:text-xs file:font-semibold hover:file:bg-slate-300 transition cursor-pointer"
                   type="file"
                   accept=".pdf,application/pdf"
@@ -873,6 +1049,7 @@ function ProfileFormPage({ mode }) {
                     setCreateDocs((prev) => [...prev, { ...newDoc }]);
                   }
                   setNewDoc({ title: "", display_order: 0, file: null });
+                  setDocInputKey((v) => v + 1);
                   if (mode === "edit") await refreshProfileDetails();
                 }}
               >
@@ -917,7 +1094,7 @@ function ProfileFormPage({ mode }) {
                     </div>
                     <div className="flex-[2] space-y-1">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex justify-between">
-                        File {video.video_file && <span className="text-[#083262] truncate ml-2 max-w-[150px]" title={video.video_file}>{video.video_file.split('/').pop()}</span>}
+                        File {video.video_file && <span className="text-[#083262] truncate ml-2 max-w-[150px]" title={video.video_file}>{getStoredAssetLabel(video.video_file, `${video.title || "Video"}`)}</span>}
                       </label>
                       <input
                         className="w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-200 file:px-3 file:py-1.5 file:text-xs file:font-semibold hover:file:bg-slate-300 transition cursor-pointer"
@@ -1012,6 +1189,7 @@ function ProfileFormPage({ mode }) {
               <div className="flex-[2] space-y-1">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">File (Video)</label>
                 <input
+                  key={`new-video-file-${videoInputKey}`}
                   className="w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-200 file:px-3 file:py-1.5 file:text-xs file:font-semibold hover:file:bg-slate-300 transition cursor-pointer"
                   type="file"
                   accept="video/*"
@@ -1034,6 +1212,7 @@ function ProfileFormPage({ mode }) {
                     setCreateVideos((prev) => [...prev, { ...newVideo }]);
                   }
                   setNewVideo({ title: "", display_order: 0, file: null });
+                  setVideoInputKey((v) => v + 1);
                   if (mode === "edit") await refreshProfileDetails();
                 }}
               >

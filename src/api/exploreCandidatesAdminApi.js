@@ -33,6 +33,14 @@ export const exploreCandidatesAdminApi = {
     api.post(`/admin/explore-candidates/accounts/${accountId}/reset-password`),
   updateAccountSettings: (accountId, payload) =>
     api.patch(`/admin/explore-candidates/accounts/${accountId}/settings`, payload),
+  updateAccountIdentity: (accountId, payload = {}) => {
+    const formData = new FormData();
+    if (payload.email) formData.append("email", payload.email);
+    if (payload.partner_logo_file instanceof File) {
+      formData.append("partner_logo_file", payload.partner_logo_file);
+    }
+    return api.patch(`/admin/explore-candidates/accounts/${accountId}/email`, formData);
+  },
 
   listLibraryProfiles: () => api.get("/admin/explore-candidates/profiles/library"),
   getProfileById: (profileId) => api.get(`/admin/explore-candidates/profiles/${profileId}`),
@@ -115,4 +123,7 @@ export const exploreCandidatesAdminApi = {
 
   fetchLegacyProfiles: (email) =>
     api.get("/admin/explore-candidates/sync/legacy-profiles", { params: { email } }),
+
+  listRecruiterLoginEvents: (params = {}) =>
+    api.get("/admin/explore-candidates/recruiter-login-events", { params }),
 };
