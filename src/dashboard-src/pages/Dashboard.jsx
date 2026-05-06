@@ -748,7 +748,7 @@ export default function Dashboard() {
               }
             />
             <Route
-              path="explore-candidates"
+              path="explore-candidates/*"
               element={
                 <Guard allowed={hasPermission(me, "explore_candidates")}>
                   <ExploreCandidatesAdmin />

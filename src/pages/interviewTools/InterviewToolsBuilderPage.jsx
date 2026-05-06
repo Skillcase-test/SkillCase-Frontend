@@ -400,8 +400,8 @@ export default function InterviewToolsBuilderPage({
   const [form, setForm] = useState(defaultForm);
   const [questions, setQuestions] = useState([emptyQuestion()]);
   const [activeQuestionId, setActiveQuestionId] = useState(null);
-  
 
+  const [draftUploadId] = useState(() => crypto.randomUUID());
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [recordingTarget, setRecordingTarget] = useState(null);
@@ -475,7 +475,7 @@ export default function InterviewToolsBuilderPage({
     if (!file) return { key: "" };
     const uploadUrlRes = await interviewToolsApi.getUploadUrl({
       kind,
-      positionId: selectedInterviewPositionId || null,
+      positionId: selectedInterviewPositionId || draftUploadId,
       questionId,
       fileName: file.name,
       contentType: file.type,
