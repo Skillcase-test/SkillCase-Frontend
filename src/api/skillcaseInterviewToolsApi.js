@@ -28,6 +28,8 @@ export const skillcaseInterviewToolsApi = {
 
   getCandidates: (positionId) =>
     api.get(`/admin/skillcase-interviews/positions/${positionId}/candidates`),
+  inviteCandidate: (positionId, payload) =>
+    api.post(`/admin/skillcase-interviews/positions/${positionId}/invite`, payload),
 
   getCandidateDetail: (positionId, submissionId) =>
     api.get(

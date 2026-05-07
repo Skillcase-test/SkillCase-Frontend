@@ -28,6 +28,8 @@ export const interviewToolsApi = {
 
   getCandidates: (positionId) =>
     api.get(`/admin/interview-tools/positions/${positionId}/candidates`),
+  inviteCandidate: (positionId, payload) =>
+    api.post(`/admin/interview-tools/positions/${positionId}/invite`, payload),
 
   getCandidateDetail: (positionId, submissionId) =>
     api.get(
@@ -41,6 +43,8 @@ export const interviewToolsApi = {
     ),
 
   getPublicPosition: (slug) => api.get(`/interview-tools/public/${slug}`),
+  resolveInvite: (slug, inviteToken) =>
+    api.get(`/interview-tools/public/${slug}/invite/${inviteToken}`),
 
   startSubmission: (slug, payload) =>
     api.post(`/interview-tools/public/${slug}/start`, payload),

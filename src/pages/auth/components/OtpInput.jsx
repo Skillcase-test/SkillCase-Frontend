@@ -71,7 +71,11 @@ const OtpInput = ({ value, onChange, disabled = false, onAutoFill }) => {
 
     const newOtp = value.split("");
     newOtp[index] = val;
-    onChange(newOtp.join(""));
+    const nextValue = newOtp.join("");
+    onChange(nextValue);
+    if (nextValue.length === 6 && /^\d{6}$/.test(nextValue) && onAutoFill) {
+      onAutoFill(nextValue);
+    }
 
     if (val && index < 5) {
       inputRefs.current[index + 1]?.focus();
@@ -92,7 +96,11 @@ const OtpInput = ({ value, onChange, disabled = false, onAutoFill }) => {
       .slice(0, 6);
 
     if (pastedData.length > 0) {
-      onChange(pastedData.padEnd(6, "").slice(0, 6));
+      const nextValue = pastedData.padEnd(6, "").slice(0, 6);
+      onChange(nextValue);
+      if (nextValue.length === 6 && /^\d{6}$/.test(nextValue) && onAutoFill) {
+        onAutoFill(nextValue);
+      }
       const focusIndex = Math.min(pastedData.length, 5);
       inputRefs.current[focusIndex]?.focus();
     }

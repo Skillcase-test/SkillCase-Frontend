@@ -122,14 +122,6 @@ const ContinuePractice = lazy(() => import("./pages/ContinuePractice"));
 const TermsSignPage = lazy(() => import("./pages/terms/TermsSignPage"));
 const Dashboard = lazy(() => import("./dashboard-src/pages/Dashboard"));
 
-//News Module
-
-// Interview
-
-// Wise
-
-//fallback page
-
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 2000;
 const PLAY_STORE_URL = "market://details?id=com.skillcase.app";

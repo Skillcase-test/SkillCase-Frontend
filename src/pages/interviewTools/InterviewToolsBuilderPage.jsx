@@ -396,10 +396,12 @@ export default function InterviewToolsBuilderPage({
   selectedInterviewPositionId,
   setActivePage,
 }) {
+  const FIELD_ERROR_CLASS = "border-rose-400 focus:border-rose-500 focus:ring-rose-100";
   const [activeTab, setActiveTab] = useState("basics");
   const [form, setForm] = useState(defaultForm);
   const [questions, setQuestions] = useState([emptyQuestion()]);
   const [activeQuestionId, setActiveQuestionId] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const [draftUploadId] = useState(() => crypto.randomUUID());
   const [loading, setLoading] = useState(false);
@@ -507,7 +509,86 @@ export default function InterviewToolsBuilderPage({
   };
 
   const updateQuestion = (localId, patch) => {
+    const patchKeys = Object.keys(patch || {});
+    if (patchKeys.length) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        patchKeys.forEach((key) => {
+          delete next[`question:${localId}:${key}`];
+        });
+        return next;
+      });
+    }
     setQuestions((prev) => prev.map((item) => item.local_id === localId ? { ...item, ...patch } : item));
+  };
+
+  const updateFormField = (key, value) => {
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const focusValidationField = (field) => {
+    if (!field) return;
+
+    if (field.tab && field.tab !== activeTab) {
+      setActiveTab(field.tab);
+    }
+    if (field.questionId) {
+      setActiveQuestionId(field.questionId);
+    }
+
+    setTimeout(() => {
+      const element = document.getElementById(field.domId);
+      if (!element) return;
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (typeof element.focus === "function") {
+        element.focus();
+      }
+    }, 100);
+  };
+
+  const getFirstInvalidField = () => {
+    const checks = [
+      {
+        key: "title",
+        tab: "basics",
+        domId: "builder-position-title",
+        message: "Position title is required.",
+        isInvalid: !String(form.title || "").trim(),
+      },
+      {
+        key: "role_title",
+        tab: "basics",
+        domId: "builder-role-title",
+        message: "Role title is required.",
+        isInvalid: !String(form.role_title || "").trim(),
+      },
+    ];
+
+    questions.forEach((question, index) => {
+      checks.push({
+        key: `question:${question.local_id}:title`,
+        tab: "questions",
+        questionId: question.local_id,
+        domId: `question-title-${question.local_id}`,
+        message: `Question ${index + 1} title is required.`,
+        isInvalid: !String(question.title || "").trim(),
+      });
+      checks.push({
+        key: `question:${question.local_id}:video_key`,
+        tab: "questions",
+        questionId: question.local_id,
+        domId: `question-video-${question.local_id}`,
+        message: `Question ${index + 1} video is required.`,
+        isInvalid: !String(question.video_key || "").trim() && !question.video_file,
+      });
+    });
+
+    return checks.find((field) => field.isInvalid) || null;
   };
 
   const openRecorder = (target) => {
@@ -533,6 +614,14 @@ export default function InterviewToolsBuilderPage({
   };
 
   const handleSubmit = async () => {
+    const firstInvalid = getFirstInvalidField();
+    if (firstInvalid) {
+      setFieldErrors({ [firstInvalid.key]: firstInvalid.message });
+      setStatusMessage(firstInvalid.message);
+      focusValidationField(firstInvalid);
+      return;
+    }
+
     setLoading(true);
     setStatusMessage("");
 
@@ -605,7 +694,8 @@ export default function InterviewToolsBuilderPage({
           <div className="grid md:grid-cols-2 gap-5">
             <div>
                <label className="block text[11px] font-bold text-slate-500 mb-2 ml-1 uppercase tracking-wider">Role Title</label>
-               <input value={form.role_title} onChange={(e) => setForm(pr => ({...pr, role_title: e.target.value}))} placeholder="e.g. Frontend Dev" className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-[#083262] focus:ring-4 focus:ring-[#083262]/5 transition shadow-sm" />
+               <input id="builder-role-title" value={form.role_title} onChange={(e) => updateFormField("role_title", e.target.value)} placeholder="e.g. Frontend Dev" className={`w-full rounded-xl border px-4 py-3.5 text-sm outline-none focus:ring-4 transition shadow-sm ${fieldErrors.role_title ? FIELD_ERROR_CLASS : "border-slate-200 focus:border-[#083262] focus:ring-[#083262]/5"}`} />
+               {fieldErrors.role_title && <p className="mt-1 text-xs font-medium text-rose-600">{fieldErrors.role_title}</p>}
             </div>
             <div>
                <label className="block text[11px] font-bold text-slate-500 mb-2 ml-1 uppercase tracking-wider">Department</label>
@@ -773,12 +863,14 @@ export default function InterviewToolsBuilderPage({
                 <div className="max-w-3xl mx-auto space-y-8">
                    <div className="mb-2">
                       <div className="text-[10px] font-bold uppercase tracking-widest text-[#083262] mb-2">Edit Question Details</div>
-                      <input 
+                      <input
+                         id={`question-title-${activeQ.local_id}`}
                          value={activeQ.title}
                          onChange={(e) => updateQuestion(activeQ.local_id, { title: e.target.value })}
                          placeholder="Enter Question Target (e.g. Behavioral / Technical)"
-                         className="text-3xl lg:text-4xl font-extrabold text-slate-900 outline-none w-full placeholder-slate-300 bg-transparent focus:underline decoration-slate-200 underline-offset-8"
+                         className={`text-3xl lg:text-4xl font-extrabold outline-none w-full placeholder-slate-300 bg-transparent underline-offset-8 ${fieldErrors[`question:${activeQ.local_id}:title`] ? "text-rose-700 focus:underline decoration-rose-300" : "text-slate-900 focus:underline decoration-slate-200"}`}
                       />
+                      {fieldErrors[`question:${activeQ.local_id}:title`] && <p className="mt-2 text-xs font-medium text-rose-600">{fieldErrors[`question:${activeQ.local_id}:title`]}</p>}
                    </div>
 
                    <div>
@@ -793,11 +885,12 @@ export default function InterviewToolsBuilderPage({
                    </div>
 
                    <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-8">
-                      <div className="bg-slate-100 rounded-[2rem] overflow-hidden aspect-video flex items-center justify-center border border-slate-200 relative group">
+                      <div id={`question-video-${activeQ.local_id}`} className={`bg-slate-100 rounded-[2rem] overflow-hidden aspect-video flex items-center justify-center border relative group ${fieldErrors[`question:${activeQ.local_id}:video_key`] ? "border-rose-300 ring-2 ring-rose-100" : "border-slate-200"}`}>
                          {activeQ.preview_url ? (
                             <InterviewVideoPlayer src={activeQ.preview_url} title="Preview" />
                          ) : <span className="text-slate-400 font-medium text-sm">No video uploaded</span>}
                       </div>
+                      {fieldErrors[`question:${activeQ.local_id}:video_key`] && <p className="text-xs font-medium text-rose-600">{fieldErrors[`question:${activeQ.local_id}:video_key`]}</p>}
 
                       <div className="flex flex-col justify-center space-y-4">
                          <h4 className="text-lg font-bold text-slate-900 leading-tight">Video Prompt</h4>
@@ -832,7 +925,7 @@ export default function InterviewToolsBuilderPage({
   }
 
   return (
-    <div className="min-h-screen h-screen bg-slate-50 flex flex-col font-sans text-slate-900 absolute inset-0 z-50">
+    <div className="h-full min-h-0 bg-slate-50 flex flex-col font-sans text-slate-900 relative">
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0 shadow-sm relative z-10">
          <div className="flex items-center space-x-6">
             <button onClick={() => setActivePage("interview-tools-positions")} className="text-slate-500 hover:bg-slate-100 p-2 rounded-full transition">
@@ -840,10 +933,11 @@ export default function InterviewToolsBuilderPage({
             </button>
             <div className="h-6 w-px bg-slate-200"></div>
             <input
+               id="builder-position-title"
                value={form.title}
-               onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
+               onChange={(e) => updateFormField("title", e.target.value)}
                placeholder="Position Title (e.g. Senior Frontend)"
-               className="text-xl font-extrabold outline-none placeholder-slate-300 bg-transparent w-80 lg:w-96 focus:ring-0 px-2 py-1 truncate"
+               className={`text-xl font-extrabold outline-none placeholder-slate-300 bg-transparent w-80 lg:w-96 focus:ring-0 px-2 py-1 truncate border ${fieldErrors.title ? "border-rose-400 rounded-md" : "border-transparent"}`}
             />
          </div>
          <div className="flex items-center space-x-4">
@@ -881,7 +975,7 @@ export default function InterviewToolsBuilderPage({
          </div>
       )}
 
-      <div className="flex-1 overflow-hidden flex flex-col relative w-full h-full">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col relative w-full">
           {activeTab === 'basics' && renderBasicsTab()}
           {activeTab === 'questions' && renderQuestionsTab()}
           {activeTab === 'preview' && <InlinePreview form={form} questions={questions} />}

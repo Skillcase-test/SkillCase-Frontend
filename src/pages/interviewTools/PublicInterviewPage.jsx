@@ -92,6 +92,7 @@ export default function PublicInterviewPage() {
   const [thinkingRemaining, setThinkingRemaining] = useState(0);
   const [submittingAnswer, setSubmittingAnswer] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [inviteToken, setInviteToken] = useState("");
   const [mobileStep, setMobileStep] = useState(1);
   const [postInstructionsStage, setPostInstructionsStage] =
     useState("question");
@@ -199,8 +200,31 @@ export default function PublicInterviewPage() {
   useEffect(() => {
     const bootstrap = async () => {
       try {
-        const metaRes = await interviewToolsApi.getPublicPosition(slug);
-        const meta = metaRes.data.data;
+        const query = new URLSearchParams(window.location.search);
+        const inviteFromQuery = String(query.get("invite") || "").trim();
+        setInviteToken(inviteFromQuery);
+
+        let meta = null;
+        if (inviteFromQuery) {
+          try {
+            const inviteRes = await interviewToolsApi.resolveInvite(
+              slug,
+              inviteFromQuery,
+            );
+            meta = inviteRes.data.data.position;
+            setForm((prev) => ({
+              ...prev,
+              ...(inviteRes.data.data.prefill || {}),
+            }));
+          } catch (inviteErr) {
+            console.error("Invite resolve failed", inviteErr);
+          }
+        }
+
+        if (!meta) {
+          const metaRes = await interviewToolsApi.getPublicPosition(slug);
+          meta = metaRes.data.data;
+        }
         setPosition(meta);
 
         if (meta.status === "published_closed") {
@@ -313,6 +337,7 @@ export default function PublicInterviewPage() {
       const res = await interviewToolsApi.startSubmission(slug, {
         ...form,
         existing_session_token: existingSessionToken || null,
+        invite_token: inviteToken || null,
       });
       setPosition(res.data.data.position);
       setSubmission(res.data.data.submission);
