@@ -14,6 +14,18 @@ function profileToFormData(payload = {}) {
 }
 
 export const exploreCandidatesAdminApi = {
+  listLibraryProfilesV2: (params = {}) =>
+    api.get("/admin/explore-candidates/library-profiles", { params }),
+  getLibraryProfileByUid: (profileUid) =>
+    api.get(`/admin/explore-candidates/library-profiles/${encodeURIComponent(profileUid)}`),
+  updateLibraryProfileByUid: (profileUid, payload) =>
+    api.put(
+      `/admin/explore-candidates/library-profiles/${encodeURIComponent(profileUid)}`,
+      profileToFormData(payload),
+    ),
+  deleteLibraryProfileByUid: (profileUid) =>
+    api.delete(`/admin/explore-candidates/library-profiles/${encodeURIComponent(profileUid)}`),
+
   listAccounts: () => api.get("/admin/explore-candidates/accounts"),
   upsertAccount: (payload) => {
     const formData = new FormData();
@@ -43,12 +55,32 @@ export const exploreCandidatesAdminApi = {
   },
 
   listLibraryProfiles: () => api.get("/admin/explore-candidates/profiles/library"),
-  getProfileById: (profileId) => api.get(`/admin/explore-candidates/profiles/${profileId}`),
+  getProfileById: (profileId) => {
+    const val = String(profileId || "");
+    if (val.includes(":")) {
+      return api.get(`/admin/explore-candidates/library-profiles/${encodeURIComponent(val)}`);
+    }
+    return api.get(`/admin/explore-candidates/profiles/${profileId}`);
+  },
   createProfile: (payload) =>
     api.post("/admin/explore-candidates/profiles", profileToFormData(payload)),
-  updateProfile: (profileId, payload) =>
-    api.put(`/admin/explore-candidates/profiles/${profileId}`, profileToFormData(payload)),
-  deleteProfile: (profileId) => api.delete(`/admin/explore-candidates/profiles/${profileId}`),
+  updateProfile: (profileId, payload) => {
+    const val = String(profileId || "");
+    if (val.includes(":")) {
+      return api.put(
+        `/admin/explore-candidates/library-profiles/${encodeURIComponent(val)}`,
+        profileToFormData(payload),
+      );
+    }
+    return api.put(`/admin/explore-candidates/profiles/${profileId}`, profileToFormData(payload));
+  },
+  deleteProfile: (profileId) => {
+    const val = String(profileId || "");
+    if (val.includes(":")) {
+      return api.delete(`/admin/explore-candidates/library-profiles/${encodeURIComponent(val)}`);
+    }
+    return api.delete(`/admin/explore-candidates/profiles/${profileId}`);
+  },
 
   getAccountProfiles: (accountId) =>
     api.get(`/admin/explore-candidates/accounts/${accountId}/profiles`),
@@ -57,8 +89,20 @@ export const exploreCandidatesAdminApi = {
       profile_id: profileId,
       display_order,
     }),
+  assignBridgeProfile: (accountId, source_profile_id, source = "explore_php") =>
+    api.post(`/admin/explore-candidates/accounts/${accountId}/assign-bridge`, {
+      source,
+      source_profile_id,
+    }),
+  addBridgeProfileToLocal: (source_profile_id, source = "explore_php") =>
+    api.post(`/admin/explore-candidates/library-profiles/add-to-local`, {
+      source,
+      source_profile_id,
+    }),
   unassignProfile: (accountId, profileId) =>
     api.delete(`/admin/explore-candidates/accounts/${accountId}/assign/${profileId}`),
+  unassignBridgeProfile: (accountId, sourceProfileId) =>
+    api.delete(`/admin/explore-candidates/accounts/${accountId}/assign-bridge/${sourceProfileId}`),
   updateAssignmentOrder: (accountId, profileId, displayOrder) =>
     api.patch(`/admin/explore-candidates/accounts/${accountId}/assign/${profileId}/order`, {
       display_order: displayOrder,
@@ -74,6 +118,13 @@ export const exploreCandidatesAdminApi = {
     if (payload.video_file) {
       formData.append("video_file", payload.video_file);
     }
+    const val = String(profileId || "");
+    if (val.includes(":")) {
+      return api.post(
+        `/admin/explore-candidates/library-profiles/${encodeURIComponent(val)}/videos`,
+        formData,
+      );
+    }
     return api.post(`/admin/explore-candidates/profiles/${profileId}/videos`, formData);
   },
   updateProfileVideo: (videoId, payload) => {
@@ -88,9 +139,22 @@ export const exploreCandidatesAdminApi = {
     if (payload.video_file) {
       formData.append("video_file", payload.video_file);
     }
+    const val = String(videoId || "");
+    if (val.includes(":")) {
+      return api.patch(
+        `/admin/explore-candidates/library-videos/${encodeURIComponent(val)}`,
+        formData,
+      );
+    }
     return api.patch(`/admin/explore-candidates/videos/${videoId}`, formData);
   },
-  deleteProfileVideo: (videoId) => api.delete(`/admin/explore-candidates/videos/${videoId}`),
+  deleteProfileVideo: (videoId) => {
+    const val = String(videoId || "");
+    if (val.includes(":")) {
+      return api.delete(`/admin/explore-candidates/library-videos/${encodeURIComponent(val)}`);
+    }
+    return api.delete(`/admin/explore-candidates/videos/${videoId}`);
+  },
 
   addProfileDocument: (profileId, payload) => {
     const formData = new FormData();
@@ -101,6 +165,13 @@ export const exploreCandidatesAdminApi = {
     }
     if (payload.document_file) {
       formData.append("document_file", payload.document_file);
+    }
+    const val = String(profileId || "");
+    if (val.includes(":")) {
+      return api.post(
+        `/admin/explore-candidates/library-profiles/${encodeURIComponent(val)}/documents`,
+        formData,
+      );
     }
     return api.post(`/admin/explore-candidates/profiles/${profileId}/documents`, formData);
   },
@@ -116,10 +187,22 @@ export const exploreCandidatesAdminApi = {
     if (payload.document_file) {
       formData.append("document_file", payload.document_file);
     }
+    const val = String(documentId || "");
+    if (val.includes(":")) {
+      return api.patch(
+        `/admin/explore-candidates/library-documents/${encodeURIComponent(val)}`,
+        formData,
+      );
+    }
     return api.patch(`/admin/explore-candidates/documents/${documentId}`, formData);
   },
-  deleteProfileDocument: (documentId) =>
-    api.delete(`/admin/explore-candidates/documents/${documentId}`),
+  deleteProfileDocument: (documentId) => {
+    const val = String(documentId || "");
+    if (val.includes(":")) {
+      return api.delete(`/admin/explore-candidates/library-documents/${encodeURIComponent(val)}`);
+    }
+    return api.delete(`/admin/explore-candidates/documents/${documentId}`);
+  },
 
   fetchLegacyProfiles: (email) =>
     api.get("/admin/explore-candidates/sync/legacy-profiles", { params: { email } }),

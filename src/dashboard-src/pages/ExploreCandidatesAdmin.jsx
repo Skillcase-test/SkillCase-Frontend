@@ -441,6 +441,10 @@ function AccountProfilesPage() {
   const { accountId } = useParams();
   const [state, setState] = useState({ assigned: [], available: [] });
   const [pickId, setPickId] = useState("");
+  const [pickSource, setPickSource] = useState("local");
+  const [pickSearchBy, setPickSearchBy] = useState("name");
+  const [pickQuery, setPickQuery] = useState("");
+  const [pickOptions, setPickOptions] = useState([]);
 
   async function load() {
     const assignRes = await exploreCandidatesAdminApi.getAccountProfiles(accountId);
@@ -450,6 +454,20 @@ function AccountProfilesPage() {
   useEffect(() => {
     load();
   }, [accountId]);
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      const res = await exploreCandidatesAdminApi.listLibraryProfilesV2({
+        source: pickSource,
+        search_by: pickSearchBy,
+        q: pickQuery,
+        page: 1,
+        limit: 50,
+      });
+      setPickOptions(res?.data?.data || []);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [pickSource, pickSearchBy, pickQuery]);
 
   return (
     <div className="space-y-8 font-sans">
@@ -470,26 +488,73 @@ function AccountProfilesPage() {
           </div>
         }
       >
-        <div className="flex flex-col sm:flex-row gap-3 items-end">
-          <div className="space-y-1 flex-1 max-w-sm">
+        <div className="flex flex-col sm:flex-row gap-3 items-end flex-wrap">
+          <div className="space-y-1 w-full sm:max-w-[190px]">
+             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Source</label>
+             <select
+               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition bg-white"
+               value={pickSource}
+               onChange={(e) => {
+                 setPickSource(e.target.value);
+                 setPickId("");
+               }}
+             >
+               <option value="local">Local Shared</option>
+               <option value="explore_php">Main Site Shared (Explore)</option>
+               <option value="main_php">Main Site Users (Read-only)</option>
+             </select>
+          </div>
+          <div className="space-y-1 w-full sm:max-w-[150px]">
+             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Search by</label>
+             <select
+               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition bg-white"
+               value={pickSearchBy}
+               onChange={(e) => {
+                 setPickSearchBy(e.target.value);
+                 setPickId("");
+               }}
+             >
+               <option value="name">Name</option>
+               <option value="phone">Phone</option>
+             </select>
+          </div>
+          <div className="space-y-1 flex-1 min-w-[220px]">
+             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Search text</label>
+             <input
+               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
+               value={pickQuery}
+               onChange={(e) => {
+                 setPickQuery(e.target.value);
+                 setPickId("");
+               }}
+               placeholder={pickSearchBy === "phone" ? "Type phone..." : "Type name..."}
+             />
+          </div>
+          <div className="space-y-1 flex-1 min-w-[260px]">
              <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Assign existing profile</label>
              <select
                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition bg-white"
                value={pickId}
                onChange={(e) => setPickId(e.target.value)}
              >
-               <option value="">Select a shared profile...</option>
-               {state.available.map((p) => (
-                 <option key={p.id} value={p.id}>
-                   {p.fullname}
+                <option value="">Select a shared profile...</option>
+               {pickOptions.map((p) => (
+                 <option key={p.profile_uid || p.id} value={p.profile_uid || `${pickSource}:${p.id}`}>
+                   {p.fullname}{p.phone ? ` (${p.countrycode || ""}${p.phone})` : ""}
                  </option>
                ))}
              </select>
-          </div>
+           </div>
           <PrimaryButton
             disabled={!pickId}
             onClick={async () => {
-              await exploreCandidatesAdminApi.assignProfile(accountId, pickId, 0);
+              const [selectedSource, selectedIdRaw] = String(pickId).split(":");
+              const selectedId = Number(selectedIdRaw || 0);
+              if (selectedSource === "explore_php" || selectedSource === "main_php") {
+                await exploreCandidatesAdminApi.assignBridgeProfile(accountId, selectedId, selectedSource);
+              } else {
+                await exploreCandidatesAdminApi.assignProfile(accountId, selectedId, 0);
+              }
               setPickId("");
               await load();
             }}
@@ -514,20 +579,26 @@ function AccountProfilesPage() {
               <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-6 py-5 align-middle">
                   <div className="font-bold text-slate-900">{p.fullname}</div>
+                  <div className="text-xs text-slate-500 mt-1">{p.source || "local"}</div>
                 </td>
                 <td className="px-6 py-5 align-middle">
-                  <input
-                    type="number"
-                    defaultValue={p.display_order || 0}
-                    className="w-24 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
-                    onBlur={async (e) => {
-                      await exploreCandidatesAdminApi.updateAssignmentOrder(
-                        accountId,
-                        p.id,
-                        Number(e.target.value || 0),
-                      );
-                    }}
-                  />
+                  {(p.source || "local") === "local" ? (
+                    <input
+                      type="number"
+                      defaultValue={p.display_order || 0}
+                      className="w-24 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
+                      onBlur={async (e) => {
+                        const localId = Number(String(p.id).split(":")[1] || 0);
+                        await exploreCandidatesAdminApi.updateAssignmentOrder(
+                          accountId,
+                          localId,
+                          Number(e.target.value || 0),
+                        );
+                      }}
+                    />
+                  ) : (
+                    <span className="text-xs text-slate-500">Managed on main site</span>
+                  )}
                 </td>
                 <td className="px-6 py-5 align-middle">
                   <div className="flex flex-wrap justify-end gap-2">
@@ -538,7 +609,13 @@ function AccountProfilesPage() {
                       variant="danger"
                       onClick={async () => {
                         if (window.confirm("Are you sure you want to unassign this profile?")) {
-                          await exploreCandidatesAdminApi.unassignProfile(accountId, p.id);
+                          const [rowSource, rowIdRaw] = String(p.id).split(":");
+                          const rowId = Number(rowIdRaw || 0);
+                          if (rowSource === "explore_php") {
+                            await exploreCandidatesAdminApi.unassignBridgeProfile(accountId, rowId);
+                          } else {
+                            await exploreCandidatesAdminApi.unassignProfile(accountId, rowId);
+                          }
                           await load();
                         }
                       }}
@@ -558,15 +635,42 @@ function AccountProfilesPage() {
 
 function LibraryPage() {
   const [profiles, setProfiles] = useState([]);
+  const [source, setSource] = useState("local");
+  const [searchBy, setSearchBy] = useState("name");
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, total_pages: 1 });
+  const [loading, setLoading] = useState(false);
+  const [addingLocal, setAddingLocal] = useState({});
 
   async function load() {
-    const res = await exploreCandidatesAdminApi.listLibraryProfiles();
-    setProfiles(res.data.data || []);
+    setLoading(true);
+    try {
+      const res = await exploreCandidatesAdminApi.listLibraryProfilesV2({
+        source,
+        search_by: searchBy,
+        q: query,
+        page,
+        limit: 20,
+      });
+      setProfiles(res?.data?.data || []);
+      setPagination(res?.data?.pagination || { page: 1, limit: 20, total: 0, total_pages: 1 });
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
     load();
-  }, []);
+  }, [source, searchBy, page]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      load();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   return (
     <div className="space-y-8 font-sans">
@@ -587,20 +691,59 @@ function LibraryPage() {
 
       <div className="space-y-4">
         <h2 className="text-xl font-bold text-slate-800 px-1">Library Profiles</h2>
+        <div className="grid gap-3 md:grid-cols-4">
+          <select
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition bg-white"
+            value={source}
+            onChange={(e) => {
+              setSource(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="local">Explore Shared Profiles</option>
+            <option value="explore_php">Explore Shared Profiles (PHP)</option>
+            <option value="main_php">Main Website Profiles (PHP)</option>
+          </select>
+          <select
+            className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition bg-white"
+            value={searchBy}
+            onChange={(e) => {
+              setSearchBy(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="name">Search by Name</option>
+            <option value="phone">Search by Phone</option>
+          </select>
+          <input
+            className="md:col-span-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
+            placeholder={searchBy === "phone" ? "Type phone number..." : "Type candidate name..."}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
         <TableWrapper>
           <TableHead>
             <tr>
               <th className="px-6 py-4">Name</th>
+              <th className="px-6 py-4">Phone</th>
+              <th className="px-6 py-4">Source</th>
               <th className="px-6 py-4">Usage Count</th>
               <th className="px-6 py-4 text-right">Actions</th>
             </tr>
           </TableHead>
           <TableBody>
-            {profiles.map((p) => (
-              <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+            {loading ? (
+              <tr>
+                <td className="px-6 py-5 text-slate-500" colSpan={5}>Loading profiles...</td>
+              </tr>
+            ) : profiles.map((p) => (
+              <tr key={p.profile_uid || p.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-6 py-5 align-middle">
                   <div className="font-bold text-slate-900">{p.fullname}</div>
                 </td>
+                <td className="px-6 py-5 align-middle">{`${p.countrycode || ""}${p.phone || "-"}`}</td>
+                <td className="px-6 py-5 align-middle">{p.source || source}</td>
                 <td className="px-6 py-5 align-middle">
                   <span className="inline-flex rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
                     Used {p.usage_count || 0} times
@@ -608,26 +751,93 @@ function LibraryPage() {
                 </td>
                 <td className="px-6 py-5 align-middle">
                   <div className="flex flex-wrap justify-end gap-2">
-                    <Link to={`/admin/explore-candidates/profiles/${p.id}/edit`}>
-                      <ActionButton>Edit</ActionButton>
-                    </Link>
-                    <ActionButton
-                      variant="danger"
-                      onClick={async () => {
-                        if (window.confirm("Are you sure you want to delete this profile?")) {
-                          await exploreCandidatesAdminApi.deleteProfile(p.id);
-                          await load();
-                        }
-                      }}
-                    >
-                      Delete
-                    </ActionButton>
+                    {String(p.source || "").endsWith("_php") ? (
+                      <ActionButton
+                        variant="primary"
+                        disabled={Boolean(addingLocal[p.profile_uid || p.id])}
+                        onClick={async () => {
+                          const key = p.profile_uid || p.id;
+                          const sourceValue = String(p.source || source);
+                          const sourceProfileId = Number(
+                            p.source_profile_id || p.id || 0,
+                          );
+                          if (!sourceProfileId) return;
+                          try {
+                            setAddingLocal((prev) => ({ ...prev, [key]: true }));
+                            await exploreCandidatesAdminApi.addBridgeProfileToLocal(
+                              sourceProfileId,
+                              sourceValue,
+                            );
+                            window.alert("Profile added to local library");
+                          } catch (error) {
+                            window.alert(
+                              error?.response?.data?.message ||
+                                "Could not add profile to local library",
+                            );
+                          } finally {
+                            setAddingLocal((prev) => ({
+                              ...prev,
+                              [key]: false,
+                            }));
+                          }
+                        }}
+                      >
+                        {addingLocal[p.profile_uid || p.id]
+                          ? "Adding..."
+                          : "Add to Local"}
+                      </ActionButton>
+                    ) : null}
+                    {String(p.source || "") === "main_php" ? (
+                      <span className="text-xs text-amber-700 font-semibold">
+                        Not editable here. Edit on main site.
+                      </span>
+                    ) : (
+                      <>
+                        <Link to={`/admin/explore-candidates/profiles/${encodeURIComponent(p.profile_uid || `local:${p.id}`)}/edit`}>
+                          <ActionButton>Edit</ActionButton>
+                        </Link>
+                        <ActionButton
+                          variant="danger"
+                          onClick={async () => {
+                            const isPhpSource = String(p.source || "").endsWith("_php");
+                            const confirmMessage = isPhpSource
+                              ? "Disable this PHP source profile?"
+                              : "Are you sure you want to delete this profile?";
+                            if (window.confirm(confirmMessage)) {
+                              await exploreCandidatesAdminApi.deleteProfile(p.profile_uid || p.id);
+                              await load();
+                            }
+                          }}
+                        >
+                          {String(p.source || "").endsWith("_php") ? "Disable" : "Delete"}
+                        </ActionButton>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
             ))}
           </TableBody>
         </TableWrapper>
+        <div className="flex items-center justify-between px-1">
+          <div className="text-xs text-slate-500">
+            Showing page {pagination.page} of {pagination.total_pages} ({pagination.total} profiles)
+          </div>
+          <div className="flex gap-2">
+            <SecondaryButton
+              disabled={pagination.page <= 1}
+              onClick={() => setPage((v) => Math.max(1, v - 1))}
+            >
+              Previous
+            </SecondaryButton>
+            <SecondaryButton
+              disabled={pagination.page >= pagination.total_pages}
+              onClick={() => setPage((v) => Math.min(pagination.total_pages, v + 1))}
+            >
+              Next
+            </SecondaryButton>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -648,6 +858,8 @@ function ProfileFormPage({ mode }) {
   const [savingProfile, setSavingProfile] = useState(false);
   const [docInputKey, setDocInputKey] = useState(0);
   const [videoInputKey, setVideoInputKey] = useState(0);
+  const isMainPhpReadOnly =
+    mode === "edit" && String(profileId || "").startsWith("main_php:");
 
   const normalizeDateForInput = (value) => {
     if (!value) return "";
@@ -720,7 +932,11 @@ function ProfileFormPage({ mode }) {
     <div className="space-y-8 font-sans pb-12">
       <PageCard
         title={title}
-        description="Fill out the basic details, photo, and PDFs for this shared profile."
+        description={
+          isMainPhpReadOnly
+            ? "This is a main website profile and is read-only here. Please edit on main site."
+            : "Fill out the basic details, photo, and PDFs for this shared profile."
+        }
         actions={
           <div className="flex gap-2">
             <Link to="/admin/explore-candidates/library">
@@ -828,8 +1044,9 @@ function ProfileFormPage({ mode }) {
 
         <div className="mt-6 flex justify-end">
           <PrimaryButton
-            disabled={savingProfile}
+            disabled={savingProfile || isMainPhpReadOnly}
             onClick={async () => {
+              if (isMainPhpReadOnly) return;
               setSavingProfile(true);
               try {
                 const payload = {
@@ -887,7 +1104,11 @@ function ProfileFormPage({ mode }) {
               }
             }}
           >
-            {savingProfile ? "Saving..." : "Save Profile"}
+            {isMainPhpReadOnly
+              ? "Read-only on this panel"
+              : savingProfile
+                ? "Saving..."
+                : "Save Profile"}
           </PrimaryButton>
         </div>
       </PageCard>
