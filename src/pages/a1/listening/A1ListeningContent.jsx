@@ -67,24 +67,25 @@ const CustomDropdown = memo(({
 
   // Handle outside click and scroll to close
   useEffect(() => {
-    const handleInteraction = (event) => {
-      // If clicking inside the dropdown button, let the toggle handler manage it
+    const handlePointerOutside = (event) => {
       if (dropdownRef.current && dropdownRef.current.contains(event.target)) {
         return;
       }
-      // If clicking completely outside or scrolling, close it
       setIsOpen(false);
     };
+    const handleResize = () => setIsOpen(false);
 
     if (isOpen) {
-      document.addEventListener("mousedown", handleInteraction);
-      window.addEventListener("scroll", handleInteraction, true); // Capture scroll
-      window.addEventListener("resize", () => setIsOpen(false));
+      document.addEventListener("mousedown", handlePointerOutside);
+      document.addEventListener("touchstart", handlePointerOutside, {
+        passive: true,
+      });
+      window.addEventListener("resize", handleResize);
     }
     return () => {
-      document.removeEventListener("mousedown", handleInteraction);
-      window.removeEventListener("scroll", handleInteraction, true);
-      window.removeEventListener("resize", () => setIsOpen(false));
+      document.removeEventListener("mousedown", handlePointerOutside);
+      document.removeEventListener("touchstart", handlePointerOutside);
+      window.removeEventListener("resize", handleResize);
     };
   }, [isOpen]);
 
@@ -148,11 +149,13 @@ const CustomDropdown = memo(({
         !disabled &&
         createPortal(
           <div
-            className="fixed z-[9999] bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto animate-in fade-in zoom-in-95 duration-100"
+            className="fixed z-[9999] bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-100"
             style={{
               top: dropdownPos.top,
               left: dropdownPos.left,
               width: dropdownPos.width,
+              touchAction: "pan-y",
+              WebkitOverflowScrolling: "touch",
             }}
           >
             <div className="p-1">

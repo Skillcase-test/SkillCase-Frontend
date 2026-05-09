@@ -13,83 +13,163 @@ const STATUS_STYLE = {
 };
 
 function PositionEventLog({ positionId }) {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [expanded, setExpanded] = useState(true);
+  const [publishEvents, setPublishEvents] = useState([]);
+  const [inviteEvents, setInviteEvents] = useState([]);
+  const [loadingPublish, setLoadingPublish] = useState(true);
+  const [loadingInvite, setLoadingInvite] = useState(true);
+  const [publishError, setPublishError] = useState("");
+  const [inviteError, setInviteError] = useState("");
+  const [publishExpanded, setPublishExpanded] = useState(true);
+  const [inviteExpanded, setInviteExpanded] = useState(true);
 
   useEffect(() => {
     if (!positionId) return;
-    setLoading(true);
+    setLoadingPublish(true);
+    setLoadingInvite(true);
     interviewToolsApi
       .getPositionEventLog(positionId)
-      .then((res) => setEvents(res.data.data || []))
-      .catch(() => setError("Could not load event log"))
-      .finally(() => setLoading(false));
+      .then((res) => setPublishEvents(res.data.data || []))
+      .catch(() => setPublishError("Could not load publish/open event log"))
+      .finally(() => setLoadingPublish(false));
+    interviewToolsApi
+      .getInviteEventLog(positionId)
+      .then((res) => setInviteEvents(res.data.data || []))
+      .catch(() => setInviteError("Could not load invite event log"))
+      .finally(() => setLoadingInvite(false));
   }, [positionId]);
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm font-sans">
+    <div className="space-y-4 font-sans">
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <button
+          type="button"
+          onClick={() => setPublishExpanded((v) => !v)}
+          className="flex w-full items-center justify-between px-6 py-4 text-left"
+        >
+          <div>
+            <p className="text-sm font-bold text-slate-800">Position Event Log</p>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              All times this interview was opened (published_open)
+            </p>
+          </div>
+          {publishExpanded ? (
+            <ChevronUp className="h-4 w-4 text-slate-400" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-slate-400" />
+          )}
+        </button>
+
+        {publishExpanded && (
+          <div className="border-t border-slate-100">
+            {loadingPublish ? (
+              <div className="px-6 py-5 text-sm text-slate-400">Loading...</div>
+            ) : publishError ? (
+              <div className="px-6 py-5 text-sm text-rose-600">{publishError}</div>
+            ) : publishEvents.length === 0 ? (
+              <div className="px-6 py-5 text-sm text-slate-400">
+                No publish/open events recorded yet.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-slate-50 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    <tr>
+                      <th className="px-6 py-3">Published By</th>
+                      <th className="px-6 py-3">Role</th>
+                      <th className="px-6 py-3">Published At (IST)</th>
+                      <th className="px-6 py-3">Source</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-sm text-slate-700 font-medium">
+                    {publishEvents.map((event) => (
+                      <tr key={event.event_id} className="hover:bg-slate-50">
+                        <td className="px-6 py-4">
+                          <div className="font-semibold text-slate-900">
+                            {event.actor_name || "-"}
+                          </div>
+                          <div className="text-xs text-slate-400 mt-0.5">
+                            {event.actor_user_id || "-"}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-700">
+                          {event.actor_role || "-"}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-700 whitespace-nowrap">
+                          {formatDateTimeIST(event.created_at)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-slate-700">
+                          {event.source || event.event_payload?.source || "-"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
       <button
         type="button"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={() => setInviteExpanded((v) => !v)}
         className="flex w-full items-center justify-between px-6 py-4 text-left"
       >
         <div>
-          <p className="text-sm font-bold text-slate-800">Position Event Log</p>
+          <p className="text-sm font-bold text-slate-800">Invite Event Log</p>
           <p className="text-xs text-slate-500 font-medium mt-0.5">
-            All times this position was opened (published_open)
+            Invite lifecycle events (sent, viewed, started)
           </p>
         </div>
-        {expanded ? (
+        {inviteExpanded ? (
           <ChevronUp className="h-4 w-4 text-slate-400" />
         ) : (
           <ChevronDown className="h-4 w-4 text-slate-400" />
         )}
       </button>
 
-      {expanded && (
+      {inviteExpanded && (
         <div className="border-t border-slate-100">
-          {loading ? (
+          {loadingInvite ? (
             <div className="px-6 py-5 text-sm text-slate-400">Loading...</div>
-          ) : error ? (
-            <div className="px-6 py-5 text-sm text-rose-600">{error}</div>
-          ) : events.length === 0 ? (
+          ) : inviteError ? (
+            <div className="px-6 py-5 text-sm text-rose-600">{inviteError}</div>
+          ) : inviteEvents.length === 0 ? (
             <div className="px-6 py-5 text-sm text-slate-400">
-              No published_open events recorded yet.
+              No invite events recorded yet.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full">
                 <thead className="bg-slate-50 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">
                   <tr>
-                    <th className="px-6 py-3">Published By</th>
-                    <th className="px-6 py-3">Role</th>
-                    <th className="px-6 py-3">Published At (IST)</th>
-                    <th className="px-6 py-3">Source</th>
+                    <th className="px-6 py-3">Event</th>
+                    <th className="px-6 py-3">Candidate</th>
+                    <th className="px-6 py-3">Actor</th>
+                    <th className="px-6 py-3">At (IST)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm text-slate-700 font-medium">
-                  {events.map((event) => (
+                  {inviteEvents.map((event) => (
                     <tr key={event.event_id} className="hover:bg-slate-50">
                       <td className="px-6 py-4">
-                        <div className="font-semibold text-slate-900">
-                          {event.actor_name || event.actor_user_id || "-"}
+                        <div className="font-semibold text-slate-900">{event.event_type || "-"}</div>
+                        <div className="text-xs text-slate-400 mt-0.5">
+                          Invite #{event.invite_id || "-"}
                         </div>
-                        {event.actor_name && event.actor_user_id ? (
-                          <div className="text-xs text-slate-400 mt-0.5">
-                            {event.actor_user_id}
-                          </div>
-                        ) : null}
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-500">
-                        {event.actor_role || "-"}
+                        <div>{event.event_payload?.candidate_name || "-"}</div>
+                        <div>{event.event_payload?.candidate_email || "-"}</div>
+                        <div>{event.event_payload?.candidate_phone || "-"}</div>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-500">
+                        <div>{event.actor_name || event.actor_user_id || "public_candidate"}</div>
+                        <div>{event.actor_role || "-"}</div>
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">
                         {formatDateTimeIST(event.created_at)}
-                      </td>
-                      <td className="px-6 py-4 text-xs text-slate-500">
-                        {event.event_payload?.source || "-"}
                       </td>
                     </tr>
                   ))}
@@ -99,6 +179,7 @@ function PositionEventLog({ positionId }) {
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }

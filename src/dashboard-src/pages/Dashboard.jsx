@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import {
   NavLink,
   Navigate,
@@ -414,6 +414,35 @@ function DashboardShellSkeleton() {
 export default function Dashboard() {
   const [me, setMe] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [desktopSidebarExpanded, setDesktopSidebarExpanded] = useState(false);
+  const sidebarHoverTimersRef = useRef({ open: null, close: null });
+
+  const clearSidebarHoverTimer = (timerKey) => {
+    const timer = sidebarHoverTimersRef.current[timerKey];
+    if (timer) {
+      window.clearTimeout(timer);
+      sidebarHoverTimersRef.current[timerKey] = null;
+    }
+  };
+
+  const scheduleSidebarExpand = () => {
+    clearSidebarHoverTimer("close");
+    if (desktopSidebarExpanded) return;
+    clearSidebarHoverTimer("open");
+    sidebarHoverTimersRef.current.open = window.setTimeout(() => {
+      setDesktopSidebarExpanded(true);
+      sidebarHoverTimersRef.current.open = null;
+    }, 70);
+  };
+
+  const scheduleSidebarCollapse = () => {
+    clearSidebarHoverTimer("open");
+    clearSidebarHoverTimer("close");
+    sidebarHoverTimersRef.current.close = window.setTimeout(() => {
+      setDesktopSidebarExpanded(false);
+      sidebarHoverTimersRef.current.close = null;
+    }, 180);
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -452,6 +481,13 @@ export default function Dashboard() {
       mounted = false;
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearSidebarHoverTimer("open");
+      clearSidebarHoverTimer("close");
     };
   }, []);
 
@@ -621,15 +657,69 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <div className="grid grid-cols-1 gap-3 p-3 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="rounded-lg border border-slate-200 bg-white p-3 lg:sticky lg:top-3 lg:self-start">
-          <p className="mb-2 px-2 text-xs font-bold uppercase tracking-widest text-slate-500">
-            Admin Panel
-          </p>
-          <SidebarSection title="Core" items={sections.core} />
-          <SidebarModuleGroups title="A1" modules={sections.a1Modules} />
-          <SidebarModuleGroups title="A2" modules={sections.a2Modules} />
-          <SidebarSection title="Super Admin" items={sections.superAdmin} />
+      <div
+        className="grid grid-cols-1 gap-3 p-3 lg:grid-cols-[64px_minmax(0,1fr)]"
+      >
+        <aside
+          className="relative z-40 overflow-visible rounded-lg border border-slate-200 bg-white p-2 lg:sticky lg:top-3 lg:self-start lg:min-h-[calc(100vh-24px)]"
+          onFocusCapture={scheduleSidebarExpand}
+          onBlurCapture={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+              scheduleSidebarCollapse();
+            }
+          }}
+        >
+          <div
+            className="hidden h-full flex-col items-center pt-2 lg:flex"
+            onPointerEnter={scheduleSidebarExpand}
+          >
+            <div className="mb-4 inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 bg-slate-50 text-slate-600">
+              <ChevronRight className="h-4 w-4" />
+            </div>
+            <div className="flex flex-1 flex-col items-center gap-2 py-2">
+              {Array.from({ length: Math.min(sections.core.length, 8) }).map(
+                (_, idx) => (
+                  <span
+                    key={idx}
+                    className="h-1.5 w-6 rounded-full bg-slate-300/80"
+                  />
+                ),
+              )}
+            </div>
+          </div>
+
+          <div
+            className="absolute left-0 top-0 z-50 hidden h-full rounded-lg border border-slate-200 bg-white shadow-lg lg:block"
+            onPointerEnter={scheduleSidebarExpand}
+            onPointerLeave={scheduleSidebarCollapse}
+            style={{
+              width: desktopSidebarExpanded ? "280px" : "0px",
+              transition:
+                "width 420ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 280ms ease",
+              willChange: "width",
+            }}
+          >
+            <div
+              className="h-full overflow-y-auto p-3"
+              style={{
+                opacity: desktopSidebarExpanded ? 1 : 0,
+                transform: desktopSidebarExpanded
+                  ? "translateX(0)"
+                  : "translateX(-6px)",
+                transition:
+                  "opacity 240ms ease, transform 420ms cubic-bezier(0.22, 1, 0.36, 1)",
+                willChange: "opacity, transform",
+              }}
+            >
+              <p className="mb-2 px-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+                Admin Panel
+              </p>
+              <SidebarSection title="Core" items={sections.core} />
+              <SidebarModuleGroups title="A1" modules={sections.a1Modules} />
+              <SidebarModuleGroups title="A2" modules={sections.a2Modules} />
+              <SidebarSection title="Super Admin" items={sections.superAdmin} />
+            </div>
+          </div>
         </aside>
 
         <main className="min-h-[calc(100vh-24px)] rounded-lg border border-slate-200 bg-white p-3 lg:p-4">

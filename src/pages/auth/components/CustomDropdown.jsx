@@ -25,14 +25,20 @@ const CustomDropdown = ({
 
   // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e) => {
+    const handlePointerOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsOpen(false);
       }
     };
 
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
+    document.addEventListener("mousedown", handlePointerOutside);
+    document.addEventListener("touchstart", handlePointerOutside, {
+      passive: true,
+    });
+    return () => {
+      document.removeEventListener("mousedown", handlePointerOutside);
+      document.removeEventListener("touchstart", handlePointerOutside);
+    };
   }, []);
 
   const handleSelect = (option) => {

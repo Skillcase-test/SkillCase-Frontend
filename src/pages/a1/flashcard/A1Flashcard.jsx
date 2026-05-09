@@ -41,23 +41,26 @@ const CustomDropdown = ({
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
 
   useEffect(() => {
-    const handleInteraction = (event) => {
+    const handlePointerOutside = (event) => {
       if (dropdownRef.current && dropdownRef.current.contains(event.target)) {
         return;
       }
       setIsOpen(false);
     };
+    const handleResize = () => setIsOpen(false);
 
     if (isOpen) {
-      document.addEventListener("mousedown", handleInteraction);
-      window.addEventListener("scroll", handleInteraction, true);
-      window.addEventListener("resize", handleInteraction);
+      document.addEventListener("mousedown", handlePointerOutside);
+      document.addEventListener("touchstart", handlePointerOutside, {
+        passive: true,
+      });
+      window.addEventListener("resize", handleResize);
     }
 
     return () => {
-      document.removeEventListener("mousedown", handleInteraction);
-      window.removeEventListener("scroll", handleInteraction, true);
-      window.removeEventListener("resize", handleInteraction);
+      document.removeEventListener("mousedown", handlePointerOutside);
+      document.removeEventListener("touchstart", handlePointerOutside);
+      window.removeEventListener("resize", handleResize);
     };
   }, [isOpen]);
 
@@ -105,11 +108,13 @@ const CustomDropdown = ({
         !disabled &&
         createPortal(
           <div
-            className="fixed z-[9999] bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto"
+            className="fixed z-[9999] bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto overscroll-contain"
             style={{
               top: dropdownPos.top,
               left: dropdownPos.left,
               width: dropdownPos.width,
+              touchAction: "pan-y",
+              WebkitOverflowScrolling: "touch",
             }}
           >
             <div className="p-1">

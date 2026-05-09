@@ -44,6 +44,8 @@ export const skillcaseInterviewToolsApi = {
 
   getPositionEventLog: (positionId) =>
     api.get(`/admin/skillcase-interviews/positions/${positionId}/events`),
+  getInviteEventLog: (positionId) =>
+    api.get(`/admin/skillcase-interviews/positions/${positionId}/invite-events`),
 
   downloadCandidatePDF: (positionId, submissionId) =>
     api.get(

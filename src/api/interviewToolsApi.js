@@ -63,6 +63,8 @@ export const interviewToolsApi = {
 
   getPositionEventLog: (positionId) =>
     api.get(`/admin/interview-tools/positions/${positionId}/events`),
+  getInviteEventLog: (positionId) =>
+    api.get(`/admin/interview-tools/positions/${positionId}/invite-events`),
 
   downloadCandidatePDF: (positionId, submissionId) =>
     api.get(
