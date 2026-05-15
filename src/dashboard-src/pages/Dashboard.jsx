@@ -29,13 +29,15 @@ const InterviewToolsReviewPage = lazy(
   () => import("../../pages/interviewTools/InterviewToolsReviewPage"),
 );
 const SkillcaseInterviewToolsPositionsPage = lazy(
-  () => import("../../pages/interviewTools/SkillcaseInterviewToolsPositionsPage"),
+  () =>
+    import("../../pages/interviewTools/SkillcaseInterviewToolsPositionsPage"),
 );
 const SkillcaseInterviewToolsBuilderPage = lazy(
   () => import("../../pages/interviewTools/SkillcaseInterviewToolsBuilderPage"),
 );
 const SkillcaseInterviewToolsCandidatesPage = lazy(
-  () => import("../../pages/interviewTools/SkillcaseInterviewToolsCandidatePage"),
+  () =>
+    import("../../pages/interviewTools/SkillcaseInterviewToolsCandidatePage"),
 );
 const SkillcaseInterviewToolsReviewPage = lazy(
   () => import("../../pages/interviewTools/SkillcaseInterviewToolsReviewPage"),
@@ -44,6 +46,7 @@ const WiseDashboard = lazy(() => import("../../pages/internal/WiseDashboard"));
 const InternalLeadForm = lazy(() => import("../../pages/InternalLeadForm"));
 const AdminAccessManagement = lazy(() => import("./AdminAccessManagement"));
 const ExploreCandidatesAdmin = lazy(() => import("./ExploreCandidatesAdmin"));
+const PaymentsAdmin = lazy(() => import("./PaymentsAdmin"));
 
 const A1FlashcardAdd = lazy(() => import("./a1/flashcard/add"));
 const A1FlashcardManage = lazy(() => import("./a1/flashcard/manage"));
@@ -636,7 +639,10 @@ export default function Dashboard() {
 
     const superAdmin =
       me.role === "super_admin"
-        ? [{ key: "access", label: "Admin Access", path: "/admin/access" }]
+        ? [
+            { key: "access", label: "Admin Access", path: "/admin/access" },
+            { key: "payments", label: "Payments", path: "/admin/payments" },
+          ]
         : [];
 
     return { core, a1Modules, a2Modules, superAdmin };
@@ -657,9 +663,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <div
-        className="grid grid-cols-1 gap-3 p-3 lg:grid-cols-[64px_minmax(0,1fr)]"
-      >
+      <div className="grid grid-cols-1 gap-3 p-3 lg:grid-cols-[64px_minmax(0,1fr)]">
         <aside
           className="relative z-40 overflow-visible rounded-lg border border-slate-200 bg-white p-2 lg:sticky lg:top-3 lg:self-start lg:min-h-[calc(100vh-24px)]"
           onFocusCapture={scheduleSidebarExpand}
@@ -725,330 +729,340 @@ export default function Dashboard() {
         <main className="min-h-[calc(100vh-24px)] rounded-lg border border-slate-200 bg-white p-3 lg:p-4">
           <Suspense fallback={<DashboardShellSkeleton />}>
             <Routes>
-            <Route index element={<Navigate to={defaultPath} replace />} />
-            <Route
-              path="no-access"
-              element={
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
-                  You do not have module access yet. Contact super admin.
-                </div>
-              }
-            />
+              <Route index element={<Navigate to={defaultPath} replace />} />
+              <Route
+                path="no-access"
+                element={
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+                    You do not have module access yet. Contact super admin.
+                  </div>
+                }
+              />
 
-            <Route
-              path="analytics"
-              element={
-                <Guard allowed={hasPermission(me, "analytics")}>
-                  <Analytics />
-                </Guard>
-              }
-            />
-            <Route
-              path="events"
-              element={
-                <Guard allowed={hasPermission(me, "events")}>
-                  <ManageEvents />
-                </Guard>
-              }
-            />
-            <Route
-              path="interview-tools/*"
-              element={
-                <Guard allowed={hasPermission(me, "interview_tools")}>
-                  <InterviewToolsModule
-                    isSuperAdmin={me.role === "super_admin"}
-                  />
-                </Guard>
-              }
-            />
-            <Route
-              path="skillcase-interviews/*"
-              element={
-                <Guard allowed={hasPermission(me, "skillcase_interviews")}>
-                  <SkillcaseInterviewsModule
-                    isSuperAdmin={hasPermission(
-                      me,
-                      "skillcase_interviews",
-                      "manage",
-                    )}
-                    canDownload={hasPermission(
-                      me,
-                      "skillcase_interviews",
-                      "download",
-                    )}
-                  />
-                </Guard>
-              }
-            />
-            <Route
-              path="wise"
-              element={
-                <Guard allowed={hasPermission(me, "wise")}>
-                  <WiseDashboard />
-                </Guard>
-              }
-            />
-            <Route
-              path="internal-leads"
-              element={
-                <Guard allowed={hasPermission(me, "internal")}>
-                  <InternalLeadForm />
-                </Guard>
-              }
-            />
-            <Route
-              path="exam"
-              element={
-                <Guard allowed={hasPermission(me, "exam")}>
-                  <AdminExamManager />
-                </Guard>
-              }
-            />
-            <Route
-              path="batch"
-              element={
-                <Guard allowed={hasPermission(me, "batch")}>
-                  <AdminBatchManager />
-                </Guard>
-              }
-            />
+              <Route
+                path="analytics"
+                element={
+                  <Guard allowed={hasPermission(me, "analytics")}>
+                    <Analytics />
+                  </Guard>
+                }
+              />
+              <Route
+                path="events"
+                element={
+                  <Guard allowed={hasPermission(me, "events")}>
+                    <ManageEvents />
+                  </Guard>
+                }
+              />
+              <Route
+                path="interview-tools/*"
+                element={
+                  <Guard allowed={hasPermission(me, "interview_tools")}>
+                    <InterviewToolsModule
+                      isSuperAdmin={me.role === "super_admin"}
+                    />
+                  </Guard>
+                }
+              />
+              <Route
+                path="skillcase-interviews/*"
+                element={
+                  <Guard allowed={hasPermission(me, "skillcase_interviews")}>
+                    <SkillcaseInterviewsModule
+                      isSuperAdmin={hasPermission(
+                        me,
+                        "skillcase_interviews",
+                        "manage",
+                      )}
+                      canDownload={hasPermission(
+                        me,
+                        "skillcase_interviews",
+                        "download",
+                      )}
+                    />
+                  </Guard>
+                }
+              />
+              <Route
+                path="wise"
+                element={
+                  <Guard allowed={hasPermission(me, "wise")}>
+                    <WiseDashboard />
+                  </Guard>
+                }
+              />
+              <Route
+                path="internal-leads"
+                element={
+                  <Guard allowed={hasPermission(me, "internal")}>
+                    <InternalLeadForm />
+                  </Guard>
+                }
+              />
+              <Route
+                path="exam"
+                element={
+                  <Guard allowed={hasPermission(me, "exam")}>
+                    <AdminExamManager />
+                  </Guard>
+                }
+              />
+              <Route
+                path="batch"
+                element={
+                  <Guard allowed={hasPermission(me, "batch")}>
+                    <AdminBatchManager />
+                  </Guard>
+                }
+              />
 
-            <Route
-              path="landing"
-              element={
-                <Guard allowed={hasPermission(me, "landing_page")}>
-                  <LandingPageManagement />
-                </Guard>
-              }
-            />
-            <Route
-              path="notifications"
-              element={
-                <Guard allowed={hasPermission(me, "notifications")}>
-                  <SendNotification />
-                </Guard>
-              }
-            />
-            <Route
-              path="terms"
-              element={
-                <Guard allowed={hasPermission(me, "terms")}>
-                  <TermsManager />
-                </Guard>
-              }
-            />
-            <Route
-              path="explore-candidates/*"
-              element={
-                <Guard allowed={hasPermission(me, "explore_candidates")}>
-                  <ExploreCandidatesAdmin />
-                </Guard>
-              }
-            />
-            <Route
-              path="a1/flashcard/add"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A1FlashcardAdd />
-                </Guard>
-              }
-            />
-            <Route
-              path="a1/flashcard/manage"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A1FlashcardManage />
-                </Guard>
-              }
-            />
-            <Route
-              path="a1/grammar/add"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A1GrammarAdd />
-                </Guard>
-              }
-            />
-            <Route
-              path="a1/grammar/manage"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A1GrammarManage />
-                </Guard>
-              }
-            />
-            <Route
-              path="a1/listening/add"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A1ListeningAdd />
-                </Guard>
-              }
-            />
-            <Route
-              path="a1/listening/manage"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A1ListeningManage />
-                </Guard>
-              }
-            />
-            <Route
-              path="a1/reading/add"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A1ReadingAdd />
-                </Guard>
-              }
-            />
-            <Route
-              path="a1/reading/manage"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A1ReadingManage />
-                </Guard>
-              }
-            />
-            <Route
-              path="a1/speaking/add"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A1SpeakingAdd />
-                </Guard>
-              }
-            />
-            <Route
-              path="a1/speaking/manage"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A1SpeakingManage />
-                </Guard>
-              }
-            />
-            <Route
-              path="a1/test/add"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A1TestAdd />
-                </Guard>
-              }
-            />
-            <Route
-              path="a1/test/manage"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A1TestManage />
-                </Guard>
-              }
-            />
+              <Route
+                path="landing"
+                element={
+                  <Guard allowed={hasPermission(me, "landing_page")}>
+                    <LandingPageManagement />
+                  </Guard>
+                }
+              />
+              <Route
+                path="notifications"
+                element={
+                  <Guard allowed={hasPermission(me, "notifications")}>
+                    <SendNotification />
+                  </Guard>
+                }
+              />
+              <Route
+                path="terms"
+                element={
+                  <Guard allowed={hasPermission(me, "terms")}>
+                    <TermsManager />
+                  </Guard>
+                }
+              />
+              <Route
+                path="explore-candidates/*"
+                element={
+                  <Guard allowed={hasPermission(me, "explore_candidates")}>
+                    <ExploreCandidatesAdmin />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a1/flashcard/add"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A1FlashcardAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a1/flashcard/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A1FlashcardManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a1/grammar/add"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A1GrammarAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a1/grammar/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A1GrammarManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a1/listening/add"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A1ListeningAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a1/listening/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A1ListeningManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a1/reading/add"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A1ReadingAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a1/reading/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A1ReadingManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a1/speaking/add"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A1SpeakingAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a1/speaking/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A1SpeakingManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a1/test/add"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A1TestAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a1/test/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A1TestManage />
+                  </Guard>
+                }
+              />
 
-            <Route
-              path="a2/flashcard/add"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A2FlashcardAdd />
-                </Guard>
-              }
-            />
-            <Route
-              path="a2/flashcard/manage"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A2FlashcardManage />
-                </Guard>
-              }
-            />
-            <Route
-              path="a2/grammar/add"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A2GrammarAdd />
-                </Guard>
-              }
-            />
-            <Route
-              path="a2/grammar/manage"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A2GrammarManage />
-                </Guard>
-              }
-            />
-            <Route
-              path="a2/listening/add"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A2ListeningAdd />
-                </Guard>
-              }
-            />
-            <Route
-              path="a2/listening/manage"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A2ListeningManage />
-                </Guard>
-              }
-            />
-            <Route
-              path="a2/reading/add"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A2ReadingAdd />
-                </Guard>
-              }
-            />
-            <Route
-              path="a2/reading/manage"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A2ReadingManage />
-                </Guard>
-              }
-            />
-            <Route
-              path="a2/speaking/add"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A2SpeakingAdd />
-                </Guard>
-              }
-            />
-            <Route
-              path="a2/speaking/manage"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A2SpeakingManage />
-                </Guard>
-              }
-            />
-            <Route
-              path="a2/test/add"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A2TestAdd />
-                </Guard>
-              }
-            />
-            <Route
-              path="a2/test/manage"
-              element={
-                <Guard allowed={hasPermission(me, "content", "edit")}>
-                  <A2TestManage />
-                </Guard>
-              }
-            />
+              <Route
+                path="a2/flashcard/add"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A2FlashcardAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a2/flashcard/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A2FlashcardManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a2/grammar/add"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A2GrammarAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a2/grammar/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A2GrammarManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a2/listening/add"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A2ListeningAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a2/listening/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A2ListeningManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a2/reading/add"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A2ReadingAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a2/reading/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A2ReadingManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a2/speaking/add"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A2SpeakingAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a2/speaking/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A2SpeakingManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a2/test/add"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A2TestAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a2/test/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A2TestManage />
+                  </Guard>
+                }
+              />
 
-            <Route
-              path="access"
-              element={
-                me.role === "super_admin" ? (
-                  <AdminAccessManagement />
-                ) : (
-                  <Navigate to="/admin/no-access" replace />
-                )
-              }
-            />
+              <Route
+                path="access"
+                element={
+                  me.role === "super_admin" ? (
+                    <AdminAccessManagement />
+                  ) : (
+                    <Navigate to="/admin/no-access" replace />
+                  )
+                }
+              />
+              <Route
+                path="payments"
+                element={
+                  me.role === "super_admin" ? (
+                    <PaymentsAdmin />
+                  ) : (
+                    <Navigate to="/admin/no-access" replace />
+                  )
+                }
+              />
             </Routes>
           </Suspense>
         </main>

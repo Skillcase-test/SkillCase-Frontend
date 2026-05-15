@@ -132,6 +132,115 @@ function ActionButton({ children, variant = "default", ...props }) {
   return <button type="button" className={`${base} ${variants[variant]}`} {...props}>{children}</button>;
 }
 
+function formatRecruitmentStageLabel(stage) {
+  const map = {
+    in_process: "In Process",
+    viewed: "Viewed",
+    rejected: "Rejected",
+    shortlisted: "Shortlisted",
+    scheduled_interview: "Scheduled Interview",
+  };
+  return map[stage] || "In Process";
+}
+
+function RecruitmentStatusModal({ open, loading, data, error, onClose }) {
+  if (!open) return null;
+
+  const counts = data?.summary_counts || {
+    shown_to_recruiters: 0,
+    viewed: 0,
+    shortlisted: 0,
+    rejected: 0,
+    scheduled_interview: 0,
+  };
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-slate-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+          <h3 className="text-lg font-bold text-slate-900">Recruitment Status</h3>
+          <button
+            type="button"
+            className="text-slate-500 hover:text-slate-900 text-xl leading-none"
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          {loading ? <p className="text-sm text-slate-500">Loading status...</p> : null}
+          {!loading && error ? <p className="text-sm text-rose-600">{error}</p> : null}
+          {!loading && !error && data ? (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-slate-200 p-3 bg-slate-50">
+                  <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Linked Learner</p>
+                  <p className="text-sm text-slate-900 mt-1 font-semibold">
+                    {data.linked_user ? `${data.linked_user.fullname || "-"} (${data.linked_user.user_id})` : "Not linked"}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-200 p-3 bg-slate-50">
+                  <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Current Stage</p>
+                  <p className="text-sm text-slate-900 mt-1 font-semibold">
+                    {formatRecruitmentStageLabel(data.derived_stage)}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-200 p-3 bg-slate-50 sm:col-span-2">
+                  <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Learner Visibility</p>
+                  <p className="text-sm text-slate-900 mt-1 font-semibold">
+                    {data?.linked_user
+                      ? (data?.visibility?.is_enabled ? "Enabled" : "Disabled")
+                      : "Not available (learner not linked)"}
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                <div className="rounded-lg border border-slate-200 p-2 text-center"><p className="text-xs text-slate-500">Shown</p><p className="font-bold">{counts.shown_to_recruiters || 0}</p></div>
+                <div className="rounded-lg border border-slate-200 p-2 text-center"><p className="text-xs text-slate-500">Viewed</p><p className="font-bold">{counts.viewed || 0}</p></div>
+                <div className="rounded-lg border border-slate-200 p-2 text-center"><p className="text-xs text-slate-500">Shortlisted</p><p className="font-bold">{counts.shortlisted || 0}</p></div>
+                <div className="rounded-lg border border-slate-200 p-2 text-center"><p className="text-xs text-slate-500">Rejected</p><p className="font-bold">{counts.rejected || 0}</p></div>
+                <div className="rounded-lg border border-slate-200 p-2 text-center"><p className="text-xs text-slate-500">Scheduled</p><p className="font-bold">{counts.scheduled_interview || 0}</p></div>
+              </div>
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Recruiter</th>
+                      <th className="px-3 py-2 text-left">Stage</th>
+                      <th className="px-3 py-2 text-left">Views</th>
+                      <th className="px-3 py-2 text-left">Last Activity</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {(data.recruiter_breakdown || []).length ? (
+                      data.recruiter_breakdown.map((row) => (
+                        <tr key={`${row.account_id}-${row.recruiter_email}`}>
+                          <td className="px-3 py-2">{row.recruiter_email || "-"}</td>
+                          <td className="px-3 py-2">{formatRecruitmentStageLabel(row.stage)}</td>
+                          <td className="px-3 py-2">{row.view_count || 0}</td>
+                          <td className="px-3 py-2">
+                            {row.latest_scheduled_at || row.status_updated_at || row.last_viewed_at || row.assigned_at
+                              ? new Date(row.latest_scheduled_at || row.status_updated_at || row.last_viewed_at || row.assigned_at).toLocaleString("en-IN")
+                              : "-"}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="px-3 py-3 text-slate-500" colSpan={4}>No recruiter activity yet.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AccountsPage() {
   const navigate = useNavigate();
   const [accounts, setAccounts] = useState([]);
@@ -445,10 +554,39 @@ function AccountProfilesPage() {
   const [pickSearchBy, setPickSearchBy] = useState("name");
   const [pickQuery, setPickQuery] = useState("");
   const [pickOptions, setPickOptions] = useState([]);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [statusError, setStatusError] = useState("");
+  const [statusData, setStatusData] = useState(null);
+  const [statusToggling, setStatusToggling] = useState({});
 
   async function load() {
     const assignRes = await exploreCandidatesAdminApi.getAccountProfiles(accountId);
-    setState(assignRes.data.data || { assigned: [], available: [] });
+    const nextState = assignRes.data.data || { assigned: [], available: [] };
+    const assigned = Array.isArray(nextState.assigned) ? nextState.assigned : [];
+    const localRows = assigned.filter((row) =>
+      String(row.id || "").startsWith("local:"),
+    );
+    const visibilityById = {};
+    await Promise.all(
+      localRows.map(async (row) => {
+        try {
+          const localId = Number(String(row.id).split(":")[1] || 0);
+          if (!localId) return;
+          const res = await exploreCandidatesAdminApi.getProfileRecruitmentStatus(localId);
+          visibilityById[row.id] = res?.data?.data?.visibility || { is_enabled: false };
+        } catch (_err) {
+          visibilityById[row.id] = { is_enabled: false };
+        }
+      }),
+    );
+    setState({
+      ...nextState,
+      assigned: assigned.map((row) => ({
+        ...row,
+        visibility: visibilityById[row.id] || row.visibility || { is_enabled: false },
+      })),
+    });
   }
 
   useEffect(() => {
@@ -468,6 +606,54 @@ function AccountProfilesPage() {
     }, 250);
     return () => clearTimeout(timer);
   }, [pickSource, pickSearchBy, pickQuery]);
+
+  async function openRecruitmentStatusForAssigned(profileRow) {
+    const [rowSource, rowIdRaw] = String(profileRow.id || "").split(":");
+    const localProfileId =
+      rowSource === "local" ? Number(rowIdRaw || 0) : Number(profileRow.id || 0);
+
+    if (!localProfileId || rowSource === "explore_php" || rowSource === "main_php") {
+      window.alert("Recruitment status is available only for local shared profiles.");
+      return;
+    }
+
+    setStatusModalOpen(true);
+    setStatusLoading(true);
+    setStatusError("");
+    setStatusData(null);
+    try {
+      const res = await exploreCandidatesAdminApi.getProfileRecruitmentStatus(localProfileId);
+      setStatusData(res?.data?.data || null);
+    } catch (error) {
+      setStatusError(error?.response?.data?.message || "Could not fetch recruitment status");
+    } finally {
+      setStatusLoading(false);
+    }
+  }
+
+  async function toggleRecruitmentStatusForAssigned(profileRow, shouldEnable) {
+    const [rowSource, rowIdRaw] = String(profileRow.id || "").split(":");
+    const localProfileId =
+      rowSource === "local" ? Number(rowIdRaw || 0) : Number(profileRow.id || 0);
+    if (!localProfileId || rowSource === "explore_php" || rowSource === "main_php") {
+      window.alert("Recruitment status visibility is available only for local shared profiles.");
+      return;
+    }
+    const key = `assigned-${profileRow.id}`;
+    try {
+      setStatusToggling((prev) => ({ ...prev, [key]: true }));
+      if (shouldEnable) {
+        await exploreCandidatesAdminApi.enableProfileRecruitmentStatus(localProfileId);
+      } else {
+        await exploreCandidatesAdminApi.disableProfileRecruitmentStatus(localProfileId);
+      }
+      await load();
+    } catch (error) {
+      window.alert(error?.response?.data?.message || "Could not update visibility");
+    } finally {
+      setStatusToggling((prev) => ({ ...prev, [key]: false }));
+    }
+  }
 
   return (
     <div className="space-y-8 font-sans">
@@ -605,6 +791,25 @@ function AccountProfilesPage() {
                     <Link to={`/admin/explore-candidates/profiles/${p.id}/edit?accountId=${accountId}`}>
                       <ActionButton>Edit</ActionButton>
                     </Link>
+                    <ActionButton onClick={() => openRecruitmentStatusForAssigned(p)}>
+                      Status
+                    </ActionButton>
+                    <ActionButton
+                      variant={p?.visibility?.is_enabled ? "danger" : "primary"}
+                      disabled={Boolean(statusToggling[`assigned-${p.id}`])}
+                      onClick={() =>
+                        toggleRecruitmentStatusForAssigned(
+                          p,
+                          !Boolean(p?.visibility?.is_enabled),
+                        )
+                      }
+                    >
+                      {statusToggling[`assigned-${p.id}`]
+                        ? "Saving..."
+                        : p?.visibility?.is_enabled
+                          ? "Stop Status"
+                          : "Show Status"}
+                    </ActionButton>
                     <ActionButton
                       variant="danger"
                       onClick={async () => {
@@ -629,6 +834,13 @@ function AccountProfilesPage() {
           </TableBody>
         </TableWrapper>
       </div>
+      <RecruitmentStatusModal
+        open={statusModalOpen}
+        loading={statusLoading}
+        data={statusData}
+        error={statusError}
+        onClose={() => setStatusModalOpen(false)}
+      />
     </div>
   );
 }
@@ -642,6 +854,11 @@ function LibraryPage() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, total_pages: 1 });
   const [loading, setLoading] = useState(false);
   const [addingLocal, setAddingLocal] = useState({});
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [statusError, setStatusError] = useState("");
+  const [statusData, setStatusData] = useState(null);
+  const [statusToggling, setStatusToggling] = useState({});
 
   async function load() {
     setLoading(true);
@@ -653,7 +870,34 @@ function LibraryPage() {
         page,
         limit: 20,
       });
-      setProfiles(res?.data?.data || []);
+      const baseProfiles = res?.data?.data || [];
+      const localRows = baseProfiles.filter((row) =>
+        String(row.profile_uid || `local:${row.id}`).startsWith("local:"),
+      );
+      const visibilityByUid = {};
+      await Promise.all(
+        localRows.map(async (row) => {
+          const uid = String(row.profile_uid || `local:${row.id}`);
+          try {
+            const statusRes =
+              await exploreCandidatesAdminApi.getLibraryProfileRecruitmentStatus(uid);
+            visibilityByUid[uid] =
+              statusRes?.data?.data?.visibility || { is_enabled: false };
+          } catch (_err) {
+            visibilityByUid[uid] = { is_enabled: false };
+          }
+        }),
+      );
+      setProfiles(
+        baseProfiles.map((row) => {
+          const uid = String(row.profile_uid || `local:${row.id}`);
+          return {
+            ...row,
+            visibility:
+              visibilityByUid[uid] || row.visibility || { is_enabled: false },
+          };
+        }),
+      );
       setPagination(res?.data?.pagination || { page: 1, limit: 20, total: 0, total_pages: 1 });
     } finally {
       setLoading(false);
@@ -671,6 +915,51 @@ function LibraryPage() {
     }, 300);
     return () => clearTimeout(timer);
   }, [query]);
+
+  async function openRecruitmentStatusForLibrary(profileRow) {
+    const uid = String(profileRow.profile_uid || `local:${profileRow.id}`);
+    if (!uid.startsWith("local:")) {
+      window.alert("Recruitment status is available only for local shared profiles.");
+      return;
+    }
+    setStatusModalOpen(true);
+    setStatusLoading(true);
+    setStatusError("");
+    setStatusData(null);
+    try {
+      const res =
+        await exploreCandidatesAdminApi.getLibraryProfileRecruitmentStatus(uid);
+      setStatusData(res?.data?.data || null);
+    } catch (error) {
+      setStatusError(
+        error?.response?.data?.message || "Could not fetch recruitment status",
+      );
+    } finally {
+      setStatusLoading(false);
+    }
+  }
+
+  async function toggleRecruitmentStatusForLibrary(profileRow, shouldEnable) {
+    const uid = String(profileRow.profile_uid || `local:${profileRow.id}`);
+    if (!uid.startsWith("local:")) {
+      window.alert("Recruitment status visibility is available only for local shared profiles.");
+      return;
+    }
+    const key = `library-${uid}`;
+    try {
+      setStatusToggling((prev) => ({ ...prev, [key]: true }));
+      if (shouldEnable) {
+        await exploreCandidatesAdminApi.enableLibraryProfileRecruitmentStatus(uid);
+      } else {
+        await exploreCandidatesAdminApi.disableLibraryProfileRecruitmentStatus(uid);
+      }
+      await load();
+    } catch (error) {
+      window.alert(error?.response?.data?.message || "Could not update visibility");
+    } finally {
+      setStatusToggling((prev) => ({ ...prev, [key]: false }));
+    }
+  }
 
   return (
     <div className="space-y-8 font-sans">
@@ -793,6 +1082,25 @@ function LibraryPage() {
                       </span>
                     ) : (
                       <>
+                        <ActionButton onClick={() => openRecruitmentStatusForLibrary(p)}>
+                          Status
+                        </ActionButton>
+                        <ActionButton
+                          variant={p?.visibility?.is_enabled ? "danger" : "primary"}
+                          disabled={Boolean(statusToggling[`library-${p.profile_uid || `local:${p.id}`}`])}
+                          onClick={() =>
+                            toggleRecruitmentStatusForLibrary(
+                              p,
+                              !Boolean(p?.visibility?.is_enabled),
+                            )
+                          }
+                        >
+                          {statusToggling[`library-${p.profile_uid || `local:${p.id}`}`]
+                            ? "Saving..."
+                            : p?.visibility?.is_enabled
+                              ? "Stop Status"
+                              : "Show Status"}
+                        </ActionButton>
                         <Link to={`/admin/explore-candidates/profiles/${encodeURIComponent(p.profile_uid || `local:${p.id}`)}/edit`}>
                           <ActionButton>Edit</ActionButton>
                         </Link>
@@ -839,6 +1147,13 @@ function LibraryPage() {
           </div>
         </div>
       </div>
+      <RecruitmentStatusModal
+        open={statusModalOpen}
+        loading={statusLoading}
+        data={statusData}
+        error={statusError}
+        onClose={() => setStatusModalOpen(false)}
+      />
     </div>
   );
 }

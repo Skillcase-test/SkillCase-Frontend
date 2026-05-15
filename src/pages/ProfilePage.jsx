@@ -3,6 +3,14 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setUser } from "../redux/auth/authSlice";
 import api from "../api/axios";
+import {
+  Send,
+  Eye,
+  BookmarkCheck,
+  CalendarCheck2,
+  AlertCircle,
+  EyeOff,
+} from "lucide-react";
 
 const DEFAULT_AVATAR = (
   <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
@@ -72,6 +80,9 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [profileStatus, setProfileStatus] = useState(0);
+  const [recruitmentStatus, setRecruitmentStatus] = useState(null);
+  const [recruitmentLoading, setRecruitmentLoading] = useState(false);
+  const [recruitmentError, setRecruitmentError] = useState("");
   const [toast, setToast] = useState({ show: false, msg: "", type: "" });
   const aliveRef = useRef(true);
 
@@ -116,13 +127,31 @@ export default function ProfilePage() {
     }
   }, []);
 
+  const fetchRecruitmentStatus = useCallback(async () => {
+    try {
+      setRecruitmentLoading(true);
+      setRecruitmentError("");
+      const res = await api.get("/user/recruitment-status");
+      if (!aliveRef.current) return;
+      setRecruitmentStatus(res?.data?.data || null);
+    } catch (err) {
+      if (!aliveRef.current) return;
+      setRecruitmentError(
+        err?.response?.data?.msg || "Could not load recruitment status",
+      );
+    } finally {
+      if (aliveRef.current) setRecruitmentLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
       return;
     }
     fetchProfile();
-  }, [fetchProfile, isAuthenticated, navigate]);
+    fetchRecruitmentStatus();
+  }, [fetchProfile, fetchRecruitmentStatus, isAuthenticated, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -200,6 +229,41 @@ export default function ProfilePage() {
 
   const displayName = form.fullname || user?.username || "User";
   const displayEmail = form.email || "";
+
+  const stats = [
+    {
+      key: "shown_to_recruiters",
+      label: "Shown",
+      icon: <Send className="w-4 h-4" />,
+      color: "from-blue-700 to-blue-800",
+      bgTint: "bg-blue-100",
+      textTint: "text-blue-700",
+    },
+    {
+      key: "viewed",
+      label: "Viewed",
+      icon: <Eye className="w-4 h-4" />,
+      color: "from-sky-900 to-sky-950",
+      bgTint: "bg-sky-100",
+      textTint: "text-sky-700",
+    },
+    {
+      key: "shortlisted",
+      label: "Shortlisted",
+      icon: <BookmarkCheck className="w-4 h-4" />,
+      color: "from-amber-500 to-amber-600",
+      bgTint: "bg-amber-100",
+      textTint: "text-amber-700",
+    },
+    {
+      key: "scheduled_interview",
+      label: "Interview",
+      icon: <CalendarCheck2 className="w-4 h-4" />,
+      color: "from-emerald-500 to-emerald-600",
+      bgTint: "bg-emerald-100",
+      textTint: "text-emerald-700",
+    },
+  ];
 
   if (loading) {
     return (
@@ -304,6 +368,93 @@ export default function ProfilePage() {
 
       {/* Profile Form Card */}
       <div className="max-w-lg mx-auto px-4 py-6">
+        {/* Recruitment Status Card */}
+        <div className="rounded-xl border border-[#e9eaeb] shadow-sm mb-4 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-[#181d27]">
+              Recruitment Status
+            </h2>
+          </div>
+
+          {recruitmentLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <div className="w-5 h-5 border-2 border-[#002856] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : recruitmentError ? (
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-rose-50 border border-rose-200">
+              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+              <p className="text-xs text-rose-700">{recruitmentError}</p>
+            </div>
+          ) : !recruitmentStatus?.visible ? (
+            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+              <EyeOff className="w-4 h-4 text-slate-400 flex-shrink-0" />
+              <p className="text-xs text-slate-500">
+                Recruitment status is hidden. It will appear once enabled by
+                admin.
+              </p>
+            </div>
+          ) : (
+            <div>
+              {/* Pipeline Progress Bar */}
+              <div className="flex items-center gap-0.5 mb-3">
+                {stats.map((stat, idx) => {
+                  const isActive =
+                    recruitmentStatus?.summary_counts?.[stat.key] > 0;
+                  return (
+                    <div key={stat.key} className="flex-1 flex items-center">
+                      <div
+                        className={`flex-1 h-1 rounded-full transition-colors ${isActive ? `bg-gradient-to-r ${stat.color}` : "bg-gray-200"}`}
+                      />
+                      {idx < stats.length - 1 && (
+                        <div className="w-0.5 h-1 bg-gray-200 flex-shrink-0" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-4 gap-2">
+                {stats.map((stat) => {
+                  const count =
+                    recruitmentStatus?.summary_counts?.[stat.key] || 0;
+                  const isActive = count > 0;
+                  return (
+                    <div
+                      key={stat.key}
+                      className={`relative rounded-lg p-2 text-center transition-all ${
+                        isActive
+                          ? `${stat.bgTint} border border-transparent`
+                          : "bg-white border border-[#e9eaeb]"
+                      }`}
+                    >
+                      <div
+                        className={`inline-flex p-1.5 rounded-md ${isActive ? stat.bgTint : "bg-gray-100"}`}
+                      >
+                        <div
+                          className={isActive ? stat.textTint : "text-gray-400"}
+                        >
+                          {stat.icon}
+                        </div>
+                      </div>
+                      <p
+                        className={`mt-1.5 text-lg font-bold tracking-tight ${isActive ? "text-[#181d27]" : "text-gray-300"}`}
+                      >
+                        {count}
+                      </p>
+                      <p
+                        className={`text-[8px] font-semibold uppercase tracking-wider ${isActive ? "text-gray-500" : "text-gray-400"}`}
+                      >
+                        {stat.label}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
         <div className="bg-white rounded-xl border border-[#e9eaeb] shadow-sm">
           {/* Card Header */}
           <button
@@ -382,15 +533,30 @@ export default function ProfilePage() {
                 </label>
                 <div className="flex items-center px-4 py-3.5 rounded-lg border border-[#e9eaeb] bg-[#f5f5f5] text-base text-[#717680]">
                   <span className="flex items-center gap-2 border-r border-[#d5d7da] pr-3 mr-3">
-                    <svg viewBox="0 0 36 24" className="w-6 h-4 flex-shrink-0 rounded-sm overflow-hidden">
+                    <svg
+                      viewBox="0 0 36 24"
+                      className="w-6 h-4 flex-shrink-0 rounded-sm overflow-hidden"
+                    >
                       <rect width="36" height="8" fill="#FF9933" />
                       <rect y="8" width="36" height="8" fill="#FFFFFF" />
                       <rect y="16" width="36" height="8" fill="#138808" />
                       <circle cx="18" cy="12" r="2.5" fill="#000080" />
                     </svg>
-                    <span className="text-[#414651] font-medium">{countryCode}</span>
-                    <svg className="w-3 h-3 text-[#717680]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    <span className="text-[#414651] font-medium">
+                      {countryCode}
+                    </span>
+                    <svg
+                      className="w-3 h-3 text-[#717680]"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19 9l-7 7-7-7"
+                      />
                     </svg>
                   </span>
                   <span className="text-[#414651]">{phoneNumber}</span>

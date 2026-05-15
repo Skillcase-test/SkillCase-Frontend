@@ -16,6 +16,24 @@ function profileToFormData(payload = {}) {
 export const exploreCandidatesAdminApi = {
   listLibraryProfilesV2: (params = {}) =>
     api.get("/admin/explore-candidates/library-profiles", { params }),
+  getLibraryProfileRecruitmentStatus: (profileUid) =>
+    api.get(
+      `/admin/explore-candidates/library-profiles/${encodeURIComponent(profileUid)}/recruitment-status`,
+    ),
+  enableLibraryProfileRecruitmentStatus: (profileUid) =>
+    api.post(
+      `/admin/explore-candidates/library-profiles/${encodeURIComponent(profileUid)}/recruitment-status/enable`,
+    ),
+  disableLibraryProfileRecruitmentStatus: (profileUid) =>
+    api.post(
+      `/admin/explore-candidates/library-profiles/${encodeURIComponent(profileUid)}/recruitment-status/disable`,
+    ),
+  getProfileRecruitmentStatus: (profileId) =>
+    api.get(`/admin/explore-candidates/profiles/${profileId}/recruitment-status`),
+  enableProfileRecruitmentStatus: (profileId) =>
+    api.post(`/admin/explore-candidates/profiles/${profileId}/recruitment-status/enable`),
+  disableProfileRecruitmentStatus: (profileId) =>
+    api.post(`/admin/explore-candidates/profiles/${profileId}/recruitment-status/disable`),
   getLibraryProfileByUid: (profileUid) =>
     api.get(`/admin/explore-candidates/library-profiles/${encodeURIComponent(profileUid)}`),
   updateLibraryProfileByUid: (profileUid, payload) =>

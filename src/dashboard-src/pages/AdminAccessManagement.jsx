@@ -18,6 +18,7 @@ const MODULE_OPTIONS = [
   { key: "wise", label: "Wise Dashboard" },
   { key: "internal", label: "Internal Forms" },
   { key: "terms", label: "Terms & Signatures" },
+  { key: "payments", label: "Payments" },
 ];
 
 const ACTION_OPTIONS = ["view", "create", "edit", "delete", "manage"];
@@ -248,7 +249,7 @@ export default function AdminAccessManagement() {
   });
   const [wiseBatches, setWiseBatches] = useState([]);
   const [batchToAdd, setBatchToAdd] = useState("");
-  
+
   const [termsPayload, setTermsPayload] = useState({
     has_full_access: false,
     template_ids: [],
@@ -299,7 +300,9 @@ export default function AdminAccessManagement() {
     setTemplatesLoading(true);
     try {
       const res = await api.get("/admin/terms/templates");
-      const normalized = (res.data?.templates || []).filter((t) => t.template_id);
+      const normalized = (res.data?.templates || []).filter(
+        (t) => t.template_id,
+      );
       setTermsTemplates(normalized);
     } catch (_err) {
       setTermsTemplates([]);
@@ -316,7 +319,9 @@ export default function AdminAccessManagement() {
       const [permRes, wiseRes, termsRes] = await Promise.all([
         adminAccessApi.getUserPermissions(user.user_id),
         adminAccessApi.getUserWiseAccess(user.user_id),
-        adminAccessApi.getUserTermsAccess(user.user_id).catch(() => ({ data: { terms: {} } })),
+        adminAccessApi
+          .getUserTermsAccess(user.user_id)
+          .catch(() => ({ data: { terms: {} } })),
       ]);
       setPermissions(permRes.data.permissions || {});
       const wise = wiseRes.data.wise || {};
@@ -713,14 +718,19 @@ export default function AdminAccessManagement() {
                             <div className="flex flex-wrap items-center gap-2">
                               <select
                                 value={templateToAdd}
-                                onChange={(e) => setTemplateToAdd(e.target.value)}
+                                onChange={(e) =>
+                                  setTemplateToAdd(e.target.value)
+                                }
                                 className="min-w-[240px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
                               >
                                 <option value="">
                                   Select a template to grant access
                                 </option>
                                 {availableTemplateOptions.map((t) => (
-                                  <option key={t.template_id} value={t.template_id}>
+                                  <option
+                                    key={t.template_id}
+                                    value={t.template_id}
+                                  >
                                     {t.title}
                                   </option>
                                 ))}
@@ -764,9 +774,12 @@ export default function AdminAccessManagement() {
                                       onClick={() =>
                                         setTermsPayload((prev) => ({
                                           ...prev,
-                                          template_ids: prev.template_ids.filter(
-                                            (id) => String(id) !== String(t.template_id),
-                                          ),
+                                          template_ids:
+                                            prev.template_ids.filter(
+                                              (id) =>
+                                                String(id) !==
+                                                String(t.template_id),
+                                            ),
                                         }))
                                       }
                                       className="rounded-full border border-slate-200 px-1.5 text-[10px] text-slate-500 hover:bg-white"
