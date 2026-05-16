@@ -43,6 +43,9 @@ const SkillcaseInterviewToolsReviewPage = lazy(
   () => import("../../pages/interviewTools/SkillcaseInterviewToolsReviewPage"),
 );
 const WiseDashboard = lazy(() => import("../../pages/internal/WiseDashboard"));
+const WiseClassesDashboard = lazy(
+  () => import("../../pages/internal/WiseClassesDashboard"),
+);
 const InternalLeadForm = lazy(() => import("../../pages/InternalLeadForm"));
 const AdminAccessManagement = lazy(() => import("./AdminAccessManagement"));
 const ExploreCandidatesAdmin = lazy(() => import("./ExploreCandidatesAdmin"));
@@ -274,7 +277,7 @@ function SkillcaseInterviewsModule({
   );
 }
 
-function SidebarSection({ title, items }) {
+function SidebarSection({ title, items, onLinkClick }) {
   if (!items.length) return null;
   return (
     <div className="mb-4">
@@ -286,6 +289,7 @@ function SidebarSection({ title, items }) {
           <NavLink
             key={item.key}
             to={item.path}
+            onClick={onLinkClick}
             className={({ isActive }) =>
               `block rounded-md px-3 py-2 text-sm font-semibold ${
                 isActive
@@ -302,7 +306,7 @@ function SidebarSection({ title, items }) {
   );
 }
 
-function SidebarModuleGroups({ title, modules }) {
+function SidebarModuleGroups({ title, modules, onLinkClick }) {
   const location = useLocation();
   const [openMap, setOpenMap] = useState({});
 
@@ -347,6 +351,7 @@ function SidebarModuleGroups({ title, modules }) {
                   <div className="space-y-1">
                     <NavLink
                       to={`${moduleItem.basePath}/add`}
+                      onClick={onLinkClick}
                       className={({ isActive }) =>
                         `block rounded px-3 py-1.5 text-xs font-semibold ${
                           isActive
@@ -359,6 +364,7 @@ function SidebarModuleGroups({ title, modules }) {
                     </NavLink>
                     <NavLink
                       to={`${moduleItem.basePath}/manage`}
+                      onClick={onLinkClick}
                       className={({ isActive }) =>
                         `block rounded px-3 py-1.5 text-xs font-semibold ${
                           isActive
@@ -418,6 +424,7 @@ export default function Dashboard() {
   const [me, setMe] = useState(null);
   const [loading, setLoading] = useState(true);
   const [desktopSidebarExpanded, setDesktopSidebarExpanded] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const sidebarHoverTimersRef = useRef({ open: null, close: null });
 
   const clearSidebarHoverTimer = (timerKey) => {
@@ -445,6 +452,14 @@ export default function Dashboard() {
       setDesktopSidebarExpanded(false);
       sidebarHoverTimersRef.current.close = null;
     }, 180);
+  };
+
+  const toggleMobileSidebar = () => {
+    setMobileSidebarOpen((prev) => !prev);
+  };
+
+  const closeMobileSidebar = () => {
+    setMobileSidebarOpen(false);
   };
 
   useEffect(() => {
@@ -526,6 +541,12 @@ export default function Dashboard() {
         key: "wise",
         label: "Wise Dashboard",
         path: "/admin/wise",
+        module: "wise",
+      },
+      {
+        key: "wise-classes",
+        label: "Wise Classes",
+        path: "/admin/wise-classes",
         module: "wise",
       },
       {
@@ -665,7 +686,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-100">
       <div className="grid grid-cols-1 gap-3 p-3 lg:grid-cols-[64px_minmax(0,1fr)]">
         <aside
-          className="relative z-40 overflow-visible rounded-lg border border-slate-200 bg-white p-2 lg:sticky lg:top-3 lg:self-start lg:min-h-[calc(100vh-24px)]"
+          className="relative z-40 rounded-lg border border-slate-200 bg-white lg:sticky lg:top-3 lg:self-start lg:min-h-[calc(100vh-24px)]"
           onFocusCapture={scheduleSidebarExpand}
           onBlurCapture={(event) => {
             if (!event.currentTarget.contains(event.relatedTarget)) {
@@ -673,6 +694,22 @@ export default function Dashboard() {
             }
           }}
         >
+          {/* Mobile toggle button */}
+          <button
+            onClick={toggleMobileSidebar}
+            className="flex w-full items-center justify-between p-3 lg:hidden"
+          >
+            <span className="text-xs font-bold uppercase tracking-widest text-slate-500">
+              Menu
+            </span>
+            {mobileSidebarOpen ? (
+              <ChevronDown className="h-5 w-5 text-slate-600 transition-transform" />
+            ) : (
+              <ChevronRight className="h-5 w-5 text-slate-600 transition-transform" />
+            )}
+          </button>
+
+          {/* Desktop collapsed state */}
           <div
             className="hidden h-full flex-col items-center pt-2 lg:flex"
             onPointerEnter={scheduleSidebarExpand}
@@ -692,6 +729,7 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Desktop expanded overlay */}
           <div
             className="absolute left-0 top-0 z-50 hidden h-full rounded-lg border border-slate-200 bg-white shadow-lg lg:block"
             onPointerEnter={scheduleSidebarExpand}
@@ -722,6 +760,24 @@ export default function Dashboard() {
               <SidebarModuleGroups title="A1" modules={sections.a1Modules} />
               <SidebarModuleGroups title="A2" modules={sections.a2Modules} />
               <SidebarSection title="Super Admin" items={sections.superAdmin} />
+            </div>
+          </div>
+
+          {/* Mobile dropdown */}
+          <div
+            className="overflow-hidden transition-all duration-300 ease-in-out lg:hidden"
+            style={{
+              maxHeight: mobileSidebarOpen ? "80vh" : "0px",
+            }}
+          >
+            <div className="border-t border-slate-100 p-3 overflow-y-auto max-h-[70vh]">
+              <p className="mb-2 px-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+                Admin Panel
+              </p>
+              <SidebarSection title="Core" items={sections.core} onLinkClick={closeMobileSidebar} />
+              <SidebarModuleGroups title="A1" modules={sections.a1Modules} onLinkClick={closeMobileSidebar} />
+              <SidebarModuleGroups title="A2" modules={sections.a2Modules} onLinkClick={closeMobileSidebar} />
+              <SidebarSection title="Super Admin" items={sections.superAdmin} onLinkClick={closeMobileSidebar} />
             </div>
           </div>
         </aside>
@@ -789,6 +845,14 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "wise")}>
                     <WiseDashboard />
+                  </Guard>
+                }
+              />
+              <Route
+                path="wise-classes"
+                element={
+                  <Guard allowed={hasPermission(me, "wise")}>
+                    <WiseClassesDashboard />
                   </Guard>
                 }
               />
