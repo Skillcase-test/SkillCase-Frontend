@@ -34,7 +34,19 @@ export function MonthViewTab({
               <td className="px-2 py-2">{r.batch_name || "-"}</td>
               <td className="px-2 py-2">{formatInrFromPaise(r.paid_paise)}</td>
               <td className="px-2 py-2">
-                {r.status === "finalized" ? (
+                {r.lifecycle_state === "dropped" ? (
+                  <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
+                    Dropped
+                  </span>
+                ) : r.lifecycle_state === "on_hold" ? (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                    On Hold
+                  </span>
+                ) : r.lifecycle_state === "completed" ? (
+                  <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
+                    Completed
+                  </span>
+                ) : r.status === "finalized" ? (
                   <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
                     Finalized
                   </span>
@@ -47,7 +59,14 @@ export function MonthViewTab({
               <td className="px-2 py-2">
                 <div className="flex gap-1">
                   <ActionChip
-                    onClick={() => setEditDraft({ ...r, ...(r.notes || {}) })}
+                    onClick={() =>
+                      setEditDraft({
+                        ...r,
+                        total_fee_inr: r?.notes?.total_fee_inr || 60000,
+                        monthly_fee_inr: r?.notes?.monthly_fee_inr || 6000,
+                        ...(r.notes || {}),
+                      })
+                    }
                   >
                     Details
                   </ActionChip>

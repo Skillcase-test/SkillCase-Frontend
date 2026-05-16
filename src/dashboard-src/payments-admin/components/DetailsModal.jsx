@@ -26,6 +26,8 @@ export function DetailsModal({
             ["student_phone", "Phone"],
             ["student_email", "Email"],
             ["candidate_id", "Candidate ID"],
+            ["total_fee_inr", "Total Amount (INR)"],
+            ["monthly_fee_inr", "Monthly Amount (INR)"],
             ["alternate_number", "Alternate Number"],
             ["nationality", "Nationality"],
             ["current_location_city", "Current Location (City)"],

@@ -57,8 +57,41 @@ export function usePaymentsAdminState() {
   const [paymentSearch, setPaymentSearch] = useState("");
   const [rawSearch, setRawSearch] = useState("");
   const [allStatusFilter, setAllStatusFilter] = useState("");
+  const [allBatchFilter, setAllBatchFilter] = useState("");
+  const [allSummary, setAllSummary] = useState({
+    total_enrollments: 0,
+    total_active: 0,
+    total_dropped: 0,
+    total_hold: 0,
+  });
+  const [cohortFilter, setCohortFilter] = useState("both");
+  const [lifecycleModal, setLifecycleModal] = useState({
+    open: false,
+    action: "",
+    enrollmentId: "",
+    year: now.getUTCFullYear(),
+    month: now.getUTCMonth() + 1,
+    studentName: "",
+  });
+  const [feeBreakdownModal, setFeeBreakdownModal] = useState({
+    open: false,
+    title: "",
+    rows: [],
+  });
+  const [feeBreakdownLoading, setFeeBreakdownLoading] = useState(false);
+  const [feeBreakdownCache, setFeeBreakdownCache] = useState({});
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    total_pages: 1,
+  });
+  const [feeSummary, setFeeSummary] = useState({
+    paid_this_month_paise: 0,
+    unpaid_this_month_paise: 0,
+  });
   const [enrollmentSearchTerm, setEnrollmentSearchTerm] = useState("");
   const [invoiceRows, setInvoiceRows] = useState([]);
   const [invoicePaymentRows, setInvoicePaymentRows] = useState([]);
@@ -77,14 +110,24 @@ export function usePaymentsAdminState() {
     try {
       const res = await paymentsAdminApi.getBatches();
       setBatches(res.data.batches || []);
-      const allRes = await paymentsAdminApi.getAllView();
-      setCandidateOptions(allRes.data.rows || []);
     } catch (err) {
       if (err?.response?.data?.code === "PAYMENTS_STEP_UP_REQUIRED") {
         resetStepUpSession();
         setError("Payments step-up expired. Please unlock again.");
       }
       setBatches([]);
+    }
+  }
+
+  async function refreshCandidateOptions() {
+    try {
+      const allRes = await paymentsAdminApi.getAllView({ page: 1, limit: 100 });
+      setCandidateOptions(allRes.data.rows || []);
+    } catch (err) {
+      if (err?.response?.data?.code === "PAYMENTS_STEP_UP_REQUIRED") {
+        resetStepUpSession();
+        setError("Payments step-up expired. Please unlock again.");
+      }
       setCandidateOptions([]);
     }
   }
@@ -94,37 +137,90 @@ export function usePaymentsAdminState() {
     setError("");
     try {
       if (tab === "all") {
-        const res = await paymentsAdminApi.getAllView();
+        const res = await paymentsAdminApi.getAllView({
+          page: currentPage,
+          limit: rowsPerPage,
+          search: allSearch || undefined,
+          status: allStatusFilter || undefined,
+          batch_id: allBatchFilter || undefined,
+        });
         setRows(res.data.rows || []);
+        setAllSummary(
+          res.data.summary || {
+            total_enrollments: 0,
+            total_active: 0,
+            total_dropped: 0,
+            total_hold: 0,
+          },
+        );
+        setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
       } else if (tab === "month" || tab === "invoice") {
-        const res = await paymentsAdminApi.getMonthView(year, month);
+        const res = await paymentsAdminApi.getMonthView(year, month, {
+          page: currentPage,
+          limit: rowsPerPage,
+          search: monthSearch || undefined,
+        });
         setRows(res.data.rows || []);
+        setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
         if (tab === "invoice") {
-          const inv = await paymentsAdminApi.getInvoices(year, month);
+          const inv = await paymentsAdminApi.getInvoices(year, month, {
+            page: currentPage,
+            limit: rowsPerPage,
+            search: enrollmentSearchTerm || undefined,
+          });
           setInvoiceRows(inv.data.rows || []);
-          const pay = await paymentsAdminApi.getPaymentView(year, month);
+          const pay = await paymentsAdminApi.getPaymentView(year, month, { page: 1, limit: 100 });
           setInvoicePaymentRows(pay.data.rows || []);
         }
       } else if (tab === "batch") {
-        const res = await paymentsAdminApi.getMonthView(year, month);
-        setRows((res.data.rows || []).filter((x) => x.batch_name));
+        setRows([]);
+        setPagination({ page: 1, limit: rowsPerPage, total: 0, total_pages: 1 });
       } else if (tab === "fee") {
-        const res = await paymentsAdminApi.getTotalFeeView(year, month);
+        const res = await paymentsAdminApi.getTotalFeeView(year, month, {
+          page: currentPage,
+          limit: rowsPerPage,
+          search: feeSearch || undefined,
+          fee_filter: feeFilter || undefined,
+          cohort_filter: cohortFilter || undefined,
+        });
         setRows(res.data.rows || []);
+        setFeeSummary(
+          res.data.fee_summary || {
+            paid_this_month_paise: 0,
+            unpaid_this_month_paise: 0,
+          },
+        );
+        setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
       } else if (tab === "discounts") {
-        const res = await paymentsAdminApi.getDiscounts(year, month);
+        const res = await paymentsAdminApi.getDiscounts(year, month, {
+          page: currentPage,
+          limit: rowsPerPage,
+          search: discountSearch || undefined,
+        });
         setRows(res.data.rows || []);
+        setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
       } else if (tab === "payments") {
-        const res = await paymentsAdminApi.getPaymentView(year, month);
+        const res = await paymentsAdminApi.getPaymentView(year, month, {
+          page: currentPage,
+          limit: rowsPerPage,
+          search: paymentSearch || undefined,
+        });
         setRows(res.data.rows || []);
+        setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
       } else if (tab === "rawlogs") {
         const res = await paymentsAdminApi.getRawLogs({
-          limit: 100,
+          page: currentPage,
+          limit: rowsPerPage,
+          search: rawSearch || undefined,
           event_type: rawEventTypeFilter || undefined,
           status: rawStatusFilter || undefined,
         });
         setRows(res.data.rows || []);
         setRawEventTypes(res.data.event_types || []);
+        setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
+      } else if (tab === "import") {
+        setRows([]);
+        setPagination({ page: 1, limit: rowsPerPage, total: 0, total_pages: 1 });
       }
     } catch (err) {
       if (err?.response?.data?.code === "PAYMENTS_STEP_UP_REQUIRED") {
@@ -162,9 +258,43 @@ export function usePaymentsAdminState() {
   useEffect(() => {
     if (!authorized) return;
     loadTabData();
+    setFeeBreakdownCache({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    authorized,
+    tab,
+    year,
+    month,
+    rawEventTypeFilter,
+    rawStatusFilter,
+    currentPage,
+    rowsPerPage,
+    allSearch,
+    allStatusFilter,
+    allBatchFilter,
+    monthSearch,
+    batchSearch,
+    feeSearch,
+    feeFilter,
+    cohortFilter,
+    discountSearch,
+    paymentSearch,
+    rawSearch,
+    enrollmentSearchTerm,
+  ]);
+
+  useEffect(() => {
+    if (!authorized) return;
     refreshBatches();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authorized, tab, year, month, rawEventTypeFilter, rawStatusFilter]);
+  }, [authorized]);
+
+  useEffect(() => {
+    if (!authorized) return;
+    if (tab !== "discounts" && tab !== "invoice") return;
+    refreshCandidateOptions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authorized, tab]);
 
   return {
     SESSION_UNLOCK_KEY,
@@ -230,10 +360,28 @@ export function usePaymentsAdminState() {
     setRawSearch,
     allStatusFilter,
     setAllStatusFilter,
+    allBatchFilter,
+    setAllBatchFilter,
+    allSummary,
+    setAllSummary,
+    cohortFilter,
+    setCohortFilter,
+    lifecycleModal,
+    setLifecycleModal,
+    feeBreakdownModal,
+    setFeeBreakdownModal,
+    feeBreakdownLoading,
+    setFeeBreakdownLoading,
+    feeBreakdownCache,
+    setFeeBreakdownCache,
     rowsPerPage,
     setRowsPerPage,
     currentPage,
     setCurrentPage,
+    pagination,
+    setPagination,
+    feeSummary,
+    setFeeSummary,
     enrollmentSearchTerm,
     setEnrollmentSearchTerm,
     invoiceRows,
@@ -246,6 +394,7 @@ export function usePaymentsAdminState() {
     setCandidateOptions,
     resetStepUpSession,
     refreshBatches,
+    refreshCandidateOptions,
     loadTabData,
   };
 }

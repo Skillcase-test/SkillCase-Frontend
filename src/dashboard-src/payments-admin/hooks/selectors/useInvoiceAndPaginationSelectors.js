@@ -9,7 +9,8 @@ export function useInvoiceAndPaginationSelectors(state, core) {
     enrollmentSearchTerm,
     tab,
     rowsPerPage,
-    currentPage,
+    pagination,
+    feeSummary,
   } = state;
 
   const selectedEnrollment = useMemo(
@@ -54,18 +55,13 @@ export function useInvoiceAndPaginationSelectors(state, core) {
     );
   }, [rows, enrollmentSearchTerm]);
 
-  const feeSummary = useMemo(() => {
+  const resolvedFeeSummary = useMemo(() => {
     if (tab !== "fee") return { unpaidSoFar: 0, paidSoFar: 0 };
-    const unpaidSoFar = rows.reduce(
-      (sum, r) => sum + Number(r.closingDuePaise || 0),
-      0,
-    );
-    const paidSoFar = rows.reduce(
-      (sum, r) => sum + Number(r.paidThisMonthPaise || 0),
-      0,
-    );
-    return { unpaidSoFar, paidSoFar };
-  }, [rows, tab]);
+    return {
+      unpaidSoFar: Number(feeSummary?.unpaid_this_month_paise || 0),
+      paidSoFar: Number(feeSummary?.paid_this_month_paise || 0),
+    };
+  }, [feeSummary, tab]);
 
   const baseRowsForTable = useMemo(() => {
     if (tab === "all") return core.filteredAllRows;
@@ -78,21 +74,15 @@ export function useInvoiceAndPaginationSelectors(state, core) {
     return rows;
   }, [tab, rows, core]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(baseRowsForTable.length / rowsPerPage),
-  );
-  const paginatedRows = useMemo(() => {
-    const start = (currentPage - 1) * rowsPerPage;
-    return baseRowsForTable.slice(start, start + rowsPerPage);
-  }, [baseRowsForTable, currentPage, rowsPerPage]);
+  const totalPages = Math.max(1, Number(pagination?.total_pages || Math.ceil(baseRowsForTable.length / rowsPerPage) || 1));
+  const paginatedRows = useMemo(() => baseRowsForTable, [baseRowsForTable]);
 
   return {
     selectedEnrollment,
     invoicePaymentOptions,
     selectedEnrollmentInvoiceRows,
     filteredEnrollmentOptions,
-    feeSummary,
+    feeSummary: resolvedFeeSummary,
     baseRowsForTable,
     totalPages,
     paginatedRows,

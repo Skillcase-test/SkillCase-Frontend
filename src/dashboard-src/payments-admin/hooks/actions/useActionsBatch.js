@@ -9,6 +9,8 @@ export function useActionsBatch(state) {
     loadTabData,
     year,
     month,
+    lifecycleModal,
+    setLifecycleModal,
     setUpdatingBatchEnrollmentId,
   } = state;
 
@@ -66,40 +68,49 @@ export function useActionsBatch(state) {
     }
   }
 
-  async function handleHold(enrollmentId) {
-    try {
-      await paymentsAdminApi.holdEnrollment(enrollmentId, {
-        hold_start_year: year,
-        hold_start_month: month,
-      });
-      await loadTabData();
-    } catch (err) {
-      setError(err?.response?.data?.msg || "Failed to set hold");
-    }
+  function openLifecycleModal(action, row) {
+    setLifecycleModal({
+      open: true,
+      action,
+      enrollmentId: row.enrollment_id,
+      year,
+      month,
+      studentName: row.student_name || "Candidate",
+    });
   }
 
-  async function handleUnhold(enrollmentId) {
+  async function handleLifecycleSubmit() {
+    const enrollmentId = lifecycleModal?.enrollmentId;
+    const action = lifecycleModal?.action;
+    if (!enrollmentId || !action) return;
+    const selectedYear = Number(lifecycleModal.year || year);
+    const selectedMonth = Number(lifecycleModal.month || month);
     try {
-      await paymentsAdminApi.unholdEnrollment(enrollmentId, {
-        resume_year: year,
-        resume_month: month,
-      });
+      if (action === "hold") {
+        await paymentsAdminApi.holdEnrollment(enrollmentId, {
+          hold_start_year: selectedYear,
+          hold_start_month: selectedMonth,
+        });
+      } else if (action === "unhold") {
+        await paymentsAdminApi.unholdEnrollment(enrollmentId, {
+          resume_year: selectedYear,
+          resume_month: selectedMonth,
+        });
+      } else if (action === "drop") {
+        await paymentsAdminApi.dropEnrollment(enrollmentId, {
+          dropped_from_year: selectedYear,
+          dropped_from_month: selectedMonth,
+        });
+      } else if (action === "undrop") {
+        await paymentsAdminApi.undropEnrollment(enrollmentId, {
+          undropped_from_year: selectedYear,
+          undropped_from_month: selectedMonth,
+        });
+      }
+      setLifecycleModal((prev) => ({ ...prev, open: false }));
       await loadTabData();
     } catch (err) {
-      setError(err?.response?.data?.msg || "Failed to end hold");
-    }
-  }
-
-  async function handleDrop(enrollmentId) {
-    if (!window.confirm("Drop this student from current month onward?")) return;
-    try {
-      await paymentsAdminApi.dropEnrollment(enrollmentId, {
-        dropped_from_year: year,
-        dropped_from_month: month,
-      });
-      await loadTabData();
-    } catch (err) {
-      setError(err?.response?.data?.msg || "Failed to drop student");
+      setError(err?.response?.data?.msg || "Failed lifecycle update");
     }
   }
 
@@ -108,8 +119,7 @@ export function useActionsBatch(state) {
     handleUpdateBatch,
     handleDeleteBatch,
     handleChangeCandidateBatch,
-    handleHold,
-    handleUnhold,
-    handleDrop,
+    openLifecycleModal,
+    handleLifecycleSubmit,
   };
 }

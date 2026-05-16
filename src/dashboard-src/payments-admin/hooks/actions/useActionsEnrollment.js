@@ -86,6 +86,8 @@ export function useActionsEnrollment(state) {
         notes: editDraft.notes || "",
         enforce_profile_validation: true,
         candidate_id: editDraft.candidate_id || "",
+        total_fee_inr: editDraft.total_fee_inr || "",
+        monthly_fee_inr: editDraft.monthly_fee_inr || "",
         alternate_number: editDraft.alternate_number || "",
         dob: editDraft.dob || "",
         gender: editDraft.gender || "",

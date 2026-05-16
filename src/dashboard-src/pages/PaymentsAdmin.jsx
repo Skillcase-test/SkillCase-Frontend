@@ -13,6 +13,8 @@ import {
   ControlSelect,
 } from "../payments-admin/components/controls";
 import { DetailsModal } from "../payments-admin/components/DetailsModal";
+import { FeeBreakdownModal } from "../payments-admin/components/FeeBreakdownModal";
+import { LifecycleActionModal } from "../payments-admin/components/LifecycleActionModal";
 import { PaginationBar } from "../payments-admin/components/PaginationBar";
 import { RejectDiscountModal } from "../payments-admin/components/RejectDiscountModal";
 import { usePaymentsAdminActions } from "../payments-admin/hooks/usePaymentsAdminActions";
@@ -67,6 +69,7 @@ export default function PaymentsAdmin() {
     ],
   };
   const [q, setQ, qph] = searchable[state.tab] || ["", () => {}, ""];
+  const isDataTableTab = ["all", "month", "fee", "discounts", "payments", "rawlogs", "invoice"].includes(state.tab);
 
   return (
     <div className="space-y-5">
@@ -128,8 +131,12 @@ export default function PaymentsAdmin() {
       ) : null}
 
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        {state.tab === "import" ? (
+          <TabContent tab={state.tab} props={{}} />
+        ) : (
+          <>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          {qph ? (
+          {qph && state.tab !== "batch" ? (
             <ControlInput
               value={q}
               onChange={(e) => setQ(e.target.value)}
@@ -141,28 +148,32 @@ export default function PaymentsAdmin() {
             <div />
           )}
           <div className="flex flex-wrap items-center gap-2">
-            <ControlSelect
-              value={state.year}
-              onChange={(e) => state.setYear(Number(e.target.value))}
-              className="w-28"
-            >
-              {[2025, 2026, 2027].map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </ControlSelect>
-            <ControlSelect
-              value={state.month}
-              onChange={(e) => state.setMonth(Number(e.target.value))}
-              className="w-40"
-            >
-              {MONTH_NAMES.slice(1).map((m, i) => (
-                <option key={m} value={i + 1}>
-                  {m}
-                </option>
-              ))}
-            </ControlSelect>
+            {state.tab !== "all" && state.tab !== "batch" ? (
+              <>
+                <ControlSelect
+                  value={state.year}
+                  onChange={(e) => state.setYear(Number(e.target.value))}
+                  className="w-28"
+                >
+                  {[2025, 2026, 2027].map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </ControlSelect>
+                <ControlSelect
+                  value={state.month}
+                  onChange={(e) => state.setMonth(Number(e.target.value))}
+                  className="w-40"
+                >
+                  {MONTH_NAMES.slice(1).map((m, i) => (
+                    <option key={m} value={i + 1}>
+                      {m}
+                    </option>
+                  ))}
+                </ControlSelect>
+              </>
+            ) : null}
             <ControlButton onClick={state.loadTabData} variant="secondary">
               <RefreshCw size={14} className="mr-1" />
               Refresh
@@ -178,14 +189,14 @@ export default function PaymentsAdmin() {
               <option value={50}>50</option>
             </ControlSelect>
             <span className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-600">
-              {sel.baseRowsForTable.length} results
+              {Number(state.pagination?.total || sel.baseRowsForTable.length)} results
             </span>
           </div>
         </div>
 
         {state.loading ? (
           <TableSkeleton />
-        ) : sel.baseRowsForTable.length === 0 ? (
+        ) : state.tab !== "fee" && isDataTableTab && sel.baseRowsForTable.length === 0 ? (
           <EmptyState />
         ) : (
           <TabContent
@@ -198,11 +209,21 @@ export default function PaymentsAdmin() {
               handleDeleteBatch: actions.handleDeleteBatch,
               batchFilter: state.batchFilter,
               setBatchFilter: state.setBatchFilter,
+              allSummary: state.allSummary,
+              allStatusFilter: state.allStatusFilter,
+              setAllStatusFilter: state.setAllStatusFilter,
+              allBatchFilter: state.allBatchFilter,
+              setAllBatchFilter: state.setAllBatchFilter,
               discountForm: state.discountForm,
               setDiscountForm: state.setDiscountForm,
               candidateOptions: state.candidateOptions,
               handleCreateDiscountRequest: actions.handleCreateDiscountRequest,
               rows: sel.paginatedRows,
+              feeFilter: state.feeFilter,
+              setFeeFilter: state.setFeeFilter,
+              cohortFilter: state.cohortFilter,
+              setCohortFilter: state.setCohortFilter,
+              openFeeBreakdown: actions.openFeeBreakdown,
               setEditDraft: state.setEditDraft,
               handleFinalize: actions.handleFinalize,
               handleReject: actions.handleReject,
@@ -210,9 +231,8 @@ export default function PaymentsAdmin() {
               updatingBatchEnrollmentId: state.updatingBatchEnrollmentId,
               handleChangeCandidateBatch: actions.handleChangeCandidateBatch,
               batches: state.batches,
-              handleHold: actions.handleHold,
-              handleUnhold: actions.handleUnhold,
-              handleDrop: actions.handleDrop,
+              openLifecycleModal: actions.openLifecycleModal,
+              handleLifecycleSubmit: actions.handleLifecycleSubmit,
               handleRefund: actions.handleRefund,
               refundingPaymentId: state.refundingPaymentId,
               handleDiscountDecision: actions.handleDiscountDecision,
@@ -258,6 +278,8 @@ export default function PaymentsAdmin() {
             ) : null}
           </div>
         </div>
+          </>
+        )}
       </div>
 
       <DetailsModal
@@ -271,6 +293,16 @@ export default function PaymentsAdmin() {
         rejectModal={state.rejectModal}
         setRejectModal={state.setRejectModal}
         handleDiscountDecision={actions.handleDiscountDecision}
+      />
+      <LifecycleActionModal
+        lifecycleModal={state.lifecycleModal}
+        setLifecycleModal={state.setLifecycleModal}
+        handleLifecycleSubmit={actions.handleLifecycleSubmit}
+      />
+      <FeeBreakdownModal
+        feeBreakdownModal={state.feeBreakdownModal}
+        setFeeBreakdownModal={state.setFeeBreakdownModal}
+        loading={state.feeBreakdownLoading}
       />
     </div>
   );
