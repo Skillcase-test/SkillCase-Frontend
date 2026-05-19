@@ -9,6 +9,8 @@ export const paymentsAdminApi = {
     api.get("/admin/payments/enrollments/month-view", {
       params: { year, month, ...params },
     }),
+  getEnrollmentOptions: (params = {}) =>
+    api.get("/admin/payments/enrollments/options", { params }),
   getAllView: (params = {}) =>
     api.get("/admin/payments/enrollments/all-view", { params }),
   updateEnrollment: (enrollmentId, payload) =>

@@ -87,7 +87,7 @@ function VerificationModal({ session, saving, onClose, onSubmit }) {
       issues_found: Boolean(existing?.issuesFound),
       notes: existing?.notes || "",
     });
-    setIsEditMode(!Boolean(existing));
+    setIsEditMode(!existing);
   }, [session]);
 
   if (!session) return null;

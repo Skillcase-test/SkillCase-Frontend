@@ -800,7 +800,7 @@ function AccountProfilesPage() {
                       onClick={() =>
                         toggleRecruitmentStatusForAssigned(
                           p,
-                          !Boolean(p?.visibility?.is_enabled),
+                          !p?.visibility?.is_enabled,
                         )
                       }
                     >
@@ -1091,7 +1091,7 @@ function LibraryPage() {
                           onClick={() =>
                             toggleRecruitmentStatusForLibrary(
                               p,
-                              !Boolean(p?.visibility?.is_enabled),
+                              !p?.visibility?.is_enabled,
                             )
                           }
                         >

@@ -1,8 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 import { MONTH_NAMES } from "../utils/constants";
 
 const SESSION_UNLOCK_KEY = "payments_admin_stepup_unlocked";
+const SEARCH_DEBOUNCE_MS = 300;
+
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 export function usePaymentsAdminState() {
   const now = new Date();
@@ -24,8 +34,7 @@ export function usePaymentsAdminState() {
   const [batchFilter, setBatchFilter] = useState("");
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState("");
   const [savingEnrollmentId, setSavingEnrollmentId] = useState("");
-  const [updatingBatchEnrollmentId, setUpdatingBatchEnrollmentId] =
-    useState("");
+  const [updatingBatchEnrollmentId, setUpdatingBatchEnrollmentId] = useState("");
   const [refundingPaymentId, setRefundingPaymentId] = useState("");
   const [reconciling, setReconciling] = useState(false);
   const [editDraft, setEditDraft] = useState(null);
@@ -98,10 +107,22 @@ export function usePaymentsAdminState() {
   const [selectedInvoicePaymentId, setSelectedInvoicePaymentId] = useState("");
   const [candidateOptions, setCandidateOptions] = useState([]);
 
+  const abortControllerRef = useRef(null);
+
+  const debouncedAllSearch = useDebounce(allSearch, SEARCH_DEBOUNCE_MS);
+  const debouncedMonthSearch = useDebounce(monthSearch, SEARCH_DEBOUNCE_MS);
+  const debouncedFeeSearch = useDebounce(feeSearch, SEARCH_DEBOUNCE_MS);
+  const debouncedDiscountSearch = useDebounce(discountSearch, SEARCH_DEBOUNCE_MS);
+  const debouncedPaymentSearch = useDebounce(paymentSearch, SEARCH_DEBOUNCE_MS);
+  const debouncedRawSearch = useDebounce(rawSearch, SEARCH_DEBOUNCE_MS);
+  const debouncedEnrollmentSearchTerm = useDebounce(enrollmentSearchTerm, SEARCH_DEBOUNCE_MS);
+
   function resetStepUpSession() {
     try {
       sessionStorage.removeItem(SESSION_UNLOCK_KEY);
-    } catch {}
+    } catch {
+      // Silently ignore sessionStorage errors
+    }
     setAuthorized(false);
     setPassword("");
   }
@@ -121,8 +142,10 @@ export function usePaymentsAdminState() {
 
   async function refreshCandidateOptions() {
     try {
-      const allRes = await paymentsAdminApi.getAllView({ page: 1, limit: 100 });
-      setCandidateOptions(allRes.data.rows || []);
+      const res = await paymentsAdminApi.getEnrollmentOptions({
+        search: enrollmentSearchTerm || undefined,
+      });
+      setCandidateOptions(res.data.options || []);
     } catch (err) {
       if (err?.response?.data?.code === "PAYMENTS_STEP_UP_REQUIRED") {
         resetStepUpSession();
@@ -133,6 +156,12 @@ export function usePaymentsAdminState() {
   }
 
   async function loadTabData() {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     setError("");
     try {
@@ -140,10 +169,11 @@ export function usePaymentsAdminState() {
         const res = await paymentsAdminApi.getAllView({
           page: currentPage,
           limit: rowsPerPage,
-          search: allSearch || undefined,
+          search: debouncedAllSearch || undefined,
           status: allStatusFilter || undefined,
           batch_id: allBatchFilter || undefined,
         });
+        if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
         setAllSummary(
           res.data.summary || {
@@ -158,19 +188,23 @@ export function usePaymentsAdminState() {
         const res = await paymentsAdminApi.getMonthView(year, month, {
           page: currentPage,
           limit: rowsPerPage,
-          search: monthSearch || undefined,
+          search: debouncedMonthSearch || undefined,
         });
+        if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
         setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
         if (tab === "invoice") {
-          const inv = await paymentsAdminApi.getInvoices(year, month, {
-            page: currentPage,
-            limit: rowsPerPage,
-            search: enrollmentSearchTerm || undefined,
-          });
-          setInvoiceRows(inv.data.rows || []);
-          const pay = await paymentsAdminApi.getPaymentView(year, month, { page: 1, limit: 100 });
-          setInvoicePaymentRows(pay.data.rows || []);
+          const [invRes, payRes] = await Promise.all([
+            paymentsAdminApi.getInvoices(year, month, {
+              page: currentPage,
+              limit: rowsPerPage,
+              search: debouncedEnrollmentSearchTerm || undefined,
+            }),
+            paymentsAdminApi.getPaymentView(year, month, { page: 1, limit: 100 }),
+          ]);
+          if (controller.signal.aborted) return;
+          setInvoiceRows(invRes.data.rows || []);
+          setInvoicePaymentRows(payRes.data.rows || []);
         }
       } else if (tab === "batch") {
         setRows([]);
@@ -179,10 +213,11 @@ export function usePaymentsAdminState() {
         const res = await paymentsAdminApi.getTotalFeeView(year, month, {
           page: currentPage,
           limit: rowsPerPage,
-          search: feeSearch || undefined,
+          search: debouncedFeeSearch || undefined,
           fee_filter: feeFilter || undefined,
           cohort_filter: cohortFilter || undefined,
         });
+        if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
         setFeeSummary(
           res.data.fee_summary || {
@@ -195,26 +230,29 @@ export function usePaymentsAdminState() {
         const res = await paymentsAdminApi.getDiscounts(year, month, {
           page: currentPage,
           limit: rowsPerPage,
-          search: discountSearch || undefined,
+          search: debouncedDiscountSearch || undefined,
         });
+        if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
         setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
       } else if (tab === "payments") {
         const res = await paymentsAdminApi.getPaymentView(year, month, {
           page: currentPage,
           limit: rowsPerPage,
-          search: paymentSearch || undefined,
+          search: debouncedPaymentSearch || undefined,
         });
+        if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
         setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
       } else if (tab === "rawlogs") {
         const res = await paymentsAdminApi.getRawLogs({
           page: currentPage,
           limit: rowsPerPage,
-          search: rawSearch || undefined,
+          search: debouncedRawSearch || undefined,
           event_type: rawEventTypeFilter || undefined,
           status: rawStatusFilter || undefined,
         });
+        if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
         setRawEventTypes(res.data.event_types || []);
         setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
@@ -223,6 +261,9 @@ export function usePaymentsAdminState() {
         setPagination({ page: 1, limit: rowsPerPage, total: 0, total_pages: 1 });
       }
     } catch (err) {
+      if (err?.name === "CanceledError" || err?.code === "ERR_CANCELED") {
+        return;
+      }
       if (err?.response?.data?.code === "PAYMENTS_STEP_UP_REQUIRED") {
         resetStepUpSession();
         setError("Payments step-up expired. Please unlock again.");
@@ -232,7 +273,9 @@ export function usePaymentsAdminState() {
       setError(err?.response?.data?.msg || "Failed to load data");
       setRows([]);
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
   }
 
@@ -269,18 +312,18 @@ export function usePaymentsAdminState() {
     rawStatusFilter,
     currentPage,
     rowsPerPage,
-    allSearch,
+    debouncedAllSearch,
     allStatusFilter,
     allBatchFilter,
-    monthSearch,
+    debouncedMonthSearch,
     batchSearch,
-    feeSearch,
+    debouncedFeeSearch,
     feeFilter,
     cohortFilter,
-    discountSearch,
-    paymentSearch,
-    rawSearch,
-    enrollmentSearchTerm,
+    debouncedDiscountSearch,
+    debouncedPaymentSearch,
+    debouncedRawSearch,
+    debouncedEnrollmentSearchTerm,
   ]);
 
   useEffect(() => {
@@ -295,6 +338,14 @@ export function usePaymentsAdminState() {
     refreshCandidateOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authorized, tab]);
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return {
     SESSION_UNLOCK_KEY,

@@ -8,8 +8,7 @@ import {
   Eye,
   BookmarkCheck,
   CalendarCheck2,
-  AlertCircle,
-  EyeOff,
+  Clock,
 } from "lucide-react";
 
 const DEFAULT_AVATAR = (
@@ -369,6 +368,7 @@ export default function ProfilePage() {
       {/* Profile Form Card */}
       <div className="max-w-lg mx-auto px-4 py-6">
         {/* Recruitment Status Card */}
+        {recruitmentStatus?.visible && (
         <div className="rounded-xl border border-[#e9eaeb] shadow-sm mb-4 p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-[#181d27]">
@@ -376,84 +376,66 @@ export default function ProfilePage() {
             </h2>
           </div>
 
-          {recruitmentLoading ? (
-            <div className="flex items-center justify-center py-4">
-              <div className="w-5 h-5 border-2 border-[#002856] border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : recruitmentError ? (
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-rose-50 border border-rose-200">
-              <AlertCircle className="w-4 h-4 text-rose-600 flex-shrink-0" />
-              <p className="text-xs text-rose-700">{recruitmentError}</p>
-            </div>
-          ) : !recruitmentStatus?.visible ? (
-            <div className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-              <EyeOff className="w-4 h-4 text-slate-400 flex-shrink-0" />
-              <p className="text-xs text-slate-500">
-                Recruitment status is hidden. It will appear once enabled by
-                admin.
-              </p>
-            </div>
-          ) : (
-            <div>
-              {/* Pipeline Progress Bar */}
-              <div className="flex items-center gap-0.5 mb-3">
-                {stats.map((stat, idx) => {
-                  const isActive =
-                    recruitmentStatus?.summary_counts?.[stat.key] > 0;
-                  return (
-                    <div key={stat.key} className="flex-1 flex items-center">
-                      <div
-                        className={`flex-1 h-1 rounded-full transition-colors ${isActive ? `bg-gradient-to-r ${stat.color}` : "bg-gray-200"}`}
-                      />
-                      {idx < stats.length - 1 && (
-                        <div className="w-0.5 h-1 bg-gray-200 flex-shrink-0" />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-4 gap-2">
-                {stats.map((stat) => {
-                  const count =
-                    recruitmentStatus?.summary_counts?.[stat.key] || 0;
-                  const isActive = count > 0;
-                  return (
+          <div>
+            {/* Pipeline Progress Bar */}
+            <div className="flex items-center gap-0.5 mb-3">
+              {stats.map((stat, idx) => {
+                const isActive =
+                  recruitmentStatus?.summary_counts?.[stat.key] > 0;
+                return (
+                  <div key={stat.key} className="flex-1 flex items-center">
                     <div
-                      key={stat.key}
-                      className={`relative rounded-lg p-2 text-center transition-all ${
-                        isActive
-                          ? `${stat.bgTint} border border-transparent`
-                          : "bg-white border border-[#e9eaeb]"
-                      }`}
+                      className={`flex-1 h-1 rounded-full transition-colors ${isActive ? `bg-gradient-to-r ${stat.color}` : "bg-gray-200"}`}
+                    />
+                    {idx < stats.length - 1 && (
+                      <div className="w-0.5 h-1 bg-gray-200 flex-shrink-0" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-4 gap-2">
+              {stats.map((stat) => {
+                const count =
+                  recruitmentStatus?.summary_counts?.[stat.key] || 0;
+                const isActive = count > 0;
+                return (
+                  <div
+                    key={stat.key}
+                    className={`relative rounded-lg p-2 text-center transition-all ${
+                      isActive
+                        ? `${stat.bgTint} border border-transparent`
+                        : "bg-white border border-[#e9eaeb]"
+                    }`}
+                  >
+                    <div
+                      className={`inline-flex p-1.5 rounded-md ${isActive ? stat.bgTint : "bg-gray-100"}`}
                     >
                       <div
-                        className={`inline-flex p-1.5 rounded-md ${isActive ? stat.bgTint : "bg-gray-100"}`}
+                        className={isActive ? stat.textTint : "text-gray-400"}
                       >
-                        <div
-                          className={isActive ? stat.textTint : "text-gray-400"}
-                        >
-                          {stat.icon}
-                        </div>
+                        {stat.icon}
                       </div>
-                      <p
-                        className={`mt-1.5 text-lg font-bold tracking-tight ${isActive ? "text-[#181d27]" : "text-gray-300"}`}
-                      >
-                        {count}
-                      </p>
-                      <p
-                        className={`text-[8px] font-semibold uppercase tracking-wider ${isActive ? "text-gray-500" : "text-gray-400"}`}
-                      >
-                        {stat.label}
-                      </p>
                     </div>
-                  );
-                })}
-              </div>
+                    <p
+                      className={`mt-1.5 text-lg font-bold tracking-tight ${isActive ? "text-[#181d27]" : "text-gray-300"}`}
+                    >
+                      {count}
+                    </p>
+                    <p
+                      className={`text-[8px] font-semibold uppercase tracking-wider ${isActive ? "text-gray-500" : "text-gray-400"}`}
+                    >
+                      {stat.label}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
-          )}
+          </div>
         </div>
+        )}
 
         <div className="bg-white rounded-xl border border-[#e9eaeb] shadow-sm">
           {/* Card Header */}

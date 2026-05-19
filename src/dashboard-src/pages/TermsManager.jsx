@@ -808,7 +808,7 @@ export default function TermsManager() {
                                     className={`absolute cursor-move rounded-md px-1 text-[10px] sm:text-xs font-bold leading-none ${
                                       selectedFieldId === field.field_id
                                         ? "border-2 border-slate-900 bg-slate-900 text-white z-10"
-                                        : Boolean(field.config_json?.locked)
+                                        : field.config_json?.locked
                                           ? "border-2 border-transparent bg-transparent text-slate-900"
                                           : "border-2 border-blue-400 bg-blue-100 text-blue-900"
                                     }`}
@@ -825,7 +825,7 @@ export default function TermsManager() {
                                   >
                                     <div className="flex w-full items-center justify-between gap-1 h-full">
                                       <span className="truncate flex-1 h-full flex items-center">
-                                        {Boolean(field.config_json?.locked) ? (
+                                        {field.config_json?.locked ? (
                                           <div className="flex items-center gap-1 overflow-hidden h-full w-full">
                                             {field.field_type === "signature" && field.config_json?.default_signature_image_data_url ? (
                                               <img src={field.config_json.default_signature_image_data_url} alt="Stamp" className="h-[84cqh] w-auto m-auto object-contain" />
