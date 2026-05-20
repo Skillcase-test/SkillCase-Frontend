@@ -306,81 +306,169 @@ function SidebarSection({ title, items, onLinkClick }) {
   );
 }
 
-function SidebarModuleGroups({ title, modules, onLinkClick }) {
+function ModuleItem({ module, onLinkClick }) {
   const location = useLocation();
-  const [openMap, setOpenMap] = useState({});
+  const [open, setOpen] = useState(() =>
+    location.pathname.startsWith(module.basePath)
+  );
 
   useEffect(() => {
-    const next = {};
-    modules.forEach((moduleItem) => {
-      next[moduleItem.key] = location.pathname.startsWith(moduleItem.basePath);
-    });
-    setOpenMap((prev) => ({ ...next, ...prev }));
+    if (location.pathname.startsWith(module.basePath)) {
+      setOpen(true);
+    }
+  }, [location.pathname, module.basePath]);
+
+  const toggle = () => setOpen((prev) => !prev);
+
+  return (
+    <div className="ml-3">
+      <button
+        onClick={toggle}
+        className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs font-semibold text-slate-600 hover:bg-slate-100"
+      >
+        <span>{module.label}</span>
+        <ChevronRight
+          className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${
+            open ? "rotate-90" : ""
+          }`}
+        />
+      </button>
+      <div
+        className="overflow-hidden transition-all duration-200 ease-in-out"
+        style={{ maxHeight: open ? "120px" : "0px" }}
+      >
+        <div className="ml-4 space-y-0.5 pb-1">
+          <NavLink
+            to={`${module.basePath}/add`}
+            onClick={onLinkClick}
+            className={({ isActive }) =>
+              `block rounded px-3 py-1.5 text-xs font-medium ${
+                isActive
+                  ? "bg-blue-700 text-white"
+                  : "text-slate-500 hover:bg-slate-100"
+              }`
+            }
+          >
+            Add
+          </NavLink>
+          <NavLink
+            to={`${module.basePath}/manage`}
+            onClick={onLinkClick}
+            className={({ isActive }) =>
+              `block rounded px-3 py-1.5 text-xs font-medium ${
+                isActive
+                  ? "bg-blue-700 text-white"
+                  : "text-slate-500 hover:bg-slate-100"
+              }`
+            }
+          >
+            Manage
+          </NavLink>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModuleGroup({ title, modules, onLinkClick }) {
+  const location = useLocation();
+  const [open, setOpen] = useState(() =>
+    modules.some((m) => location.pathname.startsWith(m.basePath))
+  );
+
+  useEffect(() => {
+    if (modules.some((m) => location.pathname.startsWith(m.basePath))) {
+      setOpen(true);
+    }
   }, [location.pathname, modules]);
 
-  if (!modules.length) return null;
+  const toggle = () => setOpen((prev) => !prev);
+
+  return (
+    <div className="ml-2">
+      <button
+        onClick={toggle}
+        className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100"
+      >
+        <span>{title}</span>
+        <ChevronRight
+          className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${
+            open ? "rotate-90" : ""
+          }`}
+        />
+      </button>
+      <div
+        className="overflow-hidden transition-all duration-200 ease-in-out"
+        style={{ maxHeight: open ? "800px" : "0px" }}
+      >
+        <div className="space-y-0.5 pt-1">
+          {modules.map((module) => (
+            <ModuleItem
+              key={module.key}
+              module={module}
+              onLinkClick={onLinkClick}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContentModuleTree({ a1Modules, a2Modules, onLinkClick }) {
+  const location = useLocation();
+  const hasModules = a1Modules.length > 0 || a2Modules.length > 0;
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const matchesA1 = a1Modules.some((m) =>
+      location.pathname.startsWith(m.basePath)
+    );
+    const matchesA2 = a2Modules.some((m) =>
+      location.pathname.startsWith(m.basePath)
+    );
+    if (matchesA1 || matchesA2) {
+      setOpen(true);
+    }
+  }, [location.pathname, a1Modules, a2Modules]);
+
+  if (!hasModules) return null;
+
+  const toggle = () => setOpen((prev) => !prev);
 
   return (
     <div className="mb-4">
-      <p className="mb-1 px-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-        {title}
-      </p>
-      <div className="space-y-1">
-        {modules.map((moduleItem) => {
-          const open = openMap[moduleItem.key];
-          return (
-            <div
-              key={moduleItem.key}
-              className="rounded-md border border-slate-200"
-            >
-              <button
-                onClick={() =>
-                  setOpenMap((prev) => ({ ...prev, [moduleItem.key]: !open }))
-                }
-                className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                <span>{moduleItem.label}</span>
-                {open ? (
-                  <ChevronDown className="h-4 w-4 text-slate-400" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 text-slate-400" />
-                )}
-              </button>
-              {open && (
-                <div className="border-t border-slate-100 px-2 py-2">
-                  <div className="space-y-1">
-                    <NavLink
-                      to={`${moduleItem.basePath}/add`}
-                      onClick={onLinkClick}
-                      className={({ isActive }) =>
-                        `block rounded px-3 py-1.5 text-xs font-semibold ${
-                          isActive
-                            ? "bg-blue-700 text-white"
-                            : "text-slate-600 hover:bg-slate-100"
-                        }`
-                      }
-                    >
-                      Add
-                    </NavLink>
-                    <NavLink
-                      to={`${moduleItem.basePath}/manage`}
-                      onClick={onLinkClick}
-                      className={({ isActive }) =>
-                        `block rounded px-3 py-1.5 text-xs font-semibold ${
-                          isActive
-                            ? "bg-blue-700 text-white"
-                            : "text-slate-600 hover:bg-slate-100"
-                        }`
-                      }
-                    >
-                      Manage
-                    </NavLink>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+      <button
+        onClick={toggle}
+        className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm font-semibold text-slate-700 hover:bg-slate-100"
+      >
+        <span>App Content</span>
+        <ChevronRight
+          className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${
+            open ? "rotate-90" : ""
+          }`}
+        />
+      </button>
+      <div
+        className="overflow-hidden transition-all duration-200 ease-in-out"
+        style={{ maxHeight: open ? "1200px" : "0px" }}
+      >
+        <div className="space-y-1 pt-1">
+          {a1Modules.length > 0 && (
+            <ModuleGroup
+              title="A1"
+              modules={a1Modules}
+              onLinkClick={onLinkClick}
+            />
+          )}
+          {a2Modules.length > 0 && (
+            <ModuleGroup
+              title="A2"
+              modules={a2Modules}
+              onLinkClick={onLinkClick}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -757,8 +845,10 @@ export default function Dashboard() {
                 Admin Panel
               </p>
               <SidebarSection title="Core" items={sections.core} />
-              <SidebarModuleGroups title="A1" modules={sections.a1Modules} />
-              <SidebarModuleGroups title="A2" modules={sections.a2Modules} />
+              <ContentModuleTree
+                a1Modules={sections.a1Modules}
+                a2Modules={sections.a2Modules}
+              />
               <SidebarSection title="Super Admin" items={sections.superAdmin} />
             </div>
           </div>
@@ -775,8 +865,11 @@ export default function Dashboard() {
                 Admin Panel
               </p>
               <SidebarSection title="Core" items={sections.core} onLinkClick={closeMobileSidebar} />
-              <SidebarModuleGroups title="A1" modules={sections.a1Modules} onLinkClick={closeMobileSidebar} />
-              <SidebarModuleGroups title="A2" modules={sections.a2Modules} onLinkClick={closeMobileSidebar} />
+              <ContentModuleTree
+                a1Modules={sections.a1Modules}
+                a2Modules={sections.a2Modules}
+                onLinkClick={closeMobileSidebar}
+              />
               <SidebarSection title="Super Admin" items={sections.superAdmin} onLinkClick={closeMobileSidebar} />
             </div>
           </div>
