@@ -50,6 +50,7 @@ const InternalLeadForm = lazy(() => import("../../pages/InternalLeadForm"));
 const AdminAccessManagement = lazy(() => import("./AdminAccessManagement"));
 const ExploreCandidatesAdmin = lazy(() => import("./ExploreCandidatesAdmin"));
 const PaymentsAdmin = lazy(() => import("./PaymentsAdmin"));
+const CallEnginePage = lazy(() => import("./CallEngine"));
 
 const A1FlashcardAdd = lazy(() => import("./a1/flashcard/add"));
 const A1FlashcardManage = lazy(() => import("./a1/flashcard/manage"));
@@ -751,6 +752,7 @@ export default function Dashboard() {
         ? [
             { key: "access", label: "Admin Access", path: "/admin/access" },
             { key: "payments", label: "Payments", path: "/admin/payments" },
+            { key: "call-engine", label: "Call Engine", path: "/admin/call-engine" },
           ]
         : [];
 
@@ -1215,6 +1217,16 @@ export default function Dashboard() {
                 element={
                   me.role === "super_admin" ? (
                     <PaymentsAdmin />
+                  ) : (
+                    <Navigate to="/admin/no-access" replace />
+                  )
+                }
+              />
+              <Route
+                path="call-engine"
+                element={
+                  me.role === "super_admin" ? (
+                    <CallEnginePage />
                   ) : (
                     <Navigate to="/admin/no-access" replace />
                   )
