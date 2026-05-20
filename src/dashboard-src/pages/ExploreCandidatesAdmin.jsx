@@ -510,13 +510,14 @@ function AccountsPage() {
                 <th className="px-6 py-4">Recruiter Email</th>
                 <th className="px-6 py-4">Recruiter ID</th>
                 <th className="px-6 py-4">Source</th>
+                <th className="px-6 py-4">Country</th>
                 <th className="px-6 py-4">Login Time (IST)</th>
               </tr>
             </TableHead>
             <TableBody>
               {!loginEvents.length ? (
                 <tr>
-                  <td className="px-6 py-5 text-slate-500" colSpan={4}>
+                  <td className="px-6 py-5 text-slate-500" colSpan={5}>
                     No recruiter login events found.
                   </td>
                 </tr>
@@ -526,6 +527,9 @@ function AccountsPage() {
                     <td className="px-6 py-5">{event.recruiter_email || "-"}</td>
                     <td className="px-6 py-5">{event.account_id || "-"}</td>
                     <td className="px-6 py-5">{event.source || "-"}</td>
+                    <td className="px-6 py-5">
+                      {event.country_name || event.country_code || "Unknown"}
+                    </td>
                     <td className="px-6 py-5">
                       {event.created_at
                         ? new Date(event.created_at).toLocaleString("en-IN", {
