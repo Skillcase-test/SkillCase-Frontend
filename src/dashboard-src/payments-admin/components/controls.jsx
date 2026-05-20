@@ -84,10 +84,13 @@ export function ControlDropdown({
   searchable = false,
   className = "",
   disabled = false,
+  compact = false,
+  fixedMenu = false,
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [typeahead, setTypeahead] = useState("");
+  const [menuRect, setMenuRect] = useState(null);
   const wrapRef = useRef(null);
   const selected = options.find((x) => String(x.value) === String(value));
   const typeaheadTimerRef = useRef(null);
@@ -122,7 +125,13 @@ export function ControlDropdown({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          if (fixedMenu && wrapRef.current) {
+            const rect = wrapRef.current.getBoundingClientRect();
+            setMenuRect({ top: rect.bottom + 8, left: rect.left, width: rect.width });
+          }
+          setOpen((v) => !v);
+        }}
         onKeyDown={(e) => {
           if (!searchable || disabled) return;
           if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
@@ -141,7 +150,7 @@ export function ControlDropdown({
             clearTimeout(typeaheadTimerRef.current);
           typeaheadTimerRef.current = setTimeout(() => setTypeahead(""), 500);
         }}
-        className={`${CONTROL_BASE} flex w-full items-center justify-between`}
+        className={`${compact ? "h-8 rounded-lg px-2.5 text-xs" : CONTROL_BASE} flex w-full items-center justify-between border border-slate-300 bg-white text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400`}
       >
         <span className="truncate text-left">
           {selected?.label || placeholder || "Select"}
@@ -149,7 +158,10 @@ export function ControlDropdown({
         <ChevronDown size={16} className="ml-2 shrink-0 text-slate-500" />
       </button>
       {open ? (
-        <div className="absolute z-40 mt-2 w-full rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+        <div
+          className={`${fixedMenu ? "fixed" : "absolute mt-2 w-full"} z-50 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg`}
+          style={fixedMenu && menuRect ? { top: menuRect.top, left: menuRect.left, width: menuRect.width } : undefined}
+        >
           <div className="max-h-56 overflow-auto">
             {filtered.map((o) => (
               <button

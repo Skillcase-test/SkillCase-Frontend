@@ -29,11 +29,13 @@ export function usePaymentsAdminState() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [rows, setRows] = useState([]);
   const [batches, setBatches] = useState([]);
   const [batchFilter, setBatchFilter] = useState("");
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState("");
   const [savingEnrollmentId, setSavingEnrollmentId] = useState("");
+  const [sendingAgreementEnrollmentId, setSendingAgreementEnrollmentId] = useState("");
   const [updatingBatchEnrollmentId, setUpdatingBatchEnrollmentId] = useState("");
   const [refundingPaymentId, setRefundingPaymentId] = useState("");
   const [reconciling, setReconciling] = useState(false);
@@ -184,7 +186,7 @@ export function usePaymentsAdminState() {
           },
         );
         setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
-      } else if (tab === "month" || tab === "invoice") {
+      } else if (tab === "month") {
         const res = await paymentsAdminApi.getMonthView(year, month, {
           page: currentPage,
           limit: rowsPerPage,
@@ -193,18 +195,24 @@ export function usePaymentsAdminState() {
         if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
         setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
-        if (tab === "invoice") {
+      } else if (tab === "invoice") {
+        setRows(candidateOptions || []);
+        setPagination({ page: 1, limit: rowsPerPage, total: candidateOptions.length, total_pages: 1 });
+        if (selectedEnrollmentId) {
           const [invRes, payRes] = await Promise.all([
             paymentsAdminApi.getInvoices(year, month, {
-              page: currentPage,
-              limit: rowsPerPage,
-              search: debouncedEnrollmentSearchTerm || undefined,
+              page: 1,
+              limit: 200,
+              enrollment_id: selectedEnrollmentId,
             }),
-            paymentsAdminApi.getPaymentView(year, month, { page: 1, limit: 100 }),
+            paymentsAdminApi.getInvoicePaymentOptions(selectedEnrollmentId),
           ]);
           if (controller.signal.aborted) return;
           setInvoiceRows(invRes.data.rows || []);
           setInvoicePaymentRows(payRes.data.rows || []);
+        } else {
+          setInvoiceRows([]);
+          setInvoicePaymentRows([]);
         }
       } else if (tab === "batch") {
         setRows([]);
@@ -306,6 +314,7 @@ export function usePaymentsAdminState() {
   }, [
     authorized,
     tab,
+    selectedEnrollmentId,
     year,
     month,
     rawEventTypeFilter,
@@ -337,7 +346,11 @@ export function usePaymentsAdminState() {
     if (tab !== "discounts" && tab !== "invoice") return;
     refreshCandidateOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authorized, tab]);
+  }, [authorized, tab, debouncedEnrollmentSearchTerm]);
+
+  useEffect(() => {
+    setEditDraft(null);
+  }, [tab]);
 
   useEffect(() => {
     return () => {
@@ -363,6 +376,8 @@ export function usePaymentsAdminState() {
     setLoading,
     error,
     setError,
+    notice,
+    setNotice,
     rows,
     setRows,
     batches,
@@ -373,6 +388,8 @@ export function usePaymentsAdminState() {
     setSelectedEnrollmentId,
     savingEnrollmentId,
     setSavingEnrollmentId,
+    sendingAgreementEnrollmentId,
+    setSendingAgreementEnrollmentId,
     updatingBatchEnrollmentId,
     setUpdatingBatchEnrollmentId,
     refundingPaymentId,

@@ -6,7 +6,9 @@ export function MonthViewTab({
   setEditDraft,
   handleFinalize,
   handleReject,
+  handleSendAgreement,
   savingEnrollmentId,
+  sendingAgreementEnrollmentId,
 }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200">
@@ -69,6 +71,12 @@ export function MonthViewTab({
                     }
                   >
                     Details
+                  </ActionChip>
+                  <ActionChip
+                    onClick={() => handleSendAgreement?.(r)}
+                    disabled={sendingAgreementEnrollmentId === r.enrollment_id}
+                  >
+                    {sendingAgreementEnrollmentId === r.enrollment_id ? "Sending..." : "Send Agreement"}
                   </ActionChip>
                   {r.status !== "finalized" ? (
                     <>

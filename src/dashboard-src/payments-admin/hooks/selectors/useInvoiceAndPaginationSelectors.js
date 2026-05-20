@@ -7,6 +7,7 @@ export function useInvoiceAndPaginationSelectors(state, core) {
     invoiceRows,
     invoicePaymentRows,
     enrollmentSearchTerm,
+    candidateOptions,
     tab,
     rowsPerPage,
     pagination,
@@ -15,10 +16,10 @@ export function useInvoiceAndPaginationSelectors(state, core) {
 
   const selectedEnrollment = useMemo(
     () =>
-      rows.find(
+      (candidateOptions || rows).find(
         (r) => String(r.enrollment_id) === String(selectedEnrollmentId),
       ),
-    [rows, selectedEnrollmentId],
+    [rows, candidateOptions, selectedEnrollmentId],
   );
 
   const invoicePaymentOptions = useMemo(() => {
@@ -47,13 +48,14 @@ export function useInvoiceAndPaginationSelectors(state, core) {
     const q = String(enrollmentSearchTerm || "")
       .trim()
       .toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) =>
+    const source = candidateOptions?.length ? candidateOptions : rows;
+    if (!q) return source;
+    return source.filter((r) =>
       `${r.student_name || ""} ${r.student_phone || ""}`
         .toLowerCase()
         .includes(q),
     );
-  }, [rows, enrollmentSearchTerm]);
+  }, [rows, candidateOptions, enrollmentSearchTerm]);
 
   const resolvedFeeSummary = useMemo(() => {
     if (tab !== "fee") return { unpaidSoFar: 0, paidSoFar: 0 };

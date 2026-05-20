@@ -8,11 +8,10 @@ import {
 import {
   ActionChip,
   ControlButton,
-  ControlDropdown,
   ControlInput,
   ControlSelect,
 } from "../payments-admin/components/controls";
-import { DetailsModal } from "../payments-admin/components/DetailsModal";
+import { CandidateDetailsForm } from "../payments-admin/components/CandidateDetailsForm";
 import { FeeBreakdownModal } from "../payments-admin/components/FeeBreakdownModal";
 import { LifecycleActionModal } from "../payments-admin/components/LifecycleActionModal";
 import { PaginationBar } from "../payments-admin/components/PaginationBar";
@@ -130,8 +129,27 @@ export default function PaymentsAdmin() {
         </div>
       ) : null}
 
+      {state.notice ? (
+        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+          {state.notice}
+        </div>
+      ) : null}
+      {state.error ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+          {state.error}
+        </div>
+      ) : null}
+
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        {state.tab === "import" ? (
+        {state.editDraft ? (
+          <CandidateDetailsForm
+            editDraft={state.editDraft}
+            setEditDraft={state.setEditDraft}
+            batches={state.batches}
+            handleSaveEnrollmentEdit={actions.handleSaveEnrollmentEdit}
+            savingEnrollmentId={state.savingEnrollmentId}
+          />
+        ) : state.tab === "import" ? (
           <TabContent tab={state.tab} props={{}} />
         ) : (
           <>
@@ -148,6 +166,11 @@ export default function PaymentsAdmin() {
             <div />
           )}
           <div className="flex flex-wrap items-center gap-2">
+            {state.tab === "all" || state.tab === "month" ? (
+              <ControlButton onClick={actions.handleStartManualCandidate} variant="primary">
+                Add Candidate
+              </ControlButton>
+            ) : null}
             {state.tab !== "all" && state.tab !== "batch" ? (
               <>
                 <ControlSelect
@@ -196,7 +219,7 @@ export default function PaymentsAdmin() {
 
         {state.loading ? (
           <TableSkeleton />
-        ) : state.tab !== "fee" && isDataTableTab && sel.baseRowsForTable.length === 0 ? (
+        ) : !["fee", "discounts"].includes(state.tab) && isDataTableTab && sel.baseRowsForTable.length === 0 ? (
           <EmptyState />
         ) : (
           <TabContent
@@ -224,10 +247,13 @@ export default function PaymentsAdmin() {
               cohortFilter: state.cohortFilter,
               setCohortFilter: state.setCohortFilter,
               openFeeBreakdown: actions.openFeeBreakdown,
+              openDiscountBreakdown: actions.openDiscountBreakdown,
               setEditDraft: state.setEditDraft,
               handleFinalize: actions.handleFinalize,
               handleReject: actions.handleReject,
+              handleSendAgreement: actions.handleSendAgreement,
               savingEnrollmentId: state.savingEnrollmentId,
+              sendingAgreementEnrollmentId: state.sendingAgreementEnrollmentId,
               updatingBatchEnrollmentId: state.updatingBatchEnrollmentId,
               handleChangeCandidateBatch: actions.handleChangeCandidateBatch,
               batches: state.batches,
@@ -282,13 +308,6 @@ export default function PaymentsAdmin() {
         )}
       </div>
 
-      <DetailsModal
-        editDraft={state.editDraft}
-        setEditDraft={state.setEditDraft}
-        batches={state.batches}
-        handleSaveEnrollmentEdit={actions.handleSaveEnrollmentEdit}
-        savingEnrollmentId={state.savingEnrollmentId}
-      />
       <RejectDiscountModal
         rejectModal={state.rejectModal}
         setRejectModal={state.setRejectModal}

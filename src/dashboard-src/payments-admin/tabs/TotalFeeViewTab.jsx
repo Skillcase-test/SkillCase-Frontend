@@ -1,5 +1,5 @@
 import { ActionChip } from "../components/controls";
-import { formatDiscountHistoryTooltip, formatInrFromPaise } from "../utils/formatters";
+import { formatInrFromPaise } from "../utils/formatters";
 
 export function TotalFeeViewTab({
   rows,
@@ -8,6 +8,7 @@ export function TotalFeeViewTab({
   cohortFilter,
   setCohortFilter,
   openFeeBreakdown,
+  openDiscountBreakdown,
 }) {
   return (
     <div className="space-y-3">
@@ -61,33 +62,22 @@ export function TotalFeeViewTab({
                 <td className="px-2 py-2">{r.student_phone || "-"}</td>
                 <td className="px-2 py-2">{formatInrFromPaise(r.carryForwardDuePaise)}</td>
                 <td className="px-2 py-2">{formatInrFromPaise(r.monthlyBasePaise)}</td>
-                <td
-                  className="px-2 py-2"
-                  title={
-                    Array.isArray(r.discounts) && r.discounts.length
-                      ? formatDiscountHistoryTooltip(r.discounts)
-                      : "No discount reason"
-                  }
-                >
-                  <span className="cursor-help underline decoration-dotted underline-offset-2">
-                    {formatInrFromPaise(r.discountPaise)}
-                  </span>
-                </td>
                 <td className="px-2 py-2">
                   <button
                     type="button"
-                    className="underline decoration-dotted underline-offset-2"
+                    disabled={!Number(r.discountPaise || 0)}
+                    className="underline decoration-dotted underline-offset-2 disabled:cursor-not-allowed disabled:no-underline disabled:opacity-70"
                     onClick={() =>
-                      openFeeBreakdown({
+                      openDiscountBreakdown({
                         enrollmentId: r.enrollment_id,
-                        type: "paid",
                         studentName: r.student_name,
                       })
                     }
                   >
-                    {formatInrFromPaise(r.paidThisMonthPaise)}
+                    {formatInrFromPaise(r.discountPaise)}
                   </button>
                 </td>
+                <td className="px-2 py-2">{formatInrFromPaise(r.paidThisMonthPaise)}</td>
                 <td className="px-2 py-2">
                   <button
                     type="button"
@@ -95,7 +85,6 @@ export function TotalFeeViewTab({
                     onClick={() =>
                       openFeeBreakdown({
                         enrollmentId: r.enrollment_id,
-                        type: "due",
                         studentName: r.student_name,
                       })
                     }

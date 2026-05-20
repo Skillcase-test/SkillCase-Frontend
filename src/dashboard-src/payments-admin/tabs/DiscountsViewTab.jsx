@@ -116,7 +116,7 @@ export function DiscountsViewTab({
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, idx) => (
+          {rows.length ? rows.map((r, idx) => (
             <tr
               key={r.discount_id}
               className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}
@@ -177,7 +177,13 @@ export function DiscountsViewTab({
                 )}
               </td>
             </tr>
-          ))}
+          )) : (
+            <tr>
+              <td colSpan={10} className="px-3 py-6 text-center text-slate-500">
+                No discount requests found.
+              </td>
+            </tr>
+          )}
         </tbody>
         </table>
       </div>

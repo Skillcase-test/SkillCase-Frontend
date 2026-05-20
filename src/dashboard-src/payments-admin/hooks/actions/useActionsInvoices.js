@@ -9,15 +9,22 @@ export function useActionsInvoices(state) {
     setSelectedInvoicePaymentId,
     setError,
     loadTabData,
+    invoicePaymentRows,
   } = state;
 
   async function handleGenerateAndSendInvoice() {
     if (!selectedEnrollmentId || !selectedInvoicePaymentId) return;
     try {
+      const payment = invoicePaymentRows.find(
+        (p) => String(p.payment_id) === String(selectedInvoicePaymentId),
+      );
+      const paidAt = payment?.paid_at ? new Date(payment.paid_at) : null;
+      const invoiceYear = paidAt && !Number.isNaN(paidAt.getTime()) ? paidAt.getUTCFullYear() : year;
+      const invoiceMonth = paidAt && !Number.isNaN(paidAt.getTime()) ? paidAt.getUTCMonth() + 1 : month;
       const gen = await paymentsAdminApi.generateInvoice({
         enrollment_id: selectedEnrollmentId,
-        year,
-        month,
+        year: invoiceYear,
+        month: invoiceMonth,
         payment_id: selectedInvoicePaymentId,
       });
       await paymentsAdminApi.sendInvoice({

@@ -13,8 +13,16 @@ export const paymentsAdminApi = {
     api.get("/admin/payments/enrollments/options", { params }),
   getAllView: (params = {}) =>
     api.get("/admin/payments/enrollments/all-view", { params }),
+  createManualEnrollment: (payload) =>
+    api.post("/admin/payments/enrollments/manual", payload),
   updateEnrollment: (enrollmentId, payload) =>
     api.patch(`/admin/payments/enrollments/${enrollmentId}`, payload),
+  sendAgreement: (enrollmentId) =>
+    api.post(`/admin/payments/enrollments/${enrollmentId}/send-agreement`),
+  getPaymentDocumentUploadUrl: (payload) =>
+    api.post("/admin/payments/documents/upload-url", payload),
+  getPaymentDocumentDownloadUrl: (key) =>
+    api.get("/admin/payments/documents/download-url", { params: { key } }),
   holdEnrollment: (enrollmentId, payload = {}) =>
     api.post(`/admin/payments/enrollments/${enrollmentId}/hold`, payload),
   unholdEnrollment: (enrollmentId, payload = {}) =>
@@ -38,9 +46,9 @@ export const paymentsAdminApi = {
     api.get("/admin/payments/ledger/total-fee-view", {
       params: { year, month, ...params },
     }),
-  getTotalFeeBreakdown: (enrollment_id, year, month, type) =>
+  getTotalFeeBreakdown: (enrollment_id, year, month) =>
     api.get("/admin/payments/ledger/total-fee-breakdown", {
-      params: { enrollment_id, year, month, type },
+      params: { enrollment_id, year, month, type: "due" },
     }),
 
   getDiscounts: (year, month, params = {}) =>
@@ -69,6 +77,8 @@ export const paymentsAdminApi = {
     api.get("/admin/payments/razorpay-raw-logs", { params }),
   getInvoices: (year, month, params = {}) =>
     api.get("/admin/payments/invoices", { params: { year, month, ...params } }),
+  getInvoicePaymentOptions: (enrollment_id) =>
+    api.get("/admin/payments/invoices/payments", { params: { enrollment_id } }),
 
   generateInvoice: (payload) =>
     api.post("/admin/payments/invoices/generate", payload),

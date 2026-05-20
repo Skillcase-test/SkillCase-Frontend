@@ -12,6 +12,13 @@ function lifecycleActionsForRow(row) {
   return ["hold", "drop"];
 }
 
+const actionLabels = {
+  hold: "Hold",
+  unhold: "Unhold",
+  drop: "Drop",
+  undrop: "Undrop",
+};
+
 export function AllViewTab({
   rows,
   setEditDraft,
@@ -22,6 +29,8 @@ export function AllViewTab({
   setAllBatchFilter,
   batches,
   openLifecycleModal,
+  handleSendAgreement,
+  sendingAgreementEnrollmentId,
 }) {
   const batchOptions = [
     { value: "", label: "All Batches" },
@@ -87,28 +96,29 @@ export function AllViewTab({
                 <td className="px-2 py-2">{formatInrFromPaise(r.paid_total_paise)}</td>
                 <td className="px-2 py-2">{formatIstDateTime(r.last_paid_at)}</td>
                 <td className="px-2 py-2">
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex min-w-48 flex-wrap gap-2">
                     <ActionChip onClick={() => setEditDraft({ ...r, ...(r.notes || {}) })}>
                       Details
                     </ActionChip>
-                    {lifecycleActionsForRow(r).includes("hold") ? (
-                      <ActionChip variant="warning" onClick={() => openLifecycleModal("hold", r)}>
-                        Hold
-                      </ActionChip>
-                    ) : null}
-                    {lifecycleActionsForRow(r).includes("unhold") ? (
-                      <ActionChip onClick={() => openLifecycleModal("unhold", r)}>Unhold</ActionChip>
-                    ) : null}
-                    {lifecycleActionsForRow(r).includes("drop") ? (
-                      <ActionChip variant="danger" onClick={() => openLifecycleModal("drop", r)}>
-                        Drop
-                      </ActionChip>
-                    ) : null}
-                    {lifecycleActionsForRow(r).includes("undrop") ? (
-                      <ActionChip variant="success" onClick={() => openLifecycleModal("undrop", r)}>
-                        Undrop
-                      </ActionChip>
-                    ) : null}
+                    <ActionChip
+                      onClick={() => handleSendAgreement?.(r)}
+                      disabled={sendingAgreementEnrollmentId === r.enrollment_id}
+                    >
+                      {sendingAgreementEnrollmentId === r.enrollment_id ? "Sending..." : "Send Agreement"}
+                    </ActionChip>
+                    <div className="w-24">
+                      <ControlDropdown
+                        value=""
+                        onChange={(action) => openLifecycleModal(action, r)}
+                        placeholder="Action"
+                        compact
+                        fixedMenu
+                        options={lifecycleActionsForRow(r).map((action) => ({
+                          value: action,
+                          label: actionLabels[action] || action,
+                        }))}
+                      />
+                    </div>
                   </div>
                 </td>
               </tr>

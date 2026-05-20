@@ -70,27 +70,29 @@ export function useActionsPayments(state) {
     }
   }
 
-  async function openFeeBreakdown({ enrollmentId, type, studentName }) {
-    const cacheKey = `${enrollmentId}|${year}|${month}|${type}`;
+  async function openFeeBreakdown({ enrollmentId, studentName }) {
+    const cacheKey = `${enrollmentId}|${year}|${month}|due`;
     if (feeBreakdownCache[cacheKey]) {
       setFeeBreakdownModal({
         open: true,
-        title: `${studentName || "Candidate"} - ${type === "paid" ? "Paid Breakdown" : "Closing Due Breakdown"}`,
+        title: `${studentName || "Candidate"} - Closing Due Breakdown`,
         rows: feeBreakdownCache[cacheKey],
+        mode: "due",
       });
       return;
     }
     setFeeBreakdownLoading(true);
     setFeeBreakdownModal({
       open: true,
-      title: `${studentName || "Candidate"} - ${type === "paid" ? "Paid Breakdown" : "Closing Due Breakdown"}`,
+      title: `${studentName || "Candidate"} - Closing Due Breakdown`,
       rows: [],
+      mode: "due",
     });
     try {
-      const res = await paymentsAdminApi.getTotalFeeBreakdown(enrollmentId, year, month, type);
+      const res = await paymentsAdminApi.getTotalFeeBreakdown(enrollmentId, year, month);
       const rowsOut = Array.isArray(res?.data?.rows) ? res.data.rows : [];
       setFeeBreakdownCache((prev) => ({ ...prev, [cacheKey]: rowsOut }));
-      setFeeBreakdownModal((prev) => ({ ...prev, rows: rowsOut }));
+      setFeeBreakdownModal((prev) => ({ ...prev, rows: rowsOut, mode: "due" }));
     } catch (err) {
       setError(err?.response?.data?.msg || "Failed to load fee breakdown");
       setFeeBreakdownModal((prev) => ({ ...prev, rows: [] }));
@@ -99,5 +101,38 @@ export function useActionsPayments(state) {
     }
   }
 
-  return { exportPaymentsCsv, handleReconcile, handleRefund, openFeeBreakdown };
+  async function openDiscountBreakdown({ enrollmentId, studentName }) {
+    const cacheKey = `${enrollmentId}|${year}|${month}|discount`;
+    if (feeBreakdownCache[cacheKey]) {
+      setFeeBreakdownModal({
+        open: true,
+        title: `${studentName || "Candidate"} - Discount Breakdown`,
+        rows: feeBreakdownCache[cacheKey],
+        mode: "discount",
+      });
+      return;
+    }
+    setFeeBreakdownLoading(true);
+    setFeeBreakdownModal({
+      open: true,
+      title: `${studentName || "Candidate"} - Discount Breakdown`,
+      rows: [],
+      mode: "discount",
+    });
+    try {
+      const res = await paymentsAdminApi.getTotalFeeBreakdown(enrollmentId, year, month);
+      const rowsOut = (Array.isArray(res?.data?.rows) ? res.data.rows : []).filter(
+        (row) => Number(row.discount_amount_paise || 0) > 0,
+      );
+      setFeeBreakdownCache((prev) => ({ ...prev, [cacheKey]: rowsOut }));
+      setFeeBreakdownModal((prev) => ({ ...prev, rows: rowsOut, mode: "discount" }));
+    } catch (err) {
+      setError(err?.response?.data?.msg || "Failed to load discount breakdown");
+      setFeeBreakdownModal((prev) => ({ ...prev, rows: [] }));
+    } finally {
+      setFeeBreakdownLoading(false);
+    }
+  }
+
+  return { exportPaymentsCsv, handleReconcile, handleRefund, openFeeBreakdown, openDiscountBreakdown };
 }

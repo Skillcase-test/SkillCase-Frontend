@@ -7,7 +7,9 @@ export function useActionsEnrollment(state) {
     setPassword,
     setAuthorized,
     setError,
+    setNotice,
     setSavingEnrollmentId,
+    setSendingAgreementEnrollmentId,
     loadTabData,
     editDraft,
     setEditDraft,
@@ -54,7 +56,7 @@ export function useActionsEnrollment(state) {
   }
 
   async function handleSaveEnrollmentEdit() {
-    if (!editDraft?.enrollment_id) return;
+    if (!editDraft) return;
     const requiredChecks = [
       { key: "student_name", label: "Name" },
       { key: "student_phone", label: "Phone Number" },
@@ -76,39 +78,86 @@ export function useActionsEnrollment(state) {
       setError(`Please fill required fields: ${missing.join(", ")}`);
       return;
     }
-    setSavingEnrollmentId(editDraft.enrollment_id);
+    const expectedRows = Array.isArray(editDraft.expected_payments)
+      ? editDraft.expected_payments
+      : [];
+    const invalidExpected = expectedRows.some((row) => {
+      const expectedDate = String(row.expected_date || row.date || "").slice(0, 10);
+      const actualDate = String(row.actual_date || row.date || "").slice(0, 10);
+      const expectedRaw = row.expected_payment_inr ?? row.expected_amount_inr ?? "";
+      const actualRaw = row.actual_payment_inr ?? "";
+      const hasExpected = String(expectedRaw).trim() !== "";
+      const hasActual = String(actualRaw).trim() !== "";
+      const expected = Number(expectedRaw || 0);
+      const actual = Number(actualRaw || 0);
+      return (
+        (hasExpected && !expectedDate) ||
+        (hasActual && !actualDate) ||
+        (hasExpected && (!Number.isFinite(expected) || expected < 0)) ||
+        (hasActual && (!Number.isFinite(actual) || actual < 0))
+      );
+    });
+    if (invalidExpected) {
+      setError("Payment rows need valid expected/actual dates and non-negative amounts.");
+      return;
+    }
+    const savingKey = editDraft.enrollment_id || "manual-create";
+    setSavingEnrollmentId(savingKey);
+    const payload = {
+      student_name: editDraft.student_name,
+      student_email: editDraft.student_email,
+      student_phone: editDraft.student_phone,
+      batch_id: editDraft.batch_id || null,
+      notes: editDraft.notes || "",
+      enforce_profile_validation: true,
+      candidate_id: editDraft.candidate_id || "",
+      total_fee_inr: editDraft.total_fee_inr || "",
+      monthly_fee_inr: editDraft.monthly_fee_inr || "",
+      alternate_number: editDraft.alternate_number || "",
+      dob: editDraft.dob || "",
+      gender: editDraft.gender || "",
+      nationality: editDraft.nationality || "",
+      current_location_city: editDraft.current_location_city || "",
+      state: editDraft.state || "",
+      educational_qualification: editDraft.educational_qualification || "",
+      year_of_passing: editDraft.year_of_passing || "",
+      shift_pattern: editDraft.shift_pattern || "",
+      first_shift_timing: editDraft.first_shift_timing || "",
+      second_shift_timing: editDraft.second_shift_timing || "",
+      third_shift_timing: editDraft.third_shift_timing || "",
+      daily_shift_timing: editDraft.daily_shift_timing || "",
+      passport_gdrive_link: editDraft.passport_gdrive_link || "",
+      degree_certificate_gdrive_link:
+        editDraft.degree_certificate_gdrive_link || "",
+      updated_resume_gdrive_link: editDraft.updated_resume_gdrive_link || "",
+      terms_ack_status: editDraft.terms_ack_status || "",
+      lead_owner: editDraft.lead_owner || "",
+      internal_remark: editDraft.internal_remark || "",
+      expected_payments: expectedRows.map((row) => ({
+        schedule_id: row.schedule_id || undefined,
+        payment_id: row.payment_id || undefined,
+        manual_payment_id: row.manual_payment_id || undefined,
+        manual_payment_key: row.manual_payment_key || undefined,
+        expected_date: String(row.expected_date || row.date || "").slice(0, 10),
+        actual_date: String(row.actual_date || row.date || "").slice(0, 10),
+        expected_payment_inr: Number(row.expected_payment_inr ?? row.expected_amount_inr ?? 0),
+        actual_payment_inr: row.actual_payment_inr === "" || row.actual_payment_inr == null
+          ? undefined
+          : Number(row.actual_payment_inr),
+        actual_payment_touched: Boolean(row.actual_payment_touched),
+        row_kind: row.row_kind || undefined,
+        notes: row.notes || "",
+        source_type: row.source_type || "admin",
+      })),
+    };
     try {
-      await paymentsAdminApi.updateEnrollment(editDraft.enrollment_id, {
-        student_name: editDraft.student_name,
-        student_email: editDraft.student_email,
-        student_phone: editDraft.student_phone,
-        batch_id: editDraft.batch_id || null,
-        notes: editDraft.notes || "",
-        enforce_profile_validation: true,
-        candidate_id: editDraft.candidate_id || "",
-        total_fee_inr: editDraft.total_fee_inr || "",
-        monthly_fee_inr: editDraft.monthly_fee_inr || "",
-        alternate_number: editDraft.alternate_number || "",
-        dob: editDraft.dob || "",
-        gender: editDraft.gender || "",
-        nationality: editDraft.nationality || "",
-        current_location_city: editDraft.current_location_city || "",
-        state: editDraft.state || "",
-        educational_qualification: editDraft.educational_qualification || "",
-        year_of_passing: editDraft.year_of_passing || "",
-        shift_pattern: editDraft.shift_pattern || "",
-        first_shift_timing: editDraft.first_shift_timing || "",
-        second_shift_timing: editDraft.second_shift_timing || "",
-        third_shift_timing: editDraft.third_shift_timing || "",
-        daily_shift_timing: editDraft.daily_shift_timing || "",
-        passport_gdrive_link: editDraft.passport_gdrive_link || "",
-        degree_certificate_gdrive_link:
-          editDraft.degree_certificate_gdrive_link || "",
-        updated_resume_gdrive_link: editDraft.updated_resume_gdrive_link || "",
-        terms_ack_status: editDraft.terms_ack_status || "",
-        lead_owner: editDraft.lead_owner || "",
-        internal_remark: editDraft.internal_remark || "",
-      });
+      if (editDraft.is_manual_create || !editDraft.enrollment_id) {
+        await paymentsAdminApi.createManualEnrollment(payload);
+        setNotice?.("Manual candidate created as pending.");
+      } else {
+        await paymentsAdminApi.updateEnrollment(editDraft.enrollment_id, payload);
+        setNotice?.("Candidate details saved.");
+      }
       setEditDraft(null);
       await loadTabData();
     } catch (err) {
@@ -118,10 +167,73 @@ export function useActionsEnrollment(state) {
     }
   }
 
+  function handleStartManualCandidate() {
+    setError("");
+    setNotice?.("");
+    setEditDraft({
+      is_manual_create: true,
+      status: "pending",
+      student_name: "",
+      student_phone: "",
+      student_email: "",
+      batch_id: "",
+      candidate_id: "",
+      alternate_number: "",
+      dob: "",
+      gender: "",
+      nationality: "",
+      current_location_city: "",
+      state: "",
+      educational_qualification: "",
+      year_of_passing: "",
+      shift_pattern: "",
+      first_shift_timing: "",
+      second_shift_timing: "",
+      third_shift_timing: "",
+      daily_shift_timing: "",
+      passport_gdrive_link: "",
+      degree_certificate_gdrive_link: "",
+      updated_resume_gdrive_link: "",
+      terms_ack_status: "",
+      lead_owner: "",
+      internal_remark: "",
+      total_fee_inr: 60000,
+      monthly_fee_inr: 6000,
+      expected_payments: [],
+    });
+  }
+
+  async function handleSendAgreement(row) {
+    const enrollmentId = row?.enrollment_id;
+    if (!enrollmentId) return;
+    if (!String(row?.student_email || "").trim()) {
+      setError("candidate email is required before sending agreement");
+      return;
+    }
+    const confirmed = window.confirm(
+      `Send agreement to ${row.student_name || "this candidate"} at ${row.student_email}?`,
+    );
+    if (!confirmed) return;
+    setError("");
+    setNotice?.("");
+    setSendingAgreementEnrollmentId?.(enrollmentId);
+    try {
+      await paymentsAdminApi.sendAgreement(enrollmentId);
+      setNotice?.(`Agreement sent to ${row.student_email}.`);
+      await loadTabData();
+    } catch (err) {
+      setError(err?.response?.data?.msg || "Agreement send failed");
+    } finally {
+      setSendingAgreementEnrollmentId?.("");
+    }
+  }
+
   return {
     handleStepUp,
     handleFinalize,
     handleReject,
     handleSaveEnrollmentEdit,
+    handleStartManualCandidate,
+    handleSendAgreement,
   };
 }
