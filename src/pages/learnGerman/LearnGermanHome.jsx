@@ -30,22 +30,31 @@ import {
 } from "./lgFirstTimeGuide";
 
 // Static City Background using the provided 3 PNGs
-const CityBackground = () => (
+const CityBackground = ({ fromSwitcher }) => (
   <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-    <img
+    <motion.img
       src={bg1}
       alt="Background Top Right"
-      className="absolute top-[15%] right-[0%] w-[35%] max-w-[250px] opacity-100 object-contain"
+      initial={fromSwitcher ? { opacity: 0, y: -200 } : false}
+      animate={{ opacity: 1, x: 0, y: 0 }}
+      transition={{ type: "spring", stiffness: 100, damping: 12, delay: 0.1 }}
+      className="absolute top-[15%] right-[0%] w-[35%] max-w-[250px] object-contain"
     />
-    <img
+    <motion.img
       src={bg2}
       alt="Background Middle Left"
-      className="absolute top-[50%] left-[-6%] w-[55%] max-w-[300px] opacity-100 object-contain"
+      initial={fromSwitcher ? { opacity: 0, x: -250 } : false}
+      animate={{ opacity: 1, x: 0, y: 0 }}
+      transition={{ type: "spring", stiffness: 100, damping: 12, delay: 0.2 }}
+      className="absolute top-[50%] left-[-6%] w-[55%] max-w-[300px] object-contain"
     />
-    <img
+    <motion.img
       src={bg3}
       alt="Background Bottom Right"
-      className="absolute bottom-[2%] right-[-8%] w-[55%] max-w-[350px] opacity-100 object-contain"
+      initial={fromSwitcher ? { opacity: 0, y: 250 } : false}
+      animate={{ opacity: 1, x: 0, y: 0 }}
+      transition={{ type: "spring", stiffness: 100, damping: 12, delay: 0.3 }}
+      className="absolute bottom-[2%] right-[-8%] w-[55%] max-w-[350px] object-contain"
     />
   </div>
 );
@@ -488,6 +497,17 @@ export default function LearnGermanHome() {
   const hasPendingAnimRef = useRef(false);
   // Captured at mount so cards skip stagger entry animation when returning from a lesson
   const fromLessonCompleteRef = useRef(location.state?.fromLessonComplete === true);
+  
+  const [fromSwitcher] = useState(() => {
+    return sessionStorage.getItem("lg_animate_switcher") === "true";
+  });
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      sessionStorage.removeItem("lg_animate_switcher");
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   const fallbackImage =
     "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778253329/99ee50b94881e4e072cc6de5dde475531353120d_f100ew.webp";
@@ -830,9 +850,14 @@ export default function LearnGermanHome() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-100 to-sky-100 relative pb-32 overflow-x-hidden">
-      <CityBackground />
+      <CityBackground fromSwitcher={fromSwitcher} />
 
-      <div className="w-full max-w-[400px] mx-auto relative z-10 flex flex-col items-center px-6">
+      <motion.div
+        initial={fromSwitcher ? { opacity: 0, y: 80 } : false}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 100, damping: 15 }}
+        className="w-full max-w-[400px] mx-auto relative z-10 flex flex-col items-center px-6"
+      >
         {/* Top Arc Progress Section */}
         <div className="w-full mb-8 relative flex flex-col items-center">
           <div className="relative w-[300px] h-[80px] overflow-visible flex justify-center">
@@ -861,15 +886,16 @@ export default function LearnGermanHome() {
                 strokeLinecap="round"
               />
               {/* Fill track */}
-              <path
+              <motion.path
                 d="M 20,60 Q 160,35 300,60"
                 fill="none"
                 stroke="url(#progressGradient)"
                 strokeWidth="16"
                 strokeLinecap="round"
                 strokeDasharray="286"
-                strokeDashoffset={286 - (286 * progress) / 100}
-                className="transition-all duration-1000 ease-out"
+                initial={fromSwitcher ? { pathLength: 0 } : false}
+                animate={{ pathLength: progress / 100 }}
+                transition={{ type: "spring", stiffness: 70, damping: 10, delay: 0.3 }}
               />
             </svg>
 
@@ -889,30 +915,34 @@ export default function LearnGermanHome() {
                 3;
 
               return (
-                <div
-                  className="absolute bg-white px-2 py-0.5 rounded-full shadow-md z-20 flex flex-col items-center justify-center transition-all duration-700 ease-out"
+                <motion.div
+                  initial={fromSwitcher ? { scale: 0, opacity: 0, x: "-50%" } : false}
+                  animate={{ scale: 1, opacity: 1, x: "-50%" }}
+                  transition={{ type: "spring", stiffness: 180, damping: 10, delay: 1.1 }}
+                  className="absolute bg-white px-2 py-0.5 rounded-full shadow-md z-20 flex flex-col items-center justify-center"
                   style={{
                     left: `${(x / 320) * 100}%`,
                     top: `${(y / 80) * 100 + 15}%`,
-                    transform: "translateX(-50%)",
                   }}
                 >
                   <div className="absolute -top-[4px] w-2 h-2 bg-white rotate-45" />
                   <span className="text-black text-[10px] font-bold font-['Poppins'] relative z-10">
                     {progress}%
                   </span>
-                </div>
+                </motion.div>
               );
             })()}
           </div>
 
           {/* Flag Icon positioned at the end of the arc */}
-          <div
+          <motion.div
+            initial={fromSwitcher ? { scale: 0, opacity: 0, x: "-50%", y: "-50%" } : false}
+            animate={{ scale: 1, opacity: 1, x: "-50%", y: "-50%" }}
+            transition={{ type: "spring", stiffness: 180, damping: 10, delay: 0.9 }}
             className="absolute w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center z-20 border-[3px] border-white overflow-hidden"
             style={{
               left: "90%",
               top: "75%",
-              transform: "translate(-50%, -50%)",
             }}
           >
             <img
@@ -920,7 +950,7 @@ export default function LearnGermanHome() {
               alt="German Flag"
               className="w-7 h-7 object-cover rounded-full"
             />
-          </div>
+          </motion.div>
         </div>
 
         {/* Dynamic Zigzag Module List */}
@@ -998,19 +1028,23 @@ export default function LearnGermanHome() {
                       mod.lesson_id === activeLessonId ? "true" : undefined
                     }
                     initial={
-                      fromLessonCompleteRef.current
+                      fromSwitcher
+                        ? { opacity: 0, x: isLeft ? -150 : 150 }
+                        : fromLessonCompleteRef.current
                         ? false
                         : { opacity: 0, y: 20 }
                     }
                     animate={
                       isBeingMarkedComplete
-                        ? { opacity: 1, y: 0, scale: [1, 1.02, 1], filter: "none", rotate: 0 }
+                        ? { opacity: 1, x: 0, y: 0, scale: [1, 1.02, 1], filter: "none", rotate: 0 }
                         : isBeingUnlocked
-                        ? { opacity: 1, y: [15, -5, 0], scale: [0.95, 1.02, 1], filter: "none", rotate: 0 }
-                        : { opacity: 1, y: 0, scale: 1, filter: "none", rotate: 0 }
+                        ? { opacity: 1, x: 0, y: [15, -5, 0], scale: [0.95, 1.02, 1], filter: "none", rotate: 0 }
+                        : { opacity: 1, x: 0, y: 0, scale: 1, filter: "none", rotate: 0 }
                     }
                     transition={
-                      isBeingMarkedComplete
+                      fromSwitcher
+                        ? { type: "spring", stiffness: 120, damping: 12, delay: index * 0.08 }
+                        : isBeingMarkedComplete
                         ? { duration: 0.6, ease: "easeOut" }
                         : isBeingUnlocked
                         ? { duration: 0.9, ease: "easeOut" }
@@ -1071,7 +1105,7 @@ export default function LearnGermanHome() {
             })
           )}
         </div>
-      </div>
+      </motion.div>
       <BottomModeSwitcher isTourActive={showFirstChapterGuide && tourStep === 0} />
 
       {/* STEP 0: Mode Switcher */}

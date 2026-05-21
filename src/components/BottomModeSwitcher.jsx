@@ -97,6 +97,7 @@ export default function BottomModeSwitcher({ isTourActive = false }) {
 
     // Navigate
     if (mode === "learn") {
+      sessionStorage.setItem("lg_animate_switcher", "true");
       navigate("/learn-german");
     } else {
       navigate("/");
@@ -113,15 +114,23 @@ export default function BottomModeSwitcher({ isTourActive = false }) {
         className={`pointer-events-auto bg-white shadow-[0_-8px_30px_rgb(0,0,0,0.08)] rounded-t-[30px] px-5 py-2 flex items-center justify-center w-full max-w-lg ${isTourActive ? "pointer-events-none" : ""}`}
       >
         <div className="flex items-center w-full gap-2">
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={() => handleSwitch("learn")}
-            className={`flex-1 flex items-center justify-center gap-2.5 py-3 px-2 rounded-xl text-[10px] font-semibold transition-all duration-300 font-['Poppins'] text-nowrap ${
+            className={`relative flex-1 flex items-center justify-center gap-2.5 py-3 px-2 rounded-xl text-[10px] font-semibold transition-colors duration-300 font-['Poppins'] text-nowrap z-10 ${
               isLearnMode
-                ? "bg-[#eef2f6] text-[#002856]"
-                : "bg-transparent text-[#8091a7] hover:bg-gray-50"
+                ? "text-[#002856]"
+                : "bg-transparent text-[#8091a7] hover:bg-gray-50/50"
             } ${isTourActive ? "pointer-events-none" : ""}`}
           >
-            <svg
+            {isLearnMode && (
+              <motion.div
+                layoutId="active-mode-pill"
+                className="absolute inset-0 bg-[#eef2f6] rounded-xl -z-10"
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+              />
+            )}
+            <motion.svg
               xmlns="http://www.w3.org/2000/svg"
               width="18"
               height="18"
@@ -131,23 +140,36 @@ export default function BottomModeSwitcher({ isTourActive = false }) {
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
+              animate={{ 
+                scale: isLearnMode ? [1, 1.15, 1] : 1,
+                rotate: isLearnMode ? [0, -10, 10, 0] : 0 
+              }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
             >
               <circle cx="6" cy="19" r="3" />
               <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" />
               <circle cx="18" cy="5" r="3" />
-            </svg>
+            </motion.svg>
             Guided Learning
-          </button>
+          </motion.button>
 
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={() => handleSwitch("practice")}
-            className={`flex-1 flex items-center justify-center gap-2.5 py-3 px-2 rounded-xl text-[10px] font-semibold transition-all duration-300 font-['Poppins'] text-nowrap ${
+            className={`relative flex-1 flex items-center justify-center gap-2.5 py-3 px-2 rounded-xl text-[10px] font-semibold transition-colors duration-300 font-['Poppins'] text-nowrap z-10 ${
               !isLearnMode
-                ? "bg-[#eef2f6] text-[#002856]"
-                : "bg-transparent text-[#8091a7] hover:bg-gray-50"
+                ? "text-[#002856]"
+                : "bg-transparent text-[#8091a7] hover:bg-gray-50/50"
             } ${isTourActive ? "pointer-events-none" : ""}`}
           >
-            <svg
+            {!isLearnMode && (
+              <motion.div
+                layoutId="active-mode-pill"
+                className="absolute inset-0 bg-[#eef2f6] rounded-xl -z-10"
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+              />
+            )}
+            <motion.svg
               xmlns="http://www.w3.org/2000/svg"
               width="18"
               height="18"
@@ -157,12 +179,17 @@ export default function BottomModeSwitcher({ isTourActive = false }) {
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
+              animate={{ 
+                scale: !isLearnMode ? [1, 1.15, 1] : 1,
+                rotate: !isLearnMode ? [0, -5, 5, 0] : 0 
+              }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
             >
               <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
               <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-            </svg>
+            </motion.svg>
             Exam & Practice Hub
-          </button>
+          </motion.button>
         </div>
       </motion.div>
     </div>
