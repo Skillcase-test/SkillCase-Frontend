@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Save, Upload, Link2, Copy } from "lucide-react";
+import { Save, Upload, Link2, Copy, Eye, EyeOff } from "lucide-react";
 import {
-  fetchSectionsByLevel,
+  fetchAdminSectionsByLevel,
   saveDemoClass,
   saveSalaryInfo,
   saveTalkToTeam,
@@ -28,6 +28,36 @@ function FieldRow({ label, children }) {
         {label}
       </label>
       {children}
+    </div>
+  );
+}
+
+function VisibilityToggle({ isVisible, onChange }) {
+  const visible = isVisible !== false;
+  return (
+    <div className="mb-5 rounded-xl border border-gray-100 bg-gray-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <p className="text-sm font-semibold text-gray-800">
+          Landing page visibility
+        </p>
+        <p className="text-xs text-gray-500 mt-0.5">
+          {visible
+            ? "This section is visible for the selected level."
+            : "This section is hidden for the selected level."}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => onChange(!visible)}
+        className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition border ${
+          visible
+            ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+            : "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
+        }`}
+      >
+        {visible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+        {visible ? "Visible" : "Hidden"}
+      </button>
     </div>
   );
 }
@@ -284,6 +314,20 @@ function TalkPreview({ d }) {
   );
 }
 
+function HiddenPreview({ sectionLabel, level }) {
+  return (
+    <div className="rounded-xl border border-dashed border-rose-200 bg-rose-50 p-6 text-center">
+      <EyeOff className="w-8 h-8 mx-auto mb-3 text-rose-500" />
+      <p className="text-sm font-semibold text-rose-700">
+        {sectionLabel} is hidden for {level}
+      </p>
+      <p className="text-xs text-rose-500 mt-1">
+        It will not render on the student landing page after saving.
+      </p>
+    </div>
+  );
+}
+
 // ---- Constants ----
 const LEVEL_TABS = ["A1", "A2"];
 const SECTION_TABS = [
@@ -305,7 +349,7 @@ export default function LandingPageManagement() {
   const loadLevel = (level) => {
     if (allData[level]) return; // already loaded
     setLoadingLevel((p) => ({ ...p, [level]: true }));
-    fetchSectionsByLevel(level)
+    fetchAdminSectionsByLevel(level)
       .then((res) => setAllData((p) => ({ ...p, [level]: res.data })))
       .catch(() => {})
       .finally(() => setLoadingLevel((p) => ({ ...p, [level]: false })));
@@ -340,12 +384,23 @@ export default function LandingPageManagement() {
     if (!d) return;
     setSaving(true);
     try {
+      let result = null;
       if (activeSection === "demo_class")
-        await saveDemoClass(activeLevel, d.demo_class);
+        result = await saveDemoClass(activeLevel, d.demo_class);
       if (activeSection === "salary_info")
-        await saveSalaryInfo(activeLevel, d.salary_info);
+        result = await saveSalaryInfo(activeLevel, d.salary_info);
       if (activeSection === "talk_to_team")
-        await saveTalkToTeam(activeLevel, d.talk_to_team);
+        result = await saveTalkToTeam(activeLevel, d.talk_to_team);
+      const savedSection = result?.data?.data;
+      if (savedSection) {
+        setAllData((prev) => ({
+          ...prev,
+          [activeLevel]: {
+            ...prev[activeLevel],
+            [activeSection]: savedSection,
+          },
+        }));
+      }
       alert(`${activeLevel} — Saved successfully.`);
     } catch {
       alert("Save failed. Please try again.");
@@ -376,8 +431,19 @@ export default function LandingPageManagement() {
           : activeSection === "salary_info"
             ? saveSalaryInfo
             : saveTalkToTeam;
-      await saveFn(activeLevel, sectionData);
-      await saveFn(otherLevel, sectionData);
+      const currentResult = await saveFn(activeLevel, sectionData);
+      const otherResult = await saveFn(otherLevel, sectionData);
+      setAllData((prev) => ({
+        ...prev,
+        [activeLevel]: {
+          ...prev[activeLevel],
+          [activeSection]: currentResult?.data?.data || sectionData,
+        },
+        [otherLevel]: {
+          ...(prev[otherLevel] || {}),
+          [activeSection]: otherResult?.data?.data || sectionData,
+        },
+      }));
       alert(`Saved to both ${activeLevel} and ${otherLevel}.`);
     } catch {
       alert("Copy failed. Please try again.");
@@ -443,6 +509,10 @@ export default function LandingPageManagement() {
           <div>
             {activeSection === "demo_class" && (
               <SectionCard title={`Demo Class — ${activeLevel}`}>
+                <VisibilityToggle
+                  isVisible={dc.is_visible}
+                  onChange={(v) => set("demo_class", "is_visible", v)}
+                />
                 <FieldRow label="Heading">
                   <TextInput
                     value={dc.heading}
@@ -509,6 +579,10 @@ export default function LandingPageManagement() {
 
             {activeSection === "salary_info" && (
               <SectionCard title={`Salary Info — ${activeLevel}`}>
+                <VisibilityToggle
+                  isVisible={si.is_visible}
+                  onChange={(v) => set("salary_info", "is_visible", v)}
+                />
                 <FieldRow label="Heading">
                   <TextInput
                     value={si.heading}
@@ -579,6 +653,10 @@ export default function LandingPageManagement() {
 
             {activeSection === "talk_to_team" && (
               <SectionCard title={`Talk to Team — ${activeLevel}`}>
+                <VisibilityToggle
+                  isVisible={tt.is_visible}
+                  onChange={(v) => set("talk_to_team", "is_visible", v)}
+                />
                 <FieldRow label="Heading">
                   <TextInput
                     value={tt.heading}
@@ -659,9 +737,24 @@ export default function LandingPageManagement() {
               </span>
             </p>
             <div className="sticky top-4">
-              {activeSection === "demo_class" && <DemoPreview d={dc} />}
-              {activeSection === "salary_info" && <SalaryPreview d={si} />}
-              {activeSection === "talk_to_team" && <TalkPreview d={tt} />}
+              {activeSection === "demo_class" &&
+                (dc.is_visible === false ? (
+                  <HiddenPreview sectionLabel="Demo Class" level={activeLevel} />
+                ) : (
+                  <DemoPreview d={dc} />
+                ))}
+              {activeSection === "salary_info" &&
+                (si.is_visible === false ? (
+                  <HiddenPreview sectionLabel="Salary Info" level={activeLevel} />
+                ) : (
+                  <SalaryPreview d={si} />
+                ))}
+              {activeSection === "talk_to_team" &&
+                (tt.is_visible === false ? (
+                  <HiddenPreview sectionLabel="Talk to Team" level={activeLevel} />
+                ) : (
+                  <TalkPreview d={tt} />
+                ))}
               <p className="text-xs text-gray-400 mt-2 text-center">
                 Updates as you type
               </p>

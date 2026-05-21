@@ -557,9 +557,15 @@ export default function LandingPage() {
           <FeatureCardsGrid useRevampA1={isRevampA1User} />
         )}
         <StreakWidget />
-        <DemoClassSection data={sections?.demo_class} />
-        <SalaryInfoCard data={sections?.salary_info} />
-        <TalkToTeamSection data={sections?.talk_to_team} />
+        {sections?.demo_class && sections.demo_class.is_visible !== false && (
+          <DemoClassSection data={sections?.demo_class} />
+        )}
+        {sections?.salary_info && sections.salary_info.is_visible !== false && (
+          <SalaryInfoCard data={sections?.salary_info} />
+        )}
+        {sections?.talk_to_team && sections.talk_to_team.is_visible !== false && (
+          <TalkToTeamSection data={sections?.talk_to_team} />
+        )}
         <div className="px-4">
           <hr className="border-gray-200" />
         </div>
