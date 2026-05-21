@@ -21,6 +21,7 @@ import bg3 from "../../assets/3.webp";
 
 import BottomModeSwitcher from "../../components/BottomModeSwitcher";
 import api from "../../api/axios";
+import { setClarityTag, trackClarityEvent } from "../../observability/clarity";
 import {
   getLgGuideStage,
   LG_GUIDE_STAGES,
@@ -506,6 +507,18 @@ export default function LearnGermanHome() {
   });
 
   useEffect(() => {
+    setClarityTag("lg_funnel", "learn_home");
+    setClarityTag("lg_mode", "learn");
+    trackClarityEvent("lg_home_viewed", {
+      lg_funnel: "learn_home",
+      lg_mode: "learn",
+      lg_from_onboarding: Boolean(location.state?.fromOnboardingFirstLanding),
+      lg_from_switcher: fromSwitcher,
+      lg_prof_level: user?.user_prof_level || "unknown",
+    }, location.state?.fromOnboardingFirstLanding ? "lg_first_landing" : null);
+  }, [fromSwitcher, location.state?.fromOnboardingFirstLanding, user?.user_prof_level]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       sessionStorage.removeItem("lg_animate_switcher");
     }, 100);
@@ -837,6 +850,12 @@ export default function LearnGermanHome() {
 
   const handleStart = (lesson_id, status, hasContent) => {
     if (!hasContent) return;
+    trackClarityEvent("lg_lesson_card_clicked", {
+      lg_funnel: "learn_home",
+      lg_lesson_id: lesson_id,
+      lg_lesson_status: status || "unknown",
+      lg_lesson_action: status === "completed" ? "restart_prompt" : "start_or_continue",
+    }, status === "completed" ? null : "lg_lesson_started");
     if (lesson_id === activeLessonId) {
       const stage = getLgGuideStage();
       if (!stage || stage === LG_GUIDE_STAGES.NOT_STARTED) {

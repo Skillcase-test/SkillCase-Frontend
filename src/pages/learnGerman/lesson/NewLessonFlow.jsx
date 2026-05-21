@@ -10,6 +10,7 @@ import {
 import api from "../../../api/axios";
 import { getLessonById, getLessonsList } from "../../../api/learnGermanApi";
 import { hapticLight, hapticMedium, hapticHeavy } from "../../../utils/haptics";
+import { setClarityTag, trackClarityEvent } from "../../../observability/clarity";
 import { preloadMayaTTSText } from "./screens/shared/useMayaTTS";
 import {
   getGermanTTSBlob,
@@ -255,6 +256,17 @@ export default function NewLessonFlow() {
       try {
         const { data } = await getLessonById(chapterId);
         setLessonData(data);
+        setClarityTag("lg_funnel", "lesson");
+        setClarityTag("lg_lesson_id", chapterId);
+        setClarityTag("lg_lesson_title", data.title || "unknown");
+        trackClarityEvent("lg_lesson_opened", {
+          lg_funnel: "lesson",
+          lg_lesson_id: chapterId,
+          lg_lesson_title: data.title || "unknown",
+          lg_lesson_status: data.user_status || "unknown",
+          lg_lesson_level: data.proficiency_level || "unknown",
+          lg_review_mode: isReviewMode,
+        }, "lg_lesson_opened");
         preloadLessonTTS(data.screens || [], 0);
 
         // In review mode, jump directly to the outro screen so the user sees
@@ -436,6 +448,14 @@ export default function NewLessonFlow() {
         completionResultRef.current = result;
         setStreakUpdated(result.streakUpdated);
         setCoinsAwarded(result.coinsAwarded);
+        trackClarityEvent("lg_lesson_completed", {
+          lg_funnel: "lesson",
+          lg_lesson_id: chapterId,
+          lg_lesson_title: lessonData?.title || "unknown",
+          lg_lesson_level: lessonData?.proficiency_level || "unknown",
+          lg_coins_awarded: result.coinsAwarded,
+          lg_streak_updated: result.streakUpdated,
+        }, "lg_lesson_completed");
         // Notify Navbar to re-fetch progress ring + coins immediately
         window.dispatchEvent(new CustomEvent("lgLessonComplete"));
         return result;
@@ -447,7 +467,7 @@ export default function NewLessonFlow() {
       });
 
     return completionPersistPromiseRef.current;
-  }, [chapterId]);
+  }, [chapterId, lessonData?.proficiency_level, lessonData?.title]);
 
   const navigateToLearnGermanHome = useCallback(async ({ autoStartNext = false } = {}) => {
     const completionResult = await persistComplete();

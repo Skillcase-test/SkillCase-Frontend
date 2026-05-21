@@ -5,6 +5,7 @@ import { useDispatch } from "react-redux";
 import api from "../../api/axios";
 import { loginSuccess } from "../../redux/auth/authSlice";
 import { hapticLight } from "../../utils/haptics";
+import { setClarityTag, trackClarityEvent } from "../../observability/clarity";
 
 // Mascot Assets
 import mayaStanding from "../../assets/onboarding/mayaStanding.webp";
@@ -30,6 +31,24 @@ const LEVEL_ROUTE_MAP = {
 };
 
 const OTP_RESEND_SECONDS = 90;
+
+const ONBOARDING_STEP_EVENTS = {
+  1: "lg_onboarding_splash_viewed",
+  2: "lg_onboarding_phone_viewed",
+  3: "lg_onboarding_otp_viewed",
+  4: "lg_onboarding_name_viewed",
+  5: "lg_onboarding_occupation_viewed",
+  6: "lg_onboarding_status_viewed",
+  7: "lg_onboarding_level_viewed",
+  8: "lg_onboarding_preference_viewed",
+};
+
+function normalizeOnboardingValue(value) {
+  return String(value || "unknown")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
 
 // german_preference codes: "1" = Learn German, "2" = Practice German
 // Also handles legacy text labels stored by an old onboarding bug
@@ -148,6 +167,15 @@ const OnboardingFlow = () => {
   }, [step]);
 
   useEffect(() => {
+    setClarityTag("lg_funnel", "onboarding");
+    setClarityTag("lg_onboarding_step", step);
+    trackClarityEvent(ONBOARDING_STEP_EVENTS[step] || "lg_onboarding_step_viewed", {
+      lg_funnel: "onboarding",
+      lg_onboarding_step: step,
+    });
+  }, [step]);
+
+  useEffect(() => {
     if (step === 1) {
       const timer = setTimeout(() => {
         setStep(2);
@@ -172,7 +200,15 @@ const OnboardingFlow = () => {
     setLoading(true);
     setError("");
     try {
+      trackClarityEvent("lg_onboarding_otp_requested", {
+        lg_funnel: "onboarding",
+        lg_onboarding_step: 2,
+      });
       await api.post("/user/send-otp", { phone: phoneNumber });
+      trackClarityEvent("lg_onboarding_otp_sent", {
+        lg_funnel: "onboarding",
+        lg_onboarding_step: 3,
+      });
       setOtp("");
       setResendSeconds(OTP_RESEND_SECONDS);
       setStep(3);
@@ -202,6 +238,10 @@ const OnboardingFlow = () => {
         phone: phoneNumber,
         code,
       });
+      trackClarityEvent("lg_onboarding_otp_verified", {
+        lg_funnel: "onboarding",
+        lg_user_type: data.isNewUser ? "new" : "returning",
+      }, "lg_onboarding_otp_verified");
       if (data.isNewUser) {
         setStep(4);
       } else {
@@ -280,6 +320,13 @@ const OnboardingFlow = () => {
         "lg_preferred_mode",
         germanPrefCode === "2" ? "practice" : "learn",
       );
+      trackClarityEvent("lg_onboarding_completed", {
+        lg_funnel: "onboarding",
+        lg_selected_mode: germanPrefCode === "2" ? "practice" : "learn",
+        lg_selected_level: germanLevel || "new_to_german",
+        lg_german_status: germanStatus,
+        lg_occupation: occupation,
+      }, "lg_onboarding_completed");
 
       // Navigate based on preference
       if (germanPrefCode === "2") {
@@ -308,6 +355,42 @@ const OnboardingFlow = () => {
   const isStatusValid = germanStatus !== "";
   const isLevelValid = germanLevel !== "";
   const isPreferenceValid = preference !== "";
+
+  const selectOccupation = (value) => {
+    setOccupation(value);
+    trackClarityEvent("lg_onboarding_occupation_selected", {
+      lg_funnel: "onboarding",
+      lg_occupation: normalizeOnboardingValue(value),
+      lg_onboarding_step: 5,
+    });
+  };
+
+  const selectGermanStatus = (value) => {
+    setGermanStatus(value);
+    trackClarityEvent("lg_onboarding_status_selected", {
+      lg_funnel: "onboarding",
+      lg_german_status: normalizeOnboardingValue(value),
+      lg_onboarding_step: 6,
+    });
+  };
+
+  const selectGermanLevel = (value) => {
+    setGermanLevel(value);
+    trackClarityEvent("lg_onboarding_level_selected", {
+      lg_funnel: "onboarding",
+      lg_selected_level: normalizeOnboardingValue(value.split("\n")[0]),
+      lg_onboarding_step: 7,
+    });
+  };
+
+  const selectPreference = (value) => {
+    setPreference(value);
+    trackClarityEvent("lg_onboarding_preference_selected", {
+      lg_funnel: "onboarding",
+      lg_selected_mode: value === "2" ? "practice" : "learn",
+      lg_onboarding_step: 8,
+    });
+  };
 
   // Shared Top Section Component for Screens 2-7
 
@@ -656,7 +739,7 @@ const OnboardingFlow = () => {
                     ].map((occ) => (
                       <button
                         key={occ.id}
-                        onClick={() => setOccupation(occ.label)}
+                        onClick={() => selectOccupation(occ.label)}
                         className={`relative w-full h-[70px] px-2 rounded-[16px] border text-left flex items-center transition-all ${
                           occupation === occ.label
                             ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
@@ -715,7 +798,7 @@ const OnboardingFlow = () => {
                     ].map((status) => (
                       <button
                         key={status.id}
-                        onClick={() => setGermanStatus(status.label)}
+                        onClick={() => selectGermanStatus(status.label)}
                         className={`w-full p-3 rounded-xl border text-left flex items-center gap-4 transition-all ${
                           germanStatus === status.label
                             ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
@@ -793,7 +876,7 @@ const OnboardingFlow = () => {
                     ].map((lvl) => (
                       <button
                         key={lvl.level}
-                        onClick={() => setGermanLevel(lvl.label)}
+                        onClick={() => selectGermanLevel(lvl.label)}
                         className={`w-full p-3 rounded-xl border text-left flex items-center gap-4 transition-all ${
                           germanLevel === lvl.label
                             ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
@@ -869,7 +952,7 @@ const OnboardingFlow = () => {
                           key={pref.id}
                           onClick={() => {
                             // Always store numeric codes, not label text
-                            setPreference(prefCode);
+                            selectPreference(prefCode);
                           }}
                           className={`w-full p-3 rounded-xl border text-left flex items-center gap-4 transition-all ${
                             isSelected

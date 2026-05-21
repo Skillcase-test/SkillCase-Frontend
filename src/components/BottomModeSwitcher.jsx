@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { getLGMode, setLGMode } from "../api/learnGermanApi";
+import { trackClarityEvent } from "../observability/clarity";
 
 const isLearnPath = (pathname = "") => pathname.startsWith("/learn-german");
 const RECENT_MODE_SWITCH_MS = 10_000;
@@ -89,6 +90,11 @@ export default function BottomModeSwitcher({ isTourActive = false }) {
 
     // Notify Navbar and any other listeners immediately
     window.dispatchEvent(new CustomEvent("lgModeChange", { detail: { mode } }));
+    trackClarityEvent("lg_mode_switched", {
+      lg_mode: mode,
+      lg_mode_source: isLearnMode ? "learn" : "practice",
+      lg_switcher_route: location.pathname,
+    });
 
     // Persist to backend (async, non-blocking)
     setLGMode(mode).catch((err) => {
