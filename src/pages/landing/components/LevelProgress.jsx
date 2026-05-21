@@ -1,12 +1,11 @@
-import { Fragment } from "react";
-
 export default function LevelProgress({
   currentLevel = "A1",
   progress = 0,
   isDynamic = false,
 }) {
   const levels = ["A1", "A2", "B1", "B2"];
-  const currentIndex = levels.indexOf(currentLevel);
+  const normalizedLevel = String(currentLevel || "A1").toUpperCase();
+  const currentIndex = levels.indexOf(normalizedLevel);
   const boundedProgress = Math.max(0, Math.min(100, progress));
 
   return (
@@ -15,7 +14,7 @@ export default function LevelProgress({
       <div className="mb-1">
         <div className="flex justify-between items-center mb-1.5">
           <h2 className="text-[#002856] text-base font-semibold">
-            Your current German language level is {currentLevel}
+            Your current German language level is {normalizedLevel}
           </h2>
           {isDynamic && boundedProgress > 0 && (
             <span className="text-xs bg-[#00c853]/20 text-[#00c853] px-2.5 py-0.5 rounded-full font-bold">

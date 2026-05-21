@@ -497,6 +497,9 @@ export default function LearnGermanHome() {
   const hasPendingAnimRef = useRef(false);
   // Captured at mount so cards skip stagger entry animation when returning from a lesson
   const fromLessonCompleteRef = useRef(location.state?.fromLessonComplete === true);
+  const completedLessonOverrideRef = useRef(
+    location.state?.completedLessonId ?? null,
+  );
   
   const [fromSwitcher] = useState(() => {
     return sessionStorage.getItem("lg_animate_switcher") === "true";
@@ -531,8 +534,16 @@ export default function LearnGermanHome() {
       if (forceFresh) {
         api.clearGetCache?.();
       }
+      if (completedLessonId != null) {
+        completedLessonOverrideRef.current = completedLessonId;
+      }
       const { data } = await getLessonsList();
-      setModules(applyCompletedProgressOverride(data, completedLessonId));
+      setModules(
+        applyCompletedProgressOverride(
+          data,
+          completedLessonId ?? completedLessonOverrideRef.current,
+        ),
+      );
     } catch (err) {
       console.error("Failed to load modules:", err);
     } finally {
