@@ -2,10 +2,20 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 import api from "../../api/axios";
 import { loginSuccess } from "../../redux/auth/authSlice";
 import { hapticLight } from "../../utils/haptics";
 import { setClarityTag, trackClarityEvent } from "../../observability/clarity";
+
+// Extracts first 6-digit sequence from SMS text
+function extractOtp(smsText) {
+  const match = smsText?.match(/\b(\d{6})\b/);
+  return match ? match[1] : null;
+}
+
+// Custom native Capacitor plugin (SmsPlugin.java in android project)
+const SmsPlugin = registerPlugin("SmsPlugin");
 
 // Mascot Assets
 import mayaStanding from "../../assets/onboarding/mayaStanding.webp";
@@ -193,6 +203,56 @@ const OnboardingFlow = () => {
 
     return () => clearInterval(timer);
   }, [step, resendSeconds]);
+
+  // Web OTP API (Chrome on Android - browser only)
+  useEffect(() => {
+    if (step !== 3) return undefined;
+    if (!("OTPCredential" in window) || Capacitor.isNativePlatform()) return undefined;
+
+    const ac = new AbortController();
+    navigator.credentials
+      .get({ otp: { transport: ["sms"] }, signal: ac.signal })
+      .then((credential) => {
+        const code = credential.code;
+        setOtp(code);
+        handleVerifyOTP(code);
+      })
+      .catch(() => {});
+
+    return () => ac.abort();
+  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Native SMS User Consent API
+  // Uses SmsPlugin.java to listen for incoming OTP SMS and shows native dialog
+  useEffect(() => {
+    if (step !== 3) return undefined;
+    if (!Capacitor.isNativePlatform()) return undefined;
+
+    let listenerHandle = null;
+
+    const init = async () => {
+      try {
+        // Register listener BEFORE starting the consent watcher
+        listenerHandle = await SmsPlugin.addListener("smsReceived", (data) => {
+          const code = extractOtp(data?.message || "");
+          if (code) {
+            setOtp(code);
+            handleVerifyOTP(code);
+          }
+        });
+
+        // Start watching for incoming OTP SMS
+        await SmsPlugin.startSmsUserConsent();
+      } catch (_) {
+        // Plugin not available on this platform - silently skip
+      }
+    };
+
+    init();
+    return () => {
+      listenerHandle?.remove();
+    };
+  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Screen 2 → 3: Send OTP
   const handleSendOTP = async () => {

@@ -176,12 +176,14 @@ function AppContent() {
   const isPublicRoute =
     publicRoutes.some((route) => location.pathname.startsWith(route)) ||
     /^\/interview\/[^/]+$/.test(location.pathname);
+    
   const disablePullToRefresh = useMemo(
     () =>
       /^\/exam\/[^/]+\/take$/.test(location.pathname) ||
       /^\/interview\/[^/]+$/.test(location.pathname) ||
       location.pathname.startsWith("/news") ||
-      location.pathname.startsWith("/learn-german/lesson"),
+      location.pathname.startsWith("/learn-german/lesson") ||
+      location.pathname.startsWith("/onboarding"),
     [location.pathname],
   );
 
@@ -231,11 +233,6 @@ function AppContent() {
       FirebaseAnalytics.logEvent({ name: "app_opened" }).catch(console.error);
     }
   }, [token]);
-
-  // Scroll to top on route change
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [location.pathname]);
 
   useEffect(() => {
     addSentryBreadcrumb({
