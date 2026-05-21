@@ -227,7 +227,7 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
   return (
     <div
       id={isA2 ? "a2-feature-cards-grid" : "feature-cards-grid"}
-      className="px-4 pt-8 pb-4"
+      className="px-4 pt-2 pb-4"
     >
       <div id="feature-cards-grid" className="grid grid-cols-3 gap-2.5">
         {features.map((feature) => (

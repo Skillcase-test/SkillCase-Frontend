@@ -261,7 +261,7 @@ function EuropassResumeTemplate({ data }) {
       {/* Skillcase Logo */}
       <div className="absolute top-4 right-6 flex items-center space-x-2 z-20">
         <img
-          src="/mainlogo.png"
+          src="/mainlogo.webp"
           alt="Skillcase"
           className="h-24 w-auto object-contain pr-6 -mt-6"
         />

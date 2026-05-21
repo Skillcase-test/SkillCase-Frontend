@@ -54,7 +54,7 @@ export default function ThankYouPage() {
           <div className="flex justify-between items-center h-16">
             <a href="/register" className="flex items-center">
               <img
-                src="/mainlogo.png"
+                src="/mainlogo.webp"
                 alt="SkillCase"
                 className="w-30 sm:w-30 md:w-30 lg:w-40 h-auto pt-1"
               />

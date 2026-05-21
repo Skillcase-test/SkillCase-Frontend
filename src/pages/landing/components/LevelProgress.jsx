@@ -5,7 +5,7 @@ export default function LevelProgress({ currentLevel = "A1" }) {
   const currentIndex = levels.indexOf(currentLevel);
 
   return (
-    <div className="px-4 pb-4 mt-10">
+    <div className="px-4 pb-4 mt-4">
       {/* Header Text */}
       <div className="mb-4">
         <h2 className="text-[#002856] text-base font-semibold mb-1.5">

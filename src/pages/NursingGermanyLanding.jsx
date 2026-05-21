@@ -152,7 +152,7 @@ export default function NursingGermanyLanding() {
           <div className="flex justify-between items-center h-16">
             <a href="/" className="flex items-center">
               <img
-                src="/mainlogo.png"
+                src="/mainlogo.webp"
                 alt="SkillCase"
                 className="w-30 sm:w-30 md:w-30 lg:w-40 h-auto pt-1"
               />
@@ -333,7 +333,7 @@ export default function NursingGermanyLanding() {
               We provide everything <br /> you need
             </h1>
             <img
-              src="/skillcase-support.jpg"
+              src="/skillcase-support.webp"
               alt="Skillcase Support"
               className="w-full h-auto rounded-2xl shadow-lg"
             />

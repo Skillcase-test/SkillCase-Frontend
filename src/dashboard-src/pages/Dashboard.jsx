@@ -51,6 +51,7 @@ const AdminAccessManagement = lazy(() => import("./AdminAccessManagement"));
 const ExploreCandidatesAdmin = lazy(() => import("./ExploreCandidatesAdmin"));
 const PaymentsAdmin = lazy(() => import("./PaymentsAdmin"));
 const CallEnginePage = lazy(() => import("./CallEngine"));
+const DynamicLessonAdmin = lazy(() => import("../../pages/admin/DynamicLessonAdmin"));
 
 const A1FlashcardAdd = lazy(() => import("./a1/flashcard/add"));
 const A1FlashcardManage = lazy(() => import("./a1/flashcard/manage"));
@@ -416,9 +417,10 @@ function ModuleGroup({ title, modules, onLinkClick }) {
   );
 }
 
-function ContentModuleTree({ a1Modules, a2Modules, onLinkClick }) {
+function ContentModuleTree({ a1Modules, a2Modules, extraItems = [], onLinkClick }) {
   const location = useLocation();
-  const hasModules = a1Modules.length > 0 || a2Modules.length > 0;
+  const hasModules =
+    a1Modules.length > 0 || a2Modules.length > 0 || extraItems.length > 0;
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -431,7 +433,10 @@ function ContentModuleTree({ a1Modules, a2Modules, onLinkClick }) {
     if (matchesA1 || matchesA2) {
       setOpen(true);
     }
-  }, [location.pathname, a1Modules, a2Modules]);
+    if (extraItems.some((item) => location.pathname.startsWith(item.path))) {
+      setOpen(true);
+    }
+  }, [location.pathname, a1Modules, a2Modules, extraItems]);
 
   if (!hasModules) return null;
 
@@ -469,6 +474,22 @@ function ContentModuleTree({ a1Modules, a2Modules, onLinkClick }) {
               onLinkClick={onLinkClick}
             />
           )}
+          {extraItems.map((item) => (
+            <NavLink
+              key={item.key}
+              to={item.path}
+              onClick={onLinkClick}
+              className={({ isActive }) =>
+                `ml-2 block rounded-md px-3 py-2 text-sm font-semibold ${
+                  isActive
+                    ? "bg-blue-700 text-white"
+                    : "text-slate-700 hover:bg-slate-100"
+                }`
+              }
+            >
+              {item.label}
+            </NavLink>
+          ))}
         </div>
       </div>
     </div>
@@ -684,6 +705,7 @@ export default function Dashboard() {
 
     const a1ContentAllowed = hasPermission(me, "content", "view");
     const a2ContentAllowed = hasPermission(me, "a2_content", "view");
+    const dynamicLessonAllowed = hasPermission(me, "content", "edit");
 
     const a1Modules = a1ContentAllowed
       ? [
@@ -756,11 +778,22 @@ export default function Dashboard() {
           ]
         : [];
 
-    return { core, a1Modules, a2Modules, superAdmin };
+    const extraContentItems = dynamicLessonAllowed
+      ? [
+          {
+            key: "dynamic-lesson",
+            label: "Learn German",
+            path: "/admin/dynamic-lesson",
+          },
+        ]
+      : [];
+
+    return { core, a1Modules, a2Modules, extraContentItems, superAdmin };
   }, [me]);
 
   const defaultPath =
     sections.core[0]?.path ||
+    sections.extraContentItems?.[0]?.path ||
     (sections.a1Modules[0] ? `${sections.a1Modules[0].basePath}/add` : null) ||
     (sections.a2Modules[0] ? `${sections.a2Modules[0].basePath}/add` : null) ||
     sections.superAdmin[0]?.path ||
@@ -850,6 +883,7 @@ export default function Dashboard() {
               <ContentModuleTree
                 a1Modules={sections.a1Modules}
                 a2Modules={sections.a2Modules}
+                extraItems={sections.extraContentItems}
               />
               <SidebarSection title="Super Admin" items={sections.superAdmin} />
             </div>
@@ -870,6 +904,7 @@ export default function Dashboard() {
               <ContentModuleTree
                 a1Modules={sections.a1Modules}
                 a2Modules={sections.a2Modules}
+                extraItems={sections.extraContentItems}
                 onLinkClick={closeMobileSidebar}
               />
               <SidebarSection title="Super Admin" items={sections.superAdmin} onLinkClick={closeMobileSidebar} />
@@ -1005,6 +1040,14 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "explore_candidates")}>
                     <ExploreCandidatesAdmin />
+                  </Guard>
+                }
+              />
+              <Route
+                path="dynamic-lesson"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <DynamicLessonAdmin />
                   </Guard>
                 }
               />

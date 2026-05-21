@@ -18,6 +18,7 @@ import api from "../../api/axios";
 import { getA1MigrationStatus, saveA1MigrationDecision } from "../../api/a1Api";
 import A1MigrationModal from "../../components/a1/A1MigrationModal";
 import ModalPortal from "../../components/common/ModalPortal";
+import BottomModeSwitcher from "../../components/BottomModeSwitcher";
 
 function getTodayISTKey() {
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -85,6 +86,30 @@ export default function LandingPage() {
   const switchTimeoutRef = useRef(null);
 
   const location = useLocation();
+  const [lgMode, setLgMode] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("lg_preferred_mode") || "";
+  });
+  useEffect(() => {
+    const handleModeChange = (event) => {
+      setLgMode(
+        event?.detail?.mode || localStorage.getItem("lg_preferred_mode") || "",
+      );
+    };
+    window.addEventListener("lgModeChange", handleModeChange);
+    return () => window.removeEventListener("lgModeChange", handleModeChange);
+  }, []);
+  const prefersLearnMode =
+    (lgMode || user?.lg_preferred_mode) === "learn" ||
+    (!lgMode &&
+      (user?.german_preference === "1" ||
+        String(user?.german_preference || "").toLowerCase().includes("learn")));
+
+  useEffect(() => {
+    if (prefersLearnMode) {
+      navigate("/learn-german", { replace: true });
+    }
+  }, [navigate, prefersLearnMode]);
 
   const handleOpenLeaderboard = useCallback(() => {
     if (!user?.user_id) return;
@@ -112,6 +137,7 @@ export default function LandingPage() {
   // 1. Passive Auto-Open (Only on Saturday)
   useEffect(() => {
     if (
+      prefersLearnMode ||
       !user?.user_id ||
       showA1MigrationModal ||
       showSwitchConfirm ||
@@ -130,6 +156,7 @@ export default function LandingPage() {
     localStorage.setItem(seenKey, "1");
   }, [
     handleOpenLeaderboard,
+    prefersLearnMode,
     user?.user_id,
     showA1MigrationModal,
     showSwitchConfirm,
@@ -153,6 +180,12 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (!user?.user_id) return;
+
+    if (prefersLearnMode) {
+      setShowA1MigrationModal(false);
+      setMigrationStatusLoading(false);
+      return;
+    }
 
     const isA1User = (user?.user_prof_level || "").toLowerCase() === "a1";
     if (!isA1User) {
@@ -188,7 +221,7 @@ export default function LandingPage() {
     return () => {
       mounted = false;
     };
-  }, [user?.user_id, user?.user_prof_level]);
+  }, [prefersLearnMode, user?.user_id, user?.user_prof_level]);
 
   useEffect(() => {
     return () => {
@@ -201,6 +234,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (
+      prefersLearnMode ||
       !user?.user_id ||
       showA1MigrationModal ||
       showSwitchConfirm ||
@@ -234,7 +268,13 @@ export default function LandingPage() {
     return () => {
       mounted = false;
     };
-  }, [user?.user_id, showA1MigrationModal, showSwitchConfirm, isUpgrading]);
+  }, [
+    prefersLearnMode,
+    user?.user_id,
+    showA1MigrationModal,
+    showSwitchConfirm,
+    isUpgrading,
+  ]);
 
   const handleOpenPlayStoreRating = async () => {
     try {
@@ -504,6 +544,11 @@ export default function LandingPage() {
           </p>
         </div>
         </ModalPortal>
+      )}
+      {!prefersLearnMode && (
+        <BottomModeSwitcher
+          isTourActive={showA1MigrationModal || showSwitchConfirm || isUpgrading}
+        />
       )}
     </div>
   );

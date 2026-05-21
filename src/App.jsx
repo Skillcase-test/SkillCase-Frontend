@@ -7,8 +7,6 @@ import {
   Navigate,
 } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import SignupPage from "./pages/auth/SignupPage";
-import LoginPage from "./pages/auth/LoginPage";
 import LandingPage from "./pages/landing/LandingPage";
 import NewNavbar from "./components/NewNavbar";
 import NewFooter from "./components/NewFooter";
@@ -121,6 +119,11 @@ const FallbackPage = lazy(() => import("./pages/FallbackPage"));
 const ContinuePractice = lazy(() => import("./pages/ContinuePractice"));
 const TermsSignPage = lazy(() => import("./pages/terms/TermsSignPage"));
 const Dashboard = lazy(() => import("./dashboard-src/pages/Dashboard"));
+const OnboardingFlow = lazy(() => import("./pages/onboarding/OnboardingFlow"));
+const LearnGermanHome = lazy(() => import("./pages/learnGerman/LearnGermanHome"));
+const NewLessonFlow = lazy(() =>
+  import("./pages/learnGerman/lesson/NewLessonFlow"),
+);
 
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 2000;
@@ -168,6 +171,7 @@ function AppContent() {
     "/thank-you",
     "/events",
     "/terms/sign",
+    "/onboarding",
   ];
   const isPublicRoute =
     publicRoutes.some((route) => location.pathname.startsWith(route)) ||
@@ -176,7 +180,8 @@ function AppContent() {
     () =>
       /^\/exam\/[^/]+\/take$/.test(location.pathname) ||
       /^\/interview\/[^/]+$/.test(location.pathname) ||
-      location.pathname.startsWith("/news"),
+      location.pathname.startsWith("/news") ||
+      location.pathname.startsWith("/learn-german/lesson"),
     [location.pathname],
   );
 
@@ -569,8 +574,14 @@ function AppContent() {
             <ConditionalNav />
 
             <Routes>
-              <Route path="/signup" element={<SignupPage />} />
-              <Route path="/login" element={<LoginPage />} />
+              <Route
+                path="/signup"
+                element={<Navigate to="/onboarding" replace />}
+              />
+              <Route
+                path="/login"
+                element={<Navigate to="/onboarding" replace />}
+              />
               <Route path="/" element={<LandingPage />} />
               <Route
                 path="/test/:prof_level"
@@ -652,6 +663,10 @@ function AppContent() {
               <Route
                 path="/terms/sign/:token"
                 element={lazyScreen(<TermsSignPage />, "Loading Terms...")}
+              />
+              <Route
+                path="/onboarding"
+                element={lazyScreen(<OnboardingFlow />, "Loading Onboarding...")}
               />
               <Route
                 path="/continue"
@@ -764,6 +779,18 @@ function AppContent() {
               />
 
               {/* A2 ROUTES */}
+              <Route path="/a2" element={<Navigate to="/a2/flashcard" replace />} />
+
+              {/* Learn German */}
+              <Route
+                path="/learn-german"
+                element={lazyScreen(<LearnGermanHome />, "Loading Learn German...")}
+              />
+              <Route
+                path="/learn-german/lesson/:chapterId"
+                element={lazyScreen(<NewLessonFlow />, "Loading Lesson...")}
+              />
+
               {/* A2 Flashcard */}
               <Route
                 path="/a2/flashcard"
@@ -921,7 +948,9 @@ function ConditionalFooter() {
     location.pathname === "/thank-you" ||
     location.pathname === "/internal/lead-form" ||
     location.pathname.startsWith("/terms/sign") ||
-    location.pathname.startsWith("/news");
+    location.pathname.startsWith("/news") ||
+    location.pathname.startsWith("/onboarding") ||
+    location.pathname.startsWith("/learn-german");
 
   if (hideFooter) return null;
   return <Footer />;
@@ -934,14 +963,22 @@ function ConditionalNav() {
     location.pathname === "/register" ||
     location.pathname === "/thank-you" ||
     location.pathname === "/internal/lead-form" ||
-    location.pathname.startsWith("/terms/sign");
+    location.pathname.startsWith("/terms/sign") ||
+    location.pathname.startsWith("/onboarding");
 
   const disableNav = /^\/exam\/[^/]+\/take$/.test(location.pathname);
 
   // Show minimal navbar (logo only, no links/burger) on auth pages
   const isAuthPage =
     location.pathname === "/login" || location.pathname === "/signup";
+  const isOnboarding = location.pathname.startsWith("/onboarding");
 
   if (hideNav) return null;
-  return <NewNavbar minimal={isAuthPage} disableNavigation={disableNav} />;
+  return (
+    <NewNavbar
+      minimal={isAuthPage}
+      disableNavigation={disableNav}
+      isOnboarding={isOnboarding}
+    />
+  );
 }
