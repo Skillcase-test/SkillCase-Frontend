@@ -15,7 +15,24 @@ import PlayStoreRatingModal from "../../components/PlayStoreRatingModal";
 import { useLandingSections } from "../../hooks/useLandingSections";
 import { AlertTriangle, Sparkles } from "lucide-react";
 import api from "../../api/axios";
-import { getA1MigrationStatus, saveA1MigrationDecision } from "../../api/a1Api";
+import {
+  getA1MigrationStatus,
+  saveA1MigrationDecision,
+  getFlashcardChapters as getA1Flashcards,
+  getGrammarTopics as getA1Grammar,
+  getListeningChapters as getA1Listening,
+  getSpeakingChapters as getA1Speaking,
+  getReadingChapters as getA1Reading,
+  getTestTopics as getA1Test,
+} from "../../api/a1Api";
+import {
+  getFlashcardChapters as getA2Flashcards,
+  getGrammarTopics as getA2Grammar,
+  getListeningChapters as getA2Listening,
+  getSpeakingChapters as getA2Speaking,
+  getReadingChapters as getA2Reading,
+  getTestTopics as getA2Test,
+} from "../../api/a2Api";
 import A1MigrationModal from "../../components/a1/A1MigrationModal";
 import ModalPortal from "../../components/common/ModalPortal";
 import BottomModeSwitcher from "../../components/BottomModeSwitcher";
@@ -69,6 +86,7 @@ export default function LandingPage() {
 
   const [showA1MigrationModal, setShowA1MigrationModal] = useState(false);
   const [migrationStatus, setMigrationStatus] = useState(null);
+  const [levelProgress, setLevelProgress] = useState(0);
   const [migrationStatusLoading, setMigrationStatusLoading] = useState(true);
   const [migrationMeta, setMigrationMeta] = useState({ gracePeriodMonths: 2 });
   const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
@@ -316,6 +334,141 @@ export default function LandingPage() {
     isA1User && ["legacy_a1", "legacy_acknowledged"].includes(migrationStatus);
   const shouldHoldA1FeatureRender = isA1User && migrationStatusLoading;
 
+  const isA2User = (user?.user_prof_level || "").toLowerCase() === "a2";
+  const isDynamic = isA2User || isRevampA1User;
+
+  useEffect(() => {
+    if (!user?.user_id) return;
+    if (!isDynamic) return;
+
+    let mounted = true;
+
+    const fetchProgress = async () => {
+      try {
+        const apis = isRevampA1User
+          ? [
+              getA1Flashcards(),
+              getA1Grammar(),
+              getA1Listening(),
+              getA1Speaking(),
+              getA1Reading(),
+              getA1Test()
+            ]
+          : [
+              getA2Flashcards(),
+              getA2Grammar(),
+              getA2Listening(),
+              getA2Speaking(),
+              getA2Reading(),
+              getA2Test()
+            ];
+
+        const [
+          flashcardRes,
+          grammarRes,
+          listeningRes,
+          speakingRes,
+          readingRes,
+          testRes
+        ] = await Promise.all(apis);
+
+        if (!mounted) return;
+
+        let totalChapters = 0;
+        let completedChapters = 0;
+
+        // 1. Flashcards (Aggregated)
+        if (flashcardRes?.data) {
+          const chaptersList = Array.isArray(flashcardRes.data) ? flashcardRes.data : [];
+          let flashTotal = Math.max(chaptersList.length, 12);
+          let flashCompleted = chaptersList.filter(ch => ch.is_completed || ch.final_quiz_passed).length;
+          totalChapters += flashTotal;
+          completedChapters += flashCompleted;
+        }
+
+        // 2. Grammar (Grouped by chapter)
+        if (grammarRes?.data) {
+          const grammarList = Array.isArray(grammarRes.data) ? grammarRes.data : [];
+          const grammarMap = {};
+          grammarList.forEach((row) => {
+            if (row.chapter_id) {
+              if (!grammarMap[row.chapter_id]) {
+                grammarMap[row.chapter_id] = { completed: 0, total: 0 };
+              }
+              if (row.topic_id) {
+                grammarMap[row.chapter_id].total++;
+                if (row.is_completed) {
+                  grammarMap[row.chapter_id].completed++;
+                }
+              }
+            }
+          });
+          const chapters = Object.values(grammarMap);
+          totalChapters += chapters.length;
+          completedChapters += chapters.filter(ch => ch.completed === ch.total && ch.total > 0).length;
+        }
+
+        // 3. Listening (Aggregated)
+        if (listeningRes?.data) {
+          const listeningList = Array.isArray(listeningRes.data) ? listeningRes.data : [];
+          totalChapters += listeningList.length;
+          completedChapters += listeningList.filter(ch => 
+            ch.completed_count === ch.content_count && ch.content_count > 0
+          ).length;
+        }
+
+        // 4. Speaking (Aggregated)
+        if (speakingRes?.data) {
+          const speakingList = Array.isArray(speakingRes.data) ? speakingRes.data : [];
+          totalChapters += speakingList.length;
+          completedChapters += speakingList.filter(ch => ch.is_completed).length;
+        }
+
+        // 5. Reading (Aggregated)
+        if (readingRes?.data) {
+          const readingList = Array.isArray(readingRes.data) ? readingRes.data : [];
+          totalChapters += readingList.length;
+          completedChapters += readingList.filter(ch => 
+            ch.completed_count === ch.content_count && ch.content_count > 0
+          ).length;
+        }
+
+        // 6. Test (Grouped by chapter and fully finished)
+        if (testRes?.data) {
+          const testList = Array.isArray(testRes.data) ? testRes.data : [];
+          const testMap = {};
+          testList.forEach((row) => {
+            if (row.chapter_id) {
+              if (!testMap[row.chapter_id]) {
+                testMap[row.chapter_id] = { completed: 0, total: 0 };
+              }
+              if (row.topic_id) {
+                testMap[row.chapter_id].total += 5;
+                testMap[row.chapter_id].completed += (row.current_level || 0);
+              }
+            }
+          });
+          const chapters = Object.values(testMap);
+          totalChapters += chapters.length;
+          completedChapters += chapters.filter(ch => ch.completed === ch.total && ch.total > 0).length;
+        }
+
+        const percentage = totalChapters > 0 ? (completedChapters / totalChapters) * 100 : 0;
+        setLevelProgress(percentage);
+      } catch (err) {
+        console.error("Failed to calculate overall level progress:", err);
+      }
+    };
+
+    if (migrationStatusLoading && isA1User) return;
+
+    fetchProgress();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user?.user_id, user?.user_prof_level, migrationStatus, migrationStatusLoading, isDynamic]);
+
   const handleSwitchToNew = async () => {
     setSwitchingToNew(true);
     try {
@@ -364,7 +517,11 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white">
       <main className="max-w-lg mx-auto lg:max-w-6xl xl:max-w-7xl lg:px-8">
-        <LevelProgress currentLevel={currentLevel} />
+        <LevelProgress
+          currentLevel={currentLevel}
+          progress={levelProgress}
+          isDynamic={isDynamic}
+        />
 
         {isLegacyA1User && (
           <div className="px-4 py-3">
