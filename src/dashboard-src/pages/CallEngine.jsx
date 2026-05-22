@@ -31,6 +31,7 @@ import {
   Sparkles,
   UserRound,
   Waves,
+  X,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -237,6 +238,7 @@ function StatCard({
   previousValue,
   previousWindow,
   loading,
+  onClick,
 }) {
   const config = metricConfig[metricKey];
   const Icon = config.icon;
@@ -245,7 +247,10 @@ function StatCard({
   if (loading) return <SkeletonCard />;
 
   return (
-    <div className="group bg-white shadow-xs rounded-xl p-5 transition-shadow duration-200 hover:shadow-md">
+    <div
+      onClick={onClick}
+      className="group bg-white shadow-xs rounded-xl p-5 transition-all duration-200 hover:shadow-md cursor-pointer hover:scale-[1.01] border border-transparent hover:border-slate-200/60 active:scale-[0.99]"
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
@@ -628,6 +633,12 @@ function CallEnginePage() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState("");
 
+  const [selectedMetric, setSelectedMetric] = useState(null);
+  const [metricLogs, setMetricLogs] = useState([]);
+  const [metricPage, setMetricPage] = useState(1);
+  const [metricTotal, setMetricTotal] = useState(0);
+  const [metricLoading, setMetricLoading] = useState(false);
+
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([
     {
@@ -659,6 +670,46 @@ function CallEnginePage() {
     () => (previousWindow ? { ...previousWindow, dialerNumber: dialer } : null),
     [previousWindow, dialer],
   );
+
+  const loadMetricLogs = useCallback(
+    async (nextPage = 1) => {
+      if (!selectedMetric) return;
+      setMetricLoading(true);
+      try {
+        const res = await callEngineApi.getMetricLogs({
+          ...filterPayload,
+          metric: selectedMetric,
+          page: nextPage,
+          limit: PAGE_SIZE,
+        });
+        setMetricLogs(res.data?.rows || []);
+        setMetricTotal(Number(res.data?.pagination?.total || 0));
+        setMetricPage(nextPage);
+      } catch (err) {
+        console.error("Failed to load metric logs:", err);
+      } finally {
+        setMetricLoading(false);
+      }
+    },
+    [selectedMetric, filterPayload],
+  );
+
+  useEffect(() => {
+    if (selectedMetric) {
+      loadMetricLogs(1);
+    } else {
+      setMetricLogs([]);
+      setMetricTotal(0);
+      setMetricPage(1);
+    }
+  }, [selectedMetric, loadMetricLogs]);
+
+  const metricTotalPages = Math.max(1, Math.ceil(metricTotal / PAGE_SIZE));
+  const metricPageNumbers = useMemo(() => {
+    const start = Math.max(1, Math.min(metricPage - 2, metricTotalPages - 4));
+    const end = Math.min(metricTotalPages, start + 4);
+    return Array.from({ length: end - start + 1 }, (_, idx) => start + idx);
+  }, [metricPage, metricTotalPages]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const pageNumbers = useMemo(() => {
@@ -951,6 +1002,7 @@ function CallEnginePage() {
             previousValue={previousReport[key] || 0}
             previousWindow={previousWindow}
             loading={loading}
+            onClick={() => setSelectedMetric(key)}
           />
         ))}
       </section>
@@ -1370,6 +1422,137 @@ function CallEnginePage() {
           </div>
         </div>
       </section>
+
+      {/* Metric Details Modal */}
+      {selectedMetric && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setSelectedMetric(null)}
+          />
+
+          {/* Modal Content */}
+          <div className="relative w-full max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-2xl transition-all flex flex-col max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 p-5">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">
+                  {metricConfig[selectedMetric]?.label || "Call Details"}
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Showing calls matching active filters ({metricTotal} total)
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedMetric(null)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Content Table */}
+            <div className="flex-1 overflow-y-auto p-5">
+              <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
+                <table className="w-full text-sm min-w-[600px]">
+                  <thead className="text-xs font-semibold uppercase text-slate-500 bg-slate-50 border-b border-slate-100">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Client Number</th>
+                      <th className="px-4 py-3 text-left">Dialer</th>
+                      <th className="px-4 py-3 text-left">Call Date & Time</th>
+                      <th className="px-4 py-3 text-left">Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {metricLoading ? (
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <tr key={i} className="border-t border-slate-100 animate-pulse">
+                          <td className="px-4 py-4"><div className="h-4 w-28 rounded bg-slate-100" /></td>
+                          <td className="px-4 py-4"><div className="h-4 w-24 rounded bg-slate-100" /></td>
+                          <td className="px-4 py-4"><div className="h-4 w-40 rounded bg-slate-100" /></td>
+                          <td className="px-4 py-4"><div className="h-4 w-16 rounded bg-slate-100" /></td>
+                        </tr>
+                      ))
+                    ) : metricLogs.length > 0 ? (
+                      metricLogs.map((row) => (
+                        <tr
+                          key={row.callyzer_call_id}
+                          className="border-t border-slate-100 transition hover:bg-slate-50/50"
+                        >
+                          <td className="px-4 py-3.5 font-medium text-slate-900">
+                            {row.client_number || "-"}
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-700">
+                            {row.dialer_name || row.dialer_number || "-"}
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-600">
+                            {formatDateTime(row.call_datetime)}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                              {formatDuration(row.duration_sec)}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-12 text-center text-slate-400">
+                          <div className="flex flex-col items-center gap-2">
+                            <PhoneOff className="h-8 w-8 text-slate-300" />
+                            <p className="text-sm font-medium">No calls found</p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Pagination */}
+            {!metricLoading && metricLogs.length > 0 && (
+              <div className="flex flex-col gap-3 border-t border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between bg-slate-50/50">
+                <p className="text-xs text-slate-500">
+                  Showing {metricLogs.length ? (metricPage - 1) * PAGE_SIZE + 1 : 0}-
+                  {Math.min(metricPage * PAGE_SIZE, metricTotal)} of {metricTotal}
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    disabled={metricPage <= 1 || metricLoading}
+                    onClick={() => loadMetricLogs(metricPage - 1)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-xs transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  {metricPageNumbers.map((pageNumber) => (
+                    <button
+                      key={pageNumber}
+                      onClick={() => loadMetricLogs(pageNumber)}
+                      className={cx(
+                        "inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2.5 text-xs font-semibold transition",
+                        pageNumber === metricPage
+                          ? "border-slate-900 bg-slate-900 text-white shadow-xs"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      )}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+                  <button
+                    disabled={metricPage >= metricTotalPages || metricLoading}
+                    onClick={() => loadMetricLogs(metricPage + 1)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-xs transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
