@@ -5,6 +5,7 @@ import ProgressBar from "./shared/ProgressBar";
 import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import TypewriterText from "./shared/TypewriterText";
+import TapIndicator from "./shared/TapIndicator";
 import { hapticLight } from "../../../../utils/haptics";
 
 export default function ConversationIntroScreen({
@@ -25,6 +26,17 @@ export default function ConversationIntroScreen({
         ];
   const [mayaDialogueIndex, setMayaDialogueIndex] = useState(0);
   const [mayaDone, setMayaDone] = useState(false);
+  const [currentDialogueFinished, setCurrentDialogueFinished] = useState(false);
+
+  const handleBubbleClick = () => {
+    if (!currentDialogueFinished) return;
+    if (mayaDialogueIndex < mayaDialogues.length - 1) {
+      setMayaDialogueIndex((prev) => prev + 1);
+      setCurrentDialogueFinished(false);
+    } else {
+      setMayaDone(true);
+    }
+  };
 
   return (
     <motion.div
@@ -46,7 +58,10 @@ export default function ConversationIntroScreen({
         />
         <motion.div
           layoutId="mayaDialog"
-          className="px-4 py-2.5 bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.08)] z-0 ml-1 relative flex items-center border border-gray-100 mb-5"
+          onClick={handleBubbleClick}
+          className={`px-4 py-2.5 bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.08)] z-0 ml-1 relative flex items-center border border-gray-100 mb-5 ${
+            currentDialogueFinished && !mayaDone ? "cursor-pointer active:bg-zinc-50" : ""
+          }`}
         >
           <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rotate-45 border-l border-b border-gray-100" />
           <div className="w-[210px] relative pr-6">
@@ -55,11 +70,7 @@ export default function ConversationIntroScreen({
               text={mayaDialogues[mayaDialogueIndex]}
               className="block"
               onDone={() => {
-                if (mayaDialogueIndex < mayaDialogues.length - 1) {
-                  setMayaDialogueIndex((prev) => prev + 1);
-                  return;
-                }
-                setMayaDone(true);
+                setCurrentDialogueFinished(true);
               }}
             />
           </div>
@@ -67,7 +78,12 @@ export default function ConversationIntroScreen({
       </div>
 
       {/* Main Image Area */}
-      <div className="w-full flex-1 mt-28 rounded-tl-3xl rounded-tr-3xl relative overflow-hidden flex flex-col justify-end">
+      <div
+        onClick={!mayaDone ? handleBubbleClick : undefined}
+        className={`w-full flex-1 mt-28 rounded-tl-3xl rounded-tr-3xl relative overflow-hidden flex flex-col justify-end ${
+          currentDialogueFinished && !mayaDone ? "cursor-pointer" : ""
+        }`}
+      >
         {screen?.image && (
           <img
             src={screen.image}
@@ -100,38 +116,54 @@ export default function ConversationIntroScreen({
           )}
         </AnimatePresence>
 
-        {/* Bottom Fade */}
-        <div className="w-full h-44 absolute bottom-0 mix-blend-multiply bg-gradient-to-b from-white/0 to-black z-10" />
+        {/* Pulsing Tap Indicator over the image/scene */}
+        {currentDialogueFinished && !mayaDone && (
+          <TapIndicator
+            className="absolute left-1/2 -translate-x-1/2 bottom-20"
+          />
+        )}
 
-        {/* Start Conversation Button */}
-        <div className="w-full px-4 z-20 relative safe-bottom-pad flex items-center gap-3">
-          {canGoPrev && (
-            <button
-              onClick={() => {
-                hapticLight();
-                onPrev?.();
-              }}
-              className="w-2/5 px-4 py-3.5 rounded-xl border border-zinc-300 shadow-sm bg-white text-blue-950 font-semibold text-[16px] transition-transform active:scale-[0.98] flex justify-center items-center gap-1"
+        {/* Bottom Fade */}
+        <div className="w-full h-44 absolute bottom-0 mix-blend-multiply bg-gradient-to-b from-white/0 to-black z-10 pointer-events-none" />
+
+        {/* Start Conversation Button Panel — appears only after dialogues complete */}
+        <AnimatePresence>
+          {mayaDone && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="w-full px-4 z-20 relative safe-bottom-pad flex items-center gap-3"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Prev
-            </button>
+              {canGoPrev && (
+                <button
+                  onClick={() => {
+                    hapticLight();
+                    onPrev?.();
+                  }}
+                  className="w-2/5 px-4 py-3.5 rounded-xl border border-zinc-300 shadow-sm bg-white text-blue-950 font-semibold text-[16px] transition-transform active:scale-[0.98] flex justify-center items-center gap-1"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Prev
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  hapticLight();
+                  onNext();
+                }}
+                className={`${
+                  canGoPrev ? "w-6/5" : "w-full"
+                } px-4 py-3.5 bg-gradient-to-r from-amber-200 to-amber-300 rounded-xl shadow-[inset_0px_0px_0px_1px_rgba(10,13,18,0.18)] outline-2 outline-offset-[-2px] outline-white/10 flex justify-center items-center gap-1.5 transition-transform active:scale-[0.98] border border-[#eec139]`}
+              >
+                <span className="text-blue-950 text-[16px] font-semibold font-['Inter'] leading-6">
+                  Start Conversation
+                </span>
+                <ArrowRight className="w-4 h-4 text-blue-950" />
+              </button>
+            </motion.div>
           )}
-          <button
-            onClick={() => {
-              hapticLight();
-              onNext();
-            }}
-            className={`${
-              canGoPrev ? "w-6/5" : "w-full"
-            } px-4 py-3.5 bg-gradient-to-r from-amber-200 to-amber-300 rounded-xl shadow-[inset_0px_0px_0px_1px_rgba(10,13,18,0.18)] outline-2 outline-offset-[-2px] outline-white/10 flex justify-center items-center gap-1.5 transition-transform active:scale-[0.98] border border-[#eec139]`}
-          >
-            <span className="text-blue-950 text-[16px] font-semibold font-['Inter'] leading-6">
-              Start Conversation
-            </span>
-            <ArrowRight className="w-4 h-4 text-blue-950" />
-          </button>
-        </div>
+        </AnimatePresence>
       </div>
     </motion.div>
   );

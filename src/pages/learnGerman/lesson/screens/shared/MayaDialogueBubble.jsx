@@ -48,7 +48,7 @@ export default function MayaDialogueBubble({ text, onDone, className = "" }) {
           hapticLight();
           toggleMute();
         }}
-        className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center active:scale-90 transition-transform"
+        className="absolute top-0 right-0 w-5 h-5 flex items-center justify-center active:scale-90 transition-transform"
         aria-label={isMuted ? "Unmute Maya" : "Mute Maya"}
       >
         {isMuted ? (

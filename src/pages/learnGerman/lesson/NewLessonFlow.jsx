@@ -1078,11 +1078,17 @@ export default function NewLessonFlow() {
         newStatuses[toSlotId] = null;
       } else {
         // ---- Bank-to-slot drag -----------------------------------------------
-        // Ignore the hovered slot — always fill the FIRST EMPTY slot.
-        const firstEmpty = slots.find((s) => !newPlacedItems[s.id]);
-        if (firstEmpty) {
-          newPlacedItems[firstEmpty.id] = itemData;
-          newStatuses[firstEmpty.id] = null;
+        if (currentScreen.type === "match_image") {
+          // Place the item in the hovered/dropped slot specifically
+          newPlacedItems[toSlotId] = itemData;
+          newStatuses[toSlotId] = null;
+        } else {
+          // Fallback original behavior for any other screens
+          const firstEmpty = slots.find((s) => !newPlacedItems[s.id]);
+          if (firstEmpty) {
+            newPlacedItems[firstEmpty.id] = itemData;
+            newStatuses[firstEmpty.id] = null;
+          }
         }
       }
 
