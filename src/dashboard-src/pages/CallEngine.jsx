@@ -28,6 +28,8 @@ import {
   PhoneCall,
   PhoneForwarded,
   PhoneOff,
+  Play,
+  Pause,
   RefreshCw,
   Send,
   Sparkles,
@@ -172,6 +174,18 @@ function formatDuration(seconds) {
   return `${mins}m ${String(secs).padStart(2, "0")}s`;
 }
 
+function formatTotalDuration(seconds) {
+  const total = Number(seconds || 0);
+  const hrs = Math.floor(total / 3600);
+  const mins = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  const parts = [];
+  if (hrs > 0) parts.push(`${hrs}h`);
+  if (mins > 0 || hrs > 0) parts.push(`${mins}m`);
+  parts.push(`${secs}s`);
+  return parts.join(" ");
+}
+
 function Button({
   children,
   variant = "secondary",
@@ -209,6 +223,100 @@ function Button({
   );
 }
 
+function TableAudioPlayer({ url }) {
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  const togglePlay = () => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio(url);
+      audioRef.current.addEventListener("timeupdate", () => {
+        setCurrentTime(audioRef.current.currentTime);
+        if (audioRef.current.duration) {
+          setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
+        }
+      });
+      audioRef.current.addEventListener("loadedmetadata", () => {
+        setDuration(audioRef.current.duration);
+      });
+      audioRef.current.addEventListener("ended", () => {
+        setIsPlaying(false);
+        setProgress(0);
+        setCurrentTime(0);
+      });
+    }
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play().catch((err) => console.error("Audio play failed:", err));
+      setIsPlaying(true);
+    }
+  };
+
+  const formatTime = (secs) => {
+    if (isNaN(secs)) return "0:00";
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const handleSeek = (e) => {
+    if (!audioRef.current || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
+    const percentage = clickX / width;
+    const newTime = percentage * duration;
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+    setProgress(percentage * 100);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 shadow-xs max-w-[280px]">
+      <button
+        onClick={togglePlay}
+        className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-slate-900 text-white transition hover:bg-slate-800 hover:scale-105 active:scale-95 cursor-pointer"
+      >
+        {isPlaying ? (
+          <Pause className="h-3 w-3 fill-white" />
+        ) : (
+          <Play className="h-3 w-3 fill-white translate-x-[0.5px]" />
+        )}
+      </button>
+      <div className="flex flex-1 flex-col gap-1 min-w-0">
+        <div
+          onClick={handleSeek}
+          className="relative h-1.5 w-full cursor-pointer rounded-full bg-slate-200 transition hover:h-2"
+        >
+          <div
+            className="absolute left-0 top-0 h-full rounded-full bg-slate-900"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between text-[9px] font-semibold text-slate-500 select-none">
+          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(duration || 0)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SkeletonCard() {
   return (
     <div className="bg-white shadow-xs rounded-xl p-5 animate-pulse">
@@ -243,6 +351,7 @@ function StatCard({
   previousWindow,
   loading,
   onClick,
+  duration,
 }) {
   const config = metricConfig[metricKey];
   const Icon = config.icon;
@@ -286,6 +395,13 @@ function StatCard({
           <Icon className={cx("h-4 w-4", config.iconColor)} />
         </div>
       </div>
+      {duration !== undefined && (
+        <div className="mt-3 flex justify-end">
+          <span className="text-xs font-semibold text-slate-500">
+            {formatTotalDuration(duration)}
+          </span>
+        </div>
+      )}
       {previousWindow && (
         <div className="mt-3 flex items-center justify-between">
           <div className="h-px flex-1 bg-slate-100" />
@@ -1057,6 +1173,7 @@ function CallEnginePage() {
             previousWindow={previousWindow}
             loading={loading}
             onClick={() => setSelectedMetric(key)}
+            duration={report[`${key}_duration`]}
           />
         ))}
       </section>
@@ -1136,15 +1253,7 @@ function CallEnginePage() {
                       </td>
                       <td className="px-4 py-3">
                         {row.recording_url ? (
-                          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm max-w-sm">
-                            <Waves className="h-4 w-4 flex-none text-sky-600" />
-                            <audio
-                              controls
-                              preload="none"
-                              src={row.recording_url}
-                              className="h-8 w-full min-w-[180px]"
-                            />
-                          </div>
+                          <TableAudioPlayer url={row.recording_url} />
                         ) : (
                           <span className="text-xs text-slate-400 italic">
                             No recording
