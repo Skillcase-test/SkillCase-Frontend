@@ -12,6 +12,7 @@ import DashboardCard11 from "../partials/dashboard/DashboardCard11";
 import DashboardCard12 from "../partials/dashboard/DashboardCard12";
 import DashboardCard13 from "../partials/dashboard/DashboardCard13";
 import DashboardCardDAU from "../partials/dashboard/DashboardCardDAU";
+import DashboardCardAllUsers from "../partials/dashboard/DashboardCardAllUsers";
 
 function Analytics() {
   return (
@@ -24,6 +25,7 @@ function Analytics() {
       </div>
       <div className="grid grid-cols-12 gap-4">
         <DashboardCard12 key="card-12" />
+        <DashboardCardAllUsers key="card-all-users" />
         <DashboardCardDAU key="card-dau" />
         <DashboardCard01 key="card-01" />
         <DashboardCard02 key="card-02" />
