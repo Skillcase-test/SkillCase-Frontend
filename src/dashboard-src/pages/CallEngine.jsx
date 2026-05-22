@@ -629,7 +629,11 @@ function CallEnginePage() {
   const [logs, setLogs] = useState([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
+  
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const loading = dashboardLoading || logsLoading;
+
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState("");
 
@@ -650,7 +654,8 @@ function CallEnginePage() {
   ]);
   const [assistantLoading, setAssistantLoading] = useState(false);
 
-  const loadSeq = useRef(0);
+  const dashboardSeq = useRef(0);
+  const logsSeq = useRef(0);
   const chatEndRef = useRef(null);
 
   const selectedCaller = useMemo(
@@ -718,56 +723,98 @@ function CallEnginePage() {
     return Array.from({ length: end - start + 1 }, (_, idx) => start + idx);
   }, [page, totalPages]);
 
-  const loadAll = useCallback(
+  const loadCallers = useCallback(async () => {
+    try {
+      const res = await callEngineApi.getCallers();
+      setCallers(res.data?.callers || []);
+    } catch (err) {
+      console.error("Failed to load callers:", err);
+    }
+  }, []);
+
+  const loadDashboard = useCallback(async () => {
+    const seq = dashboardSeq.current + 1;
+    dashboardSeq.current = seq;
+    setDashboardLoading(true);
+    setError("");
+    try {
+      const [overviewRes, reportRes, previousReportRes] =
+        await Promise.all([
+          callEngineApi.getOverview(filterPayload),
+          callEngineApi.getReport(filterPayload),
+          previousFilterPayload
+            ? callEngineApi.getReport(previousFilterPayload)
+            : Promise.resolve({ data: { report: {} } }),
+        ]);
+
+      if (dashboardSeq.current !== seq) return;
+      setOverview(overviewRes.data?.rows || []);
+      setReport(reportRes.data?.report || {});
+      setPreviousReport(previousReportRes.data?.report || {});
+    } catch (err) {
+      if (dashboardSeq.current !== seq) return;
+      setError(
+        err?.response?.data?.msg ||
+          err?.message ||
+          "Failed to load call engine overview data",
+      );
+    } finally {
+      if (dashboardSeq.current !== seq) return;
+      setDashboardLoading(false);
+    }
+  }, [filterPayload, previousFilterPayload]);
+
+  const loadLogs = useCallback(
     async (nextPage = 1) => {
-      const seq = loadSeq.current + 1;
-      loadSeq.current = seq;
-      setLoading(true);
+      const seq = logsSeq.current + 1;
+      logsSeq.current = seq;
+      setLogsLoading(true);
       setError("");
       try {
-        const [callersRes, overviewRes, reportRes, previousReportRes, logsRes] =
-          await Promise.all([
-            callEngineApi.getCallers(),
-            callEngineApi.getOverview(filterPayload),
-            callEngineApi.getReport(filterPayload),
-            previousFilterPayload
-              ? callEngineApi.getReport(previousFilterPayload)
-              : Promise.resolve({ data: { report: {} } }),
-            callEngineApi.getLogs({
-              ...filterPayload,
-              page: nextPage,
-              limit: PAGE_SIZE,
-              sort,
-              hasRecording,
-            }),
-          ]);
+        const res = await callEngineApi.getLogs({
+          ...filterPayload,
+          page: nextPage,
+          limit: PAGE_SIZE,
+          sort,
+          hasRecording,
+        });
 
-        if (loadSeq.current !== seq) return;
-        setCallers(callersRes.data?.callers || []);
-        setOverview(overviewRes.data?.rows || []);
-        setReport(reportRes.data?.report || {});
-        setPreviousReport(previousReportRes.data?.report || {});
-        setLogs(logsRes.data?.rows || []);
-        setTotal(Number(logsRes.data?.pagination?.total || 0));
+        if (logsSeq.current !== seq) return;
+        setLogs(res.data?.rows || []);
+        setTotal(Number(res.data?.pagination?.total || 0));
         setPage(nextPage);
       } catch (err) {
-        if (loadSeq.current === seq) {
-          setError(
-            err?.response?.data?.msg ||
-              err?.message ||
-              "Failed to load call engine data",
-          );
-        }
+        if (logsSeq.current !== seq) return;
+        setError(
+          err?.response?.data?.msg ||
+            err?.message ||
+            "Failed to load call logs",
+        );
       } finally {
-        if (loadSeq.current === seq) setLoading(false);
+        if (logsSeq.current !== seq) return;
+        setLogsLoading(false);
       }
     },
-    [filterPayload, previousFilterPayload, sort, hasRecording],
+    [filterPayload, sort, hasRecording],
   );
 
+  const handleRefresh = useCallback(() => {
+    loadCallers();
+    loadDashboard();
+    loadLogs(1);
+  }, [loadCallers, loadDashboard, loadLogs]);
+
   useEffect(() => {
-    loadAll(1);
-  }, [loadAll]);
+    loadCallers();
+  }, [loadCallers]);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  useEffect(() => {
+    loadLogs(1);
+  }, [loadLogs]);
 
   const runBackfill = async () => {
     setSyncing(true);
@@ -780,7 +827,7 @@ function CallEnginePage() {
         limit: 100,
         maxPages: 10,
       });
-      await loadAll(1);
+      handleRefresh();
     } catch (err) {
       setError(
         err?.response?.data?.error ||
@@ -899,7 +946,7 @@ function CallEnginePage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
-            onClick={() => loadAll(1)}
+            onClick={handleRefresh}
             loading={loading}
             variant="secondary"
             size="sm"
@@ -1126,7 +1173,7 @@ function CallEnginePage() {
             <div className="flex items-center gap-1.5">
               <button
                 disabled={page <= 1 || loading}
-                onClick={() => loadAll(page - 1)}
+                onClick={() => loadLogs(page - 1)}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -1134,7 +1181,7 @@ function CallEnginePage() {
               {pageNumbers.map((pageNumber) => (
                 <button
                   key={pageNumber}
-                  onClick={() => loadAll(pageNumber)}
+                  onClick={() => loadLogs(pageNumber)}
                   className={cx(
                     "inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm font-semibold transition-all duration-200",
                     pageNumber === page
@@ -1147,7 +1194,7 @@ function CallEnginePage() {
               ))}
               <button
                 disabled={page >= totalPages || loading}
-                onClick={() => loadAll(page + 1)}
+                onClick={() => loadLogs(page + 1)}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="h-4 w-4" />
