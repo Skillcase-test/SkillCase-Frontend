@@ -803,11 +803,9 @@ function CallEnginePage() {
     ]);
     setAssistantLoading(true);
     try {
-      const systemPrompt =
-        "You are a call analytics assistant. Respond in 2-4 short sentences max. Use bullet points for lists. Be direct and concise. No long explanations. Use brief markdown formatting only when helpful.";
       const res = await callEngineApi.askAssistant({
         ...filterPayload,
-        question: `${systemPrompt}\n\nQuestion: ${trimmed}`,
+        question: trimmed,
       });
       setMessages((prev) => [
         ...prev,
@@ -1188,7 +1186,7 @@ function CallEnginePage() {
             <Button
               onClick={() =>
                 sendQuestion(
-                  "How did the selected dialer perform with these clients?",
+                  "Evaluate the dialer performance during this period. Analyze their communication tone, sales pitch structure, objection handling, strengths, and areas of improvement.",
                 )
               }
               variant="secondary"
