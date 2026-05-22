@@ -8,6 +8,8 @@ import {
   LineController,
   LineElement,
   PointElement,
+  BarController,
+  BarElement,
   TimeScale,
   Tooltip,
 } from "chart.js";
@@ -47,6 +49,8 @@ Chart.register(
   LineController,
   LineElement,
   PointElement,
+  BarController,
+  BarElement,
   TimeScale,
   Tooltip,
 );
@@ -268,7 +272,6 @@ function StatCard({
                   bg,
                 )}
               >
-                {delta > 0 ? "+" : ""}
                 {pct}
               </span>
             )}
@@ -323,14 +326,16 @@ function OverviewChart({ rows, loading }) {
           label: "Dialed",
           data: rows.map((r) => Number(r.dialed || 0)),
           fill: true,
-          backgroundColor: function (context) {
-            const chart = context.chart;
-            const { ctx, chartArea } = chart;
-            return chartAreaGradient(ctx, chartArea, [
-              { stop: 0, color: adjustColorOpacity(dialedColor, 0) },
-              { stop: 1, color: adjustColorOpacity(dialedColor, 0.2) },
-            ]);
-          },
+          backgroundColor: rows.length === 1
+            ? adjustColorOpacity(dialedColor, 0.2)
+            : function (context) {
+                const chart = context.chart;
+                const { ctx, chartArea } = chart;
+                return chartAreaGradient(ctx, chartArea, [
+                  { stop: 0, color: adjustColorOpacity(dialedColor, 0) },
+                  { stop: 1, color: adjustColorOpacity(dialedColor, 0.2) },
+                ]);
+              },
           borderColor: dialedColor,
           borderWidth: 2,
           pointRadius: 0,
@@ -343,14 +348,16 @@ function OverviewChart({ rows, loading }) {
           label: "Connected",
           data: rows.map((r) => Number(r.connected || 0)),
           fill: true,
-          backgroundColor: function (context) {
-            const chart = context.chart;
-            const { ctx, chartArea } = chart;
-            return chartAreaGradient(ctx, chartArea, [
-              { stop: 0, color: adjustColorOpacity(connectedColor, 0) },
-              { stop: 1, color: adjustColorOpacity(connectedColor, 0.2) },
-            ]);
-          },
+          backgroundColor: rows.length === 1
+            ? adjustColorOpacity(connectedColor, 0.2)
+            : function (context) {
+                const chart = context.chart;
+                const { ctx, chartArea } = chart;
+                return chartAreaGradient(ctx, chartArea, [
+                  { stop: 0, color: adjustColorOpacity(connectedColor, 0) },
+                  { stop: 1, color: adjustColorOpacity(connectedColor, 0.2) },
+                ]);
+              },
           borderColor: connectedColor,
           borderWidth: 2,
           pointRadius: 0,
@@ -363,14 +370,16 @@ function OverviewChart({ rows, loading }) {
           label: ">= 5 Min",
           data: rows.map((r) => Number(r.over_five || 0)),
           fill: true,
-          backgroundColor: function (context) {
-            const chart = context.chart;
-            const { ctx, chartArea } = chart;
-            return chartAreaGradient(ctx, chartArea, [
-              { stop: 0, color: adjustColorOpacity(overFiveColor, 0) },
-              { stop: 1, color: adjustColorOpacity(overFiveColor, 0.2) },
-            ]);
-          },
+          backgroundColor: rows.length === 1
+            ? adjustColorOpacity(overFiveColor, 0.2)
+            : function (context) {
+                const chart = context.chart;
+                const { ctx, chartArea } = chart;
+                return chartAreaGradient(ctx, chartArea, [
+                  { stop: 0, color: adjustColorOpacity(overFiveColor, 0) },
+                  { stop: 1, color: adjustColorOpacity(overFiveColor, 0.2) },
+                ]);
+              },
           borderColor: overFiveColor,
           borderWidth: 2,
           pointRadius: 0,
@@ -388,7 +397,7 @@ function OverviewChart({ rows, loading }) {
     if (chartRef.current) chartRef.current.destroy();
 
     const newChart = new Chart(canvasRef.current, {
-      type: "line",
+      type: rows.length === 1 ? "bar" : "line",
       data: chartData,
       options: {
         layout: { padding: 20 },
