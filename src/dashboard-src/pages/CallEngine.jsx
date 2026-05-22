@@ -223,7 +223,7 @@ function SkeletonCard() {
 function SkeletonTableRows() {
   return Array.from({ length: 5 }).map((_, i) => (
     <tr key={i} className="border-t border-slate-100">
-      {Array.from({ length: 5 }).map((_, j) => (
+      {Array.from({ length: 6 }).map((_, j) => (
         <td key={j} className="px-4 py-3">
           <div className="h-4 w-full rounded bg-slate-100 animate-pulse" />
         </td>
@@ -1045,6 +1045,7 @@ function CallEnginePage() {
           <table className="w-full min-w-[800px] text-sm">
             <thead className="text-xs font-semibold uppercase text-slate-500 bg-slate-50 border-b border-slate-100">
               <tr>
+                <th className="px-4 py-3 text-left">Candidate ID</th>
                 <th className="px-4 py-3 text-left">Client Number</th>
                 <th className="px-4 py-3 text-left">Dialer</th>
                 <th className="px-4 py-3 text-left">Call Date & Time</th>
@@ -1062,7 +1063,10 @@ function CallEnginePage() {
                       key={row.callyzer_call_id}
                       className="border-t border-slate-100 transition-colors hover:bg-slate-50/80"
                     >
-                      <td className="px-4 py-3 font-medium text-slate-900">
+                      <td className="px-4 py-3 font-semibold text-slate-900">
+                        {row.candidate_id || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
                         {row.client_number || "-"}
                       </td>
                       <td className="px-4 py-3 text-slate-700">
@@ -1097,7 +1101,7 @@ function CallEnginePage() {
                   ))}
                   {!logs.length && !loading && (
                     <tr>
-                      <td colSpan={5} className="px-4 py-12 text-center">
+                      <td colSpan={6} className="px-4 py-12 text-center">
                         <div className="flex flex-col items-center gap-2 text-slate-400">
                           <FileAudio className="h-8 w-8" />
                           <p className="text-sm font-medium">
@@ -1458,6 +1462,7 @@ function CallEnginePage() {
                 <table className="w-full text-sm min-w-[600px]">
                   <thead className="text-xs font-semibold uppercase text-slate-500 bg-slate-50 border-b border-slate-100">
                     <tr>
+                      <th className="px-4 py-3 text-left">Candidate ID</th>
                       <th className="px-4 py-3 text-left">Client Number</th>
                       <th className="px-4 py-3 text-left">Dialer</th>
                       <th className="px-4 py-3 text-left">Call Date & Time</th>
@@ -1468,6 +1473,7 @@ function CallEnginePage() {
                     {metricLoading ? (
                       Array.from({ length: 5 }).map((_, i) => (
                         <tr key={i} className="border-t border-slate-100 animate-pulse">
+                          <td className="px-4 py-4"><div className="h-4 w-16 rounded bg-slate-100" /></td>
                           <td className="px-4 py-4"><div className="h-4 w-28 rounded bg-slate-100" /></td>
                           <td className="px-4 py-4"><div className="h-4 w-24 rounded bg-slate-100" /></td>
                           <td className="px-4 py-4"><div className="h-4 w-40 rounded bg-slate-100" /></td>
@@ -1480,7 +1486,10 @@ function CallEnginePage() {
                           key={row.callyzer_call_id}
                           className="border-t border-slate-100 transition hover:bg-slate-50/50"
                         >
-                          <td className="px-4 py-3.5 font-medium text-slate-900">
+                          <td className="px-4 py-3.5 font-semibold text-slate-900">
+                            {row.candidate_id || "-"}
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-600">
                             {row.client_number || "-"}
                           </td>
                           <td className="px-4 py-3.5 text-slate-700">
@@ -1498,7 +1507,7 @@ function CallEnginePage() {
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={4} className="px-4 py-12 text-center text-slate-400">
+                        <td colSpan={5} className="px-4 py-12 text-center text-slate-400">
                           <div className="flex flex-col items-center gap-2">
                             <PhoneOff className="h-8 w-8 text-slate-300" />
                             <p className="text-sm font-medium">No calls found</p>
