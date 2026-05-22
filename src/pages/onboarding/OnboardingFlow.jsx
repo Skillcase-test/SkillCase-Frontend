@@ -77,7 +77,7 @@ const getPostLoginRoute = (user) => {
   if (isLearnGermanPref(user.german_preference)) {
     return "/learn-german";
   }
-  return user.user_prof_level === "A2" ? "/a2" : "/a1";
+  return "/";
 };
 
 const TopSection = React.memo(({ mascot, tooltip }) => (
@@ -390,7 +390,7 @@ const OnboardingFlow = () => {
 
       // Navigate based on preference
       if (germanPrefCode === "2") {
-        navigate(LEVEL_ROUTE_MAP[germanLevel] || "/a1", { replace: true });
+        navigate("/", { replace: true });
       } else {
         // "Continue learning German" or "Yet to start"
         setLgFirstLandingMarker();

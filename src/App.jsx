@@ -9,6 +9,7 @@ import {
 import { Toaster } from "react-hot-toast";
 import LandingPage from "./pages/landing/LandingPage";
 import NewNavbar from "./components/NewNavbar";
+import BottomModeSwitcher from "./components/BottomModeSwitcher";
 import NewFooter from "./components/NewFooter";
 import Footer from "./components/Footer";
 import OtaUpdateModal from "./components/OtaUpdateModal";
@@ -913,6 +914,7 @@ function AppContent() {
               />
             </Routes>
 
+            <ConditionalBottomModeSwitcher />
             <ConditionalFooter />
           </A2ProductTour>
         </A1ProductTour>
@@ -978,4 +980,18 @@ function ConditionalNav() {
       isOnboarding={isOnboarding}
     />
   );
+}
+
+function ConditionalBottomModeSwitcher() {
+  const location = useLocation();
+  const { isAuthenticated } = useSelector((state) => state.auth);
+
+  if (!isAuthenticated) return null;
+
+  const showSwitcher =
+    location.pathname === "/" || location.pathname === "/learn-german";
+
+  if (!showSwitcher) return null;
+
+  return <BottomModeSwitcher />;
 }

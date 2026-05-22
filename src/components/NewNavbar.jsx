@@ -7,8 +7,26 @@ import { images } from "../assets/images.js";
 import { resetArticleEducation } from "../utils/articleUtils";
 import { getStreakData } from "../api/streakApi";
 import { getLGMode, getLessonsList } from "../api/learnGermanApi";
+import {
+  getA1MigrationStatus,
+  getFlashcardChapters as getA1Flashcards,
+  getGrammarTopics as getA1Grammar,
+  getListeningChapters as getA1Listening,
+  getSpeakingChapters as getA1Speaking,
+  getReadingChapters as getA1Reading,
+  getTestTopics as getA1Test,
+} from "../api/a1Api";
+import {
+  getFlashcardChapters as getA2Flashcards,
+  getGrammarTopics as getA2Grammar,
+  getListeningChapters as getA2Listening,
+  getSpeakingChapters as getA2Speaking,
+  getReadingChapters as getA2Reading,
+  getTestTopics as getA2Test,
+} from "../api/a2Api";
 import api from "../api/axios";
 import { hapticLight, hapticMedium, hapticHeavy } from "../utils/haptics";
+
 
 const RECENT_MODE_SWITCH_MS = 10_000;
 
@@ -31,6 +49,7 @@ export default function Navbar({
   const activeLearnNavbar =
     isLearnMode || location.pathname.startsWith("/learn-german");
   const [progressRatio, setProgressRatio] = useState(0);
+  const [practiceProgressRatio, setPracticeProgressRatio] = useState(0);
   // Tracks previous ratio to detect real increases (vs initial page load)
   const prevProgressRef = useRef(null);
 
@@ -76,23 +95,164 @@ export default function Navbar({
 
   // Fetch progress ring + streak data on every route change
   useEffect(() => {
-    if (!isAuthenticated || !activeLearnNavbar) return;
+    if (!isAuthenticated) return;
 
     getStreakData()
       .then((data) => setStreak(data.currentStreak || 0))
       .catch(() => {});
 
-    getLessonsList()
-      .then(({ data }) => {
-        const modules = Array.isArray(data) ? data : [];
-        if (!modules.length) return;
-        const completed = modules.filter(
-          (m) => m.user_status === "completed",
-        ).length;
-        setProgressRatio(completed / modules.length);
-      })
-      .catch(() => {});
-  }, [isAuthenticated, activeLearnNavbar, location.pathname]);
+    if (activeLearnNavbar) {
+      getLessonsList()
+        .then(({ data }) => {
+          const modules = Array.isArray(data) ? data : [];
+          if (!modules.length) return;
+          const completed = modules.filter(
+            (m) => m.user_status === "completed",
+          ).length;
+          setProgressRatio(completed / modules.length);
+        })
+        .catch(() => {});
+    } else {
+      let mounted = true;
+      const fetchPracticeProgress = async () => {
+        try {
+          const isA1User = (user?.user_prof_level || "").toLowerCase() === "a1";
+          const isA2User = (user?.user_prof_level || "").toLowerCase() === "a2";
+
+          let isRevampA1User = false;
+          if (isA1User) {
+            const migrationRes = await getA1MigrationStatus();
+            const status = migrationRes.data?.status || null;
+            isRevampA1User = ["revamp_opted_in", "revamp_forced_after_deadline"].includes(status);
+          }
+
+          const isDynamic = isA2User || isRevampA1User;
+          if (!isDynamic) {
+            if (mounted) setPracticeProgressRatio(0);
+            return;
+          }
+
+          const apis = isRevampA1User
+            ? [
+                getA1Flashcards(),
+                getA1Grammar(),
+                getA1Listening(),
+                getA1Speaking(),
+                getA1Reading(),
+                getA1Test()
+              ]
+            : [
+                getA2Flashcards(),
+                getA2Grammar(),
+                getA2Listening(),
+                getA2Speaking(),
+                getA2Reading(),
+                getA2Test()
+              ];
+
+          const [
+            flashcardRes,
+            grammarRes,
+            listeningRes,
+            speakingRes,
+            readingRes,
+            testRes
+          ] = await Promise.all(apis);
+
+          if (!mounted) return;
+
+          let totalChapters = 0;
+          let completedChapters = 0;
+
+          // 1. Flashcards (Aggregated)
+          if (flashcardRes?.data) {
+            const chaptersList = Array.isArray(flashcardRes.data) ? flashcardRes.data : [];
+            let flashTotal = Math.max(chaptersList.length, 12);
+            let flashCompleted = chaptersList.filter(ch => ch.is_completed || ch.final_quiz_passed).length;
+            totalChapters += flashTotal;
+            completedChapters += flashCompleted;
+          }
+
+          // 2. Grammar (Grouped by chapter)
+          if (grammarRes?.data) {
+            const grammarList = Array.isArray(grammarRes.data) ? grammarRes.data : [];
+            const grammarMap = {};
+            grammarList.forEach((row) => {
+              if (row.chapter_id) {
+                if (!grammarMap[row.chapter_id]) {
+                  grammarMap[row.chapter_id] = { completed: 0, total: 0 };
+                }
+                if (row.topic_id) {
+                  grammarMap[row.chapter_id].total++;
+                  if (row.is_completed) {
+                    grammarMap[row.chapter_id].completed++;
+                  }
+                }
+              }
+            });
+            const chapters = Object.values(grammarMap);
+            totalChapters += chapters.length;
+            completedChapters += chapters.filter(ch => ch.completed === ch.total && ch.total > 0).length;
+          }
+
+          // 3. Listening (Aggregated)
+          if (listeningRes?.data) {
+            const listeningList = Array.isArray(listeningRes.data) ? listeningRes.data : [];
+            totalChapters += listeningList.length;
+            completedChapters += listeningList.filter(ch => 
+              ch.completed_count === ch.content_count && ch.content_count > 0
+            ).length;
+          }
+
+          // 4. Speaking (Aggregated)
+          if (speakingRes?.data) {
+            const speakingList = Array.isArray(speakingRes.data) ? speakingRes.data : [];
+            totalChapters += speakingList.length;
+            completedChapters += speakingList.filter(ch => ch.is_completed).length;
+          }
+
+          // 5. Reading (Aggregated)
+          if (readingRes?.data) {
+            const readingList = Array.isArray(readingRes.data) ? readingRes.data : [];
+            totalChapters += readingList.length;
+            completedChapters += readingList.filter(ch => 
+              ch.completed_count === ch.content_count && ch.content_count > 0
+            ).length;
+          }
+
+          // 6. Test (Grouped by chapter and fully finished)
+          if (testRes?.data) {
+            const testList = Array.isArray(testRes.data) ? testRes.data : [];
+            const testMap = {};
+            testList.forEach((row) => {
+              if (row.chapter_id) {
+                if (!testMap[row.chapter_id]) {
+                  testMap[row.chapter_id] = { completed: 0, total: 0 };
+                }
+                if (row.topic_id) {
+                  testMap[row.chapter_id].total += 5;
+                  testMap[row.chapter_id].completed += (row.current_level || 0);
+                }
+              }
+            });
+            const chapters = Object.values(testMap);
+            totalChapters += chapters.length;
+            completedChapters += chapters.filter(ch => ch.completed === ch.total && ch.total > 0).length;
+          }
+
+          const ratio = totalChapters > 0 ? completedChapters / totalChapters : 0;
+          if (mounted) setPracticeProgressRatio(ratio);
+        } catch (err) {
+          console.error("Failed to calculate overall practice progress:", err);
+        }
+      };
+
+      fetchPracticeProgress();
+      return () => {
+        mounted = false;
+      };
+    }
+  }, [isAuthenticated, activeLearnNavbar, location.pathname, user]);
 
   // Immediately refresh ring + coins when a lesson is marked complete
   useEffect(() => {
@@ -174,6 +334,8 @@ export default function Navbar({
       <PracticeNavbar
         minimal={minimal}
         disableNavigation={disableNavigation}
+        streak={streak}
+        progressRatio={practiceProgressRatio}
       />
     );
   }
@@ -270,9 +432,10 @@ export default function Navbar({
 
   return (
     <header
-      className={`bg-white border-b border-[#efefef] sticky top-0 z-50 ${
+      className={`bg-white border-b border-[#efefef] sticky top-0 ${isMenuOpen ? "z-[150]" : "z-50"} ${
         disableNavigation ? "pointer-events-none" : ""
       }`}
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
       aria-disabled={disableNavigation}
     >
       <div className="h-[55px] lg:h-[72px] flex items-center justify-between px-4 lg:px-8 max-w-7xl mx-auto">
@@ -661,7 +824,7 @@ export default function Navbar({
   );
 }
 
-function PracticeNavbar({ minimal = false, disableNavigation = false }) {
+function PracticeNavbar({ minimal = false, disableNavigation = false, streak = 0, progressRatio = 0 }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
@@ -687,7 +850,7 @@ function PracticeNavbar({ minimal = false, disableNavigation = false }) {
 
   return (
     <header
-      className={`bg-white border-b border-[#efefef] sticky top-0 z-50 shadow-sm ${
+      className={`bg-white border-b border-[#efefef] sticky top-0 shadow-sm ${isMenuOpen ? "z-[150]" : "z-50"} ${
         disableNavigation ? "pointer-events-none" : ""
       }`}
       style={{ paddingTop: "env(safe-area-inset-top)" }}
@@ -740,6 +903,20 @@ function PracticeNavbar({ minimal = false, disableNavigation = false }) {
 
             {isAuthenticated ? (
               <div className="flex items-center gap-4 ml-4">
+                <div
+                  className="flex items-center gap-2 bg-[#fdf5e6] px-3 py-1.5 rounded-full shadow-sm"
+                  title="Streak"
+                >
+                  <img
+                    className="w-[28px] h-[28px] object-contain"
+                    src="https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778500990/Gemini_Generated_Image_m7b0m6m7b0m6m7b0_2_x8mtum.svg"
+                    alt="Streak"
+                  />
+                  <div className="text-[#002856] text-[17px] font-semibold pr-1">
+                    {String(streak).padStart(1, "0")}
+                  </div>
+                </div>
+
                 {["admin", "super_admin"].includes(user?.role) && (
                   <Link
                     to="/admin"
@@ -750,7 +927,7 @@ function PracticeNavbar({ minimal = false, disableNavigation = false }) {
                 )}
 
                 <Link to="/profile" className="flex-shrink-0">
-                  <PracticeAvatar user={user} />
+                  <PracticeAvatar user={user} progressRatio={progressRatio} />
                 </Link>
 
                 <button
@@ -774,9 +951,25 @@ function PracticeNavbar({ minimal = false, disableNavigation = false }) {
         {showNavLinks && (
           <div className="lg:hidden flex items-center gap-3">
             {isAuthenticated && (
-              <Link to="/profile" className="flex-shrink-0">
-                <PracticeAvatar user={user} />
-              </Link>
+              <>
+                <div
+                  className="flex items-center gap-1.5 bg-[#FBF1D9] px-2 py-1 rounded-full"
+                  title="Streak"
+                >
+                  <img
+                    className="w-[18px] h-[23px] object-contain"
+                    src="https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778500990/Gemini_Generated_Image_m7b0m6m7b0m6m7b0_2_x8mtum.svg"
+                    alt="Streak"
+                  />
+                  <div className="text-[#002856] text-sm font-semibold pr-0.5">
+                    {String(streak).padStart(1, "0")}
+                  </div>
+                </div>
+
+                <Link to="/profile" className="flex-shrink-0">
+                  <PracticeAvatar user={user} progressRatio={progressRatio} />
+                </Link>
+              </>
             )}
 
             <button
@@ -993,26 +1186,71 @@ function MobilePracticeLink({ to, onClick, children }) {
   );
 }
 
-function PracticeAvatar({ user }) {
-  if (user?.profile_pic_url) {
-    return (
-      <img
-        src={user.profile_pic_url}
-        alt="Profile"
-        className="w-8 h-8 rounded-full object-cover border border-[#e9eaeb] hover:border-[#002856] transition-colors"
-      />
-    );
-  }
+function PracticeAvatar({ user, progressRatio = 0 }) {
+  const SIZE = 44;
+  const STROKE = 3;
+  const RADIUS = (SIZE - STROKE) / 2;
+  const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+  const dashOffset = CIRCUMFERENCE - progressRatio * CIRCUMFERENCE;
 
   return (
-    <svg
-      viewBox="0 0 100 100"
-      className="w-8 h-8 rounded-full"
-      fill="none"
-    >
-      <circle cx="50" cy="50" r="50" fill="#D1D5DB" />
-      <circle cx="50" cy="38" r="16" fill="#9CA3AF" />
-      <ellipse cx="50" cy="78" rx="28" ry="20" fill="#9CA3AF" />
-    </svg>
+    <div className="relative flex items-center justify-center">
+      <div className="relative" style={{ width: SIZE, height: SIZE }}>
+        <svg
+          width={SIZE}
+          height={SIZE}
+          style={{ position: "absolute", top: 0, left: 0 }}
+        >
+          {/* track */}
+          <circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={RADIUS}
+            fill="none"
+            stroke="#e5e7eb"
+            strokeWidth={STROKE}
+          />
+          {/* filled arc — rotated at SVG level */}
+          <circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={RADIUS}
+            fill="none"
+            stroke="#fca549"
+            strokeWidth={STROKE}
+            strokeLinecap="round"
+            strokeDasharray={CIRCUMFERENCE}
+            strokeDashoffset={dashOffset}
+            transform={`rotate(-90, ${SIZE / 2}, ${SIZE / 2})`}
+            style={{ transition: "stroke-dashoffset 0.8s ease" }}
+          />
+        </svg>
+        {/* avatar inside ring */}
+        <div
+          className="absolute rounded-full overflow-hidden bg-gray-200"
+          style={{
+            inset: STROKE + 1,
+          }}
+        >
+          {user?.profile_pic_url ? (
+            <img
+              src={user.profile_pic_url}
+              alt="Profile"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <svg
+              viewBox="0 0 100 100"
+              className="w-full h-full"
+              fill="none"
+            >
+              <circle cx="50" cy="50" r="50" fill="#D1D5DB" />
+              <circle cx="50" cy="38" r="16" fill="#9CA3AF" />
+              <ellipse cx="50" cy="78" rx="28" ry="20" fill="#9CA3AF" />
+            </svg>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

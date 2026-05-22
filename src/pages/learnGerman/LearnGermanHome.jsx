@@ -19,7 +19,6 @@ import bg1 from "../../assets/2.webp";
 import bg2 from "../../assets/1.webp";
 import bg3 from "../../assets/3.webp";
 
-import BottomModeSwitcher from "../../components/BottomModeSwitcher";
 import api from "../../api/axios";
 import { setClarityTag, trackClarityEvent } from "../../observability/clarity";
 import {
@@ -524,6 +523,18 @@ export default function LearnGermanHome() {
     }, 100);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const active = showFirstChapterGuide && tourStep === 0;
+    if (active) {
+      window.dispatchEvent(new CustomEvent("lgTourStart"));
+    } else {
+      window.dispatchEvent(new CustomEvent("lgTourEnd"));
+    }
+    return () => {
+      window.dispatchEvent(new CustomEvent("lgTourEnd"));
+    };
+  }, [showFirstChapterGuide, tourStep]);
 
   const fallbackImage =
     "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778253329/99ee50b94881e4e072cc6de5dde475531353120d_f100ew.webp";
@@ -1059,7 +1070,7 @@ export default function LearnGermanHome() {
                     }
                     initial={
                       fromSwitcher
-                        ? { opacity: 0, x: isLeft ? -150 : 150 }
+                        ? { opacity: 0, y: 50 }
                         : fromLessonCompleteRef.current
                         ? false
                         : { opacity: 0, y: 20 }
@@ -1136,7 +1147,6 @@ export default function LearnGermanHome() {
           )}
         </div>
       </motion.div>
-      <BottomModeSwitcher isTourActive={showFirstChapterGuide && tourStep === 0} />
 
       {/* STEP 0: Mode Switcher */}
       {showFirstChapterGuide && tourStep === 0 && switcherGuideRect && (

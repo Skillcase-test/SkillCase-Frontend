@@ -38,11 +38,14 @@ const CustomDropdown = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
+  const portalRef = useRef(null);
 
   useEffect(() => {
     const handlePointerOutside = (event) => {
       if (dropdownRef.current && dropdownRef.current.contains(event.target)) {
+        return;
+      }
+      if (portalRef.current && portalRef.current.contains(event.target)) {
         return;
       }
       setIsOpen(false);
@@ -66,18 +69,7 @@ const CustomDropdown = ({
 
   const toggleDropdown = () => {
     if (disabled) return;
-
-    if (!isOpen && dropdownRef.current) {
-      const rect = dropdownRef.current.getBoundingClientRect();
-      setDropdownPos({
-        top: rect.bottom + 8,
-        left: rect.left,
-        width: rect.width,
-      });
-      setIsOpen(true);
-    } else {
-      setIsOpen(false);
-    }
+    setIsOpen(!isOpen);
   };
 
   const selectedLabel =
@@ -105,14 +97,11 @@ const CustomDropdown = ({
       </button>
 
       {isOpen &&
-        !disabled &&
-        createPortal(
+        !disabled && (
           <div
-            className="fixed z-[9999] bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto overscroll-contain"
+            ref={portalRef}
+            className="absolute left-0 right-0 top-full mt-2 z-[99] bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto overscroll-contain"
             style={{
-              top: dropdownPos.top,
-              left: dropdownPos.left,
-              width: dropdownPos.width,
               touchAction: "pan-y",
               WebkitOverflowScrolling: "touch",
             }}
@@ -136,25 +125,15 @@ const CustomDropdown = ({
                 </button>
               ))}
             </div>
-          </div>,
-          document.body,
+          </div>
         )}
     </div>
   );
 };
 
-const normalizeGermanDisplay = (value) => {
-  const text = String(value || "").trim();
+const normalizeGermanDisplay = (text) => {
   if (!text) return "";
-  const parts = text.split(/\s+/);
-  if (parts.length >= 2) {
-    const first = parts[0].toLowerCase();
-    if (first === "der" || first === "die" || first === "das") {
-      const noun = parts.slice(1).join(" ");
-      return `${first} ${noun.charAt(0).toUpperCase() + noun.slice(1)}`;
-    }
-  }
-  return text;
+  return String(text).trim();
 };
 
 export default function A1Flashcard() {

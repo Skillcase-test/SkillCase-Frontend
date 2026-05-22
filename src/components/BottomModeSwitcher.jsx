@@ -10,6 +10,22 @@ const RECENT_MODE_SWITCH_MS = 10_000;
 export default function BottomModeSwitcher({ isTourActive = false }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [localTourActive, setLocalTourActive] = useState(false);
+
+  useEffect(() => {
+    const handleTourStart = () => setLocalTourActive(true);
+    const handleTourEnd = () => setLocalTourActive(false);
+
+    window.addEventListener("lgTourStart", handleTourStart);
+    window.addEventListener("lgTourEnd", handleTourEnd);
+
+    return () => {
+      window.removeEventListener("lgTourStart", handleTourStart);
+      window.removeEventListener("lgTourEnd", handleTourEnd);
+    };
+  }, []);
+
+  const tourActive = isTourActive || localTourActive;
   // Seed initial state from localStorage (instant, no network flash)
   const [isLearnMode, setIsLearnMode] = useState(() => {
     if (isLearnPath(window.location.pathname)) return true;
@@ -117,7 +133,11 @@ export default function BottomModeSwitcher({ isTourActive = false }) {
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
-        className={`pointer-events-auto bg-white shadow-[0_-8px_30px_rgb(0,0,0,0.08)] rounded-t-[30px] px-5 py-2 flex items-center justify-center w-full max-w-lg ${isTourActive ? "pointer-events-none" : ""}`}
+        className={`pointer-events-auto bg-white shadow-[0_-8px_30px_rgb(0,0,0,0.08)] rounded-t-4xl px-5 flex items-center justify-center w-full max-w-lg ${tourActive ? "pointer-events-none" : ""}`}
+        style={{
+          paddingBottom: "calc(12px + env(safe-area-inset-bottom))",
+          paddingTop: "10px",
+        }}
       >
         <div className="flex items-center w-full gap-2">
           <motion.button
@@ -127,7 +147,7 @@ export default function BottomModeSwitcher({ isTourActive = false }) {
               isLearnMode
                 ? "text-[#002856]"
                 : "bg-transparent text-[#8091a7] hover:bg-gray-50/50"
-            } ${isTourActive ? "pointer-events-none" : ""}`}
+            } ${tourActive ? "pointer-events-none" : ""}`}
           >
             {isLearnMode && (
               <motion.div
@@ -146,9 +166,9 @@ export default function BottomModeSwitcher({ isTourActive = false }) {
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              animate={{ 
+              animate={{
                 scale: isLearnMode ? [1, 1.15, 1] : 1,
-                rotate: isLearnMode ? [0, -10, 10, 0] : 0 
+                rotate: isLearnMode ? [0, -10, 10, 0] : 0,
               }}
               transition={{ duration: 0.4, ease: "easeInOut" }}
             >
@@ -166,7 +186,7 @@ export default function BottomModeSwitcher({ isTourActive = false }) {
               !isLearnMode
                 ? "text-[#002856]"
                 : "bg-transparent text-[#8091a7] hover:bg-gray-50/50"
-            } ${isTourActive ? "pointer-events-none" : ""}`}
+            } ${tourActive ? "pointer-events-none" : ""}`}
           >
             {!isLearnMode && (
               <motion.div
@@ -185,9 +205,9 @@ export default function BottomModeSwitcher({ isTourActive = false }) {
               strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
-              animate={{ 
+              animate={{
                 scale: !isLearnMode ? [1, 1.15, 1] : 1,
-                rotate: !isLearnMode ? [0, -5, 5, 0] : 0 
+                rotate: !isLearnMode ? [0, -5, 5, 0] : 0,
               }}
               transition={{ duration: 0.4, ease: "easeInOut" }}
             >

@@ -35,7 +35,6 @@ import {
 } from "../../api/a2Api";
 import A1MigrationModal from "../../components/a1/A1MigrationModal";
 import ModalPortal from "../../components/common/ModalPortal";
-import BottomModeSwitcher from "../../components/BottomModeSwitcher";
 
 function getTodayISTKey() {
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -128,6 +127,18 @@ export default function LandingPage() {
       navigate("/learn-german", { replace: true });
     }
   }, [navigate, prefersLearnMode]);
+
+  useEffect(() => {
+    const active = showA1MigrationModal || showSwitchConfirm || isUpgrading;
+    if (active) {
+      window.dispatchEvent(new CustomEvent("lgTourStart"));
+    } else {
+      window.dispatchEvent(new CustomEvent("lgTourEnd"));
+    }
+    return () => {
+      window.dispatchEvent(new CustomEvent("lgTourEnd"));
+    };
+  }, [showA1MigrationModal, showSwitchConfirm, isUpgrading]);
 
   const handleOpenLeaderboard = useCallback(() => {
     if (!user?.user_id) return;
@@ -707,11 +718,6 @@ export default function LandingPage() {
           </p>
         </div>
         </ModalPortal>
-      )}
-      {!prefersLearnMode && (
-        <BottomModeSwitcher
-          isTourActive={showA1MigrationModal || showSwitchConfirm || isUpgrading}
-        />
       )}
     </div>
   );
