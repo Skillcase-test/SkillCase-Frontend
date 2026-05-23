@@ -15,6 +15,9 @@ import {
 } from "chart.js";
 import "chartjs-adapter-moment";
 import {
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
   Bot,
   CalendarDays,
   ChevronLeft,
@@ -96,6 +99,22 @@ const metricConfig = {
 
 function cx(...classes) {
   return classes.filter(Boolean).join(" ");
+}
+
+function toIstDateString(d) {
+  const formatter = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(d);
+}
+
+function getIstShiftedDate(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return toIstDateString(d);
 }
 
 function toDateInput(d) {
@@ -634,11 +653,10 @@ function DateRangePicker({ fromDate, toDate, onChange, disabled }) {
   };
 
   const handleClear = () => {
-    const now = new Date();
-    const fromDefault = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    setTempFrom(toDateInput(fromDefault));
-    setTempTo(toDateInput(now));
-    onChange({ from: toDateInput(fromDefault), to: toDateInput(now) });
+    const todayStr = toIstDateString(new Date());
+    setTempFrom(todayStr);
+    setTempTo(todayStr);
+    onChange({ from: todayStr, to: todayStr });
     setOpen(false);
   };
 
@@ -712,16 +730,24 @@ function DateRangePicker({ fromDate, toDate, onChange, disabled }) {
                 </Button>
               </div>
               <div className="flex flex-wrap gap-1.5 pt-1 border-t border-slate-100">
+                <button
+                  onClick={() => {
+                    const todayStr = toIstDateString(new Date());
+                    setTempFrom(todayStr);
+                    setTempTo(todayStr);
+                  }}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
+                >
+                  Today
+                </button>
                 {[7, 14, 30].map((days) => (
                   <button
                     key={days}
                     onClick={() => {
-                      const now = new Date();
-                      const from = new Date(
-                        now.getTime() - days * 24 * 60 * 60 * 1000,
-                      );
-                      setTempFrom(toDateInput(from));
-                      setTempTo(toDateInput(now));
+                      const fromStr = getIstShiftedDate(-days);
+                      const toStr = toIstDateString(new Date());
+                      setTempFrom(fromStr);
+                      setTempTo(toStr);
                     }}
                     className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
                   >
@@ -738,14 +764,14 @@ function DateRangePicker({ fromDate, toDate, onChange, disabled }) {
 }
 
 function CallEnginePage() {
-  const now = new Date();
-  const fromDefault = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const todayStr = toIstDateString(new Date());
 
-  const [fromDate, setFromDate] = useState(toDateInput(fromDefault));
-  const [toDate, setToDate] = useState(toDateInput(now));
+  const [fromDate, setFromDate] = useState(todayStr);
+  const [toDate, setToDate] = useState(todayStr);
   const [dialer, setDialer] = useState("all");
-  const [sort, setSort] = useState("recent");
-  const [hasRecording, setHasRecording] = useState(false);
+  const [sortBy, setSortBy] = useState("call_datetime");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [recordingFilter, setRecordingFilter] = useState("all");
 
   const [callers, setCallers] = useState([]);
   const [overview, setOverview] = useState([]);
@@ -900,8 +926,9 @@ function CallEnginePage() {
           ...filterPayload,
           page: nextPage,
           limit: PAGE_SIZE,
-          sort,
-          hasRecording,
+          sortBy,
+          sortOrder,
+          recordingFilter,
         });
 
         if (logsSeq.current !== seq) return;
@@ -920,7 +947,7 @@ function CallEnginePage() {
         setLogsLoading(false);
       }
     },
-    [filterPayload, sort, hasRecording],
+    [filterPayload, sortBy, sortOrder, recordingFilter],
   );
 
   const handleRefresh = useCallback(() => {
@@ -1038,12 +1065,45 @@ function CallEnginePage() {
     }
   };
 
+  const handleSort = (field) => {
+    if (field === "call_datetime") {
+      if (sortBy === "call_datetime") {
+        setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+      } else {
+        setSortBy("call_datetime");
+        setSortOrder("desc");
+      }
+    } else {
+      if (sortBy === field) {
+        if (sortOrder === "desc") {
+          setSortOrder("asc");
+        } else {
+          setSortBy("call_datetime");
+          setSortOrder("desc");
+        }
+      } else {
+        setSortBy(field);
+        setSortOrder("desc");
+      }
+    }
+  };
+
+  const toggleRecordingFilter = () => {
+    setRecordingFilter((prev) => {
+      if (prev === "all") return "recorded";
+      if (prev === "recorded") return "not_recorded";
+      return "all";
+    });
+  };
+
   const resetFilters = () => {
-    setFromDate(toDateInput(fromDefault));
-    setToDate(toDateInput(now));
+    const todayStr = toIstDateString(new Date());
+    setFromDate(todayStr);
+    setToDate(todayStr);
     setDialer("all");
-    setSort("recent");
-    setHasRecording(false);
+    setSortBy("call_datetime");
+    setSortOrder("desc");
+    setRecordingFilter("all");
   };
 
   const handleDateRangeChange = ({ from, to }) => {
@@ -1187,41 +1247,115 @@ function CallEnginePage() {
               Recent calls, recordings, and dialer activity
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              disabled={loading}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all duration-200 hover:border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <option value="recent">Recent first</option>
-              <option value="oldest">Oldest first</option>
-            </select>
-            <button
-              onClick={() => setHasRecording((value) => !value)}
-              disabled={loading}
-              className={cx(
-                "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium shadow-sm transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed",
-                hasRecording
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300",
-              )}
-            >
-              <FileAudio className="h-4 w-4" />
-              Recordings only
-            </button>
-          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[800px] text-sm">
             <thead className="text-xs font-semibold uppercase text-slate-500 bg-slate-50 border-b border-slate-100">
               <tr>
-                <th className="px-4 py-3 text-left">Candidate ID</th>
-                <th className="px-4 py-3 text-left">Client Number</th>
+                <th
+                  onClick={() => handleSort("candidate_id")}
+                  className="px-4 py-3 text-left cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Candidate ID</span>
+                    <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                      {sortBy === "candidate_id" ? (
+                        sortOrder === "asc" ? (
+                          <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+                        ) : (
+                          <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </span>
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort("client_number")}
+                  className="px-4 py-3 text-left cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Client Number</span>
+                    <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                      {sortBy === "client_number" ? (
+                        sortOrder === "asc" ? (
+                          <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+                        ) : (
+                          <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </span>
+                  </div>
+                </th>
                 <th className="px-4 py-3 text-left">Dialer</th>
-                <th className="px-4 py-3 text-left">Call Date & Time</th>
-                <th className="px-4 py-3 text-left">Duration</th>
-                <th className="px-4 py-3 text-left">Recording</th>
+                <th
+                  onClick={() => handleSort("call_datetime")}
+                  className="px-4 py-3 text-left cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Call Date & Time</span>
+                    <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                      {sortBy === "call_datetime" ? (
+                        sortOrder === "asc" ? (
+                          <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+                        ) : (
+                          <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </span>
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort("duration_sec")}
+                  className="px-4 py-3 text-left cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Duration</span>
+                    <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                      {sortBy === "duration_sec" ? (
+                        sortOrder === "asc" ? (
+                          <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+                        ) : (
+                          <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </span>
+                  </div>
+                </th>
+                <th
+                  onClick={toggleRecordingFilter}
+                  className="px-4 py-3 text-left cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span>Recording</span>
+                      <FileAudio
+                        className={cx(
+                          "h-3.5 w-3.5 transition-colors",
+                          recordingFilter === "recorded"
+                            ? "text-emerald-600 font-semibold"
+                            : recordingFilter === "not_recorded"
+                              ? "text-rose-600 font-semibold"
+                              : "text-slate-400"
+                        )}
+                      />
+                    </div>
+                    <span className="text-[10px] font-semibold uppercase bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">
+                      {recordingFilter === "recorded"
+                        ? "Recorded Only"
+                        : recordingFilter === "not_recorded"
+                          ? "No Recording"
+                          : "All"}
+                    </span>
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody>

@@ -329,22 +329,21 @@ export function usePaymentsAdminState() {
     selectedEnrollmentId,
     year,
     month,
-    rawEventTypeFilter,
-    rawStatusFilter,
     currentPage,
     rowsPerPage,
-    debouncedAllSearch,
-    allStatusFilter,
-    allBatchFilter,
-    debouncedMonthSearch,
-    batchSearch,
-    debouncedFeeSearch,
-    feeFilter,
-    cohortFilter,
-    debouncedDiscountSearch,
-    debouncedPaymentSearch,
-    debouncedRawSearch,
-    debouncedEnrollmentSearchTerm,
+    tab === "all" ? debouncedAllSearch : null,
+    tab === "all" ? allStatusFilter : null,
+    tab === "all" ? allBatchFilter : null,
+    tab === "month" ? debouncedMonthSearch : null,
+    tab === "fee" ? debouncedFeeSearch : null,
+    tab === "fee" ? feeFilter : null,
+    tab === "fee" ? cohortFilter : null,
+    tab === "discounts" ? debouncedDiscountSearch : null,
+    tab === "payments" ? debouncedPaymentSearch : null,
+    tab === "rawlogs" ? debouncedRawSearch : null,
+    tab === "rawlogs" ? rawEventTypeFilter : null,
+    tab === "rawlogs" ? rawStatusFilter : null,
+    tab === "invoice" ? debouncedEnrollmentSearchTerm : null,
   ]);
 
   useEffect(() => {
@@ -362,6 +361,7 @@ export function usePaymentsAdminState() {
 
   useEffect(() => {
     setEditDraft(null);
+    setCurrentPage(1);
   }, [tab]);
 
   useEffect(() => {
