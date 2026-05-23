@@ -256,6 +256,7 @@ export default function PaymentsAdmin() {
               sendingAgreementEnrollmentId: state.sendingAgreementEnrollmentId,
               updatingBatchEnrollmentId: state.updatingBatchEnrollmentId,
               handleChangeCandidateBatch: actions.handleChangeCandidateBatch,
+              handleChangeCandidateStatus: actions.handleChangeCandidateStatus,
               batches: state.batches,
               openLifecycleModal: actions.openLifecycleModal,
               handleLifecycleSubmit: actions.handleLifecycleSubmit,

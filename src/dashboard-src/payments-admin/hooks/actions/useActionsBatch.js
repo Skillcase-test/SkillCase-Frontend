@@ -67,7 +67,59 @@ export function useActionsBatch(state) {
       setUpdatingBatchEnrollmentId("");
     }
   }
+  async function handleChangeCandidateStatus(row, newStatus) {
+    const enrollmentId = row?.enrollment_id;
+    if (!enrollmentId) return;
 
+    const currentStatus = String(row.lifecycle_state || row.status || "").toLowerCase();
+    const target = String(newStatus).toLowerCase();
+    
+    if (currentStatus === target) return;
+
+    if (target === "on_hold") {
+      openLifecycleModal("hold", row);
+    } else if (target === "dropped") {
+      openLifecycleModal("drop", row);
+    } else if (target === "completed") {
+      const confirmed = window.confirm(`Mark ${row.student_name || "candidate"} as completed?`);
+      if (!confirmed) return;
+      setUpdatingBatchEnrollmentId(enrollmentId);
+      try {
+        const nextNotes = { ...(row.notes || {}), program_completed: "yes" };
+        await paymentsAdminApi.updateEnrollment(enrollmentId, {
+          notes: nextNotes,
+          program_completed: "yes",
+        });
+        await loadTabData();
+      } catch (err) {
+        setError(err?.response?.data?.msg || "Failed to mark as completed");
+      } finally {
+        setUpdatingBatchEnrollmentId("");
+      }
+    } else if (target === "active") {
+      if (currentStatus === "on_hold") {
+        openLifecycleModal("unhold", row);
+      } else if (currentStatus === "dropped") {
+        openLifecycleModal("undrop", row);
+      } else if (currentStatus === "completed") {
+        const confirmed = window.confirm(`Re-activate ${row.student_name || "candidate"}'s program?`);
+        if (!confirmed) return;
+        setUpdatingBatchEnrollmentId(enrollmentId);
+        try {
+          const nextNotes = { ...(row.notes || {}), program_completed: "no" };
+          await paymentsAdminApi.updateEnrollment(enrollmentId, {
+            notes: nextNotes,
+            program_completed: "no",
+          });
+          await loadTabData();
+        } catch (err) {
+          setError(err?.response?.data?.msg || "Failed to re-activate");
+        } finally {
+          setUpdatingBatchEnrollmentId("");
+        }
+      }
+    }
+  }
   function openLifecycleModal(action, row) {
     setLifecycleModal({
       open: true,
@@ -119,6 +171,7 @@ export function useActionsBatch(state) {
     handleUpdateBatch,
     handleDeleteBatch,
     handleChangeCandidateBatch,
+    handleChangeCandidateStatus,
     openLifecycleModal,
     handleLifecycleSubmit,
   };

@@ -29,8 +29,9 @@ export function AllViewTab({
   setAllBatchFilter,
   batches,
   openLifecycleModal,
-  handleSendAgreement,
-  sendingAgreementEnrollmentId,
+  handleChangeCandidateBatch,
+  handleChangeCandidateStatus,
+  updatingBatchEnrollmentId,
 }) {
   const batchOptions = [
     { value: "", label: "All Batches" },
@@ -91,34 +92,61 @@ export function AllViewTab({
                 <td className="px-3 py-3">{r.student_name || "-"}</td>
                 <td className="px-2 py-2">{r.student_phone || "-"}</td>
                 <td className="px-2 py-2">{r.student_email || "-"}</td>
-                <td className="px-2 py-2">{r.batch_name || "-"}</td>
-                <td className="px-2 py-2">{r.lifecycle_state || r.status || "-"}</td>
+                <td className="px-2 py-2">
+                  <div className="w-40">
+                    <ControlDropdown
+                      value={r.batch_id || ""}
+                      onChange={(val) => handleChangeCandidateBatch?.(r.enrollment_id, val)}
+                      options={[
+                        { value: "", label: "Unassigned" },
+                        ...batches.map((b) => ({ value: b.batch_id, label: b.batch_name })),
+                      ]}
+                      placeholder="Select Batch"
+                      compact
+                      fixedMenu
+                      disabled={updatingBatchEnrollmentId === r.enrollment_id}
+                    />
+                  </div>
+                </td>
+                <td className="px-2 py-2">
+                  <div className="w-32">
+                    <ControlDropdown
+                      value={String(r.lifecycle_state || r.status || "").toLowerCase()}
+                      onChange={(val) => handleChangeCandidateStatus?.(r, val)}
+                      placeholder="Status"
+                      compact
+                      fixedMenu
+                      disabled={updatingBatchEnrollmentId === r.enrollment_id}
+                      options={(() => {
+                        const s = String(r.lifecycle_state || r.status || "").toLowerCase();
+                        const opts = [
+                          { value: s, label: s === "on_hold" ? "On Hold" : s.charAt(0).toUpperCase() + s.slice(1) }
+                        ];
+
+                        if (s === "dropped") {
+                          opts.push({ value: "active", label: "Active" });
+                        } else if (s === "on_hold") {
+                          opts.push({ value: "active", label: "Active" });
+                          opts.push({ value: "dropped", label: "Dropped" });
+                        } else if (s === "active" || s === "pending" || s === "completed" || s === "finalized") {
+                          opts.push({ value: "on_hold", label: "On Hold" });
+                          opts.push({ value: "dropped", label: "Dropped" });
+                          if (s !== "completed" && s !== "finalized") {
+                            opts.push({ value: "completed", label: "Completed" });
+                          }
+                        }
+                        return opts;
+                      })()}
+                    />
+                  </div>
+                </td>
                 <td className="px-2 py-2">{formatInrFromPaise(r.paid_total_paise)}</td>
                 <td className="px-2 py-2">{formatIstDateTime(r.last_paid_at)}</td>
                 <td className="px-2 py-2">
-                  <div className="flex min-w-48 flex-wrap gap-2">
+                  <div className="flex gap-2">
                     <ActionChip onClick={() => setEditDraft({ ...r, ...(r.notes || {}) })}>
                       Details
                     </ActionChip>
-                    <ActionChip
-                      onClick={() => handleSendAgreement?.(r)}
-                      disabled={sendingAgreementEnrollmentId === r.enrollment_id}
-                    >
-                      {sendingAgreementEnrollmentId === r.enrollment_id ? "Sending..." : "Send Agreement"}
-                    </ActionChip>
-                    <div className="w-24">
-                      <ControlDropdown
-                        value=""
-                        onChange={(action) => openLifecycleModal(action, r)}
-                        placeholder="Action"
-                        compact
-                        fixedMenu
-                        options={lifecycleActionsForRow(r).map((action) => ({
-                          value: action,
-                          label: actionLabels[action] || action,
-                        }))}
-                      />
-                    </div>
                   </div>
                 </td>
               </tr>

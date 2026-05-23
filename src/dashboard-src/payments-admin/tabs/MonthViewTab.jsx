@@ -1,4 +1,4 @@
-import { ActionChip } from "../components/controls";
+import { ActionChip, ControlDropdown } from "../components/controls";
 import { formatInrFromPaise } from "../utils/formatters";
 
 export function MonthViewTab({
@@ -9,6 +9,9 @@ export function MonthViewTab({
   handleSendAgreement,
   savingEnrollmentId,
   sendingAgreementEnrollmentId,
+  batches = [],
+  handleChangeCandidateBatch,
+  updatingBatchEnrollmentId,
 }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200">
@@ -33,7 +36,22 @@ export function MonthViewTab({
               <td className="px-3 py-3">{r.student_name || "-"}</td>
               <td className="px-2 py-2">{r.student_phone || "-"}</td>
               <td className="px-2 py-2">{r.student_email || "-"}</td>
-              <td className="px-2 py-2">{r.batch_name || "-"}</td>
+              <td className="px-2 py-2">
+                <div className="w-40">
+                  <ControlDropdown
+                    value={r.batch_id || ""}
+                    onChange={(val) => handleChangeCandidateBatch?.(r.enrollment_id, val)}
+                    options={[
+                      { value: "", label: "Unassigned" },
+                      ...batches.map((b) => ({ value: b.batch_id, label: b.batch_name })),
+                    ]}
+                    placeholder="Select Batch"
+                    compact
+                    fixedMenu
+                    disabled={updatingBatchEnrollmentId === r.enrollment_id}
+                  />
+                </div>
+              </td>
               <td className="px-2 py-2">{formatInrFromPaise(r.paid_paise)}</td>
               <td className="px-2 py-2">
                 {r.lifecycle_state === "dropped" ? (
