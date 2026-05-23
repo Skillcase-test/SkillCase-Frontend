@@ -12,7 +12,6 @@ const personalFields = [
   ["student_name", "Name"],
   ["student_phone", "Phone"],
   ["student_email", "Email"],
-  ["candidate_id", "Candidate ID"],
   ["alternate_number", "Alternate Number"],
   ["nationality", "Nationality"],
   ["current_location_city", "Current Location (City)"],
@@ -40,7 +39,6 @@ const requiredFieldKeys = new Set([
   "student_name",
   "student_phone",
   "student_email",
-  "candidate_id",
   "dob",
   "gender",
   "nationality",
@@ -118,6 +116,45 @@ export function CandidateDetailsForm({
   const [lastAddedKey, setLastAddedKey] = useState(null);
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
+
+  useEffect(() => {
+    if (!editDraft) return;
+
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const randomPhone = String(Math.floor(6000000000 + Math.random() * 4000000000));
+    const firstBatchId = batches && batches[0] ? batches[0].batch_id : "";
+
+    const defaults = {
+      student_name: `Test Candidate ${randomSuffix}`,
+      student_phone: randomPhone,
+      student_email: `test.candidate.${randomSuffix}@example.com`,
+      batch_id: firstBatchId,
+      dob: "2000-01-01",
+      gender: "Male",
+      nationality: "Indian",
+      current_location_city: "Bangalore",
+      state: "Karnataka",
+      educational_qualification: "Graduate (B.Tech)",
+      terms_ack_status: "yes",
+      shift_pattern: "Daily Shift Pattern",
+      daily_shift_timing: "09:00 AM - 06:00 PM",
+      lead_owner: "Admin",
+      year_of_passing: "2022",
+    };
+
+    let hasChanges = false;
+    const patched = { ...editDraft };
+    for (const [key, defVal] of Object.entries(defaults)) {
+      if (!String(patched[key] ?? "").trim()) {
+        patched[key] = defVal;
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      setEditDraft(patched);
+    }
+  }, [editDraft?.enrollment_id, batches, setEditDraft]);
 
   if (!editDraft) return null;
   const expectedRows = Array.isArray(editDraft.expected_payments)
@@ -421,6 +458,22 @@ export function CandidateDetailsForm({
           Candidate Personal Details
         </h3>
         <div className="grid gap-3 md:grid-cols-3">
+          {/* Candidate ID — system-generated on finalize, always read-only */}
+          <Field label="Candidate ID">
+            {isCreateMode ? (
+              <div className="flex h-10 items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 text-sm text-slate-400 italic">
+                Generated automatically on Finalize
+              </div>
+            ) : (
+              <div className={`flex h-10 items-center rounded-xl border px-3 text-sm font-mono ${
+                editDraft.candidate_id
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 font-semibold"
+                  : "border-dashed border-slate-300 bg-slate-50 text-slate-400 italic"
+              }`}>
+                {editDraft.candidate_id || "Not yet assigned"}
+              </div>
+            )}
+          </Field>
           {personalFields.map(textField)}
           <Field label="Date of Birth" required>
             <input

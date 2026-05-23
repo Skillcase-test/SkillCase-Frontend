@@ -2,8 +2,37 @@ import { useEffect, useRef, useState } from "react";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 import { MONTH_NAMES } from "../utils/constants";
 
-const SESSION_UNLOCK_KEY = "payments_admin_stepup_unlocked";
 const SEARCH_DEBOUNCE_MS = 300;
+
+// Ordered list of tab keys as they appear in the UI
+const PAYMENTS_TAB_ORDER = [
+  "month", "all", "batch", "fee",
+  "discounts", "payments", "rawlogs", "invoice", "import",
+];
+
+// Maps each UI tab key to its backend action_key stored in admin_user_permission
+const PAYMENTS_ACTION_FOR_TAB = {
+  month:     "tab_month",
+  all:       "tab_all",
+  batch:     "tab_batch",
+  fee:       "tab_fee",
+  discounts: "tab_discounts",
+  payments:  "tab_payments",
+  rawlogs:   "tab_rawlogs",
+  invoice:   "tab_invoice",
+  import:    "tab_import",
+};
+
+function derivePermittedTabs(role, paymentActions) {
+  if (role === "super_admin") return new Set(PAYMENTS_TAB_ORDER);
+  const permitted = new Set();
+  for (const [tabKey, actionKey] of Object.entries(PAYMENTS_ACTION_FOR_TAB)) {
+    if (paymentActions.includes(actionKey) || paymentActions.includes("manage")) {
+      permitted.add(tabKey);
+    }
+  }
+  return permitted;
+}
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -19,14 +48,12 @@ export function usePaymentsAdminState() {
   const [year, setYear] = useState(now.getUTCFullYear());
   const [month, setMonth] = useState(now.getUTCMonth() + 1);
   const [tab, setTab] = useState("month");
-  const [password, setPassword] = useState("");
-  const [authorized, setAuthorized] = useState(() => {
-    try {
-      return sessionStorage.getItem(SESSION_UNLOCK_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
+
+  // Access control state — null means still loading
+  const [permittedTabs, setPermittedTabs] = useState(null);
+  const [accessLoading, setAccessLoading] = useState(true);
+  const [adminRole, setAdminRole] = useState("");
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -119,25 +146,11 @@ export function usePaymentsAdminState() {
   const debouncedRawSearch = useDebounce(rawSearch, SEARCH_DEBOUNCE_MS);
   const debouncedEnrollmentSearchTerm = useDebounce(enrollmentSearchTerm, SEARCH_DEBOUNCE_MS);
 
-  function resetStepUpSession() {
-    try {
-      sessionStorage.removeItem(SESSION_UNLOCK_KEY);
-    } catch {
-      // Silently ignore sessionStorage errors
-    }
-    setAuthorized(false);
-    setPassword("");
-  }
-
   async function refreshBatches() {
     try {
       const res = await paymentsAdminApi.getBatches();
       setBatches(res.data.batches || []);
-    } catch (err) {
-      if (err?.response?.data?.code === "PAYMENTS_STEP_UP_REQUIRED") {
-        resetStepUpSession();
-        setError("Payments step-up expired. Please unlock again.");
-      }
+    } catch {
       setBatches([]);
     }
   }
@@ -148,11 +161,7 @@ export function usePaymentsAdminState() {
         search: enrollmentSearchTerm || undefined,
       });
       setCandidateOptions(res.data.options || []);
-    } catch (err) {
-      if (err?.response?.data?.code === "PAYMENTS_STEP_UP_REQUIRED") {
-        resetStepUpSession();
-        setError("Payments step-up expired. Please unlock again.");
-      }
+    } catch {
       setCandidateOptions([]);
     }
   }
@@ -272,12 +281,6 @@ export function usePaymentsAdminState() {
       if (err?.name === "CanceledError" || err?.code === "ERR_CANCELED") {
         return;
       }
-      if (err?.response?.data?.code === "PAYMENTS_STEP_UP_REQUIRED") {
-        resetStepUpSession();
-        setError("Payments step-up expired. Please unlock again.");
-        setRows([]);
-        return;
-      }
       setError(err?.response?.data?.msg || "Failed to load data");
       setRows([]);
     } finally {
@@ -287,32 +290,41 @@ export function usePaymentsAdminState() {
     }
   }
 
+  // On mount: resolve which tabs this admin is permitted to see
   useEffect(() => {
     let mounted = true;
-    async function syncStepUpState() {
-      if (!authorized) return;
+    async function loadAccess() {
+      setAccessLoading(true);
       try {
-        const res = await paymentsAdminApi.getStepUpStatus();
+        const res = await paymentsAdminApi.getMyAccess();
         if (!mounted) return;
-        if (!res?.data?.active) resetStepUpSession();
+        const role = res.data?.role || "";
+        const paymentActions = res.data?.permissions?.["payments"] || [];
+        const permitted = derivePermittedTabs(role, paymentActions);
+        setAdminRole(role);
+        setPermittedTabs(permitted);
+        if (permitted.size > 0) {
+          const firstTab = PAYMENTS_TAB_ORDER.find((t) => permitted.has(t));
+          if (firstTab) setTab(firstTab);
+        }
       } catch {
-        if (mounted) resetStepUpSession();
+        if (mounted) setPermittedTabs(new Set());
+      } finally {
+        if (mounted) setAccessLoading(false);
       }
     }
-    syncStepUpState();
-    return () => {
-      mounted = false;
-    };
+    loadAccess();
+    return () => { mounted = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (!authorized) return;
+    if (!permittedTabs || permittedTabs.size === 0) return;
     loadTabData();
     setFeeBreakdownCache({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    authorized,
+    permittedTabs,
     tab,
     selectedEnrollmentId,
     year,
@@ -336,21 +348,37 @@ export function usePaymentsAdminState() {
   ]);
 
   useEffect(() => {
-    if (!authorized) return;
+    if (!permittedTabs || permittedTabs.size === 0) return;
     refreshBatches();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authorized]);
+  }, [permittedTabs]);
 
   useEffect(() => {
-    if (!authorized) return;
+    if (!permittedTabs || permittedTabs.size === 0) return;
     if (tab !== "discounts" && tab !== "invoice") return;
     refreshCandidateOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authorized, tab, debouncedEnrollmentSearchTerm]);
+  }, [permittedTabs, tab, debouncedEnrollmentSearchTerm]);
 
   useEffect(() => {
     setEditDraft(null);
   }, [tab]);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => {
+      setNotice("");
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [notice]);
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => {
+      setError("");
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [error]);
 
   useEffect(() => {
     return () => {
@@ -361,17 +389,15 @@ export function usePaymentsAdminState() {
   }, []);
 
   return {
-    SESSION_UNLOCK_KEY,
     year,
     setYear,
     month,
     setMonth,
     tab,
     setTab,
-    password,
-    setPassword,
-    authorized,
-    setAuthorized,
+    permittedTabs,
+    accessLoading,
+    adminRole,
     loading,
     setLoading,
     error,
@@ -460,7 +486,6 @@ export function usePaymentsAdminState() {
     setSelectedInvoicePaymentId,
     candidateOptions,
     setCandidateOptions,
-    resetStepUpSession,
     refreshBatches,
     refreshCandidateOptions,
     loadTabData,

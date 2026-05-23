@@ -1,9 +1,9 @@
 import api from "./axios";
+import { adminAccessApi } from "./adminAccessApi";
 
 export const paymentsAdminApi = {
-  verifyStepUp: (password) =>
-    api.post("/admin/payments/auth/verify-password", { password }),
-  getStepUpStatus: () => api.get("/admin/payments/auth/status"),
+  // Fetches the current admin's role + permissions (used on panel mount).
+  getMyAccess: () => adminAccessApi.getMyAccess(),
 
   getMonthView: (year, month, params = {}) =>
     api.get("/admin/payments/enrollments/month-view", {

@@ -20,4 +20,7 @@ export const termsApi = {
   getEnvelopeDetail: (envelopeId) => api.get(`/admin/terms/envelopes/${envelopeId}`),
   resolveInvite: (token) => api.get(`/terms/invite/${token}`),
   submitInvite: (token, payload) => api.post(`/terms/invite/${token}/submit`, payload),
+  getCandidateDetails: (token) => api.get(`/terms/invite/${token}/candidate-details`),
+  saveCandidateDetails: (token, payload) => api.post(`/terms/invite/${token}/candidate-details`, payload),
+  createCandidateDocumentUploadUrl: (token, payload) => api.post(`/terms/invite/${token}/upload-url`, payload),
 };

@@ -99,7 +99,7 @@ export function useActionsBatch(state) {
     } else if (target === "active") {
       if (currentStatus === "on_hold") {
         openLifecycleModal("unhold", row);
-      } else if (currentStatus === "dropped") {
+      } else if (currentStatus === "dropped" || currentStatus === "archived") {
         openLifecycleModal("undrop", row);
       } else if (currentStatus === "completed") {
         const confirmed = window.confirm(`Re-activate ${row.student_name || "candidate"}'s program?`);

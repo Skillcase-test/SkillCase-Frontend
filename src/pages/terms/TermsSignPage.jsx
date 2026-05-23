@@ -384,6 +384,36 @@ export default function TermsSignPage() {
   const [toastMessage, setToastMessage] = useState("");
   const [keyboardOffset, setKeyboardOffset] = useState(0);
 
+  const [enrollmentDetails, setEnrollmentDetails] = useState(null);
+  const [wizardStep, setWizardStep] = useState(0);
+  const [wizardData, setWizardData] = useState({
+    student_name: "",
+    student_phone: "",
+    student_email: "",
+    alternate_number: "",
+    dob: "",
+    gender: "",
+    nationality: "",
+    current_location_city: "",
+    state: "",
+    educational_qualification: "",
+    year_of_passing: "",
+    shift_pattern: "Daily Shift Pattern",
+    first_shift_timing: "",
+    second_shift_timing: "",
+    third_shift_timing: "",
+    daily_shift_timing: "",
+    passport_gdrive_link: "",
+    degree_certificate_gdrive_link: "",
+    updated_resume_gdrive_link: "",
+  });
+  const [uploadingFiles, setUploadingFiles] = useState({
+    passport: false,
+    degree: false,
+    resume: false,
+  });
+  const [uploadError, setUploadError] = useState("");
+
   const viewerRef = useRef(null);
   const inputRefMap = useRef(new Map());
   const hasAutoFocusedRef = useRef(false);
@@ -619,12 +649,32 @@ export default function TermsSignPage() {
         const envelope = response.data?.envelope || null;
         const templateData = response.data?.template || null;
         const mappedFields = response.data?.fields || [];
+
         setJustSubmitted(false);
         setInvite(envelope);
         setTemplate(templateData);
         setFields(mappedFields);
         setDocPages(Number(templateData?.page_count || 0));
-        setAlreadySigned(envelope?.status === "signed");
+
+        const isSigned = envelope?.status === "signed";
+
+        if (isSigned) {
+          try {
+            const detailsRes = await termsApi.getCandidateDetails(token);
+            const candidateDetails = detailsRes.data?.details || {};
+            const detailsFilled = candidateDetails?.candidate_details_filled === "yes";
+            if (!detailsFilled) {
+              setWizardStep(1);
+            } else {
+              setAlreadySigned(true);
+            }
+          } catch {
+            // Not linked to any enrollment — treat as already signed
+            setAlreadySigned(true);
+          }
+        } else {
+          setAlreadySigned(false);
+        }
 
         const defaults = {};
         mappedFields.forEach((field) => {
@@ -1049,14 +1099,34 @@ export default function TermsSignPage() {
         signature_image_data_url: signatureImageDataUrl,
       });
       const signedUrl = response.data?.signed_pdf_url || "";
-      setSuccess(
-        "Signature completed successfully. Thank you. You will be redirected to Skillcase.",
-      );
       setShowSignatureModal(false);
-      setJustSubmitted(true);
-      setAlreadySigned(true);
-      if (signedUrl) {
-        window.open(signedUrl, "_blank", "noopener,noreferrer");
+
+      try {
+        const detailsRes = await termsApi.getCandidateDetails(token);
+        const candidateDetails = detailsRes.data?.details || {};
+        const detailsFilled = candidateDetails?.candidate_details_filled === "yes";
+        if (!detailsFilled) {
+          setWizardStep(1);
+        } else {
+          setSuccess(
+            "Signature completed successfully. Thank you. You will be redirected to Skillcase.",
+          );
+          setJustSubmitted(true);
+          setAlreadySigned(true);
+          if (signedUrl) {
+            window.open(signedUrl, "_blank", "noopener,noreferrer");
+          }
+        }
+      } catch {
+        // Not linked to any enrollment — normal success flow
+        setSuccess(
+          "Signature completed successfully. Thank you. You will be redirected to Skillcase.",
+        );
+        setJustSubmitted(true);
+        setAlreadySigned(true);
+        if (signedUrl) {
+          window.open(signedUrl, "_blank", "noopener,noreferrer");
+        }
       }
     } catch (requestError) {
       setError(
@@ -1076,6 +1146,495 @@ export default function TermsSignPage() {
       }
     }
   }, [activeFieldId]);
+
+  const INDIAN_STATES = [
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat",
+    "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh",
+    "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab",
+    "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand",
+    "West Bengal", "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu",
+    "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
+  ];
+
+  const handleFileUpload = async (e, docType) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFiles((prev) => ({ ...prev, [docType]: true }));
+    setUploadError("");
+
+    try {
+      const response = await termsApi.createCandidateDocumentUploadUrl(token, {
+        document_type: docType,
+        file_name: file.name,
+        content_type: file.type,
+      });
+
+      const { uploadUrl, key } = response.data;
+
+      const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error(`S3 upload failed with status ${uploadRes.status}`);
+      }
+
+      setWizardData((prev) => ({
+        ...prev,
+        [`${docType}_gdrive_link`]: key,
+      }));
+    } catch (err) {
+      console.error("Document upload failed:", err);
+      setUploadError(`Failed to upload ${docType}. Please try again.`);
+    } finally {
+      setUploadingFiles((prev) => ({ ...prev, [docType]: false }));
+    }
+  };
+
+  const handleSaveDetails = async () => {
+    setSubmitting(true);
+    setError("");
+    try {
+      await termsApi.saveCandidateDetails(token, wizardData);
+      setWizardStep(5);
+    } catch (err) {
+      console.error("Failed to save candidate details:", err);
+      setError(err?.response?.data?.msg || "Failed to submit candidate details.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isStep1Valid = () => {
+    return (
+      wizardData.student_name?.trim() &&
+      wizardData.student_phone?.trim() &&
+      wizardData.student_email?.trim()
+    );
+  };
+
+  const isStep2Valid = () => true;
+
+  const isStep3Valid = () => true;
+
+  const isStep4Valid = () => true;
+
+  if (wizardStep > 0 && wizardStep < 5) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-between py-6 px-4 sm:px-6 lg:px-8 font-sans antialiased text-slate-800">
+        <div className="max-w-2xl w-full mx-auto bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden flex-grow flex flex-col justify-between">
+          <div className="bg-slate-900 px-6 py-6 text-white">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-bold">Candidate Onboarding</h2>
+                <p className="text-xs text-slate-300 mt-0.5">Please complete your details to finalize your profile</p>
+              </div>
+              <span className="text-xs font-semibold bg-emerald-500/20 text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-500/30 whitespace-nowrap flex-shrink-0">
+                Step {wizardStep} of 4
+              </span>
+            </div>
+            
+            <div className="relative mt-6">
+              <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-700 -translate-y-1/2"></div>
+              <div 
+                className="absolute top-1/2 left-0 h-0.5 bg-emerald-50 -translate-y-1/2 transition-all duration-300"
+                style={{ width: `${((wizardStep - 1) / 3) * 100}%` }}
+              ></div>
+              
+              <div className="relative flex justify-between">
+                {[1, 2, 3, 4].map((stepNum) => (
+                  <div key={stepNum} className="flex flex-col items-center">
+                    <div 
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 border-2 ${
+                        wizardStep >= stepNum
+                          ? "bg-emerald-500 border-emerald-400 text-white shadow-md shadow-emerald-500/20"
+                          : "bg-slate-800 border-slate-700 text-slate-400"
+                      }`}
+                    >
+                      {wizardStep > stepNum ? (
+                        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                      ) : (
+                        stepNum
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 sm:p-8 flex-grow">
+            {error && (
+              <div className="mb-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                {error}
+              </div>
+            )}
+            
+            {wizardStep === 1 && (
+              <div className="space-y-4 animate-fadeIn">
+                <h3 className="text-lg font-semibold text-slate-900 border-b pb-2 border-slate-100">Personal & Contact Details</h3>
+                
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Full Name</label>
+                  <input 
+                    type="text" 
+                    value={wizardData.student_name}
+                    onChange={(e) => setWizardData({...wizardData, student_name: e.target.value})}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                    placeholder="Enter your full name"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
+                    <input 
+                      type="tel" 
+                      value={wizardData.student_phone}
+                      onChange={(e) => setWizardData({...wizardData, student_phone: e.target.value.replace(/\D/g, "").slice(0, 10)})}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                      placeholder="e.g. 9876543210"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Alternate Phone Number</label>
+                    <input 
+                      type="tel" 
+                      value={wizardData.alternate_number}
+                      onChange={(e) => setWizardData({...wizardData, alternate_number: e.target.value.replace(/\D/g, "").slice(0, 10)})}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                      placeholder="Emergency or home phone"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+                  <input 
+                    type="email" 
+                    value={wizardData.student_email}
+                    onChange={(e) => setWizardData({...wizardData, student_email: e.target.value})}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                    placeholder="name@example.com"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Date of Birth</label>
+                    <input 
+                      type="date" 
+                      value={wizardData.dob}
+                      onChange={(e) => setWizardData({...wizardData, dob: e.target.value})}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Gender</label>
+                    <select 
+                      value={wizardData.gender}
+                      onChange={(e) => setWizardData({...wizardData, gender: e.target.value})}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Nationality</label>
+                  <input 
+                    type="text" 
+                    value={wizardData.nationality}
+                    onChange={(e) => setWizardData({...wizardData, nationality: e.target.value})}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                    placeholder="e.g. Indian"
+                  />
+                </div>
+              </div>
+            )}
+
+            {wizardStep === 2 && (
+              <div className="space-y-4 animate-fadeIn">
+                <h3 className="text-lg font-semibold text-slate-900 border-b pb-2 border-slate-100">Location & Education</h3>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Current Location (City)</label>
+                    <input 
+                      type="text" 
+                      value={wizardData.current_location_city}
+                      onChange={(e) => setWizardData({...wizardData, current_location_city: e.target.value})}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                      placeholder="e.g. Bangalore"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">State</label>
+                    <select 
+                      value={wizardData.state}
+                      onChange={(e) => setWizardData({...wizardData, state: e.target.value})}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                    >
+                      <option value="">Select State</option>
+                      {INDIAN_STATES.map(st => (
+                        <option key={st} value={st}>{st}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Educational Qualification</label>
+                  <input 
+                    type="text" 
+                    value={wizardData.educational_qualification}
+                    onChange={(e) => setWizardData({...wizardData, educational_qualification: e.target.value})}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                    placeholder="e.g. BSc Nursing"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Year of Passing</label>
+                  <input 
+                    type="number" 
+                    value={wizardData.year_of_passing}
+                    onChange={(e) => setWizardData({...wizardData, year_of_passing: e.target.value})}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                    placeholder="e.g. 2025"
+                    min="1990"
+                    max="2035"
+                  />
+                </div>
+              </div>
+            )}
+
+            {wizardStep === 3 && (
+              <div className="space-y-4 animate-fadeIn">
+                <h3 className="text-lg font-semibold text-slate-900 border-b pb-2 border-slate-100">Shift Timings & Preferences</h3>
+                
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Shift Pattern</label>
+                  <select 
+                    value={wizardData.shift_pattern}
+                    onChange={(e) => setWizardData({...wizardData, shift_pattern: e.target.value})}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                  >
+                    <option value="Daily Shift Pattern">Daily Shift Pattern (Fixed Hours)</option>
+                    <option value="Rotating Shifts">Rotating Shifts (Multiple Timings)</option>
+                    <option value="Fixed Shift">Fixed Shift (Single Shift timing)</option>
+                  </select>
+                </div>
+
+                {wizardData.shift_pattern === "Daily Shift Pattern" ? (
+                  <div>
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Daily Shift Timing</label>
+                    <input 
+                      type="text" 
+                      value={wizardData.daily_shift_timing}
+                      onChange={(e) => setWizardData({...wizardData, daily_shift_timing: e.target.value})}
+                      className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                      placeholder="e.g. 09:00 AM - 06:00 PM"
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">First Shift Timing</label>
+                      <input 
+                        type="text" 
+                        value={wizardData.first_shift_timing}
+                        onChange={(e) => setWizardData({...wizardData, first_shift_timing: e.target.value})}
+                        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                        placeholder="e.g. 06:00 AM - 02:00 PM"
+                      />
+                    </div>
+
+                    {wizardData.shift_pattern === "Rotating Shifts" && (
+                      <>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Second Shift Timing</label>
+                          <input 
+                            type="text" 
+                            value={wizardData.second_shift_timing}
+                            onChange={(e) => setWizardData({...wizardData, second_shift_timing: e.target.value})}
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                            placeholder="e.g. 02:00 PM - 10:00 PM"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Third Shift Timing (Optional)</label>
+                          <input 
+                            type="text" 
+                            value={wizardData.third_shift_timing}
+                            onChange={(e) => setWizardData({...wizardData, third_shift_timing: e.target.value})}
+                            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+                            placeholder="e.g. 10:00 PM - 06:00 AM"
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {wizardStep === 4 && (
+              <div className="space-y-6 animate-fadeIn">
+                <h3 className="text-lg font-semibold text-slate-900 border-b pb-2 border-slate-100">Upload Documents</h3>
+                
+                {uploadError && (
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">
+                    {uploadError}
+                  </div>
+                )}
+
+                {[
+                  { type: "passport", label: "Passport (Page 1 & 2)", linkKey: "passport_gdrive_link" },
+                  { type: "degree", label: "Degree / Highest Qualification Certificate", linkKey: "degree_certificate_gdrive_link" },
+                  { type: "resume", label: "Updated CV / Resume", linkKey: "updated_resume_gdrive_link" },
+                ].map((doc) => {
+                  const isUploaded = Boolean(wizardData[doc.linkKey]);
+                  const isUploading = uploadingFiles[doc.type];
+
+                  return (
+                    <div key={doc.type} className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                          <span className="block text-sm font-semibold text-slate-900">{doc.label}</span>
+                          <span className="block text-xs text-slate-500 mt-0.5">PDF or Image up to 5MB</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-3">
+                          {isUploaded && (
+                            <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 text-emerald-700 px-2.5 py-1 rounded-full text-xs font-semibold">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+                              </svg>
+                              Uploaded
+                            </div>
+                          )}
+                          
+                          <label className={`relative flex items-center justify-center px-4 py-2 rounded-full border text-xs font-bold shadow-sm transition-colors cursor-pointer ${
+                            isUploading
+                              ? "bg-slate-100 border-slate-300 text-slate-400 cursor-not-allowed"
+                              : isUploaded
+                                ? "bg-white border-slate-300 text-slate-700 hover:bg-slate-50"
+                                : "bg-slate-900 border-slate-800 text-white hover:bg-slate-800"
+                          }`}>
+                            <input 
+                              type="file" 
+                              accept="image/*,application/pdf"
+                              onChange={(e) => handleFileUpload(e, doc.type)}
+                              disabled={isUploading}
+                              className="hidden"
+                            />
+                            {isUploading ? (
+                              <div className="flex items-center gap-1.5">
+                                <svg className="animate-spin h-3.5 w-3.5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                Uploading...
+                              </div>
+                            ) : isUploaded ? (
+                              "Change File"
+                            ) : (
+                              "Select File"
+                            )}
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-slate-50 border-t border-slate-200/80 px-6 py-4 flex items-center justify-between gap-4">
+            <button 
+              type="button"
+              onClick={() => setWizardStep(prev => Math.max(1, prev - 1))}
+              className={`px-5 py-2.5 rounded-full text-sm font-bold border transition-colors ${
+                wizardStep === 1
+                  ? "border-transparent bg-transparent text-slate-300 cursor-not-allowed"
+                  : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+              disabled={wizardStep === 1}
+            >
+              Back
+            </button>
+            
+            <button 
+              type="button"
+              onClick={() => {
+                if (wizardStep < 4) {
+                  setWizardStep(prev => prev + 1);
+                } else {
+                  handleSaveDetails();
+                }
+              }}
+              disabled={
+                submitting ||
+                (wizardStep === 1 && !isStep1Valid()) ||
+                (wizardStep === 2 && !isStep2Valid()) ||
+                (wizardStep === 3 && !isStep3Valid()) ||
+                (wizardStep === 4 && !isStep4Valid())
+              }
+              className="px-6 py-2.5 rounded-full text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 transition-opacity flex items-center gap-1.5 shadow-md shadow-emerald-600/10"
+            >
+              {submitting ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  Submitting...
+                </>
+              ) : wizardStep === 4 ? (
+                "Submit Details"
+              ) : (
+                "Continue"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (wizardStep === 5) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans antialiased text-slate-800">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-200/80 p-8 text-center animate-scaleUp">
+          <div className="w-16 h-16 bg-emerald-100 border border-emerald-200 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-600">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+          
+          <h2 className="text-2xl font-bold text-slate-900">Submission Successful!</h2>
+          <p className="mt-3 text-slate-600 text-sm leading-relaxed">
+            Thank you! Your profile and documents have been successfully updated. We have completed all onboarding steps.
+          </p>
+          
+          <button
+            type="button"
+            onClick={() => { window.location.href = "https://skillcase.in"; }}
+            className="mt-8 w-full py-3 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm transition-colors shadow-md shadow-slate-900/10"
+          >
+            Go to Skillcase
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (

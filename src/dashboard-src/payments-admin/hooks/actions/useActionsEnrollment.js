@@ -2,10 +2,6 @@ import { paymentsAdminApi } from "../../../../api/paymentsAdminApi";
 
 export function useActionsEnrollment(state) {
   const {
-    SESSION_UNLOCK_KEY,
-    password,
-    setPassword,
-    setAuthorized,
     setError,
     setNotice,
     setSavingEnrollmentId,
@@ -15,26 +11,55 @@ export function useActionsEnrollment(state) {
     setEditDraft,
   } = state;
 
-  async function handleStepUp() {
-    setError("");
-    try {
-      await paymentsAdminApi.verifyStepUp(password);
-      setAuthorized(true);
-      try {
-        sessionStorage.setItem(SESSION_UNLOCK_KEY, "1");
-      } catch {
-        // ignore storage errors
-      }
-      setPassword("");
-    } catch (err) {
-      setError(err?.response?.data?.msg || "Invalid password");
-    }
-  }
+  async function handleFinalize(row) {
+    const enrollmentId = row?.enrollment_id;
+    if (!enrollmentId) return;
 
-  async function handleFinalize(enrollmentId) {
+    const agreementState = String(row?.agreement_state || "not_sent");
+    const agreementSent = agreementState !== "not_sent";
+    if (!agreementSent) {
+      const confirmed = window.confirm(
+        "This candidate has not been sent the agreement yet. Are you sure you want to finalize?",
+      );
+      if (!confirmed) return;
+    }
+
+    const notesObj = (row?.notes && typeof row.notes === "object") ? row.notes : {};
+    const fullCandidate = {
+      ...row,
+      ...notesObj,
+    };
+
+    const requiredChecks = [
+      { key: "student_name", label: "Name" },
+      { key: "student_phone", label: "Phone Number" },
+      { key: "student_email", label: "Email" },
+      { key: "batch_id", label: "Batch" },
+      { key: "dob", label: "DOB" },
+      { key: "gender", label: "Gender" },
+      { key: "nationality", label: "Nationality" },
+      { key: "current_location_city", label: "Current Location" },
+      { key: "state", label: "State" },
+      { key: "educational_qualification", label: "Educational Qualification" },
+      { key: "terms_ack_status", label: "Terms Acknowledgement" },
+    ];
+
+    const missing = requiredChecks
+      .filter((x) => !String(fullCandidate?.[x.key] ?? "").trim())
+      .map((x) => x.label);
+
+    if (missing.length) {
+      setError(`Cannot finalize. Please fill required fields in Details: ${missing.join(", ")}`);
+      return;
+    }
+
     setSavingEnrollmentId(enrollmentId);
     try {
-      await paymentsAdminApi.finalizeEnrollment(enrollmentId);
+      const res = await paymentsAdminApi.finalizeEnrollment(enrollmentId);
+      const warning = res?.data?.candidate_id_warning;
+      if (warning) {
+        setNotice?.(`Finalized. ${warning}`);
+      }
       await loadTabData();
     } catch (err) {
       setError(err?.response?.data?.msg || "Finalize failed");
@@ -62,7 +87,6 @@ export function useActionsEnrollment(state) {
       { key: "student_phone", label: "Phone Number" },
       { key: "student_email", label: "Email" },
       { key: "batch_id", label: "Batch" },
-      { key: "candidate_id", label: "Candidate ID" },
       { key: "dob", label: "DOB" },
       { key: "gender", label: "Gender" },
       { key: "nationality", label: "Nationality" },
@@ -229,7 +253,6 @@ export function useActionsEnrollment(state) {
   }
 
   return {
-    handleStepUp,
     handleFinalize,
     handleReject,
     handleSaveEnrollmentEdit,

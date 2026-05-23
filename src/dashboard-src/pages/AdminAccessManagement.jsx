@@ -24,6 +24,20 @@ const MODULE_OPTIONS = [
 const ACTION_OPTIONS = ["view", "create", "edit", "delete", "manage"];
 const SKILLCASE_INTERVIEW_MODULE = "skillcase_interviews";
 
+const PAYMENTS_TAB_OPTIONS = [
+  { key: "tab_month",     label: "Month View" },
+  { key: "tab_all",       label: "All View" },
+  { key: "tab_batch",     label: "Batch View" },
+  { key: "tab_fee",       label: "Total Fee View" },
+  { key: "tab_discounts", label: "Discounts View" },
+  { key: "tab_payments",  label: "Payment View" },
+  { key: "tab_rawlogs",   label: "Raw Logs" },
+  { key: "tab_invoice",   label: "Invoice Send" },
+  { key: "tab_import",    label: "Import Dump" },
+];
+const PAYMENTS_ALL_TAB_KEYS = PAYMENTS_TAB_OPTIONS.map((t) => t.key);
+
+
 function normalizeBatch(batch) {
   const id = batch.id ?? batch.batch_id ?? batch.value;
   const name =
@@ -42,7 +56,10 @@ function PermissionPicker({ value, onChange }) {
     if (mode === "view") {
       const next = {};
       MODULE_OPTIONS.forEach((moduleDef) => {
-        next[moduleDef.key] = ["view"];
+        // For payments, grant the two basic view tabs instead of a generic "view" action
+        next[moduleDef.key] = moduleDef.key === "payments"
+          ? ["tab_month", "tab_all"]
+          : ["view"];
       });
       onChange(next);
       return;
@@ -50,7 +67,9 @@ function PermissionPicker({ value, onChange }) {
     if (mode === "all") {
       const next = {};
       MODULE_OPTIONS.forEach((moduleDef) => {
-        next[moduleDef.key] = [...ACTION_OPTIONS];
+        next[moduleDef.key] = moduleDef.key === "payments"
+          ? [...PAYMENTS_ALL_TAB_KEYS]
+          : [...ACTION_OPTIONS];
       });
       onChange(next);
       return;
@@ -120,8 +139,74 @@ function PermissionPicker({ value, onChange }) {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        {MODULE_OPTIONS.map((moduleDef) => {
+      {MODULE_OPTIONS.map((moduleDef) => {
           const selected = normalized[moduleDef.key] || [];
+
+          // Payments module gets tab-level toggle pills instead of generic action checkboxes
+          if (moduleDef.key === "payments") {
+            return (
+              <div
+                key={moduleDef.key}
+                className="rounded-xl border border-slate-200 bg-slate-50/60 p-3"
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                    {moduleDef.label}
+                  </p>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setModuleActions(moduleDef.key, [...PAYMENTS_ALL_TAB_KEYS])}
+                      className="rounded border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700"
+                    >
+                      all tabs
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setModuleActions(moduleDef.key, [])}
+                      className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+                    >
+                      clear
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {PAYMENTS_TAB_OPTIONS.map((tab) => {
+                    const checked = selected.includes(tab.key);
+                    return (
+                      <label
+                        key={tab.key}
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer ${
+                          checked
+                            ? "border-blue-700 bg-blue-700 text-white"
+                            : "border-slate-300 bg-white text-slate-600"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={checked}
+                          onChange={(e) => {
+                            const next = { ...normalized };
+                            const list = new Set(next[moduleDef.key] || []);
+                            if (e.target.checked) list.add(tab.key);
+                            else list.delete(tab.key);
+                            next[moduleDef.key] = [...list];
+                            if (!next[moduleDef.key].length)
+                              delete next[moduleDef.key];
+                            onChange(next);
+                          }}
+                        />
+                        {tab.label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          }
+
+          // All other modules: standard action checkboxes
           return (
             <div
               key={moduleDef.key}
@@ -222,6 +307,7 @@ function PermissionPicker({ value, onChange }) {
             </div>
           );
         })}
+
       </div>
     </div>
   );

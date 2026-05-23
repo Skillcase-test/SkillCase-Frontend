@@ -64,5 +64,17 @@ export default defineConfig(({ mode }) => {
       },
     },
   },
+  // server: {
+  //   allowedHosts: true,
+  //   proxy: {
+  //     "/api": {
+  //       target: "http://localhost:3000",
+  //       changeOrigin: true,
+  //       headers: {
+  //         "ngrok-skip-browser-warning": "true",
+  //       },
+  //     },
+  //   },
+  // },
   };
 })

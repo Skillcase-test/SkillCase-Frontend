@@ -19,6 +19,7 @@ export function MonthViewTab({
         <thead>
           <tr className="border-b bg-slate-50 text-left text-xs uppercase text-slate-500">
             <th className="px-3 py-3">Name</th>
+            <th className="px-2 py-2">Candidate ID</th>
             <th className="px-2 py-2">Phone</th>
             <th className="px-2 py-2">Email</th>
             <th className="px-2 py-2">Batch</th>
@@ -34,6 +35,11 @@ export function MonthViewTab({
               className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}
             >
               <td className="px-3 py-3">{r.student_name || "-"}</td>
+              <td className="px-2 py-2">
+                <span className="font-mono text-xs text-slate-700">
+                  {r.notes?.candidate_id || "-"}
+                </span>
+              </td>
               <td className="px-2 py-2">{r.student_phone || "-"}</td>
               <td className="px-2 py-2">{r.student_email || "-"}</td>
               <td className="px-2 py-2">
@@ -54,7 +60,11 @@ export function MonthViewTab({
               </td>
               <td className="px-2 py-2">{formatInrFromPaise(r.paid_paise)}</td>
               <td className="px-2 py-2">
-                {r.lifecycle_state === "dropped" ? (
+                {r.status === "archived" || r.lifecycle_state === "archived" ? (
+                  <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
+                    Rejected
+                  </span>
+                ) : r.lifecycle_state === "dropped" ? (
                   <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
                     Dropped
                   </span>
@@ -90,16 +100,80 @@ export function MonthViewTab({
                   >
                     Details
                   </ActionChip>
-                  <ActionChip
-                    onClick={() => handleSendAgreement?.(r)}
-                    disabled={sendingAgreementEnrollmentId === r.enrollment_id}
-                  >
-                    {sendingAgreementEnrollmentId === r.enrollment_id ? "Sending..." : "Send Agreement"}
-                  </ActionChip>
-                  {r.status !== "finalized" ? (
+                  {r.status !== "archived" && r.lifecycle_state !== "archived" && (() => {
+                    const agreementState = r.agreement_state || "not_sent";
+                    const isSending = sendingAgreementEnrollmentId === r.enrollment_id;
+
+                    if (agreementState === "not_sent") {
+                      return (
+                        <ActionChip
+                          onClick={() => handleSendAgreement?.(r)}
+                          disabled={isSending}
+                        >
+                          {isSending ? "Sending..." : "Send Agreement"}
+                        </ActionChip>
+                      );
+                    }
+
+                    if (agreementState === "sent") {
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600 ring-1 ring-inset ring-slate-500/10">
+                            Sent
+                          </span>
+                          <ActionChip
+                            onClick={() => handleSendAgreement?.(r)}
+                            disabled={isSending}
+                          >
+                            {isSending ? "Sending..." : "Resend"}
+                          </ActionChip>
+                        </div>
+                      );
+                    }
+
+                    if (agreementState === "viewed") {
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-600/20">
+                            Viewed
+                          </span>
+                          <ActionChip
+                            onClick={() => handleSendAgreement?.(r)}
+                            disabled={isSending}
+                          >
+                            {isSending ? "Sending..." : "Resend"}
+                          </ActionChip>
+                        </div>
+                      );
+                    }
+
+                    if (agreementState === "signed") {
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center rounded-md bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
+                            Signed
+                          </span>
+                          <span className="inline-flex items-center rounded-md bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700 ring-1 ring-inset ring-sky-700/10">
+                            Pending Details
+                          </span>
+                        </div>
+                      );
+                    }
+
+                    if (agreementState === "details_filled") {
+                      return (
+                        <span className="inline-flex items-center rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 animate-pulse">
+                          Details Filled
+                        </span>
+                      );
+                    }
+
+                    return null;
+                  })()}
+                  {r.status === "pending" ? (
                     <>
                       <ActionChip
-                        onClick={() => handleFinalize(r.enrollment_id)}
+                        onClick={() => handleFinalize(r)}
                         disabled={savingEnrollmentId === r.enrollment_id}
                         variant="success"
                       >
