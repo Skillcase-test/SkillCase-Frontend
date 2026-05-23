@@ -92,12 +92,12 @@ body {
 
 /* Learn German lesson-only viewport helper */
 .lg-screen-height {
-  height: calc(100dvh - 55px);
+  height: calc(100dvh - 55px - env(safe-area-inset-top, 0px));
 }
 
 @supports not (height: 100svh) {
   .lg-screen-height {
-    height: calc(100dvh - 55px);
+    height: calc(100dvh - 55px - env(safe-area-inset-top, 0px));
   }
 }
 

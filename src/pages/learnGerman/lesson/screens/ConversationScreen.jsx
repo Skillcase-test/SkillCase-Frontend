@@ -152,8 +152,9 @@ export default function ConversationScreen({
       <div
         ref={scrollRef}
         className={`w-full flex-1 overflow-y-auto px-4 pb-32 scroll-smooth ${
-          floatingHeader ? "pt-24" : "pt-4"
+          floatingHeader ? "" : "pt-4"
         }`}
+        style={floatingHeader ? { paddingTop: "calc(96px + env(safe-area-inset-top, 0px))" } : {}}
       >
         <div className="flex flex-col justify-start items-start w-full max-w-[500px] mx-auto">
           {/* Past History */}

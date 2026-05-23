@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { getLGMode, setLGMode } from "../api/learnGermanApi";
 import { trackClarityEvent } from "../observability/clarity";
+import { hapticLight } from "../utils/haptics";
 
 const isLearnPath = (pathname = "") => pathname.startsWith("/learn-german");
 const RECENT_MODE_SWITCH_MS = 10_000;
@@ -99,6 +100,8 @@ export default function BottomModeSwitcher({ isTourActive = false }) {
     ) {
       return;
     }
+
+    hapticLight();
 
     // Write to localStorage FIRST — destination page reads this before any DB call returns
     syncMode(mode);

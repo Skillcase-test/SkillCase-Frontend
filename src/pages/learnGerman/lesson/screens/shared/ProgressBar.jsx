@@ -33,9 +33,10 @@ export default function ProgressBar({
     <div
       className={`w-full pr-4 pl-2 pt-2 pb-2 bg-white/70 border-b border-slate-200 shadow-sm/20 shrink-0 z-20 ${
         floating
-          ? "fixed top-[55px] left-1/2 -translate-x-1/2 max-w-[500px]"
+          ? "fixed left-1/2 -translate-x-1/2 max-w-[500px]"
           : "relative"
       }`}
+      style={floating ? { top: "calc(55px + env(safe-area-inset-top, 0px))" } : {}}
     >
       <div className="flex justify-between items-center mb-1 gap-2">
         <div className="flex items-center min-w-0 flex-1">

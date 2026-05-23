@@ -64,7 +64,7 @@ export default function ConversationIntroScreen({
           }`}
         >
           <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rotate-45 border-l border-b border-gray-100" />
-          <div className="w-[210px] relative pr-6">
+          <div className="w-[210px] pr-2">
             <MayaDialogueBubble
               key={`maya-dialog-${mayaDialogueIndex}`}
               text={mayaDialogues[mayaDialogueIndex]}
