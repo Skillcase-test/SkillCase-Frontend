@@ -34,6 +34,7 @@ import {
   Play,
   Pause,
   RefreshCw,
+  Search,
   Send,
   Sparkles,
   UserRound,
@@ -772,6 +773,7 @@ function CallEnginePage() {
   const [sortBy, setSortBy] = useState("call_datetime");
   const [sortOrder, setSortOrder] = useState("desc");
   const [recordingFilter, setRecordingFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
   const [callers, setCallers] = useState([]);
   const [overview, setOverview] = useState([]);
@@ -929,6 +931,7 @@ function CallEnginePage() {
           sortBy,
           sortOrder,
           recordingFilter,
+          search,
         });
 
         if (logsSeq.current !== seq) return;
@@ -947,7 +950,7 @@ function CallEnginePage() {
         setLogsLoading(false);
       }
     },
-    [filterPayload, sortBy, sortOrder, recordingFilter],
+    [filterPayload, sortBy, sortOrder, recordingFilter, search],
   );
 
   const handleRefresh = useCallback(() => {
@@ -1104,6 +1107,7 @@ function CallEnginePage() {
     setSortBy("call_datetime");
     setSortOrder("desc");
     setRecordingFilter("all");
+    setSearch("");
   };
 
   const handleDateRangeChange = ({ from, to }) => {
@@ -1246,6 +1250,24 @@ function CallEnginePage() {
             <p className="text-sm text-slate-500">
               Recent calls, recordings, and dialer activity
             </p>
+          </div>
+          <div className="relative max-w-xs w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search Candidate ID or Phone..."
+              className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-8 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
         <div className="overflow-x-auto">

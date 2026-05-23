@@ -133,6 +133,7 @@ export function useActionsEnrollment(state) {
       student_phone: editDraft.student_phone,
       batch_id: editDraft.batch_id || null,
       notes: editDraft.notes || "",
+      expected_payment_start_date: editDraft.expected_payment_start_date || "",
       enforce_profile_validation: true,
       candidate_id: editDraft.candidate_id || "",
       total_fee_inr: editDraft.total_fee_inr || "",

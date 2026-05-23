@@ -65,9 +65,20 @@ function firstOfMonthInput(value) {
 }
 
 function addMonthsInput(dateValue, offset) {
+  if (!dateValue) return "";
   const parsed = new Date(`${dateValue}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return "";
+  const originalDay = parsed.getDate();
+  parsed.setDate(1);
   parsed.setMonth(parsed.getMonth() + offset);
-  return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-01`;
+  const targetYear = parsed.getFullYear();
+  const targetMonth = parsed.getMonth();
+  const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+  parsed.setDate(Math.min(originalDay, daysInMonth));
+  const y = parsed.getFullYear();
+  const m = String(parsed.getMonth() + 1).padStart(2, "0");
+  const d = String(parsed.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 function Field({ label, required = false, children }) {
@@ -111,11 +122,16 @@ export function CandidateDetailsForm({
   const [uploadError, setUploadError] = useState("");
   const [batchLogs, setBatchLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [isEditingCandidateId, setIsEditingCandidateId] = useState(false);
 
   const expectedPaymentsRef = useRef(null);
   const [lastAddedKey, setLastAddedKey] = useState(null);
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
+
+  useEffect(() => {
+    setIsEditingCandidateId(false);
+  }, [editDraft?.enrollment_id]);
 
   useEffect(() => {
     if (!editDraft) return;
@@ -255,6 +271,35 @@ export function CandidateDetailsForm({
     }
   }
 
+  function handleExpectedPaymentStartDateChange(newStartDate) {
+    if (!newStartDate) {
+      setEditDraft((prev) => ({ ...prev, expected_payment_start_date: "" }));
+      return;
+    }
+    setEditDraft((prev) => {
+      const next = { ...prev, expected_payment_start_date: newStartDate };
+      const rows = Array.isArray(next.expected_payments)
+        ? next.expected_payments
+        : [];
+      if (rows.length > 0) {
+        let expectedIndex = 0;
+        next.expected_payments = rows.map((row) => {
+          const isExpected = row.row_kind !== "actual_only" && Number(row.expected_payment_inr ?? row.expected_amount_inr ?? 0) > 0;
+          if (isExpected) {
+            const updatedRow = {
+              ...row,
+              expected_date: addMonthsInput(newStartDate, expectedIndex),
+            };
+            expectedIndex += 1;
+            return updatedRow;
+          }
+          return row;
+        });
+      }
+      return next;
+    });
+  }
+
   function generateExpectedSchedule() {
     const total = Number(editDraft.total_fee_inr || 0);
     const monthly = Number(editDraft.monthly_fee_inr || 0);
@@ -286,9 +331,7 @@ export function CandidateDetailsForm({
       return;
     }
     const count = Math.ceil(total / monthly);
-    const startDate = firstOfMonthInput(
-      editDraft.created_at || editDraft.finalized_at || todayInputDate(),
-    );
+    const startDate = editDraft.expected_payment_start_date || (expectedRows.find(r => r.row_kind !== "actual_only" && r.expected_date) ? String(expectedRows.find(r => r.row_kind !== "actual_only" && r.expected_date).expected_date).slice(0, 10) : (editDraft.created_at ? String(editDraft.created_at).slice(0, 10) : todayInputDate()));
     let remaining = total;
     const generated = Array.from({ length: count }, (_, index) => {
       const amount = Math.min(monthly, remaining);
@@ -309,6 +352,7 @@ export function CandidateDetailsForm({
     setEditDraft((prev) => ({
       ...prev,
       expected_payments: [...generated, ...actualOnlyRows],
+      expected_payment_start_date: startDate,
     }));
 
     setTimeout(() => {
@@ -458,19 +502,55 @@ export function CandidateDetailsForm({
           Candidate Personal Details
         </h3>
         <div className="grid gap-3 md:grid-cols-3">
-          {/* Candidate ID — system-generated on finalize, always read-only */}
+          {/* Candidate ID — system-generated on finalize, editable in edit mode with confirmation */}
           <Field label="Candidate ID">
             {isCreateMode ? (
               <div className="flex h-10 items-center rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 text-sm text-slate-400 italic">
                 Generated automatically on Finalize
               </div>
+            ) : isEditingCandidateId ? (
+              <ControlInput
+                value={editDraft.candidate_id || ""}
+                onChange={(e) =>
+                  setEditDraft((p) => ({ ...p, candidate_id: e.target.value.toUpperCase() }))
+                }
+                placeholder="Candidate ID (e.g. SK-A2-05260001)"
+                className="w-full font-mono"
+              />
             ) : (
-              <div className={`flex h-10 items-center rounded-xl border px-3 text-sm font-mono ${
-                editDraft.candidate_id
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-800 font-semibold"
-                  : "border-dashed border-slate-300 bg-slate-50 text-slate-400 italic"
-              }`}>
-                {editDraft.candidate_id || "Not yet assigned"}
+              <div className="flex items-center gap-2">
+                <div className={`flex h-10 flex-1 items-center rounded-xl border px-3 text-sm font-mono ${
+                  editDraft.candidate_id
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-800 font-semibold"
+                    : "border-dashed border-slate-300 bg-slate-50 text-slate-400 italic"
+                }`}>
+                  {editDraft.candidate_id || "Not yet assigned"}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("Are you sure you want to edit the Candidate ID?")) {
+                      setIsEditingCandidateId(true);
+                    }
+                  }}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition"
+                  title="Edit Candidate ID"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                  </svg>
+                </button>
               </div>
             )}
           </Field>
@@ -551,6 +631,22 @@ export function CandidateDetailsForm({
                 setEditDraft((p) => ({ ...p, monthly_fee_inr: e.target.value }))
               }
               className="w-full"
+            />
+          </Field>
+          <Field label="Enrollment Date">
+            <input
+              type="date"
+              value={editDraft.created_at ? String(editDraft.created_at).slice(0, 10) : todayInputDate()}
+              disabled
+              className={`${CONTROL_BASE} w-full bg-slate-100 text-slate-500 cursor-not-allowed`}
+            />
+          </Field>
+          <Field label="Expected Payment Start Date">
+            <input
+              type="date"
+              value={editDraft.expected_payment_start_date || (expectedRows.find(r => r.row_kind !== "actual_only" && r.expected_date) ? String(expectedRows.find(r => r.row_kind !== "actual_only" && r.expected_date).expected_date).slice(0, 10) : (editDraft.created_at ? String(editDraft.created_at).slice(0, 10) : todayInputDate()))}
+              onChange={(e) => handleExpectedPaymentStartDateChange(e.target.value)}
+              className={`${CONTROL_BASE} w-full`}
             />
           </Field>
           <Field label="Expected Schedule">
