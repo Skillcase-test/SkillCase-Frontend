@@ -598,6 +598,18 @@ export default function Dashboard() {
     };
   }, []);
 
+  const PAYMENTS_TAB_KEYS = useMemo(() => [
+    "tab_month", "tab_all", "tab_batch", "tab_fee",
+    "tab_discounts", "tab_payments", "tab_rawlogs", "tab_invoice", "tab_import",
+  ], []);
+
+  const hasPaymentsAccess = useMemo(() => {
+    return me &&
+      (me.role === "super_admin" ||
+       me.permissions?.["payments"]?.includes("manage") ||
+       PAYMENTS_TAB_KEYS.some((k) => me.permissions?.["payments"]?.includes(k)));
+  }, [me, PAYMENTS_TAB_KEYS]);
+
   const sections = useMemo(() => {
     if (!me) return { core: [], a1Modules: [], a2Modules: [], superAdmin: [] };
 
@@ -682,6 +694,15 @@ export default function Dashboard() {
       },
     ].filter((item) => hasPermission(me, item.module, "view"));
 
+    if (me.role !== "super_admin" && hasPaymentsAccess) {
+      core.push({
+        key: "payments",
+        label: "Payments",
+        path: "/admin/payments",
+        module: "payments",
+      });
+    }
+
     const a1ContentAllowed = hasPermission(me, "content", "view");
     const a2ContentAllowed = hasPermission(me, "a2_content", "view");
 
@@ -757,7 +778,7 @@ export default function Dashboard() {
         : [];
 
     return { core, a1Modules, a2Modules, superAdmin };
-  }, [me]);
+  }, [me, hasPaymentsAccess]);
 
   const defaultPath =
     sections.core[0]?.path ||
@@ -1215,7 +1236,7 @@ export default function Dashboard() {
               <Route
                 path="payments"
                 element={
-                  me.role === "super_admin" ? (
+                  hasPaymentsAccess ? (
                     <PaymentsAdmin />
                   ) : (
                     <Navigate to="/admin/no-access" replace />
