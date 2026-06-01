@@ -30,6 +30,7 @@ import {
   MessageSquareText,
   PhoneCall,
   PhoneForwarded,
+  PhoneMissed,
   PhoneOff,
   Play,
   Pause,
@@ -95,6 +96,14 @@ const metricConfig = {
     icon: PhoneOff,
     iconBg: "bg-rose-500/10",
     iconColor: "text-rose-600",
+  },
+  missed: {
+    label: "Missed Calls",
+    color: "#f59e0b",
+    cssVar: "--color-amber-500",
+    icon: PhoneMissed,
+    iconBg: "bg-amber-500/10",
+    iconColor: "text-amber-600",
   },
 };
 
@@ -415,13 +424,15 @@ function StatCard({
           <Icon className={cx("h-4 w-4", config.iconColor)} />
         </div>
       </div>
-      {duration !== undefined && (
-        <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex justify-end select-none">
+        {duration !== undefined ? (
           <span className="text-xs font-semibold text-slate-500">
             {formatTotalDuration(duration)}
           </span>
-        </div>
-      )}
+        ) : (
+          <span className="text-xs opacity-0">-</span>
+        )}
+      </div>
       {previousWindow && (
         <div className="mt-3 flex items-center justify-between">
           <div className="h-px flex-1 bg-slate-100" />
@@ -588,21 +599,8 @@ function OverviewChart({ rows, loading }) {
 
   const totalDialed = rows ? rows.reduce((s, r) => s + Number(r.dialed || 0), 0) : 0;
 
-  // Loading skeleton
-  if (loading) {
-    return (
-      <div className="col-span-full bg-white shadow-xs rounded-xl p-5">
-        <div className="animate-pulse space-y-3">
-          <div className="h-5 w-32 rounded bg-slate-100" />
-          <div className="h-3 w-48 rounded bg-slate-100" />
-          <div className="h-40 rounded bg-slate-100" />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="col-span-full bg-white shadow-xs rounded-xl">
+    <div className="col-span-full bg-white shadow-xs rounded-xl relative overflow-hidden">
       {/* Header — same structure as DashboardCardDAU */}
       <div className="px-5 pt-5">
         <header className="flex justify-between items-start mb-2">
@@ -625,20 +623,36 @@ function OverviewChart({ rows, loading }) {
         </header>
         <div className="text-xs font-semibold text-gray-400 uppercase mb-1">Daily call movement</div>
         <div className="flex items-baseline gap-2">
-          <div className="text-3xl font-bold text-gray-800">{totalDialed}</div>
-          <div className="text-sm text-gray-500">total calls in period</div>
+          <div className="text-3xl font-bold text-gray-800">
+            {loading ? (
+              <span className="inline-block h-8 w-16 rounded bg-slate-100 animate-pulse" />
+            ) : (
+              totalDialed
+            )}
+          </div>
+          <div className="text-sm text-gray-500 ml-2">total calls in period</div>
         </div>
       </div>
-      {/* Chart — taller than DAU to fit axes */}
-      {chartData ? (
-        <div className="grow max-sm:max-h-[220px] xl:max-h-[220px]">
-          <canvas ref={canvasRef} width={800} height={220} />
-        </div>
-      ) : (
-        <div className="px-5 pb-5 pt-4 text-center text-sm text-gray-400">
-          No data for this period
-        </div>
-      )}
+      {/* Chart container */}
+      <div className="relative grow max-sm:max-h-[220px] xl:max-h-[220px] min-h-[220px] pb-5">
+        {loading && (
+          <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-xs flex items-center justify-center p-5">
+            <div className="animate-pulse space-y-3 w-full px-5">
+              <div className="h-32 rounded bg-slate-50 border border-slate-100/50" />
+            </div>
+          </div>
+        )}
+        
+        {chartData ? (
+          <div className="w-full h-[220px]">
+            <canvas ref={canvasRef} width={800} height={220} />
+          </div>
+        ) : (
+          <div className="px-5 pt-12 text-center text-sm text-gray-400">
+            No data for this period
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -795,6 +809,7 @@ function CallEnginePage() {
   const [metricPage, setMetricPage] = useState(1);
   const [metricTotal, setMetricTotal] = useState(0);
   const [metricLoading, setMetricLoading] = useState(false);
+  const [missedStatusFilter, setMissedStatusFilter] = useState("all");
 
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([
@@ -839,6 +854,7 @@ function CallEnginePage() {
           metric: selectedMetric,
           page: nextPage,
           limit: PAGE_SIZE,
+          statusFilter: selectedMetric === "missed" ? missedStatusFilter : undefined,
         });
         setMetricLogs(res.data?.rows || []);
         setMetricTotal(Number(res.data?.pagination?.total || 0));
@@ -849,7 +865,7 @@ function CallEnginePage() {
         setMetricLoading(false);
       }
     },
-    [selectedMetric, filterPayload],
+    [selectedMetric, filterPayload, missedStatusFilter],
   );
 
   useEffect(() => {
@@ -859,6 +875,7 @@ function CallEnginePage() {
       setMetricLogs([]);
       setMetricTotal(0);
       setMetricPage(1);
+      setMissedStatusFilter("all");
     }
   }, [selectedMetric, loadMetricLogs]);
 
@@ -1227,7 +1244,7 @@ function CallEnginePage() {
       </section>
 
       {/* Report Cards */}
-      <section className="mb-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <section className="mb-4 grid grid-cols-2 lg:grid-cols-5 gap-3">
         {Object.keys(metricConfig).map((key) => (
           <StatCard
             key={key}
@@ -1237,7 +1254,7 @@ function CallEnginePage() {
             previousWindow={previousWindow}
             loading={loading}
             onClick={() => setSelectedMetric(key)}
-            duration={report[`${key}_duration`]}
+            duration={key !== "missed" && key !== "not_connected" ? report[`${key}_duration`] : undefined}
           />
         ))}
       </section>
@@ -1767,25 +1784,41 @@ function CallEnginePage() {
                   Showing calls matching active filters ({metricTotal} total)
                 </p>
               </div>
-              <button
-                onClick={() => setSelectedMetric(null)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <div className="flex items-center gap-3">
+                {selectedMetric === "missed" && (
+                  <select
+                    value={missedStatusFilter}
+                    onChange={(e) => {
+                      setMissedStatusFilter(e.target.value);
+                    }}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-100 cursor-pointer"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="never_called">Never Called</option>
+                    <option value="called_back">Called Back</option>
+                  </select>
+                )}
+                <button
+                  onClick={() => setSelectedMetric(null)}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
             {/* Content Table */}
             <div className="flex-1 overflow-y-auto p-5">
               <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
                 <table className="w-full text-sm min-w-[600px]">
-                  <thead className="text-xs font-semibold uppercase text-slate-500 bg-slate-50 border-b border-slate-100">
+                   <thead className="text-xs font-semibold uppercase text-slate-500 bg-slate-50 border-b border-slate-100">
                     <tr>
                       <th className="px-4 py-3 text-left">Candidate ID</th>
                       <th className="px-4 py-3 text-left">Client Number</th>
                       <th className="px-4 py-3 text-left">Dialer</th>
                       <th className="px-4 py-3 text-left">Call Date & Time</th>
-                      <th className="px-4 py-3 text-left">Duration</th>
+                      {selectedMetric !== "missed" && <th className="px-4 py-3 text-left">Duration</th>}
+                      {selectedMetric === "missed" && <th className="px-4 py-3 text-left">Status</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -1796,7 +1829,8 @@ function CallEnginePage() {
                           <td className="px-4 py-4"><div className="h-4 w-28 rounded bg-slate-100" /></td>
                           <td className="px-4 py-4"><div className="h-4 w-24 rounded bg-slate-100" /></td>
                           <td className="px-4 py-4"><div className="h-4 w-40 rounded bg-slate-100" /></td>
-                          <td className="px-4 py-4"><div className="h-4 w-16 rounded bg-slate-100" /></td>
+                          {selectedMetric !== "missed" && <td className="px-4 py-4"><div className="h-4 w-16 rounded bg-slate-100" /></td>}
+                          {selectedMetric === "missed" && <td className="px-4 py-4"><div className="h-4 w-20 rounded bg-slate-100" /></td>}
                         </tr>
                       ))
                     ) : metricLogs.length > 0 ? (
@@ -1817,11 +1851,26 @@ function CallEnginePage() {
                           <td className="px-4 py-3.5 text-slate-600">
                             {formatDateTime(row.call_datetime)}
                           </td>
-                          <td className="px-4 py-3.5">
-                            <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-                              {formatDuration(row.duration_sec)}
-                            </span>
-                          </td>
+                          {selectedMetric !== "missed" && (
+                            <td className="px-4 py-3.5">
+                              <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                                {formatDuration(row.duration_sec)}
+                              </span>
+                            </td>
+                          )}
+                          {selectedMetric === "missed" && (
+                            <td className="px-4 py-3.5">
+                              {row.was_called_back ? (
+                                <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                                  Called Back
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 border border-amber-200">
+                                  Never Called
+                                </span>
+                              )}
+                            </td>
+                          )}
                         </tr>
                       ))
                     ) : (
