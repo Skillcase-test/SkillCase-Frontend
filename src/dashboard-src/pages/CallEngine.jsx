@@ -810,6 +810,7 @@ function CallEnginePage() {
   const [metricTotal, setMetricTotal] = useState(0);
   const [metricLoading, setMetricLoading] = useState(false);
   const [missedStatusFilter, setMissedStatusFilter] = useState("all");
+  const [callersLoading, setCallersLoading] = useState(false);
 
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([
@@ -894,11 +895,14 @@ function CallEnginePage() {
   }, [page, totalPages]);
 
   const loadCallers = useCallback(async () => {
+    setCallersLoading(true);
     try {
       const res = await callEngineApi.getCallers();
       setCallers(res.data?.callers || []);
     } catch (err) {
       console.error("Failed to load callers:", err);
+    } finally {
+      setCallersLoading(false);
     }
   }, []);
 
@@ -1195,28 +1199,34 @@ function CallEnginePage() {
               <select
                 value={dialer}
                 onChange={(e) => setDialer(e.target.value)}
-                disabled={loading}
+                disabled={loading || callersLoading}
                 className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-8 py-2.5 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all duration-200 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:opacity-60 disabled:cursor-not-allowed appearance-none"
               >
-                <option value="all">All callers</option>
-                {callers.map((caller, idx) => {
-                  const value =
-                    caller.dialer_number ||
-                    caller.number ||
-                    caller.employee_number ||
-                    caller.mobile ||
-                    "";
-                  const label =
-                    caller.name ||
-                    caller.employee_name ||
-                    caller.dialer_number ||
-                    value;
-                  return value ? (
-                    <option key={`${value}-${idx}`} value={value}>
-                      {label} ({value})
-                    </option>
-                  ) : null;
-                })}
+                {callersLoading ? (
+                  <option value="loading">Loading callers...</option>
+                ) : (
+                  <>
+                    <option value="all">All callers</option>
+                    {callers.map((caller, idx) => {
+                      const value =
+                        caller.dialer_number ||
+                        caller.number ||
+                        caller.employee_number ||
+                        caller.mobile ||
+                        "";
+                      const label =
+                        caller.name ||
+                        caller.employee_name ||
+                        caller.dialer_number ||
+                        value;
+                      return value ? (
+                        <option key={`${value}-${idx}`} value={value}>
+                          {label} ({value})
+                        </option>
+                      ) : null;
+                    })}
+                  </>
+                )}
               </select>
               <ChevronRight className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none rotate-90" />
             </div>
