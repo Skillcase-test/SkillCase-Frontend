@@ -922,6 +922,10 @@ export function CandidateDetailsForm({
               ? row.expected_payment_list.split(",").map(s => s.trim())
               : [String(row.expected_payment_inr ?? row.expected_amount_inr ?? editDraft.monthly_fee_inr ?? "")];
 
+            const totalActual = actualPayments.reduce((sum, a) => sum + Math.abs(Number(a) || 0), 0);
+            const expectedVal = expectedPaymentsList.reduce((sum, s) => sum + (Number(s) || 0), 0);
+            const isPaid = row.row_kind !== "actual_only" && expectedVal > 0 && totalActual >= expectedVal;
+
             return (
               <div
                 key={row.schedule_id || row.manual_payment_key || index}
@@ -940,13 +944,33 @@ export function CandidateDetailsForm({
                 <Field label="Expected Payment (INR)">
                   <div className="space-y-3">
                     {expectedPaymentsList.map((expectedVal, expIdx) => (
-                      <ControlInput
-                        key={expIdx}
-                        value={expectedVal || "-"}
-                        disabled
-                        placeholder="-"
-                        className="w-full bg-slate-100 text-slate-500 cursor-not-allowed font-medium text-slate-800"
-                      />
+                      <div key={expIdx} className="relative">
+                        <ControlInput
+                          value={expectedVal || "-"}
+                          disabled
+                          placeholder="-"
+                          className="w-full bg-slate-100 text-slate-500 cursor-not-allowed font-medium pr-16"
+                        />
+                        {isPaid && (
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs font-bold text-emerald-600 pointer-events-none">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              strokeWidth={3}
+                              stroke="currentColor"
+                              className="h-3.5 w-3.5"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M4.5 12.75l6 6 9-13.5"
+                              />
+                            </svg>
+                            <span>Paid</span>
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </Field>
