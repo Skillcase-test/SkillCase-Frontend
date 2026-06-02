@@ -6,8 +6,10 @@ import { MonthViewTab } from "./MonthViewTab";
 import { PaymentViewTab } from "./PaymentViewTab";
 import { RawLogsViewTab } from "./RawLogsViewTab";
 import { TotalFeeViewTab } from "./TotalFeeViewTab";
+import { OverallViewTab } from "./OverallViewTab";
 
 export function TabContent({ tab, props }) {
+  if (tab === "overall") return <OverallViewTab {...props} />;
   if (tab === "all") return <AllViewTab {...props} />;
   if (tab === "month") return <MonthViewTab {...props} />;
   if (tab === "batch") return <BatchViewTab {...props} />;

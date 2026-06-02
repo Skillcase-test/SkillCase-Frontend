@@ -6,12 +6,13 @@ const SEARCH_DEBOUNCE_MS = 300;
 
 // Ordered list of tab keys as they appear in the UI
 const PAYMENTS_TAB_ORDER = [
-  "month", "all", "batch", "fee",
+  "overall", "month", "all", "batch", "fee",
   "discounts", "payments", "rawlogs", "invoice",
 ];
 
 // Maps each UI tab key to its backend action_key stored in admin_user_permission
 const PAYMENTS_ACTION_FOR_TAB = {
+  overall:   "tab_overall",
   month:     "tab_month",
   all:       "tab_all",
   batch:     "tab_batch",
@@ -26,8 +27,18 @@ function derivePermittedTabs(role, paymentActions) {
   if (role === "super_admin") return new Set(PAYMENTS_TAB_ORDER);
   const permitted = new Set();
   for (const [tabKey, actionKey] of Object.entries(PAYMENTS_ACTION_FOR_TAB)) {
-    if (paymentActions.includes(actionKey) || paymentActions.includes("manage")) {
-      permitted.add(tabKey);
+    if (tabKey === "discounts") {
+      if (
+        paymentActions.includes("tab_discounts") ||
+        paymentActions.includes("tab_discounts_view") ||
+        paymentActions.includes("manage")
+      ) {
+        permitted.add("discounts");
+      }
+    } else {
+      if (paymentActions.includes(actionKey) || paymentActions.includes("manage")) {
+        permitted.add(tabKey);
+      }
     }
   }
   return permitted;
@@ -52,6 +63,7 @@ export function usePaymentsAdminState() {
   const [permittedTabs, setPermittedTabs] = useState(null);
   const [accessLoading, setAccessLoading] = useState(true);
   const [adminRole, setAdminRole] = useState("");
+  const [paymentActions, setPaymentActions] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -301,9 +313,10 @@ export function usePaymentsAdminState() {
         const res = await paymentsAdminApi.getMyAccess();
         if (!mounted) return;
         const role = res.data?.role || "";
-        const paymentActions = res.data?.permissions?.["payments"] || [];
-        const permitted = derivePermittedTabs(role, paymentActions);
+        const actionsList = res.data?.permissions?.["payments"] || [];
+        const permitted = derivePermittedTabs(role, actionsList);
         setAdminRole(role);
+        setPaymentActions(actionsList);
         setPermittedTabs(permitted);
         if (permitted.size > 0) {
           const firstTab = PAYMENTS_TAB_ORDER.find((t) => permitted.has(t));
@@ -402,6 +415,7 @@ export function usePaymentsAdminState() {
     permittedTabs,
     accessLoading,
     adminRole,
+    paymentActions,
     loading,
     setLoading,
     error,

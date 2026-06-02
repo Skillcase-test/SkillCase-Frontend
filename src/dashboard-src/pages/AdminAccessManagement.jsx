@@ -25,15 +25,16 @@ const ACTION_OPTIONS = ["view", "create", "edit", "delete", "manage"];
 const SKILLCASE_INTERVIEW_MODULE = "skillcase_interviews";
 
 const PAYMENTS_TAB_OPTIONS = [
+  { key: "tab_overall",   label: "Overall View" },
   { key: "tab_month",     label: "Month View" },
   { key: "tab_all",       label: "All View" },
   { key: "tab_batch",     label: "Batch View" },
   { key: "tab_fee",       label: "Total Fee View" },
-  { key: "tab_discounts", label: "Discounts View" },
+  { key: "tab_discounts", label: "Discount Approval" },
+  { key: "tab_discounts_view", label: "Discount Request Only" },
   { key: "tab_payments",  label: "Payment View" },
   { key: "tab_rawlogs",   label: "Raw Logs" },
   { key: "tab_invoice",   label: "Invoice Send" },
-  { key: "tab_import",    label: "Import Dump" },
 ];
 const PAYMENTS_ALL_TAB_KEYS = PAYMENTS_TAB_OPTIONS.map((t) => t.key);
 

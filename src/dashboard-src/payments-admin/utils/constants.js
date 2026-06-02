@@ -1,4 +1,5 @@
 export const TABS = [
+  { key: "overall", label: "Overall View" },
   { key: "all", label: "All View" },
   { key: "month", label: "Month View" },
   { key: "batch", label: "Batch View" },

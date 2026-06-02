@@ -16,6 +16,7 @@ export function DiscountsViewTab({
   handleCreateDiscountRequest,
   handleDiscountDecision,
   setRejectModal,
+  canApproveDiscounts,
 }) {
   const candidateDropdownOptions = candidateOptions.map((c) => ({
     value: c.enrollment_id,
@@ -112,7 +113,7 @@ export function DiscountsViewTab({
             <th className="px-2 py-2">Requested By</th>
             <th className="px-2 py-2">Approved By</th>
             <th className="px-2 py-2">Status</th>
-            <th className="px-2 py-2">Action</th>
+            {canApproveDiscounts && <th className="px-2 py-2">Action</th>}
           </tr>
         </thead>
         <tbody>
@@ -148,38 +149,40 @@ export function DiscountsViewTab({
               >
                 {r.status}
               </td>
-              <td className="px-2 py-2">
-                {r.status === "pending" ? (
-                  <div className="flex gap-1">
-                    <ActionChip
-                      onClick={() =>
-                        handleDiscountDecision(r.discount_id, "approved")
-                      }
-                      variant="success"
-                    >
-                      Approve
-                    </ActionChip>
-                    <ActionChip
-                      onClick={() =>
-                        setRejectModal({
-                          open: true,
-                          discountId: r.discount_id,
-                          reason: "",
-                        })
-                      }
-                      variant="danger"
-                    >
-                      Reject
-                    </ActionChip>
-                  </div>
-                ) : (
-                  <span className="text-xs text-slate-500">Reviewed</span>
-                )}
-              </td>
+              {canApproveDiscounts && (
+                <td className="px-2 py-2">
+                  {r.status === "pending" ? (
+                    <div className="flex gap-1">
+                      <ActionChip
+                        onClick={() =>
+                          handleDiscountDecision(r.discount_id, "approved")
+                        }
+                        variant="success"
+                      >
+                        Approve
+                      </ActionChip>
+                      <ActionChip
+                        onClick={() =>
+                          setRejectModal({
+                            open: true,
+                            discountId: r.discount_id,
+                            reason: "",
+                          })
+                        }
+                        variant="danger"
+                      >
+                        Reject
+                      </ActionChip>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-500">Reviewed</span>
+                  )}
+                </td>
+              )}
             </tr>
           )) : (
             <tr>
-              <td colSpan={10} className="px-3 py-6 text-center text-slate-500">
+              <td colSpan={canApproveDiscounts ? 10 : 9} className="px-3 py-6 text-center text-slate-500">
                 No discount requests found.
               </td>
             </tr>

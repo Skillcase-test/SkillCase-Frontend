@@ -115,12 +115,14 @@ export default function PaymentsAdmin() {
             </p>
           </div>
           <div className="flex gap-2">
-            <div className="rounded-xl bg-slate-900 px-4 py-2 text-white">
-              <p className="text-[10px] uppercase opacity-70">Month</p>
-              <p className="font-bold">
-                {MONTH_NAMES[state.month]} {state.year}
-              </p>
-            </div>
+            {state.tab !== "overall" && (
+              <div className="rounded-xl bg-slate-900 px-4 py-2 text-white">
+                <p className="text-[10px] uppercase opacity-70">Month</p>
+                <p className="font-bold">
+                  {MONTH_NAMES[state.month]} {state.year}
+                </p>
+              </div>
+            )}
             <div className="rounded-xl bg-slate-900 px-4 py-2 text-white">
               <p className="text-[10px] uppercase opacity-70">Role</p>
               <p className="font-bold">{roleLabel}</p>
@@ -186,84 +188,86 @@ export default function PaymentsAdmin() {
           <TabContent tab={state.tab} props={{}} />
         ) : (
           <>
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-              {qph && state.tab !== "batch" ? (
-                <ControlInput
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder={qph}
-                  leftIcon={<Search size={14} />}
-                  className="w-full max-w-sm"
-                />
-              ) : (
-                <div />
-              )}
-              <div className="flex flex-wrap items-center gap-2">
-                {state.tab === "all" || state.tab === "month" ? (
-                  <>
-                    <ControlButton onClick={() => state.setIsImportingCandidates(true)} variant="secondary">
-                      Import Candidates
-                    </ControlButton>
-                    <ControlButton onClick={actions.handleStartManualCandidate} variant="primary">
-                      Add Candidate
-                    </ControlButton>
-                  </>
-                ) : null}
-                {state.tab === "payments" ? (
-                  <>
-                    <ControlButton onClick={() => state.setManualPaymentModal({ open: true, mode: "create", data: null })} variant="secondary">
-                      Add Payment
-                    </ControlButton>
-                    <ControlButton onClick={() => state.setIsImportingPayments(true)} variant="primary">
-                      Import Payments
-                    </ControlButton>
-                  </>
-                ) : null}
-                {state.tab !== "all" && state.tab !== "batch" ? (
-                  <>
-                    <ControlSelect
-                      value={state.year}
-                      onChange={(e) => state.setYear(Number(e.target.value))}
-                      className="w-28"
-                    >
-                      {[2025, 2026, 2027].map((y) => (
-                        <option key={y} value={y}>
-                          {y}
-                        </option>
-                      ))}
-                    </ControlSelect>
-                    <ControlSelect
-                      value={state.month}
-                      onChange={(e) => state.setMonth(Number(e.target.value))}
-                      className="w-40"
-                    >
-                      {MONTH_NAMES.slice(1).map((m, i) => (
-                        <option key={m} value={i + 1}>
-                          {m}
-                        </option>
-                      ))}
-                    </ControlSelect>
-                  </>
-                ) : null}
-                <ControlButton onClick={state.loadTabData} variant="secondary">
-                  <RefreshCw size={14} className="mr-1" />
-                  Refresh
-                </ControlButton>
-                <span className="text-xs text-slate-500">Rows</span>
-                <ControlSelect
-                  value={state.rowsPerPage}
-                  onChange={(e) => state.setRowsPerPage(Number(e.target.value))}
-                  className="w-20"
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                </ControlSelect>
-                <span className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-600">
-                  {Number(state.pagination?.total || sel.baseRowsForTable.length)} results
-                </span>
+            {state.tab !== "overall" && (
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                {qph && state.tab !== "batch" ? (
+                  <ControlInput
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder={qph}
+                    leftIcon={<Search size={14} />}
+                    className="w-full max-w-sm"
+                  />
+                ) : (
+                  <div />
+                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {state.tab === "all" || state.tab === "month" ? (
+                    <>
+                      <ControlButton onClick={() => state.setIsImportingCandidates(true)} variant="secondary">
+                        Import Candidates
+                      </ControlButton>
+                      <ControlButton onClick={actions.handleStartManualCandidate} variant="primary">
+                        Add Candidate
+                      </ControlButton>
+                    </>
+                  ) : null}
+                  {state.tab === "payments" ? (
+                    <>
+                      <ControlButton onClick={() => state.setManualPaymentModal({ open: true, mode: "create", data: null })} variant="secondary">
+                        Add Payment
+                      </ControlButton>
+                      <ControlButton onClick={() => state.setIsImportingPayments(true)} variant="primary">
+                        Import Payments
+                      </ControlButton>
+                    </>
+                  ) : null}
+                  {state.tab !== "all" && state.tab !== "batch" && state.tab !== "overall" ? (
+                    <>
+                      <ControlSelect
+                        value={state.year}
+                        onChange={(e) => state.setYear(Number(e.target.value))}
+                        className="w-28"
+                      >
+                        {[2025, 2026, 2027].map((y) => (
+                          <option key={y} value={y}>
+                            {y}
+                          </option>
+                        ))}
+                      </ControlSelect>
+                      <ControlSelect
+                        value={state.month}
+                        onChange={(e) => state.setMonth(Number(e.target.value))}
+                        className="w-40"
+                      >
+                        {MONTH_NAMES.slice(1).map((m, i) => (
+                          <option key={m} value={i + 1}>
+                            {m}
+                          </option>
+                        ))}
+                      </ControlSelect>
+                    </>
+                  ) : null}
+                  <ControlButton onClick={state.loadTabData} variant="secondary">
+                    <RefreshCw size={14} className="mr-1" />
+                    Refresh
+                  </ControlButton>
+                  <span className="text-xs text-slate-500">Rows</span>
+                  <ControlSelect
+                    value={state.rowsPerPage}
+                    onChange={(e) => state.setRowsPerPage(Number(e.target.value))}
+                    className="w-20"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </ControlSelect>
+                  <span className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-600">
+                    {Number(state.pagination?.total || sel.baseRowsForTable.length)} results
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
 
             {state.loading ? (
               <TableSkeleton />
@@ -287,6 +291,7 @@ export default function PaymentsAdmin() {
                   setAllBatchFilter: state.setAllBatchFilter,
                   discountForm: state.discountForm,
                   setDiscountForm: state.setDiscountForm,
+                  canApproveDiscounts: state.adminRole === "super_admin" || state.paymentActions.includes("tab_discounts") || state.paymentActions.includes("manage"),
                   candidateOptions: state.candidateOptions,
                   handleCreateDiscountRequest: actions.handleCreateDiscountRequest,
                   rows: sel.paginatedRows,
@@ -332,33 +337,35 @@ export default function PaymentsAdmin() {
               />
             )}
 
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
-              <PaginationBar
-                currentPage={state.currentPage}
-                totalPages={sel.totalPages}
-                setCurrentPage={state.setCurrentPage}
-              />
-              <div>
-                {state.tab === "payments" ? (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={actions.handleReconcile}
-                      disabled={state.reconciling}
-                      className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 disabled:opacity-50"
-                    >
-                      {state.reconciling ? "Reconciling..." : "Reconcile"}
-                    </button>
-                    <ControlButton
-                      onClick={actions.exportPaymentsCsv}
-                      variant="primary"
-                      className="h-9 px-3 text-xs"
-                    >
-                      Download CSV
-                    </ControlButton>
-                  </div>
-                ) : null}
+            {state.tab !== "overall" && (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                <PaginationBar
+                  currentPage={state.currentPage}
+                  totalPages={sel.totalPages}
+                  setCurrentPage={state.setCurrentPage}
+                />
+                <div>
+                  {state.tab === "payments" ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={actions.handleReconcile}
+                        disabled={state.reconciling}
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 disabled:opacity-50"
+                      >
+                        {state.reconciling ? "Reconciling..." : "Reconcile"}
+                      </button>
+                      <ControlButton
+                        onClick={actions.exportPaymentsCsv}
+                        variant="primary"
+                        className="h-9 px-3 text-xs"
+                      >
+                        Download CSV
+                      </ControlButton>
+                    </div>
+                  ) : null}
+                </div>
               </div>
-            </div>
+            )}
           </>
         )}
       </div>

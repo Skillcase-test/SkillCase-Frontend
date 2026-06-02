@@ -3,7 +3,7 @@ import {
   ControlDropdown,
   ControlInput,
 } from "../components/controls";
-import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
+import { formatInrFromPaise, formatIstDateTime, formatIstDate } from "../utils/formatters";
 
 export function InvoiceViewTab({
   selectedEnrollmentId,
@@ -45,10 +45,14 @@ export function InvoiceViewTab({
             onChange={setSelectedInvoicePaymentId}
             placeholder="Select Uninvoiced Payment"
             disabled={!selectedEnrollmentId}
-            options={invoicePaymentOptions.map((p) => ({
-              value: p.payment_id,
-              label: `#${p.payment_id} - ${formatInrFromPaise(p.amount_paise)}`,
-            }))}
+            options={invoicePaymentOptions.map((p) => {
+              const txId = p.razorpay_payment_id || p.payment_id.slice(0, 8);
+              const dateStr = formatIstDate(p.paid_at);
+              return {
+                value: p.payment_id,
+                label: `${txId} - ${dateStr} - ${formatInrFromPaise(p.amount_paise)}`,
+              };
+            })}
           />
           <ControlInput
             value={selectedEnrollment?.student_email || ""}

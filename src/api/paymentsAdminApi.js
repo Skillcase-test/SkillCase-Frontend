@@ -5,6 +5,9 @@ export const paymentsAdminApi = {
   // Fetches the current admin's role + permissions (used on panel mount).
   getMyAccess: () => adminAccessApi.getMyAccess(),
 
+  getOverallStats: (params = {}) =>
+    api.get("/admin/payments/reports/overall-stats", { params }),
+
   getMonthView: (year, month, params = {}) =>
     api.get("/admin/payments/enrollments/month-view", {
       params: { year, month, ...params },
@@ -94,4 +97,8 @@ export const paymentsAdminApi = {
     api.patch(`/admin/payments/transactions/manual/${paymentId}`, payload),
   deleteManualTransaction: (paymentId) =>
     api.delete(`/admin/payments/transactions/manual/${paymentId}`),
+  checkDuplicateTransactions: (payload) =>
+    api.post("/admin/payments/transactions/check-duplicates", payload),
+  createBatchManualTransactions: (payload) =>
+    api.post("/admin/payments/transactions/batch-manual", payload),
 };

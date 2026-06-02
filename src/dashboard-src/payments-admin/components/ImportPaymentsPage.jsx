@@ -307,6 +307,12 @@ export function ImportPaymentsPage({ onBack, onImportSuccess, candidateOptions =
       const transIdIdx = fileHeaders.findIndex(h => h.includes("tran. id") || h.includes("tran id") || h.includes("trans id") || h.includes("transaction id"));
       const valueDateIdx = fileHeaders.findIndex(h => h.includes("value date") || h === "date");
       const depositAmtIdx = fileHeaders.findIndex(h => h.includes("deposit amt") || h.includes("deposit amount") || h.includes("amount"));
+      const transDateIdx = fileHeaders.findIndex(h => h.includes("transaction date"));
+      const transPostedDateIdx = fileHeaders.findIndex(h => h.includes("transaction posted date"));
+      const chequeRefIdx = fileHeaders.findIndex(h => h.includes("cheque. no./ref. no.") || h.includes("cheque") || h.includes("ref. no."));
+      const transRemarksIdx = fileHeaders.findIndex(h => h.includes("transaction remarks") || h.includes("remarks"));
+      const withdrawalAmtIdx = fileHeaders.findIndex(h => h.includes("withdrawal amt") || h.includes("withdrawal amount"));
+      const statusIdx = fileHeaders.findIndex(h => h.includes("status"));
 
       if (phoneIdx === -1) fileErrors.push({ row: 1, field: "Phone", reason: 'Missing mandatory column: "Phone"' });
       if (transIdIdx === -1) fileErrors.push({ row: 1, field: "Tran. Id", reason: 'Missing mandatory column: "Tran. Id"' });
@@ -320,6 +326,7 @@ export function ImportPaymentsPage({ onBack, onImportSuccess, candidateOptions =
         return;
       }
 
+      const seenInFile = new Set();
       for (let i = 1; i < parsedRows.length; i++) {
         const row = parsedRows[i];
         if (row.every(cell => !cell.trim())) continue;
@@ -344,6 +351,14 @@ export function ImportPaymentsPage({ onBack, onImportSuccess, candidateOptions =
         if (!transId) {
           fileErrors.push({ row: rowNum, field: "Tran. Id", reason: "Transaction ID is missing." });
           hasRowErrors = true;
+        } else {
+          const lowerTransId = transId.toLowerCase();
+          if (seenInFile.has(lowerTransId)) {
+            fileErrors.push({ row: rowNum, field: "Tran. Id", reason: `Duplicate Transaction ID "${transId}" inside this CSV file.` });
+            hasRowErrors = true;
+          } else {
+            seenInFile.add(lowerTransId);
+          }
         }
 
         if (!valueDate) {
@@ -376,9 +391,44 @@ export function ImportPaymentsPage({ onBack, onImportSuccess, candidateOptions =
             cleanPhone,
             transId,
             valueDate,
-            depositAmt: Number(depositAmt.replace(/,/g, "").trim())
+            depositAmt: Number(depositAmt.replace(/,/g, "").trim()),
+            transDate: transDateIdx !== -1 ? (row[transDateIdx] || "").trim() : "",
+            transPostedDate: transPostedDateIdx !== -1 ? (row[transPostedDateIdx] || "").trim() : "",
+            chequeRef: chequeRefIdx !== -1 ? (row[chequeRefIdx] || "").trim() : "",
+            transRemarks: transRemarksIdx !== -1 ? (row[transRemarksIdx] || "").trim() : "",
+            withdrawalAmt: withdrawalAmtIdx !== -1 ? (row[withdrawalAmtIdx] || "").trim() : "",
+            status: statusIdx !== -1 ? (row[statusIdx] || "").trim() : ""
           });
         }
+      }
+
+      if (fileErrors.length > 0) {
+        setErrors(fileErrors);
+        setValidated(true);
+        setValidating(false);
+        return;
+      }
+
+      // Check database duplicates
+      try {
+        const allTranIds = validRows.map(r => r.transId);
+        const dupCheckRes = await paymentsAdminApi.checkDuplicateTransactions({ transaction_ids: allTranIds });
+        const existingDbIds = new Set((dupCheckRes.data?.existing || []).map(id => String(id || "").toLowerCase()));
+
+        if (existingDbIds.size > 0) {
+          validRows.forEach(row => {
+            if (existingDbIds.has(row.transId.toLowerCase())) {
+              fileErrors.push({
+                row: row.rowNum,
+                field: "Tran. Id",
+                reason: `Transaction ID "${row.transId}" already exists in the database.`
+              });
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Duplicate check failed:", err);
+        fileErrors.push({ row: "-", field: "Database Check", reason: "Failed to check transaction IDs in database." });
       }
 
       if (fileErrors.length > 0) {
@@ -446,44 +496,61 @@ export function ImportPaymentsPage({ onBack, onImportSuccess, candidateOptions =
   const handleConfirmImport = async () => {
     setLoading(true);
     const importErrors = [];
-    let successCountImport = 0;
+    const txPayloads = [];
 
     for (let i = 0; i < parsedData.length; i++) {
       const row = parsedData[i];
-      try {
-        const mapping = mappings[row.cleanPhone];
-        const enrollmentId = mapping?.enrollment_id || mapping?.value;
+      const mapping = mappings[row.cleanPhone];
+      const enrollmentId = mapping?.enrollment_id || mapping?.value;
 
-        if (!enrollmentId) {
-          importErrors.push(`Row ${row.rowNum}: Candidate mapping missing for phone "${row.phone}".`);
-          continue;
-        }
-
-        const notesPayload = {
-          tranId: row.transId
-        };
-
-        const payload = {
-          enrollment_id: enrollmentId,
-          amount_inr: row.depositAmt,
-          paid_at: row.valueDate,
-          razorpay_payment_id: row.transId,
-          notes: JSON.stringify(notesPayload)
-        };
-
-        await paymentsAdminApi.createManualTransaction(payload);
-        successCountImport++;
-      } catch (err) {
-        const errMsg = err?.response?.data?.msg || err.message;
-        importErrors.push(`Row ${row.rowNum}: Failed to import transaction ID "${row.transId}". Reason: ${errMsg}`);
+      if (!enrollmentId) {
+        importErrors.push({
+          row: row.rowNum,
+          field: "Mapping",
+          reason: `Candidate mapping missing for phone "${row.phone}".`
+        });
+        continue;
       }
+
+      const notesPayload = {
+        tranId: row.transId,
+        transactionDate: row.transDate || "",
+        transactionPostedDate: row.transPostedDate || "",
+        chequeNoRefNo: row.chequeRef || "",
+        transactionRemarks: row.transRemarks || "",
+        withdrawalAmt: row.withdrawalAmt || "",
+        status: row.status || ""
+      };
+
+      txPayloads.push({
+        enrollment_id: enrollmentId,
+        amount_inr: row.depositAmt,
+        paid_at: row.valueDate,
+        razorpay_payment_id: row.transId,
+        notes: JSON.stringify(notesPayload)
+      });
     }
 
-    setLoading(false);
     if (importErrors.length > 0) {
-      alert("Import completed with some errors:\n\n" + importErrors.join("\n"));
-    } else {
-      onImportSuccess(`${successCountImport} payments imported successfully.`);
+      setLoading(false);
+      setErrors(importErrors);
+      return;
+    }
+
+    try {
+      await paymentsAdminApi.createBatchManualTransactions({ transactions: txPayloads });
+      setLoading(false);
+      onImportSuccess(`${txPayloads.length} payments imported successfully.`);
+    } catch (err) {
+      setLoading(false);
+      const errMsg = err?.response?.data?.msg || err.message;
+      setErrors([
+        {
+          row: "-",
+          field: "Import Failure",
+          reason: `Batch import failed. Reason: ${errMsg}`
+        }
+      ]);
     }
   };
 
@@ -592,8 +659,16 @@ export function ImportPaymentsPage({ onBack, onImportSuccess, candidateOptions =
               <div className="flex items-start gap-3">
                 <AlertCircle size={20} className="text-rose-600 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-sm font-bold text-rose-800">Dry-Run Validation Failed ({errors.length} Errors)</p>
-                  <p className="text-xs text-rose-600 mt-1">Please fix the spreadsheet columns or field entries below and re-upload.</p>
+                  <p className="text-sm font-bold text-rose-800">
+                    {errors.some(e => e.field === "Import Failure" || e.reason.toLowerCase().includes("import"))
+                      ? `Import Execution Failed (${errors.length} Errors)`
+                      : `Dry-Run Validation Failed (${errors.length} Errors)`}
+                  </p>
+                  <p className="text-xs text-rose-600 mt-1">
+                    {errors.some(e => e.field === "Import Failure" || e.reason.toLowerCase().includes("import"))
+                      ? "Some transactions could not be created. Please review the failures below."
+                      : "Please fix the spreadsheet columns or field entries below and re-upload."}
+                  </p>
                 </div>
               </div>
 

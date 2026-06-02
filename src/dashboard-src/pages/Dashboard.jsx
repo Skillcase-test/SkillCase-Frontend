@@ -599,8 +599,8 @@ export default function Dashboard() {
   }, []);
 
   const PAYMENTS_TAB_KEYS = useMemo(() => [
-    "tab_month", "tab_all", "tab_batch", "tab_fee",
-    "tab_discounts", "tab_payments", "tab_rawlogs", "tab_invoice", "tab_import",
+    "tab_overall", "tab_month", "tab_all", "tab_batch", "tab_fee",
+    "tab_discounts", "tab_discounts_view", "tab_payments", "tab_rawlogs", "tab_invoice", "tab_import",
   ], []);
 
   const hasPaymentsAccess = useMemo(() => {
