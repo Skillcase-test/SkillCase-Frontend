@@ -918,11 +918,15 @@ export function CandidateDetailsForm({
             const actualDates = row.actual_date ? row.actual_date.split(",").map(d => d.trim()) : [];
             const actualPayments = row.actual_payment_list ? row.actual_payment_list.split(",").map(a => a.trim()) : [];
             const subRowCount = Math.max(1, actualDates.length);
+            const expectedPaymentsList = row.expected_payment_list
+              ? row.expected_payment_list.split(",").map(s => s.trim())
+              : [String(row.expected_payment_inr ?? row.expected_amount_inr ?? editDraft.monthly_fee_inr ?? "")];
 
             return (
               <div
                 key={row.schedule_id || row.manual_payment_key || index}
-                className={`grid gap-3 rounded-xl border p-3 md:grid-cols-[1fr_1fr_2fr] items-start cursor-default border-slate-200 bg-slate-50/60
+                className={`grid gap-3 rounded-xl border p-3 md:grid-cols-[1fr_1fr_2fr] items-start cursor-default
+                  border-slate-200 bg-slate-50/60
                   ${isNewlyAdded ? "newly-added-row" : ""}
                 `}
               >
@@ -934,12 +938,17 @@ export function CandidateDetailsForm({
                   />
                 </Field>
                 <Field label="Expected Payment (INR)">
-                  <ControlInput
-                    value={row.expected_payment_inr ?? row.expected_amount_inr ?? editDraft.monthly_fee_inr ?? ""}
-                    disabled
-                    placeholder="-"
-                    className="w-full bg-slate-100 text-slate-500 cursor-not-allowed"
-                  />
+                  <div className="space-y-3">
+                    {expectedPaymentsList.map((expectedVal, expIdx) => (
+                      <ControlInput
+                        key={expIdx}
+                        value={expectedVal || "-"}
+                        disabled
+                        placeholder="-"
+                        className="w-full bg-slate-100 text-slate-500 cursor-not-allowed font-medium text-slate-800"
+                      />
+                    ))}
+                  </div>
                 </Field>
                 <div className="space-y-3">
                   {Array.from({ length: subRowCount }).map((_, subIdx) => {

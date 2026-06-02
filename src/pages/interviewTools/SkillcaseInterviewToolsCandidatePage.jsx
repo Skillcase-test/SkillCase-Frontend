@@ -161,8 +161,6 @@ function PositionEventLog({ positionId }) {
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-500">
                         <div>{event.event_payload?.candidate_name || "-"}</div>
-                        <div>{event.event_payload?.candidate_email || "-"}</div>
-                        <div>{event.event_payload?.candidate_phone || "-"}</div>
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-500">
                         <div>{event.actor_name || event.actor_user_id || "public_candidate"}</div>
@@ -295,12 +293,6 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                   <td className="px-6 py-5">
                     <div className="font-semibold text-gray-900">
                       {item.candidate_name}
-                    </div>
-                    <div className="mt-1 text-xs text-gray-500">
-                      {item.candidate_email}
-                    </div>
-                    <div className="mt-1 text-xs text-gray-500">
-                      {item.candidate_phone}
                     </div>
                   </td>
                   <td className="px-6 py-5">

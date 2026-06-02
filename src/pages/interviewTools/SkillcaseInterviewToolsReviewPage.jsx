@@ -185,12 +185,6 @@ export default function SkillcaseInterviewToolsReviewPage({
               <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
                 {detail.submission.candidate_name}
               </h2>
-              <p className="mt-2 text-sm font-semibold text-slate-500">
-                {detail.submission.candidate_email}
-              </p>
-              <p className="mt-1 text-sm font-medium text-slate-400">
-                {detail.submission.candidate_phone}
-              </p>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
