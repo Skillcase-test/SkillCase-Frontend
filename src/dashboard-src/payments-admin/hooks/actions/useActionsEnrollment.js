@@ -68,13 +68,15 @@ export function useActionsEnrollment(state) {
     }
   }
 
-  async function handleReject(enrollmentId) {
+  async function handleDeleteCandidate(enrollmentId) {
     setSavingEnrollmentId(enrollmentId);
     try {
-      await paymentsAdminApi.rejectEnrollment(enrollmentId);
+      await paymentsAdminApi.deleteEnrollment(enrollmentId);
+      setNotice?.("Candidate deleted successfully.");
+      setEditDraft(null);
       await loadTabData();
     } catch (err) {
-      setError(err?.response?.data?.msg || "Reject failed");
+      setError(err?.response?.data?.msg || "Delete failed");
     } finally {
       setSavingEnrollmentId("");
     }
@@ -134,6 +136,7 @@ export function useActionsEnrollment(state) {
       batch_id: editDraft.batch_id || null,
       notes: editDraft.notes || "",
       expected_payment_start_date: editDraft.expected_payment_start_date || "",
+      created_at: editDraft.created_at || undefined,
       enforce_profile_validation: true,
       candidate_id: editDraft.candidate_id || "",
       total_fee_inr: editDraft.total_fee_inr || "",
@@ -231,8 +234,13 @@ export function useActionsEnrollment(state) {
   async function handleSendAgreement(row) {
     const enrollmentId = row?.enrollment_id;
     if (!enrollmentId) return;
-    if (!String(row?.student_email || "").trim()) {
+    const email = String(row?.student_email || "").trim();
+    if (!email) {
       setError("candidate email is required before sending agreement");
+      return;
+    }
+    if (/@razorpay/i.test(email)) {
+      setError("Cannot send agreements to razorpay email addresses. A valid candidate email is required.");
       return;
     }
     const confirmed = window.confirm(
@@ -255,7 +263,7 @@ export function useActionsEnrollment(state) {
 
   return {
     handleFinalize,
-    handleReject,
+    handleDeleteCandidate,
     handleSaveEnrollmentEdit,
     handleStartManualCandidate,
     handleSendAgreement,

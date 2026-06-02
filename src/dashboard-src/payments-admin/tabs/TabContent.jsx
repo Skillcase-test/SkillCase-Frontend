@@ -2,7 +2,6 @@ import { AllViewTab } from "./AllViewTab";
 import { BatchViewTab } from "./BatchViewTab";
 import { DiscountsViewTab } from "./DiscountsViewTab";
 import { InvoiceViewTab } from "./InvoiceViewTab";
-import { ImportDumpTab } from "./ImportDumpTab";
 import { MonthViewTab } from "./MonthViewTab";
 import { PaymentViewTab } from "./PaymentViewTab";
 import { RawLogsViewTab } from "./RawLogsViewTab";
@@ -17,6 +16,5 @@ export function TabContent({ tab, props }) {
   if (tab === "payments") return <PaymentViewTab {...props} />;
   if (tab === "rawlogs") return <RawLogsViewTab {...props} />;
   if (tab === "invoice") return <InvoiceViewTab {...props} />;
-  if (tab === "import") return <ImportDumpTab {...props} />;
   return <RawLogsViewTab {...props} />;
 }

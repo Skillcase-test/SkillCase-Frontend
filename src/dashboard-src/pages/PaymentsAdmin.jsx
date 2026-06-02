@@ -15,6 +15,9 @@ import { FeeBreakdownModal } from "../payments-admin/components/FeeBreakdownModa
 import { LifecycleActionModal } from "../payments-admin/components/LifecycleActionModal";
 import { PaginationBar } from "../payments-admin/components/PaginationBar";
 import { RejectDiscountModal } from "../payments-admin/components/RejectDiscountModal";
+import { ManualPaymentModal } from "../payments-admin/components/ManualPaymentModal";
+import { ImportPaymentsPage } from "../payments-admin/components/ImportPaymentsPage";
+import { ImportCandidatesPage } from "../payments-admin/components/ImportCandidatesPage";
 import { usePaymentsAdminActions } from "../payments-admin/hooks/usePaymentsAdminActions";
 import { usePaymentsAdminSelectors } from "../payments-admin/hooks/usePaymentsAdminSelectors";
 import { usePaymentsAdminState } from "../payments-admin/hooks/usePaymentsAdminState";
@@ -70,6 +73,34 @@ export default function PaymentsAdmin() {
   const roleLabel =
     state.adminRole === "super_admin" ? "Super Admin" :
     state.adminRole === "admin" ? "Admin" : state.adminRole;
+
+  if (state.isImportingPayments) {
+    return (
+      <ImportPaymentsPage
+        onBack={() => state.setIsImportingPayments(false)}
+        candidateOptions={state.candidateOptions}
+        onImportSuccess={(msg) => {
+          state.setNotice(msg);
+          state.loadTabData();
+          state.setIsImportingPayments(false);
+        }}
+      />
+    );
+  }
+
+  if (state.isImportingCandidates) {
+    return (
+      <ImportCandidatesPage
+        onBack={() => state.setIsImportingCandidates(false)}
+        batches={state.batches}
+        onImportSuccess={(msg) => {
+          state.setNotice(msg);
+          state.loadTabData();
+          state.setIsImportingCandidates(false);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -148,6 +179,7 @@ export default function PaymentsAdmin() {
             setEditDraft={state.setEditDraft}
             batches={state.batches}
             handleSaveEnrollmentEdit={actions.handleSaveEnrollmentEdit}
+            handleDeleteCandidate={actions.handleDeleteCandidate}
             savingEnrollmentId={state.savingEnrollmentId}
           />
         ) : state.tab === "import" ? (
@@ -168,9 +200,24 @@ export default function PaymentsAdmin() {
               )}
               <div className="flex flex-wrap items-center gap-2">
                 {state.tab === "all" || state.tab === "month" ? (
-                  <ControlButton onClick={actions.handleStartManualCandidate} variant="primary">
-                    Add Candidate
-                  </ControlButton>
+                  <>
+                    <ControlButton onClick={() => state.setIsImportingCandidates(true)} variant="secondary">
+                      Import Candidates
+                    </ControlButton>
+                    <ControlButton onClick={actions.handleStartManualCandidate} variant="primary">
+                      Add Candidate
+                    </ControlButton>
+                  </>
+                ) : null}
+                {state.tab === "payments" ? (
+                  <>
+                    <ControlButton onClick={() => state.setManualPaymentModal({ open: true, mode: "create", data: null })} variant="secondary">
+                      Add Payment
+                    </ControlButton>
+                    <ControlButton onClick={() => state.setIsImportingPayments(true)} variant="primary">
+                      Import Payments
+                    </ControlButton>
+                  </>
                 ) : null}
                 {state.tab !== "all" && state.tab !== "batch" ? (
                   <>
@@ -251,18 +298,25 @@ export default function PaymentsAdmin() {
                   openDiscountBreakdown: actions.openDiscountBreakdown,
                   setEditDraft: state.setEditDraft,
                   handleFinalize: actions.handleFinalize,
-                  handleReject: actions.handleReject,
                   handleSendAgreement: actions.handleSendAgreement,
+                  handleDeleteCandidate: actions.handleDeleteCandidate,
+                  allSortBy: state.allSortBy,
+                  allSortOrder: state.allSortOrder,
+                  setAllSortBy: state.setAllSortBy,
+                  setAllSortOrder: state.setAllSortOrder,
                   savingEnrollmentId: state.savingEnrollmentId,
                   sendingAgreementEnrollmentId: state.sendingAgreementEnrollmentId,
                   updatingBatchEnrollmentId: state.updatingBatchEnrollmentId,
                   handleChangeCandidateBatch: actions.handleChangeCandidateBatch,
                   handleChangeCandidateStatus: actions.handleChangeCandidateStatus,
                   batches: state.batches,
+                  manualPaymentModal: state.manualPaymentModal,
+                  setManualPaymentModal: state.setManualPaymentModal,
+                  handleCreateManualTransaction: actions.handleCreateManualTransaction,
+                  handleUpdateManualTransaction: actions.handleUpdateManualTransaction,
+                  handleDeleteManualTransaction: actions.handleDeleteManualTransaction,
                   openLifecycleModal: actions.openLifecycleModal,
                   handleLifecycleSubmit: actions.handleLifecycleSubmit,
-                  handleRefund: actions.handleRefund,
-                  refundingPaymentId: state.refundingPaymentId,
                   handleDiscountDecision: actions.handleDiscountDecision,
                   setRejectModal: state.setRejectModal,
                   selectedEnrollmentId: state.selectedEnrollmentId,
@@ -323,6 +377,15 @@ export default function PaymentsAdmin() {
         feeBreakdownModal={state.feeBreakdownModal}
         setFeeBreakdownModal={state.setFeeBreakdownModal}
         loading={state.feeBreakdownLoading}
+      />
+      <ManualPaymentModal
+        modal={state.manualPaymentModal}
+        setModal={state.setManualPaymentModal}
+        onCreate={actions.handleCreateManualTransaction}
+        onUpdate={actions.handleUpdateManualTransaction}
+        onDelete={actions.handleDeleteManualTransaction}
+        candidateOptions={state.candidateOptions}
+        refreshCandidateOptions={state.refreshCandidateOptions}
       />
     </div>
   );

@@ -33,8 +33,8 @@ export const paymentsAdminApi = {
     api.post(`/admin/payments/enrollments/${enrollmentId}/undrop`, payload),
   finalizeEnrollment: (enrollmentId) =>
     api.post(`/admin/payments/enrollments/${enrollmentId}/finalize`),
-  rejectEnrollment: (enrollmentId) =>
-    api.post(`/admin/payments/enrollments/${enrollmentId}/reject`),
+  deleteEnrollment: (enrollmentId) =>
+    api.post(`/admin/payments/enrollments/${enrollmentId}/delete`),
 
   getBatches: () => api.get("/admin/payments/batches"),
   createBatch: (payload) => api.post("/admin/payments/batches", payload),
@@ -62,8 +62,6 @@ export const paymentsAdminApi = {
     api.get("/admin/payments/reports/payment-view", {
       params: { year, month, ...params },
     }),
-  refundPayment: (paymentId) =>
-    api.post(`/admin/payments/reports/payments/${paymentId}/refund`),
   reconcile: (payload = {}) =>
     api.post("/admin/payments/reports/reconcile", payload),
   importDumpDryRun: (formData) =>
@@ -72,6 +70,12 @@ export const paymentsAdminApi = {
     }),
   importDumpConfirm: (payload) =>
     api.post("/admin/payments/import/confirm", payload),
+  importCandidatesDryRun: (formData) =>
+    api.post("/admin/payments/import/candidates/dry-run", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+  importCandidatesConfirm: (payload) =>
+    api.post("/admin/payments/import/candidates/confirm", payload),
 
   getRawLogs: (params = {}) =>
     api.get("/admin/payments/razorpay-raw-logs", { params }),
@@ -83,4 +87,11 @@ export const paymentsAdminApi = {
   generateInvoice: (payload) =>
     api.post("/admin/payments/invoices/generate", payload),
   sendInvoice: (payload) => api.post("/admin/payments/invoices/send", payload),
+
+  createManualTransaction: (payload) =>
+    api.post("/admin/payments/transactions/manual", payload),
+  updateManualTransaction: (paymentId, payload) =>
+    api.patch(`/admin/payments/transactions/manual/${paymentId}`, payload),
+  deleteManualTransaction: (paymentId) =>
+    api.delete(`/admin/payments/transactions/manual/${paymentId}`),
 };

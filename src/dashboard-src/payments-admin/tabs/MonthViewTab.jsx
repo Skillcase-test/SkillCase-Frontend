@@ -5,8 +5,8 @@ export function MonthViewTab({
   rows,
   setEditDraft,
   handleFinalize,
-  handleReject,
   handleSendAgreement,
+  handleDeleteCandidate,
   savingEnrollmentId,
   sendingAgreementEnrollmentId,
   batches = [],
@@ -170,24 +170,26 @@ export function MonthViewTab({
 
                     return null;
                   })()}
-                  {r.status === "pending" ? (
-                    <>
-                      <ActionChip
-                        onClick={() => handleFinalize(r)}
-                        disabled={savingEnrollmentId === r.enrollment_id}
-                        variant="success"
-                      >
-                        Finalize
-                      </ActionChip>
-                      <ActionChip
-                        onClick={() => handleReject(r.enrollment_id)}
-                        disabled={savingEnrollmentId === r.enrollment_id}
-                        variant="danger"
-                      >
-                        Reject
-                      </ActionChip>
-                    </>
-                  ) : null}
+                  {r.status === "pending" && (
+                    <ActionChip
+                      onClick={() => handleFinalize(r)}
+                      disabled={savingEnrollmentId === r.enrollment_id}
+                      variant="success"
+                    >
+                      Finalize
+                    </ActionChip>
+                  )}
+                  <ActionChip
+                    onClick={() => {
+                      if (window.confirm("Data for this student will be vanished. Are you sure?")) {
+                        handleDeleteCandidate?.(r.enrollment_id);
+                      }
+                    }}
+                    disabled={savingEnrollmentId === r.enrollment_id}
+                    variant="danger"
+                  >
+                    Delete
+                  </ActionChip>
                 </div>
               </td>
             </tr>

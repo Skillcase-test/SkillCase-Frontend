@@ -1,4 +1,3 @@
-import { Plus, Trash2, GripVertical } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 import {
@@ -15,8 +14,17 @@ const personalFields = [
   ["alternate_number", "Alternate Number"],
   ["nationality", "Nationality"],
   ["current_location_city", "Current Location (City)"],
-  ["state", "State"],
   ["lead_owner", "Lead Owner"],
+];
+
+const INDIAN_STATES = [
+  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+  "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
+  "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
+  "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
+  "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+  "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry"
 ];
 
 const educationFields = [
@@ -81,6 +89,15 @@ function addMonthsInput(dateValue, offset) {
   return `${y}-${m}-${d}`;
 }
 
+function formatToDdMmYyyy(dateStr) {
+  if (!dateStr) return "";
+  const cleaned = String(dateStr).trim().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) return dateStr;
+  const [y, m, d] = cleaned.split("-");
+  return `${d}-${m}-${y}`;
+}
+
+
 function Field({ label, required = false, children }) {
   return (
     <label className="space-y-1.5">
@@ -116,6 +133,7 @@ export function CandidateDetailsForm({
   setEditDraft,
   batches,
   handleSaveEnrollmentEdit,
+  handleDeleteCandidate,
   savingEnrollmentId,
 }) {
   const [uploadingDoc, setUploadingDoc] = useState("");
@@ -123,6 +141,7 @@ export function CandidateDetailsForm({
   const [batchLogs, setBatchLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [isEditingCandidateId, setIsEditingCandidateId] = useState(false);
+  const [isEditingEnrollmentDate, setIsEditingEnrollmentDate] = useState(false);
 
   const expectedPaymentsRef = useRef(null);
   const [lastAddedKey, setLastAddedKey] = useState(null);
@@ -131,6 +150,7 @@ export function CandidateDetailsForm({
 
   useEffect(() => {
     setIsEditingCandidateId(false);
+    setIsEditingEnrollmentDate(false);
   }, [editDraft?.enrollment_id]);
 
   useEffect(() => {
@@ -167,6 +187,15 @@ export function CandidateDetailsForm({
       }
     }
 
+    if (!patched.expected_payment_start_date) {
+      const expectedRows = Array.isArray(patched.expected_payments) ? patched.expected_payments : [];
+      const fallbackDate = expectedRows.find(r => r.row_kind !== "actual_only" && r.expected_date)
+        ? String(expectedRows.find(r => r.row_kind !== "actual_only" && r.expected_date).expected_date).slice(0, 10)
+        : (patched.created_at ? String(patched.created_at).slice(0, 10) : todayInputDate());
+      patched.expected_payment_start_date = fallbackDate;
+      hasChanges = true;
+    }
+
     if (hasChanges) {
       setEditDraft(patched);
     }
@@ -176,6 +205,15 @@ export function CandidateDetailsForm({
   const expectedRows = Array.isArray(editDraft.expected_payments)
     ? editDraft.expected_payments
     : [];
+
+  const generatedExpectedRows = expectedRows.filter((row) => row.row_kind !== "actual_only");
+  const currentExpectedTotal = generatedExpectedRows.reduce((sum, row) => sum + Number(row.expected_amount_inr || row.expected_payment_inr || 0), 0);
+  const firstExpectedRow = generatedExpectedRows[0];
+  const currentExpectedMonthly = firstExpectedRow ? Number(firstExpectedRow.expected_amount_inr || firstExpectedRow.expected_payment_inr || 0) : 0;
+
+  const isScheduleDisabled = generatedExpectedRows.length > 0 &&
+    currentExpectedTotal === Number(editDraft.total_fee_inr || 0) &&
+    currentExpectedMonthly === Number(editDraft.monthly_fee_inr || 0);
   const isCreateMode = Boolean(
     editDraft.is_manual_create || !editDraft.enrollment_id,
   );
@@ -282,19 +320,10 @@ export function CandidateDetailsForm({
         ? next.expected_payments
         : [];
       if (rows.length > 0) {
-        let expectedIndex = 0;
-        next.expected_payments = rows.map((row) => {
-          const isExpected = row.row_kind !== "actual_only" && Number(row.expected_payment_inr ?? row.expected_amount_inr ?? 0) > 0;
-          if (isExpected) {
-            const updatedRow = {
-              ...row,
-              expected_date: addMonthsInput(newStartDate, expectedIndex),
-            };
-            expectedIndex += 1;
-            return updatedRow;
-          }
-          return row;
-        });
+        next.expected_payments = rows.map((row, index) => ({
+          ...row,
+          expected_date: addMonthsInput(newStartDate, index),
+        }));
       }
       return next;
     });
@@ -330,6 +359,52 @@ export function CandidateDetailsForm({
     ) {
       return;
     }
+
+    // 1. Gather all actual payments made so far from on-screen expected and actual-only rows
+    const rawPool = [];
+    for (const row of expectedRows) {
+      if (row.actual_payment_list) {
+        const amounts = String(row.actual_payment_list).split(",").map(a => Number(a.trim()) || 0);
+        const dates = String(row.actual_date || "").split(",").map(d => d.trim());
+        for (let i = 0; i < amounts.length; i++) {
+          if (amounts[i] > 0) {
+            rawPool.push({
+              amount: amounts[i],
+              date: dates[i] || "",
+            });
+          }
+        }
+      } else {
+        const amount = Number(row.actual_payment_inr || 0);
+        if (amount > 0) {
+          rawPool.push({
+            amount,
+            date: row.actual_date ? String(row.actual_date).slice(0, 10) : "",
+          });
+        }
+      }
+    }
+
+    // Club and sum actual payments with the exact same date to rebuild original transaction totals
+    const clubbedMap = new Map();
+    for (const item of rawPool) {
+      const key = item.date;
+      if (clubbedMap.has(key)) {
+        clubbedMap.set(key, clubbedMap.get(key) + item.amount);
+      } else {
+        clubbedMap.set(key, item.amount);
+      }
+    }
+
+    const actualsPool = [];
+    for (const [date, amount] of clubbedMap.entries()) {
+      actualsPool.push({ date, amount });
+    }
+
+    // Sort actual payments chronologically
+    actualsPool.sort((a, b) => a.date.localeCompare(b.date));
+
+    // 2. Generate new expected schedule rows
     const count = Math.ceil(total / monthly);
     const startDate = editDraft.expected_payment_start_date || (expectedRows.find(r => r.row_kind !== "actual_only" && r.expected_date) ? String(expectedRows.find(r => r.row_kind !== "actual_only" && r.expected_date).expected_date).slice(0, 10) : (editDraft.created_at ? String(editDraft.created_at).slice(0, 10) : todayInputDate()));
     let remaining = total;
@@ -338,20 +413,59 @@ export function CandidateDetailsForm({
       remaining -= amount;
       return {
         expected_date: addMonthsInput(startDate, index),
-        actual_date: "",
         expected_payment_inr: amount,
-        actual_payment_inr: "",
-        notes: "",
         source_type: "admin",
         manual_payment_key: createManualPaymentKey(),
       };
     });
-    const actualOnlyRows = expectedRows.filter(
-      (row) => row.row_kind === "actual_only",
-    );
+
+    // 3. Run FIFO matching locally on the new expected rows
+    const matched = generated.map((row) => {
+      let needed = Number(row.expected_payment_inr || 0);
+      const allocations = [];
+
+      for (const act of actualsPool) {
+        if (needed <= 0) break;
+        if (act.amount <= 0) continue;
+
+        const allocated = Math.min(needed, act.amount);
+        allocations.push({
+          date: act.date,
+          amount: allocated,
+        });
+
+        act.amount -= allocated;
+        needed -= allocated;
+      }
+
+      const actualPaymentListStr = allocations.map((a) => String(a.amount)).join(", ");
+      const actualDateStr = allocations.map((a) => a.date).join(", ");
+      
+      return {
+        ...row,
+        actual_payment_list: actualPaymentListStr,
+        actual_date: actualDateStr,
+      };
+    });
+
+    // 4. Capture any remaining unallocated overpayments as actual-only rows
+    const leftoverRows = [];
+    for (const act of actualsPool) {
+      if (act.amount > 0) {
+        leftoverRows.push({
+          schedule_id: `actual-only-leftover-${Date.now()}-${Math.random()}`,
+          expected_date: "",
+          expected_payment_inr: "",
+          actual_payment_list: String(act.amount),
+          actual_date: act.date,
+          row_kind: "actual_only",
+        });
+      }
+    }
+
     setEditDraft((prev) => ({
       ...prev,
-      expected_payments: [...generated, ...actualOnlyRows],
+      expected_payments: [...matched, ...leftoverRows],
       expected_payment_start_date: startDate,
     }));
 
@@ -429,6 +543,7 @@ export function CandidateDetailsForm({
           </p>
         </div>
         <div className="flex gap-2">
+
           <ControlButton variant="secondary" onClick={() => setEditDraft(null)}>
             Back
           </ControlButton>
@@ -555,6 +670,22 @@ export function CandidateDetailsForm({
             )}
           </Field>
           {personalFields.map(textField)}
+          <Field label="State" required={requiredFieldKeys.has("state")}>
+            <ControlSelect
+              value={editDraft.state || ""}
+              onChange={(e) =>
+                setEditDraft((p) => ({ ...p, state: e.target.value }))
+              }
+              className="w-full"
+            >
+              <option value="">Select State</option>
+              {INDIAN_STATES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </ControlSelect>
+          </Field>
           <Field label="Date of Birth" required>
             <input
               type="date"
@@ -634,12 +765,50 @@ export function CandidateDetailsForm({
             />
           </Field>
           <Field label="Enrollment Date">
-            <input
-              type="date"
-              value={editDraft.created_at ? String(editDraft.created_at).slice(0, 10) : todayInputDate()}
-              disabled
-              className={`${CONTROL_BASE} w-full bg-slate-100 text-slate-500 cursor-not-allowed`}
-            />
+            {isEditingEnrollmentDate ? (
+              <input
+                type="date"
+                value={editDraft.created_at ? String(editDraft.created_at).slice(0, 10) : todayInputDate()}
+                onChange={(e) =>
+                  setEditDraft((p) => ({ ...p, created_at: e.target.value }))
+                }
+                className={`${CONTROL_BASE} w-full`}
+              />
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={editDraft.created_at ? String(editDraft.created_at).slice(0, 10) : todayInputDate()}
+                  disabled
+                  className={`${CONTROL_BASE} w-full bg-slate-100 text-slate-500 cursor-not-allowed`}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("Are you sure you want to edit the Enrollment Date?")) {
+                      setIsEditingEnrollmentDate(true);
+                    }
+                  }}
+                  className="flex h-10 w-10 flex-none items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition"
+                  title="Edit Enrollment Date"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </Field>
           <Field label="Expected Payment Start Date">
             <input
@@ -654,9 +823,10 @@ export function CandidateDetailsForm({
               type="button"
               variant="secondary"
               onClick={generateExpectedSchedule}
+              disabled={isScheduleDisabled}
               className="w-full"
             >
-              Generate Schedule
+              {isScheduleDisabled ? "Schedule Generated" : "Generate Schedule"}
             </ControlButton>
           </Field>
         </div>
@@ -741,163 +911,63 @@ export function CandidateDetailsForm({
               creating due unless expected is entered.
             </p>
           </div>
-          <ControlButton
-            variant="secondary"
-            onClick={() => {
-              const newKey = createManualPaymentKey();
-              setLastAddedKey(newKey);
-              setEditDraft((prev) => ({
-                ...prev,
-                expected_payments: [
-                  {
-                    expected_date: "",
-                    actual_date: "",
-                    expected_payment_inr: "",
-                    actual_payment_inr: "",
-                    notes: "",
-                    source_type: "admin",
-                    manual_payment_key: newKey,
-                  },
-                  ...(Array.isArray(prev.expected_payments)
-                    ? prev.expected_payments
-                    : []),
-                ],
-              }));
-            }}
-          >
-            <Plus size={14} className="mr-1" />
-            Add
-          </ControlButton>
         </div>
         <div className="space-y-2">
           {expectedRows.map((row, index) => {
             const isNewlyAdded = row.manual_payment_key && row.manual_payment_key === lastAddedKey;
-            const isDragging = index === draggedIndex;
-            const isDragOver = index === dragOverIndex;
+            const actualDates = row.actual_date ? row.actual_date.split(",").map(d => d.trim()) : [];
+            const actualPayments = row.actual_payment_list ? row.actual_payment_list.split(",").map(a => a.trim()) : [];
+            const subRowCount = Math.max(1, actualDates.length);
 
             return (
               <div
                 key={row.schedule_id || row.manual_payment_key || index}
-                draggable={true}
-                onDragStart={(e) => handleDragStart(e, index)}
-                onDragEnd={() => {
-                  setDraggedIndex(null);
-                  setDragOverIndex(null);
-                }}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, index)}
-                className={`grid gap-3 rounded-xl border p-3 md:grid-cols-[auto_1fr_1fr_1fr_1fr_1fr_1.4fr_auto] items-center cursor-default drag-row-transition
+                className={`grid gap-3 rounded-xl border p-3 md:grid-cols-[1fr_1fr_2fr] items-start cursor-default border-slate-200 bg-slate-50/60
                   ${isNewlyAdded ? "newly-added-row" : ""}
-                  ${isDragging ? "opacity-40 border-dashed border-slate-350 bg-slate-100/50" : ""}
-                  ${isDragOver ? "border-indigo-400 bg-indigo-50/40 shadow-md transform scale-[1.01]" : "border-slate-200 bg-slate-50/60"}
                 `}
               >
-                {/* Grip Handle */}
-                <div 
-                  className="flex items-center justify-center cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-655 mt-6 h-10 w-6"
-                  title="Drag to reorder"
-                >
-                  <GripVertical size={20} />
-                </div>
-
                 <Field label="Expected Date">
-                  <input
-                    type="date"
-                    value={String(row.expected_date || row.date || "").slice(
-                      0,
-                      10,
-                    )}
-                    onChange={(e) =>
-                      updateExpectedRow(setEditDraft, index, {
-                        expected_date: e.target.value,
-                      })
-                    }
-                    className={`${CONTROL_BASE} w-full`}
-                  />
-                </Field>
-                <Field label="Actual Date">
-                  <input
-                    type="date"
-                    value={String(row.actual_date || row.date || "").slice(0, 10)}
-                    onChange={(e) =>
-                      updateExpectedRow(setEditDraft, index, {
-                        actual_date: e.target.value,
-                        actual_payment_touched: true,
-                        manual_payment_key:
-                          row.manual_payment_key || createManualPaymentKey(),
-                      })
-                    }
-                    className={`${CONTROL_BASE} w-full`}
-                  />
-                </Field>
-                <Field label="Expected Payment">
                   <ControlInput
-                    value={
-                      row.expected_payment_inr ?? row.expected_amount_inr ?? ""
-                    }
-                    onChange={(e) =>
-                      updateExpectedRow(setEditDraft, index, {
-                        expected_payment_inr: e.target.value,
-                        expected_amount_inr: e.target.value,
-                      })
-                    }
-                    placeholder="0"
-                    className="w-full"
+                    value={formatToDdMmYyyy(row.expected_date ? String(row.expected_date).slice(0, 10) : addMonthsInput(editDraft.expected_payment_start_date || editDraft.created_at || todayInputDate(), index))}
+                    disabled
+                    className="w-full bg-slate-100 text-slate-500 cursor-not-allowed"
                   />
                 </Field>
-                <Field label="Actual Payment">
+                <Field label="Expected Payment (INR)">
                   <ControlInput
-                    value={row.actual_payment_inr ?? ""}
-                    onChange={(e) =>
-                      updateExpectedRow(setEditDraft, index, {
-                        actual_payment_inr: e.target.value,
-                        actual_date:
-                          row.actual_date ||
-                          row.expected_date ||
-                          row.date ||
-                          todayInputDate(),
-                        actual_payment_touched: true,
-                        manual_payment_key:
-                          row.manual_payment_key || createManualPaymentKey(),
-                      })
-                    }
-                    placeholder="0"
-                    className="w-full"
+                    value={row.expected_payment_inr ?? row.expected_amount_inr ?? editDraft.monthly_fee_inr ?? ""}
+                    disabled
+                    placeholder="-"
+                    className="w-full bg-slate-100 text-slate-500 cursor-not-allowed"
                   />
                 </Field>
-                <Field label="Source">
-                  <div className="flex h-10 items-center rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-600">
-                    {sourceLabel(row)}
-                  </div>
-                </Field>
-                <Field label="Notes">
-                  <ControlInput
-                    value={row.notes || ""}
-                    onChange={(e) =>
-                      updateExpectedRow(setEditDraft, index, {
-                        notes: e.target.value,
-                      })
-                    }
-                    placeholder="Optional"
-                    className="w-full"
-                  />
-                </Field>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setEditDraft((prev) => ({
-                      ...prev,
-                      expected_payments: expectedRows.filter(
-                        (_, i) => i !== index,
-                      ),
-                    }))
-                  }
-                  className="mt-6 inline-flex h-10 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 px-3 text-rose-700"
-                  title="Remove row"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div className="space-y-3">
+                  {Array.from({ length: subRowCount }).map((_, subIdx) => {
+                    const actDate = actualDates[subIdx] || "";
+                    const actAmt = actualPayments[subIdx] || "";
+
+                    return (
+                      <div key={subIdx} className="grid gap-2 grid-cols-2">
+                        <Field label={subIdx === 0 ? "Actual Date(s)" : ""}>
+                          <ControlInput
+                            value={formatToDdMmYyyy(actDate) || "-"}
+                            disabled
+                            placeholder="-"
+                            className="w-full bg-slate-100 text-slate-500 cursor-not-allowed"
+                          />
+                        </Field>
+                        <Field label={subIdx === 0 ? "Actual Payment(s) (INR)" : ""}>
+                          <ControlInput
+                            value={actAmt ? String(actAmt) : "-"}
+                            disabled
+                            placeholder="-"
+                            className="w-full bg-slate-100 text-slate-500 cursor-not-allowed"
+                          />
+                        </Field>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             );
           })}

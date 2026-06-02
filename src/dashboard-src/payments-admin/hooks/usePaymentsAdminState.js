@@ -7,7 +7,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 // Ordered list of tab keys as they appear in the UI
 const PAYMENTS_TAB_ORDER = [
   "month", "all", "batch", "fee",
-  "discounts", "payments", "rawlogs", "invoice", "import",
+  "discounts", "payments", "rawlogs", "invoice",
 ];
 
 // Maps each UI tab key to its backend action_key stored in admin_user_permission
@@ -20,7 +20,6 @@ const PAYMENTS_ACTION_FOR_TAB = {
   payments:  "tab_payments",
   rawlogs:   "tab_rawlogs",
   invoice:   "tab_invoice",
-  import:    "tab_import",
 };
 
 function derivePermittedTabs(role, paymentActions) {
@@ -64,7 +63,6 @@ export function usePaymentsAdminState() {
   const [savingEnrollmentId, setSavingEnrollmentId] = useState("");
   const [sendingAgreementEnrollmentId, setSendingAgreementEnrollmentId] = useState("");
   const [updatingBatchEnrollmentId, setUpdatingBatchEnrollmentId] = useState("");
-  const [refundingPaymentId, setRefundingPaymentId] = useState("");
   const [reconciling, setReconciling] = useState(false);
   const [editDraft, setEditDraft] = useState(null);
   const [batchForm, setBatchForm] = useState({ name: "", description: "" });
@@ -96,6 +94,8 @@ export function usePaymentsAdminState() {
   const [rawSearch, setRawSearch] = useState("");
   const [allStatusFilter, setAllStatusFilter] = useState("");
   const [allBatchFilter, setAllBatchFilter] = useState("");
+  const [allSortBy, setAllSortBy] = useState("created_at");
+  const [allSortOrder, setAllSortOrder] = useState("desc");
   const [allSummary, setAllSummary] = useState({
     total_enrollments: 0,
     total_active: 0,
@@ -117,6 +117,7 @@ export function usePaymentsAdminState() {
     rows: [],
   });
   const [feeBreakdownLoading, setFeeBreakdownLoading] = useState(false);
+  const [manualPaymentModal, setManualPaymentModal] = useState({ open: false, mode: "create", data: null });
   const [feeBreakdownCache, setFeeBreakdownCache] = useState({});
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -135,6 +136,8 @@ export function usePaymentsAdminState() {
   const [invoicePaymentRows, setInvoicePaymentRows] = useState([]);
   const [selectedInvoicePaymentId, setSelectedInvoicePaymentId] = useState("");
   const [candidateOptions, setCandidateOptions] = useState([]);
+  const [isImportingPayments, setIsImportingPayments] = useState(false);
+  const [isImportingCandidates, setIsImportingCandidates] = useState(false);
 
   const abortControllerRef = useRef(null);
 
@@ -183,6 +186,8 @@ export function usePaymentsAdminState() {
           search: debouncedAllSearch || undefined,
           status: allStatusFilter || undefined,
           batch_id: allBatchFilter || undefined,
+          sortBy: allSortBy,
+          sortOrder: allSortOrder,
         });
         if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
@@ -273,9 +278,6 @@ export function usePaymentsAdminState() {
         setRows(res.data.rows || []);
         setRawEventTypes(res.data.event_types || []);
         setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
-      } else if (tab === "import") {
-        setRows([]);
-        setPagination({ page: 1, limit: rowsPerPage, total: 0, total_pages: 1 });
       }
     } catch (err) {
       if (err?.name === "CanceledError" || err?.code === "ERR_CANCELED") {
@@ -334,6 +336,8 @@ export function usePaymentsAdminState() {
     tab === "all" ? debouncedAllSearch : null,
     tab === "all" ? allStatusFilter : null,
     tab === "all" ? allBatchFilter : null,
+    tab === "all" ? allSortBy : null,
+    tab === "all" ? allSortOrder : null,
     tab === "month" ? debouncedMonthSearch : null,
     tab === "fee" ? debouncedFeeSearch : null,
     tab === "fee" ? feeFilter : null,
@@ -354,7 +358,7 @@ export function usePaymentsAdminState() {
 
   useEffect(() => {
     if (!permittedTabs || permittedTabs.size === 0) return;
-    if (tab !== "discounts" && tab !== "invoice") return;
+    if (tab !== "discounts" && tab !== "invoice" && tab !== "payments") return;
     refreshCandidateOptions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permittedTabs, tab, debouncedEnrollmentSearchTerm]);
@@ -418,8 +422,6 @@ export function usePaymentsAdminState() {
     setSendingAgreementEnrollmentId,
     updatingBatchEnrollmentId,
     setUpdatingBatchEnrollmentId,
-    refundingPaymentId,
-    setRefundingPaymentId,
     reconciling,
     setReconciling,
     editDraft,
@@ -456,6 +458,10 @@ export function usePaymentsAdminState() {
     setAllStatusFilter,
     allBatchFilter,
     setAllBatchFilter,
+    allSortBy,
+    setAllSortBy,
+    allSortOrder,
+    setAllSortOrder,
     allSummary,
     setAllSummary,
     cohortFilter,
@@ -476,6 +482,8 @@ export function usePaymentsAdminState() {
     setPagination,
     feeSummary,
     setFeeSummary,
+    manualPaymentModal,
+    setManualPaymentModal,
     enrollmentSearchTerm,
     setEnrollmentSearchTerm,
     invoiceRows,
@@ -486,6 +494,10 @@ export function usePaymentsAdminState() {
     setSelectedInvoicePaymentId,
     candidateOptions,
     setCandidateOptions,
+    isImportingPayments,
+    setIsImportingPayments,
+    isImportingCandidates,
+    setIsImportingCandidates,
     refreshBatches,
     refreshCandidateOptions,
     loadTabData,

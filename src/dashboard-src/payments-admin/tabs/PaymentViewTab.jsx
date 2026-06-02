@@ -1,7 +1,7 @@
 import { ActionChip } from "../components/controls";
 import { formatInrFromPaise } from "../utils/formatters";
 
-export function PaymentViewTab({ rows, handleRefund, refundingPaymentId }) {
+export function PaymentViewTab({ rows }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200">
       <table className="min-w-full text-sm">
@@ -12,7 +12,6 @@ export function PaymentViewTab({ rows, handleRefund, refundingPaymentId }) {
             <th className="px-2 py-2">Amount</th>
             <th className="px-2 py-2">Status</th>
             <th className="px-2 py-2">Payment ID</th>
-            <th className="px-2 py-2">Refund</th>
           </tr>
         </thead>
         <tbody>
@@ -28,26 +27,6 @@ export function PaymentViewTab({ rows, handleRefund, refundingPaymentId }) {
               </td>
               <td className="px-2 py-2">{r.payment_status || "-"}</td>
               <td className="px-2 py-2">{r.razorpay_payment_id || "-"}</td>
-              <td className="px-2 py-2">
-                <ActionChip
-                  onClick={() => handleRefund(r.payment_id)}
-                  disabled={
-                    !r.payment_id ||
-                    refundingPaymentId === r.payment_id ||
-                    r.payment_status === "refunded" ||
-                    r.is_refund_entry
-                  }
-                  variant="danger"
-                >
-                  {r.is_refund_entry
-                    ? "Refund Entry"
-                    : r.payment_status === "refunded"
-                      ? "Refunded"
-                      : refundingPaymentId === r.payment_id
-                        ? "Processing..."
-                        : "Refund"}
-                </ActionChip>
-              </td>
             </tr>
           ))}
         </tbody>

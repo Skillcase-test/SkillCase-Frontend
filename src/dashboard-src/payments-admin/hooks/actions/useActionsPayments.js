@@ -8,11 +8,11 @@ export function useActionsPayments(state) {
     setError,
     setReconciling,
     loadTabData,
-    setRefundingPaymentId,
     setFeeBreakdownModal,
     feeBreakdownCache,
     setFeeBreakdownCache,
     setFeeBreakdownLoading,
+    setManualPaymentModal,
   } = state;
 
   async function exportPaymentsCsv() {
@@ -57,18 +57,6 @@ export function useActionsPayments(state) {
     }
   }
 
-  async function handleRefund(paymentId) {
-    if (!window.confirm("Process refund for this payment?")) return;
-    setRefundingPaymentId(paymentId);
-    try {
-      await paymentsAdminApi.refundPayment(paymentId);
-      await loadTabData();
-    } catch (err) {
-      setError(err?.response?.data?.msg || "Refund failed");
-    } finally {
-      setRefundingPaymentId("");
-    }
-  }
 
   async function openFeeBreakdown({ enrollmentId, studentName }) {
     const cacheKey = `${enrollmentId}|${year}|${month}|due`;
@@ -134,5 +122,47 @@ export function useActionsPayments(state) {
     }
   }
 
-  return { exportPaymentsCsv, handleReconcile, handleRefund, openFeeBreakdown, openDiscountBreakdown };
+  async function handleCreateManualTransaction(payload) {
+    setError("");
+    try {
+      await paymentsAdminApi.createManualTransaction(payload);
+      setManualPaymentModal({ open: false, mode: "create", data: null });
+      await loadTabData();
+    } catch (err) {
+      setError(err?.response?.data?.msg || "Failed to create manual payment");
+    }
+  }
+
+  async function handleUpdateManualTransaction(paymentId, payload) {
+    setError("");
+    try {
+      await paymentsAdminApi.updateManualTransaction(paymentId, payload);
+      setManualPaymentModal({ open: false, mode: "create", data: null });
+      await loadTabData();
+    } catch (err) {
+      setError(err?.response?.data?.msg || "Failed to update manual payment");
+    }
+  }
+
+  async function handleDeleteManualTransaction(paymentId) {
+    if (!window.confirm("Are you sure you want to delete this manual payment transaction?")) return;
+    setError("");
+    try {
+      await paymentsAdminApi.deleteManualTransaction(paymentId);
+      setManualPaymentModal({ open: false, mode: "create", data: null });
+      await loadTabData();
+    } catch (err) {
+      setError(err?.response?.data?.msg || "Failed to delete manual payment");
+    }
+  }
+
+  return {
+    exportPaymentsCsv,
+    handleReconcile,
+    openFeeBreakdown,
+    openDiscountBreakdown,
+    handleCreateManualTransaction,
+    handleUpdateManualTransaction,
+    handleDeleteManualTransaction,
+  };
 }
