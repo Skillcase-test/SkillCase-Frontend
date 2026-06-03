@@ -243,6 +243,10 @@ export function useActionsEnrollment(state) {
       setError("Cannot send agreements to razorpay email addresses. A valid candidate email is required.");
       return;
     }
+    if (String(row?.student_name || "").trim().startsWith("#")) {
+      setError("Cannot send agreements to candidates with placeholder names starting with '#'. Please update the candidate name first.");
+      return;
+    }
     const confirmed = window.confirm(
       `Send agreement to ${row.student_name || "this candidate"} at ${row.student_email}?`,
     );
