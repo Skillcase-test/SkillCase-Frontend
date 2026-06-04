@@ -80,7 +80,8 @@ function LandingFeatureCardsSkeleton() {
 export default function LandingPage() {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
-  const currentLevel = user?.user_prof_level || "A1";
+  const rawLevel = user?.user_prof_level || "A1";
+  const currentLevel = (rawLevel === "B1" || rawLevel === "B2") ? "A2" : rawLevel;
   const { sections } = useLandingSections(currentLevel);
 
   const [showA1MigrationModal, setShowA1MigrationModal] = useState(false);
@@ -345,7 +346,10 @@ export default function LandingPage() {
     isA1User && ["legacy_a1", "legacy_acknowledged"].includes(migrationStatus);
   const shouldHoldA1FeatureRender = isA1User && migrationStatusLoading;
 
-  const isA2User = (user?.user_prof_level || "").toLowerCase() === "a2";
+  const isA2User =
+    (user?.user_prof_level || "").toLowerCase() === "a2" ||
+    (user?.user_prof_level || "").toLowerCase() === "b1" ||
+    (user?.user_prof_level || "").toLowerCase() === "b2";
   const isDynamic = isA2User || isRevampA1User;
 
   useEffect(() => {

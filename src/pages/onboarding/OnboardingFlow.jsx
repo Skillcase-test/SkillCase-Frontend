@@ -51,6 +51,7 @@ const ONBOARDING_STEP_EVENTS = {
   6: "lg_onboarding_status_viewed",
   7: "lg_onboarding_level_viewed",
   8: "lg_onboarding_preference_viewed",
+  9: "lg_onboarding_b1_b2_preference_viewed",
 };
 
 function normalizeOnboardingValue(value) {
@@ -71,10 +72,13 @@ function isLearnGermanPref(pref) {
 }
 
 const getPostLoginRoute = (user) => {
-  if (user.lg_preferred_mode === "learn") {
+  if (user?.lg_preferred_mode === "job_screening" || user?.german_preference === "3") {
+    return "/job-screening";
+  }
+  if (user?.lg_preferred_mode === "learn") {
     return "/learn-german";
   }
-  if (isLearnGermanPref(user.german_preference)) {
+  if (isLearnGermanPref(user?.german_preference)) {
     return "/learn-german";
   }
   return "/";
@@ -154,7 +158,7 @@ const OnboardingFlow = () => {
   const lastNameRef = useRef(null);
 
   // Back navigation map: each step knows its previous step
-  const BACK_MAP = { 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7 };
+  const BACK_MAP = { 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 7 };
   const handleBack = () => {
     setError("");
     setStep((s) => {
@@ -352,8 +356,14 @@ const OnboardingFlow = () => {
   const handleGermanLevelSubmit = () => {
     if (germanLevel) {
       setError("");
-      setPreference("2");
-      setStep(8);
+      const isB1OrB2 = germanLevel.includes("B1") || germanLevel.includes("B2");
+      if (isB1OrB2) {
+        setPreference("");
+        setStep(9);
+      } else {
+        setPreference("2");
+        setStep(8);
+      }
     }
   };
 
@@ -398,6 +408,47 @@ const OnboardingFlow = () => {
           replace: true,
           state: { fromOnboardingFirstLanding: true },
         });
+      }
+    } catch (err) {
+      setError(
+        err.response?.data?.msg || "Something went wrong. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleB1B2PreferenceSubmit = async () => {
+    if (!preference) return;
+    setLoading(true);
+    setError("");
+    try {
+      const { data } = await api.post("/user/complete-onboarding-profile", {
+        phone: phoneNumber,
+        firstName,
+        lastName,
+        occupation,
+        germanStatus,
+        germanLevel,
+        germanPreference: preference,
+      });
+      dispatch(loginSuccess({ token: data.token, user: data.user }));
+      localStorage.setItem(
+        "lg_preferred_mode",
+        preference === "3" ? "job_screening" : "practice",
+      );
+      trackClarityEvent("lg_onboarding_completed", {
+        lg_funnel: "onboarding",
+        lg_selected_mode: preference === "3" ? "job_screening" : "practice",
+        lg_selected_level: germanLevel,
+        lg_german_status: germanStatus,
+        lg_occupation: occupation,
+      }, "lg_onboarding_completed");
+
+      if (preference === "3") {
+        navigate("/job-screening", { replace: true });
+      } else {
+        navigate("/", { replace: true });
       }
     } catch (err) {
       setError(
@@ -1059,6 +1110,83 @@ const OnboardingFlow = () => {
                   onNext={handlePreferenceSubmit}
                   disabled={!isPreferenceValid || loading}
                   nextText="Next"
+                />
+              </div>
+            </motion.div>
+          )}
+
+          {step === 9 && (
+            <motion.div
+              key="b1_b2_preference"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-[#E5F0FF] flex flex-col"
+            >
+              <TopSection
+                mascot={mayaSmiling}
+                tooltip="Since you already have intermediate or advanced German skills, which path would you like to take?"
+              />
+
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-10">
+                <div className="flex-1">
+                  <h2 className="text-black text-[16px] font-medium mb-4">
+                    Choose your pathway
+                  </h2>
+                  <div className="flex flex-col gap-3 w-full pb-2 mt-2">
+                    {[
+                      {
+                        id: "A",
+                        code: "2",
+                        title: "Practice my German",
+                      },
+                      {
+                        id: "B",
+                        code: "3",
+                        title: "Job Screening",
+                      }
+                    ].map((opt) => {
+                      const isSelected = preference === opt.code;
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => setPreference(opt.code)}
+                          className={`w-full p-3 rounded-xl border text-left flex items-center gap-4 transition-all ${
+                            isSelected
+                              ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
+                              : "border-zinc-300 bg-white hover:bg-zinc-50"
+                          }`}
+                        >
+                          <div
+                            className={`w-8 h-8 rounded shrink-0 flex items-center justify-center font-bold transition-colors ${
+                              isSelected
+                                ? "bg-blue-100 text-[#1E76F3]"
+                                : "bg-black/5 text-gray-500"
+                            }`}
+                          >
+                            {opt.id}
+                          </div>
+                          <span
+                            className={`text-[14px] font-semibold transition-colors ${
+                              isSelected ? "text-[#1E76F3]" : "text-[#111827]"
+                            }`}
+                          >
+                            {opt.title}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                {error && (
+                  <p className="text-red-500 text-[13px] font-medium mt-2 mb-1">
+                    {error}
+                  </p>
+                )}
+                <BottomActions
+                  onNext={handleB1B2PreferenceSubmit}
+                  disabled={!preference || loading}
+                  nextText="Finish Onboarding"
                 />
               </div>
             </motion.div>

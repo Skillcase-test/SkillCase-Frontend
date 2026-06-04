@@ -1,0 +1,27 @@
+import api from "./axios";
+
+export const adminGetCandidates = (page = 1, limit = 10, search = "") =>
+  api.get("/admin/job-screening/candidates", {
+    params: { page, limit, search },
+  });
+
+export const adminGetCandidateDetail = (userId) =>
+  api.get(`/admin/job-screening/candidates/${userId}`);
+
+export const adminUpdateCandidate = (userId, payload) =>
+  api.put(`/admin/job-screening/candidates/${userId}`, payload);
+
+export const adminUploadOfferLetter = (userId, formData) =>
+  api.post(`/admin/job-screening/candidates/${userId}/offer-letter`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+export const getAdminDropdownOptions = () => api.get("/admin/job-screening/options");
+
+export const adminGetSettings = () =>
+  api.get("/admin/job-screening/settings");
+
+export const adminUpdateSettings = (payload) =>
+  api.post("/admin/job-screening/settings", payload);

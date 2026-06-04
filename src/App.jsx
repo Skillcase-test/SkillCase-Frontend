@@ -122,6 +122,8 @@ const TermsSignPage = lazy(() => import("./pages/terms/TermsSignPage"));
 const Dashboard = lazy(() => import("./dashboard-src/pages/Dashboard"));
 const OnboardingFlow = lazy(() => import("./pages/onboarding/OnboardingFlow"));
 const LearnGermanHome = lazy(() => import("./pages/learnGerman/LearnGermanHome"));
+const JobScreening = lazy(() => import("./pages/jobScreening/JobScreening"));
+const JobScreeningAdmin = lazy(() => import("./pages/admin/JobScreeningAdmin"));
 const NewLessonFlow = lazy(() =>
   import("./pages/learnGerman/lesson/NewLessonFlow"),
 );
@@ -667,6 +669,10 @@ function AppContent() {
                 element={lazyScreen(<OnboardingFlow />, "Loading Onboarding...")}
               />
               <Route
+                path="/job-screening"
+                element={lazyScreen(<JobScreening />, "Loading Job Screening...")}
+              />
+              <Route
                 path="/continue"
                 element={lazyScreen(<ContinuePractice />, "Loading...")}
               />
@@ -949,7 +955,10 @@ function ConditionalFooter() {
     location.pathname.startsWith("/terms/sign") ||
     location.pathname.startsWith("/news") ||
     location.pathname.startsWith("/onboarding") ||
-    location.pathname.startsWith("/learn-german");
+    location.pathname.startsWith("/learn-german") ||
+    location.pathname.startsWith("/job-screening") ||
+    location.pathname.startsWith("/interview") ||
+    location.pathname.startsWith("/admin");
 
   if (hideFooter) return null;
   return <Footer />;
@@ -963,7 +972,8 @@ function ConditionalNav() {
     location.pathname === "/thank-you" ||
     location.pathname === "/internal/lead-form" ||
     location.pathname.startsWith("/terms/sign") ||
-    location.pathname.startsWith("/onboarding");
+    location.pathname.startsWith("/onboarding") ||
+    location.pathname.startsWith("/interview");
 
   const disableNav = /^\/exam\/[^/]+\/take$/.test(location.pathname);
 

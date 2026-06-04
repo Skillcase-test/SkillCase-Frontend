@@ -12,7 +12,10 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
   const { user } = useSelector((state) => state.auth);
   const profLevel = user?.user_prof_level || "A1";
 
-  const isA2 = profLevel.toLowerCase() === "a2";
+  const isA2 =
+    profLevel.toLowerCase() === "a2" ||
+    profLevel.toLowerCase() === "b1" ||
+    profLevel.toLowerCase() === "b2";
 
   const a1Features = [
     {

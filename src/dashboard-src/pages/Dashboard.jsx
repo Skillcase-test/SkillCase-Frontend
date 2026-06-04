@@ -52,6 +52,9 @@ const ExploreCandidatesAdmin = lazy(() => import("./ExploreCandidatesAdmin"));
 const PaymentsAdmin = lazy(() => import("./PaymentsAdmin"));
 const CallEnginePage = lazy(() => import("./CallEngine"));
 const DynamicLessonAdmin = lazy(() => import("../../pages/admin/DynamicLessonAdmin"));
+const JobScreeningAdmin = lazy(() =>
+  import("../../pages/admin/JobScreeningAdmin")
+);
 
 const A1FlashcardAdd = lazy(() => import("./a1/flashcard/add"));
 const A1FlashcardManage = lazy(() => import("./a1/flashcard/manage"));
@@ -701,6 +704,12 @@ export default function Dashboard() {
         path: "/admin/explore-candidates",
         module: "explore_candidates",
       },
+      {
+        key: "job-screening",
+        label: "Job Screening",
+        path: "/admin/job-screening",
+        module: "job_screening",
+      },
     ].filter((item) => hasPermission(me, item.module, "view"));
 
     const a1ContentAllowed = hasPermission(me, "content", "view");
@@ -1040,6 +1049,14 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "explore_candidates")}>
                     <ExploreCandidatesAdmin />
+                  </Guard>
+                }
+              />
+              <Route
+                path="job-screening"
+                element={
+                  <Guard allowed={hasPermission(me, "job_screening")}>
+                    <JobScreeningAdmin />
                   </Guard>
                 }
               />

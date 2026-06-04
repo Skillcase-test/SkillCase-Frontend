@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   AlertCircle,
   ArrowRight,
@@ -14,6 +15,7 @@ import {
   User,
 } from "lucide-react";
 import { interviewToolsApi } from "../../api/interviewToolsApi";
+import { checkInterview } from "../../api/jobScreeningApi";
 import InterviewVideoPlayer from "./shared/InterviewVideoPlayer";
 import useInterviewRecorder from "./shared/useInterviewRecorder";
 import { uploadFileToSignedUrl } from "./shared/uploadFileToSignedUrl";
@@ -76,6 +78,9 @@ const ACTIVE_STAGES = new Set([
 
 export default function PublicInterviewPage() {
   const { slug } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
   const [position, setPosition] = useState(null);
   const [submission, setSubmission] = useState(null);
   const [answers, setAnswers] = useState([]);
@@ -84,6 +89,24 @@ export default function PublicInterviewPage() {
     candidate_email: "",
     candidate_phone: "",
   });
+
+  const query = useMemo(() => new URLSearchParams(window.location.search), []);
+  const isJobScreeningFlow = query.get("source") === "job_screening" || position?.interview_scope === "skillcase_interviews";
+  const isJobScreeningCandidate = isAuthenticated && isJobScreeningFlow;
+
+  useEffect(() => {
+    if (isJobScreeningCandidate) {
+      const stateName = location.state?.name;
+      const stateEmail = location.state?.email;
+      const statePhone = location.state?.phone;
+
+      setForm({
+        candidate_name: stateName || "",
+        candidate_email: stateEmail || "",
+        candidate_phone: statePhone || "",
+      });
+    }
+  }, [isJobScreeningCandidate, location.state]);
   const [globalTimeLeft, setGlobalTimeLeft] = useState(null);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const pendingNavigationRef = useRef(null);
@@ -92,6 +115,7 @@ export default function PublicInterviewPage() {
   const [thinkingRemaining, setThinkingRemaining] = useState(0);
   const [submittingAnswer, setSubmittingAnswer] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [isFinishing, setIsFinishing] = useState(false);
   const [inviteToken, setInviteToken] = useState("");
   const [mobileStep, setMobileStep] = useState(1);
   const [postInstructionsStage, setPostInstructionsStage] =
@@ -472,6 +496,13 @@ export default function PublicInterviewPage() {
       await interviewToolsApi.finishSubmission(currentSubmission.submission_id, {
         session_token: currentSubmission.session_token,
       });
+      if (isJobScreeningCandidate) {
+        try {
+          await checkInterview();
+        } catch (checkErr) {
+          console.error("Failed to auto-verify job screening interview status", checkErr);
+        }
+      }
     } catch (_) {}
     localStorage.removeItem(getStorageKey(slug));
     localStorage.removeItem(`interview_started_${slug}`);
@@ -599,16 +630,27 @@ export default function PublicInterviewPage() {
   };
 
   const finishInterview = async () => {
+    if (isFinishing) return;
+    setIsFinishing(true);
     try {
       await interviewToolsApi.finishSubmission(submission.submission_id, {
         session_token: submission.session_token,
       });
       localStorage.removeItem(getStorageKey(slug));
       localStorage.removeItem(`interview_started_${slug}`);
+      if (isJobScreeningCandidate) {
+        try {
+          await checkInterview();
+        } catch (checkErr) {
+          console.error("Failed to auto-verify job screening interview status", checkErr);
+        }
+      }
       setStage("done");
     } catch (error) {
       console.error(error);
       setStatusMessage("Could not finish interview");
+    } finally {
+      setIsFinishing(false);
     }
   };
 
@@ -802,6 +844,7 @@ export default function PublicInterviewPage() {
                     </label>
                     <input
                       value={form.candidate_name}
+                      disabled={isJobScreeningCandidate && !!form.candidate_name}
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
@@ -809,7 +852,7 @@ export default function PublicInterviewPage() {
                         }))
                       }
                       placeholder="Jane Doe"
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#083262] focus:ring-4 focus:ring-[#083262]/5"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#083262] focus:ring-4 focus:ring-[#083262]/5 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div>
@@ -818,6 +861,7 @@ export default function PublicInterviewPage() {
                     </label>
                     <input
                       value={form.candidate_email}
+                      disabled={isJobScreeningCandidate && !!form.candidate_email}
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
@@ -825,7 +869,7 @@ export default function PublicInterviewPage() {
                         }))
                       }
                       placeholder="jane@example.com"
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#083262] focus:ring-4 focus:ring-[#083262]/5"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#083262] focus:ring-4 focus:ring-[#083262]/5 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed"
                     />
                   </div>
                   <div>
@@ -834,6 +878,7 @@ export default function PublicInterviewPage() {
                     </label>
                     <input
                       value={form.candidate_phone}
+                      disabled={isJobScreeningCandidate && !!form.candidate_phone}
                       onChange={(e) => {
                         const val = e.target.value
                           .replace(/\D/g, "")
@@ -842,7 +887,7 @@ export default function PublicInterviewPage() {
                       }}
                       placeholder="9999999999"
                       maxLength={10}
-                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#083262] focus:ring-4 focus:ring-[#083262]/5"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-[#083262] focus:ring-4 focus:ring-[#083262]/5 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -986,15 +1031,30 @@ export default function PublicInterviewPage() {
                 <div className="mt-10">
                   <button
                     type="button"
+                    disabled={isFinishing}
                     onClick={() =>
                       stage === "intro"
                         ? setStage("question")
                         : finishInterview()
                     }
-                    className="flex w-full items-center justify-center gap-2 rounded-full bg-[#083262] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#062446] shadow-md"
+                    className="flex w-full items-center justify-center gap-2 rounded-full bg-[#083262] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#062446] shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {stage === "intro" ? "Continue" : "Finish Interview"}
-                    <ArrowRight className="h-4 w-4" />
+                    {stage === "intro" ? (
+                      <>
+                        Continue
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    ) : isFinishing ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                        Finishing...
+                      </>
+                    ) : (
+                      <>
+                        Finish Interview
+                        <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -1230,6 +1290,14 @@ export default function PublicInterviewPage() {
                 {position?.thank_you_message ||
                   "We’ve received your responses successfully. Our team will review them and get back to you soon."}
               </p>
+              {isJobScreeningCandidate && (
+                <button
+                  onClick={() => navigate("/job-screening")}
+                  className="mt-8 px-8 py-3 bg-[#083262] text-white hover:bg-[#062446] rounded-full font-bold text-sm transition-all shadow-md active:scale-[0.99]"
+                >
+                  Return to Job Screening
+                </button>
+              )}
             </div>
           </div>
         ) : null}
