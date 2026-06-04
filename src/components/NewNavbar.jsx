@@ -41,6 +41,17 @@ export default function Navbar({
   const navigate = useNavigate();
   const location = useLocation();
 
+  const isJobScreening = isAuthenticated && (user?.german_preference === "3" || user?.lg_preferred_mode === "job_screening" || location.pathname.startsWith("/job-screening"));
+
+  if (isJobScreening) {
+    return (
+      <JobScreeningNavbar
+        minimal={minimal}
+        disableNavigation={disableNavigation}
+      />
+    );
+  }
+
   const [streak, setStreak] = useState(0);
   const [isLearnMode, setIsLearnMode] = useState(() => {
     const cached = localStorage.getItem("lg_preferred_mode");
@@ -444,6 +455,7 @@ export default function Navbar({
           onClick={() => {
             hapticLight();
             if (!isAuthenticated) { navigate("/"); return; }
+            if (user?.german_preference === "3" || user?.lg_preferred_mode === "job_screening") { navigate("/job-screening"); return; }
             if (isLearnMode) { navigate("/learn-german"); return; }
             navigate(profLevel === "A2" ? "/a2" : "/a1");
           }}
@@ -662,7 +674,7 @@ export default function Navbar({
         <div className="lg:hidden absolute top-[55px] left-0 right-0 bg-white border-b border-[#efefef] shadow-lg z-40">
           <nav className="px-4 py-4 space-y-1">
             <Link
-              to="/"
+              to={isAuthenticated && (user?.german_preference === "3" || user?.lg_preferred_mode === "job_screening") ? "/job-screening" : "/"}
               className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
               onClick={() => setIsMenuOpen(false)}
             >
@@ -857,7 +869,11 @@ function PracticeNavbar({ minimal = false, disableNavigation = false, streak = 0
       aria-disabled={disableNavigation}
     >
       <div className="h-[55px] lg:h-[72px] flex items-center justify-between px-4 lg:px-8 max-w-7xl mx-auto">
-        <Link to="/" className="flex-shrink-0" onClick={hapticMedium}>
+        <Link
+          to={isAuthenticated && (user?.german_preference === "3" || user?.lg_preferred_mode === "job_screening") ? "/job-screening" : "/"}
+          className="flex-shrink-0"
+          onClick={hapticMedium}
+        >
           <img
             src={images.skillcaseLogo}
             alt="Skillcase"
@@ -1003,7 +1019,10 @@ function PracticeNavbar({ minimal = false, disableNavigation = false, streak = 0
           style={{ top: "calc(55px + env(safe-area-inset-top))" }}
         >
           <nav className="px-4 py-4 space-y-1">
-            <MobilePracticeLink to="/" onClick={() => setIsMenuOpen(false)}>
+            <MobilePracticeLink
+              to={isAuthenticated && (user?.german_preference === "3" || user?.lg_preferred_mode === "job_screening") ? "/job-screening" : "/"}
+              onClick={() => setIsMenuOpen(false)}
+            >
               Home
             </MobilePracticeLink>
             {profLevel === "A2" ? (
@@ -1252,5 +1271,146 @@ function PracticeAvatar({ user, progressRatio = 0 }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function JobScreeningNavbar({ minimal = false, disableNavigation = false }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    setIsMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (disableNavigation) setIsMenuOpen(false);
+  }, [disableNavigation]);
+
+  const handleLogout = () => {
+    resetArticleEducation(user?.user_id);
+    dispatch(logout());
+    navigate("/");
+  };
+
+  const showNavLinks = !minimal || isAuthenticated;
+
+  const renderSimpleAvatar = () => {
+    return (
+      <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 border border-[#e9eaeb] flex items-center justify-center">
+        {user?.profile_pic_url ? (
+          <img
+            src={user.profile_pic_url}
+            alt="Profile"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
+            <circle cx="50" cy="50" r="50" fill="#D1D5DB" />
+            <circle cx="50" cy="38" r="16" fill="#9CA3AF" />
+            <ellipse cx="50" cy="78" rx="28" ry="20" fill="#9CA3AF" />
+          </svg>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <header
+      className={`bg-white border-b border-[#efefef] sticky top-0 shadow-sm ${isMenuOpen ? "z-[150]" : "z-50"} ${
+        disableNavigation ? "pointer-events-none" : ""
+      }`}
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+      aria-disabled={disableNavigation}
+    >
+      <div className="h-[55px] lg:h-[72px] flex items-center justify-between px-4 lg:px-8 max-w-7xl mx-auto">
+        <Link to="/job-screening" className="flex-shrink-0" onClick={hapticMedium}>
+          <img
+            src={images.skillcaseLogo}
+            alt="Skillcase"
+            className="h-4 w-26 lg:h-6 lg:w-38"
+          />
+        </Link>
+
+        {showNavLinks && (
+          <nav className="hidden lg:flex items-center gap-6">
+            {isAuthenticated ? (
+              <div className="flex items-center gap-4 ml-4">
+                <Link to="/profile" className="flex-shrink-0">
+                  {renderSimpleAvatar()}
+                </Link>
+
+                <button
+                  onClick={handleLogout}
+                  className="bg-[#edb843] text-[#002856] px-4 py-2 rounded-lg hover:bg-[#d4a53c] transition font-semibold text-sm cursor-pointer"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <Link
+                to="/login"
+                className="block bg-[#edb843] text-[#002856] px-5 py-2 rounded-lg hover:bg-[#d4a53c] transition font-semibold text-sm ml-4"
+              >
+                Get Started
+              </Link>
+            )}
+          </nav>
+        )}
+
+        {showNavLinks && (
+          <div className="lg:hidden flex items-center gap-3">
+            {isAuthenticated && (
+              <Link to="/profile" className="flex-shrink-0">
+                {renderSimpleAvatar()}
+              </Link>
+            )}
+
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center"
+              aria-label="Toggle menu"
+            >
+              {isMenuOpen ? (
+                <X className="w-6 h-6 text-[#414651]" />
+              ) : (
+                <Menu className="w-6 h-6 text-[#414651]" />
+              )}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {isMenuOpen && (
+        <div
+          className="lg:hidden absolute left-0 right-0 bg-white border-b border-[#efefef] shadow-lg z-40"
+          style={{ top: "calc(55px + env(safe-area-inset-top))" }}
+        >
+          <nav className="px-4 py-4 space-y-1">
+            {isAuthenticated ? (
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setIsMenuOpen(false);
+                }}
+                className="w-full px-4 py-3 rounded-lg bg-[#edb843] text-[#002856] font-semibold text-center cursor-pointer"
+              >
+                Logout
+              </button>
+            ) : (
+              <Link
+                to="/login"
+                className="block px-4 py-3 rounded-lg bg-[#edb843] text-[#002856] font-semibold text-center"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Get Started
+              </Link>
+            )}
+          </nav>
+        </div>
+      )}
+    </header>
   );
 }

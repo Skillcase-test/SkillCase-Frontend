@@ -347,22 +347,60 @@ const OnboardingFlow = () => {
       setGermanLevel("");
       setPreference("1");
       setStep(8);
+    } else if (germanStatus === "I have completed learning German") {
+      setStep(7);
     } else {
       setPreference("2");
       setStep(7);
     }
   };
 
+  const handleInstantJobScreeningSubmit = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const { data } = await api.post("/user/complete-onboarding-profile", {
+        phone: phoneNumber,
+        firstName,
+        lastName,
+        occupation,
+        germanStatus,
+        germanLevel,
+        germanPreference: "3",
+      });
+      dispatch(loginSuccess({ token: data.token, user: data.user }));
+      localStorage.setItem("lg_preferred_mode", "job_screening");
+      trackClarityEvent("lg_onboarding_completed", {
+        lg_funnel: "onboarding",
+        lg_selected_mode: "job_screening",
+        lg_selected_level: germanLevel,
+        lg_german_status: germanStatus,
+        lg_occupation: occupation,
+      }, "lg_onboarding_completed");
+      navigate("/job-screening", { replace: true });
+    } catch (err) {
+      setError(
+        err.response?.data?.msg || "Something went wrong. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGermanLevelSubmit = () => {
     if (germanLevel) {
       setError("");
-      const isB1OrB2 = germanLevel.includes("B1") || germanLevel.includes("B2");
-      if (isB1OrB2) {
-        setPreference("");
-        setStep(9);
+      if (germanStatus === "I have completed learning German") {
+        handleInstantJobScreeningSubmit();
       } else {
-        setPreference("2");
-        setStep(8);
+        const isB1OrB2 = germanLevel.includes("B1") || germanLevel.includes("B2");
+        if (isB1OrB2) {
+          setPreference("");
+          setStep(9);
+        } else {
+          setPreference("2");
+          setStep(8);
+        }
       }
     }
   };
@@ -906,6 +944,7 @@ const OnboardingFlow = () => {
                     {[
                       { id: "A", label: "Yet to start (no knowledge)" },
                       { id: "B", label: "I am learning German" },
+                      { id: "C", label: "I have completed learning German" },
                     ].map((status) => (
                       <button
                         key={status.id}
@@ -984,7 +1023,9 @@ const OnboardingFlow = () => {
                         label:
                           "B2 - Upper Intermediate\n(I can speak fairly confidently)",
                       },
-                    ].map((lvl) => (
+                    ]
+                      .filter((lvl) => germanStatus !== "I have completed learning German" || lvl.level >= 3)
+                      .map((lvl) => (
                       <button
                         key={lvl.level}
                         onClick={() => selectGermanLevel(lvl.label)}
