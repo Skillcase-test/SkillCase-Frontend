@@ -32,3 +32,6 @@ export const deleteAdditionalDoc = (docId) =>
 export const refreshAdditionalDocs = () =>
   api.post("/job-screening/check-additional-docs");
 
+export const skipRecruiterStatus = () =>
+  api.post("/job-screening/skip-recruiter-status");
+

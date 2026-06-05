@@ -943,6 +943,7 @@ const CandidateDetail = ({
               const isReview = step.id === "review_pending";
               const isAdditionalDocs = step.id === "additional_documents";
               const isTraining = step.id === "interview_training";
+              const isRecruiterStatus = step.id === "recruiter_status";
               const isRecruiter = step.id === "recruiter_interview";
               const isOffer = step.id === "offer_letter";
 
@@ -1547,6 +1548,61 @@ const CandidateDetail = ({
                         </div>
                       )}
 
+                      {isRecruiterStatus && (
+                        <div className="space-y-3">
+                          <p>
+                            Configure recruitment partner status visibility for the candidate. Checked partners will be visible on the candidate dashboard.
+                          </p>
+
+                          {candidate.recruiter_shares && candidate.recruiter_shares.length > 0 ? (
+                            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
+                              <span className="font-bold text-[#083262] text-[10px] uppercase tracking-wider block">
+                                Partner Visibility Check-list
+                              </span>
+                              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                {candidate.recruiter_shares.map((rec) => {
+                                  const isChecked = rec.is_visible;
+                                  return (
+                                    <label
+                                      key={rec.account_id}
+                                      className="flex items-center gap-2.5 p-2 bg-white border border-slate-100 rounded-lg text-xs text-slate-700 hover:bg-slate-50/50 cursor-pointer select-none"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={(e) => {
+                                          const currentVisible = candidate.visible_recruiter_ids || [];
+                                          let newVisible;
+                                          if (e.target.checked) {
+                                            newVisible = [...currentVisible, rec.account_id];
+                                          } else {
+                                            newVisible = currentVisible.filter((id) => id !== rec.account_id);
+                                          }
+                                          onUpdate(candidate.user_id, {
+                                            visible_recruiter_ids: newVisible,
+                                          });
+                                        }}
+                                        className="rounded border-slate-200 text-[#083262] focus:ring-0 w-3.5 h-3.5"
+                                      />
+                                      <div className="flex flex-col gap-0.5">
+                                        <span className="font-bold">{rec.recruiter_email}</span>
+                                        <span className="text-[9px] text-slate-400 uppercase font-semibold">
+                                          Current Status: {rec.stage || "Submitted"}
+                                        </span>
+                                      </div>
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center text-slate-400 text-[10px] font-bold">
+                              No recruiter connections found. Share the candidate's profile via the Explorer Library to manage recruiter statuses.
+                            </div>
+                          )}
+                        </div>
+                      )}
+ 
                       {isRecruiter && (
                         <div className="space-y-3">
                           <p>

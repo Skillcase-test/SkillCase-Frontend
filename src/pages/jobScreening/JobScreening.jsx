@@ -10,6 +10,7 @@ import ReviewPendingStep from "./components/ReviewPendingStep";
 import MeetingStep from "./components/MeetingStep";
 import OfferLetterStep from "./components/OfferLetterStep";
 import AdditionalDocumentsStep from "./components/AdditionalDocumentsStep";
+import RecruiterStatusStep from "./components/RecruiterStatusStep";
 
 const JobScreening = () => {
   const [progress, setProgress] = useState(null);
@@ -111,6 +112,8 @@ const JobScreening = () => {
         return <AdditionalDocumentsStep progress={progress} onComplete={handleStepComplete} />;
       case "interview_training":
         return <MeetingStep type="training" progress={progress} onComplete={handleStepComplete} />;
+      case "recruiter_status":
+        return <RecruiterStatusStep progress={progress} onComplete={handleStepComplete} />;
       case "recruiter_interview":
         return <MeetingStep type="recruiter" progress={progress} onComplete={handleStepComplete} />;
       case "offer_letter":
