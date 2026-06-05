@@ -275,6 +275,7 @@ export function OverallViewTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [stats, setStats] = useState(null);
+  const [cohortFilter, setCohortFilter] = useState("both");
 
   async function fetchOverallStats() {
     setLoading(true);
@@ -284,6 +285,7 @@ export function OverallViewTab() {
         interval,
         fromDate: interval === "month" ? fromMonth : fromDate,
         toDate: interval === "month" ? toMonth : toDate,
+        cohort_filter: cohortFilter,
       };
       const res = await paymentsAdminApi.getOverallStats(params);
       setStats(res.data);
@@ -297,7 +299,7 @@ export function OverallViewTab() {
 
   useEffect(() => {
     fetchOverallStats();
-  }, [interval, fromDate, toDate, fromMonth, toMonth]);
+  }, [interval, fromDate, toDate, fromMonth, toMonth, cohortFilter]);
 
   const summary = stats?.summary || { current: {}, previous: {} };
   const currentTrend = stats?.current || [];
@@ -392,6 +394,16 @@ export function OverallViewTab() {
               </ControlSelect>
             </div>
           )}
+
+          <ControlSelect
+            value={cohortFilter}
+            onChange={(e) => setCohortFilter(e.target.value)}
+            className="w-40 text-xs"
+          >
+            <option value="both">All Candidates</option>
+            <option value="new">New Joined</option>
+            <option value="old">Old Joined</option>
+          </ControlSelect>
 
           <ControlButton variant="secondary" onClick={fetchOverallStats} disabled={loading}>
             <RefreshCw size={12} className={`mr-1 ${loading ? "animate-spin" : ""}`} />
