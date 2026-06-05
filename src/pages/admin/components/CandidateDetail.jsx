@@ -77,6 +77,7 @@ const CandidateDetail = ({
   const [recruiterMeet, setRecruiterMeet] = useState("");
 
   const [steps, setSteps] = useState([]);
+  const [selectedRecruiterId, setSelectedRecruiterId] = useState("");
 
   const [candDocTitle, setCandDocTitle] = useState("");
   const [candDocExts, setCandDocExts] = useState({
@@ -597,17 +598,19 @@ const CandidateDetail = ({
               Documents & Submissions
             </h4>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 font-sans">
               {candidate.resumeDownloadUrl ? (
-                <a
-                  href={candidate.resumeDownloadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl flex items-center justify-between transition-all group text-xs text-slate-700"
-                >
-                  <span className="font-bold truncate">Resume PDF</span>
-                  <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-slate-600 shrink-0" />
-                </a>
+                <div className="flex flex-col gap-1">
+                  <a
+                    href={candidate.resumeDownloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl flex items-center justify-between transition-all group text-xs text-slate-700"
+                  >
+                    <span className="font-bold truncate">Resume PDF</span>
+                    <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-slate-600 shrink-0" />
+                  </a>
+                </div>
               ) : (
                 <div className="p-2 border border-dashed border-slate-200 rounded-xl flex items-center gap-1 text-[10px] text-slate-400 bg-slate-50/20 font-medium">
                   <span className="truncate">No Resume</span>
@@ -615,15 +618,17 @@ const CandidateDetail = ({
               )}
 
               {candidate.certDownloadUrl ? (
-                <a
-                  href={candidate.certDownloadUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl flex items-center justify-between transition-all group text-xs text-slate-700"
-                >
-                  <span className="font-bold truncate">Lang Cert PDF</span>
-                  <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-slate-600 shrink-0" />
-                </a>
+                <div className="flex flex-col gap-1">
+                  <a
+                    href={candidate.certDownloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl flex items-center justify-between transition-all group text-xs text-slate-700"
+                  >
+                    <span className="font-bold truncate">Lang Cert PDF</span>
+                    <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-slate-600 shrink-0" />
+                  </a>
+                </div>
               ) : (
                 <div className="p-2 border border-dashed border-slate-200 rounded-xl flex items-center gap-1 text-[10px] text-slate-400 bg-slate-50/20 font-medium">
                   <span className="truncate">No Cert</span>
@@ -1041,11 +1046,10 @@ const CandidateDetail = ({
                             </button>
                           )}
                           {isActive &&
-                            (candidate.resume_url || candidate.lang_cert_url) &&
-                            !candidate.email_verified && (
+                            (candidate.resume_url || candidate.lang_cert_url) && (
                               <div className="mt-3 p-3 bg-slate-50 border border-slate-200/60 rounded-xl flex flex-col gap-2.5">
                                 <span className="font-bold text-[#083262] block">
-                                  Verify Documents
+                                  Verify Profile Credentials
                                 </span>
                                 {candidate.extracted_email && (
                                   <div className="text-[10px] text-slate-500 bg-white p-2 rounded-lg border border-slate-100">
@@ -1055,22 +1059,86 @@ const CandidateDetail = ({
                                     </strong>
                                   </div>
                                 )}
-                                <div className="flex gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={handleVerifyEmail}
-                                    className="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 text-[10px] font-bold rounded-lg transition-all"
-                                  >
-                                    Approve Profile
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={handleRejectProfile}
-                                    className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100 text-[10px] font-bold rounded-lg transition-all"
-                                  >
-                                    Reject (Reset)
-                                  </button>
-                                </div>
+
+                                {candidate.resume_url && (
+                                  <div className="border border-slate-150 bg-white rounded-lg p-2.5 flex flex-col gap-2">
+                                    <div className="flex justify-between items-center text-xs">
+                                      <span className="font-bold text-slate-700">Resume / CV</span>
+                                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wider ${
+                                        candidate.resume_status === "approved"
+                                          ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                          : candidate.resume_status === "rejected"
+                                            ? "bg-rose-50 text-rose-700 border-rose-100"
+                                            : "bg-amber-50 text-amber-700 border-amber-100"
+                                      }`}>
+                                        {candidate.resume_status || "pending"}
+                                      </span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      {candidate.resume_status !== "approved" && (
+                                        <button
+                                          type="button"
+                                          onClick={() => onUpdate(candidate.user_id, { approve_resume: true })}
+                                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[9px] rounded"
+                                        >
+                                          Approve Resume
+                                        </button>
+                                      )}
+                                      {candidate.resume_status !== "rejected" && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const reason = prompt("Enter rejection reason for resume (optional):");
+                                            onUpdate(candidate.user_id, { reject_resume: true, profile_rejection_reason: reason || "" });
+                                          }}
+                                          className="px-2.5 py-1 bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 font-bold text-[9px] rounded"
+                                        >
+                                          Reject Resume
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {candidate.lang_cert_url && (
+                                  <div className="border border-slate-150 bg-white rounded-lg p-2.5 flex flex-col gap-2">
+                                    <div className="flex justify-between items-center text-xs">
+                                      <span className="font-bold text-slate-700">Language Certificate</span>
+                                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wider ${
+                                        candidate.lang_cert_status === "approved"
+                                          ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                          : candidate.lang_cert_status === "rejected"
+                                            ? "bg-rose-50 text-rose-700 border-rose-100"
+                                            : "bg-amber-50 text-amber-700 border-amber-100"
+                                      }`}>
+                                        {candidate.lang_cert_status || "pending"}
+                                      </span>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      {candidate.lang_cert_status !== "approved" && (
+                                        <button
+                                          type="button"
+                                          onClick={() => onUpdate(candidate.user_id, { approve_lang_cert: true })}
+                                          className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[9px] rounded"
+                                        >
+                                          Approve Certificate
+                                        </button>
+                                      )}
+                                      {candidate.lang_cert_status !== "rejected" && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const reason = prompt("Enter rejection reason for certificate (optional):");
+                                            onUpdate(candidate.user_id, { reject_lang_cert: true, profile_rejection_reason: reason || "" });
+                                          }}
+                                          className="px-2.5 py-1 bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 font-bold text-[9px] rounded"
+                                        >
+                                          Reject Certificate
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                         </div>
@@ -1800,26 +1868,80 @@ const CandidateDetail = ({
                             </details>
                           )}
 
-                          {isActive &&
+                           {isActive &&
                             candidate.recruiter_slot_time &&
                             candidate.recruiter_interview_passed !== true && (
-                              <div className="flex gap-2 p-2 bg-slate-50 border border-slate-200 rounded-lg">
-                                <button
-                                  type="button"
-                                  onClick={handlePassRecruiter}
-                                  className="px-3 py-1 bg-emerald-600 text-white rounded text-[10px] font-bold hover:bg-emerald-700"
-                                >
-                                  Approve (Pass Candidate)
-                                </button>
-                                {candidate.recruiter_interview_passed !== false && (
+                              <div className="flex flex-col gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                                <span className="font-bold text-[#083262] text-[11px] block">
+                                  Recruiter Interview Decision
+                                </span>
+                                {!candidate.steps_config?.some(s => s.id === "recruiter_status" && s.status === "skipped") && (
+                                  <div className="flex flex-col gap-1">
+                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                      Select Recruiter Partner
+                                    </label>
+                                    <div className="relative">
+                                      <select
+                                        value={selectedRecruiterId}
+                                        onChange={(e) => setSelectedRecruiterId(e.target.value)}
+                                        className="w-full border border-slate-200 rounded-xl p-2 pr-8 text-xs bg-white focus:outline-none"
+                                      >
+                                        <option value="">-- Choose Recruiter --</option>
+                                        {candidate.recruiter_shares?.filter(rec => rec.is_visible).map((rec) => (
+                                          <option key={rec.account_id} value={rec.account_id}>
+                                            {rec.recruiter_email} ({rec.stage || "No Status"})
+                                          </option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  </div>
+                                )}
+                                <div className="flex gap-2">
                                   <button
                                     type="button"
-                                    onClick={handleFailRecruiter}
-                                    className="px-3 py-1 bg-rose-50 text-rose-600 border border-rose-100 rounded text-[10px] font-bold hover:bg-rose-100"
+                                    onClick={() => {
+                                      const isSkipped = candidate.steps_config?.some(s => s.id === "recruiter_status" && s.status === "skipped");
+                                      if (!isSkipped && !selectedRecruiterId) {
+                                        toast.error("Please select a recruiter partner first");
+                                        return;
+                                      }
+                                      if (isSkipped) {
+                                        onUpdate(candidate.user_id, { recruiter_interview_passed: true });
+                                      } else {
+                                        onUpdate(candidate.user_id, { pass_recruiter_id: parseInt(selectedRecruiterId) });
+                                      }
+                                    }}
+                                    className="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 text-[10px] font-bold rounded-lg transition-all"
                                   >
-                                    Reject (Fail Candidate)
+                                    Approve (Pass)
                                   </button>
-                                )}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const isSkipped = candidate.steps_config?.some(s => s.id === "recruiter_status" && s.status === "skipped");
+                                      if (!isSkipped && !selectedRecruiterId) {
+                                        toast.error("Please select a recruiter partner first");
+                                        return;
+                                      }
+                                      openConfirmModal({
+                                        title: "Fail Recruiter Interview?",
+                                        message: isSkipped
+                                          ? "This will mark the candidate as failed globally for the recruiter interview checkpoint."
+                                          : "This will mark the candidate as failed for the selected recruiter. Their slot details will be cleared and they will return to the Partner Review Status stage.",
+                                        onConfirm: () => {
+                                          if (isSkipped) {
+                                            onUpdate(candidate.user_id, { recruiter_interview_passed: false });
+                                          } else {
+                                            onUpdate(candidate.user_id, { fail_recruiter_id: parseInt(selectedRecruiterId) });
+                                          }
+                                        },
+                                      });
+                                    }}
+                                    className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100 rounded text-[10px] font-bold"
+                                  >
+                                    Reject (Fail)
+                                  </button>
+                                </div>
                               </div>
                             )}
 

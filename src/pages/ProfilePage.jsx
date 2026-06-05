@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setUser } from "../redux/auth/authSlice";
 import api from "../api/axios";
+import JobScreeningProfilePage from "./jobScreening/JobScreeningProfilePage";
 import {
   Send,
   Eye,
@@ -270,6 +271,12 @@ export default function ProfilePage() {
         <div className="w-8 h-8 border-3 border-[#002856] border-t-transparent rounded-full animate-spin" />
       </div>
     );
+  }
+
+  const isJobScreeningCandidate = user?.lg_preferred_mode === "job_screening" || String(user?.german_preference) === "3";
+
+  if (isJobScreeningCandidate) {
+    return <JobScreeningProfilePage />;
   }
 
   return (

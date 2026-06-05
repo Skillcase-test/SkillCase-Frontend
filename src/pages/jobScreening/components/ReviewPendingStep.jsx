@@ -35,9 +35,15 @@ const ReviewPendingStep = ({ progress, onComplete }) => {
           <AlertCircle className="w-7 h-7" />
         </div>
         <h2 className="text-xl sm:text-2xl font-extrabold text-red-600 tracking-tight mb-2">Interview Review Failed</h2>
-        <p className="text-zinc-500 text-xs sm:text-sm max-w-sm mx-auto leading-relaxed mb-6">
-          Unfortunately, your Skillcase video interview did not pass our review. Please reach out to skillcase for details.
+        <p className="text-zinc-500 text-xs sm:text-sm max-w-sm mx-auto leading-relaxed mb-4">
+          Unfortunately, your Skillcase video interview did not pass our review. We are here to support your growth. Reach out to Skillcase support at +919731462667 to receive detailed feedback and guidance on next steps.
         </p>
+        <a
+          href="tel:+919731462667"
+          className="mb-6 w-full sm:max-w-xs h-11 bg-[#002856] text-white hover:bg-[#003975] rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 active:scale-[0.99] transition-all shadow-sm cursor-pointer"
+        >
+          Call Skillcase Support
+        </a>
         {error && (
           <div className="w-full sm:max-w-xs flex items-start gap-2.5 text-red-500 text-xs font-semibold p-3 bg-red-50/50 rounded-xl border border-red-100 mb-4 text-left">
             <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />

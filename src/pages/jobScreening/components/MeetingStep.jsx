@@ -46,11 +46,17 @@ const MeetingStep = ({ type, progress, onComplete }) => {
             ? "Mentoring Session Failed"
             : "Recruiter Interview Failed"}
         </h2>
-        <p className="text-zinc-500 text-xs sm:text-sm max-w-sm mx-auto leading-relaxed mb-6">
+        <p className="text-zinc-500 text-xs sm:text-sm max-w-sm mx-auto leading-relaxed mb-4">
           Unfortunately, you did not pass the{" "}
           {isTraining ? "mentoring/training session" : "recruiter interview"}{" "}
-          checkpoint. Please reach out to Skillcase for details.
+          checkpoint. We are here to support your growth. Reach out to Skillcase support at +919731462667 to receive detailed feedback and guidance on next steps.
         </p>
+        <a
+          href="tel:+919731462667"
+          className="mb-6 w-full sm:max-w-xs h-11 bg-[#002856] text-white hover:bg-[#003975] rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 active:scale-[0.99] transition-all shadow-sm cursor-pointer"
+        >
+          Call Skillcase Support
+        </a>
         <button
           type="button"
           onClick={handleRefresh}
