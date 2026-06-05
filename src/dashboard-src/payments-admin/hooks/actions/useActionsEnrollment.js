@@ -130,6 +130,7 @@ export function useActionsEnrollment(state) {
       expected_payment_start_date: editDraft.expected_payment_start_date || "",
       created_at: editDraft.created_at || undefined,
       enforce_profile_validation: false,
+      notify_discord: true,
       candidate_id: editDraft.candidate_id || "",
       total_fee_inr: editDraft.total_fee_inr || "",
       monthly_fee_inr: editDraft.monthly_fee_inr || "",
