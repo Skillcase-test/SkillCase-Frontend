@@ -41,7 +41,15 @@ export default function Navbar({
   const navigate = useNavigate();
   const location = useLocation();
 
-  const isJobScreening = isAuthenticated && (user?.german_preference === "3" || user?.lg_preferred_mode === "job_screening" || location.pathname.startsWith("/job-screening"));
+  const queryParams = new URLSearchParams(location.search);
+  const isJobScreeningParam = queryParams.get("source") === "job_screening";
+  const isJobScreening =
+    (isAuthenticated && (
+      user?.german_preference === "3" ||
+      user?.lg_preferred_mode === "job_screening" ||
+      location.pathname.startsWith("/job-screening")
+    )) ||
+    isJobScreeningParam;
 
   if (isJobScreening) {
     return (

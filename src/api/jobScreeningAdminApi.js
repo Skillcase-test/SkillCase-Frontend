@@ -18,6 +18,20 @@ export const adminUploadOfferLetter = (userId, formData) =>
     },
   });
 
+export const adminUploadTrainingScheduleImage = (userId, formData) =>
+  api.post(`/admin/job-screening/candidates/${userId}/training-schedule-image`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+export const adminUploadRecruiterScheduleImage = (userId, formData) =>
+  api.post(`/admin/job-screening/candidates/${userId}/recruiter-schedule-image`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
 export const getAdminDropdownOptions = () => api.get("/admin/job-screening/options");
 
 export const adminGetSettings = () =>

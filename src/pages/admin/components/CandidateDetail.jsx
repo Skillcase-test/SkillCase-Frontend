@@ -56,6 +56,8 @@ const CandidateDetail = ({
   options,
   onUpdate,
   onUploadOfferLetter,
+  onUploadTrainingScheduleImage,
+  onUploadRecruiterScheduleImage,
   updating,
   onRefresh,
   onClose,
@@ -1466,6 +1468,57 @@ const CandidateDetail = ({
                             </div>
                           )}
 
+                          {candidate.training_schedule_image_url ? (
+                            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-slate-700 text-[10px] uppercase">Schedule Image</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onUpdate(candidate.user_id, { training_schedule_image_url: 'clear' });
+                                  }}
+                                  className="p-1 hover:bg-rose-50 text-rose-600 rounded transition-all"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              {candidate.trainingScheduleImageDownloadUrl && (
+                                <a href={candidate.trainingScheduleImageDownloadUrl} target="_blank" rel="noopener noreferrer" className="block relative group/img cursor-zoom-in">
+                                  <img
+                                    src={candidate.trainingScheduleImageDownloadUrl}
+                                    alt="Training Schedule"
+                                    className="w-full max-h-48 object-contain rounded-lg border border-slate-100 bg-white"
+                                  />
+                                  <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                    <span className="bg-white/90 px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-700 shadow-sm flex items-center gap-1">
+                                      View Image <ExternalLink className="w-3 h-3" />
+                                    </span>
+                                  </div>
+                                </a>
+                              )}
+                            </div>
+                          ) : (
+                            (isActive || isCompleted) && (
+                              <div className="relative border border-dashed border-slate-350 rounded-xl p-4 bg-slate-50/30 hover:border-[#083262] transition-all flex flex-col items-center justify-center cursor-pointer">
+                                <input
+                                  type="file"
+                                  accept="image/png, image/jpeg, image/jpg"
+                                  onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                      onUploadTrainingScheduleImage(candidate.user_id, file);
+                                    }
+                                  }}
+                                  className="absolute inset-0 opacity-0 cursor-pointer"
+                                />
+                                <Upload className="w-5 h-5 text-slate-400 mb-1" />
+                                <span className="text-[10px] font-bold text-slate-500">
+                                  Upload Schedule Image (Optional)
+                                </span>
+                              </div>
+                            )
+                          )}
+
                           {(isActive || isCompleted) && (
                             <details className="group border border-slate-200 bg-slate-50/10 rounded-xl overflow-hidden">
                               <summary className="p-2.5 text-[10px] font-bold text-slate-500 cursor-pointer select-none bg-slate-50/50 hover:bg-slate-50 flex items-center justify-between">
@@ -1647,6 +1700,57 @@ const CandidateDetail = ({
                                 </div>
                               )}
                             </div>
+                          )}
+
+                          {candidate.recruiter_schedule_image_url ? (
+                            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-slate-700 text-[10px] uppercase">Schedule Image</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onUpdate(candidate.user_id, { recruiter_schedule_image_url: 'clear' });
+                                  }}
+                                  className="p-1 hover:bg-rose-50 text-rose-600 rounded transition-all"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              {candidate.recruiterScheduleImageDownloadUrl && (
+                                <a href={candidate.recruiterScheduleImageDownloadUrl} target="_blank" rel="noopener noreferrer" className="block relative group/img cursor-zoom-in">
+                                  <img
+                                    src={candidate.recruiterScheduleImageDownloadUrl}
+                                    alt="Recruiter Schedule"
+                                    className="w-full max-h-48 object-contain rounded-lg border border-slate-100 bg-white"
+                                  />
+                                  <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                    <span className="bg-white/90 px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-700 shadow-sm flex items-center gap-1">
+                                      View Image <ExternalLink className="w-3 h-3" />
+                                    </span>
+                                  </div>
+                                </a>
+                              )}
+                            </div>
+                          ) : (
+                            (isActive || isCompleted) && (
+                              <div className="relative border border-dashed border-slate-350 rounded-xl p-4 bg-slate-50/30 hover:border-[#083262] transition-all flex flex-col items-center justify-center cursor-pointer">
+                                <input
+                                  type="file"
+                                  accept="image/png, image/jpeg, image/jpg"
+                                  onChange={(e) => {
+                                    const file = e.target.files[0];
+                                    if (file) {
+                                      onUploadRecruiterScheduleImage(candidate.user_id, file);
+                                    }
+                                  }}
+                                  className="absolute inset-0 opacity-0 cursor-pointer"
+                                />
+                                <Upload className="w-5 h-5 text-slate-400 mb-1" />
+                                <span className="text-[10px] font-bold text-slate-500">
+                                  Upload Schedule Image (Optional)
+                                </span>
+                              </div>
+                            )
                           )}
 
                           {(isActive || isCompleted) && (

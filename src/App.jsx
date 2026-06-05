@@ -966,16 +966,21 @@ function ConditionalFooter() {
 
 function ConditionalNav() {
   const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const isJobScreening = queryParams.get("source") === "job_screening";
+
   // Hide navbar completely on register and internal lead form
   const hideNav =
     location.pathname === "/register" ||
     location.pathname === "/thank-you" ||
     location.pathname === "/internal/lead-form" ||
-    location.pathname.startsWith("/terms/sign") ||
+    (location.pathname.startsWith("/terms/sign") && !isJobScreening) ||
     location.pathname.startsWith("/onboarding") ||
-    location.pathname.startsWith("/interview");
+    (location.pathname.startsWith("/interview") && !isJobScreening);
 
-  const disableNav = /^\/exam\/[^/]+\/take$/.test(location.pathname);
+  const disableNav =
+    /^\/exam\/[^/]+\/take$/.test(location.pathname) ||
+    (location.pathname.startsWith("/interview") && isJobScreening);
 
   // Show minimal navbar (logo only, no links/burger) on auth pages
   const isAuthPage =

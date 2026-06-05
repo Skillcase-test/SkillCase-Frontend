@@ -9,6 +9,8 @@ import {
   getAdminDropdownOptions,
   adminGetSettings,
   adminUpdateSettings,
+  adminUploadTrainingScheduleImage,
+  adminUploadRecruiterScheduleImage,
 } from "../../api/jobScreeningAdminApi";
 import CandidateList from "./components/CandidateList";
 import CandidateDetail from "./components/CandidateDetail";
@@ -187,6 +189,50 @@ const JobScreeningAdmin = () => {
     }
   };
 
+  const handleUploadTrainingScheduleImage = async (userId, file) => {
+    const formData = new FormData();
+    formData.append("schedule_image", file);
+
+    try {
+      setUpdating(true);
+      const { data } = await adminUploadTrainingScheduleImage(userId, formData);
+      if (data?.success) {
+        toast.success("Training schedule image uploaded successfully");
+        await fetchDetail(userId);
+        fetchList();
+      } else {
+        toast.error("Failed to upload training schedule image");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Error uploading training schedule image");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleUploadRecruiterScheduleImage = async (userId, file) => {
+    const formData = new FormData();
+    formData.append("schedule_image", file);
+
+    try {
+      setUpdating(true);
+      const { data } = await adminUploadRecruiterScheduleImage(userId, formData);
+      if (data?.success) {
+        toast.success("Recruiter schedule image uploaded successfully");
+        await fetchDetail(userId);
+        fetchList();
+      } else {
+        toast.error("Failed to upload recruiter schedule image");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Error uploading recruiter schedule image");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleUpdateSettings = async (payload) => {
     try {
       setUpdating(true);
@@ -290,6 +336,8 @@ const JobScreeningAdmin = () => {
             options={options}
             onUpdate={handleUpdateCandidate}
             onUploadOfferLetter={handleUploadOfferLetter}
+            onUploadTrainingScheduleImage={handleUploadTrainingScheduleImage}
+            onUploadRecruiterScheduleImage={handleUploadRecruiterScheduleImage}
             updating={updating}
             onRefresh={handleRefreshDetail}
             onClose={() => {
