@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
-import { Settings, RefreshCw } from "lucide-react";
+import { Settings, RefreshCw, X } from "lucide-react";
 import {
   adminGetCandidates,
   adminGetCandidateDetail,
@@ -19,6 +19,7 @@ const JobScreeningAdmin = () => {
   const [globalSettings, setGlobalSettings] = useState({
     default_interview_id: "",
     default_agreement_template_id: "",
+    required_additional_documents: [],
   });
   
   const [selectedCandidateId, setSelectedCandidateId] = useState(null);
@@ -102,6 +103,7 @@ const JobScreeningAdmin = () => {
           setGlobalSettings({
             default_interview_id: resSettings.data.data.default_interview_id || "",
             default_agreement_template_id: resSettings.data.data.default_agreement_template_id || "",
+            required_additional_documents: resSettings.data.data.required_additional_documents || [],
           });
         }
       } catch (err) {
@@ -194,6 +196,7 @@ const JobScreeningAdmin = () => {
         setGlobalSettings({
           default_interview_id: data.data.default_interview_id || "",
           default_agreement_template_id: data.data.default_agreement_template_id || "",
+          required_additional_documents: data.data.required_additional_documents || [],
         });
         fetchList();
       } else {
@@ -205,6 +208,50 @@ const JobScreeningAdmin = () => {
     } finally {
       setUpdating(false);
     }
+  };
+
+  const [newDocTitle, setNewDocTitle] = useState("");
+  const [newDocExts, setNewDocExts] = useState({
+    pdf: true,
+    doc: true,
+    docx: true,
+    png: true,
+    jpg: true,
+    jpeg: true,
+  });
+
+  const handleAddDocRequirement = () => {
+    if (!newDocTitle.trim()) {
+      toast.error("Document title cannot be empty");
+      return;
+    }
+    const slug = newDocTitle.toLowerCase().trim().replace(/[^a-z0-9]/g, "_");
+    const docId = `doc_${slug}_${Date.now()}`;
+    const selectedExts = Object.keys(newDocExts).filter((k) => newDocExts[k]);
+    if (selectedExts.length === 0) {
+      toast.error("Please select at least one allowed file type");
+      return;
+    }
+    
+    const newDoc = {
+      id: docId,
+      title: newDocTitle.trim(),
+      allowed_extensions: selectedExts,
+      description: `Please upload a clear copy of your ${newDocTitle.trim()}.`,
+    };
+
+    setGlobalSettings((prev) => ({
+      ...prev,
+      required_additional_documents: [...(prev.required_additional_documents || []), newDoc],
+    }));
+    setNewDocTitle("");
+  };
+
+  const handleRemoveDocRequirement = (docId) => {
+    setGlobalSettings((prev) => ({
+      ...prev,
+      required_additional_documents: (prev.required_additional_documents || []).filter((d) => d.id !== docId),
+    }));
   };
 
   return (
@@ -268,7 +315,7 @@ const JobScreeningAdmin = () => {
             </div>
 
             {/* Right Column: Global Pipeline Settings panel */}
-            <div className="w-full lg:w-80 shrink-0 bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-4 self-start font-sans">
+            <div className="w-full lg:w-80 shrink-0 bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-4 self-start font-sans max-h-[calc(100vh-100px)] overflow-y-auto">
               <div>
                 <h3 className="text-sm font-extrabold text-[#083262]">Global Pipeline Defaults</h3>
                 <p className="text-[10px] text-slate-400 font-medium mt-0.5 leading-relaxed">
@@ -335,11 +382,79 @@ const JobScreeningAdmin = () => {
                   </div>
                 </div>
 
+                <div className="h-px bg-slate-100/80 my-1" />
+
+                <div className="flex flex-col gap-1.5 text-left">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    Global Supporting Documents
+                  </label>
+                  
+                  {/* List of existing requirements */}
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                    {(globalSettings.required_additional_documents || []).length === 0 ? (
+                      <p className="text-[10px] text-slate-400 italic">No global documents required.</p>
+                    ) : (
+                      globalSettings.required_additional_documents.map((doc) => (
+                        <div key={doc.id} className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg p-2 text-[10px]">
+                          <div className="truncate pr-2 text-left">
+                            <span className="font-bold text-slate-700 block truncate">{doc.title}</span>
+                            <span className="text-[8px] text-slate-400 font-medium">
+                              Formats: {doc.allowed_extensions?.join(", ").toUpperCase()}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDocRequirement(doc.id)}
+                            className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Form to add a new requirement */}
+                  <div className="mt-2 p-2.5 bg-slate-50/50 border border-slate-150 rounded-xl flex flex-col gap-2">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase">Add Document</span>
+                    <input
+                      type="text"
+                      placeholder="e.g. 10th Marks Card"
+                      value={newDocTitle}
+                      onChange={(e) => setNewDocTitle(e.target.value)}
+                      className="w-full border border-slate-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none focus:border-[#083262]"
+                    />
+                    
+                    {/* Checkboxes for file types */}
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {Object.keys(newDocExts).map((ext) => (
+                        <label key={ext} className="flex items-center gap-1 text-[9px] font-bold text-slate-500 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={newDocExts[ext]}
+                            onChange={(e) => setNewDocExts(prev => ({ ...prev, [ext]: e.target.checked }))}
+                            className="rounded border-slate-200 text-[#083262] focus:ring-0 w-3 h-3"
+                          />
+                          {ext.toUpperCase()}
+                        </label>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleAddDocRequirement}
+                      className="w-full py-1.5 bg-[#083262] hover:bg-[#052243] text-white font-bold text-[9px] rounded-lg transition-all mt-1 cursor-pointer"
+                    >
+                      Add to Checklist
+                    </button>
+                  </div>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => handleUpdateSettings(globalSettings)}
                   disabled={updating}
-                  className="w-full py-2.5 bg-[#083262] text-white hover:bg-[#052243] rounded-xl text-xs font-bold transition-all disabled:opacity-50 shadow-none mt-2"
+                  className="w-full py-2.5 bg-[#083262] text-white hover:bg-[#052243] rounded-xl text-xs font-bold transition-all disabled:opacity-50 shadow-none mt-2 cursor-pointer"
                 >
                   Save Global Defaults
                 </button>

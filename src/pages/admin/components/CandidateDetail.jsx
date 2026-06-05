@@ -35,6 +35,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import SortableStepItem from "./SortableStepItem";
+import { toast } from "react-hot-toast";
 
 const formatToLocalDateTimeString = (dateInput) => {
   if (!dateInput) return "";
@@ -74,6 +75,65 @@ const CandidateDetail = ({
   const [recruiterMeet, setRecruiterMeet] = useState("");
 
   const [steps, setSteps] = useState([]);
+
+  const [candDocTitle, setCandDocTitle] = useState("");
+  const [candDocExts, setCandDocExts] = useState({
+    pdf: true,
+    doc: true,
+    docx: true,
+    png: true,
+    jpg: true,
+    jpeg: true,
+  });
+
+  const handleAddCandDocOverride = (e) => {
+    e.preventDefault();
+    if (!candDocTitle.trim()) {
+      toast.error("Document title cannot be empty");
+      return;
+    }
+    const slug = candDocTitle.toLowerCase().trim().replace(/[^a-z0-9]/g, "_");
+    const docId = `doc_${slug}_${Date.now()}`;
+    const selectedExts = Object.keys(candDocExts).filter((k) => candDocExts[k]);
+    if (selectedExts.length === 0) {
+      toast.error("Please select at least one allowed file type");
+      return;
+    }
+
+    const newDoc = {
+      id: docId,
+      title: candDocTitle.trim(),
+      allowed_extensions: selectedExts,
+      description: `Please upload a clear copy of your ${candDocTitle.trim()}.`,
+    };
+
+    const currentList = candidate.candidate_required_additional_documents !== null
+      ? (candidate.candidate_required_additional_documents || [])
+      : (candidate.globalSettings?.required_additional_documents || []);
+
+    const updatedList = [...currentList, newDoc];
+    onUpdate(candidate.user_id, { candidate_required_additional_documents: updatedList });
+    setCandDocTitle("");
+  };
+
+  const handleRemoveCandDocOverride = (docId) => {
+    const currentList = candidate.candidate_required_additional_documents !== null
+      ? (candidate.candidate_required_additional_documents || [])
+      : (candidate.globalSettings?.required_additional_documents || []);
+
+    const updatedList = currentList.filter((d) => d.id !== docId);
+    onUpdate(candidate.user_id, { candidate_required_additional_documents: updatedList });
+  };
+
+  const handleResetCandChecklist = () => {
+    openConfirmModal({
+      title: "Reset Checklist to Global Defaults?",
+      message: "This will discard all custom document requirements configured for this candidate and revert to the global pipeline defaults.",
+      onConfirm: () => {
+        onUpdate(candidate.user_id, { candidate_required_additional_documents: "clear" });
+      }
+    });
+  };
 
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
@@ -353,6 +413,49 @@ const CandidateDetail = ({
     });
   };
 
+  const handleResetAdditionalDocs = () => {
+    openConfirmModal({
+      title: "Reset Additional Documents Checkpoint?",
+      message: "This will permanently delete the candidate's uploaded supporting documents from storage. They will be required to re-upload all requested documents.",
+      onConfirm: () => {
+        const updatedSteps = steps.map((s) => {
+          if (s.id === "additional_documents") return { ...s, status: "pending" };
+          return s;
+        });
+        onUpdate(candidate.user_id, {
+          steps_config: updatedSteps,
+          reset_additional_docs: true,
+        });
+      },
+    });
+  };
+
+  const handleApproveAllDocs = () => {
+    const updatedDocs = { ...(candidate.additional_documents || {}) };
+    (candidate.resolvedRequiredDocs || []).forEach((doc) => {
+      if (updatedDocs[doc.id]) {
+        updatedDocs[doc.id] = {
+          ...updatedDocs[doc.id],
+          status: "approved"
+        };
+      }
+    });
+    onUpdate(candidate.user_id, { additional_documents: updatedDocs });
+  };
+
+  const handleRejectAllDocs = () => {
+    const updatedDocs = { ...(candidate.additional_documents || {}) };
+    (candidate.resolvedRequiredDocs || []).forEach((doc) => {
+      if (updatedDocs[doc.id]) {
+        updatedDocs[doc.id] = {
+          ...updatedDocs[doc.id],
+          status: "rejected"
+        };
+      }
+    });
+    onUpdate(candidate.user_id, { additional_documents: updatedDocs });
+  };
+
   const handleDeleteOfferLetter = () => {
     openConfirmModal({
       title: "Delete Offer Letter?",
@@ -451,7 +554,7 @@ const CandidateDetail = ({
       {/* Main split dashboard view */}
       <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-12 h-full">
         {/* Left Column: Profile Card */}
-        <div className="md:col-span-5 border-r border-slate-100 p-5 flex flex-col gap-5 bg-slate-50/30 overflow-hidden h-full">
+        <div className="md:col-span-5 border-r border-slate-100 p-5 flex flex-col gap-5 bg-slate-50/30 overflow-y-auto h-full">
           {/* Summary profile badge */}
           <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-[0_2px_8px_rgba(0,40,86,0.03)] flex flex-col shrink-0">
             <div className="flex items-center gap-3">
@@ -525,6 +628,36 @@ const CandidateDetail = ({
                 </div>
               )}
             </div>
+
+            {/* Additional Uploaded Documents */}
+            {candidate.additional_documents && Object.keys(candidate.additional_documents).length > 0 && (
+              <div className="border-t border-slate-100 pt-2.5 mt-1.5 flex flex-col gap-1.5 text-left">
+                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                  Supporting Documents
+                </span>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {Object.entries(candidate.additional_documents).map(([docId, docObj]) => (
+                    docObj.downloadUrl ? (
+                      <a
+                        key={docId}
+                        href={docObj.downloadUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl flex items-center justify-between transition-all group text-[10px] text-slate-700 font-medium"
+                      >
+                        <div className="truncate pr-2 text-left">
+                          <span className="font-bold block truncate max-w-[170px]">{docObj.fileName}</span>
+                          <span className="text-[7px] text-slate-400 uppercase">
+                            Status: {docObj.status || "pending"}
+                          </span>
+                        </div>
+                        <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-slate-600 shrink-0" />
+                      </a>
+                    ) : null
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Assign Interview & Agreement (Collapsible Accordion) */}
@@ -613,6 +746,102 @@ const CandidateDetail = ({
                 Save Assignment
               </button>
             </form>
+          </details>
+
+          {/* Customize Document Checklist (Collapsible Accordion) */}
+          <details className="group border border-slate-200 rounded-2xl bg-white shadow-[0_2px_8px_rgba(0,40,86,0.03)] shrink-0 font-sans">
+            <summary className="p-4 text-xs font-bold text-slate-600 cursor-pointer select-none flex items-center justify-between hover:bg-slate-50/30">
+              <span className="flex items-center gap-1.5 flex-wrap">
+                <FileText className="w-3.5 h-3.5 text-slate-400" />
+                Customize Document Checklist
+                {candidate.candidate_required_additional_documents !== null && (
+                  <span className="text-[7px] font-bold text-amber-600 bg-amber-50 border border-amber-100 px-1 py-0.5 rounded uppercase tracking-wide">
+                    Overridden
+                  </span>
+                )}
+              </span>
+              <ChevronDown className="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform duration-200" />
+            </summary>
+
+            <div className="p-4 border-t border-slate-100 flex flex-col gap-4 bg-white">
+              {/* Existing documents requirements list */}
+              <div className="flex flex-col gap-1.5 text-left">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                  Active Checklist Requirements
+                </span>
+                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                  {(candidate.resolvedRequiredDocs || []).length === 0 ? (
+                    <p className="text-[10px] text-slate-400 italic">No documents currently required.</p>
+                  ) : (
+                    (candidate.resolvedRequiredDocs || []).map((doc) => (
+                      <div key={doc.id} className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg p-2 text-[10px]">
+                        <div className="truncate pr-2 text-left">
+                          <span className="font-bold text-slate-700 block truncate">{doc.title}</span>
+                          <span className="text-[8px] text-slate-400 font-medium">
+                            Formats: {doc.allowed_extensions?.join(", ").toUpperCase()}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCandDocOverride(doc.id)}
+                          disabled={updating}
+                          className="text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                          title="Remove Requirement"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Add Custom Document for Candidate */}
+              <form onSubmit={handleAddCandDocOverride} className="p-3 bg-slate-50/50 border border-slate-150 rounded-xl flex flex-col gap-2">
+                <span className="text-[9px] font-bold text-slate-500 uppercase text-left">Request Custom Document</span>
+                <input
+                  type="text"
+                  placeholder="e.g. B2 Language Certificate"
+                  value={candDocTitle}
+                  onChange={(e) => setCandDocTitle(e.target.value)}
+                  className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:border-[#083262]"
+                />
+                
+                {/* Formats Checkboxes */}
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {Object.keys(candDocExts).map((ext) => (
+                    <label key={ext} className="flex items-center gap-1 text-[9px] font-bold text-slate-500 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={candDocExts[ext]}
+                        onChange={(e) => setCandDocExts(prev => ({ ...prev, [ext]: e.target.checked }))}
+                        className="rounded border-slate-200 text-[#083262] focus:ring-0 w-3 h-3"
+                      />
+                      {ext.toUpperCase()}
+                    </label>
+                  ))}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="w-full py-1.5 bg-[#083262] hover:bg-[#052243] text-white font-bold text-[9px] rounded-lg transition-all mt-1 cursor-pointer"
+                >
+                  Add Requirement
+                </button>
+              </form>
+
+              {candidate.candidate_required_additional_documents !== null && (
+                <button
+                  type="button"
+                  onClick={handleResetCandChecklist}
+                  disabled={updating}
+                  className="w-full py-2 border border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-700 font-bold text-[10px] rounded-xl transition-all mt-1 cursor-pointer"
+                >
+                  Reset Checklist to Global Defaults
+                </button>
+              )}
+            </div>
           </details>
 
           {/* Edit Basic Info (Collapsible Accordion) */}
@@ -712,6 +941,7 @@ const CandidateDetail = ({
               const isInterview = step.id === "interview_attempt";
               const isAgreement = step.id === "registration_form";
               const isReview = step.id === "review_pending";
+              const isAdditionalDocs = step.id === "additional_documents";
               const isTraining = step.id === "interview_training";
               const isRecruiter = step.id === "recruiter_interview";
               const isOffer = step.id === "offer_letter";
@@ -1086,6 +1316,104 @@ const CandidateDetail = ({
                               className="mt-2 text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1 rounded-lg transition-all"
                             >
                               Reset Review Decision
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {isAdditionalDocs && (
+                        <div className="space-y-3">
+                          <p>
+                            Verify the candidate's custom supporting document submissions.
+                          </p>
+
+                          <div className="space-y-2">
+                            {(candidate.resolvedRequiredDocs || []).length === 0 ? (
+                              <p className="text-[10px] text-zinc-400 font-semibold italic">
+                                No required documents configured.
+                              </p>
+                            ) : (
+                              (candidate.resolvedRequiredDocs || []).map((doc) => {
+                                const fileObj = candidate.additional_documents?.[doc.id];
+                                const isDocUploaded = !!fileObj?.key;
+                                
+                                return (
+                                  <div key={doc.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-bold text-slate-800 text-[11px] truncate max-w-[200px] sm:max-w-xs block text-left">
+                                        {doc.title}
+                                      </span>
+                                      <span
+                                        className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase border tracking-wider shrink-0 ${
+                                          isDocUploaded
+                                            ? fileObj.status === "approved"
+                                              ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                              : fileObj.status === "rejected"
+                                                ? "bg-rose-50 text-rose-700 border-rose-100"
+                                                : "bg-amber-50 text-amber-700 border-amber-100"
+                                            : "bg-slate-100 text-slate-400 border-slate-200"
+                                        }`}
+                                      >
+                                        {isDocUploaded ? fileObj.status === "approved" ? "Approved" : fileObj.status === "rejected" ? "Rejected" : "Pending Review" : "Awaiting Upload"}
+                                      </span>
+                                    </div>
+
+                                    {isDocUploaded ? (
+                                      <div className="flex flex-col gap-2">
+                                        <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100/80 text-[10px] text-slate-500">
+                                          <span className="truncate max-w-[150px] font-bold text-slate-700">
+                                            {fileObj.fileName}
+                                          </span>
+                                          {fileObj.downloadUrl && (
+                                            <a
+                                              href={fileObj.downloadUrl}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="text-blue-600 hover:underline flex items-center gap-0.5 shrink-0"
+                                            >
+                                              View file <ExternalLink className="w-2.5 h-2.5" />
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+
+                          {isActive && (candidate.resolvedRequiredDocs || []).some(doc => candidate.additional_documents?.[doc.id]?.key) && (
+                            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2">
+                              <span className="font-bold text-[#083262] text-[11px] text-left block">
+                                Supporting Documents Decision
+                              </span>
+                              <div className="flex gap-2.5 justify-start">
+                                <button
+                                  type="button"
+                                  onClick={handleApproveAllDocs}
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded-lg transition-all cursor-pointer"
+                                >
+                                  Approve All Documents
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleRejectAllDocs}
+                                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 font-bold text-[10px] rounded-lg transition-all cursor-pointer"
+                                >
+                                  Reject All Documents
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {isCompleted && (
+                            <button
+                              type="button"
+                              onClick={handleResetAdditionalDocs}
+                              className="mt-2 text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
+                            >
+                              Reset Documents Checkpoint
                             </button>
                           )}
                         </div>

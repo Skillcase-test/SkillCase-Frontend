@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Upload,
   FileText,
@@ -6,6 +7,10 @@ import {
   X,
   ShieldCheck,
   RefreshCw,
+  ChevronRight,
+  CheckCircle,
+  FileUp,
+  Sparkles,
 } from "lucide-react";
 import { uploadProfileDocs, getProgress } from "../../../api/jobScreeningApi";
 
@@ -15,6 +20,7 @@ const ProfileCompletionStep = ({ progress, onComplete }) => {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [expandedDoc, setExpandedDoc] = useState("resume");
 
   const handleRefresh = async () => {
     try {
@@ -35,7 +41,7 @@ const ProfileCompletionStep = ({ progress, onComplete }) => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!resume || !cert) {
       setError("Please select both your resume and language certificate PDFs");
       return;
@@ -71,7 +77,7 @@ const ProfileCompletionStep = ({ progress, onComplete }) => {
 
   if (isUnderReview) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm/30 p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full">
         {/* Previous Gold Shield Icon */}
         <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center text-amber-500 mx-auto mb-5">
           <svg
@@ -102,12 +108,12 @@ const ProfileCompletionStep = ({ progress, onComplete }) => {
         <div className="w-full flex items-center justify-center gap-6 text-xs text-slate-400 font-bold border-t border-b border-slate-100 py-3 mb-2">
           <span className="flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-            German Standards Sync
+            Compliance Review
           </span>
           <span className="h-4 w-px bg-slate-200" />
           <span className="flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-[#002856] shrink-0" />
-            Recruiter Match Prep
+            Verification Pending
           </span>
         </div>
 
@@ -116,7 +122,7 @@ const ProfileCompletionStep = ({ progress, onComplete }) => {
           type="button"
           onClick={handleRefresh}
           disabled={refreshing}
-          className="w-full sm:max-w-xs h-11 border-2 border-zinc-200 bg-white text-[#002856] hover:bg-zinc-50 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-4 active:scale-[0.99]"
+          className="w-full sm:max-w-xs h-11 border border-slate-200 bg-white text-[#002856] hover:bg-slate-50 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 mt-4 active:scale-[0.99]"
         >
           <RefreshCw
             className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
@@ -131,176 +137,342 @@ const ProfileCompletionStep = ({ progress, onComplete }) => {
     );
   }
 
+  const selectedCount = (resume ? 1 : 0) + (cert ? 1 : 0);
+
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm/30 p-6 sm:p-8 w-full font-sans">
-      <div className="text-center max-w-md mx-auto mb-6">
-        <h2 className="text-xl sm:text-2xl font-extrabold text-[#002856] tracking-tight">
-          Complete Your Profile
-        </h2>
-        <p className="text-zinc-500 text-xs sm:text-sm mt-1.5">
-          Upload your credentials to start your official job evaluations.
-        </p>
+    <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 w-full font-sans max-w-xl mx-auto flex flex-col shadow-sm">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div className="text-left">
+          <h2 className="text-xl font-extrabold text-[#002856] tracking-tight">
+            Complete Your Profile
+          </h2>
+          <p className="text-zinc-500 text-xs font-medium mt-0.5">
+            Select your credentials to start your official job evaluations.
+          </p>
+        </div>
+
+        {/* Progress pill */}
+        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-full text-[10px] font-bold text-[#002856] shrink-0">
+          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          <span>
+            {selectedCount} / 2 Attached
+          </span>
+        </div>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col gap-4 max-w-md mx-auto"
-      >
-        {/* Resume Upload Horizontal Row */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-bold text-slate-700">
-            Resume (PDF only)
-          </label>
-          <div className="relative border border-slate-100 hover:border-slate-300 rounded-xl p-3.5 flex items-center justify-between bg-slate-50/20 hover:bg-slate-50/50 transition-all duration-200 cursor-pointer">
-            <input
-              type="file"
-              accept=".pdf"
-              onChange={(e) => setResume(e.target.files?.[0] || null)}
-              className="absolute inset-0 opacity-0 cursor-pointer z-10"
-            />
-            <div className="flex items-center gap-3 min-w-0 pr-4">
-              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-[#002856] shrink-0">
-                <FileText className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 text-left">
-                {resume ? (
-                  <>
-                    <p className="text-xs font-bold text-slate-800 truncate">
-                      {resume.name}
-                    </p>
-                    <p className="text-[10px] text-zinc-400 font-medium">
-                      {(resume.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs font-bold text-slate-700">
-                      Select Resume File
-                    </p>
-                    <p className="text-[10px] text-zinc-400 font-medium">
-                      PDF up to 10MB
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
-            {resume ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  setResume(null);
-                }}
-                className="w-6 h-6 rounded-full bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-500 flex items-center justify-center transition-colors shrink-0 z-20"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            ) : (
-              <Upload className="w-4.5 h-4.5 text-slate-400 shrink-0" />
-            )}
-          </div>
-        </div>
-
-        {/* Certificate Upload Horizontal Row */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-bold text-slate-700">
-            Language Certificate (PDF only)
-          </label>
-          <div className="relative border border-slate-100 hover:border-slate-300 rounded-xl p-3.5 flex items-center justify-between bg-slate-50/20 hover:bg-slate-50/50 transition-all duration-200 cursor-pointer">
-            <input
-              type="file"
-              accept=".pdf"
-              onChange={(e) => setCert(e.target.files?.[0] || null)}
-              className="absolute inset-0 opacity-0 cursor-pointer z-10"
-            />
-            <div className="flex items-center gap-3 min-w-0 pr-4">
-              <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-[#002856] shrink-0">
-                <FileText className="w-5 h-5" />
-              </div>
-              <div className="min-w-0 text-left">
-                {cert ? (
-                  <>
-                    <p className="text-xs font-bold text-slate-800 truncate">
-                      {cert.name}
-                    </p>
-                    <p className="text-[10px] text-zinc-400 font-medium">
-                      {(cert.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs font-bold text-slate-700">
-                      Select Certificate File
-                    </p>
-                    <p className="text-[10px] text-zinc-400 font-medium">
-                      PDF up to 10MB
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
-            {cert ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  e.preventDefault();
-                  setCert(null);
-                }}
-                className="w-6 h-6 rounded-full bg-slate-100 hover:bg-red-50 text-slate-400 hover:text-red-500 flex items-center justify-center transition-colors shrink-0 z-20"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            ) : (
-              <Upload className="w-4.5 h-4.5 text-slate-400 shrink-0" />
-            )}
-          </div>
-        </div>
-
-        {error && (
-          <div className="flex items-start gap-2.5 text-red-500 text-xs font-semibold p-3 bg-red-50/50 rounded-xl border border-red-100">
-            <AlertCircle className="w-4.5 h-4.5 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full h-11 bg-gradient-to-r from-amber-200 to-amber-300 text-[#002856] border border-[#eec139] hover:from-amber-300 hover:to-amber-400 rounded-xl font-bold text-xs sm:text-sm shadow-md shadow-amber-200/20 hover:shadow-lg hover:shadow-amber-200/30 hover:scale-[1.01] active:scale-[0.99] transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 mt-2"
+      {/* Accordion Quest Cards Queue */}
+      <div className="space-y-3.5">
+        {/* Card 1: Resume */}
+        <motion.div
+          layout
+          className={`border rounded-2xl overflow-hidden bg-white transition-all duration-200 ${
+            expandedDoc === "resume"
+              ? "border-slate-200 shadow-sm"
+              : "border-slate-100 hover:border-slate-200"
+          }`}
         >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <svg
-                className="animate-spin h-4 w-4 text-[#002856]"
-                fill="none"
-                viewBox="0 0 24 24"
+          {/* Header block */}
+          <div
+            onClick={() => setExpandedDoc("resume")}
+            className={`p-4 flex items-center justify-between transition-colors select-none ${
+              expandedDoc === "resume"
+                ? "bg-slate-50/20"
+                : "bg-white cursor-pointer hover:bg-slate-50/20"
+            }`}
+          >
+            <div className="flex items-center gap-3 pr-4 min-w-0">
+              {/* Status Indicator circle */}
+              <div
+                className={`w-6 h-6 rounded-full border flex items-center justify-center shrink-0 text-[10px] ${
+                  resume
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                    : "bg-slate-50 text-slate-400 border-slate-200"
+                }`}
               >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-              Uploading Documents...
-            </span>
-          ) : (
-            <span>Submit Documents</span>
-          )}
-        </button>
-      </form>
+                {resume ? (
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                ) : (
+                  <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                )}
+              </div>
+              <div className="min-w-0 text-left">
+                <p
+                  className={`text-xs sm:text-sm font-bold ${
+                    expandedDoc === "resume" ? "text-slate-800" : "text-slate-700"
+                  } truncate`}
+                >
+                  Resume / CV
+                </p>
+                {resume && expandedDoc !== "resume" && (
+                  <p className="text-[9px] text-zinc-400 font-medium truncate max-w-[200px] mt-0.5">
+                    {resume.name}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <span
+                className={`px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider ${
+                  resume
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                    : "bg-slate-50 text-slate-400 border-slate-200"
+                }`}
+              >
+                {resume ? "Attached" : "Pending Upload"}
+              </span>
+              {expandedDoc !== "resume" && (
+                <ChevronRight className="w-4 h-4 text-slate-400 opacity-60" />
+              )}
+            </div>
+          </div>
+
+          {/* Card body dropzone */}
+          <AnimatePresence initial={false}>
+            {expandedDoc === "resume" && (
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{ height: "auto" }}
+                exit={{ height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="border-t border-slate-100 bg-white"
+              >
+                <div className="p-4 flex flex-col gap-3 text-left">
+                  <p className="text-xs text-zinc-500 leading-relaxed font-medium bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
+                    Upload your professional curriculum vitae (CV) detailing your work experience and education.
+                  </p>
+
+                  {/* Dropzone area */}
+                  {!resume ? (
+                    <div className="relative border border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-6 flex flex-col items-center justify-center bg-slate-50/10 hover:bg-slate-50/30 transition-all duration-200 cursor-pointer">
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          if (file) {
+                            setResume(file);
+                            // Auto-focus next file if not selected
+                            if (!cert) {
+                              setExpandedDoc("cert");
+                            }
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                      />
+                      <div className="flex flex-col items-center text-center">
+                        <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 mb-3">
+                          <FileUp className="w-5 h-5" />
+                        </div>
+                        <p className="text-xs font-bold text-slate-700">
+                          Click or Drag to Select Resume
+                        </p>
+                        <p className="text-[10px] text-zinc-400 font-medium mt-1 leading-relaxed">
+                          Supports: PDF up to 10MB
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between p-3 bg-slate-50/50 border border-slate-100 rounded-xl">
+                      <div className="flex items-center gap-2.5 pr-4 min-w-0">
+                        <FileText className="w-5 h-5 text-slate-400 shrink-0" />
+                        <div className="min-w-0 text-left">
+                          <p className="text-xs font-bold text-slate-800 truncate">
+                            {resume.name}
+                          </p>
+                          <p className="text-[9px] text-zinc-400 font-medium mt-0.5">
+                            {(resume.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setResume(null);
+                        }}
+                        className="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:bg-rose-50 text-slate-400 hover:text-red-500 flex items-center justify-center transition-colors shrink-0 z-20 cursor-pointer shadow-sm"
+                        title="Remove File"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        {/* Card 2: Certificate */}
+        <motion.div
+          layout
+          className={`border rounded-2xl overflow-hidden bg-white transition-all duration-200 ${
+            expandedDoc === "cert"
+              ? "border-slate-200 shadow-sm"
+              : "border-slate-100 hover:border-slate-200"
+          }`}
+        >
+          {/* Header block */}
+          <div
+            onClick={() => setExpandedDoc("cert")}
+            className={`p-4 flex items-center justify-between transition-colors select-none ${
+              expandedDoc === "cert"
+                ? "bg-slate-50/20"
+                : "bg-white cursor-pointer hover:bg-slate-50/20"
+            }`}
+          >
+            <div className="flex items-center gap-3 pr-4 min-w-0">
+              {/* Status Indicator circle */}
+              <div
+                className={`w-6 h-6 rounded-full border flex items-center justify-center shrink-0 text-[10px] ${
+                  cert
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                    : "bg-slate-50 text-slate-400 border-slate-200"
+                }`}
+              >
+                {cert ? (
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                ) : (
+                  <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                )}
+              </div>
+              <div className="min-w-0 text-left">
+                <p
+                  className={`text-xs sm:text-sm font-bold ${
+                    expandedDoc === "cert" ? "text-slate-800" : "text-slate-700"
+                  } truncate`}
+                >
+                  Language Certificate
+                </p>
+                {cert && expandedDoc !== "cert" && (
+                  <p className="text-[9px] text-zinc-400 font-medium truncate max-w-[200px] mt-0.5">
+                    {cert.name}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <span
+                className={`px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider ${
+                  cert
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                    : "bg-slate-50 text-slate-400 border-slate-200"
+                }`}
+              >
+                {cert ? "Attached" : "Pending Upload"}
+              </span>
+              {expandedDoc !== "cert" && (
+                <ChevronRight className="w-4 h-4 text-slate-400 opacity-60" />
+              )}
+            </div>
+          </div>
+
+          {/* Card body dropzone */}
+          <AnimatePresence initial={false}>
+            {expandedDoc === "cert" && (
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{ height: "auto" }}
+                exit={{ height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="border-t border-slate-100 bg-white"
+              >
+                <div className="p-4 flex flex-col gap-3 text-left">
+                  <p className="text-xs text-zinc-500 leading-relaxed font-medium bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">
+                    Upload your official B1 or B2 language certification PDF confirming your current German language proficiency level.
+                  </p>
+
+                  {/* Dropzone area */}
+                  {!cert ? (
+                    <div className="relative border border-dashed border-slate-200 hover:border-slate-400 rounded-xl p-6 flex flex-col items-center justify-center bg-slate-50/10 hover:bg-slate-50/30 transition-all duration-200 cursor-pointer">
+                      <input
+                        type="file"
+                        accept=".pdf"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] || null;
+                          if (file) {
+                            setCert(file);
+                            // Auto-focus next file if not selected
+                            if (!resume) {
+                              setExpandedDoc("resume");
+                            }
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                      />
+                      <div className="flex flex-col items-center text-center">
+                        <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 mb-3">
+                          <FileUp className="w-5 h-5" />
+                        </div>
+                        <p className="text-xs font-bold text-slate-700">
+                          Click or Drag to Select Certificate
+                        </p>
+                        <p className="text-[10px] text-zinc-400 font-medium mt-1 leading-relaxed">
+                          Supports: PDF up to 10MB
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between p-3 bg-slate-50/50 border border-slate-100 rounded-xl">
+                      <div className="flex items-center gap-2.5 pr-4 min-w-0">
+                        <FileText className="w-5 h-5 text-slate-400 shrink-0" />
+                        <div className="min-w-0 text-left">
+                          <p className="text-xs font-bold text-slate-800 truncate">
+                            {cert.name}
+                          </p>
+                          <p className="text-[9px] text-zinc-400 font-medium mt-0.5">
+                            {(cert.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCert(null);
+                        }}
+                        className="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:bg-rose-50 text-slate-400 hover:text-red-500 flex items-center justify-center transition-colors shrink-0 z-20 cursor-pointer shadow-sm"
+                        title="Remove File"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
+
+      {error && (
+        <div className="flex items-start gap-2.5 text-red-500 text-xs font-semibold p-3 bg-red-50/50 rounded-xl border border-red-100 w-full mt-5">
+          <AlertCircle className="w-4.5 h-4.5 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Submit Button */}
+      <button
+        onClick={handleSubmit}
+        disabled={loading || !resume || !cert}
+        className="w-full sm:max-w-xs mx-auto h-11 sm:h-12 bg-[#002856] hover:bg-[#003975] text-white rounded-xl font-bold text-xs sm:text-sm shadow-sm transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 mt-6 cursor-pointer"
+      >
+        {loading ? (
+          <span className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            Submitting Profile...
+          </span>
+        ) : (
+          <span>Submit Documents</span>
+        )}
+      </button>
     </div>
   );
 };
 
 export default ProfileCompletionStep;
+
