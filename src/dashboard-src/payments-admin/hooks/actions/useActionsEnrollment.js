@@ -112,8 +112,8 @@ export function useActionsEnrollment(state) {
       const actualDate = String(row.actual_date || row.date || "").slice(0, 10);
       const expectedRaw = row.expected_payment_inr ?? row.expected_amount_inr ?? "";
       const actualRaw = row.actual_payment_inr ?? "";
-      const hasExpected = String(expectedRaw).trim() !== "";
-      const hasActual = String(actualRaw).trim() !== "";
+      const hasExpected = String(expectedRaw).trim() !== "" && Number(expectedRaw) !== 0;
+      const hasActual = String(actualRaw).trim() !== "" && Number(actualRaw) !== 0;
       const expected = Number(expectedRaw || 0);
       const actual = Number(actualRaw || 0);
       return (
