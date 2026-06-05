@@ -386,6 +386,13 @@ export default function TermsSignPage() {
 
   const [enrollmentDetails, setEnrollmentDetails] = useState(null);
   const [wizardStep, setWizardStep] = useState(0);
+
+  useEffect(() => {
+    if (wizardStep > 0 && wizardStep < 5) {
+      window.scrollTo(0, 0);
+    }
+  }, [wizardStep]);
+
   const [wizardData, setWizardData] = useState({
     student_name: "",
     student_phone: "",
@@ -664,6 +671,20 @@ export default function TermsSignPage() {
             const candidateDetails = detailsRes.data?.details || {};
             const detailsFilled = candidateDetails?.candidate_details_filled === "yes";
             if (!detailsFilled) {
+              setWizardData((prev) => {
+                const next = { ...prev };
+                next.student_name = detailsRes.data?.student_name || candidateDetails.student_name || "";
+                next.student_phone = detailsRes.data?.student_phone || candidateDetails.student_phone || "";
+                next.student_email = detailsRes.data?.student_email || candidateDetails.student_email || "";
+                for (const key of Object.keys(next)) {
+                  if (key === "student_name" || key === "student_phone" || key === "student_email") continue;
+                  const val = candidateDetails[key];
+                  if (val !== undefined && val !== null && String(val).trim() !== "-") {
+                    next[key] = String(val).trim();
+                  }
+                }
+                return next;
+              });
               setWizardStep(1);
             } else {
               setAlreadySigned(true);
@@ -1106,6 +1127,20 @@ export default function TermsSignPage() {
         const candidateDetails = detailsRes.data?.details || {};
         const detailsFilled = candidateDetails?.candidate_details_filled === "yes";
         if (!detailsFilled) {
+          setWizardData((prev) => {
+            const next = { ...prev };
+            next.student_name = detailsRes.data?.student_name || candidateDetails.student_name || "";
+            next.student_phone = detailsRes.data?.student_phone || candidateDetails.student_phone || "";
+            next.student_email = detailsRes.data?.student_email || candidateDetails.student_email || "";
+            for (const key of Object.keys(next)) {
+              if (key === "student_name" || key === "student_phone" || key === "student_email") continue;
+              const val = candidateDetails[key];
+              if (val !== undefined && val !== null && String(val).trim() !== "-") {
+                next[key] = String(val).trim();
+              }
+            }
+            return next;
+          });
           setWizardStep(1);
         } else {
           setSuccess(
@@ -1214,13 +1249,31 @@ export default function TermsSignPage() {
     return (
       wizardData.student_name?.trim() &&
       wizardData.student_phone?.trim() &&
-      wizardData.student_email?.trim()
+      wizardData.student_email?.trim() &&
+      wizardData.dob?.trim() &&
+      wizardData.gender?.trim() &&
+      wizardData.nationality?.trim()
     );
   };
 
-  const isStep2Valid = () => true;
+  const isStep2Valid = () => {
+    return (
+      wizardData.current_location_city?.trim() &&
+      wizardData.state?.trim() &&
+      wizardData.educational_qualification?.trim() &&
+      wizardData.year_of_passing?.trim()
+    );
+  };
 
-  const isStep3Valid = () => true;
+  const isStep3Valid = () => {
+    if (wizardData.shift_pattern === "Daily Shift Pattern") {
+      return Boolean(wizardData.daily_shift_timing?.trim());
+    }
+    if (wizardData.shift_pattern === "Rotating Shifts") {
+      return Boolean(wizardData.first_shift_timing?.trim() && wizardData.second_shift_timing?.trim());
+    }
+    return false;
+  };
 
   const isStep4Valid = () => true;
 
@@ -1282,7 +1335,7 @@ export default function TermsSignPage() {
                 <h3 className="text-lg font-semibold text-slate-900 border-b pb-2 border-slate-100">Personal & Contact Details</h3>
                 
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Full Name</label>
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Full Name <span className="text-rose-500">*</span></label>
                   <input 
                     type="text" 
                     value={wizardData.student_name}
@@ -1294,7 +1347,7 @@ export default function TermsSignPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Phone Number <span className="text-rose-500">*</span></label>
                     <input 
                       type="tel" 
                       value={wizardData.student_phone}
@@ -1304,7 +1357,7 @@ export default function TermsSignPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Alternate Phone Number</label>
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Alternate Phone Number (Optional)</label>
                     <input 
                       type="tel" 
                       value={wizardData.alternate_number}
@@ -1316,7 +1369,7 @@ export default function TermsSignPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Email Address <span className="text-rose-500">*</span></label>
                   <input 
                     type="email" 
                     value={wizardData.student_email}
@@ -1328,7 +1381,7 @@ export default function TermsSignPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Date of Birth</label>
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Date of Birth <span className="text-rose-500">*</span></label>
                     <input 
                       type="date" 
                       value={wizardData.dob}
@@ -1337,7 +1390,7 @@ export default function TermsSignPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Gender</label>
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Gender <span className="text-rose-500">*</span></label>
                     <select 
                       value={wizardData.gender}
                       onChange={(e) => setWizardData({...wizardData, gender: e.target.value})}
@@ -1352,7 +1405,7 @@ export default function TermsSignPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Nationality</label>
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Nationality <span className="text-rose-500">*</span></label>
                   <input 
                     type="text" 
                     value={wizardData.nationality}
@@ -1370,7 +1423,7 @@ export default function TermsSignPage() {
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Current Location (City)</label>
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Current Location (City) <span className="text-rose-500">*</span></label>
                     <input 
                       type="text" 
                       value={wizardData.current_location_city}
@@ -1380,7 +1433,7 @@ export default function TermsSignPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">State</label>
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">State <span className="text-rose-500">*</span></label>
                     <select 
                       value={wizardData.state}
                       onChange={(e) => setWizardData({...wizardData, state: e.target.value})}
@@ -1395,27 +1448,34 @@ export default function TermsSignPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Educational Qualification</label>
-                  <input 
-                    type="text" 
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Educational Qualification <span className="text-rose-500">*</span></label>
+                  <select 
                     value={wizardData.educational_qualification}
                     onChange={(e) => setWizardData({...wizardData, educational_qualification: e.target.value})}
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
-                    placeholder="e.g. BSc Nursing"
-                  />
+                  >
+                    <option value="">Select Qualification</option>
+                    <option value="BSc Nursing">BSc Nursing</option>
+                    <option value="MSc Nursing">MSc Nursing</option>
+                    <option value="Post BSc Nursing">Post BSc Nursing</option>
+                    <option value="GNM Nursing">GNM Nursing</option>
+                    <option value="Phd Nursing">Phd Nursing</option>
+                    <option value="Others">Others</option>
+                  </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Year of Passing</label>
-                  <input 
-                    type="number" 
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Year of Passing <span className="text-rose-500">*</span></label>
+                  <select 
                     value={wizardData.year_of_passing}
                     onChange={(e) => setWizardData({...wizardData, year_of_passing: e.target.value})}
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
-                    placeholder="e.g. 2025"
-                    min="1990"
-                    max="2035"
-                  />
+                  >
+                    <option value="">Select Year</option>
+                    {Array.from({ length: 2035 - 1990 + 1 }, (_, i) => 1990 + i).map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             )}
@@ -1425,7 +1485,7 @@ export default function TermsSignPage() {
                 <h3 className="text-lg font-semibold text-slate-900 border-b pb-2 border-slate-100">Shift Timings & Preferences</h3>
                 
                 <div>
-                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Shift Pattern</label>
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Shift Pattern <span className="text-rose-500">*</span></label>
                   <select 
                     value={wizardData.shift_pattern}
                     onChange={(e) => setWizardData({...wizardData, shift_pattern: e.target.value})}
@@ -1433,13 +1493,12 @@ export default function TermsSignPage() {
                   >
                     <option value="Daily Shift Pattern">Daily Shift Pattern (Fixed Hours)</option>
                     <option value="Rotating Shifts">Rotating Shifts (Multiple Timings)</option>
-                    <option value="Fixed Shift">Fixed Shift (Single Shift timing)</option>
                   </select>
                 </div>
 
                 {wizardData.shift_pattern === "Daily Shift Pattern" ? (
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Daily Shift Timing</label>
+                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Daily Shift Timing <span className="text-rose-500">*</span></label>
                     <input 
                       type="text" 
                       value={wizardData.daily_shift_timing}
@@ -1451,7 +1510,7 @@ export default function TermsSignPage() {
                 ) : (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">First Shift Timing</label>
+                      <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">First Shift Timing <span className="text-rose-500">*</span></label>
                       <input 
                         type="text" 
                         value={wizardData.first_shift_timing}
@@ -1464,7 +1523,7 @@ export default function TermsSignPage() {
                     {wizardData.shift_pattern === "Rotating Shifts" && (
                       <>
                         <div>
-                          <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Second Shift Timing</label>
+                          <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Second Shift Timing <span className="text-rose-500">*</span></label>
                           <input 
                             type="text" 
                             value={wizardData.second_shift_timing}
@@ -1501,9 +1560,9 @@ export default function TermsSignPage() {
                 )}
 
                 {[
-                  { type: "passport", label: "Passport (Page 1 & 2)", linkKey: "passport_gdrive_link" },
-                  { type: "degree", label: "Degree / Highest Qualification Certificate", linkKey: "degree_certificate_gdrive_link" },
-                  { type: "resume", label: "Updated CV / Resume", linkKey: "updated_resume_gdrive_link" },
+                  { type: "passport", label: "Passport (Page 1 & 2) (Optional)", linkKey: "passport_gdrive_link" },
+                  { type: "degree", label: "Degree / Highest Qualification Certificate (Optional)", linkKey: "degree_certificate_gdrive_link" },
+                  { type: "resume", label: "Updated CV / Resume (Optional)", linkKey: "updated_resume_gdrive_link" },
                 ].map((doc) => {
                   const isUploaded = Boolean(wizardData[doc.linkKey]);
                   const isUploading = uploadingFiles[doc.type];

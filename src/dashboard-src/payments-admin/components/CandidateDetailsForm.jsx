@@ -47,14 +47,6 @@ const requiredFieldKeys = new Set([
   "student_name",
   "student_phone",
   "student_email",
-  "dob",
-  "gender",
-  "nationality",
-  "current_location_city",
-  "state",
-  "educational_qualification",
-  "batch_id",
-  "terms_ack_status",
 ]);
 
 function todayInputDate() {
@@ -156,26 +148,27 @@ export function CandidateDetailsForm({
   useEffect(() => {
     if (!editDraft) return;
 
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const randomPhone = String(Math.floor(6000000000 + Math.random() * 4000000000));
-    const firstBatchId = batches && batches[0] ? batches[0].batch_id : "";
-
     const defaults = {
-      student_name: `Test Candidate ${randomSuffix}`,
-      student_phone: randomPhone,
-      student_email: `test.candidate.${randomSuffix}@example.com`,
-      batch_id: firstBatchId,
-      dob: "2000-01-01",
-      gender: "Male",
-      nationality: "Indian",
-      current_location_city: "Bangalore",
-      state: "Karnataka",
-      educational_qualification: "Graduate (B.Tech)",
-      terms_ack_status: "yes",
-      shift_pattern: "Daily Shift Pattern",
-      daily_shift_timing: "09:00 AM - 06:00 PM",
-      lead_owner: "Admin",
-      year_of_passing: "2022",
+      student_name: "",
+      student_phone: "",
+      student_email: "",
+      batch_id: "",
+      dob: "",
+      gender: "",
+      nationality: "-",
+      current_location_city: "-",
+      state: "",
+      educational_qualification: "",
+      terms_ack_status: "",
+      shift_pattern: "",
+      daily_shift_timing: "-",
+      lead_owner: "-",
+      year_of_passing: "",
+      alternate_number: "-",
+      first_shift_timing: "-",
+      second_shift_timing: "-",
+      third_shift_timing: "-",
+      internal_remark: "-",
     };
 
     let hasChanges = false;
@@ -363,6 +356,9 @@ export function CandidateDetailsForm({
     // 1. Gather all actual payments made so far from on-screen expected and actual-only rows
     const rawPool = [];
     for (const row of expectedRows) {
+      const ids = row.actual_payment_id_list
+        ? String(row.actual_payment_id_list).split(",").map(id => id.trim())
+        : [];
       if (row.actual_payment_list) {
         const amounts = String(row.actual_payment_list).split(",").map(a => Number(a.trim()) || 0);
         const dates = String(row.actual_date || "").split(",").map(d => d.trim());
@@ -371,6 +367,7 @@ export function CandidateDetailsForm({
             rawPool.push({
               amount: amounts[i],
               date: dates[i] || "",
+              id: ids[i] || "",
             });
           }
         }
@@ -380,6 +377,7 @@ export function CandidateDetailsForm({
           rawPool.push({
             amount,
             date: row.actual_date ? String(row.actual_date).slice(0, 10) : "",
+            id: ids[0] || "",
           });
         }
       }
@@ -390,15 +388,22 @@ export function CandidateDetailsForm({
     for (const item of rawPool) {
       const key = item.date;
       if (clubbedMap.has(key)) {
-        clubbedMap.set(key, clubbedMap.get(key) + item.amount);
+        const existing = clubbedMap.get(key);
+        clubbedMap.set(key, {
+          amount: existing.amount + item.amount,
+          ids: [...existing.ids, item.id].filter(Boolean),
+        });
       } else {
-        clubbedMap.set(key, item.amount);
+        clubbedMap.set(key, {
+          amount: item.amount,
+          ids: [item.id].filter(Boolean),
+        });
       }
     }
 
     const actualsPool = [];
-    for (const [date, amount] of clubbedMap.entries()) {
-      actualsPool.push({ date, amount });
+    for (const [date, val] of clubbedMap.entries()) {
+      actualsPool.push({ date, amount: val.amount, ids: val.ids });
     }
 
     // Sort actual payments chronologically
@@ -429,9 +434,11 @@ export function CandidateDetailsForm({
         if (act.amount <= 0) continue;
 
         const allocated = Math.min(needed, act.amount);
+        const matchedId = act.ids.shift() || "";
         allocations.push({
           date: act.date,
           amount: allocated,
+          id: matchedId,
         });
 
         act.amount -= allocated;
@@ -440,11 +447,13 @@ export function CandidateDetailsForm({
 
       const actualPaymentListStr = allocations.map((a) => String(a.amount)).join(", ");
       const actualDateStr = allocations.map((a) => a.date).join(", ");
+      const actualPaymentIdListStr = allocations.map((a) => a.id).join(", ");
       
       return {
         ...row,
         actual_payment_list: actualPaymentListStr,
         actual_date: actualDateStr,
+        actual_payment_id_list: actualPaymentIdListStr,
       };
     });
 
@@ -458,6 +467,7 @@ export function CandidateDetailsForm({
           expected_payment_inr: "",
           actual_payment_list: String(act.amount),
           actual_date: act.date,
+          actual_payment_id_list: act.ids.join(", "),
           row_kind: "actual_only",
         });
       }
@@ -896,7 +906,51 @@ export function CandidateDetailsForm({
           Education Qualifications
         </h3>
         <div className="grid gap-3 md:grid-cols-3">
-          {educationFields.map(textField)}
+          <Field label="Educational Qualification" required={requiredFieldKeys.has("educational_qualification")}>
+            <ControlSelect
+              value={editDraft.educational_qualification || ""}
+              onChange={(e) =>
+                setEditDraft((p) => ({ ...p, educational_qualification: e.target.value }))
+              }
+              className="w-full"
+            >
+              <option value="">Select Qualification</option>
+              <option value="BSc Nursing">BSc Nursing</option>
+              <option value="MSc Nursing">MSc Nursing</option>
+              <option value="Post BSc Nursing">Post BSc Nursing</option>
+              <option value="GNM Nursing">GNM Nursing</option>
+              <option value="Phd Nursing">Phd Nursing</option>
+              <option value="Others">Others</option>
+            </ControlSelect>
+          </Field>
+          <Field label="Year of Passing" required={requiredFieldKeys.has("year_of_passing")}>
+            <ControlSelect
+              value={editDraft.year_of_passing || ""}
+              onChange={(e) =>
+                setEditDraft((p) => ({ ...p, year_of_passing: e.target.value }))
+              }
+              className="w-full"
+            >
+              <option value="">Select Year</option>
+              {Array.from({ length: 2035 - 1990 + 1 }, (_, i) => 1990 + i).map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </ControlSelect>
+          </Field>
+          <Field label="Shift Pattern">
+            <ControlSelect
+              value={editDraft.shift_pattern || ""}
+              onChange={(e) =>
+                setEditDraft((p) => ({ ...p, shift_pattern: e.target.value }))
+              }
+              className="w-full"
+            >
+              <option value="">Select Shift Pattern</option>
+              <option value="Daily Shift Pattern">Daily Shift Pattern (Fixed Hours)</option>
+              <option value="Rotating Shifts">Rotating Shifts (Multiple Timings)</option>
+            </ControlSelect>
+          </Field>
+          {educationFields.slice(3).map(textField)}
         </div>
       </section>
 
@@ -917,6 +971,9 @@ export function CandidateDetailsForm({
             const isNewlyAdded = row.manual_payment_key && row.manual_payment_key === lastAddedKey;
             const actualDates = row.actual_date ? row.actual_date.split(",").map(d => d.trim()) : [];
             const actualPayments = row.actual_payment_list ? row.actual_payment_list.split(",").map(a => a.trim()) : [];
+            const actualPaymentIds = row.actual_payment_id_list
+              ? String(row.actual_payment_id_list).split(",").map(id => id.trim())
+              : [];
             const subRowCount = Math.max(1, actualDates.length);
             const expectedPaymentsList = row.expected_payment_list
               ? row.expected_payment_list.split(",").map(s => s.trim())
@@ -978,9 +1035,10 @@ export function CandidateDetailsForm({
                   {Array.from({ length: subRowCount }).map((_, subIdx) => {
                     const actDate = actualDates[subIdx] || "";
                     const actAmt = actualPayments[subIdx] || "";
+                    const actId = actualPaymentIds[subIdx] || "";
 
                     return (
-                      <div key={subIdx} className="grid gap-2 grid-cols-2">
+                      <div key={subIdx} className="grid gap-2 grid-cols-3">
                         <Field label={subIdx === 0 ? "Actual Date(s)" : ""}>
                           <ControlInput
                             value={formatToDdMmYyyy(actDate) || "-"}
@@ -995,6 +1053,14 @@ export function CandidateDetailsForm({
                             disabled
                             placeholder="-"
                             className="w-full bg-slate-100 text-slate-500 cursor-not-allowed"
+                          />
+                        </Field>
+                        <Field label={subIdx === 0 ? "Payment ID" : ""}>
+                          <ControlInput
+                            value={actId || "-"}
+                            disabled
+                            placeholder="-"
+                            className="w-full bg-slate-100 text-slate-500 cursor-not-allowed text-xs font-mono"
                           />
                         </Field>
                       </div>
