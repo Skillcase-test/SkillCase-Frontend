@@ -19,6 +19,7 @@ const MODULE_OPTIONS = [
   { key: "internal", label: "Internal Forms" },
   { key: "terms", label: "Terms & Signatures" },
   { key: "payments", label: "Payments" },
+  { key: "job_screening", label: "Job Screening" },
 ];
 
 const ACTION_OPTIONS = ["view", "create", "edit", "delete", "manage"];

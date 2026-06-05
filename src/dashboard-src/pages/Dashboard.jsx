@@ -78,6 +78,10 @@ const A2ReadingManage = lazy(() => import("./a2/reading/manage"));
 const A2TestAdd = lazy(() => import("./a2/test/add"));
 const A2TestManage = lazy(() => import("./a2/test/manage"));
 
+const JobScreeningAdmin = lazy(
+  () => import("../../pages/admin/JobScreeningAdmin"),
+);
+
 function hasPermission(me, moduleKey, action = "view") {
   if (!me) return false;
   if (me.role === "super_admin") return true;
@@ -310,7 +314,7 @@ function SidebarSection({ title, items, onLinkClick }) {
 function ModuleItem({ module, onLinkClick }) {
   const location = useLocation();
   const [open, setOpen] = useState(() =>
-    location.pathname.startsWith(module.basePath)
+    location.pathname.startsWith(module.basePath),
   );
 
   useEffect(() => {
@@ -374,7 +378,7 @@ function ModuleItem({ module, onLinkClick }) {
 function ModuleGroup({ title, modules, onLinkClick }) {
   const location = useLocation();
   const [open, setOpen] = useState(() =>
-    modules.some((m) => location.pathname.startsWith(m.basePath))
+    modules.some((m) => location.pathname.startsWith(m.basePath)),
   );
 
   useEffect(() => {
@@ -423,10 +427,10 @@ function ContentModuleTree({ a1Modules, a2Modules, onLinkClick }) {
 
   useEffect(() => {
     const matchesA1 = a1Modules.some((m) =>
-      location.pathname.startsWith(m.basePath)
+      location.pathname.startsWith(m.basePath),
     );
     const matchesA2 = a2Modules.some((m) =>
-      location.pathname.startsWith(m.basePath)
+      location.pathname.startsWith(m.basePath),
     );
     if (matchesA1 || matchesA2) {
       setOpen(true);
@@ -598,16 +602,32 @@ export default function Dashboard() {
     };
   }, []);
 
-  const PAYMENTS_TAB_KEYS = useMemo(() => [
-    "tab_overall", "tab_month", "tab_all", "tab_batch", "tab_fee",
-    "tab_discounts", "tab_discounts_view", "tab_payments", "tab_rawlogs", "tab_invoice", "tab_import",
-  ], []);
+  const PAYMENTS_TAB_KEYS = useMemo(
+    () => [
+      "tab_overall",
+      "tab_month",
+      "tab_all",
+      "tab_batch",
+      "tab_fee",
+      "tab_discounts",
+      "tab_discounts_view",
+      "tab_payments",
+      "tab_rawlogs",
+      "tab_invoice",
+      "tab_import",
+    ],
+    [],
+  );
 
   const hasPaymentsAccess = useMemo(() => {
-    return me &&
+    return (
+      me &&
       (me.role === "super_admin" ||
-       me.permissions?.["payments"]?.includes("manage") ||
-       PAYMENTS_TAB_KEYS.some((k) => me.permissions?.["payments"]?.includes(k)));
+        me.permissions?.["payments"]?.includes("manage") ||
+        PAYMENTS_TAB_KEYS.some((k) =>
+          me.permissions?.["payments"]?.includes(k),
+        ))
+    );
   }, [me, PAYMENTS_TAB_KEYS]);
 
   const sections = useMemo(() => {
@@ -692,6 +712,12 @@ export default function Dashboard() {
         path: "/admin/explore-candidates",
         module: "explore_candidates",
       },
+      {
+        key: "job-screening",
+        label: "Job Screening",
+        path: "/admin/job-screening",
+        module: "job_screening",
+      },
     ].filter((item) => hasPermission(me, item.module, "view"));
 
     if (me.role !== "super_admin" && hasPaymentsAccess) {
@@ -773,7 +799,11 @@ export default function Dashboard() {
         ? [
             { key: "access", label: "Admin Access", path: "/admin/access" },
             { key: "payments", label: "Payments", path: "/admin/payments" },
-            { key: "call-engine", label: "Call Engine", path: "/admin/call-engine" },
+            {
+              key: "call-engine",
+              label: "Call Engine",
+              path: "/admin/call-engine",
+            },
           ]
         : [];
 
@@ -887,13 +917,21 @@ export default function Dashboard() {
               <p className="mb-2 px-2 text-xs font-bold uppercase tracking-widest text-slate-500">
                 Admin Panel
               </p>
-              <SidebarSection title="Core" items={sections.core} onLinkClick={closeMobileSidebar} />
+              <SidebarSection
+                title="Core"
+                items={sections.core}
+                onLinkClick={closeMobileSidebar}
+              />
               <ContentModuleTree
                 a1Modules={sections.a1Modules}
                 a2Modules={sections.a2Modules}
                 onLinkClick={closeMobileSidebar}
               />
-              <SidebarSection title="Super Admin" items={sections.superAdmin} onLinkClick={closeMobileSidebar} />
+              <SidebarSection
+                title="Super Admin"
+                items={sections.superAdmin}
+                onLinkClick={closeMobileSidebar}
+              />
             </div>
           </div>
         </aside>
@@ -1026,6 +1064,14 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "explore_candidates")}>
                     <ExploreCandidatesAdmin />
+                  </Guard>
+                }
+              />
+              <Route
+                path="job-screening"
+                element={
+                  <Guard allowed={hasPermission(me, "job_screening")}>
+                    <JobScreeningAdmin />
                   </Guard>
                 }
               />
