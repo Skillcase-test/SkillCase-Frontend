@@ -89,7 +89,7 @@ export default function ConversationScreen({
             </svg>
           )}
         </div>
-        <div className="p-3 bg-white/20 rounded-tr-xl rounded-bl-xl rounded-br-xl flex justify-center items-center gap-2.5 shadow-md/20 max-w-[75%]">
+        <div className="p-3 bg-[#E4EFFF] rounded-tr-xl rounded-bl-xl rounded-br-xl flex justify-center items-center gap-2.5 max-w-[75%]">
           <div className="flex flex-col justify-start items-start">
             <div className="flex justify-between items-start gap-4 w-full">
               <div className="text-black text-[15px] font-medium font-['Poppins']">
@@ -147,14 +147,18 @@ export default function ConversationScreen({
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col relative bg-gradient-to-b from-blue-100 to-sky-100">
+    <div className="w-full flex-1 flex flex-col relative bg-[#D4E5FF]">
       {/* Chat History & Current Turn */}
       <div
         ref={scrollRef}
         className={`w-full flex-1 overflow-y-auto px-4 pb-32 scroll-smooth ${
           floatingHeader ? "" : "pt-4"
         }`}
-        style={floatingHeader ? { paddingTop: "calc(96px + env(safe-area-inset-top, 0px))" } : {}}
+        style={
+          floatingHeader
+            ? { paddingTop: "calc(96px + env(safe-area-inset-top, 0px))" }
+            : {}
+        }
       >
         <div className="flex flex-col justify-start items-start w-full max-w-[500px] mx-auto">
           {/* Past History */}
@@ -177,8 +181,8 @@ export default function ConversationScreen({
               transition={{ delay: 0.3 }}
               className="w-full inline-flex justify-end items-start gap-3 mb-4"
             >
-              <div className="w-[75%] p-4 bg-white rounded-tl-xl rounded-bl-xl rounded-br-xl flex flex-col justify-start items-start gap-4 shadow-[0_4px_12px_rgba(0,0,0,0.05)]">
-                <div className="text-black text-[15px] font-medium font-['Poppins']">
+              <div className="w-[75%] p-4 bg-white rounded-tl-xl rounded-bl-xl rounded-br-xl flex flex-col justify-start items-start gap-4">
+                <div className="text-black text-[15px] font-medium">
                   {screen.question || "Select the correct reply"}
                 </div>
 

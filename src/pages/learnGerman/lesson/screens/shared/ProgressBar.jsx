@@ -31,7 +31,7 @@ export default function ProgressBar({
 
   return (
     <div
-      className={`w-full pr-4 pl-2 pt-2 pb-2 bg-white/70 border-b border-slate-200 shadow-sm/20 shrink-0 z-20 ${
+      className={`w-full pr-4 pl-2 pt-2 pb-2 bg-[#F4F8FF] border-b border-slate-200 shadow-sm/20 shrink-0 z-20 ${
         floating
           ? "fixed left-1/2 -translate-x-1/2 max-w-[500px]"
           : "relative"

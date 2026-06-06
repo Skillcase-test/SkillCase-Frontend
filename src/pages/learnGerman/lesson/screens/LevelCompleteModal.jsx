@@ -165,7 +165,7 @@ export default function LevelCompleteModal({
                 alt="Maya"
                 className="relative z-10 h-40 object-contain drop-shadow-md self-end"
                 initial={{ y: 30, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
+                animate={{ y: 20, opacity: 1 }}
                 transition={{ type: "spring", bounce: 0.4, delay: 0.15 }}
               />
             </div>
