@@ -46,7 +46,7 @@ import LevelCompleteModal from "./screens/LevelCompleteModal";
 import LeaveLessonModal from "./screens/shared/LeaveLessonModal";
 
 const TapGuideOverlay = ({ rect, onClick }) => {
-  const padding = 18;
+  const padding = 6;
   const top = Math.max(0, rect.top - padding);
   const left = Math.max(0, rect.left - padding);
   const width = rect.width + padding * 2;
@@ -80,12 +80,11 @@ const TapGuideOverlay = ({ rect, onClick }) => {
       <button
         type="button"
         onClick={onClick}
-        className="absolute rounded-full bg-white/10"
+        className="absolute rounded-xl bg-white/10"
         style={{ top, left, width, height }}
       >
-        <span className="absolute inset-0 rounded-full border-[3px] border-white shadow-[0_0_0_1px_rgba(255,255,255,0.75),0_14px_38px_rgba(0,0,0,0.32)]" />
-        <span className="absolute inset-0 rounded-full border-2 border-white/90 animate-ping" />
-        <span className="absolute inset-4 rounded-full border border-white/80" />
+        <span className="absolute inset-0 rounded-xl border-[3px] border-white shadow-[0_0_0_1px_rgba(255,255,255,0.75),0_14px_38px_rgba(0,0,0,0.32)]" />
+        <span className="absolute inset-0 rounded-xl border-2 border-white/90 animate-ping" />
       </button>
 
       <div
@@ -98,10 +97,10 @@ const TapGuideOverlay = ({ rect, onClick }) => {
           }`}
         />
         <p className="relative text-[14px] text-slate-950 font-bold leading-snug">
-          Tap the white pulse icon to continue.
+          Tap the Continue button to continue.
         </p>
         <p className="relative mt-1 text-[12px] text-slate-500 font-medium leading-snug">
-          When you see this icon, it means the screen is ready for your tap.
+          When you see this button, it means the screen is ready for your tap.
         </p>
       </div>
     </div>
@@ -896,10 +895,6 @@ export default function NewLessonFlow() {
 
   const handleTapGuideSpotlightClick = (event) => {
     event.stopPropagation();
-    if (currentScreen?.type === "scenario") {
-      setGuidedScenarioTapNonce((prev) => prev + 1);
-      return;
-    }
     completeTapGuide();
     handleNext();
   };
@@ -1198,22 +1193,11 @@ export default function NewLessonFlow() {
   return (
     <div className="w-full lg-screen-height bg-gradient-to-b from-blue-100 to-sky-100 flex justify-center overflow-hidden">
       <div
-        className="w-full max-w-[500px] lg-screen-height relative cursor-pointer flex flex-col bg-gradient-to-b from-blue-100 to-sky-100 shadow-xl overflow-hidden"
+        className="w-full max-w-[500px] lg-screen-height relative flex flex-col bg-gradient-to-b from-blue-100 to-sky-100 shadow-xl overflow-hidden"
         onClick={() => {
           if (
-            ["intro", "scenario", "outro"].includes(currentScreen.type)
+            ["outro"].includes(currentScreen.type)
           ) {
-            if (
-              (currentScreen.type === "intro" ||
-                currentScreen.type === "scenario") &&
-              tapGuidePending &&
-              !showTapGuide
-            ) {
-              return;
-            }
-            if (currentScreen.type === "intro" || currentScreen.type === "scenario") {
-              completeTapGuide();
-            }
             handleNext();
           }
         }}
@@ -1240,6 +1224,7 @@ export default function NewLessonFlow() {
                     level={lessonData.proficiency_level}
                     showTapGuide={showTapGuide}
                     onDialogueDone={handleTapDialogueDone}
+                    onNext={handleNext}
                     onBackClick={() => setShowLeaveModal(true)}
                   />
                 )}

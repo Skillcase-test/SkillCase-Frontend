@@ -5,7 +5,6 @@ import ProgressBar from "./shared/ProgressBar";
 import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import TypewriterText from "./shared/TypewriterText";
-import TapIndicator from "./shared/TapIndicator";
 import { hapticLight } from "../../../../utils/haptics";
 
 export default function ConversationIntroScreen({
@@ -116,22 +115,17 @@ export default function ConversationIntroScreen({
           )}
         </AnimatePresence>
 
-        {/* Pulsing Tap Indicator over the image/scene */}
-        {currentDialogueFinished && !mayaDone && (
-          <TapIndicator
-            className="absolute left-1/2 -translate-x-1/2 bottom-20"
-          />
-        )}
-
         {/* Bottom Fade */}
         <div className="w-full h-44 absolute bottom-0 mix-blend-multiply bg-gradient-to-b from-white/0 to-black z-10 pointer-events-none" />
 
-        {/* Start Conversation Button Panel — appears only after dialogues complete */}
-        <AnimatePresence>
-          {mayaDone && (
+        {/* Continue / Start Conversation Button Panel */}
+        <AnimatePresence mode="wait">
+          {currentDialogueFinished && (
             <motion.div
+              key={mayaDialogueIndex === mayaDialogues.length - 1 ? "start-btn" : "continue-btn"}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -15 }}
               transition={{ duration: 0.3 }}
               className="w-full px-4 z-20 relative safe-bottom-pad flex items-center gap-3"
             >
@@ -141,7 +135,7 @@ export default function ConversationIntroScreen({
                     hapticLight();
                     onPrev?.();
                   }}
-                  className="w-2/5 px-4 py-3.5 rounded-xl border border-zinc-300 shadow-sm bg-white text-blue-950 font-semibold text-[16px] transition-transform active:scale-[0.98] flex justify-center items-center gap-1"
+                  className="w-2/5 py-3.5 rounded-xl border border-zinc-300 shadow-sm bg-white text-blue-950 font-semibold text-[15px] active:scale-[0.98] transition-transform flex items-center justify-center gap-1"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Prev
@@ -150,16 +144,22 @@ export default function ConversationIntroScreen({
               <button
                 onClick={() => {
                   hapticLight();
-                  onNext();
+                  if (mayaDialogueIndex < mayaDialogues.length - 1) {
+                    handleBubbleClick();
+                  } else {
+                    onNext();
+                  }
                 }}
                 className={`${
                   canGoPrev ? "w-6/5" : "w-full"
-                } px-4 py-3.5 bg-gradient-to-r from-amber-200 to-amber-300 rounded-xl shadow-[inset_0px_0px_0px_1px_rgba(10,13,18,0.18)] outline-2 outline-offset-[-2px] outline-white/10 flex justify-center items-center gap-1.5 transition-transform active:scale-[0.98] border border-[#eec139]`}
+                } py-3.5 bg-gradient-to-r from-amber-200 to-amber-300 rounded-xl shadow-sm text-blue-950 font-semibold text-[15px] active:scale-[0.98] transition-transform border border-[#eec139] flex items-center justify-center gap-1.5`}
               >
-                <span className="text-blue-950 text-[16px] font-semibold font-['Inter'] leading-6">
-                  Start Conversation
+                <span>
+                  {mayaDialogueIndex < mayaDialogues.length - 1
+                    ? "Continue"
+                    : "Start Conversation"}
                 </span>
-                <ArrowRight className="w-4 h-4 text-blue-950" />
+                <ArrowRight className="w-4 h-4" />
               </button>
             </motion.div>
           )}

@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
 import mayaThumbsup from "../../../../assets/onboarding/mayaThumbsup.webp";
 import ProgressBar from "./shared/ProgressBar";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
-import TapIndicator from "./shared/TapIndicator";
 
 export default function IntroScreen({
   screen,
@@ -11,6 +11,7 @@ export default function IntroScreen({
   level,
   showTapGuide = false,
   onDialogueDone,
+  onNext,
 }) {
   const bgImage = screen.image || lesson1Bg;
   const dialogueText =
@@ -34,10 +35,6 @@ export default function IntroScreen({
           transition={{ layout: { duration: 0.55, ease: [0.22, 1, 0.36, 1] } }}
         />
         <div className="w-full max-w-[300px] py-5 bg-black/50 rounded-[20px] relative shadow-2xl z-10 flex flex-col items-center">
-          <TapIndicator
-            domId={showTapGuide ? "lg-tap-indicator" : undefined}
-            className="absolute -right-4 -top-4"
-          />
           <motion.div
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -77,6 +74,20 @@ export default function IntroScreen({
             className="w-42 h-auto object-contain z-10 mt-2"
             style={{ transformOrigin: "bottom center" }}
           />
+          {/* Continue Button */}
+          <div className="w-full px-4 mt-4 z-20">
+            <button
+              id={showTapGuide ? "lg-tap-indicator" : undefined}
+              onClick={(e) => {
+                e.stopPropagation();
+                onNext?.();
+              }}
+              className="w-full py-3.5 bg-gradient-to-r from-amber-200 to-amber-300 rounded-xl shadow-sm text-blue-950 font-semibold text-[15px] active:scale-[0.98] transition-transform border border-[#eec139] flex items-center justify-center gap-1.5"
+            >
+              <span>Continue</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>

@@ -51,7 +51,7 @@ export default function MatchImageScreen({
           level={level}
         />
 
-        <div className="absolute left-0 top-8 z-10 flex items-center pl-2">
+        <div className="absolute left-0 top-12 z-10 flex items-center pl-2">
           <motion.img
             layoutId="mayaMascot"
             className="w-[90px] z-10 drop-shadow-md"

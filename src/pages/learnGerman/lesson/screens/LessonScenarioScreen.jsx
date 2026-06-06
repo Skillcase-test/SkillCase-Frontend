@@ -1,9 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
 import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
 import { useEffect, useState } from "react";
 import ProgressBar from "./shared/ProgressBar";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
-import TapIndicator from "./shared/TapIndicator";
 
 export default function LessonScenarioScreen({
   screen,
@@ -52,7 +52,7 @@ export default function LessonScenarioScreen({
       onClick={handleTap}
     >
       <ProgressBar progressRatio={progressRatio} title={title} level={level} />
-      <div className="flex-1 w-full flex flex-col p-4 gap-4 overflow-hidden">
+      <div className="flex-1 w-full flex flex-col p-4 gap-3 overflow-hidden">
         <div className="w-full flex-1 relative min-h-0">
           <motion.img
             layoutId="lessonBg"
@@ -61,10 +61,6 @@ export default function LessonScenarioScreen({
             transition={{
               layout: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
             }}
-          />
-          <TapIndicator
-            domId={showTapGuide ? "lg-tap-indicator" : undefined}
-            className="absolute right-0 top-1/2 -translate-y-1/2"
           />
         </div>
         <motion.div
@@ -100,6 +96,29 @@ export default function LessonScenarioScreen({
             </motion.div>
           </div>
         </motion.div>
+
+        {/* Continue Button */}
+        <div className="w-full shrink-0 z-20 mt-1">
+          <button
+            id={showTapGuide ? "lg-tap-indicator" : undefined}
+            onClick={(e) => {
+              e.stopPropagation();
+              const hasMoreDialogue = dialogueIndex < dialogues.length - 1;
+              if (showTapGuide) {
+                onTapDetected?.({ hasMoreDialogue });
+              }
+              if (hasMoreDialogue) {
+                setDialogueIndex((prev) => prev + 1);
+              } else {
+                onGuidedCompleteTap?.();
+              }
+            }}
+            className="w-full py-3.5 bg-gradient-to-r from-amber-200 to-amber-300 rounded-xl shadow-sm text-blue-950 font-semibold text-[15px] active:scale-[0.98] transition-transform border border-[#eec139] flex items-center justify-center gap-1.5"
+          >
+            <span>Continue</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </motion.div>
   );
