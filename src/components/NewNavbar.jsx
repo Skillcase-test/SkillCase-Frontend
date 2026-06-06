@@ -6,7 +6,7 @@ import { logout, setUser } from "../redux/auth/authSlice";
 import { images } from "../assets/images.js";
 import { resetArticleEducation } from "../utils/articleUtils";
 import { getStreakData } from "../api/streakApi";
-import { getLGMode, getLessonsList } from "../api/learnGermanApi";
+import { getLGMode, getLessonsList, getVocabProgress } from "../api/learnGermanApi";
 import {
   getA1MigrationStatus,
   getFlashcardChapters as getA1Flashcards,
@@ -121,14 +121,9 @@ export default function Navbar({
       .catch(() => {});
 
     if (activeLearnNavbar) {
-      getLessonsList()
+      getVocabProgress()
         .then(({ data }) => {
-          const modules = Array.isArray(data) ? data : [];
-          if (!modules.length) return;
-          const completed = modules.filter(
-            (m) => m.user_status === "completed",
-          ).length;
-          setProgressRatio(completed / modules.length);
+          if (data) setProgressRatio(data.progressRatio || 0);
         })
         .catch(() => {});
     } else {
@@ -278,14 +273,9 @@ export default function Navbar({
     const handler = () => {
       if (!isAuthenticated) return;
       api.clearGetCache?.();
-      getLessonsList()
+      getVocabProgress()
         .then(({ data }) => {
-          const modules = Array.isArray(data) ? data : [];
-          if (!modules.length) return;
-          const completed = modules.filter(
-            (m) => m.user_status === "completed",
-          ).length;
-          setProgressRatio(completed / modules.length);
+          if (data) setProgressRatio(data.progressRatio || 0);
         })
         .catch(() => {});
 

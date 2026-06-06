@@ -15,6 +15,9 @@ export const getLessonById = (lessonId) =>
 export const getLessonsList = () =>
   api.cachedGet("/dynamic-lesson/list", {}, "SHORT_PRIVATE");
 
+export const getVocabProgress = () =>
+  api.cachedGet("/dynamic-lesson/vocab-progress", {}, "SHORT_PRIVATE");
+
 export const getLGCardTTS = (text, voiceName) =>
   api.post(
     "/dynamic-lesson/tts",

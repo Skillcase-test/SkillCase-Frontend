@@ -1,11 +1,21 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Check, Lock, X } from "lucide-react";
 import germanFlag from "../../assets/onboarding/germanFlag.webp";
 import mayaThumbsup from "../../assets/onboarding/mayaThumbsup.webp";
-import { getLGMode, getLessonsList } from "../../api/learnGermanApi";
+import {
+  getLGMode,
+  getLessonsList,
+  getVocabProgress,
+} from "../../api/learnGermanApi";
 import DailyGoalModal, {
   shouldShowDailyGoal,
   markDailyGoalShown,
@@ -118,8 +128,14 @@ const GuideSpotlight = ({ rect, radius = 22, onClick, children }) => {
 
   return (
     <div className="fixed inset-0 z-[260]">
-      <div className={blurPanelClass} style={{ left: 0, top: 0, right: 0, height: top }} />
-      <div className={blurPanelClass} style={{ left: 0, top, width: left, height }} />
+      <div
+        className={blurPanelClass}
+        style={{ left: 0, top: 0, right: 0, height: top }}
+      />
+      <div
+        className={blurPanelClass}
+        style={{ left: 0, top, width: left, height }}
+      />
       <div
         className={blurPanelClass}
         style={{ left: left + width, top, right: 0, height }}
@@ -140,10 +156,12 @@ const GuideSpotlight = ({ rect, radius = 22, onClick, children }) => {
       >
         <motion.span
           className="absolute inset-0 border-[3px] border-white rounded-[inherit] shadow-[0_0_0_1px_rgba(255,255,255,0.75),0_18px_45px_rgba(0,0,0,0.3)]"
-          animate={{ boxShadow: [
-            "0 0 0 1px rgba(255,255,255,0.75), 0 0 0 0 rgba(255,255,255,0.8), 0 18px 45px rgba(0,0,0,0.3)",
-            "0 0 0 1px rgba(255,255,255,0.75), 0 0 0 12px rgba(255,255,255,0), 0 18px 45px rgba(0,0,0,0.3)",
-          ] }}
+          animate={{
+            boxShadow: [
+              "0 0 0 1px rgba(255,255,255,0.75), 0 0 0 0 rgba(255,255,255,0.8), 0 18px 45px rgba(0,0,0,0.3)",
+              "0 0 0 1px rgba(255,255,255,0.75), 0 0 0 12px rgba(255,255,255,0), 0 18px 45px rgba(0,0,0,0.3)",
+            ],
+          }}
           transition={{ duration: 1.35, repeat: Infinity, ease: "easeOut" }}
         />
         <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white px-3 py-1 text-[11px] font-bold text-blue-950 shadow-lg">
@@ -156,7 +174,12 @@ const GuideSpotlight = ({ rect, radius = 22, onClick, children }) => {
         style={{ top: calloutTop, left: calloutLeft }}
         initial={{ y: 10, opacity: 0, scale: 0.96 }}
         animate={{ y: 0, opacity: 1, scale: 1 }}
-        transition={{ type: "spring", stiffness: 300, damping: 24, delay: 0.08 }}
+        transition={{
+          type: "spring",
+          stiffness: 300,
+          damping: 24,
+          delay: 0.08,
+        }}
       >
         <div
           className={`absolute left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 bg-white ${
@@ -266,22 +289,44 @@ function CompletedCardContent({ mod, displayId, isBeingMarkedComplete }) {
           <motion.div
             key="check-anim"
             className="absolute -right-2 -top-2 size-8 rounded-full border-2 flex items-center justify-center shadow-md z-20 overflow-hidden"
-            initial={{ scale: 0, backgroundColor: "#ffffff", borderColor: "#00c853" }}
-            animate={{ 
-              scale: 1, 
-              backgroundColor: ["#ffffff", "#ffffff", "#00c853"],
-              borderColor: ["#00c853", "#00c853", "#ffffff"]
+            initial={{
+              scale: 0,
+              backgroundColor: "#ffffff",
+              borderColor: "#00c853",
             }}
-            transition={{ 
+            animate={{
+              scale: 1,
+              backgroundColor: ["#ffffff", "#ffffff", "#00c853"],
+              borderColor: ["#00c853", "#00c853", "#ffffff"],
+            }}
+            transition={{
               scale: { duration: 0.5, type: "spring", bounce: 0.5, delay: 1.0 },
-              backgroundColor: { duration: 0.8, times: [0, 0.75, 1], ease: "easeOut", delay: 1.0 },
-              borderColor: { duration: 0.8, times: [0, 0.75, 1], ease: "easeOut", delay: 1.0 }
+              backgroundColor: {
+                duration: 0.8,
+                times: [0, 0.75, 1],
+                ease: "easeOut",
+                delay: 1.0,
+              },
+              borderColor: {
+                duration: 0.8,
+                times: [0, 0.75, 1],
+                ease: "easeOut",
+                delay: 1.0,
+              },
             }}
           >
-            <motion.svg viewBox="0 0 24 24" fill="none" className="w-5 h-5"
+            <motion.svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="w-5 h-5"
               initial={{ color: "#00c853" }}
               animate={{ color: ["#00c853", "#00c853", "#ffffff"] }}
-              transition={{ duration: 0.8, times: [0, 0.75, 1], ease: "easeOut", delay: 1.0 }}
+              transition={{
+                duration: 0.8,
+                times: [0, 0.75, 1],
+                ease: "easeOut",
+                delay: 1.0,
+              }}
             >
               <motion.path
                 d="M5 13l4 4L19 7"
@@ -324,7 +369,13 @@ function CompletedCardContent({ mod, displayId, isBeingMarkedComplete }) {
   );
 }
 
-function ActiveCardContent({ mod, displayId, btnText, isBeingUnlocked, isFadingOut }) {
+function ActiveCardContent({
+  mod,
+  displayId,
+  btnText,
+  isBeingUnlocked,
+  isFadingOut,
+}) {
   return (
     <div className="w-[200px] h-full px-2.5 pt-2.5 pb-5 bg-gradient-to-br from-yellow-100 to-orange-300 rounded-[20px] shadow-[2px_2px_4px_0px_rgba(0,0,0,0.25)] outline-[5px] outline-offset-[-5px] outline-white flex flex-col items-center gap-2.5 relative overflow-visible">
       {/* Orange pulse ring on just-unlocked card */}
@@ -356,7 +407,8 @@ function ActiveCardContent({ mod, displayId, btnText, isBeingUnlocked, isFadingO
             key="shimmer"
             className="absolute inset-0 z-40 pointer-events-none rounded-[20px]"
             style={{
-              background: "linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.7) 50%, transparent 80%)",
+              background:
+                "linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.7) 50%, transparent 80%)",
               backgroundSize: "200% 100%",
             }}
             initial={{ backgroundPosition: "200% 0" }}
@@ -386,15 +438,23 @@ function ActiveCardContent({ mod, displayId, btnText, isBeingUnlocked, isFadingO
             {mod.title}
           </div>
         </div>
-        <motion.button 
+        <motion.button
           className="w-full bg-white rounded-[10px] shadow-[0px_3px_8px_0px_rgba(0,0,0,0.25)] flex justify-center items-center active:scale-95 transition-colors overflow-hidden whitespace-nowrap"
-          initial={isBeingUnlocked ? { height: 0, opacity: 0, marginTop: -12 } : false}
-          animate={
-            isBeingUnlocked ? { height: 36, opacity: 1, marginTop: 0 }
-            : isFadingOut ? { height: 0, opacity: 0, marginTop: -12 }
-            : { height: 36, opacity: 1, marginTop: 0 }
+          initial={
+            isBeingUnlocked ? { height: 0, opacity: 0, marginTop: -12 } : false
           }
-          transition={{ duration: 0.5, ease: "easeInOut", delay: isBeingUnlocked ? 0.3 : isFadingOut ? 0.6 : 0 }}
+          animate={
+            isBeingUnlocked
+              ? { height: 36, opacity: 1, marginTop: 0 }
+              : isFadingOut
+                ? { height: 0, opacity: 0, marginTop: -12 }
+                : { height: 36, opacity: 1, marginTop: 0 }
+          }
+          transition={{
+            duration: 0.5,
+            ease: "easeInOut",
+            delay: isBeingUnlocked ? 0.3 : isFadingOut ? 0.6 : 0,
+          }}
         >
           <span className="text-black text-sm font-semibold font-['Poppins']">
             {btnText}
@@ -472,6 +532,11 @@ export default function LearnGermanHome() {
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
   const [modules, setModules] = useState([]);
+  const [vocabProgress, setVocabProgress] = useState({
+    totalWords: 0,
+    learnedWords: 0,
+    progressRatio: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [showDailyGoal, setShowDailyGoal] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -496,11 +561,13 @@ export default function LearnGermanHome() {
   // When true, the auto-scroll to activeLessonRef is skipped (animation owns scrolling)
   const hasPendingAnimRef = useRef(false);
   // Captured at mount so cards skip stagger entry animation when returning from a lesson
-  const fromLessonCompleteRef = useRef(location.state?.fromLessonComplete === true);
+  const fromLessonCompleteRef = useRef(
+    location.state?.fromLessonComplete === true,
+  );
   const completedLessonOverrideRef = useRef(
     location.state?.completedLessonId ?? null,
   );
-  
+
   const [fromSwitcher] = useState(() => {
     return sessionStorage.getItem("lg_animate_switcher") === "true";
   });
@@ -508,14 +575,22 @@ export default function LearnGermanHome() {
   useEffect(() => {
     setClarityTag("lg_funnel", "learn_home");
     setClarityTag("lg_mode", "learn");
-    trackClarityEvent("lg_home_viewed", {
-      lg_funnel: "learn_home",
-      lg_mode: "learn",
-      lg_from_onboarding: Boolean(location.state?.fromOnboardingFirstLanding),
-      lg_from_switcher: fromSwitcher,
-      lg_prof_level: user?.user_prof_level || "unknown",
-    }, location.state?.fromOnboardingFirstLanding ? "lg_first_landing" : null);
-  }, [fromSwitcher, location.state?.fromOnboardingFirstLanding, user?.user_prof_level]);
+    trackClarityEvent(
+      "lg_home_viewed",
+      {
+        lg_funnel: "learn_home",
+        lg_mode: "learn",
+        lg_from_onboarding: Boolean(location.state?.fromOnboardingFirstLanding),
+        lg_from_switcher: fromSwitcher,
+        lg_prof_level: user?.user_prof_level || "unknown",
+      },
+      location.state?.fromOnboardingFirstLanding ? "lg_first_landing" : null,
+    );
+  }, [
+    fromSwitcher,
+    location.state?.fromOnboardingFirstLanding,
+    user?.user_prof_level,
+  ]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -539,41 +614,51 @@ export default function LearnGermanHome() {
   const fallbackImage =
     "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778253329/99ee50b94881e4e072cc6de5dde475531353120d_f100ew.webp";
 
-  const applyCompletedProgressOverride = useCallback((lessons, completedLessonId) => {
-    if (completedLessonId == null || !Array.isArray(lessons)) return lessons;
-    const completedIdStr = String(completedLessonId);
+  const applyCompletedProgressOverride = useCallback(
+    (lessons, completedLessonId) => {
+      if (completedLessonId == null || !Array.isArray(lessons)) return lessons;
+      const completedIdStr = String(completedLessonId);
 
-    return lessons.map((lesson) => {
-      if (String(lesson.lesson_id) !== completedIdStr) return lesson;
-      return {
-        ...lesson,
-        user_status: "completed",
-        user_screens_completed: Number.MAX_SAFE_INTEGER,
-      };
-    });
-  }, []);
+      return lessons.map((lesson) => {
+        if (String(lesson.lesson_id) !== completedIdStr) return lesson;
+        return {
+          ...lesson,
+          user_status: "completed",
+          user_screens_completed: Number.MAX_SAFE_INTEGER,
+        };
+      });
+    },
+    [],
+  );
 
-  const fetchLessons = useCallback(async ({ forceFresh = false, completedLessonId = null } = {}) => {
-    try {
-      if (forceFresh) {
-        api.clearGetCache?.();
+  const fetchLessons = useCallback(
+    async ({ forceFresh = false, completedLessonId = null } = {}) => {
+      try {
+        if (forceFresh) {
+          api.clearGetCache?.();
+        }
+        if (completedLessonId != null) {
+          completedLessonOverrideRef.current = completedLessonId;
+        }
+        const { data } = await getLessonsList();
+        setModules(
+          applyCompletedProgressOverride(
+            data,
+            completedLessonId ?? completedLessonOverrideRef.current,
+          ),
+        );
+        const vocabRes = await getVocabProgress();
+        if (vocabRes.data) {
+          setVocabProgress(vocabRes.data);
+        }
+      } catch (err) {
+        console.error("Failed to load modules:", err);
+      } finally {
+        setLoading(false);
       }
-      if (completedLessonId != null) {
-        completedLessonOverrideRef.current = completedLessonId;
-      }
-      const { data } = await getLessonsList();
-      setModules(
-        applyCompletedProgressOverride(
-          data,
-          completedLessonId ?? completedLessonOverrideRef.current,
-        ),
-      );
-    } catch (err) {
-      console.error("Failed to load modules:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [applyCompletedProgressOverride]);
+    },
+    [applyCompletedProgressOverride],
+  );
 
   useEffect(() => {
     // Seed localStorage if not set yet — for navbar/switcher consistency only
@@ -593,61 +678,64 @@ export default function LearnGermanHome() {
 
   // Async animation sequence — owns all scrolling.
   // Uses DOM queries (data-lesson-id) so it works immediately without waiting for React refs.
-  const runTimelineAnimation = useCallback(async (completedIdStr, foundNextId, autoStartNext) => {
-    // Immediately lock IDs so the UI renders the "before" state during scroll
-    setTimelineCompletedId(completedIdStr);
-    if (foundNextId != null) {
-      setTimelineNextId(String(foundNextId));
-    }
+  const runTimelineAnimation = useCallback(
+    async (completedIdStr, foundNextId, autoStartNext) => {
+      // Immediately lock IDs so the UI renders the "before" state during scroll
+      setTimelineCompletedId(completedIdStr);
+      if (foundNextId != null) {
+        setTimelineNextId(String(foundNextId));
+      }
 
-    // Find the completed card directly in the DOM
-    const completedEl = document.querySelector(
-      `[data-lesson-id="${completedIdStr}"]`,
-    );
-
-    // Scroll to the completed card and wait until it is in the viewport
-    if (completedEl) {
-      setTimelineAnimPhase("scrolling_to_completed");
-      await scrollToElement(completedEl);
-      await waitMs(300);
-    }
-
-    // Step 3: Animate the completed card
-    setTimelineAnimPhase("marking_complete");
-    await waitMs(2000); // Increased wait time to accommodate the new 0.6s holding phase
-
-    // Step 4: Scroll to the next card, scroll to it and animate
-    if (foundNextId != null) {
-      const nextIdStr = String(foundNextId);
-      const nextEl = document.querySelector(
-        `[data-lesson-id="${nextIdStr}"]`,
+      // Find the completed card directly in the DOM
+      const completedEl = document.querySelector(
+        `[data-lesson-id="${completedIdStr}"]`,
       );
 
-      if (nextEl) {
-        setTimelineAnimPhase("scrolling_to_next");
-        await scrollToElement(nextEl);
+      // Scroll to the completed card and wait until it is in the viewport
+      if (completedEl) {
+        setTimelineAnimPhase("scrolling_to_completed");
+        await scrollToElement(completedEl);
         await waitMs(300);
       }
 
-      // Animate the next card (expand + orange ring)
-      setTimelineAnimPhase("unlocking_next");
-      await waitMs(1300);
-    }
+      // Step 3: Animate the completed card
+      setTimelineAnimPhase("marking_complete");
+      await waitMs(2000); // Increased wait time to accommodate the new 0.6s holding phase
 
-    // Done — clear everything
-    setTimelineAnimPhase("idle");
-    setTimelineCompletedId(null);
-    setTimelineNextId(null);
-    hasPendingAnimRef.current = false;
-    await fetchLessons({
-      forceFresh: true,
-      completedLessonId: completedIdStr,
-    });
+      // Step 4: Scroll to the next card, scroll to it and animate
+      if (foundNextId != null) {
+        const nextIdStr = String(foundNextId);
+        const nextEl = document.querySelector(
+          `[data-lesson-id="${nextIdStr}"]`,
+        );
 
-    if (autoStartNext && foundNextId != null) {
-      navigate(`/learn-german/lesson/${foundNextId}`);
-    }
-  }, [fetchLessons, navigate]);
+        if (nextEl) {
+          setTimelineAnimPhase("scrolling_to_next");
+          await scrollToElement(nextEl);
+          await waitMs(300);
+        }
+
+        // Animate the next card (expand + orange ring)
+        setTimelineAnimPhase("unlocking_next");
+        await waitMs(1300);
+      }
+
+      // Done — clear everything
+      setTimelineAnimPhase("idle");
+      setTimelineCompletedId(null);
+      setTimelineNextId(null);
+      hasPendingAnimRef.current = false;
+      await fetchLessons({
+        forceFresh: true,
+        completedLessonId: completedIdStr,
+      });
+
+      if (autoStartNext && foundNextId != null) {
+        navigate(`/learn-german/lesson/${foundNextId}`);
+      }
+    },
+    [fetchLessons, navigate],
+  );
 
   // Show daily goal modal once per day (after data loads)
   useEffect(() => {
@@ -743,12 +831,8 @@ export default function LearnGermanHome() {
   ]);
 
   const progress = useMemo(() => {
-    if (!modules.length) return 0;
-    const completed = modules.filter(
-      (m) => m.user_status === "completed",
-    ).length;
-    return Math.round((completed / modules.length) * 100);
-  }, [modules]);
+    return Math.round((vocabProgress.progressRatio || 0) * 100);
+  }, [vocabProgress.progressRatio]);
 
   // First incomplete lesson with content — shown as the goal in both modals
   const nextLesson = useMemo(() => {
@@ -793,7 +877,12 @@ export default function LearnGermanHome() {
   }, [activeLesson?.chapter_image, nextLesson?.chapter_image]);
 
   useEffect(() => {
-    if (loading || !modules.length || !activeLessonId || !activeLessonRef.current)
+    if (
+      loading ||
+      !modules.length ||
+      !activeLessonId ||
+      !activeLessonRef.current
+    )
       return;
     // When the animation sequence is pending, it owns all scrolling
     if (hasPendingAnimRef.current) return;
@@ -805,7 +894,8 @@ export default function LearnGermanHome() {
 
   // Animation trigger — fires when: data loaded, animation queued, modal dismissed
   useEffect(() => {
-    if (loading || !modules.length || !pendingAnimation || showCompleted) return;
+    if (loading || !modules.length || !pendingAnimation || showCompleted)
+      return;
     const { completedIdStr, foundNextId, autoStartNext } = pendingAnimation;
     setPendingAnimation(null);
     runTimelineAnimation(completedIdStr, foundNextId, autoStartNext);
@@ -831,7 +921,7 @@ export default function LearnGermanHome() {
           height: rect.height,
         });
       }
-      
+
       // 2. Bottom Mode Switcher Rect
       const switcherEl = document.getElementById("bottom-mode-switcher");
       if (!switcherEl) {
@@ -861,12 +951,17 @@ export default function LearnGermanHome() {
 
   const handleStart = (lesson_id, status, hasContent) => {
     if (!hasContent) return;
-    trackClarityEvent("lg_lesson_card_clicked", {
-      lg_funnel: "learn_home",
-      lg_lesson_id: lesson_id,
-      lg_lesson_status: status || "unknown",
-      lg_lesson_action: status === "completed" ? "restart_prompt" : "start_or_continue",
-    }, status === "completed" ? null : "lg_lesson_started");
+    trackClarityEvent(
+      "lg_lesson_card_clicked",
+      {
+        lg_funnel: "learn_home",
+        lg_lesson_id: lesson_id,
+        lg_lesson_status: status || "unknown",
+        lg_lesson_action:
+          status === "completed" ? "restart_prompt" : "start_or_continue",
+      },
+      status === "completed" ? null : "lg_lesson_started",
+    );
     if (lesson_id === activeLessonId) {
       const stage = getLgGuideStage();
       if (!stage || stage === LG_GUIDE_STAGES.NOT_STARTED) {
@@ -900,98 +995,45 @@ export default function LearnGermanHome() {
         className="w-full max-w-[400px] mx-auto relative z-10 flex flex-col items-center px-6"
       >
         {/* Top Arc Progress Section */}
-        <div className="w-full mb-8 relative flex flex-col items-center">
-          <div className="relative w-[300px] h-[80px] overflow-visible flex justify-center">
-            <svg
-              viewBox="0 0 320 80"
-              className="w-full h-auto drop-shadow-lg overflow-visible"
-            >
-              <defs>
-                <linearGradient
-                  id="progressGradient"
-                  x1="0%"
-                  y1="0%"
-                  x2="100%"
-                  y2="0%"
-                >
-                  <stop offset="0%" stopColor="#ffb067" />
-                  <stop offset="100%" stopColor="#fca549" />
-                </linearGradient>
-              </defs>
-              {/* Dark Background track */}
-              <path
-                d="M 20,60 Q 160,35 300,60"
-                fill="none"
-                stroke="#3f424b"
-                strokeWidth="24"
-                strokeLinecap="round"
-              />
-              {/* Fill track */}
-              <motion.path
-                d="M 20,60 Q 160,35 300,60"
-                fill="none"
-                stroke="url(#progressGradient)"
-                strokeWidth="16"
-                strokeLinecap="round"
-                strokeDasharray="286"
-                initial={fromSwitcher ? { pathLength: 0 } : false}
-                animate={{ pathLength: progress / 100 }}
-                transition={{ type: "spring", stiffness: 70, damping: 10, delay: 0.3 }}
-              />
-            </svg>
-
-            {/* Bubble Indicator */}
-            {(() => {
-              const t = progress / 100;
-              const x =
-                Math.pow(1 - t, 2) * 20 +
-                2 * (1 - t) * t * 160 +
-                Math.pow(t, 2) * 300 +
-                6;
-
-              const y =
-                Math.pow(1 - t, 2) * 60 +
-                2 * (1 - t) * t * 35 +
-                Math.pow(t, 2) * 60 +
-                3;
-
-              return (
+        <div className="w-full mb-6 mt-4 relative flex flex-col items-center">
+          <div className="w-full p-4 bg-white rounded-2xl inline-flex flex-col justify-start items-start gap-2.5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-[#efefef]">
+            <div className="self-stretch flex flex-col justify-start items-start gap-2">
+              <div className="self-stretch inline-flex justify-between items-center px-1">
+                <div className="w-48 justify-start text-blue-950 text-base font-normal">
+                  German words learnt
+                </div>
+                <div className="text-right justify-start text-blue-950 text-base font-semibold">
+                  {vocabProgress.learnedWords}
+                </div>
+              </div>
+              <div className="self-stretch h-[18px] bg-[#505050] rounded-full relative overflow-visible border border-[#303030] p-[2px] flex items-center">
                 <motion.div
-                  initial={fromSwitcher ? { scale: 0, opacity: 0, x: "-50%" } : false}
-                  animate={{ scale: 1, opacity: 1, x: "-50%" }}
-                  transition={{ type: "spring", stiffness: 180, damping: 10, delay: 1.1 }}
-                  className="absolute bg-white px-2 py-0.5 rounded-full shadow-md z-20 flex flex-col items-center justify-center"
-                  style={{
-                    left: `${(x / 320) * 100}%`,
-                    top: `${(y / 80) * 100 + 15}%`,
+                  className={`h-full rounded-full bg-gradient-to-r from-[#F9786F] to-[#FFD475] `}
+                  initial={
+                    fromSwitcher
+                      ? { width: 0 }
+                      : { width: `${Math.min(100, Math.max(0, progress))}%` }
+                  }
+                  animate={{
+                    width: `${Math.min(100, Math.max(0, progress))}%`,
                   }}
-                >
-                  <div className="absolute -top-[4px] w-2 h-2 bg-white rotate-45" />
-                  <span className="text-black text-[10px] font-bold font-['Poppins'] relative z-10">
-                    {progress}%
-                  </span>
-                </motion.div>
-              );
-            })()}
+                  transition={{
+                    type: "spring",
+                    stiffness: 70,
+                    damping: 10,
+                    delay: 0.3,
+                  }}
+                />
+                <div className="absolute right-[-4px] size-8 bg-white rounded-full shadow-[0px_2px_5px_0px_rgba(0,0,0,0.20)] flex items-center justify-center select-none overflow-hidden border border-gray-100">
+                  <img
+                    src={germanFlag}
+                    alt="German Flag"
+                    className="w-6 h-6 object-cover rounded-full"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-
-          {/* Flag Icon positioned at the end of the arc */}
-          <motion.div
-            initial={fromSwitcher ? { scale: 0, opacity: 0, x: "-50%", y: "-50%" } : false}
-            animate={{ scale: 1, opacity: 1, x: "-50%", y: "-50%" }}
-            transition={{ type: "spring", stiffness: 180, damping: 10, delay: 0.9 }}
-            className="absolute w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center z-20 border-[3px] border-white overflow-hidden"
-            style={{
-              left: "90%",
-              top: "75%",
-            }}
-          >
-            <img
-              src={germanFlag}
-              alt="German Flag"
-              className="w-7 h-7 object-cover rounded-full"
-            />
-          </motion.div>
         </div>
 
         {/* Dynamic Zigzag Module List */}
@@ -1031,18 +1073,23 @@ export default function LearnGermanHome() {
                 btnText = "Continue challenge";
 
               // Animation flags for this card
-              const isCompletedCard = timelineCompletedId === String(mod.lesson_id);
+              const isCompletedCard =
+                timelineCompletedId === String(mod.lesson_id);
               const isNextCard = timelineNextId === String(mod.lesson_id);
 
-              const isBeingMarkedComplete = isCompletedCard && timelineAnimPhase === "marking_complete";
-              const isPreComplete = isCompletedCard && timelineAnimPhase === "scrolling_to_completed";
-              
-              const isBeingUnlocked = isNextCard && timelineAnimPhase === "unlocking_next";
-              const isPreUnlock = isNextCard && (
-                timelineAnimPhase === "scrolling_to_completed" ||
-                timelineAnimPhase === "marking_complete" ||
-                timelineAnimPhase === "scrolling_to_next"
-              );
+              const isBeingMarkedComplete =
+                isCompletedCard && timelineAnimPhase === "marking_complete";
+              const isPreComplete =
+                isCompletedCard &&
+                timelineAnimPhase === "scrolling_to_completed";
+
+              const isBeingUnlocked =
+                isNextCard && timelineAnimPhase === "unlocking_next";
+              const isPreUnlock =
+                isNextCard &&
+                (timelineAnimPhase === "scrolling_to_completed" ||
+                  timelineAnimPhase === "marking_complete" ||
+                  timelineAnimPhase === "scrolling_to_next");
 
               return (
                 <div
@@ -1072,26 +1119,52 @@ export default function LearnGermanHome() {
                       fromSwitcher
                         ? { opacity: 0, y: 50 }
                         : fromLessonCompleteRef.current
-                        ? false
-                        : { opacity: 0, y: 20 }
+                          ? false
+                          : { opacity: 0, y: 20 }
                     }
                     animate={
                       isBeingMarkedComplete
-                        ? { opacity: 1, x: 0, y: 0, scale: [1, 1.02, 1], filter: "none", rotate: 0 }
+                        ? {
+                            opacity: 1,
+                            x: 0,
+                            y: 0,
+                            scale: [1, 1.02, 1],
+                            filter: "none",
+                            rotate: 0,
+                          }
                         : isBeingUnlocked
-                        ? { opacity: 1, x: 0, y: [15, -5, 0], scale: [0.95, 1.02, 1], filter: "none", rotate: 0 }
-                        : { opacity: 1, x: 0, y: 0, scale: 1, filter: "none", rotate: 0 }
+                          ? {
+                              opacity: 1,
+                              x: 0,
+                              y: [15, -5, 0],
+                              scale: [0.95, 1.02, 1],
+                              filter: "none",
+                              rotate: 0,
+                            }
+                          : {
+                              opacity: 1,
+                              x: 0,
+                              y: 0,
+                              scale: 1,
+                              filter: "none",
+                              rotate: 0,
+                            }
                     }
                     transition={
                       fromSwitcher
-                        ? { type: "spring", stiffness: 120, damping: 12, delay: index * 0.08 }
+                        ? {
+                            type: "spring",
+                            stiffness: 120,
+                            damping: 12,
+                            delay: index * 0.08,
+                          }
                         : isBeingMarkedComplete
-                        ? { duration: 0.6, ease: "easeOut" }
-                        : isBeingUnlocked
-                        ? { duration: 0.9, ease: "easeOut" }
-                        : fromLessonCompleteRef.current
-                        ? { duration: 0 }
-                        : { delay: index * 0.1 }
+                          ? { duration: 0.6, ease: "easeOut" }
+                          : isBeingUnlocked
+                            ? { duration: 0.9, ease: "easeOut" }
+                            : fromLessonCompleteRef.current
+                              ? { duration: 0 }
+                              : { delay: index * 0.1 }
                     }
                     onClick={() =>
                       !isLocked &&
@@ -1107,26 +1180,52 @@ export default function LearnGermanHome() {
                   >
                     {isBeingMarkedComplete ? (
                       <div className="relative">
-                        <ActiveCardContent mod={mod} displayId={displayId} btnText="Continue challenge" isFadingOut={true} />
+                        <ActiveCardContent
+                          mod={mod}
+                          displayId={displayId}
+                          btnText="Continue challenge"
+                          isFadingOut={true}
+                        />
                         <motion.div
                           className="absolute inset-0 z-50 origin-center pointer-events-none"
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          transition={{ duration: 0.5, ease: "easeOut", delay: 0.6 }}
+                          transition={{
+                            duration: 0.5,
+                            ease: "easeOut",
+                            delay: 0.6,
+                          }}
                         >
-                          <CompletedCardContent mod={mod} displayId={displayId} isBeingMarkedComplete={true} />
+                          <CompletedCardContent
+                            mod={mod}
+                            displayId={displayId}
+                            isBeingMarkedComplete={true}
+                          />
                         </motion.div>
                       </div>
                     ) : isPreComplete ? (
-                      <ActiveCardContent mod={mod} displayId={displayId} btnText="Continue challenge" />
+                      <ActiveCardContent
+                        mod={mod}
+                        displayId={displayId}
+                        btnText="Continue challenge"
+                      />
                     ) : isBeingUnlocked ? (
                       <div className="relative">
-                        <ActiveCardContent mod={mod} displayId={displayId} btnText="Start challenge" isBeingUnlocked={true} />
+                        <ActiveCardContent
+                          mod={mod}
+                          displayId={displayId}
+                          btnText="Start challenge"
+                          isBeingUnlocked={true}
+                        />
                         <motion.div
                           className="absolute inset-0 z-50 origin-center pointer-events-none"
                           initial={{ opacity: 1 }}
                           animate={{ opacity: 0 }}
-                          transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+                          transition={{
+                            duration: 0.5,
+                            ease: "easeOut",
+                            delay: 0.1,
+                          }}
                         >
                           <LockedCardContent mod={mod} displayId={displayId} />
                         </motion.div>
@@ -1136,7 +1235,11 @@ export default function LearnGermanHome() {
                     ) : isCompleted ? (
                       <CompletedCardContent mod={mod} displayId={displayId} />
                     ) : isActive ? (
-                      <ActiveCardContent mod={mod} displayId={displayId} btnText={btnText} />
+                      <ActiveCardContent
+                        mod={mod}
+                        displayId={displayId}
+                        btnText={btnText}
+                      />
                     ) : (
                       <LockedCardContent mod={mod} displayId={displayId} />
                     )}
@@ -1159,7 +1262,8 @@ export default function LearnGermanHome() {
             Switch between Guided Learning and Exam Practice.
           </p>
           <p className="relative mt-1 text-[12px] font-medium leading-snug text-slate-500">
-            Test out your German skills and apply what you've learned. Tap anywhere to continue.
+            Test out your German skills and apply what you've learned. Tap
+            anywhere to continue.
           </p>
         </GuideSpotlight>
       )}
