@@ -93,6 +93,9 @@ export default function SendNotification() {
   // Target level state
   const [targetLevel, setTargetLevel] = useState("all"); // all, a1, a2
 
+  // Target mode state
+  const [targetMode, setTargetMode] = useState("all"); // all, learn, practice, job_screening
+
   // Version filter state
   const [isManualExactVersion, setIsManualExactVersion] = useState(false);
   const [isManualRangeVersion, setIsManualRangeVersion] = useState(false);
@@ -235,6 +238,11 @@ export default function SendNotification() {
       payload.targetLevel = targetLevel;
     }
 
+    // Add target mode
+    if (targetMode !== "all") {
+      payload.targetMode = targetMode;
+    }
+
     payload.versionFilter = buildVersionFilter();
 
     try {
@@ -256,6 +264,7 @@ export default function SendNotification() {
       setImageUrl("");
       setImageSource("none");
       setTargetLevel("all");
+      setTargetMode("all");
       setVersionFilterType("all");
       setExactVersion("");
       setMinVersion("");
@@ -367,6 +376,63 @@ export default function SendNotification() {
           </div>
           <p className="text-xs text-gray-500 mt-2">
             Send notification to specific proficiency level users
+          </p>
+        </div>
+
+        {/* Target Learning Mode */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            <Users className="w-4 h-4 inline mr-2" />
+            Target Learning Mode
+          </label>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setTargetMode("all")}
+              className={`px-4 py-2 rounded-lg border transition ${
+                targetMode === "all"
+                  ? "bg-blue-50 border-blue-500 text-blue-700"
+                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              All Modes
+            </button>
+            <button
+              type="button"
+              onClick={() => setTargetMode("learn")}
+              className={`px-4 py-2 rounded-lg border transition ${
+                targetMode === "learn"
+                  ? "bg-green-50 border-green-500 text-green-700"
+                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              Learn German
+            </button>
+            <button
+              type="button"
+              onClick={() => setTargetMode("practice")}
+              className={`px-4 py-2 rounded-lg border transition ${
+                targetMode === "practice"
+                  ? "bg-purple-50 border-purple-500 text-purple-700"
+                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              Practice
+            </button>
+            <button
+              type="button"
+              onClick={() => setTargetMode("job_screening")}
+              className={`px-4 py-2 rounded-lg border transition ${
+                targetMode === "job_screening"
+                  ? "bg-amber-50 border-amber-500 text-amber-700"
+                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              Job Screening
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            Send notification to users with a specific preferred learning mode
           </p>
         </div>
 
@@ -838,12 +904,13 @@ export default function SendNotification() {
         >
           <Send className="w-5 h-5" />
           {(() => {
-            const level =
-              targetLevel === "all"
-                ? "All Users"
-                : `${targetLevel.toUpperCase()} Users`;
+            let audience = targetLevel === "all" ? "All Users" : `${targetLevel.toUpperCase()} Users`;
+            if (targetMode !== "all") {
+              const modeLabel = targetMode === "learn" ? "Learn German" : targetMode === "practice" ? "Practice" : "Job Screening";
+              audience += ` (${modeLabel})`;
+            }
             if (versionFilterType === "exact" && exactVersion)
-              return `${loading ? "Sending..." : "Send"} to ${level} on v${exactVersion}`;
+              return `${loading ? "Sending..." : "Send"} to ${audience} on v${exactVersion}`;
 
             if (versionFilterType === "range" && (minVersion || maxVersion)) {
               const range = [
@@ -853,10 +920,10 @@ export default function SendNotification() {
                 .filter(Boolean)
                 .join(" – ");
 
-              return `${loading ? "Sending..." : "Send"} to ${level} (${range})`;
+              return `${loading ? "Sending..." : "Send"} to ${audience} (${range})`;
             }
 
-            return loading ? "Sending..." : `Send to ${level}`;
+            return loading ? "Sending..." : `Send to ${audience}`;
           })()}
         </button>
       </form>
