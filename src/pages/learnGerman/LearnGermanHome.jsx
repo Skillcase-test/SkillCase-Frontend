@@ -258,9 +258,18 @@ function RestartLessonModal({ isOpen, chapterTitle, onRestart, onClose }) {
 }
 
 // --- Card Content Sub-Components ---
-function CompletedCardContent({ mod, displayId, isBeingMarkedComplete }) {
+function CompletedCardContent({
+  mod,
+  displayId,
+  isBeingMarkedComplete,
+  onRestart,
+  onRecap,
+}) {
+  const fallbackImage =
+    "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778253329/99ee50b94881e4e072cc6de5dde475531353120d_f100ew.webp";
+
   return (
-    <div className="w-[200px] h-full px-2.5 pt-2.5 pb-5 bg-gradient-to-br from-blue-50 to-blue-200 rounded-[20px] shadow-[2px_2px_4px_0px_rgba(0,0,0,0.25)] outline-[5px] outline-offset-[-5px] outline-white flex flex-col items-center gap-2.5 relative overflow-visible">
+    <div className="w-[200px] h-full px-2.5 pt-2.5 pb-3 bg-gradient-to-br from-blue-50 to-blue-200 rounded-[20px] shadow-[2px_2px_4px_0px_rgba(0,0,0,0.25)] outline-[5px] outline-offset-[-5px] outline-white flex flex-col items-center gap-2.5 relative overflow-visible">
       {/* Energy double ripple on just-completed card */}
       <AnimatePresence>
         {isBeingMarkedComplete && (
@@ -357,14 +366,61 @@ function CompletedCardContent({ mod, displayId, isBeingMarkedComplete }) {
       </div>
       <div className="flex flex-col items-center gap-1.5 w-full">
         <div className="px-2 py-0.5 bg-black/10 rounded-[10px]">
-          <span className="text-black/40 text-[10px] font-medium font-['Poppins']">
+          <span className="text-black/40 text-[10px] font-medium">
             Level {displayId} completed
           </span>
         </div>
-        <div className="text-center text-black text-sm font-semibold font-['Poppins'] opacity-50 px-2 leading-tight">
+        <div className="text-center text-black text-sm font-semibold opacity-50 px-2 leading-tight">
           {mod.title}
         </div>
       </div>
+
+      {/* Buttons: Restart (left) and Recap (right) */}
+      <motion.div
+        className="w-full flex gap-1 mt-auto z-20"
+        initial={isBeingMarkedComplete ? { height: 0, opacity: 0 } : false}
+        animate={{ height: "auto", opacity: 1 }}
+        transition={{
+          duration: 0.5,
+          ease: "easeOut",
+          delay: isBeingMarkedComplete ? 1.5 : 0,
+        }}
+      >
+        {/* Restart Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRestart?.();
+          }}
+          className="w-11 h-9 bg-white rounded-[10px] shadow-md/30 flex items-center justify-center text-[#414651] hover:bg-gray-50 active:scale-95 transition-all cursor-pointer border border-[#e5e7eb]/40"
+          title="Restart Lesson"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="w-5 h-5 text-[#414651]"
+          >
+            <path d="M3 3v5h5" />
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <polygon points="10.5 9.5 15.5 12 10.5 14.5" fill="currentColor" />
+          </svg>
+        </button>
+
+        {/* Recap Button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRecap?.();
+          }}
+          className="flex-1 h-9 bg-white rounded-[10px] shadow-md/30 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all cursor-pointer border border-[#e5e7eb]/40"
+        >
+          <span className="text-[#09090b] text-sm font-semibold">Recap</span>
+        </button>
+      </motion.div>
     </div>
   );
 }
@@ -377,7 +433,7 @@ function ActiveCardContent({
   isFadingOut,
 }) {
   return (
-    <div className="w-[200px] h-full px-2.5 pt-2.5 pb-5 bg-gradient-to-br from-yellow-100 to-orange-300 rounded-[20px] shadow-[2px_2px_4px_0px_rgba(0,0,0,0.25)] outline-[5px] outline-offset-[-5px] outline-white flex flex-col items-center gap-2.5 relative overflow-visible">
+    <div className="w-[200px] h-full px-2.5 pt-2.5 pb-3 bg-gradient-to-br from-yellow-100 to-orange-300 rounded-[20px] shadow-[2px_2px_4px_0px_rgba(0,0,0,0.25)] outline-[5px] outline-offset-[-5px] outline-white flex flex-col items-center gap-2.5 relative overflow-visible">
       {/* Orange pulse ring on just-unlocked card */}
       <AnimatePresence>
         {isBeingUnlocked && (
@@ -430,11 +486,11 @@ function ActiveCardContent({
       <div className="flex flex-col items-center gap-3 w-full">
         <div className="flex flex-col items-center gap-1.5 w-full">
           <div className="px-2 py-0.5 bg-black/10 rounded-[10px]">
-            <span className="text-black/60 text-[10px] font-medium font-['Poppins']">
+            <span className="text-black/60 text-[10px] font-medium">
               Level {displayId}
             </span>
           </div>
-          <div className="text-center text-black text-[15px] font-bold font-['Poppins'] leading-tight">
+          <div className="text-center text-black text-[15px] font-bold leading-tight">
             {mod.title}
           </div>
         </div>
@@ -456,9 +512,7 @@ function ActiveCardContent({
             delay: isBeingUnlocked ? 0.3 : isFadingOut ? 0.6 : 0,
           }}
         >
-          <span className="text-black text-sm font-semibold font-['Poppins']">
-            {btnText}
-          </span>
+          <span className="text-black text-sm font-semibold">{btnText}</span>
         </motion.button>
       </div>
     </div>
@@ -467,7 +521,7 @@ function ActiveCardContent({
 
 function LockedCardContent({ mod, displayId }) {
   return (
-    <div className="w-[200px] h-full px-2.5 pt-2.5 pb-5 bg-gradient-to-br from-neutral-200 to-zinc-400 rounded-[20px] shadow-[2px_2px_4px_0px_rgba(0,0,0,0.25)] outline-[5px] outline-offset-[-5px] outline-white flex flex-col items-center gap-2.5">
+    <div className="w-[200px] h-full px-2.5 pt-2.5 pb-3 bg-gradient-to-br from-neutral-200 to-zinc-400 rounded-[20px] shadow-[2px_2px_4px_0px_rgba(0,0,0,0.25)] outline-[5px] outline-offset-[-5px] outline-white flex flex-col items-center gap-2.5">
       <div className="absolute right-0 -top-3 size-8 bg-white rounded-full flex items-center justify-center shadow-md z-20 outline-[3px] outline-white/50">
         <Lock className="w-4 h-4 text-zinc-500" />
       </div>
@@ -482,11 +536,11 @@ function LockedCardContent({ mod, displayId }) {
       </div>
       <div className="flex flex-col items-center gap-1.5 w-full">
         <div className="px-2 py-0.5 bg-black/10 rounded-[10px]">
-          <span className="text-black/40 text-[10px] font-medium font-['Poppins']">
+          <span className="text-black/40 text-[10px] font-medium">
             Level {displayId}
           </span>
         </div>
-        <div className="text-center text-black text-sm font-semibold font-['Poppins'] opacity-50 px-2 leading-tight">
+        <div className="text-center text-black text-sm font-semibold opacity-50 px-2 leading-tight">
           {mod.title}
         </div>
       </div>
@@ -1168,6 +1222,7 @@ export default function LearnGermanHome() {
                     }
                     onClick={() =>
                       !isLocked &&
+                      !isCompleted &&
                       handleStart(
                         mod.lesson_id,
                         mod.user_status,
@@ -1200,6 +1255,14 @@ export default function LearnGermanHome() {
                             mod={mod}
                             displayId={displayId}
                             isBeingMarkedComplete={true}
+                            onRestart={() =>
+                              handleStart(
+                                mod.lesson_id,
+                                "completed",
+                                mod.has_content,
+                              )
+                            }
+                            onRecap={() => {}}
                           />
                         </motion.div>
                       </div>
@@ -1233,7 +1296,18 @@ export default function LearnGermanHome() {
                     ) : isPreUnlock ? (
                       <LockedCardContent mod={mod} displayId={displayId} />
                     ) : isCompleted ? (
-                      <CompletedCardContent mod={mod} displayId={displayId} />
+                      <CompletedCardContent
+                        mod={mod}
+                        displayId={displayId}
+                        onRestart={() =>
+                          handleStart(
+                            mod.lesson_id,
+                            "completed",
+                            mod.has_content,
+                          )
+                        }
+                        onRecap={() => {}}
+                      />
                     ) : isActive ? (
                       <ActiveCardContent
                         mod={mod}
