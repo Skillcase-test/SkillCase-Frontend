@@ -376,51 +376,130 @@ function CompletedCardContent({
       </div>
 
       {/* Buttons: Restart (left) and Recap (right) */}
-      <motion.div
-        className="w-full flex gap-1 mt-auto z-20"
-        initial={isBeingMarkedComplete ? { height: 0, opacity: 0 } : false}
-        animate={{ height: "auto", opacity: 1 }}
-        transition={{
-          duration: 0.5,
-          ease: "easeOut",
-          delay: isBeingMarkedComplete ? 1.5 : 0,
-        }}
-      >
-        {/* Restart Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onRestart?.();
-          }}
-          className="w-11 h-9 bg-white rounded-[10px] shadow-md/30 flex items-center justify-center text-[#414651] hover:bg-gray-50 active:scale-95 transition-all cursor-pointer border border-[#e5e7eb]/40"
-          title="Restart Lesson"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="w-5 h-5 text-[#414651]"
-          >
-            <path d="M3 3v5h5" />
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-            <polygon points="10.5 9.5 15.5 12 10.5 14.5" fill="currentColor" />
-          </svg>
-        </button>
+      <div className="w-full flex gap-1 mt-auto z-20 h-9 relative items-center">
+        {isBeingMarkedComplete ? (
+          <>
+            {/* Morphing Restart Button (Droplet budding out of left edge) */}
+            <motion.button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRestart?.();
+              }}
+              initial={{ width: 0, scale: 0.3, opacity: 0, marginRight: 0 }}
+              animate={{ width: 44, scale: 1, opacity: 1, marginRight: 4 }}
+              transition={{
+                type: "spring",
+                stiffness: 150,
+                damping: 10,
+                delay: 1.0,
+              }}
+              className="h-9 bg-white rounded-[10px] shadow-md/30 flex items-center justify-center text-[#414651] hover:bg-gray-50 active:scale-95 transition-all cursor-pointer border border-[#e5e7eb]/40 shrink-0 overflow-hidden"
+              title="Restart Lesson"
+            >
+              <motion.svg
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 1.4 }}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-5 h-5 text-[#414651]"
+              >
+                <path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <polygon
+                  points="10.5 9.5 15.5 12 10.5 14.5"
+                  fill="currentColor"
+                />
+              </motion.svg>
+            </motion.button>
 
-        {/* Recap Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onRecap?.();
-          }}
-          className="flex-1 h-9 bg-white rounded-[10px] shadow-md/30 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all cursor-pointer border border-[#e5e7eb]/40"
-        >
-          <span className="text-[#09090b] text-sm font-semibold">Recap</span>
-        </button>
-      </motion.div>
+            {/* Morphing Recap Button */}
+            <motion.button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRecap?.();
+              }}
+              initial={{ width: "100%" }}
+              animate={{ width: "auto" }}
+              transition={{
+                type: "spring",
+                stiffness: 150,
+                damping: 10,
+                delay: 1.0,
+              }}
+              className="flex-1 h-9 bg-white rounded-[10px] shadow-md/30 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all cursor-pointer border border-[#e5e7eb]/40 overflow-hidden relative"
+            >
+              {/* Fade out: Continue challenge text */}
+              <motion.span
+                initial={{ opacity: 1 }}
+                animate={{ opacity: 0 }}
+                transition={{ duration: 0.3, delay: 0.7 }}
+                className="absolute text-black text-sm font-semibold whitespace-nowrap"
+              >
+                {mod.user_status === "in_progress"
+                  ? "Continue challenge"
+                  : "Start challenge"}
+              </motion.span>
+
+              {/* Fade in: Recap text */}
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 1.4 }}
+                className="absolute text-[#09090b] text-sm font-semibold"
+              >
+                Recap
+              </motion.span>
+            </motion.button>
+          </>
+        ) : (
+          <>
+            {/* Restart Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRestart?.();
+              }}
+              className="w-11 h-9 bg-white rounded-[10px] shadow-md/30 flex items-center justify-center text-[#414651] hover:bg-gray-50 active:scale-95 transition-all cursor-pointer border border-[#e5e7eb]/40 shrink-0"
+              title="Restart Lesson"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="w-5 h-5 text-[#414651]"
+              >
+                <path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <polygon
+                  points="10.5 9.5 15.5 12 10.5 14.5"
+                  fill="currentColor"
+                />
+              </svg>
+            </button>
+
+            {/* Recap Button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRecap?.();
+              }}
+              className="flex-1 h-9 bg-white rounded-[10px] shadow-md/30 flex items-center justify-center hover:bg-gray-50 active:scale-95 transition-all cursor-pointer border border-[#e5e7eb]/40"
+            >
+              <span className="text-[#09090b] text-sm font-semibold">
+                Recap
+              </span>
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -503,7 +582,7 @@ function ActiveCardContent({
             isBeingUnlocked
               ? { height: 36, opacity: 1, marginTop: 0 }
               : isFadingOut
-                ? { height: 0, opacity: 0, marginTop: -12 }
+                ? { height: 36, opacity: 1, marginTop: 0 }
                 : { height: 36, opacity: 1, marginTop: 0 }
           }
           transition={{
@@ -512,7 +591,13 @@ function ActiveCardContent({
             delay: isBeingUnlocked ? 0.3 : isFadingOut ? 0.6 : 0,
           }}
         >
-          <span className="text-black text-sm font-semibold">{btnText}</span>
+          <motion.span
+            animate={isFadingOut ? { opacity: 0 } : { opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="text-black text-sm font-semibold"
+          >
+            {btnText}
+          </motion.span>
         </motion.button>
       </div>
     </div>
@@ -1050,9 +1135,9 @@ export default function LearnGermanHome() {
       >
         {/* Top Arc Progress Section */}
         <div className="w-full mb-6 mt-4 relative flex flex-col items-center">
-          <div 
+          <div
             onClick={() => navigate("/learn-german/recap")}
-            className="w-full p-4 bg-white rounded-2xl inline-flex flex-col justify-start items-start gap-2.5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-[#efefef] cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-all"
+            className="w-full p-4 bg-white rounded-2xl inline-flex flex-col justify-start items-start gap-2.5 shadow-lg border border-[#efefef] cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-all"
           >
             <div className="self-stretch flex flex-col justify-start items-start gap-2">
               <div className="self-stretch inline-flex justify-between items-center px-1">
@@ -1265,7 +1350,9 @@ export default function LearnGermanHome() {
                                 mod.has_content,
                               )
                             }
-                            onRecap={() => navigate(`/learn-german/recap/${mod.lesson_id}`)}
+                            onRecap={() =>
+                              navigate(`/learn-german/recap/${mod.lesson_id}`)
+                            }
                           />
                         </motion.div>
                       </div>
@@ -1309,7 +1396,9 @@ export default function LearnGermanHome() {
                             mod.has_content,
                           )
                         }
-                        onRecap={() => navigate(`/learn-german/recap/${mod.lesson_id}`)}
+                        onRecap={() =>
+                          navigate(`/learn-german/recap/${mod.lesson_id}`)
+                        }
                       />
                     ) : isActive ? (
                       <ActiveCardContent
@@ -1392,6 +1481,29 @@ export default function LearnGermanHome() {
         onClose={() => setShowRestartModal(false)}
         onRestart={handleRestartConfirm}
       />
+
+      {/* SVG gooey filter definition for completed card button morph */}
+      <svg
+        style={{
+          position: "absolute",
+          width: 0,
+          height: 0,
+          pointerEvents: "none",
+        }}
+      >
+        <defs>
+          <filter id="recap-goo">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="blur" />
+            <feColorMatrix
+              in="blur"
+              mode="matrix"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 19 -9"
+              result="goo"
+            />
+            <feComposite in="SourceGraphic" in2="goo" operator="atop" />
+          </filter>
+        </defs>
+      </svg>
     </div>
   );
 }
