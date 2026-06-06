@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import ProgressBar from "./shared/ProgressBar";
 import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
-import TypewriterText from "./shared/TypewriterText";
+import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 
 // screen.leftItems: [{ id, label, letter, matchId }]
 // screen.rightItems: [{ id, label }]
@@ -45,9 +45,7 @@ export default function MatchFollowingScreen({
           className="ml-2 bg-white p-3 rounded-xl shadow-sm relative flex-1"
         >
           <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rotate-45" />
-          <p className="text-black text-sm font-medium relative z-10">
-            <TypewriterText text={screen?.dialogue || "Match the following"} />
-          </p>
+          <MayaDialogueBubble text={screen?.dialogue || "Match the following"} />
         </motion.div>
       </div>
 

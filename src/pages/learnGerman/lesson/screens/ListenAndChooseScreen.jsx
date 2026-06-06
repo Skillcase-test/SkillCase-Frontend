@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Volume2 } from "lucide-react";
 import ProgressBar from "./shared/ProgressBar";
 import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
+import handtap from "../../../../assets/handtap.webp";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import WaveformIcon from "./shared/WaveformIcon";
 import { hapticLight } from "../../../../utils/haptics";
@@ -67,19 +68,48 @@ export default function ListenAndChooseScreen({
               <div className="text-black/50 text-base font-normal">
                 Tap to listen
               </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!isSpeaking) speakWord(audioText, true);
-                }}
-                className="w-13 h-13 rounded-2xl outline-1 outline-blue-950/50 flex items-center justify-center bg-white hover:bg-blue-50 active:scale-95 transition-all overflow-hidden"
-              >
-                <WaveformIcon
-                  isPlaying={isSpeaking}
-                  className="w-7 h-7"
-                  iconColor="text-blue-950/80"
-                />
-              </button>
+              <div className="relative">
+                {/* Outgoing sonar pulses behind the button */}
+                {!isSpeaking && (
+                  <>
+                    <div className="absolute inset-0 rounded-2xl bg-[#002856]/30 animate-ping pointer-events-none" />
+                    <div className="absolute inset-0 rounded-2xl bg-[#002856]/20 animate-pulse pointer-events-none" />
+                  </>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isSpeaking) speakWord(audioText, true);
+                  }}
+                  className="relative z-10 w-13 h-13 rounded-2xl outline-1 outline-blue-950/50 flex items-center justify-center bg-white hover:bg-blue-50 active:scale-95 transition-all overflow-hidden"
+                >
+                  <WaveformIcon
+                    isPlaying={isSpeaking}
+                    className="w-7 h-7"
+                    iconColor="text-blue-950/80"
+                  />
+                </button>
+                {/* Tapping hand overlay using handtap.webp */}
+                {!isSpeaking && (
+                  <motion.img
+                    src={handtap}
+                    alt="Tap Guide"
+                    className="absolute bottom-[-27px] right-[-27px] w-[54px] h-auto pointer-events-none z-20 select-none"
+                    style={{
+                      transformOrigin: "30% 33%",
+                      filter: "drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.12))",
+                    }}
+                    animate={{
+                      scale: [1, 0.94, 1],
+                    }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.5,
+                      ease: "easeInOut",
+                    }}
+                  />
+                )}
+              </div>
             </div>
 
             <div className="w-full -mt-1 flex flex-col gap-3">

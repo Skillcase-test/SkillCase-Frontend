@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import ProgressBar from "./shared/ProgressBar";
 import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
+import handtap from "../../../../assets/handtap.webp";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import WaveformIcon from "./shared/WaveformIcon";
 import { hapticLight } from "../../../../utils/haptics";
@@ -71,21 +72,50 @@ export default function GrammarScreen({
         >
           {hasSpeakableWord && (
             <div className="w-full flex flex-col items-center mb-6">
-              <button
-                onClick={() => {
-                  hapticLight();
-                  speakWord?.(grammar.word, true);
-                }}
-                className="w-20 h-20 rounded-2xl border-2 border-blue-900 bg-white flex items-center justify-center mb-4 active:scale-[0.98] transition-transform"
-                aria-label={`Play pronunciation for ${grammar.word}`}
-              >
-                <WaveformIcon
-                  isPlaying={
-                    isSpeaking && currentlySpeakingText === grammar.word
-                  }
-                  className="w-9 h-9"
-                />
-              </button>
+              <div className="relative">
+                {/* Outgoing sonar pulses behind the button */}
+                {!(isSpeaking && currentlySpeakingText === grammar.word) && (
+                  <>
+                    <div className="absolute inset-0 rounded-2xl bg-[#002856]/30 animate-ping pointer-events-none" />
+                    <div className="absolute inset-0 rounded-2xl bg-[#002856]/20 animate-pulse pointer-events-none" />
+                  </>
+                )}
+                <button
+                  onClick={() => {
+                    hapticLight();
+                    speakWord?.(grammar.word, true);
+                  }}
+                  className="relative z-10 w-20 h-20 rounded-2xl border-2 border-blue-900 bg-white flex items-center justify-center mb-4 active:scale-[0.98] transition-transform"
+                  aria-label={`Play pronunciation for ${grammar.word}`}
+                >
+                  <WaveformIcon
+                    isPlaying={
+                      isSpeaking && currentlySpeakingText === grammar.word
+                    }
+                    className="w-9 h-9"
+                  />
+                </button>
+                {/* Tapping hand overlay using handtap.webp */}
+                {!(isSpeaking && currentlySpeakingText === grammar.word) && (
+                  <motion.img
+                    src={handtap}
+                    alt="Tap Guide"
+                    className="absolute bottom-[-27px] right-[-27px] w-[54px] h-auto pointer-events-none z-20 select-none"
+                    style={{
+                      transformOrigin: "30% 33%",
+                      filter: "drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.12))",
+                    }}
+                    animate={{
+                      scale: [1, 0.94, 1],
+                    }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 1.5,
+                      ease: "easeInOut",
+                    }}
+                  />
+                )}
+              </div>
               <div className="text-black text-[46px] leading-none font-bold font-['Poppins'] mb-1">
                 {grammar.word}
               </div>

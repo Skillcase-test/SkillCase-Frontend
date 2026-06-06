@@ -5,7 +5,7 @@ import DraggablePill from "./shared/DraggablePill";
 import DroppableSlot from "./shared/DroppableSlot";
 import DragResultModal from "./shared/DragResultModal";
 import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
-import TypewriterText from "./shared/TypewriterText";
+import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 
 // screen.slots:  [{ id, image }]  — images should be Cloudinary URLs
 // screen.items:  [{ id, label, matchId }]
@@ -62,8 +62,8 @@ export default function MatchImageScreen({
             className="px-4 py-2 bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.08)] z-0 ml-2 relative flex items-center border border-gray-100"
           >
             <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rotate-45 border-l border-b border-gray-100" />
-            <div className="max-w-[180px] sm:max-w-[200px] text-gray-800 text-[13px] sm:text-[14px] font-medium leading-snug">
-              <TypewriterText
+            <div className="max-w-[180px] sm:max-w-[200px] pr-2 text-gray-800 text-[13px] sm:text-[14px] font-medium leading-snug">
+              <MayaDialogueBubble
                 text={
                   screen?.dialogue || "Match the correct words with the images"
                 }

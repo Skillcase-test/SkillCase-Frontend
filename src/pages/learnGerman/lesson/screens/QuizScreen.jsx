@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import ProgressBar from "./shared/ProgressBar";
 import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
+import handtap from "../../../../assets/handtap.webp";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import WaveformIcon from "./shared/WaveformIcon";
 import { hapticLight } from "../../../../utils/haptics";
@@ -84,15 +85,44 @@ export default function QuizScreen({
             />
           )}
           <div className="flex items-center gap-3 mb-5">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!isSpeaking) speakWord(question, true);
-              }}
-              className="w-10 h-10 flex items-center justify-center active:scale-95 transition-transform border border-blue-950/50 rounded-lg shrink-0 overflow-hidden"
-            >
-              <WaveformIcon isPlaying={isSpeaking} className="w-5 h-5" />
-            </button>
+            <div className="relative">
+              {/* Outgoing sonar pulses behind the button */}
+              {!isSpeaking && (
+                <>
+                  <div className="absolute inset-0 rounded-lg bg-[#002856]/30 animate-ping pointer-events-none" />
+                  <div className="absolute inset-0 rounded-lg bg-[#002856]/20 animate-pulse pointer-events-none" />
+                </>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isSpeaking) speakWord(question, true);
+                }}
+                className="relative z-10 w-10 h-10 flex items-center justify-center active:scale-95 transition-transform border border-blue-950/50 rounded-lg shrink-0 overflow-hidden bg-white"
+              >
+                <WaveformIcon isPlaying={isSpeaking} className="w-5 h-5" />
+              </button>
+              {/* Tapping hand overlay using handtap.webp */}
+              {!isSpeaking && (
+                <motion.img
+                  src={handtap}
+                  alt="Tap Guide"
+                  className="absolute bottom-[-24px] right-[-27px] w-[54px] h-auto pointer-events-none z-20 select-none"
+                  style={{
+                    transformOrigin: "30% 33%",
+                    filter: "drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.80))",
+                  }}
+                  animate={{
+                    scale: [1, 0.94, 1],
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 1.5,
+                    ease: "easeInOut",
+                  }}
+                />
+              )}
+            </div>
             <h2 className="text-black text-[20px] font-semibold tracking-tight">
               {question}
             </h2>
