@@ -127,6 +127,9 @@ const JobScreeningAdmin = lazy(() => import("./pages/admin/JobScreeningAdmin"));
 const NewLessonFlow = lazy(() =>
   import("./pages/learnGerman/lesson/NewLessonFlow"),
 );
+const RecapScreen = lazy(() =>
+  import("./pages/learnGerman/RecapScreen"),
+);
 
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 2000;
@@ -793,6 +796,14 @@ function AppContent() {
               <Route
                 path="/learn-german/lesson/:chapterId"
                 element={lazyScreen(<NewLessonFlow />, "Loading Lesson...")}
+              />
+              <Route
+                path="/learn-german/recap"
+                element={lazyScreen(<RecapScreen />, "Loading Recap...")}
+              />
+              <Route
+                path="/learn-german/recap/:chapterId"
+                element={lazyScreen(<RecapScreen />, "Loading Recap...")}
               />
 
               {/* A2 Flashcard */}

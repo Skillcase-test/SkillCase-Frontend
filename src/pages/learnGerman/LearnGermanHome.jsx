@@ -1050,7 +1050,10 @@ export default function LearnGermanHome() {
       >
         {/* Top Arc Progress Section */}
         <div className="w-full mb-6 mt-4 relative flex flex-col items-center">
-          <div className="w-full p-4 bg-white rounded-2xl inline-flex flex-col justify-start items-start gap-2.5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-[#efefef]">
+          <div 
+            onClick={() => navigate("/learn-german/recap")}
+            className="w-full p-4 bg-white rounded-2xl inline-flex flex-col justify-start items-start gap-2.5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-[#efefef] cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-all"
+          >
             <div className="self-stretch flex flex-col justify-start items-start gap-2">
               <div className="self-stretch inline-flex justify-between items-center px-1">
                 <div className="w-48 justify-start text-blue-950 text-base font-normal">
@@ -1262,7 +1265,7 @@ export default function LearnGermanHome() {
                                 mod.has_content,
                               )
                             }
-                            onRecap={() => {}}
+                            onRecap={() => navigate(`/learn-german/recap/${mod.lesson_id}`)}
                           />
                         </motion.div>
                       </div>
@@ -1306,7 +1309,7 @@ export default function LearnGermanHome() {
                             mod.has_content,
                           )
                         }
-                        onRecap={() => {}}
+                        onRecap={() => navigate(`/learn-german/recap/${mod.lesson_id}`)}
                       />
                     ) : isActive ? (
                       <ActiveCardContent
