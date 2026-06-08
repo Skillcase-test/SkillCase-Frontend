@@ -165,10 +165,13 @@ export default function LandingPage() {
   }, [user?.user_id]);
 
   // 1. Passive Auto-Open (Only on Saturday)
+  // Guard includes migrationStatusLoading so we never open while the A1 migration
+  // modal is still in-flight (avoids dual-modal overlap).
   useEffect(() => {
     if (
       prefersLearnMode ||
       !user?.user_id ||
+      migrationStatusLoading ||
       showA1MigrationModal ||
       showSwitchConfirm ||
       isUpgrading
@@ -188,10 +191,23 @@ export default function LandingPage() {
     handleOpenLeaderboard,
     prefersLearnMode,
     user?.user_id,
+    migrationStatusLoading,
     showA1MigrationModal,
     showSwitchConfirm,
     isUpgrading,
   ]);
+
+  // 1a. Suppress Saturday auto-open for users who just completed onboarding.
+  // OnboardingFlow sets location.state.justOnboarded when navigating to "/".
+  // We pre-mark today's seenKey so the auto-open won't fire for them this Saturday,
+  // then clear the navigation state so a page refresh doesn't repeat the suppression.
+  useEffect(() => {
+    if (!location.state?.justOnboarded || !user?.user_id) return;
+    const dayKey = getTodayISTKey();
+    const seenKey = getLeaderboardSeenKey(user.user_id, dayKey);
+    localStorage.setItem(seenKey, "1");
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.state?.justOnboarded, user?.user_id, navigate, location.pathname]);
 
   // 2. Global Event Listener from Navbar
   useEffect(() => {

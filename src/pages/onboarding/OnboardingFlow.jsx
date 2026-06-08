@@ -438,7 +438,7 @@ const OnboardingFlow = () => {
 
       // Navigate based on preference
       if (germanPrefCode === "2") {
-        navigate("/", { replace: true });
+        navigate("/", { replace: true, state: { justOnboarded: true } });
       } else {
         // "Continue learning German" or "Yet to start"
         setLgFirstLandingMarker();
@@ -486,7 +486,7 @@ const OnboardingFlow = () => {
       if (preference === "3") {
         navigate("/job-screening", { replace: true });
       } else {
-        navigate("/", { replace: true });
+        navigate("/", { replace: true, state: { justOnboarded: true } });
       }
     } catch (err) {
       setError(
