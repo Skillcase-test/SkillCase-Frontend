@@ -100,6 +100,10 @@ export function usePaymentsAdminState() {
   const [allSearch, setAllSearch] = useState("");
   const [monthSearch, setMonthSearch] = useState("");
   const [batchSearch, setBatchSearch] = useState("");
+  const [activeBatchId, setActiveBatchId] = useState("");
+  const [activeBatchName, setActiveBatchName] = useState("");
+  const [batchSortBy, setBatchSortBy] = useState("created_at");
+  const [batchSortOrder, setBatchSortOrder] = useState("desc");
   const [feeSearch, setFeeSearch] = useState("");
   const [discountSearch, setDiscountSearch] = useState("");
   const [paymentSearch, setPaymentSearch] = useState("");
@@ -164,6 +168,7 @@ export function usePaymentsAdminState() {
   const debouncedDiscountSearch = useDebounce(discountSearch, SEARCH_DEBOUNCE_MS);
   const debouncedPaymentSearch = useDebounce(paymentSearch, SEARCH_DEBOUNCE_MS);
   const debouncedRawSearch = useDebounce(rawSearch, SEARCH_DEBOUNCE_MS);
+  const debouncedBatchSearch = useDebounce(batchSearch, SEARCH_DEBOUNCE_MS);
   const debouncedEnrollmentSearchTerm = useDebounce(enrollmentSearchTerm, SEARCH_DEBOUNCE_MS);
 
   async function refreshBatches() {
@@ -248,8 +253,41 @@ export function usePaymentsAdminState() {
           setInvoicePaymentRows([]);
         }
       } else if (tab === "batch") {
-        setRows([]);
-        setPagination({ page: 1, limit: rowsPerPage, total: 0, total_pages: 1 });
+        if (activeBatchId) {
+          const res = await paymentsAdminApi.getBatchStudents(activeBatchId, {
+            page: currentPage,
+            limit: rowsPerPage,
+            search: debouncedBatchSearch || undefined,
+            sortBy: batchSortBy,
+            sortOrder: batchSortOrder,
+          });
+          if (controller.signal.aborted) return;
+          setRows(res.data.rows || []);
+          setPagination(
+            res.data.pagination || {
+              page: currentPage,
+              limit: rowsPerPage,
+              total: (res.data.rows || []).length,
+              total_pages: 1,
+            },
+          );
+        } else {
+          const res = await paymentsAdminApi.getBatches({
+            page: currentPage,
+            limit: rowsPerPage,
+            search: debouncedBatchSearch || undefined,
+          });
+          if (controller.signal.aborted) return;
+          setRows(res.data.batches || []);
+          setPagination(
+            res.data.pagination || {
+              page: currentPage,
+              limit: rowsPerPage,
+              total: (res.data.batches || []).length,
+              total_pages: 1,
+            },
+          );
+        }
       } else if (tab === "fee") {
         const res = await paymentsAdminApi.getTotalFeeView(year, month, {
           page: currentPage,
@@ -376,6 +414,10 @@ export function usePaymentsAdminState() {
     tab === "rawlogs" ? rawEventTypeFilter : null,
     tab === "rawlogs" ? rawStatusFilter : null,
     tab === "invoice" ? debouncedEnrollmentSearchTerm : null,
+    tab === "batch" ? debouncedBatchSearch : null,
+    activeBatchId,
+    tab === "batch" ? batchSortBy : null,
+    tab === "batch" ? batchSortOrder : null,
   ]);
 
   useEffect(() => {
@@ -395,6 +437,10 @@ export function usePaymentsAdminState() {
     setEditDraft(null);
     setCurrentPage(1);
     setPaymentAllTime(false);
+    setActiveBatchId("");
+    setActiveBatchName("");
+    setBatchSortBy("created_at");
+    setBatchSortOrder("desc");
   }, [tab]);
 
   useEffect(() => {
@@ -428,6 +474,14 @@ export function usePaymentsAdminState() {
     setMonth,
     tab,
     setTab,
+    activeBatchId,
+    setActiveBatchId,
+    activeBatchName,
+    setActiveBatchName,
+    batchSortBy,
+    setBatchSortBy,
+    batchSortOrder,
+    setBatchSortOrder,
     permittedTabs,
     accessLoading,
     adminRole,

@@ -39,7 +39,9 @@ export const paymentsAdminApi = {
   deleteEnrollment: (enrollmentId) =>
     api.post(`/admin/payments/enrollments/${enrollmentId}/delete`),
 
-  getBatches: () => api.get("/admin/payments/batches"),
+  getBatches: (params = {}) => api.get("/admin/payments/batches", { params }),
+  getBatchStudents: (batchId, params = {}) =>
+    api.get(`/admin/payments/batches/${batchId}/students`, { params }),
   createBatch: (payload) => api.post("/admin/payments/batches", payload),
   updateBatch: (batchId, payload) =>
     api.put(`/admin/payments/batches/${batchId}`, payload),

@@ -61,7 +61,7 @@ export default function PaymentsAdmin() {
   const searchable = {
     all:      [state.allSearch,      state.setAllSearch,      "Search name/phone/email/batch"],
     month:    [state.monthSearch,    state.setMonthSearch,    "Search name/phone/email/batch/status"],
-    batch:    [state.batchSearch,    state.setBatchSearch,    "Search batch/name/phone/status"],
+    batch:    [state.batchSearch,    state.setBatchSearch,    state.activeBatchId ? "Search name/phone/status" : "Search batch/name/phone/status"],
     fee:      [state.feeSearch,      state.setFeeSearch,      "Search name/phone/due"],
     discounts:[state.discountSearch, state.setDiscountSearch, "Search candidate/type/status/reason"],
     payments: [state.paymentSearch,  state.setPaymentSearch,  "Search candidate/phone/payment/status"],
@@ -192,7 +192,7 @@ export default function PaymentsAdmin() {
           <>
             {state.tab !== "overall" && (
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                {qph && state.tab !== "batch" ? (
+                {qph ? (
                   <ControlInput
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
@@ -341,6 +341,14 @@ export default function PaymentsAdmin() {
                   handleChangeCandidateBatch: actions.handleChangeCandidateBatch,
                   handleChangeCandidateStatus: actions.handleChangeCandidateStatus,
                   batches: state.batches,
+                  activeBatchId: state.activeBatchId,
+                  setActiveBatchId: state.setActiveBatchId,
+                  activeBatchName: state.activeBatchName,
+                  setActiveBatchName: state.setActiveBatchName,
+                  batchSortBy: state.batchSortBy,
+                  setBatchSortBy: state.setBatchSortBy,
+                  batchSortOrder: state.batchSortOrder,
+                  setBatchSortOrder: state.setBatchSortOrder,
                   manualPaymentModal: state.manualPaymentModal,
                   setManualPaymentModal: state.setManualPaymentModal,
                   handleCreateManualTransaction: actions.handleCreateManualTransaction,

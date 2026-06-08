@@ -28,6 +28,9 @@ export function usePaymentsAdminSelectors(state) {
     state.year,
     state.month,
     state.paymentAllTime,
+    state.activeBatchId,
+    state.batchSortBy,
+    state.batchSortOrder,
   ]);
 
   return { ...core, ...extra };
