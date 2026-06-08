@@ -85,6 +85,7 @@ export default function LevelCompleteModal({
   completedLessonId,
   streakUpdated,
   coinsAwarded = 20,
+  vocabWordCount = 0,
 }) {
   const navigate = useNavigate();
 
@@ -196,8 +197,8 @@ export default function LevelCompleteModal({
               )}
               <StatRow
                 icon={germanFlag}
-                label="German Readiness"
-                value="+5"
+                label="German words learnt"
+                value={`+${vocabWordCount}`}
                 barWidth="75%"
                 delay={streakUpdated ? 0.7 : 0.5}
               />

@@ -46,7 +46,7 @@ export function markDailyGoalCompletedShown(userId) {
   localStorage.setItem(key, "1");
 }
 
-export default function DailyGoalModal({ isOpen, onClose, nextLesson, userId }) {
+export default function DailyGoalModal({ isOpen, onClose, nextLesson, userId, vocabWordCount = 0 }) {
   const navigate = useNavigate();
 
   if (!isOpen) return null;
@@ -114,7 +114,7 @@ export default function DailyGoalModal({ isOpen, onClose, nextLesson, userId }) 
               <div className="flex items-center gap-1.5">
                 <RewardCard icon={COIN_URL} value="+20" label="coins" />
                 <RewardCard icon={STREAK_URL} value="+1" label="day streak" />
-                <RewardCard icon={germanFlag} value="+5" label="readiness" />
+                <RewardCard icon={germanFlag} value={`+${vocabWordCount}`} label="words to learn" />
               </div>
 
               <button

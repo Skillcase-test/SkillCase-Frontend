@@ -45,6 +45,7 @@ export default function DailyGoalCompletedModal({
   nextLesson,
   streakUpdated = false,
   coinsAwarded = 0,
+  vocabWordCount = 0,
 }) {
   const navigate = useNavigate();
 
@@ -114,7 +115,7 @@ export default function DailyGoalCompletedModal({
                   value={streakUpdated ? "+1" : "+0"}
                   label="day streak"
                 />
-                <RewardCard icon={germanFlag} value="+5" label="readiness" />
+                <RewardCard icon={germanFlag} value={`+${vocabWordCount}`} label="words learnt" />
               </div>
 
               <button

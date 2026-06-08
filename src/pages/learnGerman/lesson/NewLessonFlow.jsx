@@ -470,18 +470,24 @@ export default function NewLessonFlow() {
 
   const navigateToLearnGermanHome = useCallback(async ({ autoStartNext = false } = {}) => {
     const completionResult = await persistComplete();
+    const vocabCount = (lessonData?.screens || []).filter((s) => s.type === "vocab").length;
     navigate("/learn-german", {
       state: {
         fromLessonComplete: true,
         completedLessonId: chapterId,
         streakUpdated: completionResult?.streakUpdated ?? streakUpdated,
         coinsAwarded: completionResult?.coinsAwarded ?? coinsAwarded,
+        vocabWordCount: vocabCount,
         autoStartNext,
       },
     });
-  }, [navigate, persistComplete, streakUpdated, coinsAwarded, chapterId]);
+  }, [navigate, persistComplete, streakUpdated, coinsAwarded, chapterId, lessonData?.screens]);
 
   const screens = useMemo(() => lessonData?.screens || [], [lessonData?.screens]);
+  const vocabWordCount = useMemo(
+    () => screens.filter((s) => s.type === "vocab").length,
+    [screens],
+  );
   const currentScreen = screens[screenIndex] || null;
 
   // Compute conversation history by looking backwards for contiguous conversation screens
@@ -1446,6 +1452,7 @@ export default function NewLessonFlow() {
               completedLessonId={chapterId}
               streakUpdated={streakUpdated}
               coinsAwarded={coinsAwarded}
+              vocabWordCount={vocabWordCount}
               onClose={() => setLevelComplete(false)}
               onContinue={() => navigateToLearnGermanHome({ autoStartNext: true })}
             />

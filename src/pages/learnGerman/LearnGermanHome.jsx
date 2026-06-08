@@ -681,6 +681,7 @@ export default function LearnGermanHome() {
   const [showCompleted, setShowCompleted] = useState(false);
   const [streakUpdated, setStreakUpdated] = useState(false);
   const [coinsAwarded, setCoinsAwarded] = useState(0);
+  const [vocabWordCount, setVocabWordCount] = useState(0);
   const [showRestartModal, setShowRestartModal] = useState(false);
   const [restartLesson, setRestartLesson] = useState(null);
   const activeLessonRef = useRef(null);
@@ -915,10 +916,17 @@ export default function LearnGermanHome() {
 
     if (isFirstLandingSignal) {
       // Suppress both Daily Goal modals on very first post-onboarding landing.
+      // Mark as shown so navigating away and back does not re-trigger the modal.
+      markDailyGoalShown(user?.user_id);
       setShowCompleted(false);
       setShowDailyGoal(false);
     } else if (fromLessonComplete) {
       setShowDailyGoal(false);
+      // Goal was completed — mark the start modal as shown so it never
+      // re-appears if the user navigates away and returns the same day.
+      markDailyGoalShown(user?.user_id);
+      // Capture vocab word count from the completed lesson for the completed modal.
+      setVocabWordCount(Number(location.state?.vocabWordCount) || 0);
       // Mark that the animation will own scrolling — suppress auto-scroll
       hasPendingAnimRef.current = true;
       let willShowModal = false;
@@ -1464,6 +1472,7 @@ export default function LearnGermanHome() {
         onClose={() => setShowDailyGoal(false)}
         nextLesson={nextLesson}
         userId={user?.user_id}
+        vocabWordCount={nextLesson?.vocab_count ?? 0}
       />
 
       {/* Daily Goal Completed Modal — shown after finishing a lesson */}
@@ -1473,6 +1482,7 @@ export default function LearnGermanHome() {
         nextLesson={nextLesson}
         streakUpdated={streakUpdated}
         coinsAwarded={coinsAwarded}
+        vocabWordCount={vocabWordCount}
       />
 
       <RestartLessonModal
