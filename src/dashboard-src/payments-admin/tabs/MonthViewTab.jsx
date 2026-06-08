@@ -1,5 +1,6 @@
 import { ActionChip, ControlDropdown } from "../components/controls";
-import { formatInrFromPaise } from "../utils/formatters";
+import { formatInrFromPaise, formatIstDate } from "../utils/formatters";
+import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 
 export function MonthViewTab({
   rows,
@@ -12,19 +13,140 @@ export function MonthViewTab({
   batches = [],
   handleChangeCandidateBatch,
   updatingBatchEnrollmentId,
+  monthSortBy,
+  monthSortOrder,
+  setMonthSortBy,
+  setMonthSortOrder,
 }) {
+  const handleSort = (field) => {
+    if (field === "created_at") {
+      if (monthSortBy === "created_at") {
+        setMonthSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+      } else {
+        setMonthSortBy("created_at");
+        setMonthSortOrder("desc");
+      }
+    } else {
+      if (monthSortBy === field) {
+        if (monthSortOrder === "desc") {
+          setMonthSortOrder("asc");
+        } else {
+          setMonthSortBy("created_at");
+          setMonthSortOrder("desc");
+        }
+      } else {
+        setMonthSortBy(field);
+        setMonthSortOrder("desc");
+      }
+    }
+  };
+
+  const renderSortIcon = (field) => {
+    if (monthSortBy === field) {
+      return monthSortOrder === "asc" ? (
+        <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+      ) : (
+        <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+      );
+    }
+    return (
+      <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+    );
+  };
+
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200">
       <table className="min-w-full text-sm">
         <thead>
           <tr className="border-b bg-slate-50 text-left text-xs uppercase text-slate-500">
-            <th className="px-3 py-3">Name</th>
-            <th className="px-2 py-2">Candidate ID</th>
-            <th className="px-2 py-2">Phone</th>
-            <th className="px-2 py-2">Email</th>
-            <th className="px-2 py-2">Batch</th>
-            <th className="px-2 py-2">Month Paid</th>
-            <th className="px-2 py-2">Status</th>
+            <th
+              onClick={() => handleSort("student_name")}
+              className="px-3 py-3 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Name</span>
+                <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                  {renderSortIcon("student_name")}
+                </span>
+              </div>
+            </th>
+            <th
+              onClick={() => handleSort("candidate_id")}
+              className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Candidate ID</span>
+                <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                  {renderSortIcon("candidate_id")}
+                </span>
+              </div>
+            </th>
+            <th
+              onClick={() => handleSort("student_phone")}
+              className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Phone</span>
+                <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                  {renderSortIcon("student_phone")}
+                </span>
+              </div>
+            </th>
+            <th
+              onClick={() => handleSort("student_email")}
+              className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Email</span>
+                <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                  {renderSortIcon("student_email")}
+                </span>
+              </div>
+            </th>
+            <th
+              onClick={() => handleSort("batch_name")}
+              className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Batch</span>
+                <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                  {renderSortIcon("batch_name")}
+                </span>
+              </div>
+            </th>
+            <th
+              onClick={() => handleSort("created_at")}
+              className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Enrollment Date</span>
+                <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                  {renderSortIcon("created_at")}
+                </span>
+              </div>
+            </th>
+            <th
+              onClick={() => handleSort("paid_paise")}
+              className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Month Paid</span>
+                <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                  {renderSortIcon("paid_paise")}
+                </span>
+              </div>
+            </th>
+            <th
+              onClick={() => handleSort("status")}
+              className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Status</span>
+                <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                  {renderSortIcon("status")}
+                </span>
+              </div>
+            </th>
             <th className="px-2 py-2">Actions</th>
           </tr>
         </thead>
@@ -58,6 +180,7 @@ export function MonthViewTab({
                   />
                 </div>
               </td>
+              <td className="px-2 py-2">{formatIstDate(r.created_at)}</td>
               <td className="px-2 py-2">{formatInrFromPaise(r.paid_paise)}</td>
               <td className="px-2 py-2">
                 {r.status === "archived" || r.lifecycle_state === "archived" ? (
