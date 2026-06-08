@@ -73,6 +73,7 @@ export function AllViewTab({
     { value: "completed", label: "Completed" },
     { value: "pending", label: "Pending" },
     { value: "finalized", label: "Finalized" },
+    { value: "refunded", label: "Refunded" },
   ];
 
   return (
@@ -275,13 +276,13 @@ export function AllViewTab({
                       placeholder="Status"
                       compact
                       fixedMenu
-                      disabled={updatingBatchEnrollmentId === r.enrollment_id}
+                      disabled={updatingBatchEnrollmentId === r.enrollment_id || String(r.lifecycle_state || r.status || "").toLowerCase() === "refunded"}
                       options={(() => {
                         const s = String(r.lifecycle_state || r.status || "").toLowerCase();
                         const opts = [
                           {
                             value: s,
-                            label: s === "on_hold" ? "On Hold" : s === "archived" ? "Rejected" : s.charAt(0).toUpperCase() + s.slice(1)
+                            label: s === "on_hold" ? "On Hold" : s === "archived" ? "Rejected" : s === "refunded" ? "Refunded" : s.charAt(0).toUpperCase() + s.slice(1)
                           }
                         ];
 

@@ -241,12 +241,21 @@ export function ImportPaymentsPage({ onBack, onImportSuccess, candidateOptions =
   };
 
   const extract10DigitPhone = (rawPhone) => {
-    if (!rawPhone) return "";
-    const clean = String(rawPhone).replace(/\D/g, "");
-    if (clean.length >= 10) {
+    const raw = String(rawPhone || "").trim();
+    const clean = raw.replace(/\D/g, "");
+    if (clean.length === 10) {
+      return clean;
+    }
+    if (clean.length === 12 && clean.startsWith("91")) {
       return clean.slice(-10);
     }
-    return clean;
+    if (clean.length === 11 && clean.startsWith("0")) {
+      return clean.slice(-10);
+    }
+    if (raw.startsWith("+") || clean.length > 10) {
+      return clean;
+    }
+    return clean.slice(-10);
   };
 
   const parseMonthFromValueDate = (dateStr) => {
@@ -355,11 +364,13 @@ export function ImportPaymentsPage({ onBack, onImportSuccess, candidateOptions =
           hasRowErrors = true;
         } else {
           const lowerTransId = transId.toLowerCase();
-          if (seenInFile.has(lowerTransId)) {
-            fileErrors.push({ row: rowNum, field: "Tran. Id", reason: `Duplicate Transaction ID "${transId}" inside this CSV file.` });
-            hasRowErrors = true;
-          } else {
-            seenInFile.add(lowerTransId);
+          if (lowerTransId !== "refund" && lowerTransId !== "refunded") {
+            if (seenInFile.has(lowerTransId)) {
+              fileErrors.push({ row: rowNum, field: "Tran. Id", reason: `Duplicate Transaction ID "${transId}" inside this CSV file.` });
+              hasRowErrors = true;
+            } else {
+              seenInFile.add(lowerTransId);
+            }
           }
         }
 
@@ -380,8 +391,8 @@ export function ImportPaymentsPage({ onBack, onImportSuccess, candidateOptions =
         } else {
           const cleanAmount = depositAmt.replace(/,/g, "").trim();
           const numAmount = Number(cleanAmount);
-          if (isNaN(numAmount) || numAmount <= 0) {
-            fileErrors.push({ row: rowNum, field: "Deposit Amt (INR)", reason: `Deposit amount "${depositAmt}" must be a positive number.` });
+          if (isNaN(numAmount) || numAmount === 0) {
+            fileErrors.push({ row: rowNum, field: "Deposit Amt (INR)", reason: `Deposit amount "${depositAmt}" must be a non-zero number.` });
             hasRowErrors = true;
           }
         }

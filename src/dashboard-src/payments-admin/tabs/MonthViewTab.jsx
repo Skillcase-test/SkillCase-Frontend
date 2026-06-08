@@ -197,6 +197,10 @@ export function MonthViewTab({
                   <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
                     Rejected
                   </span>
+                ) : r.status === "refunded" || r.lifecycle_state === "refunded" ? (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                    Refunded
+                  </span>
                 ) : r.lifecycle_state === "dropped" ? (
                   <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
                     Dropped

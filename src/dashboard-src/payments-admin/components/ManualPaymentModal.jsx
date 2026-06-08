@@ -197,7 +197,7 @@ export function ManualPaymentModal({
       alert("Value Date is required.");
       return;
     }
-    if (!depositAmt.trim() || isNaN(Number(depositAmt)) || Number(depositAmt) <= 0) {
+    if (!depositAmt.trim() || isNaN(Number(depositAmt)) || Number(depositAmt) === 0) {
       alert("Please enter a valid deposit amount.");
       return;
     }
