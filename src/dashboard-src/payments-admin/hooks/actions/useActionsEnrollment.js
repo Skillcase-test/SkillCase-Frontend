@@ -6,6 +6,7 @@ export function useActionsEnrollment(state) {
     setNotice,
     setSavingEnrollmentId,
     setSendingAgreementEnrollmentId,
+    setCopyLinkModal,
     loadTabData,
     editDraft,
     setEditDraft,
@@ -249,8 +250,23 @@ export function useActionsEnrollment(state) {
     setNotice?.("");
     setSendingAgreementEnrollmentId?.(enrollmentId);
     try {
-      await paymentsAdminApi.sendAgreement(enrollmentId);
-      setNotice?.(`Agreement sent to ${row.student_email}.`);
+      const res = await paymentsAdminApi.sendAgreement(enrollmentId);
+      const signingUrl = res.data?.envelope?.signing_url;
+      if (signingUrl) {
+        try {
+          await navigator.clipboard.writeText(signingUrl);
+          setNotice?.("Agreement link copied to clipboard!");
+        } catch (clipErr) {
+          console.error("Clipboard copy failed:", clipErr);
+        }
+        setCopyLinkModal?.({
+          open: true,
+          url: signingUrl,
+          studentName: row.student_name || "Candidate",
+        });
+      } else {
+        setNotice?.(`Agreement sent to ${row.student_email}.`);
+      }
       await loadTabData();
     } catch (err) {
       setError(err?.response?.data?.msg || "Agreement send failed");

@@ -17,6 +17,7 @@ import { PaginationBar } from "../payments-admin/components/PaginationBar";
 import { RejectDiscountModal } from "../payments-admin/components/RejectDiscountModal";
 import { ManualPaymentModal } from "../payments-admin/components/ManualPaymentModal";
 import { RelinkPaymentModal } from "../payments-admin/components/RelinkPaymentModal";
+import { CopyAgreementModal } from "../payments-admin/components/CopyAgreementModal";
 import { ImportPaymentsPage } from "../payments-admin/components/ImportPaymentsPage";
 import { ImportCandidatesPage } from "../payments-admin/components/ImportCandidatesPage";
 import { usePaymentsAdminActions } from "../payments-admin/hooks/usePaymentsAdminActions";
@@ -434,6 +435,10 @@ export default function PaymentsAdmin() {
         modal={state.relinkModal}
         setModal={state.setRelinkModal}
         onConfirm={actions.handleRelinkTransactionByPhone}
+      />
+      <CopyAgreementModal
+        modal={state.copyLinkModal}
+        setModal={state.setCopyLinkModal}
       />
     </div>
   );

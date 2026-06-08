@@ -140,6 +140,7 @@ export function usePaymentsAdminState() {
   const [feeBreakdownLoading, setFeeBreakdownLoading] = useState(false);
   const [manualPaymentModal, setManualPaymentModal] = useState({ open: false, mode: "create", data: null });
   const [relinkModal, setRelinkModal] = useState({ open: false, payment: null });
+  const [copyLinkModal, setCopyLinkModal] = useState({ open: false, url: "", studentName: "" });
   const [feeBreakdownCache, setFeeBreakdownCache] = useState({});
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -581,6 +582,8 @@ export function usePaymentsAdminState() {
     setManualPaymentModal,
     relinkModal,
     setRelinkModal,
+    copyLinkModal,
+    setCopyLinkModal,
     enrollmentSearchTerm,
     setEnrollmentSearchTerm,
     invoiceRows,

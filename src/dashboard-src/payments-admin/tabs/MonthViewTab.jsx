@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ActionChip, ControlDropdown } from "../components/controls";
 import { formatInrFromPaise, formatIstDate } from "../utils/formatters";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
@@ -18,6 +19,15 @@ export function MonthViewTab({
   setMonthSortBy,
   setMonthSortOrder,
 }) {
+  const [copiedEnrollmentId, setCopiedEnrollmentId] = useState("");
+
+  const handleCopyLink = (enrollmentId, url) => {
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedEnrollmentId(enrollmentId);
+      setTimeout(() => setCopiedEnrollmentId(""), 2000);
+    });
+  };
+
   const handleSort = (field) => {
     if (field === "created_at") {
       if (monthSortBy === "created_at") {
@@ -244,6 +254,14 @@ export function MonthViewTab({
                           <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600 ring-1 ring-inset ring-slate-500/10">
                             Sent
                           </span>
+                          {r.agreement_signing_url && (
+                            <ActionChip
+                              onClick={() => handleCopyLink(r.enrollment_id, r.agreement_signing_url)}
+                              variant={copiedEnrollmentId === r.enrollment_id ? "success" : "secondary"}
+                            >
+                              {copiedEnrollmentId === r.enrollment_id ? "Copied" : "Copy Link"}
+                            </ActionChip>
+                          )}
                           <ActionChip
                             onClick={() => handleSendAgreement?.(r)}
                             disabled={isSending}
@@ -260,6 +278,14 @@ export function MonthViewTab({
                           <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-600/20">
                             Viewed
                           </span>
+                          {r.agreement_signing_url && (
+                            <ActionChip
+                              onClick={() => handleCopyLink(r.enrollment_id, r.agreement_signing_url)}
+                              variant={copiedEnrollmentId === r.enrollment_id ? "success" : "secondary"}
+                            >
+                              {copiedEnrollmentId === r.enrollment_id ? "Copied" : "Copy Link"}
+                            </ActionChip>
+                          )}
                           <ActionChip
                             onClick={() => handleSendAgreement?.(r)}
                             disabled={isSending}
@@ -279,6 +305,14 @@ export function MonthViewTab({
                           <span className="inline-flex items-center rounded-md bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700 ring-1 ring-inset ring-sky-700/10">
                             Pending Details
                           </span>
+                          {r.agreement_signing_url && (
+                            <ActionChip
+                              onClick={() => handleCopyLink(r.enrollment_id, r.agreement_signing_url)}
+                              variant={copiedEnrollmentId === r.enrollment_id ? "success" : "secondary"}
+                            >
+                              {copiedEnrollmentId === r.enrollment_id ? "Copied" : "Copy Link"}
+                            </ActionChip>
+                          )}
                         </div>
                       );
                     }
@@ -292,6 +326,14 @@ export function MonthViewTab({
                           <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-600/20">
                             Details Viewed
                           </span>
+                          {r.agreement_signing_url && (
+                            <ActionChip
+                              onClick={() => handleCopyLink(r.enrollment_id, r.agreement_signing_url)}
+                              variant={copiedEnrollmentId === r.enrollment_id ? "success" : "secondary"}
+                            >
+                              {copiedEnrollmentId === r.enrollment_id ? "Copied" : "Copy Link"}
+                            </ActionChip>
+                          )}
                         </div>
                       );
                     }
