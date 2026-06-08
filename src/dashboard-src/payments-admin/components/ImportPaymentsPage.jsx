@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { ArrowLeft, Upload, Download, AlertCircle, CheckCircle2, FileSpreadsheet, RefreshCw, X } from "lucide-react";
 import { ControlButton } from "./controls";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
+import { ImportHistorySection } from "./ImportHistorySection";
 
 function CandidateSearchDropdown({ onSelect, candidateOptions }) {
   const [query, setQuery] = useState("");
@@ -123,6 +124,7 @@ function CandidateSearchDropdown({ onSelect, candidateOptions }) {
 }
 
 export function ImportPaymentsPage({ onBack, onImportSuccess, candidateOptions = [] }) {
+  const [showHistory, setShowHistory] = useState(false);
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
@@ -538,7 +540,28 @@ export function ImportPaymentsPage({ onBack, onImportSuccess, candidateOptions =
     }
 
     try {
-      await paymentsAdminApi.createBatchManualTransactions({ transactions: txPayloads });
+      let fileContentBase64 = null;
+      try {
+        fileContentBase64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = () => resolve(reader.result.split(",")[1]);
+          reader.onerror = err => reject(err);
+        });
+      } catch (fileErr) {
+        console.error("Base64 conversion failed:", fileErr);
+      }
+
+      const importId = "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c =>
+        (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+      );
+
+      await paymentsAdminApi.createBatchManualTransactions({
+        transactions: txPayloads,
+        import_id: importId,
+        filename: file.name,
+        file_content: fileContentBase64
+      });
       setLoading(false);
       onImportSuccess(`${txPayloads.length} payments imported successfully.`);
     } catch (err) {
@@ -575,6 +598,13 @@ export function ImportPaymentsPage({ onBack, onImportSuccess, candidateOptions =
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">Upload a standard CSV spreadsheet to batch import transaction records.</p>
           </div>
+          <ControlButton
+            variant="secondary"
+            onClick={() => setShowHistory((prev) => !prev)}
+            className="h-9 px-4 text-xs font-semibold"
+          >
+            {showHistory ? "Hide Import History" : "View Import History"}
+          </ControlButton>
         </div>
       </div>
 
@@ -842,6 +872,7 @@ export function ImportPaymentsPage({ onBack, onImportSuccess, candidateOptions =
 
         </div>
       )}
+      {showHistory && <ImportHistorySection type="payments" />}
 
     </div>
   );

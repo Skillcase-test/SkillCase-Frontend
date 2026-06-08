@@ -101,4 +101,10 @@ export const paymentsAdminApi = {
     api.post("/admin/payments/transactions/check-duplicates", payload),
   createBatchManualTransactions: (payload) =>
     api.post("/admin/payments/transactions/batch-manual", payload),
+  getImportHistory: (params = {}) =>
+    api.get("/admin/payments/import/history", { params }),
+  downloadImportFile: (importId) =>
+    api.get(`/admin/payments/import/history/${importId}/download`),
+  rollbackImport: (importId) =>
+    api.post("/admin/payments/import/rollback", { importId }),
 };

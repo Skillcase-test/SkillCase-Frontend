@@ -2,8 +2,10 @@ import React, { useState, useRef, useEffect } from "react";
 import { ArrowLeft, Upload, Download, AlertCircle, CheckCircle2, FileSpreadsheet, RefreshCw } from "lucide-react";
 import { ControlButton } from "./controls";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
+import { ImportHistorySection } from "./ImportHistorySection";
 
 export function ImportCandidatesPage({ onBack, onImportSuccess, batches = [] }) {
+  const [showHistory, setShowHistory] = useState(false);
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(false);
@@ -181,6 +183,13 @@ export function ImportCandidatesPage({ onBack, onImportSuccess, batches = [] }) 
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">Upload a candidate roster spreadsheet to create or update candidate profiles in bulk.</p>
           </div>
+          <ControlButton
+            variant="secondary"
+            onClick={() => setShowHistory((prev) => !prev)}
+            className="h-9 px-4 text-xs font-semibold"
+          >
+            {showHistory ? "Hide Import History" : "View Import History"}
+          </ControlButton>
         </div>
       </div>
 
@@ -384,6 +393,7 @@ export function ImportCandidatesPage({ onBack, onImportSuccess, batches = [] }) 
 
         </div>
       )}
+      {showHistory && <ImportHistorySection type="candidates" />}
 
     </div>
   );
