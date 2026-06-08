@@ -119,7 +119,9 @@ export default function PaymentsAdmin() {
               <div className="rounded-xl bg-slate-900 px-4 py-2 text-white">
                 <p className="text-[10px] uppercase opacity-70">Month</p>
                 <p className="font-bold">
-                  {MONTH_NAMES[state.month]} {state.year}
+                  {state.tab === "payments" && state.paymentAllTime
+                    ? "All Time"
+                    : `${MONTH_NAMES[state.month]} ${state.year}`}
                 </p>
               </div>
             )}
@@ -222,11 +224,26 @@ export default function PaymentsAdmin() {
                       </ControlButton>
                     </>
                   ) : null}
+                  {state.tab === "payments" && (
+                    <label className="flex items-center gap-2 text-sm text-slate-700 select-none mr-2">
+                      <input
+                        type="checkbox"
+                        checked={state.paymentAllTime}
+                        onChange={(e) => {
+                          state.setCurrentPage(1);
+                          state.setPaymentAllTime(e.target.checked);
+                        }}
+                        className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                      />
+                      <span className="font-medium text-slate-700">All Time</span>
+                    </label>
+                  )}
                   {state.tab !== "all" && state.tab !== "batch" && state.tab !== "overall" ? (
                     <>
                       <ControlSelect
                         value={state.year}
                         onChange={(e) => state.setYear(Number(e.target.value))}
+                        disabled={state.tab === "payments" && state.paymentAllTime}
                         className="w-28"
                       >
                         {[2025, 2026, 2027].map((y) => (
@@ -238,6 +255,7 @@ export default function PaymentsAdmin() {
                       <ControlSelect
                         value={state.month}
                         onChange={(e) => state.setMonth(Number(e.target.value))}
+                        disabled={state.tab === "payments" && state.paymentAllTime}
                         className="w-40"
                       >
                         {MONTH_NAMES.slice(1).map((m, i) => (
@@ -363,11 +381,11 @@ export default function PaymentsAdmin() {
                         {state.reconciling ? "Reconciling..." : "Reconcile"}
                       </button>
                       <ControlButton
-                        onClick={actions.exportPaymentsCsv}
+                        onClick={actions.exportPaymentsExcel}
                         variant="primary"
                         className="h-9 px-3 text-xs"
                       >
-                        Download CSV
+                        Download Excel
                       </ControlButton>
                     </div>
                   ) : null}

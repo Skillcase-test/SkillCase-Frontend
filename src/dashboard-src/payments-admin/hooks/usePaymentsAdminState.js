@@ -110,6 +110,7 @@ export function usePaymentsAdminState() {
   const [allSortOrder, setAllSortOrder] = useState("desc");
   const [paymentSortBy, setPaymentSortBy] = useState("paid_at");
   const [paymentSortOrder, setPaymentSortOrder] = useState("desc");
+  const [paymentAllTime, setPaymentAllTime] = useState(false);
   const [monthSortBy, setMonthSortBy] = useState("created_at");
   const [monthSortOrder, setMonthSortOrder] = useState("desc");
   const [allSummary, setAllSummary] = useState({
@@ -282,6 +283,7 @@ export function usePaymentsAdminState() {
           search: debouncedPaymentSearch || undefined,
           sortBy: paymentSortBy,
           sortOrder: paymentSortOrder,
+          all: paymentAllTime || undefined,
         });
         if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
@@ -369,6 +371,7 @@ export function usePaymentsAdminState() {
     tab === "payments" ? debouncedPaymentSearch : null,
     tab === "payments" ? paymentSortBy : null,
     tab === "payments" ? paymentSortOrder : null,
+    tab === "payments" ? paymentAllTime : null,
     tab === "rawlogs" ? debouncedRawSearch : null,
     tab === "rawlogs" ? rawEventTypeFilter : null,
     tab === "rawlogs" ? rawStatusFilter : null,
@@ -391,6 +394,7 @@ export function usePaymentsAdminState() {
   useEffect(() => {
     setEditDraft(null);
     setCurrentPage(1);
+    setPaymentAllTime(false);
   }, [tab]);
 
   useEffect(() => {
@@ -492,6 +496,8 @@ export function usePaymentsAdminState() {
     setPaymentSortBy,
     paymentSortOrder,
     setPaymentSortOrder,
+    paymentAllTime,
+    setPaymentAllTime,
     monthSortBy,
     setMonthSortBy,
     monthSortOrder,

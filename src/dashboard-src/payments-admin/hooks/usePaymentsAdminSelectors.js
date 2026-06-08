@@ -27,6 +27,7 @@ export function usePaymentsAdminSelectors(state) {
     state.rawStatusFilter,
     state.year,
     state.month,
+    state.paymentAllTime,
   ]);
 
   return { ...core, ...extra };

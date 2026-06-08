@@ -1,4 +1,5 @@
 import { paymentsAdminApi } from "../../../../api/paymentsAdminApi";
+import { formatIstDateTime } from "../../utils/formatters";
 
 export function useActionsPayments(state) {
   const {
@@ -13,35 +14,98 @@ export function useActionsPayments(state) {
     setFeeBreakdownCache,
     setFeeBreakdownLoading,
     setManualPaymentModal,
+    paymentAllTime,
+    debouncedPaymentSearch,
+    paymentSortBy,
+    paymentSortOrder,
   } = state;
 
-  async function exportPaymentsCsv() {
-    const headers = [
-      "Student Name",
-      "Phone",
-      "Batch",
-      "Amount (INR)",
-      "Status",
-      "Razorpay Payment ID",
-      "Paid At",
-    ];
-    const lines = rows.map((r) => [
-      r.student_name || "",
-      r.student_phone || "",
-      r.batch_name || "",
-      (Number(r.amount_paise || 0) / 100).toFixed(2),
-      r.payment_status || "",
-      r.razorpay_payment_id || "",
-      r.paid_at || "",
-    ]);
-    const csv = [headers, ...lines].map((x) => x.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `payments_${year}_${String(month).padStart(2, "0")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  async function exportPaymentsExcel() {
+    try {
+      const res = await paymentsAdminApi.getPaymentView(year, month, {
+        search: debouncedPaymentSearch || undefined,
+        sortBy: paymentSortBy,
+        sortOrder: paymentSortOrder,
+        all: paymentAllTime || undefined,
+        download: true,
+      });
+      const downloadRows = res.data.rows || [];
+
+      const headers = [
+        "Student Name",
+        "Phone",
+        "Batch",
+        "Amount (INR)",
+        "Status",
+        "Razorpay Payment ID",
+        "Paid At",
+      ];
+      const data = downloadRows.map((r) => [
+        r.student_name || "",
+        r.student_phone || "",
+        r.batch_name || "",
+        (Number(r.amount_paise || 0) / 100).toFixed(2),
+        r.payment_status || "",
+        r.razorpay_payment_id || "",
+        r.paid_at ? formatIstDateTime(r.paid_at) : "",
+      ]);
+
+      let html = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <!--[if gte mso 9]>
+          <xml>
+            <x:ExcelWorkbook>
+              <x:ExcelWorksheets>
+                <x:ExcelWorksheet>
+                  <x:Name>Payments</x:Name>
+                  <x:WorksheetOptions>
+                    <x:DisplayGridlines/>
+                  </x:WorksheetOptions>
+                </x:ExcelWorksheet>
+              </x:ExcelWorksheets>
+            </x:ExcelWorkbook>
+          </xml>
+          <![endif]-->
+          <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+          <style>
+            table { border-collapse: collapse; }
+            th { background-color: #f1f5f9; font-weight: bold; border: 1px solid #cbd5e1; padding: 6px; }
+            td { border: 1px solid #cbd5e1; padding: 6px; }
+          </style>
+        </head>
+        <body>
+          <table>
+            <thead>
+              <tr>
+                ${headers.map((h) => `<th>${h}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map((row) => `
+                <tr>
+                  ${row.map((cell) => `<td>${cell}</td>`).join("")}
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      const blob = new Blob([html], { type: "application/vnd.ms-excel" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const filename = paymentAllTime
+        ? "payments_all_time.xls"
+        : `payments_${year}_${String(month).padStart(2, "0")}.xls`;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err?.response?.data?.msg || "Failed to download payments Excel");
+    }
   }
 
   async function handleReconcile() {
@@ -157,7 +221,7 @@ export function useActionsPayments(state) {
   }
 
   return {
-    exportPaymentsCsv,
+    exportPaymentsExcel,
     handleReconcile,
     openFeeBreakdown,
     openDiscountBreakdown,
