@@ -108,6 +108,8 @@ export function usePaymentsAdminState() {
   const [allBatchFilter, setAllBatchFilter] = useState("");
   const [allSortBy, setAllSortBy] = useState("created_at");
   const [allSortOrder, setAllSortOrder] = useState("desc");
+  const [paymentSortBy, setPaymentSortBy] = useState("paid_at");
+  const [paymentSortOrder, setPaymentSortOrder] = useState("desc");
   const [allSummary, setAllSummary] = useState({
     total_enrollments: 0,
     total_active: 0,
@@ -274,6 +276,8 @@ export function usePaymentsAdminState() {
           page: currentPage,
           limit: rowsPerPage,
           search: debouncedPaymentSearch || undefined,
+          sortBy: paymentSortBy,
+          sortOrder: paymentSortOrder,
         });
         if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
@@ -357,6 +361,8 @@ export function usePaymentsAdminState() {
     tab === "fee" ? cohortFilter : null,
     tab === "discounts" ? debouncedDiscountSearch : null,
     tab === "payments" ? debouncedPaymentSearch : null,
+    tab === "payments" ? paymentSortBy : null,
+    tab === "payments" ? paymentSortOrder : null,
     tab === "rawlogs" ? debouncedRawSearch : null,
     tab === "rawlogs" ? rawEventTypeFilter : null,
     tab === "rawlogs" ? rawStatusFilter : null,
@@ -476,6 +482,10 @@ export function usePaymentsAdminState() {
     setAllSortBy,
     allSortOrder,
     setAllSortOrder,
+    paymentSortBy,
+    setPaymentSortBy,
+    paymentSortOrder,
+    setPaymentSortOrder,
     allSummary,
     setAllSummary,
     cohortFilter,

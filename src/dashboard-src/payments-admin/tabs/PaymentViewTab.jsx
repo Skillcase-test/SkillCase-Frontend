@@ -1,17 +1,120 @@
-import { ActionChip } from "../components/controls";
-import { formatInrFromPaise } from "../utils/formatters";
+import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
+import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 
-export function PaymentViewTab({ rows }) {
+export function PaymentViewTab({
+  rows,
+  paymentSortBy,
+  paymentSortOrder,
+  setPaymentSortBy,
+  setPaymentSortOrder,
+}) {
+  const handleSort = (field) => {
+    if (field === "paid_at") {
+      if (paymentSortBy === "paid_at") {
+        setPaymentSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+      } else {
+        setPaymentSortBy("paid_at");
+        setPaymentSortOrder("desc");
+      }
+    } else {
+      if (paymentSortBy === field) {
+        if (paymentSortOrder === "desc") {
+          setPaymentSortOrder("asc");
+        } else {
+          setPaymentSortBy("paid_at");
+          setPaymentSortOrder("desc");
+        }
+      } else {
+        setPaymentSortBy(field);
+        setPaymentSortOrder("desc");
+      }
+    }
+  };
+
+  const renderSortIcon = (field) => {
+    if (paymentSortBy === field) {
+      return paymentSortOrder === "asc" ? (
+        <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+      ) : (
+        <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+      );
+    }
+    return (
+      <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+    );
+  };
+
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200">
       <table className="min-w-full text-sm">
         <thead>
           <tr className="border-b bg-slate-50 text-left text-xs uppercase text-slate-500">
-            <th className="px-3 py-3">Name</th>
-            <th className="px-2 py-2">Phone</th>
-            <th className="px-2 py-2">Amount</th>
-            <th className="px-2 py-2">Status</th>
-            <th className="px-2 py-2">Payment ID</th>
+            <th
+              onClick={() => handleSort("student_name")}
+              className="px-3 py-3 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Name</span>
+                <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                  {renderSortIcon("student_name")}
+                </span>
+              </div>
+            </th>
+            <th
+              onClick={() => handleSort("student_phone")}
+              className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Phone</span>
+                <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                  {renderSortIcon("student_phone")}
+                </span>
+              </div>
+            </th>
+            <th
+              onClick={() => handleSort("amount")}
+              className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Amount</span>
+                <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                  {renderSortIcon("amount")}
+                </span>
+              </div>
+            </th>
+            <th
+              onClick={() => handleSort("payment_status")}
+              className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Status</span>
+                <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                  {renderSortIcon("payment_status")}
+                </span>
+              </div>
+            </th>
+            <th
+              onClick={() => handleSort("paid_at")}
+              className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Payment Date</span>
+                <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                  {renderSortIcon("paid_at")}
+                </span>
+              </div>
+            </th>
+            <th
+              onClick={() => handleSort("razorpay_payment_id")}
+              className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+            >
+              <div className="flex items-center gap-1.5">
+                <span>Payment ID</span>
+                <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                  {renderSortIcon("razorpay_payment_id")}
+                </span>
+              </div>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -26,6 +129,7 @@ export function PaymentViewTab({ rows }) {
                 {formatInrFromPaise(r.signed_amount_paise ?? r.amount_paise)}
               </td>
               <td className="px-2 py-2">{r.payment_status || "-"}</td>
+              <td className="px-2 py-2">{formatIstDateTime(r.paid_at)}</td>
               <td className="px-2 py-2">{r.razorpay_payment_id || "-"}</td>
             </tr>
           ))}
