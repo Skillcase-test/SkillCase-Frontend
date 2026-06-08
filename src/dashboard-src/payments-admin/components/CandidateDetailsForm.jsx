@@ -656,6 +656,7 @@ export function CandidateDetailsForm({
                   onClick={() => {
                     if (window.confirm("Are you sure you want to edit the Candidate ID?")) {
                       setIsEditingCandidateId(true);
+                      setEditDraft((p) => ({ ...p, status: "pending" }));
                     }
                   }}
                   className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition"
