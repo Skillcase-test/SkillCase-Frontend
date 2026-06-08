@@ -254,7 +254,7 @@ export function ImportCandidatesPage({ onBack, onImportSuccess, batches = [] }) 
           <div className="space-y-2">
             <p className="text-sm font-semibold text-slate-800">2. Download CSV Template</p>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Get the candidate import schema CSV template. Populate all mandatory profile fields such as Name, Phone, Email, DOB, Gender, Nationality, Location, State, Qualification, and Terms Acknowledgement.
+              Get the candidate import schema CSV template. Populate all mandatory profile fields such as Name, Phone, and Enrollment Date. Optional fields (Email, DOB, Gender, Nationality, Location, State, Qualification, Terms Acknowledgement, etc.) can also be provided.
             </p>
           </div>
           <ControlButton variant="secondary" onClick={handleDownloadTemplate} className="h-10 px-4 flex items-center justify-center gap-1.5 text-xs text-indigo-700 bg-white border-indigo-200 hover:bg-indigo-50 w-full mt-auto">
