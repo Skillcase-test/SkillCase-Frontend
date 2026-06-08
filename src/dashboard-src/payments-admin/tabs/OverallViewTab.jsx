@@ -9,6 +9,8 @@ import {
   LineElement,
   PointElement,
   Tooltip,
+  BarController,
+  BarElement,
 } from "chart.js";
 import { Loader2, ArrowUpRight, ArrowDownRight, RefreshCw } from "lucide-react";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
@@ -25,6 +27,8 @@ Chart.register(
   LineElement,
   PointElement,
   Tooltip,
+  BarController,
+  BarElement,
 );
 
 const MONTH_NAMES = [
