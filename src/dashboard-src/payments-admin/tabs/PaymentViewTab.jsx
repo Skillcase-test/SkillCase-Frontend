@@ -1,5 +1,5 @@
 import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
-import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, Edit2 } from "lucide-react";
 
 export function PaymentViewTab({
   rows,
@@ -7,6 +7,7 @@ export function PaymentViewTab({
   paymentSortOrder,
   setPaymentSortBy,
   setPaymentSortOrder,
+  setRelinkModal,
 }) {
   const handleSort = (field) => {
     if (field === "paid_at") {
@@ -121,10 +122,23 @@ export function PaymentViewTab({
           {rows.map((r, i) => (
             <tr
               key={r.payment_id || i}
-              className={i % 2 === 0 ? "bg-white" : "bg-slate-50/60"}
+              className={`group ${i % 2 === 0 ? "bg-white" : "bg-slate-50/60"}`}
             >
               <td className="px-3 py-3">{r.student_name || "-"}</td>
-              <td className="px-2 py-2">{r.student_phone || "-"}</td>
+              <td className="px-2 py-2">
+                <div className="flex items-center gap-1.5">
+                  <span>{r.student_phone || "-"}</span>
+                  {r.student_phone && (
+                    <button
+                      onClick={() => setRelinkModal({ open: true, payment: r })}
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-slate-200 transition-all text-slate-500"
+                      title="Relink transaction by phone number"
+                    >
+                      <Edit2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </td>
               <td className="px-2 py-2">
                 {formatInrFromPaise(r.signed_amount_paise ?? r.amount_paise)}
               </td>

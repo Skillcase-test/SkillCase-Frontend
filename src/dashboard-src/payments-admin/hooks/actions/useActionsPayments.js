@@ -7,6 +7,7 @@ export function useActionsPayments(state) {
     year,
     month,
     setError,
+    setNotice,
     setReconciling,
     loadTabData,
     setFeeBreakdownModal,
@@ -14,6 +15,7 @@ export function useActionsPayments(state) {
     setFeeBreakdownCache,
     setFeeBreakdownLoading,
     setManualPaymentModal,
+    setRelinkModal,
     paymentAllTime,
     debouncedPaymentSearch,
     paymentSortBy,
@@ -220,6 +222,19 @@ export function useActionsPayments(state) {
     }
   }
 
+  async function handleRelinkTransactionByPhone(paymentId, phone) {
+    setError("");
+    try {
+      const res = await paymentsAdminApi.relinkTransactionByPhone(paymentId, phone);
+      setNotice(res.data?.msg || "Payment successfully relinked to the candidate");
+      setRelinkModal({ open: false, payment: null });
+      await loadTabData();
+    } catch (err) {
+      setError(err?.response?.data?.msg || "Failed to relink payment transaction");
+      throw err;
+    }
+  }
+
   return {
     exportPaymentsExcel,
     handleReconcile,
@@ -228,5 +243,6 @@ export function useActionsPayments(state) {
     handleCreateManualTransaction,
     handleUpdateManualTransaction,
     handleDeleteManualTransaction,
+    handleRelinkTransactionByPhone,
   };
 }

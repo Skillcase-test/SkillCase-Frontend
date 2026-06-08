@@ -16,6 +16,7 @@ import { LifecycleActionModal } from "../payments-admin/components/LifecycleActi
 import { PaginationBar } from "../payments-admin/components/PaginationBar";
 import { RejectDiscountModal } from "../payments-admin/components/RejectDiscountModal";
 import { ManualPaymentModal } from "../payments-admin/components/ManualPaymentModal";
+import { RelinkPaymentModal } from "../payments-admin/components/RelinkPaymentModal";
 import { ImportPaymentsPage } from "../payments-admin/components/ImportPaymentsPage";
 import { ImportCandidatesPage } from "../payments-admin/components/ImportCandidatesPage";
 import { usePaymentsAdminActions } from "../payments-admin/hooks/usePaymentsAdminActions";
@@ -351,6 +352,7 @@ export default function PaymentsAdmin() {
                   setBatchSortOrder: state.setBatchSortOrder,
                   manualPaymentModal: state.manualPaymentModal,
                   setManualPaymentModal: state.setManualPaymentModal,
+                  setRelinkModal: state.setRelinkModal,
                   handleCreateManualTransaction: actions.handleCreateManualTransaction,
                   handleUpdateManualTransaction: actions.handleUpdateManualTransaction,
                   handleDeleteManualTransaction: actions.handleDeleteManualTransaction,
@@ -427,6 +429,11 @@ export default function PaymentsAdmin() {
         onDelete={actions.handleDeleteManualTransaction}
         candidateOptions={state.candidateOptions}
         refreshCandidateOptions={state.refreshCandidateOptions}
+      />
+      <RelinkPaymentModal
+        modal={state.relinkModal}
+        setModal={state.setRelinkModal}
+        onConfirm={actions.handleRelinkTransactionByPhone}
       />
     </div>
   );
