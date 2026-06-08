@@ -283,6 +283,19 @@ export function MonthViewTab({
                       );
                     }
 
+                    if (agreementState === "details_viewed") {
+                      return (
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center rounded-md bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
+                            Signed
+                          </span>
+                          <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-600/20">
+                            Details Viewed
+                          </span>
+                        </div>
+                      );
+                    }
+
                     if (agreementState === "details_filled") {
                       return (
                         <span className="inline-flex items-center rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 animate-pulse">
