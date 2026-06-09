@@ -1069,9 +1069,7 @@ export default function TermsSignPage() {
           console.error("Failed to auto-verify job screening agreement status", checkErr);
         }
       }
-      if (signedUrl) {
-        window.open(signedUrl, "_blank", "noopener,noreferrer");
-      }
+
     } catch (requestError) {
       setError(
         requestError?.response?.data?.msg ||

@@ -905,8 +905,10 @@ export default function NewLessonFlow() {
 
   const handleTapGuideSpotlightClick = (event) => {
     event.stopPropagation();
-    // For scenario screens the Continue button drives guide completion — do nothing here.
-    if (currentScreen?.type === "scenario") return;
+    if (currentScreen?.type === "scenario") {
+      setGuidedScenarioTapNonce((prev) => prev + 1);
+      return;
+    }
     completeTapGuide();
     handleNext();
   };

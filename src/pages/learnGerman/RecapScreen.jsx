@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Check, Volume2 } from "lucide-react";
+import { Check } from "lucide-react";
 import recapGermanFlag from "../../assets/recapGermanFlag.webp";
 import { getVocabProgress, getLessonById } from "../../api/learnGermanApi";
 import ProgressBar from "./lesson/screens/shared/ProgressBar";
+import WaveformIcon from "./lesson/screens/shared/WaveformIcon";
 import { getGermanTTSBlob } from "./lesson/ttsCache";
 import { hapticMedium } from "../../utils/haptics";
 
@@ -250,16 +251,14 @@ export default function RecapScreen() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      speakWord(item.word);
+                      if (!isSpeaking) speakWord(item.word);
                     }}
-                    disabled={isSpeaking && currentlySpeakingText === item.word}
-                    className={`size-6 relative flex items-center justify-center text-blue-950 hover:scale-105 active:scale-95 transition-all ${
-                      isSpeaking && currentlySpeakingText === item.word
-                        ? "opacity-50"
-                        : ""
-                    }`}
+                    className="size-6 relative flex items-center justify-center text-blue-950 hover:scale-105 active:scale-95 transition-all overflow-hidden"
                   >
-                    <Volume2 className="w-5 h-5" />
+                    <WaveformIcon
+                      isPlaying={isSpeaking && currentlySpeakingText === item.word}
+                      className="w-5 h-5"
+                    />
                   </button>
                 </div>
               </div>
