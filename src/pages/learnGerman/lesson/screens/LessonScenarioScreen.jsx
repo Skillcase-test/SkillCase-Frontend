@@ -4,6 +4,7 @@ import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
 import { useEffect, useState } from "react";
 import ProgressBar from "./shared/ProgressBar";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
+import { resolveAssetUrl } from "../../../../utils/imageUtils";
 
 export default function LessonScenarioScreen({
   screen,
@@ -56,7 +57,7 @@ export default function LessonScenarioScreen({
         <div className="w-full flex-1 relative min-h-0">
           <motion.img
             layoutId="lessonBg"
-            src={screen.image}
+            src={resolveAssetUrl(screen.image)}
             className="w-full h-full object-cover rounded-2xl shadow-md"
             transition={{
               layout: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
@@ -71,7 +72,7 @@ export default function LessonScenarioScreen({
         >
           <motion.img
             layoutId="mayaMascot"
-            src={screen.mayaImage || mayaLooking}
+            src={screen.mayaImage ? resolveAssetUrl(screen.mayaImage) : mayaLooking}
             className="absolute -left-2 bottom-0 w-[110px] sm:w-32 h-auto object-contain z-20"
             transition={{
               layout: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },

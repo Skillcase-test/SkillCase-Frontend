@@ -6,6 +6,7 @@ import DroppableSlot from "./shared/DroppableSlot";
 import DragResultModal from "./shared/DragResultModal";
 import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
+import { resolveAssetUrl } from "../../../../utils/imageUtils";
 
 // screen.slots:  [{ id, image }]  — images should be Cloudinary URLs
 // screen.items:  [{ id, label, matchId }]
@@ -82,7 +83,7 @@ export default function MatchImageScreen({
                 >
                   <img
                     className="w-[55%] h-[74px] relative rounded-xl object-cover border border-gray-100 shadow-sm"
-                    src={slot.image}
+                    src={resolveAssetUrl(slot.image)}
                   />
                   <DroppableSlot
                     id={slot.id}

@@ -6,6 +6,7 @@ import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
 import handtap from "../../../../assets/handtap.webp";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import WaveformIcon from "./shared/WaveformIcon";
+import { resolveAssetUrl } from "../../../../utils/imageUtils";
 
 export default function VocabScreen({
   screen,
@@ -19,7 +20,7 @@ export default function VocabScreen({
   level,
 }) {
   const vocab = {
-    img: screen?.image || fallbackImg,
+    img: screen?.image ? resolveAssetUrl(screen.image) : fallbackImg,
     word: screen?.word || "Word",
     translation: screen?.translation || "Translation",
     tts: screen?.word || "Word",

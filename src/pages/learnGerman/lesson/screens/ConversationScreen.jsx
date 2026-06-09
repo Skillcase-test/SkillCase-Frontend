@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
 import WaveformIcon from "./shared/WaveformIcon";
 import { hapticMedium, hapticHeavy } from "../../../../utils/haptics";
+import { resolveAssetUrl } from "../../../../utils/imageUtils";
 
 // Derive the set of correct option indices for a screen.
 // Supports both:
@@ -78,7 +79,7 @@ export default function ConversationScreen({
           {hasImage ? (
             <img
               className="w-full h-full object-cover"
-              src={img}
+              src={resolveAssetUrl(img)}
               alt="Character"
             />
           ) : (

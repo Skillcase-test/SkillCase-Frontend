@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import mayaThumbsup from "../../../../assets/onboarding/mayaThumbsup.webp";
 import ProgressBar from "./shared/ProgressBar";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
+import { resolveAssetUrl } from "../../../../utils/imageUtils";
 
 export default function IntroScreen({
   screen,
@@ -13,7 +14,7 @@ export default function IntroScreen({
   onDialogueDone,
   onNext,
 }) {
-  const bgImage = screen.image || lesson1Bg;
+  const bgImage = screen.image ? resolveAssetUrl(screen.image) : lesson1Bg;
   const dialogueText =
     screen.dialogue ||
     "You will learn about food items and how to pronounce them. Lets start.";

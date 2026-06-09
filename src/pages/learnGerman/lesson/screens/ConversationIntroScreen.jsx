@@ -119,51 +119,46 @@ export default function ConversationIntroScreen({
         <div className="w-full h-44 absolute bottom-0 mix-blend-multiply bg-gradient-to-b from-white/0 to-black z-10 pointer-events-none" />
 
         {/* Continue / Start Conversation Button Panel */}
-        <AnimatePresence mode="wait">
-          {currentDialogueFinished && (
-            <motion.div
-              key={mayaDialogueIndex === mayaDialogues.length - 1 ? "start-btn" : "continue-btn"}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3 }}
-              className="w-full px-4 z-20 relative safe-bottom-pad flex items-center gap-3"
+        <div className="w-full px-4 z-20 relative safe-bottom-pad flex items-center gap-3">
+          {canGoPrev && (
+            <button
+              onClick={() => {
+                hapticLight();
+                onPrev?.();
+              }}
+              className="w-2/5 py-3.5 rounded-xl border border-zinc-300 shadow-sm bg-white text-blue-950 font-semibold text-[15px] active:scale-[0.98] transition-transform flex items-center justify-center gap-1"
             >
-              {canGoPrev && (
-                <button
-                  onClick={() => {
-                    hapticLight();
-                    onPrev?.();
-                  }}
-                  className="w-2/5 py-3.5 rounded-xl border border-zinc-300 shadow-sm bg-white text-blue-950 font-semibold text-[15px] active:scale-[0.98] transition-transform flex items-center justify-center gap-1"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Prev
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  hapticLight();
-                  if (mayaDialogueIndex < mayaDialogues.length - 1) {
-                    handleBubbleClick();
-                  } else {
-                    onNext();
-                  }
-                }}
-                className={`${
-                  canGoPrev ? "w-6/5" : "w-full"
-                } py-3.5 bg-gradient-to-r from-amber-200 to-amber-300 rounded-xl shadow-sm text-blue-950 font-semibold text-[15px] active:scale-[0.98] transition-transform border border-[#eec139] flex items-center justify-center gap-1.5`}
-              >
-                <span>
-                  {mayaDialogueIndex < mayaDialogues.length - 1
-                    ? "Continue"
-                    : "Start Conversation"}
-                </span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </motion.div>
+              <ArrowLeft className="w-4 h-4" />
+              Prev
+            </button>
           )}
-        </AnimatePresence>
+          <button
+            disabled={!currentDialogueFinished}
+            onClick={() => {
+              if (!currentDialogueFinished) return;
+              hapticLight();
+              if (mayaDialogueIndex < mayaDialogues.length - 1) {
+                handleBubbleClick();
+              } else {
+                onNext();
+              }
+            }}
+            className={`${
+              canGoPrev ? "w-6/5" : "w-full"
+            } py-3.5 rounded-xl border font-semibold text-[15px] flex items-center justify-center gap-1.5 transition-all ${
+              currentDialogueFinished
+                ? "bg-gradient-to-r from-amber-200 to-amber-300 text-blue-950 border-[#eec139] shadow-sm active:scale-[0.98] cursor-pointer"
+                : "bg-zinc-200 text-zinc-400 border-zinc-200 cursor-not-allowed"
+            }`}
+          >
+            <span>
+              {mayaDialogueIndex < mayaDialogues.length - 1
+                ? "Continue"
+                : "Start Conversation"}
+            </span>
+            <ArrowRight className={`w-4 h-4 ${currentDialogueFinished ? "text-blue-950" : "text-zinc-400"}`} />
+          </button>
+        </div>
       </div>
     </motion.div>
   );

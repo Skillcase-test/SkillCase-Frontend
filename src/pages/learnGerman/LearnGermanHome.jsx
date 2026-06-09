@@ -215,11 +215,13 @@ function RestartLessonModal({ isOpen, chapterTitle, onRestart, onClose }) {
               {chapterTitle}
             </p>
           )}
-          <div className="relative bg-white rounded-2xl shadow-sm px-5 py-3 max-w-[280px] text-center z-30">
-            <p className="text-black text-[15px] font-medium leading-snug">
-              <TypewriterText text="Ready to try again? Let’s go!" />
-            </p>
-            <div className="absolute -bottom-[7px] left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white rotate-45 shadow-sm" />
+          <div className="relative z-30 w-full flex justify-center">
+            <div className="relative bg-white rounded-2xl shadow-sm px-5 py-3 max-w-[280px] text-center">
+              <p className="text-black text-[15px] font-medium leading-snug">
+                <TypewriterText text="Ready to try again? Let’s go!" />
+              </p>
+              <div className="absolute -bottom-[7px] left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white rotate-45 shadow-sm -z-10" />
+            </div>
           </div>
           <div
             className="relative w-full flex justify-center"
