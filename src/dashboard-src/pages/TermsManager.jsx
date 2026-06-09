@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, Pencil, Check, X } from "lucide-react";
+import { ChevronLeft, Pencil, Check, X, Copy } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { termsApi } from "../../api/termsApi";
@@ -96,6 +96,8 @@ export default function TermsManager() {
   const [sendingInvite, setSendingInvite] = useState(false);
   const [deletingTemplate, setDeletingTemplate] = useState(false);
   const [viewingEnvelopeId, setViewingEnvelopeId] = useState("");
+  const [copyingEnvelopeId, setCopyingEnvelopeId] = useState("");
+  const [copiedEnvelopeId, setCopiedEnvelopeId] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
   const [statusMessage, setStatusMessage] = useState("");
@@ -475,6 +477,26 @@ export default function TermsManager() {
       setErrorMessage(error?.response?.data?.msg || "Failed to open signed PDF.");
     } finally {
       setViewingEnvelopeId("");
+    }
+  }
+
+  async function handleCopyInviteLink(item) {
+    if (!item?.document_id) {
+      setErrorMessage("Invite link is not available for this agreement.");
+      return;
+    }
+    setCopyingEnvelopeId(item.envelope_id);
+    setErrorMessage("");
+    try {
+      const baseFrontend = window.location.origin;
+      const signingUrl = `${baseFrontend}/terms/sign/${item.document_id}`;
+      await navigator.clipboard.writeText(signingUrl);
+      setCopiedEnvelopeId(item.envelope_id);
+      setTimeout(() => setCopiedEnvelopeId(""), 2000);
+    } catch (error) {
+      setErrorMessage("Failed to copy invite link.");
+    } finally {
+      setCopyingEnvelopeId("");
     }
   }
 
@@ -1217,16 +1239,37 @@ export default function TermsManager() {
                           {formatDate(item.signed_at)}
                         </td>
                         <td className="px-3 py-3 text-xs text-slate-600">
-                          <button
-                            type="button"
-                            onClick={() => handleViewSignedPdf(item)}
-                            disabled={item.status !== "signed" || viewingEnvelopeId === item.envelope_id}
-                            className="rounded-md border border-slate-300 bg-white px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {viewingEnvelopeId === item.envelope_id
-                              ? "Opening..."
-                              : "View Signed PDF"}
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleViewSignedPdf(item)}
+                              disabled={item.status !== "signed" || viewingEnvelopeId === item.envelope_id}
+                              className="rounded-md border border-slate-300 bg-white px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap"
+                            >
+                              {viewingEnvelopeId === item.envelope_id
+                                ? "Opening..."
+                                : "View Signed PDF"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyInviteLink(item)}
+                              disabled={!item.document_id || copyingEnvelopeId === item.envelope_id}
+                              className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-2.5 py-1 font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 whitespace-nowrap"
+                              title={item.document_id ? "Copy signing link" : "Signing link unavailable"}
+                            >
+                              {copiedEnvelopeId === item.envelope_id ? (
+                                  <>
+                                    <Check className="h-3.5 w-3.5 text-emerald-600" />
+                                    <span className="text-emerald-600">Copied</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="h-3.5 w-3.5" />
+                                    <span>{copyingEnvelopeId === item.envelope_id ? "Copying..." : "Copy Link"}</span>
+                                  </>
+                                )}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     )))}
