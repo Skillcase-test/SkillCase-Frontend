@@ -470,7 +470,8 @@ export default function NewLessonFlow() {
 
   const navigateToLearnGermanHome = useCallback(async ({ autoStartNext = false } = {}) => {
     const completionResult = await persistComplete();
-    const vocabCount = (lessonData?.screens || []).filter((s) => s.type === "vocab").length;
+    const fromScreens = (lessonData?.screens || []).filter((s) => s.type === "vocab").length;
+    const vocabCount = fromScreens > 0 ? fromScreens : (lessonData?.vocab_words?.length || 0);
     navigate("/learn-german", {
       state: {
         fromLessonComplete: true,
@@ -481,12 +482,15 @@ export default function NewLessonFlow() {
         autoStartNext,
       },
     });
-  }, [navigate, persistComplete, streakUpdated, coinsAwarded, chapterId, lessonData?.screens]);
+  }, [navigate, persistComplete, streakUpdated, coinsAwarded, chapterId, lessonData?.screens, lessonData?.vocab_words]);
 
   const screens = useMemo(() => lessonData?.screens || [], [lessonData?.screens]);
   const vocabWordCount = useMemo(
-    () => screens.filter((s) => s.type === "vocab").length,
-    [screens],
+    () => {
+      const fromScreens = screens.filter((s) => s.type === "vocab").length;
+      return fromScreens > 0 ? fromScreens : (lessonData?.vocab_words?.length || 0);
+    },
+    [screens, lessonData?.vocab_words],
   );
   const currentScreen = screens[screenIndex] || null;
 

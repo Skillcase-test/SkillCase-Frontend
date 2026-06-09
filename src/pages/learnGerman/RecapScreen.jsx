@@ -130,13 +130,21 @@ export default function RecapScreen() {
 
   const vocabList = isGlobal
     ? data?.learnedVocabList || []
-    : (data?.screens || [])
-        .filter((s) => s?.type === "vocab")
-        .map((s) => ({
-          word: s.word,
-          translation: s.translation,
-          image: s.image,
-        }));
+    : (() => {
+        // Primary source: vocab-type screens (normal lessons)
+        const fromScreens = (data?.screens || [])
+          .filter((s) => s?.type === "vocab")
+          .map((s) => ({ word: s.word, translation: s.translation, image: s.image }));
+        if (fromScreens.length > 0) return fromScreens;
+
+        // Fallback: vocab_words array on the lesson (grammar lessons)
+        // Supports both plain strings ["der", "die"] and objects [{ word, translation }]
+        return (data?.vocab_words || []).map((entry) =>
+          typeof entry === "string"
+            ? { word: entry, translation: "", image: null }
+            : { word: entry.word || "", translation: entry.translation || "", image: null }
+        );
+      })();
 
   const mainCount = isGlobal ? data?.learnedWords || 0 : vocabList.length;
 
