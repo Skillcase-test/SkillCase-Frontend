@@ -1,5 +1,6 @@
 import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
-import { ArrowUp, ArrowDown, ArrowUpDown, Edit2, Trash2 } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, Edit2 } from "lucide-react";
+import { ActionChip } from "../components/controls";
 
 export function PaymentViewTab({
   rows,
@@ -9,6 +10,8 @@ export function PaymentViewTab({
   setPaymentSortOrder,
   setRelinkModal,
   handleDeleteManualTransaction,
+  handleRefund,
+  refundingPaymentId,
 }) {
   const handleSort = (field) => {
     if (field === "paid_at") {
@@ -117,7 +120,7 @@ export function PaymentViewTab({
                 </span>
               </div>
             </th>
-            <th className="px-2 py-2 text-center w-24">Actions</th>
+            <th className="px-2 py-2 text-center w-40">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -148,15 +151,14 @@ export function PaymentViewTab({
               <td className="px-2 py-2">{formatIstDateTime(r.paid_at)}</td>
               <td className="px-2 py-2">{r.razorpay_payment_id || "-"}</td>
               <td className="px-2 py-2 text-center">
-                {r.metadata_json?.source === "admin_manual_actual" && (
-                  <button
+                <div className="flex items-center justify-center gap-2">
+                  <ActionChip
                     onClick={() => handleDeleteManualTransaction(r.payment_id)}
-                    className="p-1.5 rounded hover:bg-rose-50 text-rose-500 hover:text-rose-750 transition-colors"
-                    title="Delete manual payment"
+                    variant="danger"
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
+                    Delete
+                  </ActionChip>
+                </div>
               </td>
             </tr>
           ))}

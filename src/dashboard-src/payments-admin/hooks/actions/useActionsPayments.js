@@ -211,14 +211,16 @@ export function useActionsPayments(state) {
   }
 
   async function handleDeleteManualTransaction(paymentId) {
-    if (!window.confirm("Are you sure you want to delete this manual payment transaction?")) return;
+    if (!window.confirm("Are you sure you want to delete this payment transaction?")) return;
     setError("");
     try {
       await paymentsAdminApi.deleteManualTransaction(paymentId);
+      setNotice("Payment transaction deleted successfully");
       setManualPaymentModal({ open: false, mode: "create", data: null });
       await loadTabData();
+      alert("Payment transaction deleted successfully");
     } catch (err) {
-      setError(err?.response?.data?.msg || "Failed to delete manual payment");
+      setError(err?.response?.data?.msg || "Failed to delete payment transaction");
     }
   }
 
