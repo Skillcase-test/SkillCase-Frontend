@@ -13,6 +13,7 @@ import DashboardCard12 from "../partials/dashboard/DashboardCard12";
 import DashboardCard13 from "../partials/dashboard/DashboardCard13";
 import DashboardCardDAU from "../partials/dashboard/DashboardCardDAU";
 import DashboardCardAllUsers from "../partials/dashboard/DashboardCardAllUsers";
+import DashboardCardLearnGermanAdvanced from "../partials/dashboard/DashboardCardLearnGermanAdvanced";
 
 function Analytics() {
   return (
@@ -27,6 +28,7 @@ function Analytics() {
         <DashboardCard12 key="card-12" />
         <DashboardCardAllUsers key="card-all-users" />
         <DashboardCardDAU key="card-dau" />
+        <DashboardCardLearnGermanAdvanced key="card-german-advanced" />
         <DashboardCard01 key="card-01" />
         <DashboardCard02 key="card-02" />
         <DashboardCard13 key="card-13" />

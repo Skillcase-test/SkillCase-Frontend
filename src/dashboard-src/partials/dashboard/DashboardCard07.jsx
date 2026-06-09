@@ -336,10 +336,15 @@ function DashboardCard07() {
                                                   : activity.activity_type ===
                                                     "a2_test"
                                                   ? "bg-rose-100 text-rose-700"
+                                                  : activity.activity_type ===
+                                                    "learn_german"
+                                                  ? "bg-orange-100 text-orange-600"
                                                   : "bg-gray-100 text-gray-600"
                                               }`}
                                             >
-                                              {activity.activity_type.startsWith("a2_")
+                                              {activity.activity_type === "learn_german"
+                                                ? "Learn German"
+                                                : activity.activity_type.startsWith("a2_")
                                                 ? `A2 ${activity.activity_type.replace("a2_", "").charAt(0).toUpperCase() + activity.activity_type.replace("a2_", "").slice(1)}`
                                                 : activity.activity_type.charAt(0).toUpperCase() + activity.activity_type.slice(1)}
                                             </span>
