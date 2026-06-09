@@ -801,6 +801,17 @@ export default function LearnGermanHome() {
   );
 
   useEffect(() => {
+    const logVisit = async () => {
+      try {
+        await api.post("/dynamic-lesson/track-visit");
+      } catch (err) {
+        console.error("Failed to log Learn German visit:", err);
+      }
+    };
+    logVisit();
+  }, []);
+
+  useEffect(() => {
     // Seed localStorage if not set yet — for navbar/switcher consistency only
     if (!localStorage.getItem("lg_preferred_mode")) {
       getLGMode()
