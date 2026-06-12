@@ -35,7 +35,7 @@ function DashboardCardAllUsers() {
       try {
         setLoading(true);
         const response = await api.get(
-          "/admin/analytics/version-users?version=1.1.7&page=1&limit=1"
+          "/admin/analytics/version-users?version=1.1.7,1.1.8&page=1&limit=1"
         );
         setTotalCount(response.data.pagination?.totalRecords || 0);
         setError(null);
@@ -55,7 +55,7 @@ function DashboardCardAllUsers() {
     try {
       setModalLoading(true);
       const response = await api.get(
-        `/admin/analytics/version-users?version=1.1.7&page=${page}&limit=10&search=${debouncedSearch}`
+        `/admin/analytics/version-users?version=1.1.7,1.1.8&page=${page}&limit=10&search=${debouncedSearch}`
       );
       setUsers(response.data.data || []);
       setPagination(response.data.pagination || {
@@ -104,8 +104,8 @@ function DashboardCardAllUsers() {
     <div className="flex flex-col col-span-full sm:col-span-6 xl:col-span-4 bg-white shadow-xs rounded-xl border border-slate-100 p-5">
       <header className="flex justify-between items-start mb-2">
         <div>
-          <h2 className="text-lg font-semibold text-slate-800">v1.1.7 Onboardings</h2>
-          <p className="text-xs text-slate-400 mt-0.5">Active reviewees on version 1.1.7</p>
+          <h2 className="text-lg font-semibold text-slate-800">v1.1.7 + v1.1.8 Onboardings</h2>
+          <p className="text-xs text-slate-400 mt-0.5">Active reviewees on versions 1.1.7 &amp; 1.1.8</p>
         </div>
         
         {/* Dropdown Options Menu */}
@@ -166,11 +166,11 @@ function DashboardCardAllUsers() {
             {/* Modal Header */}
             <header className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-slate-800 flex items-center gap-2 text-base">
+                  <h3 className="font-semibold text-slate-800 flex items-center gap-2 text-base">
                   <ShieldCheck className="w-5 h-5 text-indigo-500" />
-                  Users Review (Version 1.1.7)
+                  Users Review (v1.1.7 + v1.1.8)
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">Review users registered on release version 1.1.7.</p>
+                <p className="text-xs text-slate-500 mt-0.5">Review users registered on release versions 1.1.7 &amp; 1.1.8.</p>
               </div>
               <button 
                 onClick={() => setIsModalOpen(false)}
@@ -223,7 +223,7 @@ function DashboardCardAllUsers() {
                     ) : users.length === 0 ? (
                       <tr>
                         <td colSpan="5" className="px-4 py-8 text-center text-slate-400 font-medium">
-                          No users found on version 1.1.7
+                          No users found on versions 1.1.7 or 1.1.8
                         </td>
                       </tr>
                     ) : (
