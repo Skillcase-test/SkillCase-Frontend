@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 import {
   CONTROL_BASE,
@@ -128,12 +128,51 @@ export function CandidateDetailsForm({
   handleDeleteCandidate,
   savingEnrollmentId,
 }) {
+  const paymentIdCounts = useMemo(() => {
+    const counts = {};
+    const rows = Array.isArray(editDraft?.expected_payments) ? editDraft.expected_payments : [];
+    for (const row of rows) {
+      if (row.actual_payment_id_list) {
+        const ids = String(row.actual_payment_id_list)
+          .split(",")
+          .map((id) => id.trim())
+          .filter(Boolean);
+        for (const id of ids) {
+          const lowerId = id.toLowerCase();
+          if (lowerId !== "-" && lowerId !== "null" && lowerId !== "undefined") {
+            counts[lowerId] = (counts[lowerId] || 0) + 1;
+          }
+        }
+      }
+    }
+    return counts;
+  }, [editDraft?.expected_payments]);
+
+  const splitGroupColors = useMemo(() => {
+    const counts = paymentIdCounts;
+    const splits = Object.keys(counts).filter(id => counts[id] > 1);
+    const colorPalettes = [
+      { bg: "bg-indigo-50", border: "border-indigo-200", text: "text-indigo-600", hoverBg: "bg-indigo-100" },
+      { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-700", hoverBg: "bg-emerald-100" },
+      { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", hoverBg: "bg-amber-100" },
+      { bg: "bg-rose-50", border: "border-rose-200", text: "text-rose-600", hoverBg: "bg-rose-100" },
+      { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-600", hoverBg: "bg-purple-100" },
+      { bg: "bg-cyan-50", border: "border-cyan-200", text: "text-cyan-700", hoverBg: "bg-cyan-100" },
+      { bg: "bg-fuchsia-50", border: "border-fuchsia-200", text: "text-fuchsia-600", hoverBg: "bg-fuchsia-100" },
+    ];
+    const mapping = {};
+    splits.forEach((id, idx) => {
+      mapping[id] = colorPalettes[idx % colorPalettes.length];
+    });
+    return mapping;
+  }, [paymentIdCounts]);
   const [uploadingDoc, setUploadingDoc] = useState("");
   const [uploadError, setUploadError] = useState("");
   const [batchLogs, setBatchLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [isEditingCandidateId, setIsEditingCandidateId] = useState(false);
   const [isEditingEnrollmentDate, setIsEditingEnrollmentDate] = useState(false);
+  const [hoveredSplitId, setHoveredSplitId] = useState(null);
 
   const expectedPaymentsRef = useRef(null);
   const [lastAddedKey, setLastAddedKey] = useState(null);
@@ -1057,12 +1096,49 @@ export function CandidateDetailsForm({
                           />
                         </Field>
                         <Field label={subIdx === 0 ? "Payment ID" : ""}>
-                          <ControlInput
-                            value={actId || "-"}
-                            disabled
-                            placeholder="-"
-                            className="w-full bg-slate-100 text-slate-500 cursor-not-allowed text-xs font-mono"
-                          />
+                          <div
+                            className="relative w-full"
+                            onMouseEnter={() =>
+                              actId &&
+                              actId !== "-" &&
+                              paymentIdCounts[actId.toLowerCase()] > 1 &&
+                              setHoveredSplitId(actId.toLowerCase())
+                            }
+                            onMouseLeave={() => setHoveredSplitId(null)}
+                          >
+                            <ControlInput
+                              value={actId || "-"}
+                              disabled
+                              placeholder="-"
+                              className={`w-full bg-slate-100 text-slate-500 cursor-not-allowed text-xs font-mono transition-all duration-200 ${
+                                actId && actId !== "-" && paymentIdCounts[actId.toLowerCase()] > 1 ? "pr-14" : ""
+                              } ${
+                                actId &&
+                                hoveredSplitId === actId.toLowerCase()
+                                  ? "!border-slate-400 !bg-white !text-slate-900 ring-2 ring-slate-200 ring-offset-1"
+                                  : ""
+                              }`}
+                            />
+                            {actId && actId !== "-" && paymentIdCounts[actId.toLowerCase()] > 1 && (() => {
+                              const palette = splitGroupColors[actId.toLowerCase()] || {
+                                bg: "bg-indigo-50",
+                                border: "border-indigo-200",
+                                text: "text-indigo-600",
+                                hoverBg: "bg-indigo-100",
+                              };
+                              const isHovered = hoveredSplitId === actId.toLowerCase();
+                              return (
+                                <span
+                                  className={`absolute right-2.5 top-1/2 -translate-y-1/2 rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider select-none transition-all duration-200 ${
+                                    isHovered ? `${palette.hoverBg} ${palette.border} ${palette.text} scale-105 shadow-sm` : `${palette.bg} ${palette.border} ${palette.text}`
+                                  }`}
+                                  title={`Split payment: ${actId} (matches other rows with this color)`}
+                                >
+                                  Split
+                                </span>
+                              );
+                            })()}
+                          </div>
                         </Field>
                       </div>
                     );
