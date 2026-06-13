@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Copy,
   Check,
+  Phone,
 } from "lucide-react";
 import api from "../../api/axios";
 
@@ -197,6 +198,168 @@ function VerificationModal({ session, saving, onClose, onSubmit }) {
   );
 }
 
+function AttendanceDetailsModal({ session, onClose }) {
+  if (!session) return null;
+
+  const attendance = session.attendance || {};
+  const studentList = attendance.studentList || [];
+
+  const absentStudents = studentList
+    .filter((s) => !s.joined)
+    .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+  const presentStudents = studentList
+    .filter((s) => s.joined)
+    .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 p-4 animate-fade-in">
+      <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl border border-slate-200 flex flex-col max-h-[85vh] transition-all transform scale-100">
+        {/* Modal Header */}
+        <div className="flex items-start justify-between border-b border-slate-100 pb-4 shrink-0">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Users className="w-4 h-4 text-[#083262]" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#083262]">
+                Attendance details
+              </span>
+            </div>
+            <h3 className="text-xl font-extrabold text-slate-900 truncate max-w-md">
+              {session.sessionTitle}
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Batch: <span className="font-semibold text-slate-700">{session.batchName}</span>
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-full p-1.5 hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition focus:outline-none"
+          >
+            <span className="text-2xl font-bold leading-none">&times;</span>
+          </button>
+        </div>
+
+        {/* Progress Bar & Summary */}
+        <div className="my-4 p-4 rounded-xl bg-slate-50 border border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
+          <div>
+            <span className="text-xs font-semibold text-slate-500 block">Attendance summary</span>
+            <span className="text-lg font-bold text-slate-800">
+              {attendance.joinedStudents ?? 0} joined / {attendance.totalStudents ?? 0} total
+            </span>
+          </div>
+          <div className="w-full sm:w-48 bg-slate-200 rounded-full h-2.5 overflow-hidden shrink-0">
+            <div
+              className="bg-emerald-500 h-2.5 rounded-full transition-all duration-300"
+              style={{
+                width: `${
+                  attendance.totalStudents
+                    ? (attendance.joinedStudents / attendance.totalStudents) * 100
+                    : 0
+                }%`,
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Student Lists Container (Scrollable) */}
+        <div className="flex-1 overflow-y-auto space-y-6 pr-1 my-2">
+          {/* Absent / Not Joined List */}
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wider text-rose-600 mb-2 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-rose-500" />
+              Not Joined ({absentStudents.length})
+            </div>
+            {absentStudents.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {absentStudents.map((student) => (
+                  <div
+                    key={student.id}
+                    className="p-3 rounded-xl border border-rose-100 bg-rose-50/40 flex items-center justify-between gap-3 hover:bg-rose-50/60 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <span className="font-bold text-slate-800 truncate block text-sm">
+                        {student.name}
+                      </span>
+                      {student.phone && (
+                        <span className="text-xs text-slate-500 block font-mono mt-0.5">
+                          {student.phone}
+                        </span>
+                      )}
+                    </div>
+                    {student.phone && (
+                      <a
+                        href={`tel:${student.phone}`}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-white px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50 shadow-sm shrink-0"
+                      >
+                        <Phone className="w-3 h-3" />
+                        Call
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 italic pl-3.5">
+                No absent students. Everyone has joined!
+              </p>
+            )}
+          </div>
+
+          {/* Present / Joined List */}
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Joined ({presentStudents.length})
+            </div>
+            {presentStudents.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {presentStudents.map((student) => (
+                  <div
+                    key={student.id}
+                    className="p-3 rounded-xl border border-emerald-100 bg-emerald-50/30 flex items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0">
+                      <span className="font-bold text-slate-800 truncate block text-sm">
+                        {student.name}
+                      </span>
+                      {student.joinedAt && (
+                        <span className="text-[10px] text-emerald-600 block mt-0.5">
+                          Joined at:{" "}
+                          {new Date(student.joinedAt).toLocaleTimeString("en-IN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      )}
+                    </div>
+                    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-100 shrink-0">
+                      Present
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 italic pl-3.5">
+                No students have joined yet.
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="mt-4 border-t border-slate-100 pt-4 flex justify-end shrink-0">
+          <button
+            onClick={onClose}
+            className="rounded-full border border-slate-200 bg-white px-5 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function WiseClassesDashboard() {
   const wiseApi = useMemo(() => makeWiseApi(), []);
   const AUTO_SYNC_MS = 15000;
@@ -208,6 +371,7 @@ export default function WiseClassesDashboard() {
   const [copiedSessionId, setCopiedSessionId] = useState(null);
   const [verifyModalSession, setVerifyModalSession] = useState(null);
   const [verifySaving, setVerifySaving] = useState(false);
+  const [attendanceModalSession, setAttendanceModalSession] = useState(null);
 
   const copyJoinLink = async (sessionId, joinUrl) => {
     try {
@@ -507,16 +671,20 @@ export default function WiseClassesDashboard() {
 
                           {/* Attendance */}
                           <td className="px-5 py-4 text-center">
-                            <div className="inline-flex items-center gap-1.5 text-sm text-slate-600">
+                            <button
+                              onClick={() => setAttendanceModalSession(s)}
+                              className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-[#083262] transition cursor-pointer hover:underline decoration-dashed decoration-2 underline-offset-4 focus:outline-none"
+                              title="Click to view student list"
+                            >
                               <Users className="w-3.5 h-3.5 text-slate-400" />
                               <span className="font-semibold">
-                                {s.attendance?.joinedStudents ?? "-"}
+                                {s.attendance?.joinedStudents ?? 0}
                               </span>
                               <span className="text-slate-400">/</span>
                               <span>
-                                {s.attendance?.totalStudents ?? "-"}
+                                {s.attendance?.totalStudents ?? 0}
                               </span>
-                            </div>
+                            </button>
                           </td>
 
                           {/* Verification */}
@@ -666,12 +834,16 @@ export default function WiseClassesDashboard() {
                       </div>
                       <div>
                         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Attendance</div>
-                        <div className="inline-flex items-center gap-1 text-sm font-medium text-slate-700">
+                        <button
+                          onClick={() => setAttendanceModalSession(s)}
+                          className="inline-flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-[#083262] transition cursor-pointer hover:underline decoration-dashed decoration-2 underline-offset-4 focus:outline-none"
+                          title="Click to view student list"
+                        >
                           <Users className="w-3 h-3 text-slate-400" />
-                          <span className="font-semibold">{s.attendance?.joinedStudents ?? "-"}</span>
+                          <span className="font-semibold">{s.attendance?.joinedStudents ?? 0}</span>
                           <span className="text-slate-400">/</span>
-                          <span>{s.attendance?.totalStudents ?? "-"}</span>
-                        </div>
+                          <span>{s.attendance?.totalStudents ?? 0}</span>
+                        </button>
                       </div>
                       <div>
                         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Verification</div>
@@ -770,6 +942,12 @@ export default function WiseClassesDashboard() {
           saving={verifySaving}
           onClose={() => setVerifyModalSession(null)}
           onSubmit={handleVerifySubmit}
+        />
+
+        {/* Attendance Details Modal */}
+        <AttendanceDetailsModal
+          session={attendanceModalSession}
+          onClose={() => setAttendanceModalSession(null)}
         />
       </div>
 
