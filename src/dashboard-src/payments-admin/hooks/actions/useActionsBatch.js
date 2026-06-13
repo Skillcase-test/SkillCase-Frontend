@@ -137,6 +137,7 @@ export function useActionsBatch(state) {
     if (!enrollmentId || !action) return;
     const selectedYear = Number(lifecycleModal.year || year);
     const selectedMonth = Number(lifecycleModal.month || month);
+    setLifecycleModal((prev) => ({ ...prev, submitting: true }));
     try {
       if (action === "hold") {
         await paymentsAdminApi.holdEnrollment(enrollmentId, {
@@ -159,10 +160,11 @@ export function useActionsBatch(state) {
           undropped_from_month: selectedMonth,
         });
       }
-      setLifecycleModal((prev) => ({ ...prev, open: false }));
+      setLifecycleModal((prev) => ({ ...prev, open: false, submitting: false }));
       await loadTabData();
     } catch (err) {
       setError(err?.response?.data?.msg || "Failed lifecycle update");
+      setLifecycleModal((prev) => ({ ...prev, submitting: false }));
     }
   }
 

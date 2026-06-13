@@ -120,6 +120,97 @@ function sourceLabel(row) {
   return "Admin";
 }
 
+function parseStatusLogs(rawLogs) {
+  const sortedLogs = [...rawLogs].sort((a, b) => new Date(a.received_at) - new Date(b.received_at));
+  const statusEvents = [];
+  let currentState = "Active";
+
+  const hasCreatedEvent = sortedLogs.some((log) => log.event_type === "admin.manual_candidate_created");
+  if (hasCreatedEvent) {
+    currentState = "Pending";
+  }
+
+  for (const log of sortedLogs) {
+    const payload = log.payload_json || {};
+    let fromStatus = currentState;
+    let toStatus = "";
+    let effectiveStr = "";
+
+    if (log.event_type === "admin.manual_candidate_created") {
+      fromStatus = "None";
+      toStatus = "Pending";
+      currentState = "Pending";
+    } else if (
+      (log.event_type === "discord.finalized_notified" || log.event_type === "discord.finalized_notify_failed") &&
+      payload.action === "finalized"
+    ) {
+      fromStatus = "Pending";
+      toStatus = "Active";
+      currentState = "Active";
+    } else if (log.event_type === "admin.enrollment_hold_started") {
+      if (currentState === "Pending") {
+        statusEvents.push({
+          raw_log_id: "inferred-finalize-" + log.raw_log_id,
+          fromStatus: "Pending",
+          toStatus: "Active",
+          effectiveStr: "",
+          received_at: log.received_at,
+        });
+        currentState = "Active";
+      }
+      fromStatus = currentState;
+      toStatus = "On Hold";
+      currentState = "On Hold";
+      if (payload.hold_start_month && payload.hold_start_year) {
+        effectiveStr = "(Effective " + String(payload.hold_start_month).padStart(2, "0") + "/" + payload.hold_start_year + ")";
+      }
+    } else if (log.event_type === "admin.enrollment_hold_ended") {
+      fromStatus = "On Hold";
+      toStatus = "Active";
+      currentState = "Active";
+      if (payload.resume_month && payload.resume_year) {
+        effectiveStr = "(Effective " + String(payload.resume_month).padStart(2, "0") + "/" + payload.resume_year + ")";
+      }
+    } else if (log.event_type === "admin.enrollment_dropped") {
+      if (currentState === "Pending") {
+        statusEvents.push({
+          raw_log_id: "inferred-finalize-" + log.raw_log_id,
+          fromStatus: "Pending",
+          toStatus: "Active",
+          effectiveStr: "",
+          received_at: log.received_at,
+        });
+        currentState = "Active";
+      }
+      fromStatus = currentState;
+      toStatus = "Dropped";
+      currentState = "Dropped";
+      if (payload.dropped_from_month && payload.dropped_from_year) {
+        effectiveStr = "(Effective " + String(payload.dropped_from_month).padStart(2, "0") + "/" + payload.dropped_from_year + ")";
+      }
+    } else if (log.event_type === "admin.enrollment_undropped") {
+      fromStatus = "Dropped";
+      toStatus = "Active";
+      currentState = "Active";
+      if (payload.undropped_from_month && payload.undropped_from_year) {
+        effectiveStr = "(Effective " + String(payload.undropped_from_month).padStart(2, "0") + "/" + payload.undropped_from_year + ")";
+      }
+    }
+
+    if (toStatus) {
+      statusEvents.push({
+        raw_log_id: log.raw_log_id,
+        fromStatus,
+        toStatus,
+        effectiveStr,
+        received_at: log.received_at,
+      });
+    }
+  }
+
+  return statusEvents.reverse();
+}
+
 export function CandidateDetailsForm({
   editDraft,
   setEditDraft,
@@ -170,6 +261,8 @@ export function CandidateDetailsForm({
   const [uploadError, setUploadError] = useState("");
   const [batchLogs, setBatchLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [statusLogs, setStatusLogs] = useState([]);
+  const [loadingStatusLogs, setLoadingStatusLogs] = useState(false);
   const [isEditingCandidateId, setIsEditingCandidateId] = useState(false);
   const [isEditingEnrollmentDate, setIsEditingEnrollmentDate] = useState(false);
   const [hoveredSplitId, setHoveredSplitId] = useState(null);
@@ -255,29 +348,33 @@ export function CandidateDetailsForm({
   useEffect(() => {
     if (!editDraft?.enrollment_id || isCreateMode) {
       setBatchLogs([]);
+      setStatusLogs([]);
       return;
     }
     let active = true;
-    async function loadBatchLogs() {
+    async function loadLogs() {
       setLoadingLogs(true);
+      setLoadingStatusLogs(true);
       try {
         const res = await paymentsAdminApi.getRawLogs({
           enrollment_id: editDraft.enrollment_id,
-          event_type: "admin.batch_changed",
-          limit: 100,
+          limit: 200,
         });
         if (active) {
-          setBatchLogs(res.data.rows || []);
+          const allRows = res.data.rows || [];
+          setBatchLogs(allRows.filter((log) => log.event_type === "admin.batch_changed"));
+          setStatusLogs(parseStatusLogs(allRows));
         }
       } catch (err) {
-        console.error("Failed to load batch logs", err);
+        console.error("Failed to load history logs", err);
       } finally {
         if (active) {
           setLoadingLogs(false);
+          setLoadingStatusLogs(false);
         }
       }
     }
-    loadBatchLogs();
+    loadLogs();
     return () => {
       active = false;
     };
@@ -611,54 +708,120 @@ export function CandidateDetailsForm({
       </div>
 
       {!isCreateMode ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-5">
-          <h3 className="mb-4 text-sm font-bold uppercase text-slate-500">
-            Batch Change History
-          </h3>
-          {loadingLogs ? (
-            <p className="text-xs text-slate-500 font-semibold">
-              Loading batch history...
-            </p>
-          ) : batchLogs.length > 0 ? (
-            <div className="space-y-2.5">
-              {batchLogs.map((log) => {
-                const payload = log.payload_json || {};
-                const fromBatch = payload.previous_batch_name || "Unassigned";
-                const toBatch = payload.next_batch_name || "Unassigned";
-                const dateStr = log.received_at
-                  ? new Date(log.received_at).toLocaleString("en-IN", {
-                      timeZone: "Asia/Kolkata",
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })
-                  : "-";
-                return (
-                  <div
-                    key={log.raw_log_id}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/50 p-3 text-xs text-slate-700"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-800">
-                        {fromBatch}
-                      </span>
-                      <span className="text-slate-400">→</span>
-                      <span className="font-semibold text-slate-900">
-                        {toBatch}
+        <div className="grid gap-5 md:grid-cols-2">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+            <h3 className="mb-4 text-sm font-bold uppercase text-slate-500">
+              Batch Change History
+            </h3>
+            {loadingLogs ? (
+              <p className="text-xs text-slate-500 font-semibold">
+                Loading batch history...
+              </p>
+            ) : batchLogs.length > 0 ? (
+              <div className="space-y-2.5">
+                {batchLogs.map((log) => {
+                  const payload = log.payload_json || {};
+                  const fromBatch = payload.previous_batch_name || "Unassigned";
+                  const toBatch = payload.next_batch_name || "Unassigned";
+                  const dateStr = log.received_at
+                    ? new Date(log.received_at).toLocaleString("en-IN", {
+                        timeZone: "Asia/Kolkata",
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })
+                    : "-";
+                  const effectiveMonthYear = log.received_at
+                    ? new Date(log.received_at).toLocaleString("en-IN", {
+                        timeZone: "Asia/Kolkata",
+                        month: "2-digit",
+                        year: "numeric",
+                      })
+                    : "";
+                  const effectiveStr = effectiveMonthYear ? `(Effective ${effectiveMonthYear})` : "";
+                  return (
+                    <div
+                      key={log.raw_log_id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/50 p-3 text-xs text-slate-700"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-slate-800">
+                          {fromBatch}
+                        </span>
+                        <span className="text-slate-400">→</span>
+                        <span className="font-semibold text-slate-900">
+                          {toBatch}
+                        </span>
+                        {effectiveStr && (
+                          <span className="text-[10px] text-slate-500 italic">
+                            {effectiveStr}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {dateStr}
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      {dateStr}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
-              No batch change history found for this candidate.
-            </div>
-          )}
-        </section>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+                No batch change history found for this candidate.
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-5">
+            <h3 className="mb-4 text-sm font-bold uppercase text-slate-500">
+              Status Change History
+            </h3>
+            {loadingStatusLogs ? (
+              <p className="text-xs text-slate-500 font-semibold">
+                Loading status history...
+              </p>
+            ) : statusLogs.length > 0 ? (
+              <div className="space-y-2.5">
+                {statusLogs.map((log) => {
+                  const dateStr = log.received_at
+                    ? new Date(log.received_at).toLocaleString("en-IN", {
+                        timeZone: "Asia/Kolkata",
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })
+                    : "-";
+                  return (
+                    <div
+                      key={log.raw_log_id}
+                      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-100 bg-slate-50/50 p-3 text-xs text-slate-700"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-slate-800">
+                          {log.fromStatus}
+                        </span>
+                        <span className="text-slate-400">→</span>
+                        <span className="font-semibold text-slate-900">
+                          {log.toStatus}
+                        </span>
+                        {log.effectiveStr && (
+                          <span className="text-[10px] text-slate-500 italic">
+                            {log.effectiveStr}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {dateStr}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+                No status change history found for this candidate.
+              </div>
+            )}
+          </section>
+        </div>
       ) : null}
 
       <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
