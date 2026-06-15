@@ -229,18 +229,32 @@ export default function PaymentsAdmin() {
                     </>
                   ) : null}
                   {state.tab === "payments" && (
-                    <label className="flex items-center gap-2 text-sm text-slate-700 select-none mr-2">
-                      <input
-                        type="checkbox"
-                        checked={state.paymentAllTime}
-                        onChange={(e) => {
-                          state.setCurrentPage(1);
-                          state.setPaymentAllTime(e.target.checked);
-                        }}
-                        className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                      />
-                      <span className="font-medium text-slate-700">All Time</span>
-                    </label>
+                    <>
+                      <label className="flex items-center gap-2 text-sm text-slate-700 select-none mr-2">
+                        <input
+                          type="checkbox"
+                          checked={state.paymentAllTime}
+                          onChange={(e) => {
+                            state.setCurrentPage(1);
+                            state.setPaymentAllTime(e.target.checked);
+                          }}
+                          className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                        />
+                        <span className="font-medium text-slate-700">All Time</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm text-slate-700 select-none mr-2">
+                        <input
+                          type="checkbox"
+                          checked={state.paymentBookedOnly}
+                          onChange={(e) => {
+                            state.setCurrentPage(1);
+                            state.setPaymentBookedOnly(e.target.checked);
+                          }}
+                          className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                        />
+                        <span className="font-medium text-slate-700">Booked Only</span>
+                      </label>
+                    </>
                   )}
                   {state.tab !== "all" && state.tab !== "batch" && state.tab !== "overall" ? (
                     <>

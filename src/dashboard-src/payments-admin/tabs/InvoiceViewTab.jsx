@@ -420,7 +420,8 @@ export function InvoiceViewTab({
                   id="candidate-state-select"
                   value={verifiedState}
                   onChange={(e) => setVerifiedState(e.target.value)}
-                  className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
+                  disabled
+                  className="mt-1.5 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-500 cursor-not-allowed focus:outline-none"
                 >
                   <option value="">-- Select State --</option>
                   {INDIAN_STATES.map((s) => (

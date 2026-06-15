@@ -115,6 +115,7 @@ export function usePaymentsAdminState() {
   const [paymentSortBy, setPaymentSortBy] = useState("paid_at");
   const [paymentSortOrder, setPaymentSortOrder] = useState("desc");
   const [paymentAllTime, setPaymentAllTime] = useState(false);
+  const [paymentBookedOnly, setPaymentBookedOnly] = useState(false);
   const [monthSortBy, setMonthSortBy] = useState("created_at");
   const [monthSortOrder, setMonthSortOrder] = useState("desc");
   const [allSummary, setAllSummary] = useState({
@@ -325,6 +326,7 @@ export function usePaymentsAdminState() {
           sortBy: paymentSortBy,
           sortOrder: paymentSortOrder,
           all: paymentAllTime || undefined,
+          booked: paymentBookedOnly || undefined,
         });
         if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
@@ -412,6 +414,7 @@ export function usePaymentsAdminState() {
     tab === "payments" ? paymentSortBy : null,
     tab === "payments" ? paymentSortOrder : null,
     tab === "payments" ? paymentAllTime : null,
+    tab === "payments" ? paymentBookedOnly : null,
     tab === "rawlogs" ? debouncedRawSearch : null,
     tab === "rawlogs" ? rawEventTypeFilter : null,
     tab === "rawlogs" ? rawStatusFilter : null,
@@ -439,6 +442,7 @@ export function usePaymentsAdminState() {
     setEditDraft(null);
     setCurrentPage(1);
     setPaymentAllTime(false);
+    setPaymentBookedOnly(false);
     setActiveBatchId("");
     setActiveBatchName("");
     setBatchSortBy("created_at");
@@ -557,6 +561,8 @@ export function usePaymentsAdminState() {
     setPaymentSortOrder,
     paymentAllTime,
     setPaymentAllTime,
+    paymentBookedOnly,
+    setPaymentBookedOnly,
     monthSortBy,
     setMonthSortBy,
     monthSortOrder,

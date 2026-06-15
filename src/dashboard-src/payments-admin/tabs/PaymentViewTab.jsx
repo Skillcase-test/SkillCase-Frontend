@@ -90,17 +90,6 @@ export function PaymentViewTab({
               </div>
             </th>
             <th
-              onClick={() => handleSort("payment_status")}
-              className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
-            >
-              <div className="flex items-center gap-1.5">
-                <span>Status</span>
-                <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
-                  {renderSortIcon("payment_status")}
-                </span>
-              </div>
-            </th>
-            <th
               onClick={() => handleSort("paid_at")}
               className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
             >
@@ -149,7 +138,6 @@ export function PaymentViewTab({
               <td className="px-2 py-2">
                 {formatInrFromPaise(r.signed_amount_paise ?? r.amount_paise)}
               </td>
-              <td className="px-2 py-2">{r.payment_status || "-"}</td>
               <td className="px-2 py-2">{formatIstDateTime(r.paid_at)}</td>
               <td className="px-2 py-2">{r.razorpay_payment_id || "-"}</td>
               <td className="px-2 py-2 text-center">

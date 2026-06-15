@@ -1,5 +1,6 @@
 import { paymentsAdminApi } from "../../../../api/paymentsAdminApi";
 import { formatIstDateTime } from "../../utils/formatters";
+import { MONTH_NAMES } from "../../utils/constants";
 
 export function useActionsPayments(state) {
   const {
@@ -21,6 +22,7 @@ export function useActionsPayments(state) {
     debouncedPaymentSearch,
     paymentSortBy,
     paymentSortOrder,
+    paymentBookedOnly,
   } = state;
 
   async function exportPaymentsExcel() {
@@ -30,6 +32,7 @@ export function useActionsPayments(state) {
         sortBy: paymentSortBy,
         sortOrder: paymentSortOrder,
         all: paymentAllTime || undefined,
+        booked: paymentBookedOnly || undefined,
         download: true,
       });
       const downloadRows = res.data.rows || [];
@@ -40,8 +43,9 @@ export function useActionsPayments(state) {
         "Batch",
         "Amount (INR)",
         "Status",
-        "Razorpay Payment ID",
+        "Payment ID",
         "Paid At",
+        "Booked Month",
       ];
       const data = downloadRows.map((r) => [
         r.student_name || "",
@@ -51,6 +55,7 @@ export function useActionsPayments(state) {
         r.payment_status || "",
         r.razorpay_payment_id || "",
         r.paid_at ? formatIstDateTime(r.paid_at) : "",
+        r.booked_month ? (MONTH_NAMES[r.booked_month] || "null") : "null",
       ]);
 
       let html = `
@@ -100,9 +105,10 @@ export function useActionsPayments(state) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const filename = paymentAllTime
-        ? "payments_all_time.xls"
-        : `payments_${year}_${String(month).padStart(2, "0")}.xls`;
+      const baseFilename = paymentAllTime
+        ? "payments_all_time"
+        : `payments_${year}_${String(month).padStart(2, "0")}`;
+      const filename = `${baseFilename}${paymentBookedOnly ? "_booked" : ""}.xls`;
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
