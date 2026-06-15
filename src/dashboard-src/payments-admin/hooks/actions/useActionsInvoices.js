@@ -8,6 +8,7 @@ export function useActionsInvoices(state) {
     month,
     setSelectedInvoicePaymentId,
     setError,
+    setNotice,
     loadTabData,
     invoicePaymentRows,
   } = state;
@@ -37,10 +38,13 @@ export function useActionsInvoices(state) {
   async function handleSendInvoice(invoiceId) {
     if (!invoiceId) return;
     try {
-      await paymentsAdminApi.sendInvoice({
+      const res = await paymentsAdminApi.sendInvoice({
         invoice_id: invoiceId,
       });
       setSelectedInvoicePaymentId("");
+      if (setNotice) {
+        setNotice(`Invoice ${res.data?.invoice?.invoice_number || ""} sent successfully`);
+      }
       await loadTabData();
     } catch (err) {
       setError(err?.response?.data?.msg || "Sending invoice failed");
@@ -52,6 +56,9 @@ export function useActionsInvoices(state) {
     if (!invoiceId) return;
     try {
       await paymentsAdminApi.deleteInvoice(invoiceId);
+      if (setNotice) {
+        setNotice("Draft invoice cancelled and discarded");
+      }
       await loadTabData();
     } catch (err) {
       setError(err?.response?.data?.msg || "Cancelling invoice failed");

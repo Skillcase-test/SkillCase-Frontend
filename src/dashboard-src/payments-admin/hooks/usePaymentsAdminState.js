@@ -202,7 +202,12 @@ export function usePaymentsAdminState() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    setLoading(true);
+    const hasData = tab === "invoice"
+      ? (invoicePaymentRows.length > 0 || invoiceRows.length > 0)
+      : (rows.length > 0);
+    if (!hasData) {
+      setLoading(true);
+    }
     setError("");
     try {
       if (tab === "all") {
@@ -438,6 +443,9 @@ export function usePaymentsAdminState() {
     setActiveBatchName("");
     setBatchSortBy("created_at");
     setBatchSortOrder("desc");
+    setRows([]);
+    setInvoiceRows([]);
+    setInvoicePaymentRows([]);
   }, [tab]);
 
   useEffect(() => {
