@@ -238,35 +238,18 @@ export function usePaymentsAdminState() {
         setRows(res.data.rows || []);
         setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
       } else if (tab === "invoice") {
-        let freshOptions = [];
-        try {
-          const res = await paymentsAdminApi.getEnrollmentOptions({
-            search: enrollmentSearchTerm || undefined,
-            booked_only: "true",
-          });
-          freshOptions = res.data.options || [];
-          setCandidateOptions(freshOptions);
-        } catch (err) {
-          setCandidateOptions([]);
-        }
-        setRows(freshOptions);
-        setPagination({ page: 1, limit: rowsPerPage, total: freshOptions.length, total_pages: 1 });
-        if (selectedEnrollmentId) {
-          const [invRes, payRes] = await Promise.all([
-            paymentsAdminApi.getInvoices(year, month, {
-              page: 1,
-              limit: 200,
-              enrollment_id: selectedEnrollmentId,
-            }),
-            paymentsAdminApi.getInvoicePaymentOptions(selectedEnrollmentId),
-          ]);
-          if (controller.signal.aborted) return;
-          setInvoiceRows(invRes.data.rows || []);
-          setInvoicePaymentRows(payRes.data.rows || []);
-        } else {
-          setInvoiceRows([]);
-          setInvoicePaymentRows([]);
-        }
+        const [invRes, pendingRes] = await Promise.all([
+          paymentsAdminApi.getInvoices(year, month, {
+            page: 1,
+            limit: 200,
+          }),
+          paymentsAdminApi.getInvoicePaymentOptions(null, { year, month }),
+        ]);
+        if (controller.signal.aborted) return;
+        setInvoiceRows(invRes.data.rows || []);
+        setInvoicePaymentRows(pendingRes.data.rows || []);
+        setRows([]);
+        setPagination({ page: 1, limit: rowsPerPage, total: (pendingRes.data.rows || []).length, total_pages: 1 });
       } else if (tab === "batch") {
         if (activeBatchId) {
           const res = await paymentsAdminApi.getBatchStudents(activeBatchId, {
@@ -404,7 +387,6 @@ export function usePaymentsAdminState() {
   }, [
     permittedTabs,
     tab,
-    selectedEnrollmentId,
     year,
     month,
     currentPage,

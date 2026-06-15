@@ -69,6 +69,7 @@ export default function PaymentsAdmin() {
     discounts:[state.discountSearch, state.setDiscountSearch, "Search candidate/type/status/reason"],
     payments: [state.paymentSearch,  state.setPaymentSearch,  "Search candidate/phone/payment/status"],
     rawlogs:  [state.rawSearch,      state.setRawSearch,      "Search event/type/status/ids"],
+    invoice:  [state.allSearch,      state.setAllSearch,      "Search candidate name/phone/email"],
   };
   const [q, setQ, qph] = searchable[state.tab] || ["", () => {}, ""];
   const isDataTableTab = ["all", "month", "fee", "discounts", "payments", "rawlogs", "invoice"].includes(state.tab);
@@ -369,12 +370,13 @@ export default function PaymentsAdmin() {
                   setSelectedInvoicePaymentId: state.setSelectedInvoicePaymentId,
                   filteredEnrollmentOptions: sel.filteredEnrollmentOptions,
                   selectedInvoicePaymentId: state.selectedInvoicePaymentId,
-                  invoicePaymentOptions: sel.invoicePaymentOptions,
+                  invoicePaymentRows: state.invoicePaymentRows,
                   selectedEnrollment: sel.selectedEnrollment,
                   handleGenerateInvoice: actions.handleGenerateInvoice,
                   handleSendInvoice: actions.handleSendInvoice,
                   handleCancelInvoice: actions.handleCancelInvoice,
-                  selectedEnrollmentInvoiceRows: sel.selectedEnrollmentInvoiceRows,
+                  invoiceRows: state.invoiceRows,
+                  allSearch: state.allSearch,
                 }}
               />
             )}

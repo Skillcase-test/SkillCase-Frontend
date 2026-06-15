@@ -86,14 +86,18 @@ export const paymentsAdminApi = {
     api.get("/admin/payments/razorpay-raw-logs", { params }),
   getInvoices: (year, month, params = {}) =>
     api.get("/admin/payments/invoices", { params: { year, month, ...params } }),
-  getInvoicePaymentOptions: (enrollment_id) =>
-    api.get("/admin/payments/invoices/payments", { params: { enrollment_id } }),
+  getInvoicePaymentOptions: (enrollment_id, params = {}) => {
+    const cleanId = enrollment_id && enrollment_id !== "null" && enrollment_id !== "undefined" ? enrollment_id : undefined;
+    return api.get("/admin/payments/invoices/payments", { params: { enrollment_id: cleanId, ...params } });
+  },
 
   generateInvoice: (payload) =>
     api.post("/admin/payments/invoices/generate", payload),
   sendInvoice: (payload) => api.post("/admin/payments/invoices/send", payload),
   deleteInvoice: (invoiceId) =>
     api.delete(`/admin/payments/invoices/${invoiceId}`),
+  getInvoicePdf: (invoiceId) =>
+    api.get(`/admin/payments/invoices/${invoiceId}/pdf`),
 
   createManualTransaction: (payload) =>
     api.post("/admin/payments/transactions/manual", payload),

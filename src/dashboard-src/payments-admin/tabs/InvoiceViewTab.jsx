@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from "react";
-import {
-  ControlButton,
-  ControlDropdown,
-  ControlInput,
-} from "../components/controls";
+import { ControlButton, ControlInput } from "../components/controls";
 import {
   formatInrFromPaise,
   formatIstDateTime,
   formatIstDate,
 } from "../utils/formatters";
-import { MONTH_NAMES } from "../utils/constants";
+import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 
 const INDIAN_STATES = [
   "Andhra Pradesh",
@@ -54,14 +50,14 @@ export function InvoiceViewTab({
   selectedEnrollmentId,
   setSelectedEnrollmentId,
   setSelectedInvoicePaymentId,
-  filteredEnrollmentOptions,
   selectedInvoicePaymentId,
-  invoicePaymentOptions,
   selectedEnrollment,
   handleGenerateInvoice,
   handleSendInvoice,
   handleCancelInvoice,
-  selectedEnrollmentInvoiceRows,
+  invoicePaymentRows = [],
+  invoiceRows = [],
+  allSearch = "",
 }) {
   const [step, setStep] = useState(1);
   const [verifiedState, setVerifiedState] = useState("");
@@ -69,19 +65,48 @@ export function InvoiceViewTab({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [localError, setLocalError] = useState("");
 
   useEffect(() => {
     setStep(1);
     setDraftInvoice(null);
-    setVerifiedState(selectedEnrollment?.notes?.state || "");
     setLocalError("");
-  }, [selectedEnrollmentId, selectedInvoicePaymentId, selectedEnrollment]);
+  }, [selectedEnrollmentId, selectedInvoicePaymentId]);
 
-  const handleStartFlow = () => {
-    setVerifiedState(selectedEnrollment?.notes?.state || "");
+  useEffect(() => {
+    if (selectedEnrollment?.notes?.state) {
+      setVerifiedState(selectedEnrollment.notes.state);
+    } else {
+      setVerifiedState("");
+    }
+  }, [selectedEnrollment]);
+
+  const handleStartFlowForRow = async (row) => {
+    setSelectedEnrollmentId(row.enrollment_id);
+    setSelectedInvoicePaymentId(row.booked_amount_id);
+    setVerifiedState(row.enrollment_notes?.state || row.notes?.state || "");
     setLocalError("");
-    setStep(2);
+
+    if (row.draft_invoice_id) {
+      setIsGenerating(true);
+      try {
+        const res = await paymentsAdminApi.getInvoicePdf(row.draft_invoice_id);
+        setDraftInvoice({
+          invoice_id: row.draft_invoice_id,
+          invoice_number: res.data.invoice_number,
+          pdf_base64: res.data.pdf_base64,
+          isSent: false,
+        });
+        setStep(3);
+      } catch (err) {
+        alert(err?.response?.data?.msg || "Failed to fetch draft invoice PDF");
+      } finally {
+        setIsGenerating(false);
+      }
+    } else {
+      setStep(2);
+    }
   };
 
   const handleConfirmStateAndGenerate = async () => {
@@ -94,7 +119,10 @@ export function InvoiceViewTab({
     try {
       const inv = await handleGenerateInvoice(verifiedState);
       if (inv) {
-        setDraftInvoice(inv);
+        setDraftInvoice({
+          ...inv,
+          isSent: false,
+        });
         setStep(3);
       } else {
         setLocalError("Failed to generate draft invoice");
@@ -143,100 +171,233 @@ export function InvoiceViewTab({
     }
   };
 
+  const handleViewSentInvoice = async (invoiceId) => {
+    setIsLoadingPdf(true);
+    setLocalError("");
+    try {
+      const res = await paymentsAdminApi.getInvoicePdf(invoiceId);
+      setDraftInvoice({
+        invoice_number: res.data.invoice_number,
+        pdf_base64: res.data.pdf_base64,
+        isSent: true,
+      });
+      setVerifiedState("");
+      setStep(3);
+    } catch (err) {
+      alert(err?.response?.data?.msg || "Failed to fetch invoice PDF");
+    } finally {
+      setIsLoadingPdf(false);
+    }
+  };
+
+  const filteredPending = (invoicePaymentRows || []).filter((r) => {
+    const q = (allSearch || "").trim().toLowerCase();
+    if (!q) return true;
+    return (
+      (r.student_name || "").toLowerCase().includes(q) ||
+      (r.student_phone || "").toLowerCase().includes(q) ||
+      (r.student_email || "").toLowerCase().includes(q)
+    );
+  });
+
+  const filteredSent = (invoiceRows || []).filter((r) => {
+    const q = (allSearch || "").trim().toLowerCase();
+    if (!q) return true;
+    return (
+      (r.student_name || "").toLowerCase().includes(q) ||
+      (r.student_phone || "").toLowerCase().includes(q) ||
+      (r.student_email || "").toLowerCase().includes(q) ||
+      (r.invoice_number || "").toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-        <h3 className="text-sm font-semibold text-slate-800">
-          Generate And Send Invoice
-        </h3>
-        <p className="mt-1 text-xs text-slate-500">
-          Pick candidate, pick uninvoiced payment, verify state, preview
-          generated PDF, and send.
-        </p>
-        <div className="mt-3 grid gap-3 md:grid-cols-4">
-          <ControlDropdown
-            id="select-candidate-dropdown"
-            value={selectedEnrollmentId}
-            onChange={(val) => {
-              setSelectedEnrollmentId(String(val));
-              setSelectedInvoicePaymentId("");
-            }}
-            placeholder="Search and select enrollment"
-            searchable
-            options={filteredEnrollmentOptions.map((r) => ({
-              value: r.enrollment_id,
-              label: `${r.student_name || "Unnamed"} - ${r.student_phone || "-"}`,
-            }))}
-          />
-          <ControlDropdown
-            id="select-payment-dropdown"
-            value={selectedInvoicePaymentId}
-            onChange={setSelectedInvoicePaymentId}
-            placeholder="Select Uninvoiced Payment"
-            disabled={!selectedEnrollmentId}
-            options={invoicePaymentOptions.map((p) => {
-              const labelDate = `${MONTH_NAMES[p.target_month]} ${p.target_year}`;
-              const clubbedText =
-                Array.isArray(p.transactions) && p.transactions.length > 0
-                  ? " (" +
-                    p.transactions
-                      .map(
-                        (t) =>
-                          `${formatIstDate(t.paid_at)} - ${formatInrFromPaise(t.amount_paise)}`,
-                      )
-                      .join(", ") +
-                    ")"
-                  : "";
-              return {
-                value: p.booked_amount_id,
-                label: `Booked: ${labelDate} - ${formatInrFromPaise(p.amount_paise)}${clubbedText}`,
-              };
-            })}
-          />
-          <ControlInput
-            value={selectedEnrollment?.student_email || ""}
-            readOnly
-            placeholder="Candidate email auto-filled"
-            className="bg-slate-100 text-slate-700"
-          />
-          <ControlButton
-            id="start-invoice-flow-btn"
-            onClick={handleStartFlow}
-            disabled={!selectedEnrollmentId || !selectedInvoicePaymentId}
-            variant="primary"
-            className="px-4"
-          >
-            Generate Invoice
-          </ControlButton>
+    <div className="space-y-6">
+      <div className="space-y-3">
+        <div className="flex items-center justify-between border-b pb-2">
+          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+            Pending Invoices
+          </h3>
+          <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+            {filteredPending.length} pending
+          </span>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b bg-slate-50 text-left text-xs uppercase text-slate-500 font-semibold">
+                <th className="px-3 py-3">Student details</th>
+                <th className="px-2 py-3">Amount Booked</th>
+                <th className="px-2 py-3">Linked Payments</th>
+                <th className="px-2 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredPending.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="px-3 py-8 text-center text-slate-500 text-xs"
+                  >
+                    All booked payments for this month have been invoiced, or no
+                    payments exist.
+                  </td>
+                </tr>
+              ) : (
+                filteredPending.map((r, idx) => (
+                  <tr
+                    key={r.booked_amount_id}
+                    className={
+                      idx % 2 === 0
+                        ? "bg-white hover:bg-slate-50/50"
+                        : "bg-slate-50/60 hover:bg-slate-50/50"
+                    }
+                  >
+                    <td className="px-3 py-3">
+                      <div className="font-semibold text-slate-800">
+                        {r.student_name}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {r.student_email}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {r.student_phone}
+                      </div>
+                    </td>
+                    <td className="px-2 py-3 font-semibold text-slate-700">
+                      {formatInrFromPaise(r.amount_paise)}
+                    </td>
+                    <td className="px-2 py-3 text-xs text-slate-600">
+                      <div className="font-medium text-slate-700">
+                        Target: {r.target_month}/{r.target_year}
+                      </div>
+                      {Array.isArray(r.transactions) &&
+                        r.transactions.length > 0 && (
+                          <div className="mt-1 space-y-0.5 max-w-[320px] truncate">
+                            {r.transactions.map((t) => (
+                              <div
+                                key={t.payment_id}
+                                className="text-[11px] text-slate-500"
+                              >
+                                {formatIstDate(t.paid_at)} -{" "}
+                                {formatInrFromPaise(t.amount_paise)} (
+                                {t.razorpay_payment_id || "manual"})
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                    </td>
+                    <td className="px-2 py-3">
+                      {r.draft_invoice_id ? (
+                        <div className="flex items-center gap-2">
+                          <span className="rounded bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                            Draft ({r.draft_invoice_number})
+                          </span>
+                          <ControlButton
+                            onClick={() => handleStartFlowForRow(r)}
+                            disabled={isGenerating}
+                            variant="primary"
+                            className="h-8 rounded-lg px-3 text-xs bg-amber-600 hover:bg-amber-500 border-amber-600 text-white"
+                          >
+                            {isGenerating ? "Loading..." : "View & Send"}
+                          </ControlButton>
+                        </div>
+                      ) : (
+                        <ControlButton
+                          onClick={() => handleStartFlowForRow(r)}
+                          disabled={isGenerating}
+                          variant="primary"
+                          className="h-8 rounded-lg px-3 text-xs"
+                        >
+                          {isGenerating ? "Loading..." : "Generate & Send"}
+                        </ControlButton>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {selectedEnrollmentId ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-4">
-          <h4 className="text-sm font-semibold text-slate-800">
-            Invoice Logs For Selected Enrollment
-          </h4>
-          {selectedEnrollmentInvoiceRows.length === 0 ? (
-            <p className="mt-2 text-xs text-slate-500">
-              No invoice generated yet for this enrollment.
-            </p>
-          ) : (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {selectedEnrollmentInvoiceRows.map((inv) => (
-                <span
-                  key={inv.invoice_id}
-                  className="rounded-full border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs text-slate-700"
-                >
-                  {inv.invoice_number} | {formatInrFromPaise(inv.amount_paise)}{" "}
-                  | {inv.status} | {formatIstDateTime(inv.created_at)}
-                </span>
-              ))}
-            </div>
-          )}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between border-b pb-2">
+          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+            Sent Invoices
+          </h3>
+          <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
+            {filteredSent.length} sent
+          </span>
         </div>
-      ) : null}
 
-      {/* Step 2: State Verification Modal */}
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b bg-slate-50 text-left text-xs uppercase text-slate-500 font-semibold">
+                <th className="px-3 py-3">Invoice Number</th>
+                <th className="px-2 py-3">Student details</th>
+                <th className="px-2 py-3">Date Sent</th>
+                <th className="px-2 py-3">Amount</th>
+                <th className="px-2 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredSent.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-3 py-8 text-center text-slate-500 text-xs"
+                  >
+                    No invoices generated yet for this month.
+                  </td>
+                </tr>
+              ) : (
+                filteredSent.map((r, idx) => (
+                  <tr
+                    key={r.invoice_id}
+                    className={
+                      idx % 2 === 0
+                        ? "bg-white hover:bg-slate-50/50"
+                        : "bg-slate-50/60 hover:bg-slate-50/50"
+                    }
+                  >
+                    <td className="px-3 py-3 font-mono text-xs font-bold text-slate-700">
+                      {r.invoice_number}
+                    </td>
+                    <td className="px-2 py-3">
+                      <div className="font-semibold text-slate-800">
+                        {r.student_name}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {r.student_email}
+                      </div>
+                    </td>
+                    <td className="px-2 py-3 text-xs text-slate-500">
+                      {formatIstDateTime(r.sent_at || r.created_at)}
+                    </td>
+                    <td className="px-2 py-3 font-semibold text-slate-700">
+                      {formatInrFromPaise(r.amount_paise)}
+                    </td>
+                    <td className="px-2 py-3">
+                      <ControlButton
+                        onClick={() => handleViewSentInvoice(r.invoice_id)}
+                        variant="secondary"
+                        disabled={isLoadingPdf}
+                        className="h-8 rounded-lg px-3 text-xs"
+                      >
+                        View PDF
+                      </ControlButton>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {step === 2 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl flex flex-col">
@@ -299,18 +460,20 @@ export function InvoiceViewTab({
         </div>
       )}
 
-      {/* Step 3: PDF Preview Modal */}
       {step === 3 && draftInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-5xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl flex flex-col h-[90vh]">
             <div className="border-b pb-3 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">
-                  Preview GST Invoice
+                  {draftInvoice.isSent
+                    ? "View GST Invoice"
+                    : "Preview GST Invoice"}
                 </h3>
                 <p className="mt-1 text-xs text-slate-500">
-                  Review the computed GST details and PDF layout before sending
-                  it to the candidate.
+                  {draftInvoice.isSent
+                    ? "Viewing completed and dispatched TAX INVOICE statement."
+                    : "Review the computed GST details and PDF layout before sending it to the candidate."}
                 </p>
               </div>
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
@@ -334,26 +497,40 @@ export function InvoiceViewTab({
 
             <div className="border-t pt-3 flex justify-between items-center">
               <span className="text-xs text-slate-500">
-                GST breakdown matches candidate's state ({verifiedState}).
+                {draftInvoice.isSent
+                  ? "This invoice has already been sent to the candidate's email."
+                  : `GST breakdown matches candidate's state (${verifiedState}).`}
               </span>
               <div className="flex gap-2">
-                <ControlButton
-                  id="cancel-discard-invoice-btn"
-                  variant="secondary"
-                  onClick={handleCancelDraft}
-                  disabled={isSending || isCancelling}
-                  className="border-rose-200 hover:bg-rose-50 hover:text-rose-700"
-                >
-                  {isCancelling ? "Cancelling..." : "Cancel & Discard"}
-                </ControlButton>
-                <ControlButton
-                  id="confirm-send-invoice-btn"
-                  variant="primary"
-                  onClick={handleConfirmAndSend}
-                  disabled={isSending || isCancelling}
-                >
-                  {isSending ? "Sending..." : "Confirm & Send Email"}
-                </ControlButton>
+                {draftInvoice.isSent ? (
+                  <ControlButton
+                    variant="secondary"
+                    onClick={() => setStep(1)}
+                    className="px-6"
+                  >
+                    Close
+                  </ControlButton>
+                ) : (
+                  <>
+                    <ControlButton
+                      id="cancel-discard-invoice-btn"
+                      variant="secondary"
+                      onClick={handleCancelDraft}
+                      disabled={isSending || isCancelling}
+                      className="border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                    >
+                      {isCancelling ? "Cancelling..." : "Cancel & Discard"}
+                    </ControlButton>
+                    <ControlButton
+                      id="confirm-send-invoice-btn"
+                      variant="primary"
+                      onClick={handleConfirmAndSend}
+                      disabled={isSending || isCancelling}
+                    >
+                      {isSending ? "Sending..." : "Confirm & Send Email"}
+                    </ControlButton>
+                  </>
+                )}
               </div>
             </div>
           </div>
