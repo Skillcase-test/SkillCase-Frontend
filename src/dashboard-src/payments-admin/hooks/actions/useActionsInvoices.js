@@ -12,30 +12,56 @@ export function useActionsInvoices(state) {
     invoicePaymentRows,
   } = state;
 
-  async function handleGenerateAndSendInvoice() {
-    if (!selectedEnrollmentId || !selectedInvoicePaymentId) return;
+  async function handleGenerateInvoice(stateOverride) {
+    if (!selectedEnrollmentId || !selectedInvoicePaymentId) return null;
     try {
-      const payment = invoicePaymentRows.find(
-        (p) => String(p.payment_id) === String(selectedInvoicePaymentId),
+      const bookedAmount = invoicePaymentRows.find(
+        (p) => String(p.booked_amount_id) === String(selectedInvoicePaymentId),
       );
-      const paidAt = payment?.paid_at ? new Date(payment.paid_at) : null;
-      const invoiceYear = paidAt && !Number.isNaN(paidAt.getTime()) ? paidAt.getUTCFullYear() : year;
-      const invoiceMonth = paidAt && !Number.isNaN(paidAt.getTime()) ? paidAt.getUTCMonth() + 1 : month;
+      const invoiceYear = bookedAmount ? bookedAmount.target_year : year;
+      const invoiceMonth = bookedAmount ? bookedAmount.target_month : month;
       const gen = await paymentsAdminApi.generateInvoice({
         enrollment_id: selectedEnrollmentId,
         year: invoiceYear,
         month: invoiceMonth,
-        payment_id: selectedInvoicePaymentId,
+        booked_amount_id: selectedInvoicePaymentId,
+        state: stateOverride,
       });
+      return gen.data.invoice;
+    } catch (err) {
+      setError(err?.response?.data?.msg || "Invoice generation failed");
+      throw err;
+    }
+  }
+
+  async function handleSendInvoice(invoiceId) {
+    if (!invoiceId) return;
+    try {
       await paymentsAdminApi.sendInvoice({
-        invoice_id: gen.data.invoice.invoice_id,
+        invoice_id: invoiceId,
       });
       setSelectedInvoicePaymentId("");
       await loadTabData();
     } catch (err) {
-      setError(err?.response?.data?.msg || "Invoice action failed");
+      setError(err?.response?.data?.msg || "Sending invoice failed");
+      throw err;
     }
   }
 
-  return { handleGenerateAndSendInvoice };
+  async function handleCancelInvoice(invoiceId) {
+    if (!invoiceId) return;
+    try {
+      await paymentsAdminApi.deleteInvoice(invoiceId);
+      await loadTabData();
+    } catch (err) {
+      setError(err?.response?.data?.msg || "Cancelling invoice failed");
+      throw err;
+    }
+  }
+
+  return {
+    handleGenerateInvoice,
+    handleSendInvoice,
+    handleCancelInvoice,
+  };
 }

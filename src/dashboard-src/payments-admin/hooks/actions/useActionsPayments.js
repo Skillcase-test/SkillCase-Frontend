@@ -16,6 +16,7 @@ export function useActionsPayments(state) {
     setFeeBreakdownLoading,
     setManualPaymentModal,
     setRelinkModal,
+    setBookAmountModal,
     paymentAllTime,
     debouncedPaymentSearch,
     paymentSortBy,
@@ -246,5 +247,17 @@ export function useActionsPayments(state) {
     handleUpdateManualTransaction,
     handleDeleteManualTransaction,
     handleRelinkTransactionByPhone,
+    handleBookAmount: async (payload) => {
+      setError("");
+      try {
+        await paymentsAdminApi.bookAmount(payload);
+        setNotice("Amount booked successfully");
+        setBookAmountModal({ open: false, payment: null });
+        await loadTabData();
+      } catch (err) {
+        setError(err?.response?.data?.msg || "Failed to book amount");
+        throw err;
+      }
+    },
   };
 }

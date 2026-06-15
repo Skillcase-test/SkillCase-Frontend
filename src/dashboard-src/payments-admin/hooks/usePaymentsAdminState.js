@@ -141,6 +141,7 @@ export function usePaymentsAdminState() {
   const [manualPaymentModal, setManualPaymentModal] = useState({ open: false, mode: "create", data: null });
   const [relinkModal, setRelinkModal] = useState({ open: false, payment: null });
   const [copyLinkModal, setCopyLinkModal] = useState({ open: false, url: "", studentName: "" });
+  const [bookAmountModal, setBookAmountModal] = useState({ open: false, payment: null });
   const [feeBreakdownCache, setFeeBreakdownCache] = useState({});
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -186,6 +187,7 @@ export function usePaymentsAdminState() {
     try {
       const res = await paymentsAdminApi.getEnrollmentOptions({
         search: enrollmentSearchTerm || undefined,
+        booked_only: tab === "invoice" ? "true" : undefined,
       });
       setCandidateOptions(res.data.options || []);
     } catch {
@@ -236,8 +238,19 @@ export function usePaymentsAdminState() {
         setRows(res.data.rows || []);
         setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
       } else if (tab === "invoice") {
-        setRows(candidateOptions || []);
-        setPagination({ page: 1, limit: rowsPerPage, total: candidateOptions.length, total_pages: 1 });
+        let freshOptions = [];
+        try {
+          const res = await paymentsAdminApi.getEnrollmentOptions({
+            search: enrollmentSearchTerm || undefined,
+            booked_only: "true",
+          });
+          freshOptions = res.data.options || [];
+          setCandidateOptions(freshOptions);
+        } catch (err) {
+          setCandidateOptions([]);
+        }
+        setRows(freshOptions);
+        setPagination({ page: 1, limit: rowsPerPage, total: freshOptions.length, total_pages: 1 });
         if (selectedEnrollmentId) {
           const [invRes, payRes] = await Promise.all([
             paymentsAdminApi.getInvoices(year, month, {
@@ -584,6 +597,8 @@ export function usePaymentsAdminState() {
     setRelinkModal,
     copyLinkModal,
     setCopyLinkModal,
+    bookAmountModal,
+    setBookAmountModal,
     enrollmentSearchTerm,
     setEnrollmentSearchTerm,
     invoiceRows,

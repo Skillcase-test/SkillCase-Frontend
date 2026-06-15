@@ -1,6 +1,7 @@
 import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
 import { ArrowUp, ArrowDown, ArrowUpDown, Edit2 } from "lucide-react";
 import { ActionChip } from "../components/controls";
+import { MONTH_NAMES } from "../utils/constants";
 
 export function PaymentViewTab({
   rows,
@@ -12,6 +13,7 @@ export function PaymentViewTab({
   handleDeleteManualTransaction,
   handleRefund,
   refundingPaymentId,
+  setBookAmountModal,
 }) {
   const handleSort = (field) => {
     if (field === "paid_at") {
@@ -152,12 +154,29 @@ export function PaymentViewTab({
               <td className="px-2 py-2">{r.razorpay_payment_id || "-"}</td>
               <td className="px-2 py-2 text-center">
                 <div className="flex items-center justify-center gap-2">
-                  <ActionChip
-                    onClick={() => handleDeleteManualTransaction(r.payment_id)}
-                    variant="danger"
-                  >
-                    Delete
-                  </ActionChip>
+                  {r.booked_amount_id ? (
+                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                      Booked: {MONTH_NAMES[r.booked_month] || r.booked_month} {r.booked_year}
+                    </span>
+                  ) : (
+                    ["captured", "authorized", "processed"].includes(r.payment_status) &&
+                    Number(r.signed_amount_paise ?? r.amount_paise) > 0 && (
+                      <ActionChip
+                        onClick={() => setBookAmountModal({ open: true, payment: r })}
+                        variant="success"
+                      >
+                        Book
+                      </ActionChip>
+                    )
+                  )}
+                  {r.metadata_json?.source === "admin_manual_actual" && (
+                    <ActionChip
+                      onClick={() => handleDeleteManualTransaction(r.payment_id)}
+                      variant="danger"
+                    >
+                      Delete
+                    </ActionChip>
+                  )}
                 </div>
               </td>
             </tr>

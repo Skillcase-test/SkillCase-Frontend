@@ -20,6 +20,7 @@ import { RelinkPaymentModal } from "../payments-admin/components/RelinkPaymentMo
 import { CopyAgreementModal } from "../payments-admin/components/CopyAgreementModal";
 import { ImportPaymentsPage } from "../payments-admin/components/ImportPaymentsPage";
 import { ImportCandidatesPage } from "../payments-admin/components/ImportCandidatesPage";
+import { BookAmountModal } from "../payments-admin/components/BookAmountModal";
 import { usePaymentsAdminActions } from "../payments-admin/hooks/usePaymentsAdminActions";
 import { usePaymentsAdminSelectors } from "../payments-admin/hooks/usePaymentsAdminSelectors";
 import { usePaymentsAdminState } from "../payments-admin/hooks/usePaymentsAdminState";
@@ -354,6 +355,8 @@ export default function PaymentsAdmin() {
                   manualPaymentModal: state.manualPaymentModal,
                   setManualPaymentModal: state.setManualPaymentModal,
                   setRelinkModal: state.setRelinkModal,
+                  bookAmountModal: state.bookAmountModal,
+                  setBookAmountModal: state.setBookAmountModal,
                   handleCreateManualTransaction: actions.handleCreateManualTransaction,
                   handleUpdateManualTransaction: actions.handleUpdateManualTransaction,
                   handleDeleteManualTransaction: actions.handleDeleteManualTransaction,
@@ -368,7 +371,9 @@ export default function PaymentsAdmin() {
                   selectedInvoicePaymentId: state.selectedInvoicePaymentId,
                   invoicePaymentOptions: sel.invoicePaymentOptions,
                   selectedEnrollment: sel.selectedEnrollment,
-                  handleGenerateAndSendInvoice: actions.handleGenerateAndSendInvoice,
+                  handleGenerateInvoice: actions.handleGenerateInvoice,
+                  handleSendInvoice: actions.handleSendInvoice,
+                  handleCancelInvoice: actions.handleCancelInvoice,
                   selectedEnrollmentInvoiceRows: sel.selectedEnrollmentInvoiceRows,
                 }}
               />
@@ -439,6 +444,11 @@ export default function PaymentsAdmin() {
       <CopyAgreementModal
         modal={state.copyLinkModal}
         setModal={state.setCopyLinkModal}
+      />
+      <BookAmountModal
+        modal={state.bookAmountModal}
+        setModal={state.setBookAmountModal}
+        onConfirm={actions.handleBookAmount}
       />
     </div>
   );

@@ -92,6 +92,8 @@ export const paymentsAdminApi = {
   generateInvoice: (payload) =>
     api.post("/admin/payments/invoices/generate", payload),
   sendInvoice: (payload) => api.post("/admin/payments/invoices/send", payload),
+  deleteInvoice: (invoiceId) =>
+    api.delete(`/admin/payments/invoices/${invoiceId}`),
 
   createManualTransaction: (payload) =>
     api.post("/admin/payments/transactions/manual", payload),
@@ -111,4 +113,8 @@ export const paymentsAdminApi = {
     api.get(`/admin/payments/import/history/${importId}/download`),
   rollbackImport: (importId) =>
     api.post("/admin/payments/import/rollback", { importId }),
+  getBookedAmountCandidatePayments: (phone) =>
+    api.get("/admin/payments/booked-amounts/candidate-payments", { params: { phone } }),
+  bookAmount: (payload) =>
+    api.post("/admin/payments/booked-amounts", payload),
 };

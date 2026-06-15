@@ -23,16 +23,8 @@ export function useInvoiceAndPaginationSelectors(state, core) {
   );
 
   const invoicePaymentOptions = useMemo(() => {
-    const alreadyInvoicedPaymentIds = new Set(
-      invoiceRows.map((r) => String(r.payment_id || "")).filter(Boolean),
-    );
-    return invoicePaymentRows.filter(
-      (p) =>
-        String(p.enrollment_id) === String(selectedEnrollmentId) &&
-        p.payment_status !== "refunded" &&
-        !alreadyInvoicedPaymentIds.has(String(p.payment_id)),
-    );
-  }, [invoicePaymentRows, invoiceRows, selectedEnrollmentId]);
+    return invoicePaymentRows;
+  }, [invoicePaymentRows]);
 
   const selectedEnrollmentInvoiceRows = useMemo(
     () =>
