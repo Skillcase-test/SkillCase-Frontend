@@ -242,78 +242,86 @@ export function AllViewTab({
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, idx) => (
-              <tr key={r.enrollment_id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
-                <td className="px-3 py-3">{r.student_name || "-"}</td>
-                <td className="px-2 py-2">
-                  <span className="font-mono text-xs text-slate-700">
-                    {r.notes?.candidate_id || "-"}
-                  </span>
-                </td>
-                <td className="px-2 py-2">{r.student_phone || "-"}</td>
-                <td className="px-2 py-2">{r.student_email || "-"}</td>
-                <td className="px-2 py-2">
-                  <div className="w-40">
-                    <ControlDropdown
-                      value={r.batch_id || ""}
-                      onChange={(val) => handleChangeCandidateBatch?.(r.enrollment_id, val)}
-                      options={[
-                        { value: "", label: "Unassigned" },
-                        ...batches.map((b) => ({ value: b.batch_id, label: b.batch_name })),
-                      ]}
-                      placeholder="Select Batch"
-                      compact
-                      fixedMenu
-                      disabled={updatingBatchEnrollmentId === r.enrollment_id}
-                    />
-                  </div>
-                </td>
-                <td className="px-2 py-2">
-                  <div className="w-32">
-                    <ControlDropdown
-                      value={String(r.lifecycle_state || r.status || "").toLowerCase()}
-                      onChange={(val) => handleChangeCandidateStatus?.(r, val)}
-                      placeholder="Status"
-                      compact
-                      fixedMenu
-                      disabled={updatingBatchEnrollmentId === r.enrollment_id || String(r.lifecycle_state || r.status || "").toLowerCase() === "refunded"}
-                      options={(() => {
-                        const s = String(r.lifecycle_state || r.status || "").toLowerCase();
-                        const opts = [
-                          {
-                            value: s,
-                            label: s === "on_hold" ? "On Hold" : s === "archived" ? "Rejected" : s === "refunded" ? "Refunded" : s.charAt(0).toUpperCase() + s.slice(1)
-                          }
-                        ];
-
-                        if (s === "dropped" || s === "archived") {
-                          opts.push({ value: "active", label: "Active" });
-                        } else if (s === "on_hold") {
-                          opts.push({ value: "active", label: "Active" });
-                          opts.push({ value: "dropped", label: "Dropped" });
-                        } else if (s === "active" || s === "pending" || s === "completed" || s === "finalized") {
-                          opts.push({ value: "on_hold", label: "On Hold" });
-                          opts.push({ value: "dropped", label: "Dropped" });
-                          if (s !== "completed" && s !== "finalized") {
-                            opts.push({ value: "completed", label: "Completed" });
-                          }
-                        }
-                        return opts;
-                      })()}
-                    />
-                  </div>
-                </td>
-                <td className="px-2 py-2">{formatInrFromPaise(r.paid_total_paise)}</td>
-                <td className="px-2 py-2">{formatIstDateTime(r.last_paid_at)}</td>
-                <td className="px-2 py-2">
-                  <div className="flex gap-2">
-                    <ActionChip onClick={() => setEditDraft({ ...r, ...(r.notes || {}) })}>
-                      Details
-                    </ActionChip>
-                  </div>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="px-3 py-8 text-center text-slate-500">
+                  No candidates found matching the filters.
                 </td>
               </tr>
-            ))}
+            ) : (
+              rows.map((r, idx) => (
+                <tr key={r.enrollment_id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
+                  <td className="px-3 py-3">{r.student_name || "-"}</td>
+                  <td className="px-2 py-2">
+                    <span className="font-mono text-xs text-slate-700">
+                      {r.notes?.candidate_id || "-"}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2">{r.student_phone || "-"}</td>
+                  <td className="px-2 py-2">{r.student_email || "-"}</td>
+                  <td className="px-2 py-2">
+                    <div className="w-40">
+                      <ControlDropdown
+                        value={r.batch_id || ""}
+                        onChange={(val) => handleChangeCandidateBatch?.(r.enrollment_id, val)}
+                        options={[
+                          { value: "", label: "Unassigned" },
+                          ...batches.map((b) => ({ value: b.batch_id, label: b.batch_name })),
+                        ]}
+                        placeholder="Select Batch"
+                        compact
+                        fixedMenu
+                        disabled={updatingBatchEnrollmentId === r.enrollment_id}
+                      />
+                    </div>
+                  </td>
+                  <td className="px-2 py-2">
+                    <div className="w-32">
+                      <ControlDropdown
+                        value={String(r.lifecycle_state || r.status || "").toLowerCase()}
+                        onChange={(val) => handleChangeCandidateStatus?.(r, val)}
+                        placeholder="Status"
+                        compact
+                        fixedMenu
+                        disabled={updatingBatchEnrollmentId === r.enrollment_id || String(r.lifecycle_state || r.status || "").toLowerCase() === "refunded"}
+                        options={(() => {
+                          const s = String(r.lifecycle_state || r.status || "").toLowerCase();
+                          const opts = [
+                            {
+                              value: s,
+                              label: s === "on_hold" ? "On Hold" : s === "archived" ? "Rejected" : s === "refunded" ? "Refunded" : s.charAt(0).toUpperCase() + s.slice(1)
+                            }
+                          ];
+
+                          if (s === "dropped" || s === "archived") {
+                            opts.push({ value: "active", label: "Active" });
+                          } else if (s === "on_hold") {
+                            opts.push({ value: "active", label: "Active" });
+                            opts.push({ value: "dropped", label: "Dropped" });
+                          } else if (s === "active" || s === "pending" || s === "completed" || s === "finalized") {
+                            opts.push({ value: "on_hold", label: "On Hold" });
+                            opts.push({ value: "dropped", label: "Dropped" });
+                            if (s !== "completed" && s !== "finalized") {
+                              opts.push({ value: "completed", label: "Completed" });
+                            }
+                          }
+                          return opts;
+                        })()}
+                      />
+                    </div>
+                  </td>
+                  <td className="px-2 py-2">{formatInrFromPaise(r.paid_total_paise)}</td>
+                  <td className="px-2 py-2">{formatIstDateTime(r.last_paid_at)}</td>
+                  <td className="px-2 py-2">
+                    <div className="flex gap-2">
+                      <ActionChip onClick={() => setEditDraft({ ...r, ...(r.notes || {}) })}>
+                        Details
+                      </ActionChip>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

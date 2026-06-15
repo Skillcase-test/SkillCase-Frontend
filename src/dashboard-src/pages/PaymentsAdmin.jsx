@@ -292,7 +292,7 @@ export default function PaymentsAdmin() {
 
             {state.loading ? (
               <TableSkeleton />
-            ) : !["fee", "discounts"].includes(state.tab) && isDataTableTab && sel.baseRowsForTable.length === 0 ? (
+            ) : !["fee", "discounts", "all", "month", "invoice"].includes(state.tab) && isDataTableTab && sel.baseRowsForTable.length === 0 ? (
               <EmptyState />
             ) : (
               <TabContent

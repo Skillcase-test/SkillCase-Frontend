@@ -155,14 +155,19 @@ export function PaymentViewTab({
               <td className="px-2 py-2 text-center">
                 <div className="flex items-center justify-center gap-2">
                   {r.booked_amount_id ? (
-                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
-                      Booked: {MONTH_NAMES[r.booked_month] || r.booked_month} {r.booked_year}
+                    <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                      Booked: {MONTH_NAMES[r.booked_month] || r.booked_month}{" "}
+                      {r.booked_year}
                     </span>
                   ) : (
-                    ["captured", "authorized", "processed"].includes(r.payment_status) &&
+                    ["captured", "authorized", "processed"].includes(
+                      r.payment_status,
+                    ) &&
                     Number(r.signed_amount_paise ?? r.amount_paise) > 0 && (
                       <ActionChip
-                        onClick={() => setBookAmountModal({ open: true, payment: r })}
+                        onClick={() =>
+                          setBookAmountModal({ open: true, payment: r })
+                        }
                         variant="success"
                       >
                         Book
@@ -171,7 +176,9 @@ export function PaymentViewTab({
                   )}
                   {r.metadata_json?.source === "admin_manual_actual" && (
                     <ActionChip
-                      onClick={() => handleDeleteManualTransaction(r.payment_id)}
+                      onClick={() =>
+                        handleDeleteManualTransaction(r.payment_id)
+                      }
                       variant="danger"
                     >
                       Delete
