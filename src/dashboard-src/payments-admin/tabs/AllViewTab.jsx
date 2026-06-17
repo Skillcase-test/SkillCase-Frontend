@@ -301,8 +301,11 @@ export function AllViewTab({
                           } else if (s === "active" || s === "pending" || s === "completed" || s === "finalized") {
                             opts.push({ value: "on_hold", label: "On Hold" });
                             opts.push({ value: "dropped", label: "Dropped" });
-                            if (s !== "completed" && s !== "finalized") {
+                            if (s !== "completed") {
                               opts.push({ value: "completed", label: "Completed" });
+                            }
+                            if (s === "completed") {
+                              opts.push({ value: "active", label: "Active" });
                             }
                           }
                           return opts;
