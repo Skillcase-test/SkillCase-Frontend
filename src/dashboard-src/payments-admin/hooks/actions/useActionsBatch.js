@@ -23,6 +23,7 @@ export function useActionsBatch(state) {
       });
       setBatchForm({ name: "", description: "" });
       await refreshBatches();
+      await loadTabData();
     } catch (err) {
       setError(err?.response?.data?.msg || "Create batch failed");
     }
@@ -37,6 +38,7 @@ export function useActionsBatch(state) {
         description: batch.description || "",
       });
       await refreshBatches();
+      await loadTabData();
     } catch (err) {
       setError(err?.response?.data?.msg || "Update batch failed");
     }
