@@ -46,6 +46,7 @@ export function useActionsPayments(state) {
         "Payment ID",
         "Paid At",
         "Booked Month",
+        "Candidate Type",
       ];
       const data = downloadRows.map((r) => [
         r.student_name || "",
@@ -56,6 +57,7 @@ export function useActionsPayments(state) {
         r.razorpay_payment_id || "",
         r.paid_at ? formatIstDateTime(r.paid_at) : "",
         r.booked_month ? (MONTH_NAMES[r.booked_month] || "null") : "null",
+        r.enrollment_notes?.candidate_type === "recruitment" ? "Recruitment" : "Student",
       ]);
 
       let html = `

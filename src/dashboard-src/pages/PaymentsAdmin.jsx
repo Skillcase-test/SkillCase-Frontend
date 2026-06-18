@@ -62,12 +62,12 @@ export default function PaymentsAdmin() {
   const visibleTabs = TABS.filter((t) => state.permittedTabs.has(t.key));
 
   const searchable = {
-    all:      [state.allSearch,      state.setAllSearch,      "Search name/phone/email/batch"],
+    all:      [state.allSearch,      state.setAllSearch,      "Search name/phone/email/ID/batch"],
     month:    [state.monthSearch,    state.setMonthSearch,    "Search name/phone/email/batch/status"],
     batch:    [state.batchSearch,    state.setBatchSearch,    state.activeBatchId ? "Search name/phone/status" : "Search batch/name/phone/status"],
     fee:      [state.feeSearch,      state.setFeeSearch,      "Search name/phone/due"],
     discounts:[state.discountSearch, state.setDiscountSearch, "Search candidate/type/status/reason"],
-    payments: [state.paymentSearch,  state.setPaymentSearch,  "Search candidate/phone/payment/status"],
+    payments: [state.paymentSearch,  state.setPaymentSearch,  "Search name/phone/ID/payment/status"],
     rawlogs:  [state.rawSearch,      state.setRawSearch,      "Search event/type/status/ids"],
     invoice:  [state.allSearch,      state.setAllSearch,      "Search candidate name/phone/email"],
   };
@@ -341,6 +341,7 @@ export default function PaymentsAdmin() {
                   handleFinalize: actions.handleFinalize,
                   handleSendAgreement: actions.handleSendAgreement,
                   handleDeleteCandidate: actions.handleDeleteCandidate,
+                  handleTagRecruitment: actions.handleTagRecruitment,
                   allSortBy: state.allSortBy,
                   allSortOrder: state.allSortOrder,
                   setAllSortBy: state.setAllSortBy,

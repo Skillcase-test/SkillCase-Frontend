@@ -7,6 +7,7 @@ import { PaymentViewTab } from "./PaymentViewTab";
 import { RawLogsViewTab } from "./RawLogsViewTab";
 import { TotalFeeViewTab } from "./TotalFeeViewTab";
 import { OverallViewTab } from "./OverallViewTab";
+import { RecruitmentViewTab } from "./RecruitmentViewTab";
 
 export function TabContent({ tab, props }) {
   if (tab === "overall") return <OverallViewTab {...props} />;
@@ -18,5 +19,6 @@ export function TabContent({ tab, props }) {
   if (tab === "payments") return <PaymentViewTab {...props} />;
   if (tab === "rawlogs") return <RawLogsViewTab {...props} />;
   if (tab === "invoice") return <InvoiceViewTab {...props} />;
+  if (tab === "recruitment") return <RecruitmentViewTab {...props} />;
   return <RawLogsViewTab {...props} />;
 }

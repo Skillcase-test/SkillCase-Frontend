@@ -8,6 +8,7 @@ export const TABS = [
   { key: "payments", label: "Payment View" },
   { key: "rawlogs", label: "Raw Logs" },
   { key: "invoice", label: "Invoice Send" },
+  { key: "recruitment", label: "Recruitment View" },
 ];
 
 export const MONTH_NAMES = [

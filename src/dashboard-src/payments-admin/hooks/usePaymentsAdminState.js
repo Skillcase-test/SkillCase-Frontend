@@ -7,7 +7,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 // Ordered list of tab keys as they appear in the UI
 const PAYMENTS_TAB_ORDER = [
   "overall", "month", "all", "batch", "fee",
-  "discounts", "payments", "rawlogs", "invoice",
+  "discounts", "payments", "rawlogs", "invoice", "recruitment",
 ];
 
 // Maps each UI tab key to its backend action_key stored in admin_user_permission
@@ -21,6 +21,7 @@ const PAYMENTS_ACTION_FOR_TAB = {
   payments:  "tab_payments",
   rawlogs:   "tab_rawlogs",
   invoice:   "tab_invoice",
+  recruitment: "tab_recruitment",
 };
 
 function derivePermittedTabs(role, paymentActions) {
@@ -211,7 +212,7 @@ export function usePaymentsAdminState() {
     }
     setError("");
     try {
-      if (tab === "all") {
+      if (tab === "all" || tab === "recruitment") {
         const res = await paymentsAdminApi.getAllView({
           page: currentPage,
           limit: rowsPerPage,
@@ -220,6 +221,7 @@ export function usePaymentsAdminState() {
           batch_id: allBatchFilter || undefined,
           sortBy: allSortBy,
           sortOrder: allSortOrder,
+          candidate_type: tab === "recruitment" ? "recruitment" : "student",
         });
         if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
@@ -398,11 +400,11 @@ export function usePaymentsAdminState() {
     month,
     currentPage,
     rowsPerPage,
-    tab === "all" ? debouncedAllSearch : null,
-    tab === "all" ? allStatusFilter : null,
-    tab === "all" ? allBatchFilter : null,
-    tab === "all" ? allSortBy : null,
-    tab === "all" ? allSortOrder : null,
+    (tab === "all" || tab === "recruitment") ? debouncedAllSearch : null,
+    (tab === "all" || tab === "recruitment") ? allStatusFilter : null,
+    (tab === "all" || tab === "recruitment") ? allBatchFilter : null,
+    (tab === "all" || tab === "recruitment") ? allSortBy : null,
+    (tab === "all" || tab === "recruitment") ? allSortOrder : null,
     tab === "month" ? debouncedMonthSearch : null,
     tab === "month" ? monthSortBy : null,
     tab === "month" ? monthSortOrder : null,

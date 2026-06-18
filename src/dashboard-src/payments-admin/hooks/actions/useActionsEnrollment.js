@@ -275,11 +275,34 @@ export function useActionsEnrollment(state) {
     }
   }
 
+  async function handleTagRecruitment(enrollmentId, studentName) {
+    if (!enrollmentId) return;
+    const confirmed = window.confirm(
+      `Are you sure you want to tag candidate "${studentName || ""}" as Recruitment? This will move them to the Recruitment View.`,
+    );
+    if (!confirmed) return;
+    setError("");
+    setNotice?.("");
+    setSavingEnrollmentId(enrollmentId);
+    try {
+      await paymentsAdminApi.updateEnrollment(enrollmentId, {
+        candidate_type: "recruitment",
+      });
+      setNotice?.(`Candidate "${studentName || ""}" tagged as Recruitment successfully.`);
+      await loadTabData();
+    } catch (err) {
+      setError(err?.response?.data?.msg || "Tag recruitment failed");
+    } finally {
+      setSavingEnrollmentId("");
+    }
+  }
+
   return {
     handleFinalize,
     handleDeleteCandidate,
     handleSaveEnrollmentEdit,
     handleStartManualCandidate,
     handleSendAgreement,
+    handleTagRecruitment,
   };
 }
