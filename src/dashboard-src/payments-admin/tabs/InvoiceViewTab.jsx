@@ -82,13 +82,13 @@ export function InvoiceViewTab({
     }
   }, [selectedEnrollment]);
 
-  const handleStartFlowForRow = async (row) => {
+  const handleStartFlowForRow = async (row, options = {}) => {
     setSelectedEnrollmentId(row.enrollment_id);
     setSelectedInvoicePaymentId(row.booked_amount_id);
     setVerifiedState(row.enrollment_notes?.state || row.notes?.state || "");
     setLocalError("");
 
-    if (row.draft_invoice_id) {
+    if (row.draft_invoice_id && !options.forceRegenerate) {
       setIsGenerating(true);
       try {
         const res = await paymentsAdminApi.getInvoicePdf(row.draft_invoice_id);
@@ -107,6 +107,30 @@ export function InvoiceViewTab({
     } else {
       setStep(2);
     }
+  };
+
+  const handleQuickSend = async (row) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to send draft invoice ${row.draft_invoice_number} to ${row.student_name}?`
+      )
+    ) {
+      return;
+    }
+    setIsSending(true);
+    setLocalError("");
+    try {
+      await handleSendInvoice(row.draft_invoice_id);
+    } catch (err) {
+      alert(err?.response?.data?.msg || "Failed to send invoice");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleClosePreview = () => {
+    setStep(1);
+    setDraftInvoice(null);
   };
 
   const handleConfirmStateAndGenerate = async () => {
@@ -290,27 +314,43 @@ export function InvoiceViewTab({
                     </td>
                     <td className="px-2 py-3">
                       {r.draft_invoice_id ? (
-                        <div className="flex items-center gap-2">
-                          <span className="rounded bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="rounded bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20 mr-1">
                             Draft ({r.draft_invoice_number})
                           </span>
                           <ControlButton
                             onClick={() => handleStartFlowForRow(r)}
-                            disabled={isGenerating}
-                            variant="primary"
-                            className="h-8 rounded-lg px-3 text-xs bg-amber-600 hover:bg-amber-500 border-amber-600 text-white"
+                            disabled={isGenerating || isSending}
+                            variant="secondary"
+                            className="h-8 rounded-lg px-2.5 text-xs border-slate-200 text-slate-700 hover:bg-slate-50"
                           >
-                            {isGenerating ? "Loading..." : "View & Send"}
+                            View
+                          </ControlButton>
+                          <ControlButton
+                            onClick={() => handleStartFlowForRow(r, { forceRegenerate: true })}
+                            disabled={isGenerating || isSending}
+                            variant="secondary"
+                            className="h-8 rounded-lg px-2.5 text-xs border-amber-200 text-amber-700 hover:bg-amber-50/50"
+                          >
+                            Regenerate
+                          </ControlButton>
+                          <ControlButton
+                            onClick={() => handleQuickSend(r)}
+                            disabled={isGenerating || isSending}
+                            variant="primary"
+                            className="h-8 rounded-lg px-2.5 text-xs bg-emerald-600 hover:bg-emerald-500 border-emerald-600 text-white"
+                          >
+                            {isSending ? "Sending..." : "Send"}
                           </ControlButton>
                         </div>
                       ) : (
                         <ControlButton
                           onClick={() => handleStartFlowForRow(r)}
-                          disabled={isGenerating}
+                          disabled={isGenerating || isSending}
                           variant="primary"
                           className="h-8 rounded-lg px-3 text-xs"
                         >
-                          {isGenerating ? "Loading..." : "Generate & Send"}
+                          {isGenerating ? "Loading..." : "Generate Draft"}
                         </ControlButton>
                       )}
                     </td>
@@ -518,9 +558,27 @@ export function InvoiceViewTab({
                       variant="secondary"
                       onClick={handleCancelDraft}
                       disabled={isSending || isCancelling}
-                      className="border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                      className="border-rose-200 hover:bg-rose-50 hover:text-rose-700 text-rose-600"
                     >
-                      {isCancelling ? "Cancelling..." : "Cancel & Discard"}
+                      {isCancelling ? "Discarding..." : "Discard Draft"}
+                    </ControlButton>
+                    <ControlButton
+                      id="modal-regenerate-invoice-btn"
+                      variant="secondary"
+                      onClick={() => setStep(2)}
+                      disabled={isSending || isCancelling}
+                      className="border-amber-200 hover:bg-amber-50 hover:text-amber-700 text-amber-700"
+                    >
+                      Regenerate
+                    </ControlButton>
+                    <ControlButton
+                      id="modal-close-preview-btn"
+                      variant="secondary"
+                      onClick={handleClosePreview}
+                      disabled={isSending || isCancelling}
+                      className="border-slate-200 hover:bg-slate-50 text-slate-600"
+                    >
+                      Close
                     </ControlButton>
                     <ControlButton
                       id="confirm-send-invoice-btn"

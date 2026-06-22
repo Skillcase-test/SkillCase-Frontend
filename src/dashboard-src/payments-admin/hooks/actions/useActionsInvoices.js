@@ -28,6 +28,7 @@ export function useActionsInvoices(state) {
         booked_amount_id: selectedInvoicePaymentId,
         state: stateOverride,
       });
+      await loadTabData();
       return gen.data.invoice;
     } catch (err) {
       setError(err?.response?.data?.msg || "Invoice generation failed");
