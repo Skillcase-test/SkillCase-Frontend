@@ -16,6 +16,7 @@ export function PaymentViewTab({
   setBookAmountModal,
   handleTagRecruitment,
   savingEnrollmentId,
+  totalAmountPaise,
 }) {
   const handleSort = (field) => {
     if (field === "paid_at") {
@@ -203,6 +204,18 @@ export function PaymentViewTab({
             </tr>
           ))}
         </tbody>
+        <tfoot>
+          <tr className="border-t-2 border-slate-200 bg-slate-50 font-semibold text-slate-700">
+            <td className="px-3 py-3 font-bold text-slate-800">Total Amount</td>
+            <td className="px-2 py-2"></td>
+            <td className="px-2 py-2 font-bold">
+              {formatInrFromPaise(totalAmountPaise)}
+            </td>
+            <td className="px-2 py-2"></td>
+            <td className="px-2 py-2"></td>
+            <td className="px-2 py-2"></td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );

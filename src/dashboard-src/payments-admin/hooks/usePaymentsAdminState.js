@@ -117,6 +117,8 @@ export function usePaymentsAdminState() {
   const [paymentSortOrder, setPaymentSortOrder] = useState("desc");
   const [paymentAllTime, setPaymentAllTime] = useState(false);
   const [paymentBookedOnly, setPaymentBookedOnly] = useState(false);
+  const [paymentRecruitmentOnly, setPaymentRecruitmentOnly] = useState(false);
+  const [paymentTotalAmountPaise, setPaymentTotalAmountPaise] = useState(0);
   const [monthSortBy, setMonthSortBy] = useState("created_at");
   const [monthSortOrder, setMonthSortOrder] = useState("desc");
   const [allSummary, setAllSummary] = useState({
@@ -329,9 +331,11 @@ export function usePaymentsAdminState() {
           sortOrder: paymentSortOrder,
           all: paymentAllTime || undefined,
           booked: paymentBookedOnly || undefined,
+          recruitment: paymentRecruitmentOnly || undefined,
         });
         if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
+        setPaymentTotalAmountPaise(res.data.total_amount_paise || 0);
         setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
       } else if (tab === "rawlogs") {
         const res = await paymentsAdminApi.getRawLogs({
@@ -417,6 +421,7 @@ export function usePaymentsAdminState() {
     tab === "payments" ? paymentSortOrder : null,
     tab === "payments" ? paymentAllTime : null,
     tab === "payments" ? paymentBookedOnly : null,
+    tab === "payments" ? paymentRecruitmentOnly : null,
     tab === "rawlogs" ? debouncedRawSearch : null,
     tab === "rawlogs" ? rawEventTypeFilter : null,
     tab === "rawlogs" ? rawStatusFilter : null,
@@ -445,6 +450,8 @@ export function usePaymentsAdminState() {
     setCurrentPage(1);
     setPaymentAllTime(false);
     setPaymentBookedOnly(false);
+    setPaymentRecruitmentOnly(false);
+    setPaymentTotalAmountPaise(0);
     setActiveBatchId("");
     setActiveBatchName("");
     setBatchSortBy("created_at");
@@ -565,6 +572,9 @@ export function usePaymentsAdminState() {
     setPaymentAllTime,
     paymentBookedOnly,
     setPaymentBookedOnly,
+    paymentRecruitmentOnly,
+    setPaymentRecruitmentOnly,
+    paymentTotalAmountPaise,
     monthSortBy,
     setMonthSortBy,
     monthSortOrder,

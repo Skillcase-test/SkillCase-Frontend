@@ -23,6 +23,7 @@ export function useActionsPayments(state) {
     paymentSortBy,
     paymentSortOrder,
     paymentBookedOnly,
+    paymentRecruitmentOnly,
   } = state;
 
   async function exportPaymentsExcel() {
@@ -33,6 +34,7 @@ export function useActionsPayments(state) {
         sortOrder: paymentSortOrder,
         all: paymentAllTime || undefined,
         booked: paymentBookedOnly || undefined,
+        recruitment: paymentRecruitmentOnly || undefined,
         download: true,
       });
       const downloadRows = res.data.rows || [];
@@ -59,6 +61,9 @@ export function useActionsPayments(state) {
         r.booked_month ? (MONTH_NAMES[r.booked_month] || "null") : "null",
         r.enrollment_notes?.candidate_type === "recruitment" ? "Recruitment" : "Student",
       ]);
+
+      const totalAmountPaise = downloadRows.reduce((sum, r) => sum + Number(r.signed_amount_paise ?? r.amount_paise ?? 0), 0);
+      const totalAmountInr = (totalAmountPaise / 100).toFixed(2);
 
       let html = `
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -97,6 +102,17 @@ export function useActionsPayments(state) {
                   ${row.map((cell) => `<td>${cell}</td>`).join("")}
                 </tr>
               `).join("")}
+              <tr style="font-weight: bold; background-color: #f8fafc;">
+                <td>Total</td>
+                <td></td>
+                <td></td>
+                <td>${totalAmountInr}</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
             </tbody>
           </table>
         </body>
@@ -110,7 +126,7 @@ export function useActionsPayments(state) {
       const baseFilename = paymentAllTime
         ? "payments_all_time"
         : `payments_${year}_${String(month).padStart(2, "0")}`;
-      const filename = `${baseFilename}${paymentBookedOnly ? "_booked" : ""}.xls`;
+      const filename = `${baseFilename}${paymentBookedOnly ? "_booked" : ""}${paymentRecruitmentOnly ? "_recruitment" : ""}.xls`;
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);

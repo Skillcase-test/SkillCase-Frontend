@@ -62,21 +62,62 @@ export default function PaymentsAdmin() {
   const visibleTabs = TABS.filter((t) => state.permittedTabs.has(t.key));
 
   const searchable = {
-    all:      [state.allSearch,      state.setAllSearch,      "Search name/phone/email/ID/batch"],
-    month:    [state.monthSearch,    state.setMonthSearch,    "Search name/phone/email/batch/status"],
-    batch:    [state.batchSearch,    state.setBatchSearch,    state.activeBatchId ? "Search name/phone/status" : "Search batch/name/phone/status"],
-    fee:      [state.feeSearch,      state.setFeeSearch,      "Search name/phone/due"],
-    discounts:[state.discountSearch, state.setDiscountSearch, "Search candidate/type/status/reason"],
-    payments: [state.paymentSearch,  state.setPaymentSearch,  "Search name/phone/ID/payment/status"],
-    rawlogs:  [state.rawSearch,      state.setRawSearch,      "Search event/type/status/ids"],
-    invoice:  [state.allSearch,      state.setAllSearch,      "Search candidate name/phone/email"],
+    all: [
+      state.allSearch,
+      state.setAllSearch,
+      "Search name/phone/email/ID/batch",
+    ],
+    month: [
+      state.monthSearch,
+      state.setMonthSearch,
+      "Search name/phone/email/batch/status",
+    ],
+    batch: [
+      state.batchSearch,
+      state.setBatchSearch,
+      state.activeBatchId
+        ? "Search name/phone/status"
+        : "Search batch/name/phone/status",
+    ],
+    fee: [state.feeSearch, state.setFeeSearch, "Search name/phone/due"],
+    discounts: [
+      state.discountSearch,
+      state.setDiscountSearch,
+      "Search candidate/type/status/reason",
+    ],
+    payments: [
+      state.paymentSearch,
+      state.setPaymentSearch,
+      "Search name/phone/ID/payment/status",
+    ],
+    rawlogs: [
+      state.rawSearch,
+      state.setRawSearch,
+      "Search event/type/status/ids",
+    ],
+    invoice: [
+      state.allSearch,
+      state.setAllSearch,
+      "Search candidate name/phone/email",
+    ],
   };
   const [q, setQ, qph] = searchable[state.tab] || ["", () => {}, ""];
-  const isDataTableTab = ["all", "month", "fee", "discounts", "payments", "rawlogs", "invoice"].includes(state.tab);
+  const isDataTableTab = [
+    "all",
+    "month",
+    "fee",
+    "discounts",
+    "payments",
+    "rawlogs",
+    "invoice",
+  ].includes(state.tab);
 
   const roleLabel =
-    state.adminRole === "super_admin" ? "Super Admin" :
-    state.adminRole === "admin" ? "Admin" : state.adminRole;
+    state.adminRole === "super_admin"
+      ? "Super Admin"
+      : state.adminRole === "admin"
+        ? "Admin"
+        : state.adminRole;
 
   if (state.isImportingPayments) {
     return (
@@ -195,119 +236,204 @@ export default function PaymentsAdmin() {
         ) : (
           <>
             {state.tab !== "overall" && (
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                {qph ? (
-                  <ControlInput
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                    placeholder={qph}
-                    leftIcon={<Search size={14} />}
-                    className="w-full max-w-sm"
-                  />
-                ) : (
-                  <div />
-                )}
-                <div className="flex flex-wrap items-center gap-2">
-                  {state.tab === "all" || state.tab === "month" ? (
-                    <>
-                      <ControlButton onClick={() => state.setIsImportingCandidates(true)} variant="secondary">
-                        Import Candidates
-                      </ControlButton>
-                      <ControlButton onClick={actions.handleStartManualCandidate} variant="primary">
-                        Add Candidate
-                      </ControlButton>
-                    </>
-                  ) : null}
-                  {state.tab === "payments" ? (
-                    <>
-                      <ControlButton onClick={() => state.setManualPaymentModal({ open: true, mode: "create", data: null })} variant="secondary">
-                        Add Payment
-                      </ControlButton>
-                      <ControlButton onClick={() => state.setIsImportingPayments(true)} variant="primary">
-                        Import Payments
-                      </ControlButton>
-                    </>
-                  ) : null}
-                  {state.tab === "payments" && (
-                    <>
-                      <label className="flex items-center gap-2 text-sm text-slate-700 select-none mr-2">
-                        <input
-                          type="checkbox"
-                          checked={state.paymentAllTime}
-                          onChange={(e) => {
-                            state.setCurrentPage(1);
-                            state.setPaymentAllTime(e.target.checked);
-                          }}
-                          className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                        />
-                        <span className="font-medium text-slate-700">All Time</span>
-                      </label>
-                      <label className="flex items-center gap-2 text-sm text-slate-700 select-none mr-2">
-                        <input
-                          type="checkbox"
-                          checked={state.paymentBookedOnly}
-                          onChange={(e) => {
-                            state.setCurrentPage(1);
-                            state.setPaymentBookedOnly(e.target.checked);
-                          }}
-                          className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                        />
-                        <span className="font-medium text-slate-700">Booked Only</span>
-                      </label>
-                    </>
+              <div className="mb-5 flex flex-col gap-4 border-b border-slate-100 pb-4">
+                {/* Row 1: Search & Operations */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  {qph ? (
+                    <ControlInput
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                      placeholder={qph}
+                      leftIcon={<Search size={14} />}
+                      className="w-full max-w-md"
+                    />
+                  ) : (
+                    <div />
                   )}
-                  {state.tab !== "all" && state.tab !== "batch" && state.tab !== "overall" ? (
-                    <>
+
+                  <div className="flex items-center gap-2">
+                    {state.tab === "all" || state.tab === "month" ? (
+                      <>
+                        <ControlButton
+                          onClick={() => state.setIsImportingCandidates(true)}
+                          variant="secondary"
+                        >
+                          Import Candidates
+                        </ControlButton>
+                        <ControlButton
+                          onClick={actions.handleStartManualCandidate}
+                          variant="primary"
+                        >
+                          Add Candidate
+                        </ControlButton>
+                      </>
+                    ) : null}
+                    {state.tab === "payments" ? (
+                      <>
+                        <ControlButton
+                          onClick={() =>
+                            state.setManualPaymentModal({
+                              open: true,
+                              mode: "create",
+                              data: null,
+                            })
+                          }
+                          variant="secondary"
+                        >
+                          Add Payment
+                        </ControlButton>
+                        <ControlButton
+                          onClick={() => state.setIsImportingPayments(true)}
+                          variant="primary"
+                        >
+                          Import Payments
+                        </ControlButton>
+                      </>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Row 2: Filters & Pagination Utilities */}
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+                  {/* Left: Tab Checkbox Filters */}
+                  <div className="flex flex-wrap items-center gap-4">
+                    {state.tab === "payments" && (
+                      <div className="flex flex-wrap items-center gap-4">
+                        <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={state.paymentAllTime}
+                            onChange={(e) => {
+                              state.setCurrentPage(1);
+                              state.setPaymentAllTime(e.target.checked);
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                          />
+                          <span className="font-semibold text-slate-700">
+                            All Time
+                          </span>
+                        </label>
+                        <div className="h-4 w-px bg-slate-200" />
+                        <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={state.paymentBookedOnly}
+                            onChange={(e) => {
+                              state.setCurrentPage(1);
+                              state.setPaymentBookedOnly(e.target.checked);
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                          />
+                          <span className="font-semibold text-slate-700">
+                            Booked Only
+                          </span>
+                        </label>
+                        <div className="h-4 w-px bg-slate-200" />
+                        <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={state.paymentRecruitmentOnly}
+                            onChange={(e) => {
+                              state.setCurrentPage(1);
+                              state.setPaymentRecruitmentOnly(e.target.checked);
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                          />
+                          <span className="font-semibold text-slate-700">
+                            Recruitment Only
+                          </span>
+                        </label>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right: Date Selectors, Refresh & Rows Per Page */}
+                  <div className="flex flex-wrap items-center gap-3 ml-auto">
+                    {state.tab !== "all" &&
+                    state.tab !== "batch" &&
+                    state.tab !== "overall" ? (
+                      <div className="flex items-center gap-2">
+                        <ControlSelect
+                          value={state.year}
+                          onChange={(e) =>
+                            state.setYear(Number(e.target.value))
+                          }
+                          disabled={
+                            state.tab === "payments" && state.paymentAllTime
+                          }
+                          className="w-24 h-9 text-xs"
+                        >
+                          {[2025, 2026, 2027].map((y) => (
+                            <option key={y} value={y}>
+                              {y}
+                            </option>
+                          ))}
+                        </ControlSelect>
+                        <ControlSelect
+                          value={state.month}
+                          onChange={(e) =>
+                            state.setMonth(Number(e.target.value))
+                          }
+                          disabled={
+                            state.tab === "payments" && state.paymentAllTime
+                          }
+                          className="w-32 h-9 text-xs"
+                        >
+                          {MONTH_NAMES.slice(1).map((m, i) => (
+                            <option key={m} value={i + 1}>
+                              {m}
+                            </option>
+                          ))}
+                        </ControlSelect>
+                      </div>
+                    ) : null}
+
+                    <ControlButton
+                      onClick={state.loadTabData}
+                      variant="secondary"
+                      className="h-9 px-3 text-xs"
+                    >
+                      <RefreshCw size={12} className="mr-1.5" />
+                      Refresh
+                    </ControlButton>
+
+                    <div className="h-4 w-px bg-slate-200" />
+
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-slate-500 font-medium">
+                        Rows
+                      </span>
                       <ControlSelect
-                        value={state.year}
-                        onChange={(e) => state.setYear(Number(e.target.value))}
-                        disabled={state.tab === "payments" && state.paymentAllTime}
-                        className="w-28"
+                        value={state.rowsPerPage}
+                        onChange={(e) =>
+                          state.setRowsPerPage(Number(e.target.value))
+                        }
+                        className="w-20 h-9 text-xs"
                       >
-                        {[2025, 2026, 2027].map((y) => (
-                          <option key={y} value={y}>
-                            {y}
-                          </option>
-                        ))}
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
                       </ControlSelect>
-                      <ControlSelect
-                        value={state.month}
-                        onChange={(e) => state.setMonth(Number(e.target.value))}
-                        disabled={state.tab === "payments" && state.paymentAllTime}
-                        className="w-40"
-                      >
-                        {MONTH_NAMES.slice(1).map((m, i) => (
-                          <option key={m} value={i + 1}>
-                            {m}
-                          </option>
-                        ))}
-                      </ControlSelect>
-                    </>
-                  ) : null}
-                  <ControlButton onClick={state.loadTabData} variant="secondary">
-                    <RefreshCw size={14} className="mr-1" />
-                    Refresh
-                  </ControlButton>
-                  <span className="text-xs text-slate-500">Rows</span>
-                  <ControlSelect
-                    value={state.rowsPerPage}
-                    onChange={(e) => state.setRowsPerPage(Number(e.target.value))}
-                    className="w-20"
-                  >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                  </ControlSelect>
-                  <span className="rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-600">
-                    {Number(state.pagination?.total || sel.baseRowsForTable.length)} results
-                  </span>
+                    </div>
+
+                    <span className="rounded-lg border border-slate-200 bg-slate-100/70 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                      {Number(
+                        state.pagination?.total || sel.baseRowsForTable.length,
+                      )}{" "}
+                      results
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
 
             {state.loading ? (
               <TableSkeleton />
-            ) : !["fee", "discounts", "all", "month", "invoice"].includes(state.tab) && isDataTableTab && sel.baseRowsForTable.length === 0 ? (
+            ) : !["fee", "discounts", "all", "month", "invoice"].includes(
+                state.tab,
+              ) &&
+              isDataTableTab &&
+              sel.baseRowsForTable.length === 0 ? (
               <EmptyState />
             ) : (
               <TabContent
@@ -327,9 +453,13 @@ export default function PaymentsAdmin() {
                   setAllBatchFilter: state.setAllBatchFilter,
                   discountForm: state.discountForm,
                   setDiscountForm: state.setDiscountForm,
-                  canApproveDiscounts: state.adminRole === "super_admin" || state.paymentActions.includes("tab_discounts") || state.paymentActions.includes("manage"),
+                  canApproveDiscounts:
+                    state.adminRole === "super_admin" ||
+                    state.paymentActions.includes("tab_discounts") ||
+                    state.paymentActions.includes("manage"),
                   candidateOptions: state.candidateOptions,
-                  handleCreateDiscountRequest: actions.handleCreateDiscountRequest,
+                  handleCreateDiscountRequest:
+                    actions.handleCreateDiscountRequest,
                   rows: sel.paginatedRows,
                   feeFilter: state.feeFilter,
                   setFeeFilter: state.setFeeFilter,
@@ -350,15 +480,19 @@ export default function PaymentsAdmin() {
                   paymentSortOrder: state.paymentSortOrder,
                   setPaymentSortBy: state.setPaymentSortBy,
                   setPaymentSortOrder: state.setPaymentSortOrder,
+                  totalAmountPaise: state.paymentTotalAmountPaise,
                   monthSortBy: state.monthSortBy,
                   monthSortOrder: state.monthSortOrder,
                   setMonthSortBy: state.setMonthSortBy,
                   setMonthSortOrder: state.setMonthSortOrder,
                   savingEnrollmentId: state.savingEnrollmentId,
-                  sendingAgreementEnrollmentId: state.sendingAgreementEnrollmentId,
+                  sendingAgreementEnrollmentId:
+                    state.sendingAgreementEnrollmentId,
                   updatingBatchEnrollmentId: state.updatingBatchEnrollmentId,
-                  handleChangeCandidateBatch: actions.handleChangeCandidateBatch,
-                  handleChangeCandidateStatus: actions.handleChangeCandidateStatus,
+                  handleChangeCandidateBatch:
+                    actions.handleChangeCandidateBatch,
+                  handleChangeCandidateStatus:
+                    actions.handleChangeCandidateStatus,
                   batches: state.batches,
                   activeBatchId: state.activeBatchId,
                   setActiveBatchId: state.setActiveBatchId,
@@ -373,16 +507,20 @@ export default function PaymentsAdmin() {
                   setRelinkModal: state.setRelinkModal,
                   bookAmountModal: state.bookAmountModal,
                   setBookAmountModal: state.setBookAmountModal,
-                  handleCreateManualTransaction: actions.handleCreateManualTransaction,
-                  handleUpdateManualTransaction: actions.handleUpdateManualTransaction,
-                  handleDeleteManualTransaction: actions.handleDeleteManualTransaction,
+                  handleCreateManualTransaction:
+                    actions.handleCreateManualTransaction,
+                  handleUpdateManualTransaction:
+                    actions.handleUpdateManualTransaction,
+                  handleDeleteManualTransaction:
+                    actions.handleDeleteManualTransaction,
                   openLifecycleModal: actions.openLifecycleModal,
                   handleLifecycleSubmit: actions.handleLifecycleSubmit,
                   handleDiscountDecision: actions.handleDiscountDecision,
                   setRejectModal: state.setRejectModal,
                   selectedEnrollmentId: state.selectedEnrollmentId,
                   setSelectedEnrollmentId: state.setSelectedEnrollmentId,
-                  setSelectedInvoicePaymentId: state.setSelectedInvoicePaymentId,
+                  setSelectedInvoicePaymentId:
+                    state.setSelectedInvoicePaymentId,
                   filteredEnrollmentOptions: sel.filteredEnrollmentOptions,
                   selectedInvoicePaymentId: state.selectedInvoicePaymentId,
                   invoicePaymentRows: state.invoicePaymentRows,
