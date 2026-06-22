@@ -13,31 +13,70 @@ export function TotalFeeViewTab({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        <ActionChip active={cohortFilter === "new"} onClick={() => setCohortFilter("new")}>
+        <ActionChip
+          active={cohortFilter === "new"}
+          onClick={() => setCohortFilter("new")}
+          title="Students enrolled in the selected target month"
+        >
           New
         </ActionChip>
-        <ActionChip active={cohortFilter === "old"} onClick={() => setCohortFilter("old")}>
+        <ActionChip
+          active={cohortFilter === "old"}
+          onClick={() => setCohortFilter("old")}
+          title="Students enrolled before the selected target month"
+        >
           Old
         </ActionChip>
-        <ActionChip active={cohortFilter === "both"} onClick={() => setCohortFilter("both")}>
+        <ActionChip
+          active={cohortFilter === "both"}
+          onClick={() => setCohortFilter("both")}
+          title="All students regardless of enrollment date"
+        >
           Both
         </ActionChip>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <ActionChip active={feeFilter === "unpaid"} onClick={() => setFeeFilter("unpaid")}>
+        <ActionChip
+          active={feeFilter === ""}
+          onClick={() => setFeeFilter("")}
+          title="Show all students without any status filter"
+        >
+          All
+        </ActionChip>
+        <ActionChip
+          active={feeFilter === "unpaid"}
+          onClick={() => setFeeFilter("unpaid")}
+          title="Shows students with any outstanding balance (including carry forward dues)"
+        >
           Unpaid
+        </ActionChip>
+        <ActionChip
+          active={feeFilter === "unpaid_current_month"}
+          onClick={() => setFeeFilter("unpaid_current_month")}
+          title="Shows students with unpaid fees specifically for the selected month, ignoring past dues"
+        >
+          Unpaid Current Month
         </ActionChip>
         <ActionChip
           active={feeFilter === "unpaid_last_month"}
           onClick={() => setFeeFilter("unpaid_last_month")}
+          title="Shows students who carried forward unpaid fees into this month"
         >
           Unpaid Last Month
         </ActionChip>
-        <ActionChip active={feeFilter === "discounted"} onClick={() => setFeeFilter("discounted")}>
+        <ActionChip
+          active={feeFilter === "discounted"}
+          onClick={() => setFeeFilter("discounted")}
+          title="Shows students who received a discount in this month"
+        >
           Discounted Students
         </ActionChip>
-        <ActionChip active={feeFilter === "paid"} onClick={() => setFeeFilter("paid")}>
+        <ActionChip
+          active={feeFilter === "paid"}
+          onClick={() => setFeeFilter("paid")}
+          title="Shows students who have completely cleared their balance by the end of this month"
+        >
           Paid Students
         </ActionChip>
       </div>
