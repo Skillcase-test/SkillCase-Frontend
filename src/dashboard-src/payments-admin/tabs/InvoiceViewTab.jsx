@@ -112,7 +112,7 @@ export function InvoiceViewTab({
   const handleQuickSend = async (row) => {
     if (
       !window.confirm(
-        `Are you sure you want to send draft invoice ${row.draft_invoice_number} to ${row.student_name}?`
+        `Are you sure you want to send draft invoice ${row.draft_invoice_number} to ${row.student_name}?`,
       )
     ) {
       return;
@@ -242,7 +242,7 @@ export function InvoiceViewTab({
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
             Pending Invoices
           </h3>
-          <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+          <span className="rounded-full bg-amber-50 border border-amber-200/50 px-3 py-1 text-xs font-bold text-amber-800 shadow-sm">
             {filteredPending.length} pending
           </span>
         </div>
@@ -315,22 +315,26 @@ export function InvoiceViewTab({
                     <td className="px-2 py-3">
                       {r.draft_invoice_id ? (
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="rounded bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-600/20 mr-1">
+                          <span className="rounded-md bg-indigo-50 border border-indigo-100 px-3 py-1 text-[11px] font-bold text-indigo-700 shadow-sm mr-1">
                             Draft ({r.draft_invoice_number})
                           </span>
                           <ControlButton
                             onClick={() => handleStartFlowForRow(r)}
                             disabled={isGenerating || isSending}
                             variant="secondary"
-                            className="h-8 rounded-lg px-2.5 text-xs border-slate-200 text-slate-700 hover:bg-slate-50"
+                            className="h-8 rounded-lg px-3 text-xs border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm active:scale-95 transition-all duration-150"
                           >
                             View
                           </ControlButton>
                           <ControlButton
-                            onClick={() => handleStartFlowForRow(r, { forceRegenerate: true })}
+                            onClick={() =>
+                              handleStartFlowForRow(r, {
+                                forceRegenerate: true,
+                              })
+                            }
                             disabled={isGenerating || isSending}
                             variant="secondary"
-                            className="h-8 rounded-lg px-2.5 text-xs border-amber-200 text-amber-700 hover:bg-amber-50/50"
+                            className="h-8 rounded-lg px-3 text-xs border-amber-200 text-amber-700 hover:bg-amber-50/60 shadow-sm active:scale-95 transition-all duration-150"
                           >
                             Regenerate
                           </ControlButton>
@@ -338,7 +342,7 @@ export function InvoiceViewTab({
                             onClick={() => handleQuickSend(r)}
                             disabled={isGenerating || isSending}
                             variant="primary"
-                            className="h-8 rounded-lg px-2.5 text-xs bg-emerald-600 hover:bg-emerald-500 border-emerald-600 text-white"
+                            className="h-8 rounded-lg px-3.5 text-xs bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border-none text-white shadow-sm active:scale-95 transition-all duration-150 font-semibold"
                           >
                             {isSending ? "Sending..." : "Send"}
                           </ControlButton>
@@ -348,7 +352,7 @@ export function InvoiceViewTab({
                           onClick={() => handleStartFlowForRow(r)}
                           disabled={isGenerating || isSending}
                           variant="primary"
-                          className="h-8 rounded-lg px-3 text-xs"
+                          className="h-8 rounded-lg px-4 text-xs bg-slate-900 hover:bg-slate-800 text-white border-none active:scale-95 transition-all duration-150 font-semibold shadow-sm"
                         >
                           {isGenerating ? "Loading..." : "Generate Draft"}
                         </ControlButton>
@@ -367,7 +371,7 @@ export function InvoiceViewTab({
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
             Sent Invoices
           </h3>
-          <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
+          <span className="rounded-full bg-emerald-50 border border-emerald-200/50 px-3 py-1 text-xs font-bold text-emerald-800 shadow-sm">
             {filteredSent.length} sent
           </span>
         </div>
@@ -425,7 +429,7 @@ export function InvoiceViewTab({
                         onClick={() => handleViewSentInvoice(r.invoice_id)}
                         variant="secondary"
                         disabled={isLoadingPdf}
-                        className="h-8 rounded-lg px-3 text-xs"
+                        className="h-8 rounded-lg px-4 text-xs border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm active:scale-95 transition-all duration-150"
                       >
                         View PDF
                       </ControlButton>
@@ -438,10 +442,11 @@ export function InvoiceViewTab({
         </div>
       </div>
 
+      {/* Verify Candidate State Modal */}
       {step === 2 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl flex flex-col">
-            <div className="border-b pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-slate-900/40 p-4 transition-all duration-300">
+          <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-950/20 flex flex-col transform transition-transform duration-300 scale-100">
+            <div className="border-b border-slate-100 pb-3">
               <h3 className="text-lg font-bold text-slate-900">
                 Verify Candidate State
               </h3>
@@ -453,7 +458,7 @@ export function InvoiceViewTab({
 
             <div className="my-5 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   State / Union Territory
                 </label>
                 <select
@@ -461,7 +466,7 @@ export function InvoiceViewTab({
                   value={verifiedState}
                   onChange={(e) => setVerifiedState(e.target.value)}
                   disabled
-                  className="mt-1.5 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-500 cursor-not-allowed focus:outline-none"
+                  className="mt-1.5 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500 cursor-not-allowed focus:outline-none focus:border-indigo-500 focus:ring focus:ring-indigo-200/50"
                 >
                   <option value="">-- Select State --</option>
                   {INDIAN_STATES.map((s) => (
@@ -479,12 +484,13 @@ export function InvoiceViewTab({
               )}
             </div>
 
-            <div className="border-t pt-3 flex justify-end gap-2">
+            <div className="border-t border-slate-100 pt-3 flex justify-end gap-2">
               <ControlButton
                 id="cancel-state-verification-btn"
                 variant="secondary"
                 onClick={() => setStep(1)}
                 disabled={isGenerating}
+                className="border-slate-200 text-slate-600 hover:bg-slate-50 active:scale-95 transition-all duration-150"
               >
                 Cancel
               </ControlButton>
@@ -493,6 +499,7 @@ export function InvoiceViewTab({
                 variant="primary"
                 onClick={handleConfirmStateAndGenerate}
                 disabled={isGenerating || !verifiedState}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border-none text-white active:scale-95 transition-all duration-150 font-semibold"
               >
                 {isGenerating ? "Generating..." : "Confirm & Generate"}
               </ControlButton>
@@ -501,10 +508,11 @@ export function InvoiceViewTab({
         </div>
       )}
 
+      {/* Preview/View GST Invoice Modal */}
       {step === 3 && draftInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-5xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl flex flex-col h-[90vh]">
-            <div className="border-b pb-3 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-slate-900/40 p-4 transition-all duration-300">
+          <div className="w-full max-w-5xl rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-950/20 flex flex-col h-[90vh]">
+            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">
                   {draftInvoice.isSent
@@ -517,16 +525,16 @@ export function InvoiceViewTab({
                     : "Review the computed GST details and PDF layout before sending it to the candidate."}
                 </p>
               </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+              <span className="rounded-full bg-indigo-50 border border-indigo-200/50 text-indigo-700 px-3 py-1 text-xs font-mono font-bold shadow-sm">
                 {draftInvoice.invoice_number}
               </span>
             </div>
 
-            <div className="my-4 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-1">
+            <div className="my-4 flex-1 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 p-1">
               <iframe
                 src={`data:application/pdf;base64,${draftInvoice.pdf_base64}`}
                 title="Invoice PDF Preview"
-                className="w-full h-full border-none rounded-lg"
+                className="w-full h-full border-none rounded-xl"
               />
             </div>
 
@@ -536,18 +544,24 @@ export function InvoiceViewTab({
               </div>
             )}
 
-            <div className="border-t pt-3 flex justify-between items-center">
-              <span className="text-xs text-slate-500">
-                {draftInvoice.isSent
-                  ? "This invoice has already been sent to the candidate's email."
-                  : `GST breakdown matches candidate's state (${verifiedState}).`}
+            <div className="border-t border-slate-100 pt-3 flex justify-between items-center">
+              <span className="text-xs font-medium text-slate-500">
+                {draftInvoice.isSent ? (
+                  <span className="text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1 font-semibold">
+                    This invoice has already been sent to the candidate's email.
+                  </span>
+                ) : (
+                  <span className="text-indigo-600 bg-indigo-50/70 border border-indigo-100 rounded-full px-3 py-1 font-semibold">
+                    GST breakdown matches candidate's state ({verifiedState}).
+                  </span>
+                )}
               </span>
               <div className="flex gap-2">
                 {draftInvoice.isSent ? (
                   <ControlButton
                     variant="secondary"
                     onClick={() => setStep(1)}
-                    className="px-6"
+                    className="px-6 border-slate-200 text-slate-600 hover:bg-slate-50 active:scale-95 transition-all duration-150"
                   >
                     Close
                   </ControlButton>
@@ -558,7 +572,7 @@ export function InvoiceViewTab({
                       variant="secondary"
                       onClick={handleCancelDraft}
                       disabled={isSending || isCancelling}
-                      className="border-rose-200 hover:bg-rose-50 hover:text-rose-700 text-rose-600"
+                      className="border-rose-200 hover:bg-rose-50 hover:text-rose-700 text-rose-600 active:scale-95 transition-all duration-150"
                     >
                       {isCancelling ? "Discarding..." : "Discard Draft"}
                     </ControlButton>
@@ -567,7 +581,7 @@ export function InvoiceViewTab({
                       variant="secondary"
                       onClick={() => setStep(2)}
                       disabled={isSending || isCancelling}
-                      className="border-amber-200 hover:bg-amber-50 hover:text-amber-700 text-amber-700"
+                      className="border-amber-200 hover:bg-amber-50 hover:text-amber-700 text-amber-700 active:scale-95 transition-all duration-150"
                     >
                       Regenerate
                     </ControlButton>
@@ -576,7 +590,7 @@ export function InvoiceViewTab({
                       variant="secondary"
                       onClick={handleClosePreview}
                       disabled={isSending || isCancelling}
-                      className="border-slate-200 hover:bg-slate-50 text-slate-600"
+                      className="border-slate-200 hover:bg-slate-50 text-slate-600 active:scale-95 transition-all duration-150"
                     >
                       Close
                     </ControlButton>
@@ -585,6 +599,7 @@ export function InvoiceViewTab({
                       variant="primary"
                       onClick={handleConfirmAndSend}
                       disabled={isSending || isCancelling}
+                      className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border-none text-white active:scale-95 transition-all duration-150 font-semibold"
                     >
                       {isSending ? "Sending..." : "Confirm & Send Email"}
                     </ControlButton>
