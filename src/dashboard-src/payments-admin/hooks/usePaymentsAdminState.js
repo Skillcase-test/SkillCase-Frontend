@@ -162,6 +162,11 @@ export function usePaymentsAdminState() {
   const [enrollmentSearchTerm, setEnrollmentSearchTerm] = useState("");
   const [invoiceRows, setInvoiceRows] = useState([]);
   const [invoicePaymentRows, setInvoicePaymentRows] = useState([]);
+  const [bookedSummaryRows, setBookedSummaryRows] = useState([]);
+  const [summaryMonthsLimit, setSummaryMonthsLimit] = useState(6);
+  const [summaryMonthDetail, setSummaryMonthDetail] = useState(null);
+  const [summaryCandidatesRows, setSummaryCandidatesRows] = useState([]);
+  const [summaryCandidatesLoading, setSummaryCandidatesLoading] = useState(false);
   const [selectedInvoicePaymentId, setSelectedInvoicePaymentId] = useState("");
   const [candidateOptions, setCandidateOptions] = useState([]);
   const [isImportingPayments, setIsImportingPayments] = useState(false);
@@ -248,16 +253,18 @@ export function usePaymentsAdminState() {
         setRows(res.data.rows || []);
         setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
       } else if (tab === "invoice") {
-        const [invRes, pendingRes] = await Promise.all([
+        const [invRes, pendingRes, summaryRes] = await Promise.all([
           paymentsAdminApi.getInvoices(year, month, {
             page: 1,
             limit: 200,
           }),
           paymentsAdminApi.getInvoicePaymentOptions(null, { year, month }),
+          paymentsAdminApi.getBookedSummary({ limit: summaryMonthsLimit }),
         ]);
         if (controller.signal.aborted) return;
         setInvoiceRows(invRes.data.rows || []);
         setInvoicePaymentRows(pendingRes.data.rows || []);
+        setBookedSummaryRows(summaryRes.data.rows || []);
         setRows([]);
         setPagination({ page: 1, limit: rowsPerPage, total: (pendingRes.data.rows || []).length, total_pages: 1 });
       } else if (tab === "batch") {
@@ -363,6 +370,20 @@ export function usePaymentsAdminState() {
     }
   }
 
+  async function handleViewSummaryMonthCandidates(year, month, label) {
+    setSummaryMonthDetail({ year, month, label });
+    setSummaryCandidatesLoading(true);
+    setSummaryCandidatesRows([]);
+    try {
+      const res = await paymentsAdminApi.getBookedSummaryCandidates(year, month);
+      setSummaryCandidatesRows(res.data.rows || []);
+    } catch (err) {
+      setError(err?.response?.data?.msg || "Failed to load month candidates");
+    } finally {
+      setSummaryCandidatesLoading(false);
+    }
+  }
+
   // On mount: resolve which tabs this admin is permitted to see
   useEffect(() => {
     let mounted = true;
@@ -426,6 +447,7 @@ export function usePaymentsAdminState() {
     tab === "rawlogs" ? rawEventTypeFilter : null,
     tab === "rawlogs" ? rawStatusFilter : null,
     tab === "invoice" ? debouncedEnrollmentSearchTerm : null,
+    tab === "invoice" ? summaryMonthsLimit : null,
     tab === "batch" ? debouncedBatchSearch : null,
     activeBatchId,
     tab === "batch" ? batchSortBy : null,
@@ -459,6 +481,10 @@ export function usePaymentsAdminState() {
     setRows([]);
     setInvoiceRows([]);
     setInvoicePaymentRows([]);
+    setBookedSummaryRows([]);
+    setSummaryMonthDetail(null);
+    setSummaryCandidatesRows([]);
+    setSummaryCandidatesLoading(false);
   }, [tab]);
 
   useEffect(() => {
@@ -613,6 +639,17 @@ export function usePaymentsAdminState() {
     setInvoiceRows,
     invoicePaymentRows,
     setInvoicePaymentRows,
+    bookedSummaryRows,
+    setBookedSummaryRows,
+    summaryMonthsLimit,
+    setSummaryMonthsLimit,
+    summaryMonthDetail,
+    setSummaryMonthDetail,
+    summaryCandidatesRows,
+    setSummaryCandidatesRows,
+    summaryCandidatesLoading,
+    setSummaryCandidatesLoading,
+    handleViewSummaryMonthCandidates,
     selectedInvoicePaymentId,
     setSelectedInvoicePaymentId,
     candidateOptions,

@@ -530,6 +530,14 @@ export default function PaymentsAdmin() {
                   handleCancelInvoice: actions.handleCancelInvoice,
                   invoiceRows: state.invoiceRows,
                   allSearch: state.allSearch,
+                  bookedSummaryRows: state.bookedSummaryRows,
+                  summaryMonthsLimit: state.summaryMonthsLimit,
+                  setSummaryMonthsLimit: state.setSummaryMonthsLimit,
+                  summaryMonthDetail: state.summaryMonthDetail,
+                  setSummaryMonthDetail: state.setSummaryMonthDetail,
+                  summaryCandidatesRows: state.summaryCandidatesRows,
+                  summaryCandidatesLoading: state.summaryCandidatesLoading,
+                  handleViewSummaryMonthCandidates: state.handleViewSummaryMonthCandidates,
                 }}
               />
             )}

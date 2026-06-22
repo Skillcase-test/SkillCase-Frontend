@@ -98,6 +98,10 @@ export const paymentsAdminApi = {
     api.delete(`/admin/payments/invoices/${invoiceId}`),
   getInvoicePdf: (invoiceId) =>
     api.get(`/admin/payments/invoices/${invoiceId}/pdf`),
+  getBookedSummary: (params = {}) =>
+    api.get("/admin/payments/invoices/booked-summary", { params }),
+  getBookedSummaryCandidates: (year, month) =>
+    api.get("/admin/payments/invoices/booked-summary/candidates", { params: { year, month } }),
 
   createManualTransaction: (payload) =>
     api.post("/admin/payments/transactions/manual", payload),
