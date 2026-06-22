@@ -82,7 +82,7 @@ function renderTrend(current, previous) {
   );
 }
 
-function ComparativeLineChart({
+function ComparativeBarChart({
   title,
   currentData,
   previousData,
@@ -109,8 +109,7 @@ function ComparativeLineChart({
     const datasetColor = color;
     const prevColor = "#64748b"; // slate-500 for better visibility
 
-    const isSinglePoint = currentData.length === 1;
-    const chartType = isSinglePoint ? "bar" : "line";
+    const chartType = "bar";
 
     const newChart = new Chart(canvasRef.current, {
       type: chartType,
@@ -120,47 +119,46 @@ function ComparativeLineChart({
           {
             label: "Current Period",
             data: currentData,
-            fill: true,
-            backgroundColor: isSinglePoint
-              ? adjustColorOpacity(datasetColor, 0.6)
-              : function (context) {
-                  const chart = context.chart;
-                  const { ctx, chartArea } = chart;
-                  return chartAreaGradient(ctx, chartArea, [
-                    { stop: 0, color: adjustColorOpacity(datasetColor, 0) },
-                    { stop: 1, color: adjustColorOpacity(datasetColor, 0.2) },
-                  ]);
-                },
+            backgroundColor: function (context) {
+              const chart = context.chart;
+              const { ctx, chartArea } = chart;
+              if (!chartArea) return adjustColorOpacity(datasetColor, 0.85);
+              return chartAreaGradient(ctx, chartArea, [
+                { stop: 0, color: adjustColorOpacity(datasetColor, 0.2) },
+                { stop: 1, color: adjustColorOpacity(datasetColor, 0.85) },
+              ]);
+            },
             borderColor: datasetColor,
-            borderWidth: 2.5,
-            pointRadius: 0,
-            pointHoverRadius: 3,
-            pointBackgroundColor: datasetColor,
-            clip: 20,
-            tension: 0.2,
+            borderWidth: 1.5,
+            borderRadius: 4,
+            borderSkipped: "bottom",
+            barPercentage: 0.8,
+            categoryPercentage: 0.8,
+            hoverBackgroundColor: adjustColorOpacity(datasetColor, 0.95),
+            hoverBorderColor: datasetColor,
+            hoverBorderWidth: 2,
           },
           {
             label: "Previous Period",
             data: previousData,
-            fill: true,
-            backgroundColor: isSinglePoint
-              ? adjustColorOpacity(prevColor, 0.4)
-              : function (context) {
-                  const chart = context.chart;
-                  const { ctx, chartArea } = chart;
-                  return chartAreaGradient(ctx, chartArea, [
-                    { stop: 0, color: adjustColorOpacity(prevColor, 0) },
-                    { stop: 1, color: adjustColorOpacity(prevColor, 0.12) },
-                  ]);
-                },
+            backgroundColor: function (context) {
+              const chart = context.chart;
+              const { ctx, chartArea } = chart;
+              if (!chartArea) return adjustColorOpacity(prevColor, 0.4);
+              return chartAreaGradient(ctx, chartArea, [
+                { stop: 0, color: adjustColorOpacity(prevColor, 0.1) },
+                { stop: 1, color: adjustColorOpacity(prevColor, 0.4) },
+              ]);
+            },
             borderColor: prevColor,
-            borderWidth: 2,
-            borderDash: isSinglePoint ? undefined : [6, 4],
-            pointRadius: 0,
-            pointHoverRadius: 3,
-            pointBackgroundColor: prevColor,
-            clip: 20,
-            tension: 0.2,
+            borderWidth: 1,
+            borderRadius: 4,
+            borderSkipped: "bottom",
+            barPercentage: 0.8,
+            categoryPercentage: 0.8,
+            hoverBackgroundColor: adjustColorOpacity(prevColor, 0.6),
+            hoverBorderColor: prevColor,
+            hoverBorderWidth: 1.5,
           }
         ]
       },
@@ -170,6 +168,10 @@ function ComparativeLineChart({
         resizeDelay: 200,
         layout: { padding: 20 },
         interaction: { intersect: false, mode: "index" },
+        animation: {
+          duration: 1000,
+          easing: "easeInOutQuart",
+        },
         scales: {
           x: {
             grid: { display: false },
@@ -178,15 +180,21 @@ function ComparativeLineChart({
               font: { size: 11 },
               maxRotation: 0,
               maxTicksLimit: 10,
+              padding: 8,
             }
           },
           y: {
             beginAtZero: true,
-            grid: { color: "#f3f4f6" },
+            grid: {
+              color: "#f3f4f6",
+              borderDash: [4, 4],
+              drawTicks: false,
+            },
             ticks: {
               color: "#9ca3af",
               font: { size: 11 },
               precision: 0,
+              padding: 8,
               callback: (val) => {
                 if (isRevenue) {
                   if (val >= 100000) return `${(val / 100000).toFixed(1)}L`;
@@ -200,6 +208,8 @@ function ComparativeLineChart({
         plugins: {
           legend: { display: false },
           tooltip: {
+            usePointStyle: true,
+            boxPadding: 6,
             bodyColor: "#6b7280",
             backgroundColor: "#ffffff",
             borderColor: "#e5e7eb",
@@ -207,7 +217,7 @@ function ComparativeLineChart({
             titleColor: "#1f2937",
             titleFont: { weight: "bold" },
             cornerRadius: 8,
-            padding: 8,
+            padding: 10,
             caretSize: 0,
             caretPadding: 20,
             callbacks: {
@@ -502,7 +512,7 @@ export function OverallViewTab() {
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-1">
-          <ComparativeLineChart
+          <ComparativeBarChart
             title="Enrollments Comparative Graph"
             currentData={currentTrend.map(d => d.enrollments)}
             previousData={previousTrend.map(d => d.enrollments)}
@@ -514,7 +524,7 @@ export function OverallViewTab() {
             subLabel="total enrollments"
           />
 
-          <ComparativeLineChart
+          <ComparativeBarChart
             title="Revenue Comparative Graph"
             currentData={currentTrend.map(d => d.revenue)}
             previousData={previousTrend.map(d => d.revenue)}
@@ -526,7 +536,7 @@ export function OverallViewTab() {
             subLabel="total revenue"
           />
 
-          <ComparativeLineChart
+          <ComparativeBarChart
             title="Active Students Comparative Graph"
             currentData={currentTrend.map(d => d.activeStudents)}
             previousData={previousTrend.map(d => d.activeStudents)}
