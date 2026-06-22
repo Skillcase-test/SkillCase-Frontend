@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ActionChip, ControlDropdown } from "../components/controls";
 import { StatCard } from "../components/common";
 import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
-import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, X, Trash2, Loader2 } from "lucide-react";
+import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 
 export function RecruitmentViewTab({
   rows,
@@ -27,6 +28,7 @@ export function RecruitmentViewTab({
   setAllSortOrder,
 }) {
   const [copiedEnrollmentId, setCopiedEnrollmentId] = useState("");
+  const [receiptCandidate, setReceiptCandidate] = useState(null);
 
   const handleCopyLink = (enrollmentId, url) => {
     navigator.clipboard.writeText(url).then(() => {
@@ -389,6 +391,11 @@ export function RecruitmentViewTab({
                       >
                         Details
                       </ActionChip>
+                      <ActionChip
+                        onClick={() => setReceiptCandidate(r)}
+                      >
+                        Receipt
+                      </ActionChip>
                       {r.status !== "archived" &&
                         r.lifecycle_state !== "archived" &&
                         (() => {
@@ -625,6 +632,268 @@ export function RecruitmentViewTab({
           </tbody>
         </table>
       </div>
+      
+      {receiptCandidate && (
+        <ReceiptPaymentsModal
+          candidate={receiptCandidate}
+          onClose={() => setReceiptCandidate(null)}
+        />
+      )}
     </div>
   );
 }
+
+function ReceiptPaymentsModal({ candidate, onClose }) {
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(null);
+
+  useEffect(() => {
+    loadCandidatePayments();
+  }, [candidate.enrollment_id]);
+
+  const loadCandidatePayments = async () => {
+    setLoading(true);
+    try {
+      const res = await paymentsAdminApi.getCandidatePaymentsWithReceipts(candidate.enrollment_id);
+      setPayments(res.data.rows || []);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to load candidate payments");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerate = async (paymentId) => {
+    setActionLoading(paymentId);
+    try {
+      await paymentsAdminApi.generateReceipt({
+        enrollment_id: candidate.enrollment_id,
+        payment_id: paymentId,
+        state: candidate.notes?.state || "Karnataka"
+      });
+      await loadCandidatePayments();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.msg || "Failed to generate receipt draft");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleView = async (receiptId) => {
+    setActionLoading(receiptId);
+    try {
+      const res = await paymentsAdminApi.getReceiptPdf(receiptId);
+      const base64 = res.data.pdf_base64;
+      const binStr = window.atob(base64);
+      const len = binStr.length;
+      const arr = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        arr[i] = binStr.charCodeAt(i);
+      }
+      const blob = new Blob([arr], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to fetch receipt PDF preview");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleSend = async (receiptId) => {
+    if (!window.confirm(`Are you sure you want to send this receipt email to ${candidate.student_email}?`)) {
+      return;
+    }
+    setActionLoading(receiptId);
+    try {
+      await paymentsAdminApi.sendReceipt({ receipt_id: receiptId });
+      await loadCandidatePayments();
+      alert("Receipt sent successfully!");
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.msg || "Failed to send receipt email");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDeleteDraft = async (receiptId) => {
+    if (!window.confirm("Are you sure you want to delete this draft receipt?")) {
+      return;
+    }
+    setActionLoading(receiptId);
+    try {
+      await paymentsAdminApi.deleteReceiptDraft(receiptId);
+      await loadCandidatePayments();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.msg || "Failed to delete receipt draft");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+      <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden flex flex-col max-h-[85vh]">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800">
+              Receipt Generation
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Candidate: <span className="font-semibold text-slate-700">{candidate.student_name}</span> ({candidate.student_email || "No Email"})
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 overflow-y-auto flex-1">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+              <span className="text-sm text-slate-500 font-medium">Fetching transactions...</span>
+            </div>
+          ) : payments.length === 0 ? (
+            <div className="text-center py-16 text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+              No successful payments found for this candidate.
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="min-w-full text-sm text-left">
+                <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase text-slate-600">
+                  <tr>
+                    <th className="px-4 py-3">Paid Date</th>
+                    <th className="px-4 py-3">Transaction ID</th>
+                    <th className="px-4 py-3">Amount</th>
+                    <th className="px-4 py-3">Method</th>
+                    <th className="px-4 py-3 text-center">Receipt Status</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {payments.map((p) => {
+                    const hasReceipt = !!p.receipt_id;
+                    const isSent = p.receipt_status === "sent";
+                    const rowLoaderId = p.receipt_id || p.payment_id;
+                    const isLoading = actionLoading === rowLoaderId;
+
+                    return (
+                      <tr key={p.payment_id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-4 py-3 font-medium text-slate-700">
+                          {p.paid_at ? formatIstDateTime(p.paid_at) : "-"}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-slate-500">
+                          {p.razorpay_payment_id || p.payment_id}
+                        </td>
+                        <td className="px-4 py-3 font-semibold text-slate-800">
+                          {formatInrFromPaise(p.amount_paise)}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">
+                          {p.payment_method || "Online"}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {hasReceipt ? (
+                            isSent ? (
+                              <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                                Sent
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 border border-blue-200">
+                                Draft
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-slate-400 text-xs">No Receipt</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex justify-end items-center gap-1.5">
+                            {isLoading ? (
+                              <Loader2 className="h-4 w-4 text-blue-600 animate-spin mr-3" />
+                            ) : !hasReceipt ? (
+                              <ActionChip
+                                onClick={() => handleGenerate(p.payment_id)}
+                                variant="primary"
+                              >
+                                Generate
+                              </ActionChip>
+                            ) : (
+                              <>
+                                <ActionChip
+                                  onClick={() => handleView(p.receipt_id)}
+                                  variant="secondary"
+                                >
+                                  View
+                                </ActionChip>
+                                {!isSent && (
+                                  <>
+                                    <ActionChip
+                                      onClick={() => handleGenerate(p.payment_id)}
+                                      variant="secondary"
+                                    >
+                                      Regenerate
+                                    </ActionChip>
+                                    <ActionChip
+                                      onClick={() => handleSend(p.receipt_id)}
+                                      variant="success"
+                                    >
+                                      Send
+                                    </ActionChip>
+                                    <button
+                                      onClick={() => handleDeleteDraft(p.receipt_id)}
+                                      className="p-1 rounded text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
+                                      title="Delete Draft"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </>
+                                )}
+                                {isSent && (
+                                  <ActionChip
+                                    onClick={() => handleSend(p.receipt_id)}
+                                    variant="secondary"
+                                  >
+                                    Resend
+                                  </ActionChip>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+

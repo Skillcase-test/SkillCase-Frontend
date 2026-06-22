@@ -125,4 +125,15 @@ export const paymentsAdminApi = {
     api.get("/admin/payments/booked-amounts/candidate-payments", { params: { phone } }),
   bookAmount: (payload) =>
     api.post("/admin/payments/booked-amounts", payload),
+
+  getCandidatePaymentsWithReceipts: (enrollmentId) =>
+    api.get(`/admin/payments/recruitment/candidates/${enrollmentId}/payments-with-receipts`),
+  generateReceipt: (payload) =>
+    api.post("/admin/payments/recruitment/receipts/generate", payload),
+  sendReceipt: (payload) =>
+    api.post("/admin/payments/recruitment/receipts/send", payload),
+  getReceiptPdf: (receiptId) =>
+    api.get(`/admin/payments/recruitment/receipts/${receiptId}/pdf`),
+  deleteReceiptDraft: (receiptId) =>
+    api.delete(`/admin/payments/recruitment/receipts/${receiptId}`),
 };
