@@ -677,7 +677,7 @@ export default function TermsSignPage() {
                 for (const key of Object.keys(next)) {
                   if (key === "student_name" || key === "student_phone" || key === "student_email") continue;
                   const val = candidateDetails[key];
-                  if (val !== undefined && val !== null && String(val).trim() !== "-") {
+                  if (val !== undefined && val !== null && String(val).trim() !== "" && String(val).trim() !== "-") {
                     next[key] = String(val).trim();
                   }
                 }
@@ -1133,7 +1133,7 @@ export default function TermsSignPage() {
             for (const key of Object.keys(next)) {
               if (key === "student_name" || key === "student_phone" || key === "student_email") continue;
               const val = candidateDetails[key];
-              if (val !== undefined && val !== null && String(val).trim() !== "-") {
+              if (val !== undefined && val !== null && String(val).trim() !== "" && String(val).trim() !== "-") {
                 next[key] = String(val).trim();
               }
             }
@@ -1264,10 +1264,11 @@ export default function TermsSignPage() {
   };
 
   const isStep3Valid = () => {
-    if (wizardData.shift_pattern === "Daily Shift Pattern") {
+    const pattern = wizardData.shift_pattern || "Daily Shift Pattern";
+    if (pattern === "Daily Shift Pattern") {
       return Boolean(wizardData.daily_shift_timing?.trim());
     }
-    if (wizardData.shift_pattern === "Rotating Shifts") {
+    if (pattern === "Rotating Shifts") {
       return Boolean(wizardData.first_shift_timing?.trim() && wizardData.second_shift_timing?.trim());
     }
     return false;
@@ -1485,7 +1486,7 @@ export default function TermsSignPage() {
                 <div>
                   <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Shift Pattern <span className="text-rose-500">*</span></label>
                   <select 
-                    value={wizardData.shift_pattern}
+                    value={wizardData.shift_pattern || "Daily Shift Pattern"}
                     onChange={(e) => setWizardData({...wizardData, shift_pattern: e.target.value})}
                     className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
                   >
@@ -1494,7 +1495,7 @@ export default function TermsSignPage() {
                   </select>
                 </div>
 
-                {wizardData.shift_pattern === "Daily Shift Pattern" ? (
+                {(wizardData.shift_pattern || "Daily Shift Pattern") === "Daily Shift Pattern" ? (
                   <div>
                     <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Daily Shift Timing <span className="text-rose-500">*</span></label>
                     <input 
@@ -1518,7 +1519,7 @@ export default function TermsSignPage() {
                       />
                     </div>
 
-                    {wizardData.shift_pattern === "Rotating Shifts" && (
+                    {(wizardData.shift_pattern || "Daily Shift Pattern") === "Rotating Shifts" && (
                       <>
                         <div>
                           <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Second Shift Timing <span className="text-rose-500">*</span></label>
