@@ -404,7 +404,11 @@ export function RecruitmentViewTab({
                           const isSending =
                             sendingAgreementEnrollmentId === r.enrollment_id;
 
-                          if (agreementState === "not_sent") {
+                          if (
+                            agreementState === "not_sent" ||
+                            agreementState === "expired" ||
+                            agreementState === "cancelled"
+                          ) {
                             return (
                               <ActionChip
                                 onClick={() => handleSendAgreement?.(r)}
