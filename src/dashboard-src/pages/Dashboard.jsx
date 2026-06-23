@@ -10,6 +10,7 @@ import {
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { adminAccessApi } from "../../api/adminAccessApi";
 const Analytics = lazy(() => import("./Analytics"));
+const AppAnalytics = lazy(() => import("./AppAnalytics"));
 const ManageEvents = lazy(() => import("./event/ManageEvents"));
 const LandingPageManagement = lazy(() => import("./LandingPageManagement"));
 const SendNotification = lazy(() => import("./notification/send"));
@@ -641,6 +642,12 @@ export default function Dashboard() {
         module: "analytics",
       },
       {
+        key: "app-analytics",
+        label: "App Analytics",
+        path: "/admin/app-analytics",
+        module: "analytics",
+      },
+      {
         key: "events",
         label: "Events",
         path: "/admin/events",
@@ -954,6 +961,14 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "analytics")}>
                     <Analytics />
+                  </Guard>
+                }
+              />
+              <Route
+                path="app-analytics"
+                element={
+                  <Guard allowed={hasPermission(me, "analytics")}>
+                    <AppAnalytics me={me} />
                   </Guard>
                 }
               />
