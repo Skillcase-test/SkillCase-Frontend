@@ -284,6 +284,7 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                 <th className="px-6 py-4">Review Status</th>
                 <th className="px-6 py-4">Reviewed</th>
                 <th className="px-6 py-4">Score</th>
+                {isSuperAdmin && <th className="px-6 py-4">AI Score</th>}
                 <th className="px-6 py-4 text-right">Action</th>
               </tr>
             </thead>
@@ -344,6 +345,11 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                   <td className="px-6 py-5 font-semibold text-gray-900">
                     {item.overall_score || item.calculated_score || "-"}
                   </td>
+                  {isSuperAdmin && (
+                    <td className="px-6 py-5 font-semibold text-[#083262]">
+                      {item.ai_score ? Number(item.ai_score).toFixed(1) : "-"}
+                    </td>
+                  )}
                   <td className="px-6 py-5 text-right">
                     <div className="flex justify-end gap-2">
                       {isSuperAdmin && (

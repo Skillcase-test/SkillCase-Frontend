@@ -20,6 +20,7 @@ export default function SkillcaseInterviewToolsReviewPage({
   const [overallStrength, setOverallStrength] = useState("");
   const [overallWeakness, setOverallWeakness] = useState("");
   const [saving, setSaving] = useState(false);
+  const [aiScoringMap, setAiScoringMap] = useState({});
 
   const STORAGE_KEY = `review_draft_${selectedInterviewPositionId}_${selectedInterviewSubmissionId}`;
 
@@ -106,6 +107,53 @@ export default function SkillcaseInterviewToolsReviewPage({
       await loadDetail();
     } finally {
       setSaving(false);
+    }
+  };
+
+  const getAiButtonText = (status, answerId) => {
+    const localState = aiScoringMap[answerId];
+    const currentStatus = localState === "running" ? status : (localState || status);
+
+    switch (currentStatus) {
+      case "downloading":
+        return "Downloading Video...";
+      case "extracting_audio":
+        return "Extracting Audio...";
+      case "transcribing":
+        return "Transcribing Audio...";
+      case "scoring":
+        return "Scoring with AI...";
+      case "running":
+        return "Processing...";
+      default:
+        return "Run AI Score";
+    }
+  };
+
+  const isAiInProgress = (status, answerId) => {
+    const inProgressStatuses = ["downloading", "extracting_audio", "transcribing", "scoring", "running"];
+    return inProgressStatuses.includes(status) || aiScoringMap[answerId] === "running";
+  };
+
+  const handleRunAiScore = async (answerId) => {
+    setAiScoringMap((prev) => ({ ...prev, [answerId]: "running" }));
+    const pollInterval = setInterval(() => {
+      loadDetail().catch(() => {});
+    }, 1500);
+
+    try {
+      await skillcaseInterviewToolsApi.runAiScore(
+        selectedInterviewPositionId,
+        selectedInterviewSubmissionId,
+        answerId,
+      );
+      setAiScoringMap((prev) => ({ ...prev, [answerId]: "done" }));
+    } catch (error) {
+      console.error("AI scoring failed:", error);
+      setAiScoringMap((prev) => ({ ...prev, [answerId]: "error" }));
+    } finally {
+      clearInterval(pollInterval);
+      await loadDetail();
     }
   };
 
@@ -210,6 +258,16 @@ export default function SkillcaseInterviewToolsReviewPage({
                   {calculatedAverage || "-"}
                 </span>
               </div>
+              {isSuperAdmin && (
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500 ml-1">
+                    AI Average Score:
+                  </span>
+                  <span className="bg-blue-50 text-[#083262] border border-blue-100 font-bold px-2 py-0.5 rounded text-xs">
+                    {detail.submission.ai_score ? Number(detail.submission.ai_score).toFixed(1) : "-"}
+                  </span>
+                </div>
+              )}
               <input
                 type="number"
                 min="1"
@@ -339,6 +397,96 @@ export default function SkillcaseInterviewToolsReviewPage({
                 ))}
               </div>
             </div>
+
+            {isSuperAdmin && activeAnswer.answer_video_key ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="mb-4 flex items-center justify-between">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[#083262] ml-1">
+                    AI Score
+                  </label>
+                  {activeAnswer.ai_detected_lang && activeAnswer.ai_scoring_status === "done" && (
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+                      {activeAnswer.ai_detected_lang}
+                    </span>
+                  )}
+                </div>
+
+                {activeAnswer.ai_scoring_status === "done" ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl font-extrabold text-[#083262]">
+                        {Number(activeAnswer.ai_score).toFixed(1)}
+                      </span>
+                      <span className="text-sm text-slate-400 font-medium">/ 10</span>
+                    </div>
+
+                    {activeAnswer.ai_reasoning && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 ml-1">
+                          Reasoning
+                        </p>
+                        <p className="text-sm text-slate-700 leading-relaxed">
+                          {activeAnswer.ai_reasoning}
+                        </p>
+                      </div>
+                    )}
+
+                    {activeAnswer.ai_strengths && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-1 ml-1">
+                          Strengths
+                        </p>
+                        <p className="text-sm text-slate-700 leading-relaxed">
+                          {activeAnswer.ai_strengths}
+                        </p>
+                      </div>
+                    )}
+
+                    {activeAnswer.ai_weaknesses && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-rose-400 mb-1 ml-1">
+                          Weaknesses
+                        </p>
+                        <p className="text-sm text-slate-700 leading-relaxed">
+                          {activeAnswer.ai_weaknesses}
+                        </p>
+                      </div>
+                    )}
+
+                    {activeAnswer.ai_transcript && (
+                      <details className="group">
+                        <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1 select-none hover:text-slate-600 transition">
+                          Transcript
+                        </summary>
+                        <p className="mt-2 text-xs text-slate-500 leading-relaxed whitespace-pre-wrap border border-slate-100 rounded-xl p-3 bg-slate-50">
+                          {activeAnswer.ai_transcript}
+                        </p>
+                      </details>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {(activeAnswer.ai_scoring_status === "failed" ||
+                      aiScoringMap[activeAnswer.answer_id] === "error") && (
+                      <p className="text-xs text-rose-600 font-medium">
+                        Scoring failed. Try again.
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      disabled={isAiInProgress(activeAnswer.ai_scoring_status, activeAnswer.answer_id)}
+                      onClick={() => handleRunAiScore(activeAnswer.answer_id)}
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#083262] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#052243] disabled:opacity-50 shadow-sm w-full justify-center"
+                    >
+                      {getAiButtonText(activeAnswer.ai_scoring_status, activeAnswer.answer_id)}
+                    </button>
+                    <p className="text-[10px] text-slate-400 text-center">
+                      Transcribes the answer and scores it against the question using AI
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : null}
 
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <div className="space-y-2">
