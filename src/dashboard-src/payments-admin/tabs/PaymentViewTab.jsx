@@ -127,11 +127,11 @@ export function PaymentViewTab({
               <td className="px-2 py-2">
                 <div className="flex items-center gap-1.5">
                   <span>{r.student_phone || "-"}</span>
-                  {r.student_phone && (
+                  {(!r.metadata_json || r.metadata_json.source !== "admin_manual_actual") && (
                     <button
                       onClick={() => setRelinkModal({ open: true, payment: r })}
                       className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-slate-200 transition-all text-slate-500"
-                      title="Relink transaction by phone number"
+                      title="Link or relink transaction by phone number"
                     >
                       <Edit2 className="h-3 w-3" />
                     </button>
