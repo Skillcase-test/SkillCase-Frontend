@@ -791,8 +791,7 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
                   {payments.map((p) => {
                     const hasReceipt = !!p.receipt_id;
                     const isSent = p.receipt_status === "sent";
-                    const rowLoaderId = p.receipt_id || p.payment_id;
-                    const isLoading = actionLoading === rowLoaderId;
+                    const isLoading = !!actionLoading && (actionLoading === p.receipt_id || actionLoading === p.payment_id);
 
                     return (
                       <tr key={p.payment_id} className="hover:bg-slate-50/50 transition-colors">
