@@ -29,6 +29,8 @@ export function usePaymentsAdminSelectors(state) {
     state.month,
     state.paymentAllTime,
     state.paymentBookedOnly,
+    state.paymentRecruitmentOnly,
+    state.paymentTrainingOnly,
     state.activeBatchId,
     state.batchSortBy,
     state.batchSortOrder,

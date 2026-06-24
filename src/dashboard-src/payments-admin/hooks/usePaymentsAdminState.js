@@ -117,8 +117,19 @@ export function usePaymentsAdminState() {
   const [paymentSortOrder, setPaymentSortOrder] = useState("desc");
   const [paymentAllTime, setPaymentAllTime] = useState(false);
   const [paymentBookedOnly, setPaymentBookedOnly] = useState(false);
-  const [paymentRecruitmentOnly, setPaymentRecruitmentOnly] = useState(false);
+  const [paymentRecruitmentOnly, setPaymentRecruitmentOnlyState] = useState(false);
+  const [paymentTrainingOnly, setPaymentTrainingOnlyState] = useState(false);
   const [paymentTotalAmountPaise, setPaymentTotalAmountPaise] = useState(0);
+
+  const setPaymentRecruitmentOnly = (val) => {
+    setPaymentRecruitmentOnlyState(val);
+    if (val) setPaymentTrainingOnlyState(false);
+  };
+
+  const setPaymentTrainingOnly = (val) => {
+    setPaymentTrainingOnlyState(val);
+    if (val) setPaymentRecruitmentOnlyState(false);
+  };
   const [monthSortBy, setMonthSortBy] = useState("created_at");
   const [monthSortOrder, setMonthSortOrder] = useState("desc");
   const [allSummary, setAllSummary] = useState({
@@ -339,6 +350,7 @@ export function usePaymentsAdminState() {
           all: paymentAllTime || undefined,
           booked: paymentBookedOnly || undefined,
           recruitment: paymentRecruitmentOnly || undefined,
+          training: paymentTrainingOnly || undefined,
         });
         if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
@@ -443,6 +455,7 @@ export function usePaymentsAdminState() {
     tab === "payments" ? paymentAllTime : null,
     tab === "payments" ? paymentBookedOnly : null,
     tab === "payments" ? paymentRecruitmentOnly : null,
+    tab === "payments" ? paymentTrainingOnly : null,
     tab === "rawlogs" ? debouncedRawSearch : null,
     tab === "rawlogs" ? rawEventTypeFilter : null,
     tab === "rawlogs" ? rawStatusFilter : null,
@@ -473,6 +486,7 @@ export function usePaymentsAdminState() {
     setPaymentAllTime(false);
     setPaymentBookedOnly(false);
     setPaymentRecruitmentOnly(false);
+    setPaymentTrainingOnly(false);
     setPaymentTotalAmountPaise(0);
     setActiveBatchId("");
     setActiveBatchName("");
@@ -600,6 +614,8 @@ export function usePaymentsAdminState() {
     setPaymentBookedOnly,
     paymentRecruitmentOnly,
     setPaymentRecruitmentOnly,
+    paymentTrainingOnly,
+    setPaymentTrainingOnly,
     paymentTotalAmountPaise,
     monthSortBy,
     setMonthSortBy,
