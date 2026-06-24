@@ -137,9 +137,11 @@ const JobScreening = () => {
   const currentStepId = progress?.current_step_id || "welcome";
   const activeStep = steps.find((s) => s.id === currentStepId);
 
-  const handleStepComplete = (updatedData) => {
+  const handleStepComplete = (updatedData, shouldExitStep = true) => {
     setProgress(updatedData);
-    setIsExecutingStep(false);
+    if (shouldExitStep) {
+      setIsExecutingStep(false);
+    }
   };
 
   const renderActiveStepComponent = () => {
@@ -151,6 +153,7 @@ const JobScreening = () => {
           <ProfileCompletionStep
             progress={progress}
             onComplete={handleStepComplete}
+            onBack={() => setIsExecutingStep(false)}
           />
         );
       case "interview_attempt":
@@ -240,21 +243,8 @@ const JobScreening = () => {
   // 2. Active Step Execution screen
   if (isExecutingStep) {
     return (
-      <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-[#f8fafc] py-4 sm:py-6 flex flex-col">
-        <main className="max-w-md sm:max-w-xl mx-auto px-4 flex flex-col gap-4 w-full">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsExecutingStep(false)}
-              className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-[#002856] rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Progress</span>
-            </button>
-            <span className="text-xs text-slate-400 font-medium">
-              Current Step: {activeStep?.title}
-            </span>
-          </div>
-
+      <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-white w-full flex flex-col items-center overflow-y-auto">
+        <div className="w-full max-w-md px-4 py-4">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStepId}
@@ -267,7 +257,7 @@ const JobScreening = () => {
               {renderActiveStepComponent()}
             </motion.div>
           </AnimatePresence>
-        </main>
+        </div>
       </div>
     );
   }
