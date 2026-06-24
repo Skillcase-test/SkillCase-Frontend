@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getProgress } from "../../api/jobScreeningApi";
-import StepProgressTracker from "./components/StepProgressTracker";
 import WelcomeStep from "./components/WelcomeStep";
 import ProfileCompletionStep from "./components/ProfileCompletionStep";
 import InterviewStep from "./components/InterviewStep";
@@ -11,11 +10,56 @@ import MeetingStep from "./components/MeetingStep";
 import OfferLetterStep from "./components/OfferLetterStep";
 import AdditionalDocumentsStep from "./components/AdditionalDocumentsStep";
 import RecruiterStatusStep from "./components/RecruiterStatusStep";
+import { Check, Lock, RefreshCw, ArrowLeft } from "lucide-react";
+
+const STEP_DESCRIPTIONS = {
+  welcome: {
+    subtitle: "Read the overview of the program",
+    desc: "Welcome to the job screening process.",
+  },
+  profile_completion: {
+    subtitle: "fill your education and personal details",
+    desc: "Upload your CV and language certification documents.",
+  },
+  interview_attempt: {
+    subtitle: "complete your speaking assessment",
+    desc: "Complete the assigned Skillcase speaking and video interview.",
+  },
+  registration_form: {
+    subtitle: "sign the terms of agreement",
+    desc: "Review and sign the terms and conditions agreement form.",
+  },
+  review_pending: {
+    subtitle: "wait for recruiters to review your application",
+    desc: "Our recruitment partners will evaluate your profile details.",
+  },
+  additional_documents: {
+    subtitle: "submit supporting credentials",
+    desc: "Upload requested additional files (ID, marks sheets, etc.).",
+  },
+  interview_training: {
+    subtitle: "attend the scheduled prep training webinar",
+    desc: "Join live tutoring and test prep sessions for placement.",
+  },
+  recruiter_status: {
+    subtitle: "monitor recruiter sharing status",
+    desc: "Check which hiring companies are viewing your profile.",
+  },
+  recruiter_interview: {
+    subtitle: "complete your live recruiter partner interview",
+    desc: "Attend scheduled live meet interviews with recruitment partners.",
+  },
+  offer_letter: {
+    subtitle: "review and download your official placement offer",
+    desc: "Congratulations! Your offer letter is ready to be signed.",
+  },
+};
 
 const JobScreening = () => {
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isExecutingStep, setIsExecutingStep] = useState(false);
 
   const fetchProgress = async () => {
     try {
@@ -29,7 +73,9 @@ const JobScreening = () => {
       }
     } catch (err) {
       console.error("Error loading progress:", err);
-      setError(err.response?.data?.message || "Failed to load screening progress");
+      setError(
+        err.response?.data?.message || "Failed to load screening progress",
+      );
     } finally {
       setLoading(false);
     }
@@ -44,7 +90,9 @@ const JobScreening = () => {
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-[#002856] border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-[#002856] text-xs font-semibold">Loading your job screening pipeline...</span>
+          <span className="text-[#002856] text-xs font-semibold">
+            Loading your job screening pipeline...
+          </span>
         </div>
       </div>
     );
@@ -55,11 +103,23 @@ const JobScreening = () => {
       <div className="min-h-screen flex items-center justify-center bg-white p-4">
         <div className="max-w-md w-full bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-center">
           <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-500 mx-auto mb-4">
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
             </svg>
           </div>
-          <h2 className="text-lg font-bold text-[#002856] mb-2">Error Loading Pipeline</h2>
+          <h2 className="text-lg font-bold text-[#002856] mb-2">
+            Error Loading Pipeline
+          </h2>
           <p className="text-zinc-500 text-xs leading-relaxed mb-6">{error}</p>
           <button
             onClick={fetchProgress}
@@ -79,6 +139,7 @@ const JobScreening = () => {
 
   const handleStepComplete = (updatedData) => {
     setProgress(updatedData);
+    setIsExecutingStep(false);
   };
 
   const renderActiveStepComponent = () => {
@@ -94,10 +155,7 @@ const JobScreening = () => {
         );
       case "interview_attempt":
         return (
-          <InterviewStep
-            progress={progress}
-            onComplete={handleStepComplete}
-          />
+          <InterviewStep progress={progress} onComplete={handleStepComplete} />
         );
       case "registration_form":
         return (
@@ -107,17 +165,49 @@ const JobScreening = () => {
           />
         );
       case "review_pending":
-        return <ReviewPendingStep progress={progress} onComplete={handleStepComplete} />;
+        return (
+          <ReviewPendingStep
+            progress={progress}
+            onComplete={handleStepComplete}
+          />
+        );
       case "additional_documents":
-        return <AdditionalDocumentsStep progress={progress} onComplete={handleStepComplete} />;
+        return (
+          <AdditionalDocumentsStep
+            progress={progress}
+            onComplete={handleStepComplete}
+          />
+        );
       case "interview_training":
-        return <MeetingStep type="training" progress={progress} onComplete={handleStepComplete} />;
+        return (
+          <MeetingStep
+            type="training"
+            progress={progress}
+            onComplete={handleStepComplete}
+          />
+        );
       case "recruiter_status":
-        return <RecruiterStatusStep progress={progress} onComplete={handleStepComplete} />;
+        return (
+          <RecruiterStatusStep
+            progress={progress}
+            onComplete={handleStepComplete}
+          />
+        );
       case "recruiter_interview":
-        return <MeetingStep type="recruiter" progress={progress} onComplete={handleStepComplete} />;
+        return (
+          <MeetingStep
+            type="recruiter"
+            progress={progress}
+            onComplete={handleStepComplete}
+          />
+        );
       case "offer_letter":
-        return <OfferLetterStep progress={progress} onComplete={handleStepComplete} />;
+        return (
+          <OfferLetterStep
+            progress={progress}
+            onComplete={handleStepComplete}
+          />
+        );
       default:
         return (
           <div className="bg-white p-6 rounded-2xl border border-slate-200 text-center text-gray-500">
@@ -127,21 +217,44 @@ const JobScreening = () => {
     }
   };
 
-  return (
-    <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-white py-2.5 sm:py-4 flex flex-col">
-      <main className="max-w-lg mx-auto lg:max-w-3xl lg:px-8 px-4 flex flex-col gap-3.5 w-full">
-        <div className="text-left">
-          <h1 className="text-2xl font-bold text-[#002856]">
-            Job Screening Pipeline
-          </h1>
-          <p className="text-xs text-zinc-500 mt-1">
-            Complete the steps below to qualify for career opportunities in Germany.
-          </p>
-        </div>
+  // 1. Full-screen Welcome flow
+  if (currentStepId === "welcome") {
+    return (
+      <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-gradient-to-b from-[#002856] to-[#134074] w-full flex flex-col justify-center items-center">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStepId}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.2 }}
+            className="w-full"
+          >
+            {renderActiveStepComponent()}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    );
+  }
 
-        <StepProgressTracker steps={visibleSteps} currentStepId={currentStepId} />
+  // 2. Active Step Execution screen
+  if (isExecutingStep) {
+    return (
+      <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-[#f8fafc] py-4 sm:py-6 flex flex-col">
+        <main className="max-w-md sm:max-w-xl mx-auto px-4 flex flex-col gap-4 w-full">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsExecutingStep(false)}
+              className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-[#002856] rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Progress</span>
+            </button>
+            <span className="text-xs text-slate-400 font-medium">
+              Current Step: {activeStep?.title}
+            </span>
+          </div>
 
-        <div className="relative min-h-[300px]">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStepId}
@@ -154,8 +267,184 @@ const JobScreening = () => {
               {renderActiveStepComponent()}
             </motion.div>
           </AnimatePresence>
+        </main>
+      </div>
+    );
+  }
+
+  // Calculate Progress Stats
+  const completedStepsCount = visibleSteps.filter(
+    (s) => s.status === "completed",
+  ).length;
+  const totalStepsCount = visibleSteps.length;
+  const progressPercent =
+    totalStepsCount > 0 ? (completedStepsCount / totalStepsCount) * 100 : 0;
+  const activeStepIndex = visibleSteps.findIndex((s) => s.id === currentStepId);
+
+  // 3. Central Job Progress Timeline screen (Progress Lobby)
+  return (
+    <div className="w-full min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-gradient-to-b from-[#e0f2fe] to-[#dbeafe] py-6 px-4 flex flex-col items-center overflow-y-auto font-sans">
+      <div className="w-full max-w-md flex flex-col gap-6">
+        {/* Header Block with Circular Progress Ring */}
+        <div className="pb-3 pt-2 flex items-center justify-between">
+          <div className="flex-1 text-left min-w-0 pr-4">
+            <h2 className="text-[#002856] text-3xl font-semibold tracking-tight">
+              Your job progress
+            </h2>
+            <p className="text-[#002856]/70 text-xs sm:text-sm font-medium mt-1 leading-relaxed">
+              Next step -{" "}
+              {STEP_DESCRIPTIONS[currentStepId]?.subtitle ||
+                activeStep?.title ||
+                ""}
+            </p>
+          </div>
+
+          {/* SVG Progress Ring */}
+          <div className="relative w-24 h-24 flex items-center justify-center rounded-full shrink-0">
+            <svg
+              className="w-full h-full transform -rotate-90"
+              viewBox="0 0 36 36"
+            >
+              <circle
+                cx="18"
+                cy="18"
+                r="15.915"
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth="3.2"
+              />
+              <circle
+                cx="18"
+                cy="18"
+                r="15.915"
+                fill="none"
+                stroke="#eab308"
+                strokeWidth="3.2"
+                strokeDasharray="100"
+                strokeDashoffset={100 - progressPercent}
+                strokeLinecap="round"
+                className="transition-all duration-500"
+              />
+            </svg>
+            <div className="absolute flex flex-col items-center justify-center">
+              <span className="text-[#002856] text-sm sm:text-base font-extrabold leading-none">
+                {completedStepsCount}/{totalStepsCount}
+              </span>
+              <span className="text-[#002856]/50 text-[7px] sm:text-[8px] font-bold uppercase tracking-wider mt-0.5">
+                Done
+              </span>
+            </div>
+          </div>
         </div>
-      </main>
+
+        {/* Timeline Checklist */}
+        <div className="flex flex-col w-full">
+          {visibleSteps.map((step, idx) => {
+            const isCompleted = step.status === "completed";
+            const isActive = step.id === currentStepId;
+            const isReview = step.status === "review";
+            const isLocked = step.status === "locked";
+            const isLast = idx === visibleSteps.length - 1;
+
+            const stepDesc = STEP_DESCRIPTIONS[step.id]?.desc || "";
+
+            return (
+              <div
+                key={step.id}
+                className="self-stretch inline-flex justify-start items-stretch gap-3.5 w-full"
+              >
+                {/* Left Connector Node */}
+                <div className="w-6 flex flex-col items-center shrink-0">
+                  <div className="py-1.5 flex flex-col items-center">
+                    {isCompleted ? (
+                      <div className="w-6 h-6 bg-[#15803d] rounded-full flex items-center justify-center text-white shadow-sm shrink-0">
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
+                      </div>
+                    ) : isActive || isReview ? (
+                      <div className="w-6 h-6 bg-[#002856] rounded-full flex items-center justify-center text-white font-bold text-xs shadow-sm shrink-0">
+                        {idx + 1}
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 bg-black/10 rounded-full flex items-center justify-center text-[#002856]/40 shadow-none shrink-0">
+                        <Lock className="w-3 h-3" />
+                      </div>
+                    )}
+                  </div>
+                  {!isLast && (
+                    <div className="flex-1 w-[1.5px] bg-[#002856]/20 my-0.5" />
+                  )}
+                </div>
+
+                {/* Right Step Card */}
+                <div
+                  className={`flex-1 pb-6 w-full ${isLocked ? "opacity-60" : ""}`}
+                >
+                  <div
+                    className={`p-4 bg-white rounded-2xl shadow-md/10 border flex flex-col gap-4 w-full transition-all ${
+                      isActive || isReview
+                        ? "border-[#002856]/60 ring-2 ring-[#002856]/5"
+                        : "border-slate-200"
+                    }`}
+                  >
+                    {/* Title & Badge */}
+                    <div className="flex justify-between items-start gap-2 w-full text-left">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-slate-800 text-sm sm:text-base font-semibold leading-tight truncate">
+                          {step.title}
+                        </h3>
+                        <p className="text-slate-500 text-[11px] sm:text-xs font-normal leading-relaxed mt-1">
+                          {stepDesc}
+                        </p>
+                      </div>
+
+                      {/* Status Tag */}
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shrink-0 border ${
+                          isCompleted
+                            ? "bg-green-50 text-[#15803d] border-green-100"
+                            : isActive
+                              ? "bg-amber-50 text-[#d97706] border-amber-100"
+                              : isReview
+                                ? "bg-blue-50 text-[#1d4ed8] border-blue-100"
+                                : "bg-slate-50 text-slate-400 border-slate-100"
+                        }`}
+                      >
+                        {isCompleted
+                          ? "done"
+                          : isReview
+                            ? "review"
+                            : isActive
+                              ? "pending"
+                              : "locked"}
+                      </span>
+                    </div>
+
+                    {/* Action Button inside active pending step card */}
+                    {(isActive || isReview) && (
+                      <button
+                        onClick={() => setIsExecutingStep(true)}
+                        className="w-full py-3 bg-[#002856] text-white rounded-lg font-bold text-sm transition-all active:scale-[0.99] cursor-pointer text-center"
+                      >
+                        Start this step
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Bottom Floating CTA Button */}
+        {activeStep && (
+          <button
+            onClick={() => setIsExecutingStep(true)}
+            className="w-full h-12 bg-gradient-to-r from-amber-200 to-amber-300 hover:from-amber-300 hover:to-amber-400 text-[#002856] rounded-lg font-bold text-sm sm:text-base transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-md cursor-pointer mt-2 border border-amber-300"
+          >
+            Continue with Step {activeStepIndex + 1}
+          </button>
+        )}
+      </div>
     </div>
   );
 };
