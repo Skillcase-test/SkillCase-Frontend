@@ -652,7 +652,7 @@ function RetentionHeatmap({ rows = [], granularity, maxColumns }) {
             <th className="px-3 py-3 text-left">Cohort</th>
             <th className="px-3 py-3 text-left">Size</th>
             {displayColumns.map((bucket) => (
-              <th key={bucket} className="w-12 py-3 text-center">
+              <th key={bucket} className="w-12 px-2 py-3 text-center">
                 {prefix}{bucket}
               </th>
             ))}
