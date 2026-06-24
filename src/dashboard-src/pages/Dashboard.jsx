@@ -995,11 +995,7 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "skillcase_interviews")}>
                     <SkillcaseInterviewsModule
-                      isSuperAdmin={hasPermission(
-                        me,
-                        "skillcase_interviews",
-                        "manage",
-                      )}
+                      isSuperAdmin={me.role === "super_admin"}
                       canDownload={hasPermission(
                         me,
                         "skillcase_interviews",
