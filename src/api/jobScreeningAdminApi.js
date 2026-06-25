@@ -11,8 +11,9 @@ export const adminGetCandidateDetail = (userId) =>
 export const adminUpdateCandidate = (userId, payload) =>
   api.put(`/admin/job-screening/candidates/${userId}`, payload);
 
-export const adminUploadOfferLetter = (userId, formData) =>
+export const adminUploadOfferLetter = (userId, formData, recruiterAccountId) =>
   api.post(`/admin/job-screening/candidates/${userId}/offer-letter`, formData, {
+    params: recruiterAccountId ? { recruiterAccountId } : {},
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -25,8 +26,9 @@ export const adminUploadTrainingScheduleImage = (userId, formData) =>
     },
   });
 
-export const adminUploadRecruiterScheduleImage = (userId, formData) =>
+export const adminUploadRecruiterScheduleImage = (userId, formData, recruiterAccountId) =>
   api.post(`/admin/job-screening/candidates/${userId}/recruiter-schedule-image`, formData, {
+    params: recruiterAccountId ? { recruiterAccountId } : {},
     headers: {
       "Content-Type": "multipart/form-data",
     },

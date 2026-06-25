@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { getProgress, startAgreement, checkAgreement } from "../../api/jobScreeningApi";
+import {
+  getProgress,
+  startAgreement,
+  checkAgreement,
+} from "../../api/jobScreeningApi";
 import WelcomeStep from "./components/WelcomeStep";
 import ProfileCompletionStep from "./components/ProfileCompletionStep";
 import InterviewStep from "./components/InterviewStep";
@@ -43,16 +47,8 @@ const STEP_DESCRIPTIONS = {
     desc: "Join live tutoring and test prep sessions for placement.",
   },
   recruiter_status: {
-    subtitle: "monitor recruiter sharing status",
-    desc: "Check which hiring companies are viewing your profile.",
-  },
-  recruiter_interview: {
-    subtitle: "complete your live recruiter partner interview",
-    desc: "Attend scheduled live meet interviews with recruitment partners.",
-  },
-  offer_letter: {
-    subtitle: "review and download your official placement offer",
-    desc: "Congratulations! Your offer letter is ready to be signed.",
+    subtitle: "track recruiter placements and offers",
+    desc: "Monitor corporate matching, schedule partner interviews, and download offers.",
   },
 };
 
@@ -150,7 +146,10 @@ const JobScreening = () => {
 
   const handleStartStep = async (stepId) => {
     const targetStepId = stepId || currentStepId;
-    if (targetStepId === "interview_attempt" && progress?.assigned_interview_slug) {
+    if (
+      targetStepId === "interview_attempt" &&
+      progress?.assigned_interview_slug
+    ) {
       navigate(`/job-screening/interview/${progress.assigned_interview_slug}`, {
         state: {
           name: progress.candidate_name,
@@ -173,11 +172,16 @@ const JobScreening = () => {
           }
           navigate(`/job-screening/terms/sign/${data.token}`);
         } else {
-          setAgreementError("Failed to initialize signing process. Please try again.");
+          setAgreementError(
+            "Failed to initialize signing process. Please try again.",
+          );
         }
       } catch (err) {
         console.error(err);
-        setAgreementError(err.response?.data?.message || "An error occurred while starting the signing process.");
+        setAgreementError(
+          err.response?.data?.message ||
+            "An error occurred while starting the signing process.",
+        );
       } finally {
         setAgreementLoading(false);
       }
@@ -243,22 +247,7 @@ const JobScreening = () => {
           <RecruiterStatusStep
             progress={progress}
             onComplete={handleStepComplete}
-          />
-        );
-      case "recruiter_interview":
-        return (
-          <MeetingStep
-            type="recruiter"
-            progress={progress}
-            onComplete={handleStepComplete}
             onBack={() => setIsExecutingStep(false)}
-          />
-        );
-      case "offer_letter":
-        return (
-          <OfferLetterStep
-            progress={progress}
-            onComplete={handleStepComplete}
           />
         );
       default:
@@ -294,7 +283,7 @@ const JobScreening = () => {
   if (isExecutingStep) {
     return (
       <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-white w-full flex flex-col items-center overflow-y-auto">
-        <div className="w-full max-w-md px-4 py-4">
+        <div className="w-full max-w-md py-2">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStepId}

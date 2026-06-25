@@ -192,6 +192,43 @@ const CandidateDetail = ({
     }
   }, [candidate]);
 
+  const cleanString = (val) => {
+    if (!val || val === "NaN" || val === "undefined" || val === "null") return "";
+    return val;
+  };
+
+  const [editingRecId, setEditingRecId] = useState(null);
+  const [editingSection, setEditingSection] = useState(null);
+  const [recJobTitle, setRecJobTitle] = useState("");
+  const [recLocation, setRecLocation] = useState("");
+  const [recJobDesc, setRecJobDesc] = useState("");
+  const [recJobType, setRecJobType] = useState("Full-time");
+  const [recSalary, setRecSalary] = useState("");
+  const [recSlotTime, setRecSlotTime] = useState("");
+  const [recMeetLink, setRecMeetLink] = useState("");
+
+  const startEditingRecruiter = (recId, recData) => {
+    setEditingRecId(recId);
+    setRecJobTitle(cleanString(recData.job_title));
+    setRecLocation(cleanString(recData.location));
+    setRecJobDesc(cleanString(recData.job_description));
+    setRecJobType(recData.job_type || "Full-time");
+    setRecSalary(cleanString(recData.salary_range));
+    setRecSlotTime(recData.slot_time ? formatToLocalDateTimeString(recData.slot_time) : "");
+    setRecMeetLink(cleanString(recData.meet_link));
+  };
+
+  const startEditingSection = (recId, section, recData) => {
+    setEditingSection({ recruiterId: recId, section });
+    setRecJobTitle(cleanString(recData.job_title));
+    setRecLocation(cleanString(recData.location));
+    setRecJobDesc(cleanString(recData.job_description));
+    setRecJobType(recData.job_type || "Full-time");
+    setRecSalary(cleanString(recData.salary_range));
+    setRecSlotTime(recData.slot_time ? formatToLocalDateTimeString(recData.slot_time) : "");
+    setRecMeetLink(cleanString(recData.meet_link));
+  };
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -1670,343 +1707,818 @@ const CandidateDetail = ({
                       )}
 
                       {isRecruiterStatus && (
-                        <div className="space-y-3">
-                          <p>
-                            Configure recruitment partner status visibility for the candidate. Checked partners will be visible on the candidate dashboard.
+                        <div className="space-y-4">
+                          <p className="text-xs text-slate-500">
+                            Manage recruiter visibility, job card details, interview scheduling, pass/fail decisions, and offer letter uploads.
                           </p>
 
                           {candidate.recruiter_shares && candidate.recruiter_shares.length > 0 ? (
-                            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2.5">
-                              <span className="font-bold text-[#083262] text-[10px] uppercase tracking-wider block">
-                                Partner Visibility Check-list
-                              </span>
-                              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                                {candidate.recruiter_shares.map((rec) => {
-                                  const isChecked = rec.is_visible;
-                                  return (
-                                    <label
-                                      key={rec.account_id}
-                                      className="flex items-center gap-2.5 p-2 bg-white border border-slate-100 rounded-lg text-xs text-slate-700 hover:bg-slate-50/50 cursor-pointer select-none"
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={isChecked}
-                                        onChange={(e) => {
-                                          const currentVisible = candidate.visible_recruiter_ids || [];
-                                          let newVisible;
-                                          if (e.target.checked) {
-                                            newVisible = [...currentVisible, rec.account_id];
-                                          } else {
-                                            newVisible = currentVisible.filter((id) => id !== rec.account_id);
-                                          }
-                                          onUpdate(candidate.user_id, {
-                                            visible_recruiter_ids: newVisible,
-                                          });
-                                        }}
-                                        className="rounded border-slate-200 text-[#083262] focus:ring-0 w-3.5 h-3.5"
-                                      />
-                                      <div className="flex flex-col gap-0.5">
-                                        <span className="font-bold">{rec.recruiter_email}</span>
-                                        <span className="text-[9px] text-slate-400 uppercase font-semibold">
-                                          Current Status: {rec.stage || "Submitted"}
-                                        </span>
+                            <div className="space-y-4">
+                              {candidate.recruiter_shares.map((rec) => {
+                                const isChecked = candidate.visible_recruiter_ids?.includes(rec.account_id);
+                                const recData = candidate.recruiter_interviews?.[rec.account_id] || {};
+                                const isEditing = editingRecId === rec.account_id;
+
+                                return (
+                                  <div
+                                    key={rec.account_id}
+                                    className="bg-slate-50/50 border border-slate-200/80 rounded-2xl p-4 flex flex-col gap-4 text-left transition-all hover:bg-slate-50"
+                                  >
+                                    {/* Header block with visibility checkbox */}
+                                    <div className="flex justify-between items-start gap-4">
+                                      <div className="flex items-start gap-2.5">
+                                        <input
+                                          type="checkbox"
+                                          checked={isChecked}
+                                          onChange={(e) => {
+                                            const currentVisible = candidate.visible_recruiter_ids || [];
+                                            let newVisible;
+                                            if (e.target.checked) {
+                                              newVisible = [...currentVisible, rec.account_id];
+                                            } else {
+                                              newVisible = currentVisible.filter((id) => id !== rec.account_id);
+                                            }
+                                            onUpdate(candidate.user_id, {
+                                              visible_recruiter_ids: newVisible,
+                                            });
+                                          }}
+                                          className="rounded border-slate-200 text-[#083262] focus:ring-0 w-4 h-4 mt-0.5"
+                                        />
+                                        <div className="flex flex-col">
+                                          <span className="text-[10px] uppercase font-bold text-[#083262]">Partner Recruiter</span>
+                                          <span className="text-xs font-extrabold text-slate-800">{rec.recruiter_email}</span>
+                                          <span className="text-[9px] text-slate-400 uppercase font-semibold mt-0.5">
+                                            Explorer stage: {rec.stage || "Submitted"}
+                                          </span>
+                                        </div>
                                       </div>
-                                    </label>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="p-3 bg-slate-50 border border-dashed border-slate-200 rounded-xl text-center text-slate-400 text-[10px] font-bold">
-                              No recruiter connections found. Share the candidate's profile via the Explorer Library to manage recruiter statuses.
-                            </div>
-                          )}
-                        </div>
-                      )}
- 
-                      {isRecruiter && (
-                        <div className="space-y-3">
-                          <p>
-                            Scheduled final evaluation recruiter interview
-                            session.
-                          </p>
 
-                          {candidate.recruiter_slot_time && (
-                            <div className="text-[10px] text-slate-600 bg-slate-50/50 p-2.5 rounded-lg border border-slate-150 space-y-1">
-                              <div>
-                                Schedule:{" "}
-                                <strong className="text-slate-700">
-                                  {new Date(
-                                    candidate.recruiter_slot_time,
-                                  ).toLocaleString(undefined, {
-                                    year: "numeric",
-                                    month: "numeric",
-                                    day: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    hour12: true,
-                                  })}
-                                </strong>
-                              </div>
-                              {candidate.recruiter_meet_link && (
-                                <div className="flex items-center gap-1">
-                                  Meet URL:
-                                  <a
-                                    href={candidate.recruiter_meet_link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline flex items-center gap-0.5 truncate max-w-[150px]"
-                                  >
-                                    {candidate.recruiter_meet_link}{" "}
-                                    <ExternalLink className="w-2.5 h-2.5" />
-                                  </a>
-                                </div>
-                              )}
-                              {candidate.recruiter_interview_passed === false && (
-                                <div className="text-[9px] text-rose-600 bg-rose-50 border border-rose-100/50 px-2 py-0.5 rounded font-bold uppercase inline-block mt-1">
-                                  Status: Failed / Rejected
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {candidate.recruiter_schedule_image_url ? (
-                            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2">
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold text-slate-700 text-[10px] uppercase">Schedule Image</span>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    onUpdate(candidate.user_id, { recruiter_schedule_image_url: 'clear' });
-                                  }}
-                                  className="p-1 hover:bg-rose-50 text-rose-600 rounded transition-all"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                              {candidate.recruiterScheduleImageDownloadUrl && (
-                                <a href={candidate.recruiterScheduleImageDownloadUrl} target="_blank" rel="noopener noreferrer" className="block relative group/img cursor-zoom-in">
-                                  <img
-                                    src={candidate.recruiterScheduleImageDownloadUrl}
-                                    alt="Recruiter Schedule"
-                                    className="w-full max-h-48 object-contain rounded-lg border border-slate-100 bg-white"
-                                  />
-                                  <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-                                    <span className="bg-white/90 px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-700 shadow-sm flex items-center gap-1">
-                                      View Image <ExternalLink className="w-3 h-3" />
-                                    </span>
-                                  </div>
-                                </a>
-                              )}
-                            </div>
-                          ) : (
-                            (isActive || isCompleted) && (
-                              <div className="relative border border-dashed border-slate-350 rounded-xl p-4 bg-slate-50/30 hover:border-[#083262] transition-all flex flex-col items-center justify-center cursor-pointer">
-                                <input
-                                  type="file"
-                                  accept="image/png, image/jpeg, image/jpg"
-                                  onChange={(e) => {
-                                    const file = e.target.files[0];
-                                    if (file) {
-                                      onUploadRecruiterScheduleImage(candidate.user_id, file);
-                                    }
-                                  }}
-                                  className="absolute inset-0 opacity-0 cursor-pointer"
-                                />
-                                <Upload className="w-5 h-5 text-slate-400 mb-1" />
-                                <span className="text-[10px] font-bold text-slate-500">
-                                  Upload Schedule Image (Optional)
-                                </span>
-                              </div>
-                            )
-                          )}
-
-                          {(isActive || isCompleted) && (
-                            <details className="group border border-slate-200 bg-slate-50/10 rounded-xl overflow-hidden">
-                              <summary className="p-2.5 text-[10px] font-bold text-slate-500 cursor-pointer select-none bg-slate-50/50 hover:bg-slate-50 flex items-center justify-between">
-                                <span>Schedule Recruiter Slot</span>
-                                <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-open:rotate-180 transition-transform" />
-                              </summary>
-                              <form
-                                onSubmit={handleSaveRecruiterSchedule}
-                                className="p-3.5 border-t border-slate-100 flex flex-col gap-3 bg-white"
-                              >
-                                <div className="flex flex-col gap-1.5">
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                                    Date & Time
-                                  </span>
-                                  <input
-                                    type="datetime-local"
-                                    value={recruiterTime}
-                                    onChange={(e) =>
-                                      setRecruiterTime(e.target.value)
-                                    }
-                                    className="border border-slate-205 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all"
-                                  />
-                                </div>
-                                <div className="flex flex-col gap-1.5">
-                                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                                    Google Meet Link
-                                  </span>
-                                  <input
-                                    type="url"
-                                    placeholder="https://meet.google.com/..."
-                                    value={recruiterMeet}
-                                    onChange={(e) =>
-                                      setRecruiterMeet(e.target.value)
-                                    }
-                                    className="border border-slate-205 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all"
-                                  />
-                                </div>
-                                <button
-                                  type="submit"
-                                  className="w-full py-2 bg-[#083262] hover:bg-[#052243] text-white rounded-xl text-[10px] font-bold transition-all shadow-none"
-                                >
-                                  Save Schedule
-                                </button>
-                              </form>
-                            </details>
-                          )}
-
-                           {isActive &&
-                            candidate.recruiter_slot_time &&
-                            candidate.recruiter_interview_passed !== true && (
-                              <div className="flex flex-col gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                                <span className="font-bold text-[#083262] text-[11px] block">
-                                  Recruiter Interview Decision
-                                </span>
-                                {!candidate.steps_config?.some(s => s.id === "recruiter_status" && s.status === "skipped") && (
-                                  <div className="flex flex-col gap-1">
-                                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                      Select Recruiter Partner
-                                    </label>
-                                    <div className="relative">
-                                      <select
-                                        value={selectedRecruiterId}
-                                        onChange={(e) => setSelectedRecruiterId(e.target.value)}
-                                        className="w-full border border-slate-200 rounded-xl p-2 pr-8 text-xs bg-white focus:outline-none"
-                                      >
-                                        <option value="">-- Choose Recruiter --</option>
-                                        {candidate.recruiter_shares?.filter(rec => rec.is_visible).map((rec) => (
-                                          <option key={rec.account_id} value={rec.account_id}>
-                                            {rec.recruiter_email} ({rec.stage || "No Status"})
-                                          </option>
-                                        ))}
-                                      </select>
+                                      <div className="flex items-center gap-1.5">
+                                        {recData.interview_passed !== null && recData.interview_passed !== undefined && (
+                                          <span
+                                            className={`px-2 py-0.5 rounded text-[8px] font-extrabold uppercase border ${
+                                              recData.interview_passed
+                                                ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                                : "bg-rose-50 text-rose-700 border-rose-100"
+                                            }`}
+                                          >
+                                            {recData.interview_passed ? "Passed" : "Failed"}
+                                          </span>
+                                        )}
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            if (isEditing) {
+                                              setEditingRecId(null);
+                                            } else {
+                                              startEditingRecruiter(rec.account_id, recData);
+                                            }
+                                          }}
+                                          className="text-[10px] font-bold text-[#083262] bg-white border border-slate-200 hover:bg-slate-50 px-2.5 py-1 rounded-lg shadow-sm"
+                                        >
+                                          {isEditing ? "Close Options" : "Manage Placement"}
+                                        </button>
+                                      </div>
                                     </div>
+
+                                    {/* Render saved details when not editing */}
+                                    {!isEditing && (recData.job_title || recData.location || recData.salary_range || recData.job_description || recData.slot_time || recData.meet_link || recData.schedule_image_url || recData.offer_letter_url) && (
+                                      <div className="bg-white border border-slate-100 rounded-xl p-3 flex flex-col gap-3 text-xs text-slate-650 animate-in fade-in duration-150">
+                                        
+                                        {/* Job Details Section */}
+                                        {editingSection?.recruiterId === rec.account_id && editingSection?.section === 'job_details' ? (
+                                          <div className="space-y-2 text-left animate-in fade-in duration-150">
+                                            <div className="flex justify-between items-center">
+                                              <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">Job Details</span>
+                                              <div className="flex gap-2">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    onUpdate(candidate.user_id, {
+                                                      recruiter_interview_update: {
+                                                        recruiterAccountId: rec.account_id,
+                                                        job_title: recJobTitle,
+                                                        location: recLocation,
+                                                        job_description: recJobDesc,
+                                                        job_type: recJobType,
+                                                        salary_range: recSalary
+                                                      }
+                                                    });
+                                                    setEditingSection(null);
+                                                  }}
+                                                  className="text-emerald-600 hover:text-emerald-700 font-extrabold text-[9px] uppercase tracking-wider"
+                                                >
+                                                  Save
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setEditingSection(null)}
+                                                  className="text-slate-400 hover:text-slate-500 font-extrabold text-[9px] uppercase tracking-wider"
+                                                >
+                                                  Cancel
+                                                </button>
+                                              </div>
+                                            </div>
+                                            <div className="bg-white border border-slate-200/80 p-3 rounded-lg space-y-3 shadow-inner">
+                                              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                                <div className="flex flex-col gap-0.5">
+                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Job Title</span>
+                                                  <input
+                                                    type="text"
+                                                    value={recJobTitle}
+                                                    onChange={(e) => setRecJobTitle(e.target.value)}
+                                                    placeholder="e.g. ICU Staff Nurse"
+                                                    className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
+                                                  />
+                                                </div>
+                                                <div className="flex flex-col gap-0.5">
+                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Location</span>
+                                                  <input
+                                                    type="text"
+                                                    value={recLocation}
+                                                    onChange={(e) => setRecLocation(e.target.value)}
+                                                    placeholder="e.g. Munich, GER"
+                                                    className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
+                                                  />
+                                                </div>
+                                                <div className="flex flex-col gap-0.5">
+                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Job Type</span>
+                                                  <select
+                                                    value={recJobType}
+                                                    onChange={(e) => setRecJobType(e.target.value)}
+                                                    className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
+                                                  >
+                                                    <option value="Full-time">Full-time</option>
+                                                    <option value="Part-time">Part-time</option>
+                                                    <option value="Contract">Contract</option>
+                                                    <option value="Internship">Internship</option>
+                                                  </select>
+                                                </div>
+                                                <div className="flex flex-col gap-0.5">
+                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Salary Range</span>
+                                                  <input
+                                                    type="text"
+                                                    value={recSalary}
+                                                    onChange={(e) => setRecSalary(e.target.value)}
+                                                    placeholder="e.g. 80k - 100k"
+                                                    className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
+                                                  />
+                                                </div>
+                                              </div>
+                                              <div className="flex flex-col gap-0.5">
+                                                <span className="text-slate-400 font-bold block uppercase text-[8px]">Job Description</span>
+                                                <textarea
+                                                  value={recJobDesc}
+                                                  onChange={(e) => setRecJobDesc(e.target.value)}
+                                                  placeholder="Provide brief details about the role..."
+                                                  rows={2}
+                                                  className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50 font-sans"
+                                                />
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="space-y-1 text-left animate-in fade-in duration-150">
+                                            <div className="flex justify-between items-center">
+                                              <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">Job Details</span>
+                                              <button
+                                                type="button"
+                                                onClick={() => startEditingSection(rec.account_id, 'job_details', recData)}
+                                                className="text-[#083262] hover:text-[#052243] font-bold text-[9px] uppercase tracking-wider"
+                                              >
+                                                Edit
+                                              </button>
+                                            </div>
+                                            <div className="bg-slate-50/50 border border-slate-200/60 p-2.5 rounded-lg space-y-2">
+                                              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                                <div>
+                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Job Title</span>
+                                                  <strong className="text-slate-700 font-extrabold">{cleanString(recData.job_title) || <span className="text-slate-350 italic font-normal">Not set</span>}</strong>
+                                                </div>
+                                                <div>
+                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Location</span>
+                                                  <strong className="text-slate-700 font-extrabold">{cleanString(recData.location) || <span className="text-slate-350 italic font-normal">Not set</span>}</strong>
+                                                </div>
+                                                <div>
+                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Job Type</span>
+                                                  <strong className="text-slate-700 font-extrabold">{recData.job_type || <span className="text-slate-350 italic font-normal">Not set</span>}</strong>
+                                                </div>
+                                                <div>
+                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Salary Range</span>
+                                                  <strong className="text-slate-700 font-extrabold">{cleanString(recData.salary_range) || <span className="text-slate-350 italic font-normal">Not set</span>}</strong>
+                                                </div>
+                                              </div>
+                                              <div className="text-[10px] border-t border-slate-100 pt-1.5 mt-1.5">
+                                                <span className="text-slate-400 font-bold block uppercase text-[8px]">Job Description</span>
+                                                <p className="text-slate-600 font-medium whitespace-pre-wrap leading-relaxed">
+                                                  {cleanString(recData.job_description) || <span className="text-slate-350 italic font-normal">No description provided</span>}
+                                                </p>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {/* Interview Schedule Section */}
+                                        {editingSection?.recruiterId === rec.account_id && editingSection?.section === 'interview_schedule' ? (
+                                          <div className="space-y-2 text-left animate-in fade-in duration-150">
+                                            <div className="flex justify-between items-center">
+                                              <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">Interview Schedule</span>
+                                              <div className="flex gap-2">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    onUpdate(candidate.user_id, {
+                                                      recruiter_interview_update: {
+                                                        recruiterAccountId: rec.account_id,
+                                                        slot_time: recSlotTime || null,
+                                                        meet_link: recMeetLink
+                                                      }
+                                                    });
+                                                    setEditingSection(null);
+                                                  }}
+                                                  className="text-emerald-600 hover:text-emerald-700 font-extrabold text-[9px] uppercase tracking-wider"
+                                                >
+                                                  Save
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setEditingSection(null)}
+                                                  className="text-slate-400 hover:text-slate-500 font-extrabold text-[9px] uppercase tracking-wider"
+                                                >
+                                                  Cancel
+                                                </button>
+                                              </div>
+                                            </div>
+                                            <div className="bg-white border border-slate-200/80 p-3 rounded-lg space-y-3 shadow-inner">
+                                              <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                                <div className="flex flex-col gap-0.5">
+                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Slot Date & Time</span>
+                                                  <input
+                                                    type="datetime-local"
+                                                    value={recSlotTime}
+                                                    onChange={(e) => setRecSlotTime(e.target.value)}
+                                                    className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
+                                                  />
+                                                </div>
+                                                <div className="flex flex-col gap-0.5">
+                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Meet Link</span>
+                                                  <input
+                                                    type="url"
+                                                    value={recMeetLink}
+                                                    onChange={(e) => setRecMeetLink(e.target.value)}
+                                                    placeholder="https://meet.google.com/..."
+                                                    className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
+                                                  />
+                                                </div>
+                                              </div>
+                                              
+                                              {/* Image Upload inside edit mode */}
+                                              <div className="flex flex-col gap-1 border-t border-slate-100 pt-2.5">
+                                                <span className="text-slate-400 font-bold block uppercase text-[8px]">Schedule Confirmation Image</span>
+                                                {recData.schedule_image_url ? (
+                                                  <div className="p-2 bg-slate-50 border border-slate-200 rounded flex items-center justify-between text-[10px]">
+                                                    <a
+                                                      href={recData.schedule_image_download_url}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="flex items-center gap-1 text-slate-700 font-semibold hover:text-blue-600 transition-colors truncate max-w-[180px]"
+                                                    >
+                                                      <ExternalLink className="w-3 h-3 text-slate-400" />
+                                                      <span className="truncate">View Image</span>
+                                                    </a>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                        onUpdate(candidate.user_id, { clear_recruiter_schedule_image_id: rec.account_id });
+                                                      }}
+                                                      className="p-1 hover:bg-rose-50 text-rose-600 rounded transition-all"
+                                                    >
+                                                      <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                  </div>
+                                                ) : (
+                                                  <div className="relative border border-dashed border-slate-300 rounded p-2.5 bg-slate-50/30 hover:border-[#083262] transition-all flex flex-col items-center justify-center cursor-pointer">
+                                                    <input
+                                                      type="file"
+                                                      accept="image/png, image/jpeg, image/jpg"
+                                                      onChange={(e) => {
+                                                        const file = e.target.files[0];
+                                                        if (file) {
+                                                          onUploadRecruiterScheduleImage(candidate.user_id, file, rec.account_id);
+                                                        }
+                                                      }}
+                                                      className="absolute inset-0 opacity-0 cursor-pointer"
+                                                    />
+                                                    <Upload className="w-3.5 h-3.5 text-slate-400 mb-0.5" />
+                                                    <span className="text-[9px] font-bold text-slate-500">Upload Image</span>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="space-y-1 text-left animate-in fade-in duration-150">
+                                            <div className="flex justify-between items-center">
+                                              <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">Interview Schedule</span>
+                                              <button
+                                                type="button"
+                                                onClick={() => startEditingSection(rec.account_id, 'interview_schedule', recData)}
+                                                className="text-[#083262] hover:text-[#052243] font-bold text-[9px] uppercase tracking-wider"
+                                              >
+                                                Edit
+                                              </button>
+                                            </div>
+                                            <div className="bg-slate-50/50 border border-slate-200/60 p-2.5 rounded-lg space-y-2 text-[10px]">
+                                              {recData.slot_time ? (
+                                                <div className="flex items-center gap-1.5 text-slate-650">
+                                                  <Calendar className="w-3.5 h-3.5 text-[#083262] shrink-0" />
+                                                  <span>
+                                                    Date & Time:{" "}
+                                                    <strong className="text-slate-750 font-extrabold">
+                                                      {new Date(recData.slot_time).toLocaleString(undefined, {
+                                                        year: "numeric",
+                                                        month: "numeric",
+                                                        day: "numeric",
+                                                        hour: "2-digit",
+                                                        minute: "2-digit",
+                                                        hour12: true,
+                                                      })}
+                                                    </strong>
+                                                  </span>
+                                                </div>
+                                              ) : (
+                                                <div className="flex items-center gap-1.5 text-slate-400 italic">
+                                                  <Calendar className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                                                  <span>No interview slot scheduled</span>
+                                                </div>
+                                              )}
+                                              {recData.meet_link ? (
+                                                <div className="flex items-center gap-1.5 text-slate-650">
+                                                  <Video className="w-3.5 h-3.5 text-[#083262] shrink-0" />
+                                                  <span className="flex items-center gap-1 font-semibold truncate">
+                                                    Meeting Link:
+                                                    <a
+                                                      href={recData.meet_link}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="text-blue-600 hover:underline flex items-center gap-0.5 truncate max-w-[200px]"
+                                                    >
+                                                      {recData.meet_link}
+                                                      <ExternalLink className="w-2.5 h-2.5" />
+                                                    </a>
+                                                  </span>
+                                                </div>
+                                              ) : (
+                                                <div className="flex items-center gap-1.5 text-slate-400 italic">
+                                                  <Video className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                                                  <span>No meeting link set</span>
+                                                </div>
+                                              )}
+                                              {recData.schedule_image_url && recData.schedule_image_download_url && (
+                                                <div className="border-t border-slate-100 pt-2 mt-1 flex flex-col gap-1.5">
+                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Schedule Confirmation</span>
+                                                  <a href={recData.schedule_image_download_url} target="_blank" rel="noopener noreferrer" className="block relative group/img cursor-zoom-in max-w-xs">
+                                                    <img
+                                                      src={recData.schedule_image_download_url}
+                                                      alt="Schedule Confirmation"
+                                                      className="max-h-32 object-contain rounded border border-slate-200 bg-white"
+                                                    />
+                                                    <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center rounded">
+                                                      <span className="bg-white/95 px-2 py-0.5 rounded text-[8px] font-bold text-slate-700 shadow-sm flex items-center gap-1">
+                                                        View Image <ExternalLink className="w-2.5 h-2.5" />
+                                                      </span>
+                                                    </div>
+                                                  </a>
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {/* Offer Letter Status Section */}
+                                        {editingSection?.recruiterId === rec.account_id && editingSection?.section === 'offer_letter' ? (
+                                          <div className="space-y-2 text-left animate-in fade-in duration-150">
+                                            <div className="flex justify-between items-center">
+                                              <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">Offer Letter & Outcome</span>
+                                              <button
+                                                type="button"
+                                                onClick={() => setEditingSection(null)}
+                                                className="text-slate-400 hover:text-slate-500 font-extrabold text-[9px] uppercase tracking-wider"
+                                              >
+                                                Done
+                                              </button>
+                                            </div>
+                                            <div className="bg-white border border-slate-200/80 p-3 rounded-lg space-y-3.5 shadow-inner">
+                                              {/* Recruiter Decisions & Outcomes */}
+                                              <div className="flex flex-col gap-1.5">
+                                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block text-left">Recruiter Decision</span>
+                                                {recData.interview_passed === null || recData.interview_passed === undefined ? (
+                                                  <div className="flex gap-2">
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => onUpdate(candidate.user_id, { pass_recruiter_id: rec.account_id })}
+                                                      className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold rounded transition-all"
+                                                    >
+                                                      Mark Passed
+                                                    </button>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                        openConfirmModal({
+                                                          title: "Mark Recruiter Interview Failed?",
+                                                          message: "This candidate will be recorded as failed for this partner's interview.",
+                                                          onConfirm: () => {
+                                                            onUpdate(candidate.user_id, { fail_recruiter_id: rec.account_id });
+                                                          }
+                                                        });
+                                                      }}
+                                                      className="px-2.5 py-1.5 bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 text-[9px] font-bold rounded transition-all"
+                                                    >
+                                                      Mark Failed
+                                                    </button>
+                                                  </div>
+                                                ) : (
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-semibold text-slate-650">
+                                                      Outcome: <strong className={recData.interview_passed ? "text-emerald-600 font-extrabold" : "text-rose-600 font-extrabold"}>{recData.interview_passed ? "PASSED" : "FAILED"}</strong>
+                                                    </span>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                        openConfirmModal({
+                                                          title: "Reset Recruiter Decision?",
+                                                          message: "This will clear scheduling and pass/fail states for this recruiter.",
+                                                          onConfirm: () => {
+                                                            onUpdate(candidate.user_id, { reset_recruiter_id: rec.account_id });
+                                                          }
+                                                        });
+                                                      }}
+                                                      className="text-[9px] font-bold text-red-650 bg-red-50 hover:bg-red-100 border border-red-100 px-2 py-0.5 rounded"
+                                                    >
+                                                      Reset
+                                                    </button>
+                                                  </div>
+                                                )}
+                                              </div>
+
+                                              {/* Offer Letter Upload */}
+                                              <div className="flex flex-col gap-1.5 border-t border-slate-100 pt-2.5">
+                                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block text-left">Offer Letter PDF</span>
+                                                {recData.offer_letter_url ? (
+                                                  <div className="p-2 bg-slate-50 border border-slate-200 rounded flex items-center justify-between text-[10px]">
+                                                    <a
+                                                      href={recData.offer_letter_download_url}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="flex items-center gap-1 text-slate-700 font-semibold hover:text-blue-600 transition-colors truncate max-w-[180px]"
+                                                    >
+                                                      <FileText className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                                      <span className="truncate">Offer Letter.pdf</span>
+                                                    </a>
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                        onUpdate(candidate.user_id, { clear_recruiter_offer_id: rec.account_id });
+                                                      }}
+                                                      className="p-1 hover:bg-rose-50 text-rose-600 rounded transition-all"
+                                                    >
+                                                      <Trash2 className="w-3 h-3" />
+                                                    </button>
+                                                  </div>
+                                                ) : (
+                                                  <div className="relative border border-dashed border-slate-300 rounded p-2.5 bg-slate-50/30 hover:border-[#083262] transition-all flex flex-col items-center justify-center cursor-pointer">
+                                                    <input
+                                                      type="file"
+                                                      accept=".pdf"
+                                                      onChange={(e) => {
+                                                        const file = e.target.files[0];
+                                                        if (file) {
+                                                          onUploadOfferLetter(candidate.user_id, file, rec.account_id);
+                                                        }
+                                                      }}
+                                                      className="absolute inset-0 opacity-0 cursor-pointer"
+                                                    />
+                                                    <Upload className="w-3.5 h-3.5 text-slate-400 mb-0.5" />
+                                                    <span className="text-[9px] font-bold text-slate-500">Upload PDF</span>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="space-y-1 text-left animate-in fade-in duration-150">
+                                            <div className="flex justify-between items-center">
+                                              <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">Offer Letter Status</span>
+                                              <button
+                                                type="button"
+                                                onClick={() => startEditingSection(rec.account_id, 'offer_letter', recData)}
+                                                className="text-[#083262] hover:text-[#052243] font-bold text-[9px] uppercase tracking-wider"
+                                              >
+                                                Edit
+                                              </button>
+                                            </div>
+                                            <div className="bg-slate-50/50 border border-slate-200/60 p-2.5 rounded-lg flex items-center justify-between text-[10px]">
+                                              {recData.offer_letter_url && recData.offer_letter_download_url ? (
+                                                <a
+                                                  href={recData.offer_letter_download_url}
+                                                  target="_blank"
+                                                  rel="noopener noreferrer"
+                                                  className="flex items-center gap-1.5 text-slate-700 font-semibold hover:text-blue-600 transition-colors truncate max-w-[200px]"
+                                                >
+                                                  <FileText className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                                  <span className="truncate">Offer Letter.pdf</span>
+                                                </a>
+                                              ) : (
+                                                <span className="text-slate-400 font-semibold italic">Not uploaded yet</span>
+                                              )}
+                                              <span
+                                                className={`px-2 py-0.5 rounded text-[8px] font-extrabold uppercase border ${
+                                                  recData.offer_letter_url
+                                                    ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                                    : "bg-amber-50 text-amber-700 border-amber-100"
+                                                }`}
+                                              >
+                                                {recData.offer_letter_url ? "Uploaded" : "Pending"}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        )}
+
+                                      </div>
+                                    )}
+
+                                    {/* Action forms for active manager */}
+                                    {isEditing && (
+                                      <div className="bg-white border border-slate-100 rounded-xl p-4 flex flex-col gap-4 animate-in slide-in-from-top-2 duration-150">
+                                        {/* Job & Slot Scheduling Info Form */}
+                                        <form
+                                          onSubmit={(e) => {
+                                            e.preventDefault();
+                                            onUpdate(candidate.user_id, {
+                                              recruiter_interview_update: {
+                                                recruiterAccountId: rec.account_id,
+                                                job_title: recJobTitle,
+                                                location: recLocation,
+                                                job_description: recJobDesc,
+                                                job_type: recJobType,
+                                                salary_range: recSalary,
+                                                slot_time: recSlotTime || null,
+                                                meet_link: recMeetLink
+                                              }
+                                            });
+                                            setEditingRecId(null);
+                                          }}
+                                          className="flex flex-col gap-3"
+                                        >
+                                          <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block">Job Details & Interview Slot</span>
+                                          <div className="grid grid-cols-2 gap-3">
+                                            <div className="flex flex-col gap-1 text-left">
+                                              <span className="text-[9px] text-slate-400 font-bold uppercase">Job Title</span>
+                                              <input
+                                                type="text"
+                                                value={recJobTitle}
+                                                onChange={(e) => setRecJobTitle(e.target.value)}
+                                                placeholder="e.g. ICU Staff Nurse"
+                                                className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20"
+                                              />
+                                            </div>
+                                            <div className="flex flex-col gap-1 text-left">
+                                              <span className="text-[9px] text-slate-400 font-bold uppercase">Location</span>
+                                              <input
+                                                type="text"
+                                                value={recLocation}
+                                                onChange={(e) => setRecLocation(e.target.value)}
+                                                placeholder="e.g. Munich, GER"
+                                                className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20"
+                                              />
+                                            </div>
+                                          </div>
+
+                                          <div className="grid grid-cols-2 gap-3">
+                                            <div className="flex flex-col gap-1 text-left">
+                                              <span className="text-[9px] text-slate-400 font-bold uppercase">Job Type</span>
+                                              <select
+                                                value={recJobType}
+                                                onChange={(e) => setRecJobType(e.target.value)}
+                                                className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20 animate-in fade-in"
+                                              >
+                                                <option value="Full-time">Full-time</option>
+                                                <option value="Part-time">Part-time</option>
+                                                <option value="Contract">Contract</option>
+                                                <option value="Internship">Internship</option>
+                                              </select>
+                                            </div>
+                                            <div className="flex flex-col gap-1 text-left">
+                                              <span className="text-[9px] text-slate-400 font-bold uppercase">Salary Range</span>
+                                              <input
+                                                type="text"
+                                                value={recSalary}
+                                                onChange={(e) => setRecSalary(e.target.value)}
+                                                placeholder="e.g. 80k - 100k"
+                                                className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20"
+                                              />
+                                            </div>
+                                          </div>
+
+                                          <div className="flex flex-col gap-1 text-left">
+                                            <span className="text-[9px] text-slate-400 font-bold uppercase">Job Description</span>
+                                            <textarea
+                                              value={recJobDesc}
+                                              onChange={(e) => setRecJobDesc(e.target.value)}
+                                              placeholder="Provide brief details about the role..."
+                                              rows={2}
+                                              className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20 font-sans"
+                                            />
+                                          </div>
+
+                                          <div className="grid grid-cols-2 gap-3">
+                                            <div className="flex flex-col gap-1 text-left">
+                                              <span className="text-[9px] text-slate-400 font-bold uppercase">Slot Date & Time</span>
+                                              <input
+                                                type="datetime-local"
+                                                value={recSlotTime}
+                                                onChange={(e) => setRecSlotTime(e.target.value)}
+                                                className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20"
+                                              />
+                                            </div>
+                                            <div className="flex flex-col gap-1 text-left">
+                                              <span className="text-[9px] text-slate-400 font-bold uppercase">Meet Link</span>
+                                              <input
+                                                type="url"
+                                                value={recMeetLink}
+                                                onChange={(e) => setRecMeetLink(e.target.value)}
+                                                placeholder="https://meet.google.com/..."
+                                                className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20"
+                                              />
+                                            </div>
+                                          </div>
+
+                                          <button
+                                            type="submit"
+                                            disabled={updating}
+                                            className="mt-1 py-2 bg-[#083262] text-white hover:bg-[#052243] rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+                                          >
+                                            Save Details & Schedule
+                                          </button>
+                                        </form>
+
+                                        {/* Divider */}
+                                        <div className="w-full h-px bg-slate-100" />
+
+                                        {/* Outcome decisions */}
+                                        <div className="flex flex-col gap-2">
+                                          <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left">Recruiter Decisions & Outcomes</span>
+                                          
+                                          {recData.interview_passed === null || recData.interview_passed === undefined ? (
+                                            <div className="flex gap-2">
+                                              <button
+                                                type="button"
+                                                onClick={() => onUpdate(candidate.user_id, { pass_recruiter_id: rec.account_id })}
+                                                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-all"
+                                              >
+                                                Mark Interview Passed
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  openConfirmModal({
+                                                    title: "Mark Recruiter Interview Failed?",
+                                                    message: "This candidate will be recorded as failed for this partner's interview.",
+                                                    onConfirm: () => {
+                                                      onUpdate(candidate.user_id, { fail_recruiter_id: rec.account_id });
+                                                    }
+                                                  });
+                                                }}
+                                                className="px-3.5 py-2 bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 text-[10px] font-bold rounded-lg transition-all"
+                                              >
+                                                Mark Interview Failed
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <div className="flex items-center gap-3">
+                                              <span className="text-xs font-semibold text-slate-500">
+                                                Interview outcome set to: <strong>{recData.interview_passed ? "PASSED" : "FAILED"}</strong>
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  openConfirmModal({
+                                                    title: "Reset Recruiter Decision?",
+                                                    message: "This will clear scheduling and pass/fail states for this recruiter.",
+                                                    onConfirm: () => {
+                                                      onUpdate(candidate.user_id, { reset_recruiter_id: rec.account_id });
+                                                    }
+                                                  });
+                                                }}
+                                                className="text-[10px] font-bold text-red-650 bg-red-50 hover:bg-red-100 border border-red-100 px-2 py-1 rounded-lg"
+                                              >
+                                                Reset Decision
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {/* Divider */}
+                                        <div className="w-full h-px bg-slate-100" />
+
+                                        {/* Schedule Image upload */}
+                                        <div className="flex flex-col gap-2">
+                                          <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left">Schedule image</span>
+                                          {recData.schedule_image_url ? (
+                                            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
+                                              <a
+                                                href={recData.schedule_image_download_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold hover:text-blue-600 transition-colors truncate max-w-[180px]"
+                                              >
+                                                <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                                                <span className="truncate">View Schedule Image</span>
+                                              </a>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  onUpdate(candidate.user_id, { clear_recruiter_schedule_image_id: rec.account_id });
+                                                }}
+                                                className="p-1 hover:bg-rose-50 text-rose-600 rounded transition-all"
+                                              >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <div className="relative border border-dashed border-slate-350 rounded-xl p-3 bg-slate-50/30 hover:border-[#083262] transition-all flex flex-col items-center justify-center cursor-pointer">
+                                              <input
+                                                type="file"
+                                                accept="image/png, image/jpeg, image/jpg"
+                                                onChange={(e) => {
+                                                  const file = e.target.files[0];
+                                                  if (file) {
+                                                    onUploadRecruiterScheduleImage(candidate.user_id, file, rec.account_id);
+                                                  }
+                                                }}
+                                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                              />
+                                              <Upload className="w-4 h-4 text-slate-400 mb-0.5" />
+                                              <span className="text-[10px] font-bold text-slate-500">Upload Schedule Confirmation Image</span>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {/* Divider */}
+                                        <div className="w-full h-px bg-slate-100" />
+
+                                        {/* Offer Letter PDF upload */}
+                                        <div className="flex flex-col gap-2">
+                                          <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left">Offer Letter PDF</span>
+                                          {recData.offer_letter_url ? (
+                                            <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
+                                              <a
+                                                href={recData.offer_letter_download_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold hover:text-blue-600 transition-colors truncate max-w-[180px]"
+                                              >
+                                                <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
+                                                <span className="truncate">Offer Letter.pdf</span>
+                                              </a>
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  onUpdate(candidate.user_id, { clear_recruiter_offer_id: rec.account_id });
+                                                }}
+                                                className="p-1 hover:bg-rose-50 text-rose-600 rounded transition-all"
+                                              >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <div className="relative border border-dashed border-slate-350 rounded-xl p-3 bg-slate-50/30 hover:border-[#083262] transition-all flex flex-col items-center justify-center cursor-pointer">
+                                              <input
+                                                type="file"
+                                                accept=".pdf"
+                                                onChange={(e) => {
+                                                  const file = e.target.files[0];
+                                                  if (file) {
+                                                    onUploadOfferLetter(candidate.user_id, file, rec.account_id);
+                                                  }
+                                                }}
+                                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                              />
+                                              <Upload className="w-4 h-4 text-slate-400 mb-0.5" />
+                                              <span className="text-[10px] font-bold text-slate-500">Upload Placement Offer PDF</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
-                                <div className="flex gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const isSkipped = candidate.steps_config?.some(s => s.id === "recruiter_status" && s.status === "skipped");
-                                      if (!isSkipped && !selectedRecruiterId) {
-                                        toast.error("Please select a recruiter partner first");
-                                        return;
-                                      }
-                                      if (isSkipped) {
-                                        onUpdate(candidate.user_id, { recruiter_interview_passed: true });
-                                      } else {
-                                        onUpdate(candidate.user_id, { pass_recruiter_id: parseInt(selectedRecruiterId) });
-                                      }
-                                    }}
-                                    className="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 text-[10px] font-bold rounded-lg transition-all"
-                                  >
-                                    Approve (Pass)
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const isSkipped = candidate.steps_config?.some(s => s.id === "recruiter_status" && s.status === "skipped");
-                                      if (!isSkipped && !selectedRecruiterId) {
-                                        toast.error("Please select a recruiter partner first");
-                                        return;
-                                      }
-                                      openConfirmModal({
-                                        title: "Fail Recruiter Interview?",
-                                        message: isSkipped
-                                          ? "This will mark the candidate as failed globally for the recruiter interview checkpoint."
-                                          : "This will mark the candidate as failed for the selected recruiter. Their slot details will be cleared and they will return to the Partner Review Status stage.",
-                                        onConfirm: () => {
-                                          if (isSkipped) {
-                                            onUpdate(candidate.user_id, { recruiter_interview_passed: false });
-                                          } else {
-                                            onUpdate(candidate.user_id, { fail_recruiter_id: parseInt(selectedRecruiterId) });
-                                          }
-                                        },
-                                      });
-                                    }}
-                                    className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100 rounded text-[10px] font-bold"
-                                  >
-                                    Reject (Fail)
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-
-                          {isCompleted && (
-                            <button
-                              type="button"
-                              onClick={handleResetRecruiter}
-                              className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1 rounded-lg transition-all"
-                            >
-                              Reset Recruiter Checkpoint
-                            </button>
-                          )}
-                        </div>
-                      )}
-
-                      {isOffer && (
-                        <div className="space-y-3">
-                          <p>
-                            Dispatch of final offer letter PDF to selected
-                            candidate.
-                          </p>
-
-                          {candidate.offer_letter_url ? (
-                            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-                              <a
-                                href={candidate.offerLetterDownloadUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="flex items-center gap-2 text-xs text-slate-700 font-semibold hover:text-blue-600 transition-colors truncate max-w-[180px]"
-                              >
-                                <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
-                                <span className="truncate">
-                                  Offer Letter.pdf
-                                </span>
-                              </a>
-                              <button
-                                type="button"
-                                onClick={handleDeleteOfferLetter}
-                                className="p-1 hover:bg-rose-50 text-rose-600 rounded transition-all"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                                );
+                              })}
                             </div>
                           ) : (
-                            isActive && (
-                              <div className="relative border border-dashed border-slate-350 rounded-xl p-4 bg-slate-50/30 hover:border-[#083262] transition-all flex flex-col items-center justify-center cursor-pointer">
-                                <input
-                                  type="file"
-                                  accept=".pdf"
-                                  onChange={(e) => {
-                                    const file = e.target.files[0];
-                                    if (file)
-                                      onUploadOfferLetter(
-                                        candidate.user_id,
-                                        file,
-                                      );
-                                  }}
-                                  className="absolute inset-0 opacity-0 cursor-pointer"
-                                />
-                                <Upload className="w-5 h-5 text-slate-400 mb-1" />
-                                <span className="text-[10px] font-bold text-slate-500">
-                                  Upload Offer Letter PDF
-                                </span>
-                              </div>
-                            )
+                            <div className="p-4 border border-dashed border-slate-200 rounded-2xl text-center text-slate-400 text-xs font-bold">
+                              No recruiter shares found. Link partners via Explorer Library.
+                            </div>
                           )}
                         </div>
                       )}

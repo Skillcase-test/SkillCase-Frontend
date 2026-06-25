@@ -17,7 +17,10 @@ export const checkAgreement = () => api.post("/job-screening/check-agreement");
 
 export const startAgreement = () => api.post("/job-screening/start-agreement");
 
-export const downloadOfferLetter = () => api.get("/job-screening/offer-letter/download");
+export const downloadOfferLetter = (recruiterAccountId) =>
+  api.get("/job-screening/offer-letter/download", {
+    params: recruiterAccountId ? { recruiterAccountId } : {}
+  });
 
 export const uploadAdditionalDoc = (docId, formData) =>
   api.post(`/job-screening/additional-documents/${docId}`, formData, {
