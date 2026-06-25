@@ -116,6 +116,7 @@ const ExamResult = lazy(() => import("./pages/exam/ExamResult"));
 const NewsHome = lazy(() => import("./pages/news/NewsHome"));
 const NewsPage = lazy(() => import("./pages/news/NewsPage"));
 const PublicInterviewPage = lazy(() => import("./pages/interviewTools/PublicInterviewPage"));
+const JobScreeningInterviewPage = lazy(() => import("./pages/interviewTools/JobScreeningInterviewPage"));
 const FallbackPage = lazy(() => import("./pages/FallbackPage"));
 const ContinuePractice = lazy(() => import("./pages/ContinuePractice"));
 const TermsSignPage = lazy(() => import("./pages/terms/TermsSignPage"));
@@ -923,6 +924,13 @@ function AppContent() {
                   "Loading Interview...",
                 )}
               />
+              <Route
+                path="/job-screening/interview/:slug"
+                element={lazyScreen(
+                  <JobScreeningInterviewPage />,
+                  "Loading Interview...",
+                )}
+              />
 
               {/* Wise */}
               <Route
@@ -991,7 +999,8 @@ function ConditionalNav() {
 
   const disableNav =
     /^\/exam\/[^/]+\/take$/.test(location.pathname) ||
-    (location.pathname.startsWith("/interview") && isJobScreening);
+    (location.pathname.startsWith("/interview") && isJobScreening) ||
+    location.pathname.startsWith("/job-screening/interview");
 
   // Show minimal navbar (logo only, no links/burger) on auth pages
   const isAuthPage =

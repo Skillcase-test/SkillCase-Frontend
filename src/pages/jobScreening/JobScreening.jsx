@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { getProgress } from "../../api/jobScreeningApi";
 import WelcomeStep from "./components/WelcomeStep";
 import ProfileCompletionStep from "./components/ProfileCompletionStep";
@@ -56,6 +57,7 @@ const STEP_DESCRIPTIONS = {
 };
 
 const JobScreening = () => {
+  const navigate = useNavigate();
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -144,6 +146,21 @@ const JobScreening = () => {
     }
   };
 
+  const handleStartStep = (stepId) => {
+    const targetStepId = stepId || currentStepId;
+    if (targetStepId === "interview_attempt" && progress?.assigned_interview_slug) {
+      navigate(`/job-screening/interview/${progress.assigned_interview_slug}`, {
+        state: {
+          name: progress.candidate_name,
+          email: progress.candidate_email,
+          phone: progress.candidate_phone,
+        },
+      });
+    } else {
+      setIsExecutingStep(true);
+    }
+  };
+
   const renderActiveStepComponent = () => {
     switch (currentStepId) {
       case "welcome":
@@ -158,7 +175,11 @@ const JobScreening = () => {
         );
       case "interview_attempt":
         return (
-          <InterviewStep progress={progress} onComplete={handleStepComplete} />
+          <InterviewStep
+            progress={progress}
+            onComplete={handleStepComplete}
+            onBack={() => setIsExecutingStep(false)}
+          />
         );
       case "registration_form":
         return (
@@ -172,6 +193,7 @@ const JobScreening = () => {
           <ReviewPendingStep
             progress={progress}
             onComplete={handleStepComplete}
+            onBack={() => setIsExecutingStep(false)}
           />
         );
       case "additional_documents":
@@ -412,10 +434,12 @@ const JobScreening = () => {
                     {/* Action Button inside active pending step card */}
                     {(isActive || isReview) && (
                       <button
-                        onClick={() => setIsExecutingStep(true)}
+                        onClick={() => handleStartStep(step.id)}
                         className="w-full py-3 bg-[#002856] text-white rounded-lg font-bold text-sm transition-all active:scale-[0.99] cursor-pointer text-center"
                       >
-                        Start this step
+                        {step.id === "review_pending"
+                          ? "Check review status"
+                          : "Start this step"}
                       </button>
                     )}
                   </div>
@@ -428,7 +452,7 @@ const JobScreening = () => {
         {/* Bottom Floating CTA Button */}
         {activeStep && (
           <button
-            onClick={() => setIsExecutingStep(true)}
+            onClick={() => handleStartStep(currentStepId)}
             className="w-full h-12 bg-gradient-to-r from-amber-200 to-amber-300 hover:from-amber-300 hover:to-amber-400 text-[#002856] rounded-lg font-bold text-sm sm:text-base transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-md cursor-pointer mt-2 border border-amber-300"
           >
             Continue with Step {activeStepIndex + 1}

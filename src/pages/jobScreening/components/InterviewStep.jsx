@@ -1,10 +1,23 @@
-import React, { useState } from "react";
-import { Link2, RefreshCw, Video } from "lucide-react";
-import { Link } from "react-router-dom";
-import { checkInterview, getProgress } from "../../../api/jobScreeningApi";
+import React, { useState, useEffect } from "react";
+import { RefreshCw, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { getProgress } from "../../../api/jobScreeningApi";
 
-const InterviewStep = ({ progress, onComplete }) => {
-  const [loading, setLoading] = useState(false);
+const InterviewStep = ({ progress, onComplete, onBack }) => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (progress?.assigned_interview_slug) {
+      navigate(`/job-screening/interview/${progress.assigned_interview_slug}`, {
+        state: {
+          name: progress.candidate_name,
+          email: progress.candidate_email,
+          phone: progress.candidate_phone,
+        },
+      });
+    }
+  }, [progress, navigate]);
+
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
@@ -26,116 +39,83 @@ const InterviewStep = ({ progress, onComplete }) => {
     }
   };
 
-  const handleRefreshInterview = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      const { data } = await checkInterview();
-      if (data?.success) {
-        onComplete(data.data);
-      } else {
-        setError("Interview attempt not detected yet");
-      }
-    } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Failed to sync interview status");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const hasInterview = !!progress?.assigned_interview_slug;
 
-  if (!hasInterview) {
+  if (hasInterview) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full">
-        {/* Visual Pulse Circle */}
-        <div className="relative mb-5 flex items-center justify-center">
-          <div className="absolute w-16 h-16 bg-blue-50/50 rounded-full blur-xl -z-10" />
-          <div className="w-12 h-12 rounded-full bg-blue-50/30 border border-blue-50 flex items-center justify-center text-[#002856] animate-pulse">
-            <Video className="w-6 h-6" />
-          </div>
+      <div className="w-full bg-white flex flex-col items-center justify-center py-12 min-h-[300px] font-sans">
+        <div className="w-8 h-8 border-2 border-[#002856] border-t-transparent rounded-full animate-spin" />
+        <span className="text-[#002856] text-xs font-semibold mt-3">
+          Redirecting to interview...
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
+      {/* Sub-Header bar */}
+      <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Back</span>
+        </button>
+        <span className="text-slate-400 text-sm font-semibold">
+          Job Progress
+        </span>
+      </div>
+
+      {/* Main Title section */}
+      <div className="text-left w-full mb-6">
+        <h2 className="text-[#002856] text-2xl font-bold tracking-tight mb-2">
+          Skillcase video interview
+        </h2>
+        <p className="text-[#002856]/70 text-xs sm:text-sm font-medium leading-relaxed">
+          Please complete the video interview assigned specifically to you to assess your communication skills.
+        </p>
+      </div>
+
+      {/* Document/Interview Card */}
+      <div className="w-full p-4 bg-white rounded-2xl border border-slate-200 flex flex-col gap-3.5 text-left">
+        <div className="flex justify-between items-center w-full">
+          <h3 className="text-[#002856] text-base font-semibold leading-tight">
+            Preparing assessment
+          </h3>
+          <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border bg-amber-50 text-[#d97706] border-amber-100">
+            pending
+          </span>
         </div>
 
-        <h2 className="text-xl sm:text-2xl font-extrabold text-[#002856] tracking-tight mb-2">
-          Preparing Your Interview
-        </h2>
-        <p className="text-zinc-500 text-xs sm:text-sm max-w-md leading-relaxed mb-6">
-          Our recruiting team is setting up your tailored Skillcase interview.
-          This will consist of video/audio questions matching your background.
-          We will notify you here once it is assigned.
+        <p className="text-slate-500 text-[11px] sm:text-xs font-normal leading-relaxed">
+          Our recruiting team is setting up your tailored Skillcase interview. This will consist of video/audio questions matching your background. We will notify you here once it is assigned.
         </p>
+
+        {error && (
+          <p className="text-red-500 text-xs font-semibold">{error}</p>
+        )}
 
         {/* Refresh button */}
         <button
           type="button"
           onClick={handleRefreshStatus}
           disabled={refreshing}
-          className="w-full sm:max-w-xs h-11 border-2 border-zinc-200 bg-white text-[#002856] hover:bg-zinc-50 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 active:scale-[0.99]"
+          className="w-full h-12 bg-white hover:bg-slate-50 text-[#002856] border border-[#002856] rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm cursor-pointer"
         >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-          <span>Refresh Status</span>
+          {refreshing ? (
+            <>
+              <RefreshCw className="animate-spin w-4 h-4 text-[#002856]" />
+              <span>Syncing status...</span>
+            </>
+          ) : (
+            <>
+              <RefreshCw className="w-4 h-4 text-[#002856]" />
+              <span>Refresh status</span>
+            </>
+          )}
         </button>
-
-        {error && (
-          <p className="text-red-500 text-xs font-semibold mt-3">{error}</p>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full">
-      {/* Icon Row */}
-      <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100/50 flex items-center justify-center text-[#002856] mb-4">
-        <Video className="w-6 h-6" />
-      </div>
-
-      <h2 className="text-xl sm:text-2xl font-extrabold text-[#002856] tracking-tight mb-1.5">
-        Skillcase Interview
-      </h2>
-      <p className="text-zinc-500 text-xs sm:text-sm max-w-md leading-relaxed mb-5">
-        Please complete the video interview assigned specifically to you.
-      </p>
-
-      {/* Info Block */}
-      <div className="w-full sm:max-w-xs bg-slate-50/30 border border-slate-100 rounded-2xl p-4 mb-5 text-left">
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
-          Assigned Interview
-        </span>
-        <span className="text-xs sm:text-sm font-bold text-[#002856] truncate block">
-          {progress.assigned_interview_title || "Skillcase Screening Interview"}
-        </span>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="w-full flex flex-col items-center gap-3 max-w-xs">
-        <Link
-          to={`/interview/${progress.assigned_interview_slug}?source=job_screening`}
-          state={{
-            name: progress.candidate_name,
-            email: progress.candidate_email,
-            phone: progress.candidate_phone,
-          }}
-          className="w-full h-11 bg-gradient-to-r from-amber-200 to-amber-300 text-[#002856] border border-[#eec139] hover:from-amber-300 hover:to-amber-400 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md shadow-amber-200/10 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all text-center"
-        >
-          <Link2 className="w-4 h-4 text-[#002856]" />
-          <span>Start Video Interview</span>
-        </Link>
-
-        <button
-          type="button"
-          onClick={handleRefreshInterview}
-          disabled={loading}
-          className="w-full h-11 border-2 border-zinc-200 bg-white text-[#002856] hover:bg-zinc-50 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all disabled:opacity-50 active:scale-[0.99]"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          <span>I Have Completed the Interview</span>
-        </button>
-
-        {error && (
-          <p className="text-red-500 text-[11px] font-semibold text-center mt-1">{error}</p>
-        )}
       </div>
     </div>
   );
