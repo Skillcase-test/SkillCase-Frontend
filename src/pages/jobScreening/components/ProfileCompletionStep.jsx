@@ -35,6 +35,11 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
       return;
     }
 
+    if (file.size > 10 * 1024 * 1024) {
+      setError("File size must be under 10MB");
+      return;
+    }
+
     setError("");
     if (type === "resume") {
       setSelectedResume(file);

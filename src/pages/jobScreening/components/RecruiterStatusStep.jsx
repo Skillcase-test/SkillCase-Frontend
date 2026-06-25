@@ -187,7 +187,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
       if (hasOffer) {
         // STATE 3: CONGRATULATIONS & PDF OFFER PREVIEW
         return (
-          <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative px-4 py-2">
+          <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative py-2">
             {/* Header bar */}
             <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
               <button
@@ -262,7 +262,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
       } else if (recData.slot_time) {
         // STATE 2: INTERVIEW CALL SCREEN
         return (
-          <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative px-4 py-2">
+          <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative py-2">
             {/* Header bar */}
             <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
               <button
@@ -451,7 +451,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
 
       {showOpportunityList ? (
         /* NEW OPPORTUNITY LIST VIEW */
-        <div className="w-full px-4 pt-2 pb-10 flex flex-col justify-start items-stretch gap-6">
+        <div className="w-full pt-2 pb-10 flex flex-col justify-start items-stretch gap-6">
           {/* Header text */}
           <div className="self-stretch flex flex-col justify-start items-stretch gap-3">
             <h2 className="text-[#002856] text-2xl font-bold tracking-tight text-left">
@@ -518,17 +518,17 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
                     <div className="self-stretch flex flex-col justify-start items-start gap-4">
                       <div className="self-stretch flex justify-between items-start gap-3">
                         <div className="text-slate-900 text-lg font-bold truncate text-left">
-                          {recData.job_title || "ICU Staff Nurse"}
+                          {recData.job_title || "Details pending"}
                         </div>
                         <div className="pl-1.5 pr-2 py-0.5 bg-slate-50 rounded-md border border-slate-200 flex items-center gap-1.5 shrink-0">
                           <div className="text-slate-700 text-xs font-medium">
-                            {recData.location || "Munich, GER"}
+                            {recData.location || "Location TBC"}
                           </div>
                         </div>
                       </div>
                       <div className="self-stretch text-slate-500 text-xs font-normal text-left leading-relaxed">
                         {recData.job_description ||
-                          "We are looking for a qualified nurse to join our team in Germany."}
+                          "Job details will appear here once confirmed by the recruiter."}
                       </div>
                     </div>
 
@@ -540,7 +540,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Hourglass className="w-4 h-4 text-slate-400" />
-                        <span>{recData.salary_range || "80k - 100k"}</span>
+                        <span>{recData.salary_range || "Salary TBC"}</span>
                       </div>
                     </div>
                   </div>
@@ -550,7 +550,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
                     <button
                       type="button"
                       onClick={() => setActiveRecruiterId(rec.account_id)}
-                      className="self-stretch p-4 bg-gradient-to-r from-amber-200 to-amber-300 rounded-xl justify-center items-center gap-1.5 flex border border-amber-300 cursor-pointer shadow-sm active:scale-[0.99] transition-all font-bold text-blue-950 text-base"
+                      className="self-stretch px-4 py-3 bg-gradient-to-r from-amber-200 to-amber-300 rounded-xl justify-center items-center gap-1.5 flex border border-amber-300 cursor-pointer shadow-sm active:scale-[0.99] transition-all font-bold text-blue-950 text-base"
                     >
                       Read & sign offer letter
                     </button>
