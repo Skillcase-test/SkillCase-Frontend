@@ -224,6 +224,7 @@ const JobScreening = () => {
           <AdditionalDocumentsStep
             progress={progress}
             onComplete={handleStepComplete}
+            onBack={() => setIsExecutingStep(false)}
           />
         );
       case "interview_training":
@@ -232,6 +233,7 @@ const JobScreening = () => {
             type="training"
             progress={progress}
             onComplete={handleStepComplete}
+            onBack={() => setIsExecutingStep(false)}
           />
         );
       case "recruiter_status":
@@ -247,6 +249,7 @@ const JobScreening = () => {
             type="recruiter"
             progress={progress}
             onComplete={handleStepComplete}
+            onBack={() => setIsExecutingStep(false)}
           />
         );
       case "offer_letter":

@@ -19,7 +19,8 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
       setError("");
       const { data } = await getProgress();
       if (data?.success && onComplete) {
-        onComplete(data.data);
+        const hasStepChanged = data.data?.current_step_id !== "review_pending";
+        onComplete(data.data, hasStepChanged);
       } else {
         setError("Failed to sync progress.");
       }
