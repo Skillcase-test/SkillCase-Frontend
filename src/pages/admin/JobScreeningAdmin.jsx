@@ -167,13 +167,13 @@ const JobScreeningAdmin = () => {
     }
   };
 
-  const handleUploadOfferLetter = async (userId, file) => {
+  const handleUploadOfferLetter = async (userId, file, recruiterAccountId) => {
     const formData = new FormData();
     formData.append("offer_letter", file);
 
     try {
       setUpdating(true);
-      const { data } = await adminUploadOfferLetter(userId, formData);
+      const { data } = await adminUploadOfferLetter(userId, formData, recruiterAccountId);
       if (data?.success) {
         toast.success("Offer letter uploaded successfully");
         await fetchDetail(userId);
@@ -211,13 +211,13 @@ const JobScreeningAdmin = () => {
     }
   };
 
-  const handleUploadRecruiterScheduleImage = async (userId, file) => {
+  const handleUploadRecruiterScheduleImage = async (userId, file, recruiterAccountId) => {
     const formData = new FormData();
     formData.append("schedule_image", file);
 
     try {
       setUpdating(true);
-      const { data } = await adminUploadRecruiterScheduleImage(userId, formData);
+      const { data } = await adminUploadRecruiterScheduleImage(userId, formData, recruiterAccountId);
       if (data?.success) {
         toast.success("Recruiter schedule image uploaded successfully");
         await fetchDetail(userId);

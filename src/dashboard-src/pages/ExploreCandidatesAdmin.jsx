@@ -616,7 +616,7 @@ function AccountProfilesPage() {
     const localProfileId =
       rowSource === "local" ? Number(rowIdRaw || 0) : Number(profileRow.id || 0);
 
-    if (!localProfileId || rowSource === "explore_php" || rowSource === "main_php") {
+    if (!localProfileId || ["explore_php", "main_php", "job_screening"].includes(rowSource)) {
       window.alert("Recruitment status is available only for local shared profiles.");
       return;
     }
@@ -639,7 +639,7 @@ function AccountProfilesPage() {
     const [rowSource, rowIdRaw] = String(profileRow.id || "").split(":");
     const localProfileId =
       rowSource === "local" ? Number(rowIdRaw || 0) : Number(profileRow.id || 0);
-    if (!localProfileId || rowSource === "explore_php" || rowSource === "main_php") {
+    if (!localProfileId || ["explore_php", "main_php", "job_screening"].includes(rowSource)) {
       window.alert("Recruitment status visibility is available only for local shared profiles.");
       return;
     }
@@ -692,6 +692,7 @@ function AccountProfilesPage() {
                <option value="local">Local Shared</option>
                <option value="explore_php">Main Site Shared (Explore)</option>
                <option value="main_php">Main Site Users (Read-only)</option>
+               <option value="job_screening">Job Screening Candidates</option>
              </select>
           </div>
           <div className="space-y-1 w-full sm:max-w-[150px]">
@@ -739,8 +740,8 @@ function AccountProfilesPage() {
             disabled={!pickId}
             onClick={async () => {
               const [selectedSource, selectedIdRaw] = String(pickId).split(":");
-              const selectedId = Number(selectedIdRaw || 0);
-              if (selectedSource === "explore_php" || selectedSource === "main_php") {
+              const selectedId = selectedSource === "job_screening" ? selectedIdRaw : Number(selectedIdRaw || 0);
+              if (["explore_php", "main_php", "job_screening"].includes(selectedSource)) {
                 await exploreCandidatesAdminApi.assignBridgeProfile(accountId, selectedId, selectedSource);
               } else {
                 await exploreCandidatesAdminApi.assignProfile(accountId, selectedId, 0);
@@ -996,6 +997,7 @@ function LibraryPage() {
             <option value="local">Explore Shared Profiles</option>
             <option value="explore_php">Explore Shared Profiles (PHP)</option>
             <option value="main_php">Main Website Profiles (PHP)</option>
+            <option value="job_screening">Job Screening Candidates</option>
           </select>
           <select
             className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition bg-white"
@@ -1044,16 +1046,16 @@ function LibraryPage() {
                 </td>
                 <td className="px-6 py-5 align-middle">
                   <div className="flex flex-wrap justify-end gap-2">
-                    {String(p.source || "").endsWith("_php") ? (
+                    {String(p.source || "").endsWith("_php") || String(p.source || "") === "job_screening" ? (
                       <ActionButton
                         variant="primary"
                         disabled={Boolean(addingLocal[p.profile_uid || p.id])}
                         onClick={async () => {
                           const key = p.profile_uid || p.id;
                           const sourceValue = String(p.source || source);
-                          const sourceProfileId = Number(
-                            p.source_profile_id || p.id || 0,
-                          );
+                          const sourceProfileId = sourceValue === "job_screening"
+                            ? (p.source_profile_id || p.id)
+                            : Number(p.source_profile_id || p.id || 0);
                           if (!sourceProfileId) return;
                           try {
                             setAddingLocal((prev) => ({ ...prev, [key]: true }));
@@ -1080,9 +1082,9 @@ function LibraryPage() {
                           : "Add to Local"}
                       </ActionButton>
                     ) : null}
-                    {String(p.source || "") === "main_php" ? (
+                    {String(p.source || "") === "main_php" || String(p.source || "") === "job_screening" ? (
                       <span className="text-xs text-amber-700 font-semibold">
-                        Not editable here. Edit on main site.
+                        Not editable here.
                       </span>
                     ) : (
                       <>
@@ -1778,3 +1780,4 @@ export default function ExploreCandidatesAdmin() {
     </Routes>
   );
 }
+
