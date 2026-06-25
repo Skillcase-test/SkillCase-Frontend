@@ -542,6 +542,10 @@ export default function JobScreeningTermsSignPage() {
   useEffect(() => {
     const node = viewerRef.current;
     if (!node) return undefined;
+    if (typeof ResizeObserver === "undefined") {
+      setViewerWidth(node.clientWidth || 900);
+      return undefined;
+    }
     const observer = new ResizeObserver(() => {
       setViewerWidth(node.clientWidth || 900);
     });
@@ -643,9 +647,11 @@ export default function JobScreeningTermsSignPage() {
         });
         setFieldValues(defaults);
       } catch (requestError) {
-        setError(
-          requestError?.response?.data?.msg || "Failed to load signing link.",
-        );
+        if (mounted) {
+          setError(
+            requestError?.response?.data?.msg || "Failed to load signing link.",
+          );
+        }
       } finally {
         if (mounted) setLoading(false);
       }

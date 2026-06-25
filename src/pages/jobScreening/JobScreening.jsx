@@ -62,6 +62,8 @@ const JobScreening = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isExecutingStep, setIsExecutingStep] = useState(false);
+  const [agreementLoading, setAgreementLoading] = useState(false);
+  const [agreementError, setAgreementError] = useState("");
 
   const fetchProgress = async () => {
     try {
@@ -158,8 +160,8 @@ const JobScreening = () => {
       });
     } else if (targetStepId === "registration_form") {
       try {
-        setLoading(true);
-        setError("");
+        setAgreementLoading(true);
+        setAgreementError("");
         const { data } = await startAgreement();
         if (data?.success) {
           if (data.alreadySigned) {
@@ -171,13 +173,13 @@ const JobScreening = () => {
           }
           navigate(`/job-screening/terms/sign/${data.token}`);
         } else {
-          setError("Failed to initialize signing process. Please try again.");
+          setAgreementError("Failed to initialize signing process. Please try again.");
         }
       } catch (err) {
         console.error(err);
-        setError(err.response?.data?.message || "An error occurred while starting the signing process.");
+        setAgreementError(err.response?.data?.message || "An error occurred while starting the signing process.");
       } finally {
-        setLoading(false);
+        setAgreementLoading(false);
       }
     } else {
       setIsExecutingStep(true);
@@ -477,12 +479,27 @@ const JobScreening = () => {
 
         {/* Bottom Floating CTA Button */}
         {activeStep && (
-          <button
-            onClick={() => handleStartStep(currentStepId)}
-            className="w-full h-12 bg-gradient-to-r from-amber-200 to-amber-300 hover:from-amber-300 hover:to-amber-400 text-[#002856] rounded-lg font-bold text-sm sm:text-base transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-md cursor-pointer mt-2 border border-amber-300"
-          >
-            Continue with Step {activeStepIndex + 1}
-          </button>
+          <div className="flex flex-col gap-2 mt-2">
+            {agreementError && currentStepId === "registration_form" && (
+              <div className="w-full px-3 py-2 bg-red-50 border border-red-100 rounded-lg text-red-600 text-xs font-semibold text-center">
+                {agreementError}
+              </div>
+            )}
+            <button
+              onClick={() => handleStartStep(currentStepId)}
+              disabled={agreementLoading}
+              className="w-full h-12 bg-gradient-to-r from-amber-200 to-amber-300 hover:from-amber-300 hover:to-amber-400 text-[#002856] rounded-lg font-bold text-sm sm:text-base transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-md cursor-pointer border border-amber-300 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+            >
+              {agreementLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Preparing document...</span>
+                </>
+              ) : (
+                <span>Continue with Step {activeStepIndex + 1}</span>
+              )}
+            </button>
+          </div>
         )}
       </div>
     </div>

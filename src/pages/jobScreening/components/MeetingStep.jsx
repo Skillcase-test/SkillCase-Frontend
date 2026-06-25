@@ -86,9 +86,12 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
     if (!slotTime) return;
     const start = new Date(slotTime);
     const end = new Date(start.getTime() + 60 * 60 * 1000);
-    const title = "Skillcase Interview Training Call";
-    const details =
-      "Come prepared with your CV and 2-3 questions to ask your mentor.";
+    const title = isTraining
+      ? "Skillcase Interview Training Call"
+      : "Skillcase Recruiter Interview";
+    const details = isTraining
+      ? "Come prepared with your CV and 2-3 questions to ask your mentor."
+      : "This is your live recruiter interview. Be prepared and professional.";
 
     const formatCalendarTime = (date) => {
       return date.toISOString().replace(/-|:|\.\d\d\d/g, "");
@@ -257,20 +260,25 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
               Schedule a training call
             </a>
           ) : (
-            <button
-              onClick={handleRefresh}
-              disabled={loading}
-              className="w-full h-12 bg-[#002856] hover:bg-[#001c3d] text-white rounded-lg shadow-sm font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-50"
-            >
-              {loading ? (
-                <>
-                  <RefreshCw className="animate-spin w-4 h-4" />
-                  <span>Checking Slot...</span>
-                </>
-              ) : (
-                <span>Check schedule of training call</span>
-              )}
-            </button>
+            <div className="w-full flex flex-col items-center gap-2">
+              <button
+                disabled
+                className="w-full h-12 bg-[#002856]/40 text-white/70 rounded-lg shadow-sm font-bold text-sm sm:text-base flex items-center justify-center gap-2 cursor-not-allowed"
+              >
+                Schedule a training call
+              </button>
+              <div className="text-zinc-500 text-[11px] text-center leading-relaxed mt-1">
+                Our team is currently preparing your booking scheduler. Please check back shortly or click{" "}
+                <button
+                  onClick={handleRefresh}
+                  disabled={loading}
+                  className="text-[#002856] font-bold hover:underline bg-transparent border-none p-0 inline cursor-pointer disabled:opacity-50"
+                >
+                  {loading ? "refreshing..." : "here to refresh"}
+                </button>
+                .
+              </div>
+            </div>
           )}
         </div>
       );

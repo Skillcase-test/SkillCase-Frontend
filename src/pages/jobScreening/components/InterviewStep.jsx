@@ -7,8 +7,12 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (progress?.assigned_interview_slug) {
+    if (
+      progress?.assigned_interview_slug &&
+      !window.location.pathname.includes(progress.assigned_interview_slug)
+    ) {
       navigate(`/job-screening/interview/${progress.assigned_interview_slug}`, {
+        replace: true,
         state: {
           name: progress.candidate_name,
           email: progress.candidate_email,

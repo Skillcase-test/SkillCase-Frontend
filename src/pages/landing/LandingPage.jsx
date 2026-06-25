@@ -123,11 +123,17 @@ export default function LandingPage() {
       (user?.german_preference === "1" ||
         String(user?.german_preference || "").toLowerCase().includes("learn")));
 
+  const isJobScreening =
+    user?.german_preference === "3" ||
+    user?.lg_preferred_mode === "job_screening";
+
   useEffect(() => {
-    if (prefersLearnMode) {
+    if (isJobScreening) {
+      navigate("/job-screening", { replace: true });
+    } else if (prefersLearnMode) {
       navigate("/learn-german", { replace: true });
     }
-  }, [navigate, prefersLearnMode]);
+  }, [navigate, isJobScreening, prefersLearnMode]);
 
   useEffect(() => {
     const active = showA1MigrationModal || showSwitchConfirm || isUpgrading;
