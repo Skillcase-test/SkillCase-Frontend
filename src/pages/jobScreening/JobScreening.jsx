@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { getProgress } from "../../api/jobScreeningApi";
+import { getProgress, startAgreement, checkAgreement } from "../../api/jobScreeningApi";
 import WelcomeStep from "./components/WelcomeStep";
 import ProfileCompletionStep from "./components/ProfileCompletionStep";
 import InterviewStep from "./components/InterviewStep";
@@ -146,7 +146,7 @@ const JobScreening = () => {
     }
   };
 
-  const handleStartStep = (stepId) => {
+  const handleStartStep = async (stepId) => {
     const targetStepId = stepId || currentStepId;
     if (targetStepId === "interview_attempt" && progress?.assigned_interview_slug) {
       navigate(`/job-screening/interview/${progress.assigned_interview_slug}`, {
@@ -156,6 +156,29 @@ const JobScreening = () => {
           phone: progress.candidate_phone,
         },
       });
+    } else if (targetStepId === "registration_form") {
+      try {
+        setLoading(true);
+        setError("");
+        const { data } = await startAgreement();
+        if (data?.success) {
+          if (data.alreadySigned) {
+            const progressRes = await checkAgreement();
+            if (progressRes.data?.success) {
+              setProgress(progressRes.data.data);
+            }
+            return;
+          }
+          navigate(`/job-screening/terms/sign/${data.token}`);
+        } else {
+          setError("Failed to initialize signing process. Please try again.");
+        }
+      } catch (err) {
+        console.error(err);
+        setError(err.response?.data?.message || "An error occurred while starting the signing process.");
+      } finally {
+        setLoading(false);
+      }
     } else {
       setIsExecutingStep(true);
     }

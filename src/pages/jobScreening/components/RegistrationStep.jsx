@@ -40,7 +40,7 @@ const RegistrationStep = ({ progress, onComplete }) => {
           }
           return;
         }
-        navigate(`/terms/sign/${data.token}?source=job_screening`);
+        navigate(`/job-screening/terms/sign/${data.token}`);
       } else {
         setError("Failed to initialize signing process. Please try again.");
       }

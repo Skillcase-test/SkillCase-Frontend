@@ -120,6 +120,9 @@ const JobScreeningInterviewPage = lazy(() => import("./pages/interviewTools/JobS
 const FallbackPage = lazy(() => import("./pages/FallbackPage"));
 const ContinuePractice = lazy(() => import("./pages/ContinuePractice"));
 const TermsSignPage = lazy(() => import("./pages/terms/TermsSignPage"));
+const JobScreeningTermsSignPage = lazy(() =>
+  import("./pages/terms/JobScreeningTermsSignPage"),
+);
 const Dashboard = lazy(() => import("./dashboard-src/pages/Dashboard"));
 const OnboardingFlow = lazy(() => import("./pages/onboarding/OnboardingFlow"));
 const LearnGermanHome = lazy(() => import("./pages/learnGerman/LearnGermanHome"));
@@ -667,6 +670,13 @@ function AppContent() {
               <Route
                 path="/terms/sign/:token"
                 element={lazyScreen(<TermsSignPage />, "Loading Terms...")}
+              />
+              <Route
+                path="/job-screening/terms/sign/:token"
+                element={lazyScreen(
+                  <JobScreeningTermsSignPage />,
+                  "Loading Document...",
+                )}
               />
               <Route
                 path="/onboarding"
