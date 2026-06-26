@@ -25,7 +25,8 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
   );
   const isUnderReview = currentStep?.status === "review";
 
-  const [uploadingDocId, setUploadingDocId] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState({});
+  const [loading, setLoading] = useState(false);
   const [deletingDocId, setDeletingDocId] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -38,7 +39,7 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
     }
   };
 
-  const handleFileChange = async (e, docId, allowedExtensions) => {
+  const handleFileChange = (e, docId, allowedExtensions) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -49,27 +50,75 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
       return;
     }
 
-    setError("");
-    setUploadingDocId(docId);
+    if (file.size > 10 * 1024 * 1024) {
+      setError("File size must be under 10MB");
+      return;
+    }
 
-    const formData = new FormData();
-    formData.append("file", file);
+    setError("");
+    setSelectedFiles((prev) => ({
+      ...prev,
+      [docId]: file,
+    }));
+  };
+
+  const handleRemoveLocalFile = (docId) => {
+    setSelectedFiles((prev) => {
+      const updated = { ...prev };
+      delete updated[docId];
+      return updated;
+    });
+    if (fileInputRefs.current[docId]) {
+      fileInputRefs.current[docId].value = "";
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+
+    const selectedKeys = Object.keys(selectedFiles);
+    if (selectedKeys.length === 0) return;
 
     try {
-      const { data } = await uploadAdditionalDoc(docId, formData);
-      if (data?.success) {
-        onComplete(data.data, false);
-      } else {
-        setError("Failed to upload document");
+      setLoading(true);
+      setError("");
+
+      let lastResponseData = null;
+
+      // Upload files sequentially
+      for (const docId of selectedKeys) {
+        const file = selectedFiles[docId];
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const { data } = await uploadAdditionalDoc(docId, formData);
+        if (data?.success) {
+          lastResponseData = data.data;
+        } else {
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+      }
+
+      setSelectedFiles({});
+      setError("");
+
+      // Clear file inputs
+      Object.keys(fileInputRefs.current).forEach((key) => {
+        if (fileInputRefs.current[key]) {
+          fileInputRefs.current[key].value = "";
+        }
+      });
+
+      if (lastResponseData) {
+        const updatedStep = lastResponseData.steps_config?.find((s) => s.id === "additional_documents");
+        const isNowCompleted = updatedStep?.status === "completed";
+        onComplete(lastResponseData, isNowCompleted);
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "Error uploading document file");
+      setError(err.response?.data?.message || err.message || "Failed to upload one or more documents");
     } finally {
-      setUploadingDocId(null);
-      if (fileInputRefs.current[docId]) {
-        fileInputRefs.current[docId].value = "";
-      }
+      setLoading(false);
     }
   };
 
@@ -111,6 +160,33 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
       setRefreshing(false);
     }
   };
+
+  const getDocDetails = (doc) => {
+    const localFile = selectedFiles[doc.id];
+    const serverFile = candidateDocs[doc.id];
+
+    if (localFile) {
+      return {
+        name: localFile.name,
+        info: `Selected | ${(localFile.size / 1024 / 1024).toFixed(2)} MB`,
+        isLocal: true,
+      };
+    }
+    if (serverFile && serverFile.key) {
+      return {
+        name: serverFile.fileName || "document.pdf",
+        info: serverFile.uploadedAt
+          ? `Uploaded | ${new Date(serverFile.uploadedAt).toLocaleDateString()}`
+          : "Uploaded",
+        isLocal: false,
+        status: serverFile.status,
+        downloadUrl: serverFile.downloadUrl,
+      };
+    }
+    return null;
+  };
+
+  const canSubmit = Object.keys(selectedFiles).length > 0 && !loading;
 
   // View state 1: Under Review Screen
   if (isUnderReview) {
@@ -261,8 +337,8 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
       {/* Checklist cards */}
       <div className="w-full flex flex-col gap-4 mb-6">
         {requiredDocs.map((doc) => {
-          const fileObj = candidateDocs[doc.id];
-          const isUploaded = !!fileObj?.key;
+          const fileDetails = getDocDetails(doc);
+          const isUploadedOrSelected = !!fileDetails;
           const hasAllowedExts = doc.allowed_extensions || ["pdf", "doc", "docx", "png", "jpg", "jpeg"];
           const acceptString = hasAllowedExts.map((e) => `.${e}`).join(",");
 
@@ -270,19 +346,25 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
           let statusBadgeClass = "bg-amber-50 text-[#d97706] border-amber-100";
           let statusIconClass = "bg-green-50 border border-green-100 text-[#15803d]";
 
-          if (isUploaded) {
-            if (fileObj.status === "approved") {
-              statusLabel = "approved";
-              statusBadgeClass = "bg-green-50 text-[#15803d] border-green-100";
-              statusIconClass = "bg-green-50 border border-green-100 text-[#15803d]";
-            } else if (fileObj.status === "rejected") {
-              statusLabel = "rejected";
-              statusBadgeClass = "bg-red-50 text-red-650 border-red-100";
-              statusIconClass = "bg-red-50 border border-red-100 text-red-600";
+          if (fileDetails) {
+            if (fileDetails.isLocal) {
+              statusLabel = "pending upload";
+              statusBadgeClass = "bg-amber-50 text-[#d97706] border-amber-100";
+              statusIconClass = "bg-amber-50 border border-amber-100 text-[#d97706]";
             } else {
-              statusLabel = "review";
-              statusBadgeClass = "bg-blue-50 text-blue-650 border-blue-100";
-              statusIconClass = "bg-blue-50 border border-blue-100 text-blue-650";
+              if (fileDetails.status === "approved") {
+                statusLabel = "approved";
+                statusBadgeClass = "bg-green-50 text-[#15803d] border-green-100";
+                statusIconClass = "bg-green-50 border border-green-100 text-[#15803d]";
+              } else if (fileDetails.status === "rejected") {
+                statusLabel = "rejected";
+                statusBadgeClass = "bg-red-50 text-red-650 border-red-100";
+                statusIconClass = "bg-red-50 border border-red-100 text-red-650";
+              } else {
+                statusLabel = "review";
+                statusBadgeClass = "bg-blue-50 text-blue-650 border-blue-100";
+                statusIconClass = "bg-blue-50 border border-blue-100 text-blue-650";
+              }
             }
           }
 
@@ -321,7 +403,7 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
               )}
 
               {/* Uploaded details block or dropzone */}
-              {isUploaded ? (
+              {isUploadedOrSelected ? (
                 <div className="p-4 bg-slate-50/50 rounded-xl border border-slate-200/60 flex items-center justify-between gap-3 w-full">
                   <div className="flex items-center gap-3.5 min-w-0 flex-1">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${statusIconClass}`}>
@@ -329,20 +411,19 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-slate-700 text-xs sm:text-sm font-semibold truncate">
-                        {fileObj.fileName}
+                        {fileDetails.name}
                       </p>
-                      {fileObj.uploadedAt && (
-                        <p className="text-[#002856]/50 text-[10px] sm:text-xs font-normal mt-0.5">
-                          Uploaded: {new Date(fileObj.uploadedAt).toLocaleDateString()}
-                        </p>
-                      )}
+                      <p className="text-[#002856]/50 text-[10px] sm:text-xs font-normal mt-0.5">
+                        {fileDetails.info}
+                      </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    {fileObj.downloadUrl && (
+                    {/* View server file */}
+                    {!fileDetails.isLocal && fileDetails.downloadUrl && (
                       <a
-                        href={fileObj.downloadUrl}
+                        href={fileDetails.downloadUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-[#002856] border border-slate-200 rounded-lg text-[10px] font-bold cursor-pointer flex items-center gap-1"
@@ -351,20 +432,43 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     )}
-                    {fileObj.status !== "approved" && (
+                    
+                    {/* Remove local selected file */}
+                    {fileDetails.isLocal && (
                       <button
                         type="button"
-                        disabled={deletingDocId === doc.id || uploadingDocId === doc.id}
-                        onClick={() => handleDelete(doc.id)}
+                        onClick={() => handleRemoveLocalFile(doc.id)}
                         className="w-7 h-7 bg-white hover:bg-rose-50 text-slate-400 hover:text-red-500 rounded-lg border border-slate-200 flex items-center justify-center transition-colors cursor-pointer"
-                        title="Remove file"
+                        title="Remove selected file"
                       >
-                        {deletingDocId === doc.id ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <X className="w-4 h-4" />
-                        )}
+                        <X className="w-4 h-4" />
                       </button>
+                    )}
+
+                    {/* Replace / Delete server file */}
+                    {!fileDetails.isLocal && fileDetails.status !== "approved" && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleUploadClick(doc.id)}
+                          className="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-[#002856] border border-slate-200 rounded-lg text-[10px] font-bold cursor-pointer"
+                        >
+                          Replace
+                        </button>
+                        <button
+                          type="button"
+                          disabled={deletingDocId === doc.id || loading}
+                          onClick={() => handleDelete(doc.id)}
+                          className="w-7 h-7 bg-white hover:bg-rose-50 text-slate-400 hover:text-red-500 rounded-lg border border-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                          title="Delete server file"
+                        >
+                          {deletingDocId === doc.id ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <X className="w-4 h-4" />
+                          )}
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -373,26 +477,15 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
                   onClick={() => handleUploadClick(doc.id)}
                   className="p-6 bg-slate-50/20 hover:bg-slate-50/55 rounded-xl border border-dashed border-slate-200 hover:border-slate-350 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200"
                 >
-                  {uploadingDocId === doc.id ? (
-                    <div className="flex flex-col items-center gap-2">
-                      <RefreshCw className="animate-spin h-5 w-5 text-slate-500" />
-                      <span className="text-[#002856] text-xs font-semibold animate-pulse">
-                        Uploading...
-                      </span>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="w-10 h-10 rounded-lg bg-black/5 flex items-center justify-center text-slate-500 mb-2">
-                        <Upload className="w-5 h-5" />
-                      </div>
-                      <span className="text-[#002856] text-xs sm:text-sm font-semibold">
-                        Click to upload
-                      </span>
-                      <span className="text-[#002856]/50 text-[10px] sm:text-xs font-normal mt-0.5">
-                        Supported files: {hasAllowedExts.map((e) => e.toUpperCase()).join(", ")}
-                      </span>
-                    </>
-                  )}
+                  <div className="w-10 h-10 rounded-lg bg-black/5 flex items-center justify-center text-slate-500 mb-2">
+                    <Upload className="w-5 h-5" />
+                  </div>
+                  <span className="text-[#002856] text-xs sm:text-sm font-semibold">
+                    Click to upload
+                  </span>
+                  <span className="text-[#002856]/50 text-[10px] sm:text-xs font-normal mt-0.5">
+                    Supported files: {hasAllowedExts.map((e) => e.toUpperCase()).join(", ")}
+                  </span>
                 </div>
               )}
             </div>
@@ -406,6 +499,22 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
           <span>{error}</span>
         </div>
       )}
+
+      {/* Submit Button */}
+      <button
+        onClick={handleSubmit}
+        disabled={!canSubmit}
+        className="w-full h-12 bg-[#002856] hover:bg-[#07192f] text-white rounded-xl font-bold text-sm sm:text-base transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer border-none"
+      >
+        {loading ? (
+          <span className="flex items-center gap-2">
+            <RefreshCw className="animate-spin h-4 w-4 text-white" />
+            Uploading documents...
+          </span>
+        ) : (
+          <span>Submit</span>
+        )}
+      </button>
     </div>
   );
 };

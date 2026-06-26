@@ -2,13 +2,17 @@ import React, { useState, useEffect } from "react";
 import { RefreshCw, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getProgress } from "../../../api/jobScreeningApi";
+import FillDetailsStep from "./FillDetailsStep";
 
 const InterviewStep = ({ progress, onComplete, onBack }) => {
   const navigate = useNavigate();
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (
       progress?.assigned_interview_slug &&
+      progress?.candidate_email &&
       !window.location.pathname.includes(progress.assigned_interview_slug)
     ) {
       navigate(`/job-screening/interview/${progress.assigned_interview_slug}`, {
@@ -22,8 +26,15 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
     }
   }, [progress, navigate]);
 
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
+  if (!progress?.candidate_email) {
+    return (
+      <FillDetailsStep
+        progress={progress}
+        onComplete={(updatedData) => onComplete(updatedData, false)}
+        onBack={onBack}
+      />
+    );
+  }
 
   const handleRefreshStatus = async () => {
     try {

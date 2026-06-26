@@ -38,3 +38,7 @@ export const refreshAdditionalDocs = () =>
 export const skipRecruiterStatus = () =>
   api.post("/job-screening/skip-recruiter-status");
 
+export const submitCandidateDetails = (payload) =>
+  api.post("/job-screening/fill-details", payload);
+
+

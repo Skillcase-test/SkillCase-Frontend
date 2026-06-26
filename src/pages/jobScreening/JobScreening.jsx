@@ -148,7 +148,8 @@ const JobScreening = () => {
     const targetStepId = stepId || currentStepId;
     if (
       targetStepId === "interview_attempt" &&
-      progress?.assigned_interview_slug
+      progress?.assigned_interview_slug &&
+      progress?.candidate_email
     ) {
       navigate(`/job-screening/interview/${progress.assigned_interview_slug}`, {
         state: {
