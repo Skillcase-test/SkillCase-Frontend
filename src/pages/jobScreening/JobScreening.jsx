@@ -283,7 +283,7 @@ const JobScreening = () => {
   if (isExecutingStep) {
     return (
       <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-white w-full flex flex-col items-center overflow-y-auto">
-        <div className="w-full max-w-md py-2 px-4">
+        <div className="w-full max-w-md py-4 px-4">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStepId}

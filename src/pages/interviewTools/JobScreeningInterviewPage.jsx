@@ -289,7 +289,7 @@ export default function JobScreeningInterviewPage() {
               const steps = data.data.steps_config || [];
               const interviewStep = steps.find(s => s.id === "interview_attempt");
               if (interviewStep && interviewStep.status === "completed") {
-                navigate("/", { replace: true });
+                navigate("/job-screening", { replace: true });
                 return;
               }
             }
@@ -1400,7 +1400,7 @@ export default function JobScreeningInterviewPage() {
             </p>
             {isJobScreeningCandidate && (
               <button
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/job-screening")}
                 className="mt-8 px-8 py-3 bg-[#002856] text-white hover:bg-[#001c3d] rounded-full font-bold text-sm transition-all shadow-md active:scale-[0.99]"
               >
                 Go to Home

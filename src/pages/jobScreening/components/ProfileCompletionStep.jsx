@@ -30,7 +30,8 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== "application/pdf") {
+    const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPDF) {
       setError("Only PDF files are supported");
       return;
     }
@@ -154,7 +155,7 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
     return (
       <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
         {/* Sub-Header bar */}
-        <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+        <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
           <button
             onClick={onBack}
             className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
@@ -168,7 +169,7 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
         </div>
 
         {/* Blue Review Card block */}
-        <div className="w-full px-5 pt-10 pb-5 bg-gradient-to-b from-[#e0f2fe] to-[#f0f9ff] rounded-2xl border border-white/20 flex flex-col items-center gap-6">
+        <div className="w-full px-5 pt-8 pb-5 bg-gradient-to-b from-[#e0f2fe] to-[#f0f9ff] rounded-2xl border border-white/20 flex flex-col items-center gap-6">
           {/* Review Icon */}
           <div className="w-12 h-12 bg-blue-950 rounded-xl flex items-center justify-center text-white shrink-0">
             <FileSearch className="w-6 h-6" />
@@ -299,7 +300,7 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
   return (
     <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
       {/* Sub-Header bar */}
-      <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-6">
+      <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
         <button
           onClick={onBack}
           className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"

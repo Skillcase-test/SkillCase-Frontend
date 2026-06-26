@@ -187,7 +187,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
       if (hasOffer) {
         // STATE 3: CONGRATULATIONS & PDF OFFER PREVIEW
         return (
-          <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative py-2">
+          <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative">
             {/* Header bar */}
             <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
               <button
@@ -262,7 +262,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
       } else if (recData.slot_time) {
         // STATE 2: INTERVIEW CALL SCREEN
         return (
-          <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative py-2">
+          <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative">
             {/* Header bar */}
             <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
               <button
@@ -278,7 +278,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
             </div>
 
             {/* Gradient Container Card */}
-            <div className="w-full px-5 pt-10 pb-5 bg-gradient-to-b from-[#e0f2fe] to-[#f0f9ff] rounded-2xl border border-white/20 flex flex-col items-center gap-6">
+            <div className="w-full px-5 pt-8 pb-5 bg-gradient-to-b from-[#e0f2fe] to-[#f0f9ff] rounded-2xl border border-white/20 flex flex-col items-center gap-6">
               <div className="w-12 h-12 bg-blue-950 rounded-xl flex items-center justify-center text-white shrink-0">
                 <Calendar className="w-6 h-6" />
               </div>
@@ -423,7 +423,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
   return (
     <div className="w-full bg-white flex flex-col justify-start items-stretch overflow-hidden mx-auto">
       {/* Back button and Job Progress */}
-      <div className="w-full px-4 py-2.5 flex flex-col justify-start items-stretch gap-2.5">
+      <div className="w-full flex flex-col justify-start items-stretch gap-2.5">
         <div className="self-stretch flex justify-between items-center">
           <button
             onClick={onBackClick}
@@ -552,7 +552,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
                       onClick={() => setActiveRecruiterId(rec.account_id)}
                       className="self-stretch px-4 py-3 bg-gradient-to-r from-amber-200 to-amber-300 rounded-xl justify-center items-center gap-1.5 flex border border-amber-300 cursor-pointer shadow-sm active:scale-[0.99] transition-all font-bold text-blue-950 text-base"
                     >
-                      Read & sign offer letter
+                      Read & Download offer letter
                     </button>
                   ) : isRejected ? (
                     <div className="self-stretch py-3 text-center text-rose-600 text-xs font-normal italic bg-rose-50 border border-rose-100 rounded-lg">

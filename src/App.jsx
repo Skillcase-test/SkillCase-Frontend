@@ -542,6 +542,21 @@ function AppContent() {
     return <Navigate to="/login" replace />;
   }
 
+  const isJobScreeningUser = isAuthenticated && user && (
+    String(user.german_preference) === "3" ||
+    user.lg_preferred_mode === "job_screening" ||
+    localStorage.getItem("lg_preferred_mode") === "job_screening"
+  );
+
+  const isJobScreeningAllowedRoute =
+    location.pathname.startsWith("/job-screening") ||
+    location.pathname === "/profile" ||
+    location.pathname.startsWith("/admin");
+
+  if (isJobScreeningUser && !isJobScreeningAllowedRoute) {
+    return <Navigate to="/job-screening" replace />;
+  }
+
   const lazyScreen = (element, title) => (
     <Suspense fallback={<RouteScreenSkeleton title={title} />}>
       {element}
