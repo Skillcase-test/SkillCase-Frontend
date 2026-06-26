@@ -339,7 +339,7 @@ const CandidateDetail = ({
       message:
         "This will mark the candidate's profile verification status as pending review. They will need to be approved again.",
       onConfirm: () => {
-        onUpdate(candidate.user_id, { email_verified: false });
+        onUpdate(candidate.user_id, { reset_profile: true });
       },
     });
   };
