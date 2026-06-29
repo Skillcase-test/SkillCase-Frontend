@@ -778,12 +778,175 @@ function DateRangePicker({ fromDate, toDate, onChange, disabled }) {
   );
 }
 
+function MultiSelectCaller({ callers, selectedDialers, onChange, callersLoading }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredCallers = useMemo(() => {
+    return callers.filter((caller) => {
+      const val = (caller.dialer_number || caller.number || "").toLowerCase();
+      const name = (caller.name || caller.employee_name || "").toLowerCase();
+      return val.includes(searchQuery.toLowerCase()) || name.includes(searchQuery.toLowerCase());
+    });
+  }, [callers, searchQuery]);
+
+  const handleToggle = (value) => {
+    if (selectedDialers.includes(value)) {
+      onChange(selectedDialers.filter((v) => v !== value));
+    } else {
+      onChange([...selectedDialers, value]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    onChange([]);
+    setSearchQuery("");
+  };
+
+  const handleClearAll = () => {
+    onChange([]);
+  };
+
+  const selectedLabels = useMemo(() => {
+    if (selectedDialers.length === 0) return "All callers";
+    if (selectedDialers.length === 1) {
+      const match = callers.find((c) => c.dialer_number === selectedDialers[0]);
+      return match ? `${match.name || match.dialer_number}` : selectedDialers[0];
+    }
+    return `${selectedDialers.length} callers selected`;
+  }, [selectedDialers, callers]);
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={callersLoading}
+        className={cx(
+          "flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white pl-9 pr-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer",
+          isOpen && "border-slate-400 ring-2 ring-slate-100"
+        )}
+      >
+        <span className="truncate text-left">{selectedLabels}</span>
+        <ChevronRight className={cx("h-4 w-4 text-slate-400 transition-transform duration-200", isOpen ? "-rotate-90" : "rotate-90")} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 top-full mt-2 z-50 w-full min-w-[280px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg max-h-80 flex flex-col">
+          <div className="relative mb-2 flex-none">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search callers..."
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-8 pr-3 py-1.5 text-xs text-slate-800 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-100"
+            />
+          </div>
+
+          <div className="flex justify-between items-center px-1 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-none">
+            <button
+              type="button"
+              onClick={handleSelectAll}
+              className="hover:text-slate-800 transition cursor-pointer"
+            >
+              Select All (Reset)
+            </button>
+            {selectedDialers.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="hover:text-rose-600 transition cursor-pointer text-rose-500"
+              >
+                Clear Selected
+              </button>
+            )}
+          </div>
+
+          <div className="overflow-y-auto flex-1 space-y-1 pr-1">
+            <div className="border-b border-slate-100 pb-1.5 mb-1.5">
+              <div
+                onClick={handleSelectAll}
+                className={cx(
+                  "flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold cursor-pointer select-none transition",
+                  selectedDialers.length === 0 ? "bg-slate-50 text-slate-900" : "text-slate-600 hover:bg-slate-50"
+                )}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedDialers.length === 0}
+                  readOnly
+                  className="rounded border-slate-300 text-slate-900 focus:ring-slate-500 focus:ring-offset-0 pointer-events-none cursor-pointer"
+                />
+                <span className="truncate">All callers</span>
+              </div>
+            </div>
+
+            {filteredCallers.map((caller, idx) => {
+              const value =
+                caller.dialer_number ||
+                caller.number ||
+                caller.employee_number ||
+                caller.mobile ||
+                "";
+              const label =
+                caller.name ||
+                caller.employee_name ||
+                caller.dialer_number ||
+                value;
+              const isChecked = selectedDialers.includes(value);
+
+              return value ? (
+                <div
+                  key={`${value}-${idx}`}
+                  onClick={() => handleToggle(value)}
+                  className={cx(
+                    "flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs cursor-pointer select-none transition",
+                    isChecked ? "bg-slate-50 text-slate-900 font-semibold" : "text-slate-600 hover:bg-slate-50"
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    readOnly
+                    className="rounded border-slate-300 text-slate-900 focus:ring-slate-500 focus:ring-offset-0 pointer-events-none cursor-pointer"
+                  />
+                  <span className="truncate text-left">
+                    {label} <span className="text-[10px] text-slate-400 font-normal">({value})</span>
+                  </span>
+                </div>
+              ) : null;
+            })}
+
+            {filteredCallers.length === 0 && (
+              <div className="py-4 text-center text-xs text-slate-400">
+                No callers match search
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CallEnginePage() {
   const todayStr = toIstDateString(new Date());
 
   const [fromDate, setFromDate] = useState(todayStr);
   const [toDate, setToDate] = useState(todayStr);
-  const [dialer, setDialer] = useState("all");
+  const [selectedDialers, setSelectedDialers] = useState([]);
   const [sortBy, setSortBy] = useState("call_datetime");
   const [sortOrder, setSortOrder] = useState("desc");
   const [recordingFilter, setRecordingFilter] = useState("all");
@@ -827,22 +990,27 @@ function CallEnginePage() {
   const logsSeq = useRef(0);
   const chatEndRef = useRef(null);
 
-  const selectedCaller = useMemo(
-    () => callers.find((caller) => caller.dialer_number === dialer),
-    [callers, dialer],
-  );
+  const selectedCallerNames = useMemo(() => {
+    if (selectedDialers.length === 0) return null;
+    return selectedDialers
+      .map((num) => {
+        const match = callers.find((c) => c.dialer_number === num);
+        return match ? match.name : num;
+      })
+      .join(", ");
+  }, [callers, selectedDialers]);
 
   const filterPayload = useMemo(
-    () => ({ fromDate, toDate, dialerNumber: dialer }),
-    [fromDate, toDate, dialer],
+    () => ({ fromDate, toDate, dialerNumber: selectedDialers.length > 0 ? selectedDialers : "all" }),
+    [fromDate, toDate, selectedDialers],
   );
   const previousWindow = useMemo(
     () => getPreviousWindow(fromDate, toDate),
     [fromDate, toDate],
   );
   const previousFilterPayload = useMemo(
-    () => (previousWindow ? { ...previousWindow, dialerNumber: dialer } : null),
-    [previousWindow, dialer],
+    () => (previousWindow ? { ...previousWindow, dialerNumber: selectedDialers.length > 0 ? selectedDialers : "all" } : null),
+    [previousWindow, selectedDialers],
   );
 
   const loadMetricLogs = useCallback(
@@ -1124,7 +1292,7 @@ function CallEnginePage() {
     const todayStr = toIstDateString(new Date());
     setFromDate(todayStr);
     setToDate(todayStr);
-    setDialer("all");
+    setSelectedDialers([]);
     setSortBy("call_datetime");
     setSortOrder("desc");
     setRecordingFilter("all");
@@ -1195,40 +1363,13 @@ function CallEnginePage() {
               Caller
             </label>
             <div className="relative">
-              <UserRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <select
-                value={dialer}
-                onChange={(e) => setDialer(e.target.value)}
-                disabled={loading || callersLoading}
-                className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-8 py-2.5 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all duration-200 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:opacity-60 disabled:cursor-not-allowed appearance-none"
-              >
-                {callersLoading ? (
-                  <option value="loading">Loading callers...</option>
-                ) : (
-                  <>
-                    <option value="all">All callers</option>
-                    {callers.map((caller, idx) => {
-                      const value =
-                        caller.dialer_number ||
-                        caller.number ||
-                        caller.employee_number ||
-                        caller.mobile ||
-                        "";
-                      const label =
-                        caller.name ||
-                        caller.employee_name ||
-                        caller.dialer_number ||
-                        value;
-                      return value ? (
-                        <option key={`${value}-${idx}`} value={value}>
-                          {label} ({value})
-                        </option>
-                      ) : null;
-                    })}
-                  </>
-                )}
-              </select>
-              <ChevronRight className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none rotate-90" />
+              <UserRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none z-10" />
+              <MultiSelectCaller
+                callers={callers}
+                selectedDialers={selectedDialers}
+                onChange={setSelectedDialers}
+                callersLoading={callersLoading}
+              />
             </div>
           </div>
           <Button
@@ -1741,10 +1882,10 @@ function CallEnginePage() {
               <CalendarDays className="h-3 w-3" />
               {fromDate} to {toDate}
             </span>
-            {selectedCaller && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
-                <UserRound className="h-3 w-3" />
-                {selectedCaller.name || dialer}
+            {selectedCallerNames && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 max-w-[300px] truncate" title={selectedCallerNames}>
+                <UserRound className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">{selectedCallerNames}</span>
               </span>
             )}
           </div>
