@@ -1287,7 +1287,9 @@ export default function AppAnalytics({ me }) {
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="truncate text-xs font-semibold text-slate-700">{row.name}</p>
+                        <p className="truncate text-xs font-semibold text-slate-700">
+                          {row.name} {row.phone && <span className="ml-1 text-[10px] text-slate-500 font-normal">({row.phone})</span>}
+                        </p>
                         <span className="inline-flex rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
                           {row.prospect_score}
                         </span>
