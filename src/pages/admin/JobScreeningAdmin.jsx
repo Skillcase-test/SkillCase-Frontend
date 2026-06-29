@@ -17,11 +17,17 @@ import CandidateDetail from "./components/CandidateDetail";
 
 const JobScreeningAdmin = () => {
   const [candidates, setCandidates] = useState([]);
-  const [options, setOptions] = useState({ interviews: [], agreements: [] });
+  const [options, setOptions] = useState({ interviews: [], agreements: [], recruiters: [] });
   const [globalSettings, setGlobalSettings] = useState({
     default_interview_id: "",
     default_agreement_template_id: "",
     required_additional_documents: [],
+    default_recruiter_id: "",
+    default_job_title: "",
+    default_job_location: "",
+    default_job_salary_range: "",
+    default_job_type: "",
+    default_job_description: "",
   });
   
   const [selectedCandidateId, setSelectedCandidateId] = useState(null);
@@ -102,10 +108,17 @@ const JobScreeningAdmin = () => {
         }
         const resSettings = await adminGetSettings();
         if (resSettings.data?.success) {
+          const settings = resSettings.data.data || {};
           setGlobalSettings({
-            default_interview_id: resSettings.data.data.default_interview_id || "",
-            default_agreement_template_id: resSettings.data.data.default_agreement_template_id || "",
-            required_additional_documents: resSettings.data.data.required_additional_documents || [],
+            default_interview_id: settings.default_interview_id || "",
+            default_agreement_template_id: settings.default_agreement_template_id || "",
+            required_additional_documents: settings.required_additional_documents || [],
+            default_recruiter_id: settings.default_recruiter_id || "",
+            default_job_title: settings.default_job_title || "",
+            default_job_location: settings.default_job_location || "",
+            default_job_salary_range: settings.default_job_salary_range || "",
+            default_job_type: settings.default_job_type || "",
+            default_job_description: settings.default_job_description || "",
           });
         }
       } catch (err) {
@@ -239,10 +252,17 @@ const JobScreeningAdmin = () => {
       const { data } = await adminUpdateSettings(payload);
       if (data?.success) {
         toast.success("Global pipeline settings saved successfully");
+        const settings = data.data || {};
         setGlobalSettings({
-          default_interview_id: data.data.default_interview_id || "",
-          default_agreement_template_id: data.data.default_agreement_template_id || "",
-          required_additional_documents: data.data.required_additional_documents || [],
+          default_interview_id: settings.default_interview_id || "",
+          default_agreement_template_id: settings.default_agreement_template_id || "",
+          required_additional_documents: settings.required_additional_documents || [],
+          default_recruiter_id: settings.default_recruiter_id || "",
+          default_job_title: settings.default_job_title || "",
+          default_job_location: settings.default_job_location || "",
+          default_job_salary_range: settings.default_job_salary_range || "",
+          default_job_type: settings.default_job_type || "",
+          default_job_description: settings.default_job_description || "",
         });
         fetchList();
       } else {
@@ -369,6 +389,14 @@ const JobScreeningAdmin = () => {
                 <p className="text-[10px] text-slate-400 font-medium mt-0.5 leading-relaxed">
                   Set default interview/agreement templates used for all candidates when no custom overrides exist.
                 </p>
+                <button
+                  type="button"
+                  onClick={() => handleUpdateSettings(globalSettings)}
+                  disabled={updating}
+                  className="w-full py-2 bg-[#083262] text-white hover:bg-[#052243] rounded-xl text-xs font-bold transition-all disabled:opacity-50 shadow-none mt-2.5 cursor-pointer"
+                >
+                  Save Global Defaults
+                </button>
               </div>
 
               <div className="h-px bg-slate-100/80" />
@@ -428,6 +456,126 @@ const JobScreeningAdmin = () => {
                       <Settings className="w-3.5 h-3.5" />
                     </div>
                   </div>
+                </div>
+
+                <div className="h-px bg-slate-100/80 my-1" />
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    Default Recruiter
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={globalSettings.default_recruiter_id || ""}
+                      onChange={(e) =>
+                        setGlobalSettings((prev) => ({
+                          ...prev,
+                          default_recruiter_id: e.target.value,
+                        }))
+                      }
+                      className="w-full border border-slate-200 rounded-xl p-2.5 pr-8 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all appearance-none"
+                    >
+                      <option value="">No Default Recruiter</option>
+                      {options.recruiters?.map((rec) => (
+                        <option key={rec.id} value={rec.id}>
+                          {rec.email}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+                      <Settings className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    Default Job Title
+                  </label>
+                  <input
+                    type="text"
+                    value={globalSettings.default_job_title || ""}
+                    onChange={(e) =>
+                      setGlobalSettings((prev) => ({
+                        ...prev,
+                        default_job_title: e.target.value,
+                      }))
+                    }
+                    placeholder="e.g. Software Engineer"
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    Default Job Location
+                  </label>
+                  <input
+                    type="text"
+                    value={globalSettings.default_job_location || ""}
+                    onChange={(e) =>
+                      setGlobalSettings((prev) => ({
+                        ...prev,
+                        default_job_location: e.target.value,
+                      }))
+                    }
+                    placeholder="e.g. Berlin, Germany"
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    Default Job Salary Range
+                  </label>
+                  <input
+                    type="text"
+                    value={globalSettings.default_job_salary_range || ""}
+                    onChange={(e) =>
+                      setGlobalSettings((prev) => ({
+                        ...prev,
+                        default_job_salary_range: e.target.value,
+                      }))
+                    }
+                    placeholder="e.g. €50,000 - €70,000 / year"
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    Default Job Type
+                  </label>
+                  <input
+                    type="text"
+                    value={globalSettings.default_job_type || ""}
+                    onChange={(e) =>
+                      setGlobalSettings((prev) => ({
+                        ...prev,
+                        default_job_type: e.target.value,
+                      }))
+                    }
+                    placeholder="e.g. Full-time"
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    Default Job Description
+                  </label>
+                  <textarea
+                    value={globalSettings.default_job_description || ""}
+                    onChange={(e) =>
+                      setGlobalSettings((prev) => ({
+                        ...prev,
+                        default_job_description: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter default job description..."
+                    rows={3}
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all resize-none"
+                  />
                 </div>
 
                 <div className="h-px bg-slate-100/80 my-1" />

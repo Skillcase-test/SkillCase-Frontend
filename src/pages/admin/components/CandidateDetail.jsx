@@ -1715,7 +1715,7 @@ const CandidateDetail = ({
                           {candidate.recruiter_shares && candidate.recruiter_shares.length > 0 ? (
                             <div className="space-y-4">
                               {candidate.recruiter_shares.map((rec) => {
-                                const isChecked = candidate.visible_recruiter_ids?.includes(rec.account_id);
+                                const isChecked = !!rec.is_visible;
                                 const recData = candidate.recruiter_interviews?.[rec.account_id] || {};
                                 const isEditing = editingRecId === rec.account_id;
 
@@ -1731,12 +1731,12 @@ const CandidateDetail = ({
                                           type="checkbox"
                                           checked={isChecked}
                                           onChange={(e) => {
-                                            const currentVisible = candidate.visible_recruiter_ids || [];
+                                            const currentVisible = (candidate.visible_recruiter_ids || []).map(Number);
                                             let newVisible;
                                             if (e.target.checked) {
-                                              newVisible = [...currentVisible, rec.account_id];
+                                              newVisible = [...currentVisible, Number(rec.account_id)];
                                             } else {
-                                              newVisible = currentVisible.filter((id) => id !== rec.account_id);
+                                              newVisible = currentVisible.filter((id) => Number(id) !== Number(rec.account_id));
                                             }
                                             onUpdate(candidate.user_id, {
                                               visible_recruiter_ids: newVisible,
