@@ -145,15 +145,6 @@ const WelcomeStep = ({ onComplete }) => {
             <span>Start Job Screening</span>
           )}
         </button>
-
-        {/* Back button */}
-        <button
-          type="button"
-          onClick={handleBack}
-          className="w-full h-11 bg-transparent hover:bg-white/5 text-white/70 hover:text-white rounded-xl font-semibold text-sm transition-all cursor-pointer"
-        >
-          Back
-        </button>
       </div>
     </div>
   );

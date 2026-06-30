@@ -61,6 +61,9 @@ const JobScreening = () => {
   const [agreementLoading, setAgreementLoading] = useState(false);
   const [agreementError, setAgreementError] = useState("");
 
+  const [welcomeAnimationState, setWelcomeAnimationState] = useState("idle");
+  const [finalProgressData, setFinalProgressData] = useState(null);
+
   const fetchProgress = async () => {
     try {
       setLoading(true);
@@ -84,6 +87,24 @@ const JobScreening = () => {
   useEffect(() => {
     fetchProgress();
   }, []);
+
+  useEffect(() => {
+    if (welcomeAnimationState === "welcome_active") {
+      const t1 = setTimeout(() => {
+        setWelcomeAnimationState("welcome_complete");
+      }, 1200);
+
+      const t2 = setTimeout(() => {
+        setWelcomeAnimationState("idle");
+        setProgress(finalProgressData);
+      }, 4000);
+
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+  }, [welcomeAnimationState, finalProgressData]);
 
   if (loading) {
     return (
@@ -133,15 +154,18 @@ const JobScreening = () => {
   }
 
   const steps = progress?.steps_config || [];
-  const visibleSteps = steps.filter((s) => s.status !== "skipped");
   const currentStepId = progress?.current_step_id || "welcome";
-  const activeStep = steps.find((s) => s.id === currentStepId);
 
   const handleStepComplete = (updatedData, shouldExitStep = true) => {
     setProgress(updatedData);
     if (shouldExitStep) {
       setIsExecutingStep(false);
     }
+  };
+
+  const handleWelcomeComplete = (updatedData) => {
+    setFinalProgressData(updatedData);
+    setWelcomeAnimationState("welcome_active");
   };
 
   const handleStartStep = async (stepId) => {
@@ -194,7 +218,7 @@ const JobScreening = () => {
   const renderActiveStepComponent = () => {
     switch (currentStepId) {
       case "welcome":
-        return <WelcomeStep onComplete={handleStepComplete} />;
+        return <WelcomeStep onComplete={handleWelcomeComplete} />;
       case "profile_completion":
         return (
           <ProfileCompletionStep
@@ -261,7 +285,7 @@ const JobScreening = () => {
   };
 
   // 1. Full-screen Welcome flow
-  if (currentStepId === "welcome") {
+  if (currentStepId === "welcome" && welcomeAnimationState === "idle") {
     return (
       <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-gradient-to-b from-[#002856] to-[#134074] w-full flex flex-col justify-center items-center">
         <AnimatePresence mode="wait">
@@ -302,14 +326,39 @@ const JobScreening = () => {
     );
   }
 
-  // Calculate Progress Stats
+  // Derive transition animation steps configurations
+  let displaySteps = steps;
+  let displayCurrentStepId = currentStepId;
+
+  if (welcomeAnimationState === "welcome_active") {
+    // Use the real resolved data as the base (keeps already-completed steps intact)
+    const baseSteps = finalProgressData?.steps_config || steps;
+    displayCurrentStepId = "welcome";
+    displaySteps = baseSteps.map((s) => {
+      if (s.id === "welcome") return { ...s, status: "pending" };
+      return s;
+    });
+  } else if (welcomeAnimationState === "welcome_complete") {
+    // Use the real resolved data as the base (keeps already-completed steps intact)
+    const baseSteps = finalProgressData?.steps_config || steps;
+    const nextId = finalProgressData?.current_step_id || "profile_completion";
+    displayCurrentStepId = nextId;
+    displaySteps = baseSteps.map((s) => {
+      if (s.id === "welcome") return { ...s, status: "completed" };
+      if (s.id === nextId && s.status !== "completed") return { ...s, status: "pending" };
+      return s;
+    });
+  }
+
+  const visibleSteps = displaySteps.filter((s) => s.status !== "skipped");
   const completedStepsCount = visibleSteps.filter(
     (s) => s.status === "completed",
   ).length;
   const totalStepsCount = visibleSteps.length;
   const progressPercent =
     totalStepsCount > 0 ? (completedStepsCount / totalStepsCount) * 100 : 0;
-  const activeStepIndex = visibleSteps.findIndex((s) => s.id === currentStepId);
+  const activeStepIndex = visibleSteps.findIndex((s) => s.id === displayCurrentStepId);
+  const activeStep = displaySteps.find((s) => s.id === displayCurrentStepId);
 
   // 3. Central Job Progress Timeline screen (Progress Lobby)
   return (
@@ -323,7 +372,7 @@ const JobScreening = () => {
             </h2>
             <p className="text-[#002856]/70 text-xs sm:text-sm font-medium mt-1 leading-relaxed">
               Next step -{" "}
-              {STEP_DESCRIPTIONS[currentStepId]?.subtitle ||
+              {STEP_DESCRIPTIONS[displayCurrentStepId]?.subtitle ||
                 activeStep?.title ||
                 ""}
             </p>
@@ -371,12 +420,16 @@ const JobScreening = () => {
         <div className="flex flex-col w-full">
           {visibleSteps.map((step, idx) => {
             const isCompleted = step.status === "completed";
-            const isActive = step.id === currentStepId;
+            const isActive = step.id === displayCurrentStepId;
             const isReview = step.status === "review";
             const isLocked = step.status === "locked";
             const isLast = idx === visibleSteps.length - 1;
+            // Welcome step was just active — its button should start already open, not animate in
+            const isWelcomeStartPhase = welcomeAnimationState === "welcome_active" && step.id === "welcome";
 
             const stepDesc = STEP_DESCRIPTIONS[step.id]?.desc || "";
+            const circleBg = isCompleted ? "#15803d" : (isActive || isReview ? "#002856" : "rgba(0,40,86,0.1)");
+            const circleColor = isCompleted || isActive || isReview ? "#ffffff" : "rgba(0,40,86,0.4)";
 
             return (
               <div
@@ -386,19 +439,33 @@ const JobScreening = () => {
                 {/* Left Connector Node */}
                 <div className="w-6 flex flex-col items-center shrink-0">
                   <div className="py-1.5 flex flex-col items-center">
-                    {isCompleted ? (
-                      <div className="w-6 h-6 bg-[#15803d] rounded-full flex items-center justify-center text-white shadow-sm shrink-0">
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      </div>
-                    ) : isActive || isReview ? (
-                      <div className="w-6 h-6 bg-[#002856] rounded-full flex items-center justify-center text-white font-bold text-xs shadow-sm shrink-0">
-                        {idx + 1}
-                      </div>
-                    ) : (
-                      <div className="w-6 h-6 bg-black/10 rounded-full flex items-center justify-center text-[#002856]/40 shadow-none shrink-0">
+                    <motion.div
+                      animate={{
+                        backgroundColor: circleBg,
+                        color: circleColor,
+                        scale: isActive ? [1, 1.15, 1] : 1,
+                      }}
+                      transition={{ duration: 0.7, ease: "easeInOut" }}
+                      className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs shadow-sm shrink-0"
+                    >
+                      {isCompleted ? (
+                        <motion.svg
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ type: "spring", stiffness: 320, damping: 22 }}
+                          className="w-3.5 h-3.5 stroke-[3] text-white"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </motion.svg>
+                      ) : isActive || isReview ? (
+                        idx + 1
+                      ) : (
                         <Lock className="w-3 h-3" />
-                      </div>
-                    )}
+                      )}
+                    </motion.div>
                   </div>
                   {!isLast && (
                     <div className="flex-1 w-[1.5px] bg-[#002856]/20 my-0.5" />
@@ -406,15 +473,18 @@ const JobScreening = () => {
                 </div>
 
                 {/* Right Step Card */}
-                <div
-                  className={`flex-1 pb-6 w-full ${isLocked ? "opacity-60" : ""}`}
+                <motion.div
+                  animate={{ opacity: isLocked ? 0.6 : 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="flex-1 pb-6 w-full"
                 >
-                  <div
-                    className={`p-4 bg-white rounded-2xl shadow-md/10 border flex flex-col gap-4 w-full transition-all ${
-                      isActive || isReview
-                        ? "border-[#002856]/60 ring-2 ring-[#002856]/5"
-                        : "border-slate-200"
-                    }`}
+                  <motion.div
+                    animate={{
+                      borderColor: isActive || isReview ? "rgba(0,40,86,0.6)" : "rgba(0,40,86,0.1)",
+                      boxShadow: isActive || isReview ? "0 4px 12px rgba(0,40,86,0.06)" : "0 1px 3px rgba(0,0,0,0.02)",
+                    }}
+                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                    className="p-4 bg-white rounded-2xl border flex flex-col gap-4 w-full"
                   >
                     {/* Title & Badge */}
                     <div className="flex justify-between items-start gap-2 w-full text-left">
@@ -450,18 +520,28 @@ const JobScreening = () => {
                     </div>
 
                     {/* Action Button inside active pending step card */}
-                    {(isActive || isReview) && (
-                      <button
-                        onClick={() => handleStartStep(step.id)}
-                        className="w-full py-3 bg-[#002856] text-white rounded-lg font-bold text-sm transition-all active:scale-[0.99] cursor-pointer text-center"
-                      >
-                        {step.id === "review_pending"
-                          ? "Check review status"
-                          : "Start this step"}
-                      </button>
-                    )}
-                  </div>
-                </div>
+                    <AnimatePresence>
+                      {(isActive || isReview) && (
+                        <motion.div
+                          initial={isWelcomeStartPhase ? false : { opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.45, ease: "easeInOut" }}
+                          className="overflow-hidden"
+                        >
+                          <button
+                            onClick={() => handleStartStep(step.id)}
+                            className="w-full py-3 bg-[#002856] text-white rounded-lg font-bold text-sm transition-all active:scale-[0.99] cursor-pointer text-center"
+                          >
+                            {step.id === "review_pending"
+                              ? "Check review status"
+                              : "Start this step"}
+                          </button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                </motion.div>
               </div>
             );
           })}
