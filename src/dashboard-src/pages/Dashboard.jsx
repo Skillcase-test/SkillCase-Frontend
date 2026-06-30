@@ -645,7 +645,7 @@ export default function Dashboard() {
         key: "app-analytics",
         label: "App Analytics",
         path: "/admin/app-analytics",
-        module: "analytics",
+        module: "app_analytics",
       },
       {
         key: "events",
@@ -967,7 +967,7 @@ export default function Dashboard() {
               <Route
                 path="app-analytics"
                 element={
-                  <Guard allowed={hasPermission(me, "analytics")}>
+                  <Guard allowed={hasPermission(me, "app_analytics")}>
                     <AppAnalytics me={me} />
                   </Guard>
                 }

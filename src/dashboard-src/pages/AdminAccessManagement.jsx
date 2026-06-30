@@ -5,6 +5,7 @@ import api from "../../api/axios";
 
 const MODULE_OPTIONS = [
   { key: "analytics", label: "Analytics" },
+  { key: "app_analytics", label: "App Analytics" },
   { key: "content", label: "A1" },
   { key: "a2_content", label: "A2" },
   { key: "events", label: "Events" },
