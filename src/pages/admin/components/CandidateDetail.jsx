@@ -1694,7 +1694,7 @@ const CandidateDetail = ({
                               </div>
                             )}
 
-                          {isCompleted && (
+                          {(isActive || isCompleted) && (
                             <button
                               type="button"
                               onClick={handleResetTraining}
