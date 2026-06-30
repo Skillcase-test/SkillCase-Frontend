@@ -102,7 +102,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
       setDownloadingId(accountId);
       const { data } = await downloadOfferLetter(accountId);
       if (data?.success && data.downloadUrl) {
-        window.open(data.downloadUrl, "_blank");
+        window.location.href = data.downloadUrl;
       } else {
         toast.error("Failed to generate download link.");
       }
@@ -570,9 +570,9 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
                       type="button"
                       onClick={handleRefresh}
                       disabled={refreshing}
-                      className="self-stretch px-4 py-3 bg-[#002856] rounded-xl border border-blue-950/40 justify-center items-center gap-1.5 flex cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all font-normal text-white text-base"
+                      className="self-stretch px-4 py-3 bg-[#002856] rounded-lg border border-blue-950/40 justify-center items-center gap-1.5 flex cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all font-bold text-white text-sm"
                     >
-                      Check status
+                      {!refreshing ? "Check Status" : "Checking Status..."}
                     </button>
                   )}
                 </div>

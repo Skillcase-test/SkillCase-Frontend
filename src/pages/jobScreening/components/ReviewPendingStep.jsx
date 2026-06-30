@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ArrowLeft,
   FileSearch,
@@ -8,10 +8,40 @@ import {
 } from "lucide-react";
 import { getProgress } from "../../../api/jobScreeningApi";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
+import { motion } from "framer-motion";
 
 const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+
+  const isCompleted = progress?.current_step_id !== "review_pending";
+
+  useEffect(() => {
+    if (isCompleted) {
+      const timer = setTimeout(() => {
+        onComplete(progress, true);
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [isCompleted, progress, onComplete]);
+
+  useEffect(() => {
+    let active = true;
+    getProgress()
+      .then(({ data }) => {
+        if (!active) return;
+        if (data?.success) {
+          const hasStepChanged = data.data?.current_step_id !== "review_pending";
+          if (hasStepChanged) {
+            onComplete(data.data, false);
+          }
+        }
+      })
+      .catch((err) => console.error("Silent sync failed:", err));
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleRefresh = async () => {
     try {
@@ -19,8 +49,7 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
       setError("");
       const { data } = await getProgress();
       if (data?.success && onComplete) {
-        const hasStepChanged = data.data?.current_step_id !== "review_pending";
-        onComplete(data.data, hasStepChanged);
+        onComplete(data.data, false);
       } else {
         setError("Failed to sync progress.");
       }
@@ -131,18 +160,45 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
       <div className="w-full px-5 pt-8 pb-5 bg-gradient-to-b from-[#e0f2fe] to-[#f0f9ff] rounded-2xl border border-white/20 flex flex-col items-center gap-6">
         {/* Review Icon */}
         <div className="w-12 h-12 bg-[#002856] rounded-xl flex items-center justify-center text-white shrink-0">
-          <FileSearch className="w-6 h-6" />
+          {isCompleted ? (
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center text-white border border-green-700 shadow-sm"
+            >
+              <motion.svg
+                initial={{ pathLength: 0 }}
+                animate={{ pathLength: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="w-6 h-6 stroke-[3.5] text-white"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+              >
+                <motion.path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                />
+              </motion.svg>
+            </motion.div>
+          ) : (
+            <FileSearch className="w-6 h-6" />
+          )}
         </div>
 
         {/* Heading */}
         <div className="text-center w-full">
           <h2 className="text-[#002856] text-2xl font-bold tracking-tight">
-            Interview under review
+            {isCompleted ? "Interview verified!" : "Interview under review"}
           </h2>
           <p className="text-[#002856]/70 text-xs sm:text-sm font-medium mt-2 max-w-[280px] mx-auto leading-relaxed">
-            Great job! You have submitted your Skillcase video interview. Our
-            screening panel is currently reviewing your audio, video, and
-            language fluency responses.
+            {isCompleted
+              ? "Congratulations! Your video interview has been successfully verified."
+              : "Great job! You have submitted your Skillcase video interview. Our screening panel is currently reviewing your audio, video, and language fluency responses."}
           </p>
         </div>
 
@@ -154,7 +210,7 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
               <div className="w-6 h-6 bg-[#15803d] rounded-full flex items-center justify-center text-white shadow-sm">
                 <Check className="w-3.5 h-3.5 stroke-[3]" />
               </div>
-              <div className="w-[1.5px] bg-[#002856]/20 flex-1 my-1" />
+              <div className="w-[1.5px] bg-[#15803d] flex-1 my-1" />
             </div>
             <div className="pb-5 text-left flex-1 min-w-0 pr-2">
               <h4 className="text-[#002856] text-sm font-semibold leading-tight">
@@ -169,18 +225,25 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
           {/* Step 2: Review in progress (active) */}
           <div className="flex gap-3.5 w-full items-stretch">
             <div className="flex flex-col items-center shrink-0">
-              <div className="w-6 h-6 bg-[#002856] rounded-full flex items-center justify-center text-white shadow-sm">
-                <div className="w-2.5 h-2.5 bg-white rounded-full" />
-              </div>
-              <div className="w-[1.5px] bg-slate-200 flex-1 my-1" />
+              {isCompleted ? (
+                <div className="w-6 h-6 bg-[#15803d] rounded-full flex items-center justify-center text-white shadow-sm">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                </div>
+              ) : (
+                <div className="w-6 h-6 bg-[#002856] rounded-full flex items-center justify-center text-white shadow-sm">
+                  <div className="w-2.5 h-2.5 bg-white rounded-full" />
+                </div>
+              )}
+              <div className={`w-[1.5px] ${isCompleted ? "bg-[#15803d]" : "bg-slate-200"} flex-1 my-1`} />
             </div>
             <div className="pb-5 text-left flex-1 min-w-0 pr-2">
               <h4 className="text-[#002856] text-sm font-semibold leading-tight">
                 Review in progress
               </h4>
               <p className="text-slate-500 text-[11px] sm:text-xs mt-1 leading-normal">
-                Our screening panel is currently reviewing your assessment
-                responses.
+                {isCompleted
+                  ? "Our screening panel has completed the evaluation of your responses."
+                  : "Our screening panel is currently reviewing your assessment responses."}
               </p>
             </div>
           </div>
@@ -188,14 +251,22 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
           {/* Step 3: Interview verified (pending) */}
           <div className="flex gap-3.5 w-full items-stretch">
             <div className="flex flex-col items-center shrink-0">
-              <div className="w-6 h-6 border-2 border-slate-300 rounded-full flex items-center justify-center bg-white" />
+              {isCompleted ? (
+                <div className="w-6 h-6 bg-[#15803d] rounded-full flex items-center justify-center text-white shadow-sm">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                </div>
+              ) : (
+                <div className="w-6 h-6 border-2 border-slate-300 rounded-full flex items-center justify-center bg-white" />
+              )}
             </div>
             <div className="pb-5 text-left flex-1 min-w-0 pr-2">
-              <h4 className="text-slate-400 text-sm font-semibold leading-tight">
+              <h4 className={`text-sm font-semibold leading-tight ${isCompleted ? "text-[#002856]" : "text-slate-400"}`}>
                 Interview verified
               </h4>
-              <p className="text-slate-400 text-[11px] sm:text-xs mt-1 leading-normal">
-                Your fluency score will be finalized and sent to recruiters.
+              <p className={`text-[11px] sm:text-xs mt-1 leading-normal ${isCompleted ? "text-slate-500" : "text-slate-400"}`}>
+                {isCompleted
+                  ? "Your fluency score is finalized and visible to recruiter partners."
+                  : "Your fluency score will be finalized and sent to recruiters."}
               </p>
             </div>
           </div>
@@ -211,10 +282,12 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
           />
           <div className="min-w-0 flex-1 pr-4 py-3">
             <h5 className="text-[#002856] text-xs sm:text-sm font-bold">
-              Please note
+              {isCompleted ? "Verification complete" : "Please note"}
             </h5>
             <p className="text-slate-500 text-[10px] sm:text-xs mt-0.5 leading-normal">
-              Typically takes around 24-48 hrs. You will be notified.
+              {isCompleted
+                ? "Your interview verification is completed. Redirecting you shortly..."
+                : "Typically takes around 24-48 hrs. You will be notified."}
             </p>
           </div>
         </div>
@@ -223,23 +296,32 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
         {error && <p className="text-red-500 text-xs font-semibold">{error}</p>}
 
         {/* Refresh / Action Button */}
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="w-full h-12 bg-white hover:bg-slate-50 text-[#002856] border border-[#002856] rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm cursor-pointer"
-        >
-          {refreshing ? (
-            <>
-              <RefreshCw className="animate-spin w-4 h-4 text-[#002856]" />
-              <span>Syncing status...</span>
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-4 h-4 text-[#002856]" />
-              <span>Refresh status</span>
-            </>
-          )}
-        </button>
+        {isCompleted ? (
+          <button
+            onClick={() => onComplete(progress, true)}
+            className="w-full h-12 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer border-none"
+          >
+            <span>Proceeding...</span>
+          </button>
+        ) : (
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="w-full h-12 bg-white hover:bg-slate-50 text-[#002856] border border-[#002856] rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm cursor-pointer"
+          >
+            {refreshing ? (
+              <>
+                <RefreshCw className="animate-spin w-4 h-4 text-[#002856]" />
+                <span>Syncing status...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 text-[#002856]" />
+                <span>Refresh status</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

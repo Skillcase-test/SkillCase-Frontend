@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
@@ -64,6 +64,19 @@ const JobScreening = () => {
   const [welcomeAnimationState, setWelcomeAnimationState] = useState("idle");
   const [finalProgressData, setFinalProgressData] = useState(null);
   const [executingStepId, setExecutingStepId] = useState(null);
+  const [reviewCheckStepId, setReviewCheckStepId] = useState(null);
+  const activeStepRef = useRef(null);
+
+  useEffect(() => {
+    if (progress && activeStepRef.current) {
+      setTimeout(() => {
+        activeStepRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 300);
+    }
+  }, [progress, isExecutingStep]);
 
   const fetchProgress = async () => {
     try {
@@ -78,7 +91,7 @@ const JobScreening = () => {
     } catch (err) {
       console.error("Error loading progress:", err);
       setError(
-        err.response?.data?.message || "Failed to load screening progress",
+        err.response?.data?.message || "Failed to load progress settings",
       );
     } finally {
       setLoading(false);
@@ -109,43 +122,23 @@ const JobScreening = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-[#002856] border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-[#002856] text-xs font-semibold">
-            Loading your job screening pipeline...
-          </span>
-        </div>
+      <div className="w-full min-h-screen bg-[#f6f8fc] flex items-center justify-center flex-col gap-3 font-sans">
+        <div className="w-10 h-10 border-[3.5px] border-[#002856] border-t-transparent rounded-full animate-spin" />
+        <span className="text-slate-550 text-xs font-semibold">
+          Loading screening dashboard...
+        </span>
       </div>
     );
   }
 
-  if (error) {
+  if (error && !progress) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white p-4">
-        <div className="max-w-md w-full bg-white p-6 rounded-2xl shadow-sm border border-slate-200 text-center">
-          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center text-red-500 mx-auto mb-4">
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-lg font-bold text-[#002856] mb-2">
-            Error Loading Pipeline
-          </h2>
-          <p className="text-zinc-500 text-xs leading-relaxed mb-6">{error}</p>
+      <div className="w-full min-h-screen bg-[#f6f8fc] flex items-center justify-center px-4 font-sans">
+        <div className="max-w-md w-full bg-white p-6 rounded-2xl border border-slate-200 text-center shadow-sm">
+          <p className="text-sm font-semibold text-slate-800 mb-4">{error}</p>
           <button
             onClick={fetchProgress}
-            className="w-full py-2.5 bg-[#002856] text-white hover:bg-[#003d83] rounded-xl text-xs font-bold transition-all shadow-sm active:scale-[0.99]"
+            className="px-5 py-2.5 bg-[#002856] text-white rounded-lg text-sm font-bold active:scale-[0.99] transition-all cursor-pointer"
           >
             Retry Loading
           </button>
@@ -179,6 +172,27 @@ const JobScreening = () => {
     }
 
     const targetStepId = stepId || displayCurrentStepId;
+    const clickedStep = steps.find(s => s.id === targetStepId);
+
+    if (clickedStep && clickedStep.status === "review") {
+      try {
+        setReviewCheckStepId(targetStepId);
+        const { data } = await getProgress();
+        if (data?.success) {
+          setProgress(data.data);
+          setExecutingStepId(targetStepId);
+          setIsExecutingStep(true);
+        }
+      } catch (err) {
+        console.error("Error checking review status:", err);
+        setExecutingStepId(targetStepId);
+        setIsExecutingStep(true);
+      } finally {
+        setReviewCheckStepId(null);
+      }
+      return;
+    }
+
     if (
       targetStepId === "interview_attempt" &&
       progress?.assigned_interview_slug &&
@@ -449,6 +463,7 @@ const JobScreening = () => {
             return (
               <div
                 key={step.id}
+                ref={isActive ? activeStepRef : null}
                 className="self-stretch inline-flex justify-start items-stretch gap-3.5 w-full"
               >
                 {/* Left Connector Node */}
@@ -546,11 +561,19 @@ const JobScreening = () => {
                         >
                           <button
                             onClick={() => handleStartStep(step.id)}
-                            className="w-full py-3 bg-[#002856] text-white rounded-lg font-bold text-sm transition-all active:scale-[0.99] cursor-pointer text-center"
+                            disabled={reviewCheckStepId !== null}
+                            className="w-full py-3 bg-[#002856] text-white rounded-lg font-bold text-sm transition-all active:scale-[0.99] cursor-pointer text-center flex items-center justify-center gap-2 disabled:opacity-75"
                           >
-                            {step.id === "review_pending"
-                              ? "Check review status"
-                              : "Start this step"}
+                            {reviewCheckStepId === step.id ? (
+                              <>
+                                <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                                <span>Checking status...</span>
+                              </>
+                            ) : isReview || step.id === "review_pending" ? (
+                              "Check status"
+                            ) : (
+                              "Start this step"
+                            )}
                           </button>
                         </motion.div>
                       )}

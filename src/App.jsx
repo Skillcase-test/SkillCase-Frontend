@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -201,11 +201,28 @@ function AppContent() {
     window.location.reload();
   }, []);
 
-  const { pullProgress, isRefreshing, containerProps } = usePullToRefresh(
+  const { pullProgress, pullDistance, isRefreshing, containerProps } = usePullToRefresh(
     refreshWholeApp,
     Capacitor.isNativePlatform() && !disablePullToRefresh && !maintenanceOpen,
     { activationY: 96 },
   );
+
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    el.addEventListener("touchstart", containerProps.onTouchStart, { passive: true });
+    el.addEventListener("touchmove", containerProps.onTouchMove, { passive: false });
+    el.addEventListener("touchend", containerProps.onTouchEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener("touchstart", containerProps.onTouchStart);
+      el.removeEventListener("touchmove", containerProps.onTouchMove);
+      el.removeEventListener("touchend", containerProps.onTouchEnd);
+    };
+  }, [containerProps]);
 
   useEffect(() => {
     const preloadTopHeavyScreens = () => {
@@ -564,11 +581,18 @@ function AppContent() {
   );
 
   return (
-    <div {...containerProps}>
+    <div ref={containerRef} className="relative overflow-x-hidden w-full min-h-screen">
       <PullToRefreshIndicator
         pullProgress={pullProgress}
         isRefreshing={isRefreshing}
       />
+      <div
+        style={
+          pullDistance > 0
+            ? { transform: `translateY(${pullDistance}px)` }
+            : { transition: "transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)" }
+        }
+      >
       <OtaUpdateModal
         otaState={maintenanceOpen ? null : otaState}
         otaProgress={otaProgress}
@@ -969,6 +993,7 @@ function AppContent() {
           </A2ProductTour>
         </A1ProductTour>
       </ProductTour>
+      </div>
     </div>
   );
 }

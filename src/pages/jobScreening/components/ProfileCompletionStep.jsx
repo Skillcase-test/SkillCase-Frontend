@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Upload,
   FileText,
@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { uploadProfileDocs, getProgress } from "../../../api/jobScreeningApi";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
+import { motion } from "framer-motion";
 
 const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
   const [selectedResume, setSelectedResume] = useState(null);
@@ -97,13 +98,7 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
       setError("");
       const { data } = await getProgress();
       if (data?.success) {
-        const updatedProfileStep = data.data?.steps_config?.find(
-          (s) => s.id === "profile_completion",
-        );
-        const isNowCompleted =
-          updatedProfileStep?.status === "completed" ||
-          !!data.data?.email_verified;
-        onComplete(data.data, isNowCompleted);
+        onComplete(data.data, false);
       } else {
         setError("Failed to refresh status");
       }
@@ -157,6 +152,40 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
 
   const isShowReviewScreen = isUnderReview || isProfileCompleted;
 
+  useEffect(() => {
+    if (isProfileCompleted) {
+      const timer = setTimeout(() => {
+        onComplete(progress, true);
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [isProfileCompleted, progress, onComplete]);
+
+  useEffect(() => {
+    let active = true;
+    if (isUnderReview) {
+      getProgress()
+        .then(({ data }) => {
+          if (!active) return;
+          if (data?.success) {
+            const updatedProfileStep = data.data?.steps_config?.find(
+              (s) => s.id === "profile_completion",
+            );
+            const isNowCompleted =
+              updatedProfileStep?.status === "completed" ||
+              !!data.data?.email_verified;
+            if (isNowCompleted) {
+              onComplete(data.data, false);
+            }
+          }
+        })
+        .catch((err) => console.error("Auto sync failed:", err));
+    }
+    return () => {
+      active = false;
+    };
+  }, []);
+
   // View state 1: Profile Under Review Dashboard
   if (isShowReviewScreen) {
     return (
@@ -179,7 +208,34 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
         <div className="w-full px-5 pt-8 pb-5 bg-gradient-to-b from-[#e0f2fe] to-[#f0f9ff] rounded-2xl border border-white/20 flex flex-col items-center gap-6">
           {/* Review Icon */}
           <div className="w-12 h-12 bg-blue-950 rounded-xl flex items-center justify-center text-white shrink-0">
-            <FileSearch className="w-6 h-6" />
+            {isProfileCompleted ? (
+              <motion.div
+                initial={{ scale: 0.5, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center text-white border border-green-700 shadow-sm"
+              >
+                <motion.svg
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  className="w-6 h-6 stroke-[3.5] text-white"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                >
+                  <motion.path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                  />
+                </motion.svg>
+              </motion.div>
+            ) : (
+              <FileSearch className="w-6 h-6" />
+            )}
           </div>
 
           {/* Heading */}
@@ -231,7 +287,7 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
               </div>
               <div className="pb-5 text-left flex-1 min-w-0 pr-2">
                 <h4 className="text-[#002856] text-sm font-semibold leading-tight">
-                  Your profile is reviewed
+                  Your profile is being reviewed
                 </h4>
                 <p className="text-slate-500 text-[11px] sm:text-xs mt-1 leading-normal">
                   Our recruiting team will verify your credentials shortly.
