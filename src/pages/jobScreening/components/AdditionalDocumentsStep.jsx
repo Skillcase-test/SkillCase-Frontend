@@ -44,9 +44,18 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
     if (!file) return;
 
     const fileExt = file.name.split(".").pop().toLowerCase();
-    const hasAllowedExts = allowedExtensions || ["pdf", "doc", "docx", "png", "jpg", "jpeg"];
+    const hasAllowedExts = allowedExtensions || [
+      "pdf",
+      "doc",
+      "docx",
+      "png",
+      "jpg",
+      "jpeg",
+    ];
     if (!hasAllowedExts.includes(fileExt)) {
-      setError(`Only ${hasAllowedExts.map((e) => e.toUpperCase()).join(", ")} files are supported`);
+      setError(
+        `Only ${hasAllowedExts.map((e) => e.toUpperCase()).join(", ")} files are supported`,
+      );
       return;
     }
 
@@ -110,13 +119,19 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
       });
 
       if (lastResponseData) {
-        const updatedStep = lastResponseData.steps_config?.find((s) => s.id === "additional_documents");
+        const updatedStep = lastResponseData.steps_config?.find(
+          (s) => s.id === "additional_documents",
+        );
         const isNowCompleted = updatedStep?.status === "completed";
         onComplete(lastResponseData, isNowCompleted);
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || err.message || "Failed to upload one or more documents");
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          "Failed to upload one or more documents",
+      );
     } finally {
       setLoading(false);
     }
@@ -147,7 +162,9 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
       setError("");
       const { data } = await refreshAdditionalDocs();
       if (data?.success) {
-        const updatedStep = data.data?.steps_config?.find((s) => s.id === "additional_documents");
+        const updatedStep = data.data?.steps_config?.find(
+          (s) => s.id === "additional_documents",
+        );
         const isNowCompleted = updatedStep?.status === "completed";
         onComplete(data.data, isNowCompleted);
       } else {
@@ -193,7 +210,7 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
     return (
       <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
         {/* Sub-Header bar */}
-        <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+        <div className="w-full flex items-center justify-between mb-4">
           <button
             onClick={onBack}
             className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
@@ -219,7 +236,8 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
               Documents under review
             </h2>
             <p className="text-[#002856]/70 text-xs sm:text-sm font-medium mt-2 max-w-[280px] mx-auto leading-relaxed">
-              Your files have been successfully uploaded and sent for verification. We are checking the documents.
+              Your files have been successfully uploaded and sent for
+              verification. We are checking the documents.
             </p>
           </div>
 
@@ -274,7 +292,7 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
                 Please note
               </h5>
               <p className="text-slate-500 text-[10px] sm:text-xs mt-0.5 leading-normal">
-                Typically takes around 24- 48 hrs. You will be notified on WhatsApp
+                Typically takes around 24- 48 hrs. You will be notified.
               </p>
             </div>
           </div>
@@ -311,7 +329,7 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
   return (
     <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
       {/* Sub-Header bar */}
-      <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+      <div className="w-full flex items-center justify-between mb-4">
         <button
           onClick={onBack}
           className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
@@ -330,7 +348,8 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
           Upload supporting documents
         </h2>
         <p className="text-[#002856]/70 text-xs sm:text-sm font-medium leading-relaxed">
-          Please upload the requested credentials below to verify eligibility for placement.
+          Please upload the requested credentials below to verify eligibility
+          for placement.
         </p>
       </div>
 
@@ -339,31 +358,44 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
         {requiredDocs.map((doc) => {
           const fileDetails = getDocDetails(doc);
           const isUploadedOrSelected = !!fileDetails;
-          const hasAllowedExts = doc.allowed_extensions || ["pdf", "doc", "docx", "png", "jpg", "jpeg"];
+          const hasAllowedExts = doc.allowed_extensions || [
+            "pdf",
+            "doc",
+            "docx",
+            "png",
+            "jpg",
+            "jpeg",
+          ];
           const acceptString = hasAllowedExts.map((e) => `.${e}`).join(",");
 
           let statusLabel = "pending";
           let statusBadgeClass = "bg-amber-50 text-[#d97706] border-amber-100";
-          let statusIconClass = "bg-green-50 border border-green-100 text-[#15803d]";
+          let statusIconClass =
+            "bg-green-50 border border-green-100 text-[#15803d]";
 
           if (fileDetails) {
             if (fileDetails.isLocal) {
               statusLabel = "pending upload";
               statusBadgeClass = "bg-amber-50 text-[#d97706] border-amber-100";
-              statusIconClass = "bg-amber-50 border border-amber-100 text-[#d97706]";
+              statusIconClass =
+                "bg-amber-50 border border-amber-100 text-[#d97706]";
             } else {
               if (fileDetails.status === "approved") {
                 statusLabel = "approved";
-                statusBadgeClass = "bg-green-50 text-[#15803d] border-green-100";
-                statusIconClass = "bg-green-50 border border-green-100 text-[#15803d]";
+                statusBadgeClass =
+                  "bg-green-50 text-[#15803d] border-green-100";
+                statusIconClass =
+                  "bg-green-50 border border-green-100 text-[#15803d]";
               } else if (fileDetails.status === "rejected") {
                 statusLabel = "rejected";
                 statusBadgeClass = "bg-red-50 text-red-650 border-red-100";
-                statusIconClass = "bg-red-50 border border-red-100 text-red-650";
+                statusIconClass =
+                  "bg-red-50 border border-red-100 text-red-650";
               } else {
                 statusLabel = "review";
                 statusBadgeClass = "bg-blue-50 text-blue-650 border-blue-100";
-                statusIconClass = "bg-blue-50 border border-blue-100 text-blue-650";
+                statusIconClass =
+                  "bg-blue-50 border border-blue-100 text-blue-650";
               }
             }
           }
@@ -381,7 +413,9 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
                   else delete fileInputRefs.current[doc.id];
                 }}
                 accept={acceptString}
-                onChange={(e) => handleFileChange(e, doc.id, doc.allowed_extensions)}
+                onChange={(e) =>
+                  handleFileChange(e, doc.id, doc.allowed_extensions)
+                }
                 className="hidden"
               />
 
@@ -406,7 +440,9 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
               {isUploadedOrSelected ? (
                 <div className="p-4 bg-slate-50/50 rounded-xl border border-slate-200/60 flex items-center justify-between gap-3 w-full">
                   <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${statusIconClass}`}>
+                    <div
+                      className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${statusIconClass}`}
+                    >
                       <FileText className="w-5 h-5" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -432,7 +468,7 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     )}
-                    
+
                     {/* Remove local selected file */}
                     {fileDetails.isLocal && (
                       <button
@@ -446,30 +482,31 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
                     )}
 
                     {/* Replace / Delete server file */}
-                    {!fileDetails.isLocal && fileDetails.status !== "approved" && (
-                      <>
-                        <button
-                          type="button"
-                          onClick={() => handleUploadClick(doc.id)}
-                          className="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-[#002856] border border-slate-200 rounded-lg text-[10px] font-bold cursor-pointer"
-                        >
-                          Replace
-                        </button>
-                        <button
-                          type="button"
-                          disabled={deletingDocId === doc.id || loading}
-                          onClick={() => handleDelete(doc.id)}
-                          className="w-7 h-7 bg-white hover:bg-rose-50 text-slate-400 hover:text-red-500 rounded-lg border border-slate-200 flex items-center justify-center transition-colors cursor-pointer"
-                          title="Delete server file"
-                        >
-                          {deletingDocId === doc.id ? (
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <X className="w-4 h-4" />
-                          )}
-                        </button>
-                      </>
-                    )}
+                    {!fileDetails.isLocal &&
+                      fileDetails.status !== "approved" && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleUploadClick(doc.id)}
+                            className="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-[#002856] border border-slate-200 rounded-lg text-[10px] font-bold cursor-pointer"
+                          >
+                            Replace
+                          </button>
+                          <button
+                            type="button"
+                            disabled={deletingDocId === doc.id || loading}
+                            onClick={() => handleDelete(doc.id)}
+                            className="w-7 h-7 bg-white hover:bg-rose-50 text-slate-400 hover:text-red-500 rounded-lg border border-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                            title="Delete server file"
+                          >
+                            {deletingDocId === doc.id ? (
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <X className="w-4 h-4" />
+                            )}
+                          </button>
+                        </>
+                      )}
                   </div>
                 </div>
               ) : (
@@ -484,7 +521,8 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
                     Click to upload
                   </span>
                   <span className="text-[#002856]/50 text-[10px] sm:text-xs font-normal mt-0.5">
-                    Supported files: {hasAllowedExts.map((e) => e.toUpperCase()).join(", ")}
+                    Supported files:{" "}
+                    {hasAllowedExts.map((e) => e.toUpperCase()).join(", ")}
                   </span>
                 </div>
               )}

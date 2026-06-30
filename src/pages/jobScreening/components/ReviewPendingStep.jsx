@@ -41,7 +41,7 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
     return (
       <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
         {/* Sub-Header bar */}
-        <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+        <div className="w-full flex items-center justify-between mb-4">
           <button
             onClick={onBack}
             className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
@@ -114,7 +114,7 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
   return (
     <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
       {/* Sub-Header bar */}
-      <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+      <div className="w-full flex items-center justify-between mb-4">
         <button
           onClick={onBack}
           className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
@@ -214,7 +214,7 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
               Please note
             </h5>
             <p className="text-slate-500 text-[10px] sm:text-xs mt-0.5 leading-normal">
-              Typically takes around 24-48 hrs. You will be notified on WhatsApp
+              Typically takes around 24-48 hrs. You will be notified.
             </p>
           </div>
         </div>

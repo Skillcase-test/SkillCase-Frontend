@@ -30,7 +30,9 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    const isPDF =
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf");
     if (!isPDF) {
       setError("Only PDF files are supported");
       return;
@@ -95,8 +97,12 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
       setError("");
       const { data } = await getProgress();
       if (data?.success) {
-        const updatedProfileStep = data.data?.steps_config?.find((s) => s.id === "profile_completion");
-        const isNowCompleted = updatedProfileStep?.status === "completed" || !!data.data?.email_verified;
+        const updatedProfileStep = data.data?.steps_config?.find(
+          (s) => s.id === "profile_completion",
+        );
+        const isNowCompleted =
+          updatedProfileStep?.status === "completed" ||
+          !!data.data?.email_verified;
         onComplete(data.data, isNowCompleted);
       } else {
         setError("Failed to refresh status");
@@ -141,12 +147,13 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
     return null;
   };
 
-  const profileStep = progress?.steps_config?.find((s) => s.id === "profile_completion");
-  const isProfileCompleted = profileStep?.status === "completed" || !!progress?.email_verified;
+  const profileStep = progress?.steps_config?.find(
+    (s) => s.id === "profile_completion",
+  );
+  const isProfileCompleted =
+    profileStep?.status === "completed" || !!progress?.email_verified;
   const isUnderReview =
-    progress?.resume_url &&
-    progress?.lang_cert_url &&
-    !isProfileCompleted;
+    progress?.resume_url && progress?.lang_cert_url && !isProfileCompleted;
 
   const isShowReviewScreen = isUnderReview || isProfileCompleted;
 
@@ -155,7 +162,7 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
     return (
       <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
         {/* Sub-Header bar */}
-        <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+        <div className="w-full flex items-center justify-between mb-4">
           <button
             onClick={onBack}
             className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
@@ -178,7 +185,9 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
           {/* Heading */}
           <div className="text-center w-full">
             <h2 className="text-[#002856] text-2xl font-bold tracking-tight">
-              {isProfileCompleted ? "Profile verified!" : "Profile under review"}
+              {isProfileCompleted
+                ? "Profile verified!"
+                : "Profile under review"}
             </h2>
             <p className="text-[#002856]/70 text-xs sm:text-sm font-medium mt-2 max-w-[280px] mx-auto leading-relaxed">
               {isProfileCompleted
@@ -246,7 +255,7 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
               <p className="text-slate-500 text-[10px] sm:text-xs mt-0.5 leading-normal">
                 {isProfileCompleted
                   ? "Our recruiting team has approved your profile details. Feel free to continue."
-                  : "Typically takes around 24- 48 hrs. You will be notified on WhatsApp"}
+                  : "Typically takes around 24- 48 hrs. You will be notified."}
               </p>
             </div>
           </div>
@@ -300,7 +309,7 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
   return (
     <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
       {/* Sub-Header bar */}
-      <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+      <div className="w-full flex items-center justify-between mb-4">
         <button
           onClick={onBack}
           className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"

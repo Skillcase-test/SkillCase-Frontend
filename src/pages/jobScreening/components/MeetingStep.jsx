@@ -151,7 +151,7 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
     if (!isScheduled) {
       return (
         <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative font-sans">
-          <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+          <div className="w-full flex items-center justify-between mb-4">
             <button
               onClick={onBack}
               className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
@@ -168,7 +168,7 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
             <h2 className="text-[#002856] text-2xl font-bold tracking-tight">
               Interview training
             </h2>
-            <p className="text-[#002856]/70 text-base font-medium leading-relaxed">
+            <p className="text-[#002856]/70 text-xs font-medium leading-relaxed">
               Prepare for your final job interviews with comprehensive live
               tutoring and prep sessions led by industry experts.
             </p>
@@ -262,21 +262,18 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
           ) : (
             <div className="w-full flex flex-col items-center gap-2">
               <button
-                disabled
-                className="w-full h-12 bg-[#002856]/40 text-white/70 rounded-lg shadow-sm font-bold text-sm sm:text-base flex items-center justify-center gap-2 cursor-not-allowed"
+                onClick={handleRefresh}
+                disabled={loading}
+                className="w-full h-10 bg-[#002856] text-white hover:underline rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-all disabled:opacity-50"
               >
-                Schedule a training call
+                <RefreshCw
+                  className={`w-3 h-3 ${loading ? "animate-spin" : ""}`}
+                />
+                Refresh Details
               </button>
               <div className="text-zinc-500 text-[11px] text-center leading-relaxed mt-1">
-                Our team is currently preparing your booking scheduler. Please check back shortly or click{" "}
-                <button
-                  onClick={handleRefresh}
-                  disabled={loading}
-                  className="text-[#002856] font-bold hover:underline bg-transparent border-none p-0 inline cursor-pointer disabled:opacity-50"
-                >
-                  {loading ? "refreshing..." : "here to refresh"}
-                </button>
-                .
+                Our team is currently preparing your booking scheduler. Please
+                check back shortly or click refresh button.
               </div>
             </div>
           )}
@@ -287,7 +284,7 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
     // Scheduled view for training
     return (
       <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative font-sans">
-        <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+        <div className="w-full flex items-center justify-between mb-4">
           <button
             onClick={onBack}
             className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"

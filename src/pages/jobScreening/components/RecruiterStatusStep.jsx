@@ -189,7 +189,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
         return (
           <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative">
             {/* Header bar */}
-            <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+            <div className="w-full flex items-center justify-between mb-4">
               <button
                 onClick={onBackClick}
                 className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
@@ -264,7 +264,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
         return (
           <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative">
             {/* Header bar */}
-            <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+            <div className="w-full flex items-center justify-between mb-4">
               <button
                 onClick={onBackClick}
                 className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
@@ -363,8 +363,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
                     Please note
                   </h5>
                   <p className="text-slate-500 text-[10px] sm:text-xs mt-0.5 leading-normal">
-                    Typically takes around 24- 48 hrs. You will be notified on
-                    WhatsApp
+                    Typically takes around 24- 48 hrs. You will be notified.
                   </p>
                 </div>
               </div>
@@ -583,7 +582,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
         </div>
       ) : (
         /* CURRENT CHECKLIST VIEW FOR NO RECRUITERS ASSIGNED */
-        <div className="w-full px-4 pt-4 pb-10 flex flex-col justify-start items-stretch gap-2.5">
+        <div className="w-full pt-4 pb-10 flex flex-col justify-start items-stretch gap-2.5">
           <div className="flex-1 px-5 pt-10 pb-5 bg-gradient-to-b from-blue-100 to-blue-50 rounded-xl flex flex-col justify-start items-stretch gap-2.5">
             <div className="flex-1 flex flex-col justify-start items-stretch gap-9">
               <div className="self-stretch flex flex-col justify-start items-stretch gap-5">
@@ -729,7 +728,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
                           </div>
                           <div className="self-stretch opacity-70 justify-start text-black text-xs font-normal leading-4">
                             Typically takes around 24- 48 hrs. You will be
-                            notified on WhatsApp
+                            notified.
                           </div>
                         </div>
                       </div>

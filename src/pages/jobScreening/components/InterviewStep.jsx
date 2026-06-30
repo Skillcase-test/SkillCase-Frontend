@@ -48,7 +48,9 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
       }
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "Failed to sync screening status");
+      setError(
+        err.response?.data?.message || "Failed to sync screening status",
+      );
     } finally {
       setRefreshing(false);
     }
@@ -70,7 +72,7 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
   return (
     <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
       {/* Sub-Header bar */}
-      <div className="w-full flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
+      <div className="w-full flex items-center justify-between mb-4">
         <button
           onClick={onBack}
           className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
@@ -89,7 +91,8 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
           Skillcase video interview
         </h2>
         <p className="text-[#002856]/70 text-xs sm:text-sm font-medium leading-relaxed">
-          Please complete the video interview assigned specifically to you to assess your communication skills.
+          Please complete the video interview assigned specifically to you to
+          assess your communication skills.
         </p>
       </div>
 
@@ -105,12 +108,12 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
         </div>
 
         <p className="text-slate-500 text-[11px] sm:text-xs font-normal leading-relaxed">
-          Our recruiting team is setting up your tailored Skillcase interview. This will consist of video/audio questions matching your background. We will notify you here once it is assigned.
+          Our recruiting team is setting up your tailored Skillcase interview.
+          This will consist of video/audio questions matching your background.
+          We will notify you here once it is assigned.
         </p>
 
-        {error && (
-          <p className="text-red-500 text-xs font-semibold">{error}</p>
-        )}
+        {error && <p className="text-red-500 text-xs font-semibold">{error}</p>}
 
         {/* Refresh button */}
         <button
