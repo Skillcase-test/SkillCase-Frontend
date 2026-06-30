@@ -63,6 +63,7 @@ const JobScreening = () => {
 
   const [welcomeAnimationState, setWelcomeAnimationState] = useState("idle");
   const [finalProgressData, setFinalProgressData] = useState(null);
+  const [executingStepId, setExecutingStepId] = useState(null);
 
   const fetchProgress = async () => {
     try {
@@ -160,6 +161,7 @@ const JobScreening = () => {
     setProgress(updatedData);
     if (shouldExitStep) {
       setIsExecutingStep(false);
+      setExecutingStepId(null);
     }
   };
 
@@ -169,7 +171,14 @@ const JobScreening = () => {
   };
 
   const handleStartStep = async (stepId) => {
-    const targetStepId = stepId || currentStepId;
+    // If the welcome animation is still playing, commit the final state immediately
+    // so that currentStepId is correct before renderActiveStepComponent runs.
+    if (welcomeAnimationState !== "idle" && finalProgressData) {
+      setProgress(finalProgressData);
+      setWelcomeAnimationState("idle");
+    }
+
+    const targetStepId = stepId || displayCurrentStepId;
     if (
       targetStepId === "interview_attempt" &&
       progress?.assigned_interview_slug &&
@@ -211,12 +220,16 @@ const JobScreening = () => {
         setAgreementLoading(false);
       }
     } else {
+      setExecutingStepId(targetStepId);
       setIsExecutingStep(true);
     }
   };
 
   const renderActiveStepComponent = () => {
-    switch (currentStepId) {
+    // Use executingStepId — the step the user explicitly tapped — not the potentially
+    // stale currentStepId which lags behind during the welcome animation.
+    const stepToRender = executingStepId || currentStepId;
+    switch (stepToRender) {
       case "welcome":
         return <WelcomeStep onComplete={handleWelcomeComplete} />;
       case "profile_completion":
@@ -224,7 +237,7 @@ const JobScreening = () => {
           <ProfileCompletionStep
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => setIsExecutingStep(false)}
+            onBack={() => { setIsExecutingStep(false); setExecutingStepId(null); }}
           />
         );
       case "interview_attempt":
@@ -232,7 +245,7 @@ const JobScreening = () => {
           <InterviewStep
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => setIsExecutingStep(false)}
+            onBack={() => { setIsExecutingStep(false); setExecutingStepId(null); }}
           />
         );
       case "registration_form":
@@ -247,7 +260,7 @@ const JobScreening = () => {
           <ReviewPendingStep
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => setIsExecutingStep(false)}
+            onBack={() => { setIsExecutingStep(false); setExecutingStepId(null); }}
           />
         );
       case "additional_documents":
@@ -255,7 +268,7 @@ const JobScreening = () => {
           <AdditionalDocumentsStep
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => setIsExecutingStep(false)}
+            onBack={() => { setIsExecutingStep(false); setExecutingStepId(null); }}
           />
         );
       case "interview_training":
@@ -264,7 +277,7 @@ const JobScreening = () => {
             type="training"
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => setIsExecutingStep(false)}
+            onBack={() => { setIsExecutingStep(false); setExecutingStepId(null); }}
           />
         );
       case "recruiter_status":
@@ -272,7 +285,7 @@ const JobScreening = () => {
           <RecruiterStatusStep
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => setIsExecutingStep(false)}
+            onBack={() => { setIsExecutingStep(false); setExecutingStepId(null); }}
           />
         );
       default:
@@ -285,7 +298,9 @@ const JobScreening = () => {
   };
 
   // 1. Full-screen Welcome flow
-  if (currentStepId === "welcome" && welcomeAnimationState === "idle") {
+  // Guard: finalProgressData is set the moment animation starts and never cleared,
+  // so if it's non-null we know the welcome was just completed and must NOT re-show this screen.
+  if (currentStepId === "welcome" && welcomeAnimationState === "idle" && finalProgressData === null) {
     return (
       <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-gradient-to-b from-[#002856] to-[#134074] w-full flex flex-col justify-center items-center">
         <AnimatePresence mode="wait">
