@@ -95,7 +95,10 @@ const CandidateDetail = ({
       toast.error("Document title cannot be empty");
       return;
     }
-    const slug = candDocTitle.toLowerCase().trim().replace(/[^a-z0-9]/g, "_");
+    const slug = candDocTitle
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]/g, "_");
     const docId = `doc_${slug}_${Date.now()}`;
     const selectedExts = Object.keys(candDocExts).filter((k) => candDocExts[k]);
     if (selectedExts.length === 0) {
@@ -110,31 +113,40 @@ const CandidateDetail = ({
       description: `Please upload a clear copy of your ${candDocTitle.trim()}.`,
     };
 
-    const currentList = candidate.candidate_required_additional_documents !== null
-      ? (candidate.candidate_required_additional_documents || [])
-      : (candidate.globalSettings?.required_additional_documents || []);
+    const currentList =
+      candidate.candidate_required_additional_documents !== null
+        ? candidate.candidate_required_additional_documents || []
+        : candidate.globalSettings?.required_additional_documents || [];
 
     const updatedList = [...currentList, newDoc];
-    onUpdate(candidate.user_id, { candidate_required_additional_documents: updatedList });
+    onUpdate(candidate.user_id, {
+      candidate_required_additional_documents: updatedList,
+    });
     setCandDocTitle("");
   };
 
   const handleRemoveCandDocOverride = (docId) => {
-    const currentList = candidate.candidate_required_additional_documents !== null
-      ? (candidate.candidate_required_additional_documents || [])
-      : (candidate.globalSettings?.required_additional_documents || []);
+    const currentList =
+      candidate.candidate_required_additional_documents !== null
+        ? candidate.candidate_required_additional_documents || []
+        : candidate.globalSettings?.required_additional_documents || [];
 
     const updatedList = currentList.filter((d) => d.id !== docId);
-    onUpdate(candidate.user_id, { candidate_required_additional_documents: updatedList });
+    onUpdate(candidate.user_id, {
+      candidate_required_additional_documents: updatedList,
+    });
   };
 
   const handleResetCandChecklist = () => {
     openConfirmModal({
       title: "Reset Checklist to Global Defaults?",
-      message: "This will discard all custom document requirements configured for this candidate and revert to the global pipeline defaults.",
+      message:
+        "This will discard all custom document requirements configured for this candidate and revert to the global pipeline defaults.",
       onConfirm: () => {
-        onUpdate(candidate.user_id, { candidate_required_additional_documents: "clear" });
-      }
+        onUpdate(candidate.user_id, {
+          candidate_required_additional_documents: "clear",
+        });
+      },
     });
   };
 
@@ -169,7 +181,9 @@ const CandidateDetail = ({
       setFullname(candidate.fullname || "");
       setEmail(candidate.email || candidate.extracted_email || "");
       setNumber(candidate.number || "");
-      setProficiency(candidate.language_level || candidate.current_profeciency_level || "");
+      setProficiency(
+        candidate.language_level || candidate.current_profeciency_level || "",
+      );
 
       setInterviewId(candidate.assigned_interview_id || "");
       setAgreementId(candidate.assigned_agreement_template_id || "");
@@ -193,7 +207,8 @@ const CandidateDetail = ({
   }, [candidate]);
 
   const cleanString = (val) => {
-    if (!val || val === "NaN" || val === "undefined" || val === "null") return "";
+    if (!val || val === "NaN" || val === "undefined" || val === "null")
+      return "";
     return val;
   };
 
@@ -214,7 +229,9 @@ const CandidateDetail = ({
     setRecJobDesc(cleanString(recData.job_description));
     setRecJobType(recData.job_type || "Full-time");
     setRecSalary(cleanString(recData.salary_range));
-    setRecSlotTime(recData.slot_time ? formatToLocalDateTimeString(recData.slot_time) : "");
+    setRecSlotTime(
+      recData.slot_time ? formatToLocalDateTimeString(recData.slot_time) : "",
+    );
     setRecMeetLink(cleanString(recData.meet_link));
   };
 
@@ -225,7 +242,9 @@ const CandidateDetail = ({
     setRecJobDesc(cleanString(recData.job_description));
     setRecJobType(recData.job_type || "Full-time");
     setRecSalary(cleanString(recData.salary_range));
-    setRecSlotTime(recData.slot_time ? formatToLocalDateTimeString(recData.slot_time) : "");
+    setRecSlotTime(
+      recData.slot_time ? formatToLocalDateTimeString(recData.slot_time) : "",
+    );
     setRecMeetLink(cleanString(recData.meet_link));
   };
 
@@ -351,7 +370,7 @@ const CandidateDetail = ({
         "This will permanently delete the candidate's assigned interview and their submitted video/audio attempt. This action cannot be undone.",
       onConfirm: () => {
         const updatedSteps = steps.map((s) => {
-          if (s.id === "interview_attempt") return { ...s, status: "pending" };
+          if (s.id === "interview_attempt") return { ...s, status: "pending", is_skippable: false };
           return s;
         });
         onUpdate(candidate.user_id, {
@@ -369,7 +388,7 @@ const CandidateDetail = ({
         "This will delete the candidate's signed agreement envelope and signature log history. They will be required to sign the terms registration again.",
       onConfirm: () => {
         const updatedSteps = steps.map((s) => {
-          if (s.id === "registration_form") return { ...s, status: "pending" };
+          if (s.id === "registration_form") return { ...s, status: "pending", is_skippable: false };
           return s;
         });
         onUpdate(candidate.user_id, {
@@ -411,7 +430,19 @@ const CandidateDetail = ({
       message:
         "This will mark the mentoring/training step as incomplete and clear the slot timing and meet link.",
       onConfirm: () => {
-        onUpdate(candidate.user_id, { reset_training: true });
+        const trainingIdx = steps.findIndex(
+          (s) => s.id === "interview_training",
+        );
+        const updatedSteps = steps.map((s, idx) => {
+          if (s.id === "interview_training") return { ...s, status: "pending", is_skippable: false };
+          if (trainingIdx !== -1 && idx > trainingIdx)
+            return { ...s, status: "locked" };
+          return s;
+        });
+        onUpdate(candidate.user_id, {
+          steps_config: updatedSteps,
+          reset_training: true,
+        });
       },
     });
   };
@@ -456,10 +487,12 @@ const CandidateDetail = ({
   const handleResetAdditionalDocs = () => {
     openConfirmModal({
       title: "Reset Additional Documents Checkpoint?",
-      message: "This will permanently delete the candidate's uploaded supporting documents from storage. They will be required to re-upload all requested documents.",
+      message:
+        "This will permanently delete the candidate's uploaded supporting documents from storage. They will be required to re-upload all requested documents.",
       onConfirm: () => {
         const updatedSteps = steps.map((s) => {
-          if (s.id === "additional_documents") return { ...s, status: "pending" };
+          if (s.id === "additional_documents")
+            return { ...s, status: "pending", is_skippable: false };
           return s;
         });
         onUpdate(candidate.user_id, {
@@ -476,7 +509,7 @@ const CandidateDetail = ({
       if (updatedDocs[doc.id]) {
         updatedDocs[doc.id] = {
           ...updatedDocs[doc.id],
-          status: "approved"
+          status: "approved",
         };
       }
     });
@@ -489,7 +522,7 @@ const CandidateDetail = ({
       if (updatedDocs[doc.id]) {
         updatedDocs[doc.id] = {
           ...updatedDocs[doc.id],
-          status: "rejected"
+          status: "rejected",
         };
       }
     });
@@ -607,7 +640,9 @@ const CandidateDetail = ({
                     {candidate.fullname || "Unnamed Candidate"}
                   </h3>
                   <span className="px-1.5 py-0.5 bg-blue-50 text-[#083262] text-[8px] font-extrabold rounded-md border border-blue-100 uppercase tracking-wider">
-                    {candidate.language_level || candidate.current_profeciency_level || "B1"}
+                    {candidate.language_level ||
+                      candidate.current_profeciency_level ||
+                      "B1"}
                   </span>
                 </div>
                 <div className="text-[10px] text-slate-400 font-medium truncate mt-0.5">
@@ -674,34 +709,38 @@ const CandidateDetail = ({
             </div>
 
             {/* Additional Uploaded Documents */}
-            {candidate.additional_documents && Object.keys(candidate.additional_documents).length > 0 && (
-              <div className="border-t border-slate-100 pt-2.5 mt-1.5 flex flex-col gap-1.5 text-left">
-                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
-                  Supporting Documents
-                </span>
-                <div className="grid grid-cols-1 gap-1.5">
-                  {Object.entries(candidate.additional_documents).map(([docId, docObj]) => (
-                    docObj.downloadUrl ? (
-                      <a
-                        key={docId}
-                        href={docObj.downloadUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl flex items-center justify-between transition-all group text-[10px] text-slate-700 font-medium"
-                      >
-                        <div className="truncate pr-2 text-left">
-                          <span className="font-bold block truncate max-w-[170px]">{docObj.fileName}</span>
-                          <span className="text-[7px] text-slate-400 uppercase">
-                            Status: {docObj.status || "pending"}
-                          </span>
-                        </div>
-                        <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-slate-600 shrink-0" />
-                      </a>
-                    ) : null
-                  ))}
+            {candidate.additional_documents &&
+              Object.keys(candidate.additional_documents).length > 0 && (
+                <div className="border-t border-slate-100 pt-2.5 mt-1.5 flex flex-col gap-1.5 text-left">
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                    Supporting Documents
+                  </span>
+                  <div className="grid grid-cols-1 gap-1.5">
+                    {Object.entries(candidate.additional_documents).map(
+                      ([docId, docObj]) =>
+                        docObj.downloadUrl ? (
+                          <a
+                            key={docId}
+                            href={docObj.downloadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 bg-slate-50 hover:bg-slate-100 border border-slate-200/60 rounded-xl flex items-center justify-between transition-all group text-[10px] text-slate-700 font-medium"
+                          >
+                            <div className="truncate pr-2 text-left">
+                              <span className="font-bold block truncate max-w-[170px]">
+                                {docObj.fileName}
+                              </span>
+                              <span className="text-[7px] text-slate-400 uppercase">
+                                Status: {docObj.status || "pending"}
+                              </span>
+                            </div>
+                            <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-slate-600 shrink-0" />
+                          </a>
+                        ) : null,
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
 
           {/* Assign Interview & Agreement (Collapsible Accordion) */}
@@ -718,7 +757,9 @@ const CandidateDetail = ({
               onSubmit={(e) => {
                 e.preventDefault();
                 onUpdate(candidate.user_id, {
-                  assigned_interview_id: interviewId ? parseInt(interviewId) : null,
+                  assigned_interview_id: interviewId
+                    ? parseInt(interviewId)
+                    : null,
                   assigned_agreement_template_id: agreementId || null,
                 });
               }}
@@ -735,7 +776,9 @@ const CandidateDetail = ({
                       onChange={(e) => setInterviewId(e.target.value)}
                       className="w-full border border-slate-200 rounded-xl p-2.5 pr-8 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all appearance-none"
                     >
-                      <option value="">Select Default / No Specific Interview</option>
+                      <option value="">
+                        Select Default / No Specific Interview
+                      </option>
                       {options.interviews?.map((int) => (
                         <option key={int.position_id} value={int.position_id}>
                           {int.title}
@@ -746,11 +789,12 @@ const CandidateDetail = ({
                       <ChevronDown className="w-3.5 h-3.5" />
                     </div>
                   </div>
-                  {!candidate.assigned_interview_id && candidate.globalSettings?.default_interview_id && (
-                    <span className="text-[9px] text-slate-400 italic mt-0.5">
-                      Currently using global default interview.
-                    </span>
-                  )}
+                  {!candidate.assigned_interview_id &&
+                    candidate.globalSettings?.default_interview_id && (
+                      <span className="text-[9px] text-slate-400 italic mt-0.5">
+                        Currently using global default interview.
+                      </span>
+                    )}
                 </div>
 
                 <div className="flex flex-col gap-1">
@@ -763,7 +807,9 @@ const CandidateDetail = ({
                       onChange={(e) => setAgreementId(e.target.value)}
                       className="w-full border border-slate-200 rounded-xl p-2.5 pr-8 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all appearance-none"
                     >
-                      <option value="">Select Default / No Specific Agreement</option>
+                      <option value="">
+                        Select Default / No Specific Agreement
+                      </option>
                       {options.agreements?.map((agr) => (
                         <option key={agr.template_id} value={agr.template_id}>
                           {agr.title}
@@ -774,11 +820,12 @@ const CandidateDetail = ({
                       <ChevronDown className="w-3.5 h-3.5" />
                     </div>
                   </div>
-                  {!candidate.assigned_agreement_template_id && candidate.globalSettings?.default_agreement_template_id && (
-                    <span className="text-[9px] text-slate-400 italic mt-0.5">
-                      Currently using global default agreement.
-                    </span>
-                  )}
+                  {!candidate.assigned_agreement_template_id &&
+                    candidate.globalSettings?.default_agreement_template_id && (
+                      <span className="text-[9px] text-slate-400 italic mt-0.5">
+                        Currently using global default agreement.
+                      </span>
+                    )}
                 </div>
               </div>
 
@@ -815,14 +862,22 @@ const CandidateDetail = ({
                 </span>
                 <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
                   {(candidate.resolvedRequiredDocs || []).length === 0 ? (
-                    <p className="text-[10px] text-slate-400 italic">No documents currently required.</p>
+                    <p className="text-[10px] text-slate-400 italic">
+                      No documents currently required.
+                    </p>
                   ) : (
                     (candidate.resolvedRequiredDocs || []).map((doc) => (
-                      <div key={doc.id} className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg p-2 text-[10px]">
+                      <div
+                        key={doc.id}
+                        className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg p-2 text-[10px]"
+                      >
                         <div className="truncate pr-2 text-left">
-                          <span className="font-bold text-slate-700 block truncate">{doc.title}</span>
+                          <span className="font-bold text-slate-700 block truncate">
+                            {doc.title}
+                          </span>
                           <span className="text-[8px] text-slate-400 font-medium">
-                            Formats: {doc.allowed_extensions?.join(", ").toUpperCase()}
+                            Formats:{" "}
+                            {doc.allowed_extensions?.join(", ").toUpperCase()}
                           </span>
                         </div>
                         <button
@@ -841,8 +896,13 @@ const CandidateDetail = ({
               </div>
 
               {/* Add Custom Document for Candidate */}
-              <form onSubmit={handleAddCandDocOverride} className="p-3 bg-slate-50/50 border border-slate-150 rounded-xl flex flex-col gap-2">
-                <span className="text-[9px] font-bold text-slate-500 uppercase text-left">Request Custom Document</span>
+              <form
+                onSubmit={handleAddCandDocOverride}
+                className="p-3 bg-slate-50/50 border border-slate-150 rounded-xl flex flex-col gap-2"
+              >
+                <span className="text-[9px] font-bold text-slate-500 uppercase text-left">
+                  Request Custom Document
+                </span>
                 <input
                   type="text"
                   placeholder="e.g. B2 Language Certificate"
@@ -850,15 +910,23 @@ const CandidateDetail = ({
                   onChange={(e) => setCandDocTitle(e.target.value)}
                   className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs bg-white focus:outline-none focus:border-[#083262]"
                 />
-                
+
                 {/* Formats Checkboxes */}
                 <div className="flex flex-wrap gap-2 mt-1">
                   {Object.keys(candDocExts).map((ext) => (
-                    <label key={ext} className="flex items-center gap-1 text-[9px] font-bold text-slate-500 cursor-pointer select-none">
+                    <label
+                      key={ext}
+                      className="flex items-center gap-1 text-[9px] font-bold text-slate-500 cursor-pointer select-none"
+                    >
                       <input
                         type="checkbox"
                         checked={candDocExts[ext]}
-                        onChange={(e) => setCandDocExts(prev => ({ ...prev, [ext]: e.target.checked }))}
+                        onChange={(e) =>
+                          setCandDocExts((prev) => ({
+                            ...prev,
+                            [ext]: e.target.checked,
+                          }))
+                        }
                         className="rounded border-slate-200 text-[#083262] focus:ring-0 w-3 h-3"
                       />
                       {ext.toUpperCase()}
@@ -1083,7 +1151,8 @@ const CandidateDetail = ({
                             </button>
                           )}
                           {isActive &&
-                            (candidate.resume_url || candidate.lang_cert_url) && (
+                            (candidate.resume_url ||
+                              candidate.lang_cert_url) && (
                               <div className="mt-3 p-3 bg-slate-50 border border-slate-200/60 rounded-xl flex flex-col gap-2.5">
                                 <span className="font-bold text-[#083262] block">
                                   Verify Profile Credentials
@@ -1100,33 +1169,50 @@ const CandidateDetail = ({
                                 {candidate.resume_url && (
                                   <div className="border border-slate-150 bg-white rounded-lg p-2.5 flex flex-col gap-2">
                                     <div className="flex justify-between items-center text-xs">
-                                      <span className="font-bold text-slate-700">Resume / CV</span>
-                                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wider ${
-                                        candidate.resume_status === "approved"
-                                          ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                          : candidate.resume_status === "rejected"
-                                            ? "bg-rose-50 text-rose-700 border-rose-100"
-                                            : "bg-amber-50 text-amber-700 border-amber-100"
-                                      }`}>
+                                      <span className="font-bold text-slate-700">
+                                        Resume / CV
+                                      </span>
+                                      <span
+                                        className={`px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wider ${
+                                          candidate.resume_status === "approved"
+                                            ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                            : candidate.resume_status ===
+                                                "rejected"
+                                              ? "bg-rose-50 text-rose-700 border-rose-100"
+                                              : "bg-amber-50 text-amber-700 border-amber-100"
+                                        }`}
+                                      >
                                         {candidate.resume_status || "pending"}
                                       </span>
                                     </div>
                                     <div className="flex gap-2">
-                                      {candidate.resume_status !== "approved" && (
+                                      {candidate.resume_status !==
+                                        "approved" && (
                                         <button
                                           type="button"
-                                          onClick={() => onUpdate(candidate.user_id, { approve_resume: true })}
+                                          onClick={() =>
+                                            onUpdate(candidate.user_id, {
+                                              approve_resume: true,
+                                            })
+                                          }
                                           className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[9px] rounded"
                                         >
                                           Approve Resume
                                         </button>
                                       )}
-                                      {candidate.resume_status !== "rejected" && (
+                                      {candidate.resume_status !==
+                                        "rejected" && (
                                         <button
                                           type="button"
                                           onClick={() => {
-                                            const reason = prompt("Enter rejection reason for resume (optional):");
-                                            onUpdate(candidate.user_id, { reject_resume: true, profile_rejection_reason: reason || "" });
+                                            const reason = prompt(
+                                              "Enter rejection reason for resume (optional):",
+                                            );
+                                            onUpdate(candidate.user_id, {
+                                              reject_resume: true,
+                                              profile_rejection_reason:
+                                                reason || "",
+                                            });
                                           }}
                                           className="px-2.5 py-1 bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 font-bold text-[9px] rounded"
                                         >
@@ -1140,33 +1226,52 @@ const CandidateDetail = ({
                                 {candidate.lang_cert_url && (
                                   <div className="border border-slate-150 bg-white rounded-lg p-2.5 flex flex-col gap-2">
                                     <div className="flex justify-between items-center text-xs">
-                                      <span className="font-bold text-slate-700">Language Certificate</span>
-                                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wider ${
-                                        candidate.lang_cert_status === "approved"
-                                          ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                          : candidate.lang_cert_status === "rejected"
-                                            ? "bg-rose-50 text-rose-700 border-rose-100"
-                                            : "bg-amber-50 text-amber-700 border-amber-100"
-                                      }`}>
-                                        {candidate.lang_cert_status || "pending"}
+                                      <span className="font-bold text-slate-700">
+                                        Language Certificate
+                                      </span>
+                                      <span
+                                        className={`px-1.5 py-0.5 rounded text-[9px] font-bold border uppercase tracking-wider ${
+                                          candidate.lang_cert_status ===
+                                          "approved"
+                                            ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                            : candidate.lang_cert_status ===
+                                                "rejected"
+                                              ? "bg-rose-50 text-rose-700 border-rose-100"
+                                              : "bg-amber-50 text-amber-700 border-amber-100"
+                                        }`}
+                                      >
+                                        {candidate.lang_cert_status ||
+                                          "pending"}
                                       </span>
                                     </div>
                                     <div className="flex gap-2">
-                                      {candidate.lang_cert_status !== "approved" && (
+                                      {candidate.lang_cert_status !==
+                                        "approved" && (
                                         <button
                                           type="button"
-                                          onClick={() => onUpdate(candidate.user_id, { approve_lang_cert: true })}
+                                          onClick={() =>
+                                            onUpdate(candidate.user_id, {
+                                              approve_lang_cert: true,
+                                            })
+                                          }
                                           className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[9px] rounded"
                                         >
                                           Approve Certificate
                                         </button>
                                       )}
-                                      {candidate.lang_cert_status !== "rejected" && (
+                                      {candidate.lang_cert_status !==
+                                        "rejected" && (
                                         <button
                                           type="button"
                                           onClick={() => {
-                                            const reason = prompt("Enter rejection reason for certificate (optional):");
-                                            onUpdate(candidate.user_id, { reject_lang_cert: true, profile_rejection_reason: reason || "" });
+                                            const reason = prompt(
+                                              "Enter rejection reason for certificate (optional):",
+                                            );
+                                            onUpdate(candidate.user_id, {
+                                              reject_lang_cert: true,
+                                              profile_rejection_reason:
+                                                reason || "",
+                                            });
                                           }}
                                           className="px-2.5 py-1 bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 font-bold text-[9px] rounded"
                                         >
@@ -1432,88 +1537,107 @@ const CandidateDetail = ({
                       {isAdditionalDocs && (
                         <div className="space-y-3">
                           <p>
-                            Verify the candidate's custom supporting document submissions.
+                            Verify the candidate's custom supporting document
+                            submissions.
                           </p>
 
                           <div className="space-y-2">
-                            {(candidate.resolvedRequiredDocs || []).length === 0 ? (
+                            {(candidate.resolvedRequiredDocs || []).length ===
+                            0 ? (
                               <p className="text-[10px] text-zinc-400 font-semibold italic">
                                 No required documents configured.
                               </p>
                             ) : (
-                              (candidate.resolvedRequiredDocs || []).map((doc) => {
-                                const fileObj = candidate.additional_documents?.[doc.id];
-                                const isDocUploaded = !!fileObj?.key;
-                                
-                                return (
-                                  <div key={doc.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2">
-                                    <div className="flex items-center justify-between">
-                                      <span className="font-bold text-slate-800 text-[11px] truncate max-w-[200px] sm:max-w-xs block text-left">
-                                        {doc.title}
-                                      </span>
-                                      <span
-                                        className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase border tracking-wider shrink-0 ${
-                                          isDocUploaded
-                                            ? fileObj.status === "approved"
-                                              ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                              : fileObj.status === "rejected"
-                                                ? "bg-rose-50 text-rose-700 border-rose-100"
-                                                : "bg-amber-50 text-amber-700 border-amber-100"
-                                            : "bg-slate-100 text-slate-400 border-slate-200"
-                                        }`}
-                                      >
-                                        {isDocUploaded ? fileObj.status === "approved" ? "Approved" : fileObj.status === "rejected" ? "Rejected" : "Pending Review" : "Awaiting Upload"}
-                                      </span>
-                                    </div>
+                              (candidate.resolvedRequiredDocs || []).map(
+                                (doc) => {
+                                  const fileObj =
+                                    candidate.additional_documents?.[doc.id];
+                                  const isDocUploaded = !!fileObj?.key;
 
-                                    {isDocUploaded ? (
-                                      <div className="flex flex-col gap-2">
-                                        <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100/80 text-[10px] text-slate-500">
-                                          <span className="truncate max-w-[150px] font-bold text-slate-700">
-                                            {fileObj.fileName}
-                                          </span>
-                                          {fileObj.downloadUrl && (
-                                            <a
-                                              href={fileObj.downloadUrl}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-blue-600 hover:underline flex items-center gap-0.5 shrink-0"
-                                            >
-                                              View file <ExternalLink className="w-2.5 h-2.5" />
-                                            </a>
-                                          )}
-                                        </div>
+                                  return (
+                                    <div
+                                      key={doc.id}
+                                      className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2"
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <span className="font-bold text-slate-800 text-[11px] truncate max-w-[200px] sm:max-w-xs block text-left">
+                                          {doc.title}
+                                        </span>
+                                        <span
+                                          className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase border tracking-wider shrink-0 ${
+                                            isDocUploaded
+                                              ? fileObj.status === "approved"
+                                                ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                                : fileObj.status === "rejected"
+                                                  ? "bg-rose-50 text-rose-700 border-rose-100"
+                                                  : "bg-amber-50 text-amber-700 border-amber-100"
+                                              : "bg-slate-100 text-slate-400 border-slate-200"
+                                          }`}
+                                        >
+                                          {isDocUploaded
+                                            ? fileObj.status === "approved"
+                                              ? "Approved"
+                                              : fileObj.status === "rejected"
+                                                ? "Rejected"
+                                                : "Pending Review"
+                                            : "Awaiting Upload"}
+                                        </span>
                                       </div>
-                                    ) : null}
-                                  </div>
-                                );
-                              })
+
+                                      {isDocUploaded ? (
+                                        <div className="flex flex-col gap-2">
+                                          <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100/80 text-[10px] text-slate-500">
+                                            <span className="truncate max-w-[150px] font-bold text-slate-700">
+                                              {fileObj.fileName}
+                                            </span>
+                                            {fileObj.downloadUrl && (
+                                              <a
+                                                href={fileObj.downloadUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-blue-600 hover:underline flex items-center gap-0.5 shrink-0"
+                                              >
+                                                View file{" "}
+                                                <ExternalLink className="w-2.5 h-2.5" />
+                                              </a>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  );
+                                },
+                              )
                             )}
                           </div>
 
-                          {isActive && (candidate.resolvedRequiredDocs || []).some(doc => candidate.additional_documents?.[doc.id]?.key) && (
-                            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2">
-                              <span className="font-bold text-[#083262] text-[11px] text-left block">
-                                Supporting Documents Decision
-                              </span>
-                              <div className="flex gap-2.5 justify-start">
-                                <button
-                                  type="button"
-                                  onClick={handleApproveAllDocs}
-                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded-lg transition-all cursor-pointer"
-                                >
-                                  Approve All Documents
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={handleRejectAllDocs}
-                                  className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 font-bold text-[10px] rounded-lg transition-all cursor-pointer"
-                                >
-                                  Reject All Documents
-                                </button>
+                          {isActive &&
+                            (candidate.resolvedRequiredDocs || []).some(
+                              (doc) =>
+                                candidate.additional_documents?.[doc.id]?.key,
+                            ) && (
+                              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2">
+                                <span className="font-bold text-[#083262] text-[11px] text-left block">
+                                  Supporting Documents Decision
+                                </span>
+                                <div className="flex gap-2.5 justify-start">
+                                  <button
+                                    type="button"
+                                    onClick={handleApproveAllDocs}
+                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded-lg transition-all cursor-pointer"
+                                  >
+                                    Approve All Documents
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={handleRejectAllDocs}
+                                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 font-bold text-[10px] rounded-lg transition-all cursor-pointer"
+                                  >
+                                    Reject All Documents
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
 
                           {isCompleted && (
                             <button
@@ -1576,11 +1700,15 @@ const CandidateDetail = ({
                           {candidate.training_schedule_image_url ? (
                             <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2">
                               <div className="flex items-center justify-between">
-                                <span className="font-bold text-slate-700 text-[10px] uppercase">Schedule Image</span>
+                                <span className="font-bold text-slate-700 text-[10px] uppercase">
+                                  Schedule Image
+                                </span>
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    onUpdate(candidate.user_id, { training_schedule_image_url: 'clear' });
+                                    onUpdate(candidate.user_id, {
+                                      training_schedule_image_url: "clear",
+                                    });
                                   }}
                                   className="p-1 hover:bg-rose-50 text-rose-600 rounded transition-all"
                                 >
@@ -1588,15 +1716,25 @@ const CandidateDetail = ({
                                 </button>
                               </div>
                               {candidate.trainingScheduleImageDownloadUrl && (
-                                <a href={candidate.trainingScheduleImageDownloadUrl} target="_blank" rel="noopener noreferrer" className="block relative group/img cursor-zoom-in">
+                                <a
+                                  href={
+                                    candidate.trainingScheduleImageDownloadUrl
+                                  }
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block relative group/img cursor-zoom-in"
+                                >
                                   <img
-                                    src={candidate.trainingScheduleImageDownloadUrl}
+                                    src={
+                                      candidate.trainingScheduleImageDownloadUrl
+                                    }
                                     alt="Training Schedule"
                                     className="w-full max-h-48 object-contain rounded-lg border border-slate-100 bg-white"
                                   />
                                   <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
                                     <span className="bg-white/90 px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-700 shadow-sm flex items-center gap-1">
-                                      View Image <ExternalLink className="w-3 h-3" />
+                                      View Image{" "}
+                                      <ExternalLink className="w-3 h-3" />
                                     </span>
                                   </div>
                                 </a>
@@ -1611,7 +1749,10 @@ const CandidateDetail = ({
                                   onChange={(e) => {
                                     const file = e.target.files[0];
                                     if (file) {
-                                      onUploadTrainingScheduleImage(candidate.user_id, file);
+                                      onUploadTrainingScheduleImage(
+                                        candidate.user_id,
+                                        file,
+                                      );
                                     }
                                   }}
                                   className="absolute inset-0 opacity-0 cursor-pointer"
@@ -1694,7 +1835,7 @@ const CandidateDetail = ({
                               </div>
                             )}
 
-                          {isCompleted && (
+                          {(isActive || isCompleted) && (
                             <button
                               type="button"
                               onClick={handleResetTraining}
@@ -1709,15 +1850,22 @@ const CandidateDetail = ({
                       {isRecruiterStatus && (
                         <div className="space-y-4">
                           <p className="text-xs text-slate-500">
-                            Manage recruiter visibility, job card details, interview scheduling, pass/fail decisions, and offer letter uploads.
+                            Manage recruiter visibility, job card details,
+                            interview scheduling, pass/fail decisions, and offer
+                            letter uploads.
                           </p>
 
-                          {candidate.recruiter_shares && candidate.recruiter_shares.length > 0 ? (
+                          {candidate.recruiter_shares &&
+                          candidate.recruiter_shares.length > 0 ? (
                             <div className="space-y-4">
                               {candidate.recruiter_shares.map((rec) => {
-                                const isChecked = candidate.visible_recruiter_ids?.includes(rec.account_id);
-                                const recData = candidate.recruiter_interviews?.[rec.account_id] || {};
-                                const isEditing = editingRecId === rec.account_id;
+                                const isChecked = !!rec.is_visible;
+                                const recData =
+                                  candidate.recruiter_interviews?.[
+                                    rec.account_id
+                                  ] || {};
+                                const isEditing =
+                                  editingRecId === rec.account_id;
 
                                 return (
                                   <div
@@ -1731,12 +1879,23 @@ const CandidateDetail = ({
                                           type="checkbox"
                                           checked={isChecked}
                                           onChange={(e) => {
-                                            const currentVisible = candidate.visible_recruiter_ids || [];
+                                            const currentVisible = (
+                                              candidate.visible_recruiter_ids ||
+                                              []
+                                            ).map(Number);
                                             let newVisible;
                                             if (e.target.checked) {
-                                              newVisible = [...currentVisible, rec.account_id];
+                                              newVisible = [
+                                                ...currentVisible,
+                                                Number(rec.account_id),
+                                              ];
                                             } else {
-                                              newVisible = currentVisible.filter((id) => id !== rec.account_id);
+                                              newVisible =
+                                                currentVisible.filter(
+                                                  (id) =>
+                                                    Number(id) !==
+                                                    Number(rec.account_id),
+                                                );
                                             }
                                             onUpdate(candidate.user_id, {
                                               visible_recruiter_ids: newVisible,
@@ -1745,507 +1904,796 @@ const CandidateDetail = ({
                                           className="rounded border-slate-200 text-[#083262] focus:ring-0 w-4 h-4 mt-0.5"
                                         />
                                         <div className="flex flex-col">
-                                          <span className="text-[10px] uppercase font-bold text-[#083262]">Partner Recruiter</span>
-                                          <span className="text-xs font-extrabold text-slate-800">{rec.recruiter_email}</span>
+                                          <span className="text-[10px] uppercase font-bold text-[#083262]">
+                                            Partner Recruiter
+                                          </span>
+                                          <span className="text-xs font-extrabold text-slate-800">
+                                            {rec.recruiter_email}
+                                          </span>
                                           <span className="text-[9px] text-slate-400 uppercase font-semibold mt-0.5">
-                                            Explorer stage: {rec.stage || "Submitted"}
+                                            Explorer stage:{" "}
+                                            {rec.stage || "Submitted"}
                                           </span>
                                         </div>
                                       </div>
 
                                       <div className="flex items-center gap-1.5">
-                                        {recData.interview_passed !== null && recData.interview_passed !== undefined && (
-                                          <span
-                                            className={`px-2 py-0.5 rounded text-[8px] font-extrabold uppercase border ${
-                                              recData.interview_passed
-                                                ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                                : "bg-rose-50 text-rose-700 border-rose-100"
-                                            }`}
-                                          >
-                                            {recData.interview_passed ? "Passed" : "Failed"}
-                                          </span>
-                                        )}
+                                        {recData.interview_passed !== null &&
+                                          recData.interview_passed !==
+                                            undefined && (
+                                            <span
+                                              className={`px-2 py-0.5 rounded text-[8px] font-extrabold uppercase border ${
+                                                recData.interview_passed
+                                                  ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                                  : "bg-rose-50 text-rose-700 border-rose-100"
+                                              }`}
+                                            >
+                                              {recData.interview_passed
+                                                ? "Passed"
+                                                : "Failed"}
+                                            </span>
+                                          )}
                                         <button
                                           type="button"
                                           onClick={() => {
                                             if (isEditing) {
                                               setEditingRecId(null);
                                             } else {
-                                              startEditingRecruiter(rec.account_id, recData);
+                                              startEditingRecruiter(
+                                                rec.account_id,
+                                                recData,
+                                              );
                                             }
                                           }}
                                           className="text-[10px] font-bold text-[#083262] bg-white border border-slate-200 hover:bg-slate-50 px-2.5 py-1 rounded-lg shadow-sm"
                                         >
-                                          {isEditing ? "Close Options" : "Manage Placement"}
+                                          {isEditing
+                                            ? "Close Options"
+                                            : "Manage Placement"}
                                         </button>
                                       </div>
                                     </div>
 
                                     {/* Render saved details when not editing */}
-                                    {!isEditing && (recData.job_title || recData.location || recData.salary_range || recData.job_description || recData.slot_time || recData.meet_link || recData.schedule_image_url || recData.offer_letter_url) && (
-                                      <div className="bg-white border border-slate-100 rounded-xl p-3 flex flex-col gap-3 text-xs text-slate-650 animate-in fade-in duration-150">
-                                        
-                                        {/* Job Details Section */}
-                                        {editingSection?.recruiterId === rec.account_id && editingSection?.section === 'job_details' ? (
-                                          <div className="space-y-2 text-left animate-in fade-in duration-150">
-                                            <div className="flex justify-between items-center">
-                                              <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">Job Details</span>
-                                              <div className="flex gap-2">
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    onUpdate(candidate.user_id, {
-                                                      recruiter_interview_update: {
-                                                        recruiterAccountId: rec.account_id,
-                                                        job_title: recJobTitle,
-                                                        location: recLocation,
-                                                        job_description: recJobDesc,
-                                                        job_type: recJobType,
-                                                        salary_range: recSalary
-                                                      }
-                                                    });
-                                                    setEditingSection(null);
-                                                  }}
-                                                  className="text-emerald-600 hover:text-emerald-700 font-extrabold text-[9px] uppercase tracking-wider"
-                                                >
-                                                  Save
-                                                </button>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => setEditingSection(null)}
-                                                  className="text-slate-400 hover:text-slate-500 font-extrabold text-[9px] uppercase tracking-wider"
-                                                >
-                                                  Cancel
-                                                </button>
-                                              </div>
-                                            </div>
-                                            <div className="bg-white border border-slate-200/80 p-3 rounded-lg space-y-3 shadow-inner">
-                                              <div className="grid grid-cols-2 gap-2 text-[10px]">
-                                                <div className="flex flex-col gap-0.5">
-                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Job Title</span>
-                                                  <input
-                                                    type="text"
-                                                    value={recJobTitle}
-                                                    onChange={(e) => setRecJobTitle(e.target.value)}
-                                                    placeholder="e.g. ICU Staff Nurse"
-                                                    className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
-                                                  />
-                                                </div>
-                                                <div className="flex flex-col gap-0.5">
-                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Location</span>
-                                                  <input
-                                                    type="text"
-                                                    value={recLocation}
-                                                    onChange={(e) => setRecLocation(e.target.value)}
-                                                    placeholder="e.g. Munich, GER"
-                                                    className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
-                                                  />
-                                                </div>
-                                                <div className="flex flex-col gap-0.5">
-                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Job Type</span>
-                                                  <select
-                                                    value={recJobType}
-                                                    onChange={(e) => setRecJobType(e.target.value)}
-                                                    className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
+                                    {!isEditing &&
+                                      (recData.job_title ||
+                                        recData.location ||
+                                        recData.salary_range ||
+                                        recData.job_description ||
+                                        recData.slot_time ||
+                                        recData.meet_link ||
+                                        recData.schedule_image_url ||
+                                        recData.offer_letter_url) && (
+                                        <div className="bg-white border border-slate-100 rounded-xl p-3 flex flex-col gap-3 text-xs text-slate-650 animate-in fade-in duration-150">
+                                          {/* Job Details Section */}
+                                          {editingSection?.recruiterId ===
+                                            rec.account_id &&
+                                          editingSection?.section ===
+                                            "job_details" ? (
+                                            <div className="space-y-2 text-left animate-in fade-in duration-150">
+                                              <div className="flex justify-between items-center">
+                                                <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">
+                                                  Job Details
+                                                </span>
+                                                <div className="flex gap-2">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      onUpdate(
+                                                        candidate.user_id,
+                                                        {
+                                                          recruiter_interview_update:
+                                                            {
+                                                              recruiterAccountId:
+                                                                rec.account_id,
+                                                              job_title:
+                                                                recJobTitle,
+                                                              location:
+                                                                recLocation,
+                                                              job_description:
+                                                                recJobDesc,
+                                                              job_type:
+                                                                recJobType,
+                                                              salary_range:
+                                                                recSalary,
+                                                            },
+                                                        },
+                                                      );
+                                                      setEditingSection(null);
+                                                    }}
+                                                    className="text-emerald-600 hover:text-emerald-700 font-extrabold text-[9px] uppercase tracking-wider"
                                                   >
-                                                    <option value="Full-time">Full-time</option>
-                                                    <option value="Part-time">Part-time</option>
-                                                    <option value="Contract">Contract</option>
-                                                    <option value="Internship">Internship</option>
-                                                  </select>
-                                                </div>
-                                                <div className="flex flex-col gap-0.5">
-                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Salary Range</span>
-                                                  <input
-                                                    type="text"
-                                                    value={recSalary}
-                                                    onChange={(e) => setRecSalary(e.target.value)}
-                                                    placeholder="e.g. 80k - 100k"
-                                                    className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
-                                                  />
+                                                    Save
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                      setEditingSection(null)
+                                                    }
+                                                    className="text-slate-400 hover:text-slate-500 font-extrabold text-[9px] uppercase tracking-wider"
+                                                  >
+                                                    Cancel
+                                                  </button>
                                                 </div>
                                               </div>
-                                              <div className="flex flex-col gap-0.5">
-                                                <span className="text-slate-400 font-bold block uppercase text-[8px]">Job Description</span>
-                                                <textarea
-                                                  value={recJobDesc}
-                                                  onChange={(e) => setRecJobDesc(e.target.value)}
-                                                  placeholder="Provide brief details about the role..."
-                                                  rows={2}
-                                                  className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50 font-sans"
-                                                />
-                                              </div>
-                                            </div>
-                                          </div>
-                                        ) : (
-                                          <div className="space-y-1 text-left animate-in fade-in duration-150">
-                                            <div className="flex justify-between items-center">
-                                              <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">Job Details</span>
-                                              <button
-                                                type="button"
-                                                onClick={() => startEditingSection(rec.account_id, 'job_details', recData)}
-                                                className="text-[#083262] hover:text-[#052243] font-bold text-[9px] uppercase tracking-wider"
-                                              >
-                                                Edit
-                                              </button>
-                                            </div>
-                                            <div className="bg-slate-50/50 border border-slate-200/60 p-2.5 rounded-lg space-y-2">
-                                              <div className="grid grid-cols-2 gap-2 text-[10px]">
-                                                <div>
-                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Job Title</span>
-                                                  <strong className="text-slate-700 font-extrabold">{cleanString(recData.job_title) || <span className="text-slate-350 italic font-normal">Not set</span>}</strong>
-                                                </div>
-                                                <div>
-                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Location</span>
-                                                  <strong className="text-slate-700 font-extrabold">{cleanString(recData.location) || <span className="text-slate-350 italic font-normal">Not set</span>}</strong>
-                                                </div>
-                                                <div>
-                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Job Type</span>
-                                                  <strong className="text-slate-700 font-extrabold">{recData.job_type || <span className="text-slate-350 italic font-normal">Not set</span>}</strong>
-                                                </div>
-                                                <div>
-                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Salary Range</span>
-                                                  <strong className="text-slate-700 font-extrabold">{cleanString(recData.salary_range) || <span className="text-slate-350 italic font-normal">Not set</span>}</strong>
-                                                </div>
-                                              </div>
-                                              <div className="text-[10px] border-t border-slate-100 pt-1.5 mt-1.5">
-                                                <span className="text-slate-400 font-bold block uppercase text-[8px]">Job Description</span>
-                                                <p className="text-slate-600 font-medium whitespace-pre-wrap leading-relaxed">
-                                                  {cleanString(recData.job_description) || <span className="text-slate-350 italic font-normal">No description provided</span>}
-                                                </p>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        )}
-
-                                        {/* Interview Schedule Section */}
-                                        {editingSection?.recruiterId === rec.account_id && editingSection?.section === 'interview_schedule' ? (
-                                          <div className="space-y-2 text-left animate-in fade-in duration-150">
-                                            <div className="flex justify-between items-center">
-                                              <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">Interview Schedule</span>
-                                              <div className="flex gap-2">
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    onUpdate(candidate.user_id, {
-                                                      recruiter_interview_update: {
-                                                        recruiterAccountId: rec.account_id,
-                                                        slot_time: recSlotTime || null,
-                                                        meet_link: recMeetLink
-                                                      }
-                                                    });
-                                                    setEditingSection(null);
-                                                  }}
-                                                  className="text-emerald-600 hover:text-emerald-700 font-extrabold text-[9px] uppercase tracking-wider"
-                                                >
-                                                  Save
-                                                </button>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => setEditingSection(null)}
-                                                  className="text-slate-400 hover:text-slate-500 font-extrabold text-[9px] uppercase tracking-wider"
-                                                >
-                                                  Cancel
-                                                </button>
-                                              </div>
-                                            </div>
-                                            <div className="bg-white border border-slate-200/80 p-3 rounded-lg space-y-3 shadow-inner">
-                                              <div className="grid grid-cols-2 gap-2 text-[10px]">
-                                                <div className="flex flex-col gap-0.5">
-                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Slot Date & Time</span>
-                                                  <input
-                                                    type="datetime-local"
-                                                    value={recSlotTime}
-                                                    onChange={(e) => setRecSlotTime(e.target.value)}
-                                                    className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
-                                                  />
-                                                </div>
-                                                <div className="flex flex-col gap-0.5">
-                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Meet Link</span>
-                                                  <input
-                                                    type="url"
-                                                    value={recMeetLink}
-                                                    onChange={(e) => setRecMeetLink(e.target.value)}
-                                                    placeholder="https://meet.google.com/..."
-                                                    className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
-                                                  />
-                                                </div>
-                                              </div>
-                                              
-                                              {/* Image Upload inside edit mode */}
-                                              <div className="flex flex-col gap-1 border-t border-slate-100 pt-2.5">
-                                                <span className="text-slate-400 font-bold block uppercase text-[8px]">Schedule Confirmation Image</span>
-                                                {recData.schedule_image_url ? (
-                                                  <div className="p-2 bg-slate-50 border border-slate-200 rounded flex items-center justify-between text-[10px]">
-                                                    <a
-                                                      href={recData.schedule_image_download_url}
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                      className="flex items-center gap-1 text-slate-700 font-semibold hover:text-blue-600 transition-colors truncate max-w-[180px]"
-                                                    >
-                                                      <ExternalLink className="w-3 h-3 text-slate-400" />
-                                                      <span className="truncate">View Image</span>
-                                                    </a>
-                                                    <button
-                                                      type="button"
-                                                      onClick={() => {
-                                                        onUpdate(candidate.user_id, { clear_recruiter_schedule_image_id: rec.account_id });
-                                                      }}
-                                                      className="p-1 hover:bg-rose-50 text-rose-600 rounded transition-all"
-                                                    >
-                                                      <Trash2 className="w-3 h-3" />
-                                                    </button>
-                                                  </div>
-                                                ) : (
-                                                  <div className="relative border border-dashed border-slate-300 rounded p-2.5 bg-slate-50/30 hover:border-[#083262] transition-all flex flex-col items-center justify-center cursor-pointer">
+                                              <div className="bg-white border border-slate-200/80 p-3 rounded-lg space-y-3 shadow-inner">
+                                                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                                  <div className="flex flex-col gap-0.5">
+                                                    <span className="text-slate-400 font-bold block uppercase text-[8px]">
+                                                      Job Title
+                                                    </span>
                                                     <input
-                                                      type="file"
-                                                      accept="image/png, image/jpeg, image/jpg"
-                                                      onChange={(e) => {
-                                                        const file = e.target.files[0];
-                                                        if (file) {
-                                                          onUploadRecruiterScheduleImage(candidate.user_id, file, rec.account_id);
-                                                        }
-                                                      }}
-                                                      className="absolute inset-0 opacity-0 cursor-pointer"
+                                                      type="text"
+                                                      value={recJobTitle}
+                                                      onChange={(e) =>
+                                                        setRecJobTitle(
+                                                          e.target.value,
+                                                        )
+                                                      }
+                                                      placeholder="e.g. ICU Staff Nurse"
+                                                      className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
                                                     />
-                                                    <Upload className="w-3.5 h-3.5 text-slate-400 mb-0.5" />
-                                                    <span className="text-[9px] font-bold text-slate-500">Upload Image</span>
                                                   </div>
-                                                )}
+                                                  <div className="flex flex-col gap-0.5">
+                                                    <span className="text-slate-400 font-bold block uppercase text-[8px]">
+                                                      Location
+                                                    </span>
+                                                    <input
+                                                      type="text"
+                                                      value={recLocation}
+                                                      onChange={(e) =>
+                                                        setRecLocation(
+                                                          e.target.value,
+                                                        )
+                                                      }
+                                                      placeholder="e.g. Munich, GER"
+                                                      className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
+                                                    />
+                                                  </div>
+                                                  <div className="flex flex-col gap-0.5">
+                                                    <span className="text-slate-400 font-bold block uppercase text-[8px]">
+                                                      Job Type
+                                                    </span>
+                                                    <select
+                                                      value={recJobType}
+                                                      onChange={(e) =>
+                                                        setRecJobType(
+                                                          e.target.value,
+                                                        )
+                                                      }
+                                                      className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
+                                                    >
+                                                      <option value="Full-time">
+                                                        Full-time
+                                                      </option>
+                                                      <option value="Part-time">
+                                                        Part-time
+                                                      </option>
+                                                      <option value="Contract">
+                                                        Contract
+                                                      </option>
+                                                      <option value="Internship">
+                                                        Internship
+                                                      </option>
+                                                    </select>
+                                                  </div>
+                                                  <div className="flex flex-col gap-0.5">
+                                                    <span className="text-slate-400 font-bold block uppercase text-[8px]">
+                                                      Salary Range
+                                                    </span>
+                                                    <input
+                                                      type="text"
+                                                      value={recSalary}
+                                                      onChange={(e) =>
+                                                        setRecSalary(
+                                                          e.target.value,
+                                                        )
+                                                      }
+                                                      placeholder="e.g. 80k - 100k"
+                                                      className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
+                                                    />
+                                                  </div>
+                                                </div>
+                                                <div className="flex flex-col gap-0.5">
+                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">
+                                                    Job Description
+                                                  </span>
+                                                  <textarea
+                                                    value={recJobDesc}
+                                                    onChange={(e) =>
+                                                      setRecJobDesc(
+                                                        e.target.value,
+                                                      )
+                                                    }
+                                                    placeholder="Provide brief details about the role..."
+                                                    rows={2}
+                                                    className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50 font-sans"
+                                                  />
+                                                </div>
                                               </div>
                                             </div>
-                                          </div>
-                                        ) : (
-                                          <div className="space-y-1 text-left animate-in fade-in duration-150">
-                                            <div className="flex justify-between items-center">
-                                              <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">Interview Schedule</span>
-                                              <button
-                                                type="button"
-                                                onClick={() => startEditingSection(rec.account_id, 'interview_schedule', recData)}
-                                                className="text-[#083262] hover:text-[#052243] font-bold text-[9px] uppercase tracking-wider"
-                                              >
-                                                Edit
-                                              </button>
-                                            </div>
-                                            <div className="bg-slate-50/50 border border-slate-200/60 p-2.5 rounded-lg space-y-2 text-[10px]">
-                                              {recData.slot_time ? (
-                                                <div className="flex items-center gap-1.5 text-slate-650">
-                                                  <Calendar className="w-3.5 h-3.5 text-[#083262] shrink-0" />
-                                                  <span>
-                                                    Date & Time:{" "}
-                                                    <strong className="text-slate-750 font-extrabold">
-                                                      {new Date(recData.slot_time).toLocaleString(undefined, {
-                                                        year: "numeric",
-                                                        month: "numeric",
-                                                        day: "numeric",
-                                                        hour: "2-digit",
-                                                        minute: "2-digit",
-                                                        hour12: true,
-                                                      })}
+                                          ) : (
+                                            <div className="space-y-1 text-left animate-in fade-in duration-150">
+                                              <div className="flex justify-between items-center">
+                                                <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">
+                                                  Job Details
+                                                </span>
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    startEditingSection(
+                                                      rec.account_id,
+                                                      "job_details",
+                                                      recData,
+                                                    )
+                                                  }
+                                                  className="text-[#083262] hover:text-[#052243] font-bold text-[9px] uppercase tracking-wider"
+                                                >
+                                                  Edit
+                                                </button>
+                                              </div>
+                                              <div className="bg-slate-50/50 border border-slate-200/60 p-2.5 rounded-lg space-y-2">
+                                                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                                  <div>
+                                                    <span className="text-slate-400 font-bold block uppercase text-[8px]">
+                                                      Job Title
+                                                    </span>
+                                                    <strong className="text-slate-700 font-extrabold">
+                                                      {cleanString(
+                                                        recData.job_title,
+                                                      ) || (
+                                                        <span className="text-slate-350 italic font-normal">
+                                                          Not set
+                                                        </span>
+                                                      )}
                                                     </strong>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-slate-400 font-bold block uppercase text-[8px]">
+                                                      Location
+                                                    </span>
+                                                    <strong className="text-slate-700 font-extrabold">
+                                                      {cleanString(
+                                                        recData.location,
+                                                      ) || (
+                                                        <span className="text-slate-350 italic font-normal">
+                                                          Not set
+                                                        </span>
+                                                      )}
+                                                    </strong>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-slate-400 font-bold block uppercase text-[8px]">
+                                                      Job Type
+                                                    </span>
+                                                    <strong className="text-slate-700 font-extrabold">
+                                                      {recData.job_type || (
+                                                        <span className="text-slate-350 italic font-normal">
+                                                          Not set
+                                                        </span>
+                                                      )}
+                                                    </strong>
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-slate-400 font-bold block uppercase text-[8px]">
+                                                      Salary Range
+                                                    </span>
+                                                    <strong className="text-slate-700 font-extrabold">
+                                                      {cleanString(
+                                                        recData.salary_range,
+                                                      ) || (
+                                                        <span className="text-slate-350 italic font-normal">
+                                                          Not set
+                                                        </span>
+                                                      )}
+                                                    </strong>
+                                                  </div>
+                                                </div>
+                                                <div className="text-[10px] border-t border-slate-100 pt-1.5 mt-1.5">
+                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">
+                                                    Job Description
                                                   </span>
+                                                  <p className="text-slate-600 font-medium whitespace-pre-wrap leading-relaxed">
+                                                    {cleanString(
+                                                      recData.job_description,
+                                                    ) || (
+                                                      <span className="text-slate-350 italic font-normal">
+                                                        No description provided
+                                                      </span>
+                                                    )}
+                                                  </p>
                                                 </div>
-                                              ) : (
-                                                <div className="flex items-center gap-1.5 text-slate-400 italic">
-                                                  <Calendar className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-                                                  <span>No interview slot scheduled</span>
+                                              </div>
+                                            </div>
+                                          )}
+
+                                          {/* Interview Schedule Section */}
+                                          {editingSection?.recruiterId ===
+                                            rec.account_id &&
+                                          editingSection?.section ===
+                                            "interview_schedule" ? (
+                                            <div className="space-y-2 text-left animate-in fade-in duration-150">
+                                              <div className="flex justify-between items-center">
+                                                <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">
+                                                  Interview Schedule
+                                                </span>
+                                                <div className="flex gap-2">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      onUpdate(
+                                                        candidate.user_id,
+                                                        {
+                                                          recruiter_interview_update:
+                                                            {
+                                                              recruiterAccountId:
+                                                                rec.account_id,
+                                                              slot_time:
+                                                                recSlotTime ||
+                                                                null,
+                                                              meet_link:
+                                                                recMeetLink,
+                                                            },
+                                                        },
+                                                      );
+                                                      setEditingSection(null);
+                                                    }}
+                                                    className="text-emerald-600 hover:text-emerald-700 font-extrabold text-[9px] uppercase tracking-wider"
+                                                  >
+                                                    Save
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                      setEditingSection(null)
+                                                    }
+                                                    className="text-slate-400 hover:text-slate-500 font-extrabold text-[9px] uppercase tracking-wider"
+                                                  >
+                                                    Cancel
+                                                  </button>
                                                 </div>
-                                              )}
-                                              {recData.meet_link ? (
-                                                <div className="flex items-center gap-1.5 text-slate-650">
-                                                  <Video className="w-3.5 h-3.5 text-[#083262] shrink-0" />
-                                                  <span className="flex items-center gap-1 font-semibold truncate">
-                                                    Meeting Link:
-                                                    <a
-                                                      href={recData.meet_link}
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                      className="text-blue-600 hover:underline flex items-center gap-0.5 truncate max-w-[200px]"
-                                                    >
-                                                      {recData.meet_link}
-                                                      <ExternalLink className="w-2.5 h-2.5" />
-                                                    </a>
-                                                  </span>
-                                                </div>
-                                              ) : (
-                                                <div className="flex items-center gap-1.5 text-slate-400 italic">
-                                                  <Video className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-                                                  <span>No meeting link set</span>
-                                                </div>
-                                              )}
-                                              {recData.schedule_image_url && recData.schedule_image_download_url && (
-                                                <div className="border-t border-slate-100 pt-2 mt-1 flex flex-col gap-1.5">
-                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">Schedule Confirmation</span>
-                                                  <a href={recData.schedule_image_download_url} target="_blank" rel="noopener noreferrer" className="block relative group/img cursor-zoom-in max-w-xs">
-                                                    <img
-                                                      src={recData.schedule_image_download_url}
-                                                      alt="Schedule Confirmation"
-                                                      className="max-h-32 object-contain rounded border border-slate-200 bg-white"
+                                              </div>
+                                              <div className="bg-white border border-slate-200/80 p-3 rounded-lg space-y-3 shadow-inner">
+                                                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                                  <div className="flex flex-col gap-0.5">
+                                                    <span className="text-slate-400 font-bold block uppercase text-[8px]">
+                                                      Slot Date & Time
+                                                    </span>
+                                                    <input
+                                                      type="datetime-local"
+                                                      value={recSlotTime}
+                                                      onChange={(e) =>
+                                                        setRecSlotTime(
+                                                          e.target.value,
+                                                        )
+                                                      }
+                                                      className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
                                                     />
-                                                    <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center rounded">
-                                                      <span className="bg-white/95 px-2 py-0.5 rounded text-[8px] font-bold text-slate-700 shadow-sm flex items-center gap-1">
-                                                        View Image <ExternalLink className="w-2.5 h-2.5" />
+                                                  </div>
+                                                  <div className="flex flex-col gap-0.5">
+                                                    <span className="text-slate-400 font-bold block uppercase text-[8px]">
+                                                      Meet Link
+                                                    </span>
+                                                    <input
+                                                      type="url"
+                                                      value={recMeetLink}
+                                                      onChange={(e) =>
+                                                        setRecMeetLink(
+                                                          e.target.value,
+                                                        )
+                                                      }
+                                                      placeholder="https://meet.google.com/..."
+                                                      className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50"
+                                                    />
+                                                  </div>
+                                                </div>
+
+                                                {/* Image Upload inside edit mode */}
+                                                <div className="flex flex-col gap-1 border-t border-slate-100 pt-2.5">
+                                                  <span className="text-slate-400 font-bold block uppercase text-[8px]">
+                                                    Schedule Confirmation Image
+                                                  </span>
+                                                  {recData.schedule_image_url ? (
+                                                    <div className="p-2 bg-slate-50 border border-slate-200 rounded flex items-center justify-between text-[10px]">
+                                                      <a
+                                                        href={
+                                                          recData.schedule_image_download_url
+                                                        }
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-1 text-slate-700 font-semibold hover:text-blue-600 transition-colors truncate max-w-[180px]"
+                                                      >
+                                                        <ExternalLink className="w-3 h-3 text-slate-400" />
+                                                        <span className="truncate">
+                                                          View Image
+                                                        </span>
+                                                      </a>
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                          onUpdate(
+                                                            candidate.user_id,
+                                                            {
+                                                              clear_recruiter_schedule_image_id:
+                                                                rec.account_id,
+                                                            },
+                                                          );
+                                                        }}
+                                                        className="p-1 hover:bg-rose-50 text-rose-600 rounded transition-all"
+                                                      >
+                                                        <Trash2 className="w-3 h-3" />
+                                                      </button>
+                                                    </div>
+                                                  ) : (
+                                                    <div className="relative border border-dashed border-slate-300 rounded p-2.5 bg-slate-50/30 hover:border-[#083262] transition-all flex flex-col items-center justify-center cursor-pointer">
+                                                      <input
+                                                        type="file"
+                                                        accept="image/png, image/jpeg, image/jpg"
+                                                        onChange={(e) => {
+                                                          const file =
+                                                            e.target.files[0];
+                                                          if (file) {
+                                                            onUploadRecruiterScheduleImage(
+                                                              candidate.user_id,
+                                                              file,
+                                                              rec.account_id,
+                                                            );
+                                                          }
+                                                        }}
+                                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                                      />
+                                                      <Upload className="w-3.5 h-3.5 text-slate-400 mb-0.5" />
+                                                      <span className="text-[9px] font-bold text-slate-500">
+                                                        Upload Image
                                                       </span>
                                                     </div>
-                                                  </a>
+                                                  )}
                                                 </div>
-                                              )}
-                                            </div>
-                                          </div>
-                                        )}
-
-                                        {/* Offer Letter Status Section */}
-                                        {editingSection?.recruiterId === rec.account_id && editingSection?.section === 'offer_letter' ? (
-                                          <div className="space-y-2 text-left animate-in fade-in duration-150">
-                                            <div className="flex justify-between items-center">
-                                              <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">Offer Letter & Outcome</span>
-                                              <button
-                                                type="button"
-                                                onClick={() => setEditingSection(null)}
-                                                className="text-slate-400 hover:text-slate-500 font-extrabold text-[9px] uppercase tracking-wider"
-                                              >
-                                                Done
-                                              </button>
-                                            </div>
-                                            <div className="bg-white border border-slate-200/80 p-3 rounded-lg space-y-3.5 shadow-inner">
-                                              {/* Recruiter Decisions & Outcomes */}
-                                              <div className="flex flex-col gap-1.5">
-                                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block text-left">Recruiter Decision</span>
-                                                {recData.interview_passed === null || recData.interview_passed === undefined ? (
-                                                  <div className="flex gap-2">
-                                                    <button
-                                                      type="button"
-                                                      onClick={() => onUpdate(candidate.user_id, { pass_recruiter_id: rec.account_id })}
-                                                      className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold rounded transition-all"
-                                                    >
-                                                      Mark Passed
-                                                    </button>
-                                                    <button
-                                                      type="button"
-                                                      onClick={() => {
-                                                        openConfirmModal({
-                                                          title: "Mark Recruiter Interview Failed?",
-                                                          message: "This candidate will be recorded as failed for this partner's interview.",
-                                                          onConfirm: () => {
-                                                            onUpdate(candidate.user_id, { fail_recruiter_id: rec.account_id });
-                                                          }
-                                                        });
-                                                      }}
-                                                      className="px-2.5 py-1.5 bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 text-[9px] font-bold rounded transition-all"
-                                                    >
-                                                      Mark Failed
-                                                    </button>
-                                                  </div>
-                                                ) : (
-                                                  <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-semibold text-slate-650">
-                                                      Outcome: <strong className={recData.interview_passed ? "text-emerald-600 font-extrabold" : "text-rose-600 font-extrabold"}>{recData.interview_passed ? "PASSED" : "FAILED"}</strong>
-                                                    </span>
-                                                    <button
-                                                      type="button"
-                                                      onClick={() => {
-                                                        openConfirmModal({
-                                                          title: "Reset Recruiter Decision?",
-                                                          message: "This will clear scheduling and pass/fail states for this recruiter.",
-                                                          onConfirm: () => {
-                                                            onUpdate(candidate.user_id, { reset_recruiter_id: rec.account_id });
-                                                          }
-                                                        });
-                                                      }}
-                                                      className="text-[9px] font-bold text-red-650 bg-red-50 hover:bg-red-100 border border-red-100 px-2 py-0.5 rounded"
-                                                    >
-                                                      Reset
-                                                    </button>
-                                                  </div>
-                                                )}
-                                              </div>
-
-                                              {/* Offer Letter Upload */}
-                                              <div className="flex flex-col gap-1.5 border-t border-slate-100 pt-2.5">
-                                                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block text-left">Offer Letter PDF</span>
-                                                {recData.offer_letter_url ? (
-                                                  <div className="p-2 bg-slate-50 border border-slate-200 rounded flex items-center justify-between text-[10px]">
-                                                    <a
-                                                      href={recData.offer_letter_download_url}
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                      className="flex items-center gap-1 text-slate-700 font-semibold hover:text-blue-600 transition-colors truncate max-w-[180px]"
-                                                    >
-                                                      <FileText className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                                      <span className="truncate">Offer Letter.pdf</span>
-                                                    </a>
-                                                    <button
-                                                      type="button"
-                                                      onClick={() => {
-                                                        onUpdate(candidate.user_id, { clear_recruiter_offer_id: rec.account_id });
-                                                      }}
-                                                      className="p-1 hover:bg-rose-50 text-rose-600 rounded transition-all"
-                                                    >
-                                                      <Trash2 className="w-3 h-3" />
-                                                    </button>
-                                                  </div>
-                                                ) : (
-                                                  <div className="relative border border-dashed border-slate-300 rounded p-2.5 bg-slate-50/30 hover:border-[#083262] transition-all flex flex-col items-center justify-center cursor-pointer">
-                                                    <input
-                                                      type="file"
-                                                      accept=".pdf"
-                                                      onChange={(e) => {
-                                                        const file = e.target.files[0];
-                                                        if (file) {
-                                                          onUploadOfferLetter(candidate.user_id, file, rec.account_id);
-                                                        }
-                                                      }}
-                                                      className="absolute inset-0 opacity-0 cursor-pointer"
-                                                    />
-                                                    <Upload className="w-3.5 h-3.5 text-slate-400 mb-0.5" />
-                                                    <span className="text-[9px] font-bold text-slate-500">Upload PDF</span>
-                                                  </div>
-                                                )}
                                               </div>
                                             </div>
-                                          </div>
-                                        ) : (
-                                          <div className="space-y-1 text-left animate-in fade-in duration-150">
-                                            <div className="flex justify-between items-center">
-                                              <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">Offer Letter Status</span>
-                                              <button
-                                                type="button"
-                                                onClick={() => startEditingSection(rec.account_id, 'offer_letter', recData)}
-                                                className="text-[#083262] hover:text-[#052243] font-bold text-[9px] uppercase tracking-wider"
-                                              >
-                                                Edit
-                                              </button>
-                                            </div>
-                                            <div className="bg-slate-50/50 border border-slate-200/60 p-2.5 rounded-lg flex items-center justify-between text-[10px]">
-                                              {recData.offer_letter_url && recData.offer_letter_download_url ? (
-                                                <a
-                                                  href={recData.offer_letter_download_url}
-                                                  target="_blank"
-                                                  rel="noopener noreferrer"
-                                                  className="flex items-center gap-1.5 text-slate-700 font-semibold hover:text-blue-600 transition-colors truncate max-w-[200px]"
+                                          ) : (
+                                            <div className="space-y-1 text-left animate-in fade-in duration-150">
+                                              <div className="flex justify-between items-center">
+                                                <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">
+                                                  Interview Schedule
+                                                </span>
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    startEditingSection(
+                                                      rec.account_id,
+                                                      "interview_schedule",
+                                                      recData,
+                                                    )
+                                                  }
+                                                  className="text-[#083262] hover:text-[#052243] font-bold text-[9px] uppercase tracking-wider"
                                                 >
-                                                  <FileText className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                                  <span className="truncate">Offer Letter.pdf</span>
-                                                </a>
-                                              ) : (
-                                                <span className="text-slate-400 font-semibold italic">Not uploaded yet</span>
-                                              )}
-                                              <span
-                                                className={`px-2 py-0.5 rounded text-[8px] font-extrabold uppercase border ${
-                                                  recData.offer_letter_url
-                                                    ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                                    : "bg-amber-50 text-amber-700 border-amber-100"
-                                                }`}
-                                              >
-                                                {recData.offer_letter_url ? "Uploaded" : "Pending"}
-                                              </span>
+                                                  Edit
+                                                </button>
+                                              </div>
+                                              <div className="bg-slate-50/50 border border-slate-200/60 p-2.5 rounded-lg space-y-2 text-[10px]">
+                                                {recData.slot_time ? (
+                                                  <div className="flex items-center gap-1.5 text-slate-650">
+                                                    <Calendar className="w-3.5 h-3.5 text-[#083262] shrink-0" />
+                                                    <span>
+                                                      Date & Time:{" "}
+                                                      <strong className="text-slate-750 font-extrabold">
+                                                        {new Date(
+                                                          recData.slot_time,
+                                                        ).toLocaleString(
+                                                          undefined,
+                                                          {
+                                                            year: "numeric",
+                                                            month: "numeric",
+                                                            day: "numeric",
+                                                            hour: "2-digit",
+                                                            minute: "2-digit",
+                                                            hour12: true,
+                                                          },
+                                                        )}
+                                                      </strong>
+                                                    </span>
+                                                  </div>
+                                                ) : (
+                                                  <div className="flex items-center gap-1.5 text-slate-400 italic">
+                                                    <Calendar className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                                                    <span>
+                                                      No interview slot
+                                                      scheduled
+                                                    </span>
+                                                  </div>
+                                                )}
+                                                {recData.meet_link ? (
+                                                  <div className="flex items-center gap-1.5 text-slate-650">
+                                                    <Video className="w-3.5 h-3.5 text-[#083262] shrink-0" />
+                                                    <span className="flex items-center gap-1 font-semibold truncate">
+                                                      Meeting Link:
+                                                      <a
+                                                        href={recData.meet_link}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-blue-600 hover:underline flex items-center gap-0.5 truncate max-w-[200px]"
+                                                      >
+                                                        {recData.meet_link}
+                                                        <ExternalLink className="w-2.5 h-2.5" />
+                                                      </a>
+                                                    </span>
+                                                  </div>
+                                                ) : (
+                                                  <div className="flex items-center gap-1.5 text-slate-400 italic">
+                                                    <Video className="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                                                    <span>
+                                                      No meeting link set
+                                                    </span>
+                                                  </div>
+                                                )}
+                                                {recData.schedule_image_url &&
+                                                  recData.schedule_image_download_url && (
+                                                    <div className="border-t border-slate-100 pt-2 mt-1 flex flex-col gap-1.5">
+                                                      <span className="text-slate-400 font-bold block uppercase text-[8px]">
+                                                        Schedule Confirmation
+                                                      </span>
+                                                      <a
+                                                        href={
+                                                          recData.schedule_image_download_url
+                                                        }
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="block relative group/img cursor-zoom-in max-w-xs"
+                                                      >
+                                                        <img
+                                                          src={
+                                                            recData.schedule_image_download_url
+                                                          }
+                                                          alt="Schedule Confirmation"
+                                                          className="max-h-32 object-contain rounded border border-slate-200 bg-white"
+                                                        />
+                                                        <div className="absolute inset-0 bg-slate-900/10 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center rounded">
+                                                          <span className="bg-white/95 px-2 py-0.5 rounded text-[8px] font-bold text-slate-700 shadow-sm flex items-center gap-1">
+                                                            View Image{" "}
+                                                            <ExternalLink className="w-2.5 h-2.5" />
+                                                          </span>
+                                                        </div>
+                                                      </a>
+                                                    </div>
+                                                  )}
+                                              </div>
                                             </div>
-                                          </div>
-                                        )}
+                                          )}
 
-                                      </div>
-                                    )}
+                                          {/* Offer Letter Status Section */}
+                                          {editingSection?.recruiterId ===
+                                            rec.account_id &&
+                                          editingSection?.section ===
+                                            "offer_letter" ? (
+                                            <div className="space-y-2 text-left animate-in fade-in duration-150">
+                                              <div className="flex justify-between items-center">
+                                                <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">
+                                                  Offer Letter & Outcome
+                                                </span>
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    setEditingSection(null)
+                                                  }
+                                                  className="text-slate-400 hover:text-slate-500 font-extrabold text-[9px] uppercase tracking-wider"
+                                                >
+                                                  Done
+                                                </button>
+                                              </div>
+                                              <div className="bg-white border border-slate-200/80 p-3 rounded-lg space-y-3.5 shadow-inner">
+                                                {/* Recruiter Decisions & Outcomes */}
+                                                <div className="flex flex-col gap-1.5">
+                                                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block text-left">
+                                                    Recruiter Decision
+                                                  </span>
+                                                  {recData.interview_passed ===
+                                                    null ||
+                                                  recData.interview_passed ===
+                                                    undefined ? (
+                                                    <div className="flex gap-2">
+                                                      <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                          onUpdate(
+                                                            candidate.user_id,
+                                                            {
+                                                              pass_recruiter_id:
+                                                                rec.account_id,
+                                                            },
+                                                          )
+                                                        }
+                                                        className="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold rounded transition-all"
+                                                      >
+                                                        Mark Passed
+                                                      </button>
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                          openConfirmModal({
+                                                            title:
+                                                              "Mark Recruiter Interview Failed?",
+                                                            message:
+                                                              "This candidate will be recorded as failed for this partner's interview.",
+                                                            onConfirm: () => {
+                                                              onUpdate(
+                                                                candidate.user_id,
+                                                                {
+                                                                  fail_recruiter_id:
+                                                                    rec.account_id,
+                                                                },
+                                                              );
+                                                            },
+                                                          });
+                                                        }}
+                                                        className="px-2.5 py-1.5 bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 text-[9px] font-bold rounded transition-all"
+                                                      >
+                                                        Mark Failed
+                                                      </button>
+                                                    </div>
+                                                  ) : (
+                                                    <div className="flex items-center gap-2">
+                                                      <span className="text-[10px] font-semibold text-slate-650">
+                                                        Outcome:{" "}
+                                                        <strong
+                                                          className={
+                                                            recData.interview_passed
+                                                              ? "text-emerald-600 font-extrabold"
+                                                              : "text-rose-600 font-extrabold"
+                                                          }
+                                                        >
+                                                          {recData.interview_passed
+                                                            ? "PASSED"
+                                                            : "FAILED"}
+                                                        </strong>
+                                                      </span>
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                          openConfirmModal({
+                                                            title:
+                                                              "Reset Recruiter Decision?",
+                                                            message:
+                                                              "This will clear scheduling and pass/fail states for this recruiter.",
+                                                            onConfirm: () => {
+                                                              onUpdate(
+                                                                candidate.user_id,
+                                                                {
+                                                                  reset_recruiter_id:
+                                                                    rec.account_id,
+                                                                },
+                                                              );
+                                                            },
+                                                          });
+                                                        }}
+                                                        className="text-[9px] font-bold text-red-650 bg-red-50 hover:bg-red-100 border border-red-100 px-2 py-0.5 rounded"
+                                                      >
+                                                        Reset
+                                                      </button>
+                                                    </div>
+                                                  )}
+                                                </div>
+
+                                                {/* Offer Letter Upload */}
+                                                <div className="flex flex-col gap-1.5 border-t border-slate-100 pt-2.5">
+                                                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider block text-left">
+                                                    Offer Letter PDF
+                                                  </span>
+                                                  {recData.offer_letter_url ? (
+                                                    <div className="p-2 bg-slate-50 border border-slate-200 rounded flex items-center justify-between text-[10px]">
+                                                      <a
+                                                        href={
+                                                          recData.offer_letter_download_url
+                                                        }
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-1 text-slate-700 font-semibold hover:text-blue-600 transition-colors truncate max-w-[180px]"
+                                                      >
+                                                        <FileText className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                                        <span className="truncate">
+                                                          Offer Letter.pdf
+                                                        </span>
+                                                      </a>
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                          onUpdate(
+                                                            candidate.user_id,
+                                                            {
+                                                              clear_recruiter_offer_id:
+                                                                rec.account_id,
+                                                            },
+                                                          );
+                                                        }}
+                                                        className="p-1 hover:bg-rose-50 text-rose-600 rounded transition-all"
+                                                      >
+                                                        <Trash2 className="w-3 h-3" />
+                                                      </button>
+                                                    </div>
+                                                  ) : (
+                                                    <div className="relative border border-dashed border-slate-300 rounded p-2.5 bg-slate-50/30 hover:border-[#083262] transition-all flex flex-col items-center justify-center cursor-pointer">
+                                                      <input
+                                                        type="file"
+                                                        accept=".pdf"
+                                                        onChange={(e) => {
+                                                          const file =
+                                                            e.target.files[0];
+                                                          if (file) {
+                                                            onUploadOfferLetter(
+                                                              candidate.user_id,
+                                                              file,
+                                                              rec.account_id,
+                                                            );
+                                                          }
+                                                        }}
+                                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                                      />
+                                                      <Upload className="w-3.5 h-3.5 text-slate-400 mb-0.5" />
+                                                      <span className="text-[9px] font-bold text-slate-500">
+                                                        Upload PDF
+                                                      </span>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <div className="space-y-1 text-left animate-in fade-in duration-150">
+                                              <div className="flex justify-between items-center">
+                                                <span className="text-[9px] font-bold text-[#083262] uppercase tracking-wider block">
+                                                  Offer Letter Status
+                                                </span>
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    startEditingSection(
+                                                      rec.account_id,
+                                                      "offer_letter",
+                                                      recData,
+                                                    )
+                                                  }
+                                                  className="text-[#083262] hover:text-[#052243] font-bold text-[9px] uppercase tracking-wider"
+                                                >
+                                                  Edit
+                                                </button>
+                                              </div>
+                                              <div className="bg-slate-50/50 border border-slate-200/60 p-2.5 rounded-lg flex items-center justify-between text-[10px]">
+                                                {recData.offer_letter_url &&
+                                                recData.offer_letter_download_url ? (
+                                                  <a
+                                                    href={
+                                                      recData.offer_letter_download_url
+                                                    }
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-1.5 text-slate-700 font-semibold hover:text-blue-600 transition-colors truncate max-w-[200px]"
+                                                  >
+                                                    <FileText className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                                    <span className="truncate">
+                                                      Offer Letter.pdf
+                                                    </span>
+                                                  </a>
+                                                ) : (
+                                                  <span className="text-slate-400 font-semibold italic">
+                                                    Not uploaded yet
+                                                  </span>
+                                                )}
+                                                <span
+                                                  className={`px-2 py-0.5 rounded text-[8px] font-extrabold uppercase border ${
+                                                    recData.offer_letter_url
+                                                      ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                                      : "bg-amber-50 text-amber-700 border-amber-100"
+                                                  }`}
+                                                >
+                                                  {recData.offer_letter_url
+                                                    ? "Uploaded"
+                                                    : "Pending"}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
 
                                     {/* Action forms for active manager */}
                                     {isEditing && (
@@ -2256,38 +2704,49 @@ const CandidateDetail = ({
                                             e.preventDefault();
                                             onUpdate(candidate.user_id, {
                                               recruiter_interview_update: {
-                                                recruiterAccountId: rec.account_id,
+                                                recruiterAccountId:
+                                                  rec.account_id,
                                                 job_title: recJobTitle,
                                                 location: recLocation,
                                                 job_description: recJobDesc,
                                                 job_type: recJobType,
                                                 salary_range: recSalary,
                                                 slot_time: recSlotTime || null,
-                                                meet_link: recMeetLink
-                                              }
+                                                meet_link: recMeetLink,
+                                              },
                                             });
                                             setEditingRecId(null);
                                           }}
                                           className="flex flex-col gap-3"
                                         >
-                                          <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block">Job Details & Interview Slot</span>
+                                          <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block">
+                                            Job Details & Interview Slot
+                                          </span>
                                           <div className="grid grid-cols-2 gap-3">
                                             <div className="flex flex-col gap-1 text-left">
-                                              <span className="text-[9px] text-slate-400 font-bold uppercase">Job Title</span>
+                                              <span className="text-[9px] text-slate-400 font-bold uppercase">
+                                                Job Title
+                                              </span>
                                               <input
                                                 type="text"
                                                 value={recJobTitle}
-                                                onChange={(e) => setRecJobTitle(e.target.value)}
+                                                onChange={(e) =>
+                                                  setRecJobTitle(e.target.value)
+                                                }
                                                 placeholder="e.g. ICU Staff Nurse"
                                                 className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20"
                                               />
                                             </div>
                                             <div className="flex flex-col gap-1 text-left">
-                                              <span className="text-[9px] text-slate-400 font-bold uppercase">Location</span>
+                                              <span className="text-[9px] text-slate-400 font-bold uppercase">
+                                                Location
+                                              </span>
                                               <input
                                                 type="text"
                                                 value={recLocation}
-                                                onChange={(e) => setRecLocation(e.target.value)}
+                                                onChange={(e) =>
+                                                  setRecLocation(e.target.value)
+                                                }
                                                 placeholder="e.g. Munich, GER"
                                                 className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20"
                                               />
@@ -2296,24 +2755,40 @@ const CandidateDetail = ({
 
                                           <div className="grid grid-cols-2 gap-3">
                                             <div className="flex flex-col gap-1 text-left">
-                                              <span className="text-[9px] text-slate-400 font-bold uppercase">Job Type</span>
+                                              <span className="text-[9px] text-slate-400 font-bold uppercase">
+                                                Job Type
+                                              </span>
                                               <select
                                                 value={recJobType}
-                                                onChange={(e) => setRecJobType(e.target.value)}
+                                                onChange={(e) =>
+                                                  setRecJobType(e.target.value)
+                                                }
                                                 className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20 animate-in fade-in"
                                               >
-                                                <option value="Full-time">Full-time</option>
-                                                <option value="Part-time">Part-time</option>
-                                                <option value="Contract">Contract</option>
-                                                <option value="Internship">Internship</option>
+                                                <option value="Full-time">
+                                                  Full-time
+                                                </option>
+                                                <option value="Part-time">
+                                                  Part-time
+                                                </option>
+                                                <option value="Contract">
+                                                  Contract
+                                                </option>
+                                                <option value="Internship">
+                                                  Internship
+                                                </option>
                                               </select>
                                             </div>
                                             <div className="flex flex-col gap-1 text-left">
-                                              <span className="text-[9px] text-slate-400 font-bold uppercase">Salary Range</span>
+                                              <span className="text-[9px] text-slate-400 font-bold uppercase">
+                                                Salary Range
+                                              </span>
                                               <input
                                                 type="text"
                                                 value={recSalary}
-                                                onChange={(e) => setRecSalary(e.target.value)}
+                                                onChange={(e) =>
+                                                  setRecSalary(e.target.value)
+                                                }
                                                 placeholder="e.g. 80k - 100k"
                                                 className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20"
                                               />
@@ -2321,10 +2796,14 @@ const CandidateDetail = ({
                                           </div>
 
                                           <div className="flex flex-col gap-1 text-left">
-                                            <span className="text-[9px] text-slate-400 font-bold uppercase">Job Description</span>
+                                            <span className="text-[9px] text-slate-400 font-bold uppercase">
+                                              Job Description
+                                            </span>
                                             <textarea
                                               value={recJobDesc}
-                                              onChange={(e) => setRecJobDesc(e.target.value)}
+                                              onChange={(e) =>
+                                                setRecJobDesc(e.target.value)
+                                              }
                                               placeholder="Provide brief details about the role..."
                                               rows={2}
                                               className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20 font-sans"
@@ -2333,20 +2812,28 @@ const CandidateDetail = ({
 
                                           <div className="grid grid-cols-2 gap-3">
                                             <div className="flex flex-col gap-1 text-left">
-                                              <span className="text-[9px] text-slate-400 font-bold uppercase">Slot Date & Time</span>
+                                              <span className="text-[9px] text-slate-400 font-bold uppercase">
+                                                Slot Date & Time
+                                              </span>
                                               <input
                                                 type="datetime-local"
                                                 value={recSlotTime}
-                                                onChange={(e) => setRecSlotTime(e.target.value)}
+                                                onChange={(e) =>
+                                                  setRecSlotTime(e.target.value)
+                                                }
                                                 className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20"
                                               />
                                             </div>
                                             <div className="flex flex-col gap-1 text-left">
-                                              <span className="text-[9px] text-slate-400 font-bold uppercase">Meet Link</span>
+                                              <span className="text-[9px] text-slate-400 font-bold uppercase">
+                                                Meet Link
+                                              </span>
                                               <input
                                                 type="url"
                                                 value={recMeetLink}
-                                                onChange={(e) => setRecMeetLink(e.target.value)}
+                                                onChange={(e) =>
+                                                  setRecMeetLink(e.target.value)
+                                                }
                                                 placeholder="https://meet.google.com/..."
                                                 className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20"
                                               />
@@ -2367,13 +2854,22 @@ const CandidateDetail = ({
 
                                         {/* Outcome decisions */}
                                         <div className="flex flex-col gap-2">
-                                          <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left">Recruiter Decisions & Outcomes</span>
-                                          
-                                          {recData.interview_passed === null || recData.interview_passed === undefined ? (
+                                          <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left">
+                                            Recruiter Decisions & Outcomes
+                                          </span>
+
+                                          {recData.interview_passed === null ||
+                                          recData.interview_passed ===
+                                            undefined ? (
                                             <div className="flex gap-2">
                                               <button
                                                 type="button"
-                                                onClick={() => onUpdate(candidate.user_id, { pass_recruiter_id: rec.account_id })}
+                                                onClick={() =>
+                                                  onUpdate(candidate.user_id, {
+                                                    pass_recruiter_id:
+                                                      rec.account_id,
+                                                  })
+                                                }
                                                 className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-all"
                                               >
                                                 Mark Interview Passed
@@ -2382,11 +2878,19 @@ const CandidateDetail = ({
                                                 type="button"
                                                 onClick={() => {
                                                   openConfirmModal({
-                                                    title: "Mark Recruiter Interview Failed?",
-                                                    message: "This candidate will be recorded as failed for this partner's interview.",
+                                                    title:
+                                                      "Mark Recruiter Interview Failed?",
+                                                    message:
+                                                      "This candidate will be recorded as failed for this partner's interview.",
                                                     onConfirm: () => {
-                                                      onUpdate(candidate.user_id, { fail_recruiter_id: rec.account_id });
-                                                    }
+                                                      onUpdate(
+                                                        candidate.user_id,
+                                                        {
+                                                          fail_recruiter_id:
+                                                            rec.account_id,
+                                                        },
+                                                      );
+                                                    },
                                                   });
                                                 }}
                                                 className="px-3.5 py-2 bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 text-[10px] font-bold rounded-lg transition-all"
@@ -2397,17 +2901,30 @@ const CandidateDetail = ({
                                           ) : (
                                             <div className="flex items-center gap-3">
                                               <span className="text-xs font-semibold text-slate-500">
-                                                Interview outcome set to: <strong>{recData.interview_passed ? "PASSED" : "FAILED"}</strong>
+                                                Interview outcome set to:{" "}
+                                                <strong>
+                                                  {recData.interview_passed
+                                                    ? "PASSED"
+                                                    : "FAILED"}
+                                                </strong>
                                               </span>
                                               <button
                                                 type="button"
                                                 onClick={() => {
                                                   openConfirmModal({
-                                                    title: "Reset Recruiter Decision?",
-                                                    message: "This will clear scheduling and pass/fail states for this recruiter.",
+                                                    title:
+                                                      "Reset Recruiter Decision?",
+                                                    message:
+                                                      "This will clear scheduling and pass/fail states for this recruiter.",
                                                     onConfirm: () => {
-                                                      onUpdate(candidate.user_id, { reset_recruiter_id: rec.account_id });
-                                                    }
+                                                      onUpdate(
+                                                        candidate.user_id,
+                                                        {
+                                                          reset_recruiter_id:
+                                                            rec.account_id,
+                                                        },
+                                                      );
+                                                    },
                                                   });
                                                 }}
                                                 className="text-[10px] font-bold text-red-650 bg-red-50 hover:bg-red-100 border border-red-100 px-2 py-1 rounded-lg"
@@ -2423,22 +2940,31 @@ const CandidateDetail = ({
 
                                         {/* Schedule Image upload */}
                                         <div className="flex flex-col gap-2">
-                                          <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left">Schedule image</span>
+                                          <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left">
+                                            Schedule image
+                                          </span>
                                           {recData.schedule_image_url ? (
                                             <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
                                               <a
-                                                href={recData.schedule_image_download_url}
+                                                href={
+                                                  recData.schedule_image_download_url
+                                                }
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold hover:text-blue-600 transition-colors truncate max-w-[180px]"
                                               >
                                                 <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
-                                                <span className="truncate">View Schedule Image</span>
+                                                <span className="truncate">
+                                                  View Schedule Image
+                                                </span>
                                               </a>
                                               <button
                                                 type="button"
                                                 onClick={() => {
-                                                  onUpdate(candidate.user_id, { clear_recruiter_schedule_image_id: rec.account_id });
+                                                  onUpdate(candidate.user_id, {
+                                                    clear_recruiter_schedule_image_id:
+                                                      rec.account_id,
+                                                  });
                                                 }}
                                                 className="p-1 hover:bg-rose-50 text-rose-600 rounded transition-all"
                                               >
@@ -2451,15 +2977,23 @@ const CandidateDetail = ({
                                                 type="file"
                                                 accept="image/png, image/jpeg, image/jpg"
                                                 onChange={(e) => {
-                                                  const file = e.target.files[0];
+                                                  const file =
+                                                    e.target.files[0];
                                                   if (file) {
-                                                    onUploadRecruiterScheduleImage(candidate.user_id, file, rec.account_id);
+                                                    onUploadRecruiterScheduleImage(
+                                                      candidate.user_id,
+                                                      file,
+                                                      rec.account_id,
+                                                    );
                                                   }
                                                 }}
                                                 className="absolute inset-0 opacity-0 cursor-pointer"
                                               />
                                               <Upload className="w-4 h-4 text-slate-400 mb-0.5" />
-                                              <span className="text-[10px] font-bold text-slate-500">Upload Schedule Confirmation Image</span>
+                                              <span className="text-[10px] font-bold text-slate-500">
+                                                Upload Schedule Confirmation
+                                                Image
+                                              </span>
                                             </div>
                                           )}
                                         </div>
@@ -2469,22 +3003,31 @@ const CandidateDetail = ({
 
                                         {/* Offer Letter PDF upload */}
                                         <div className="flex flex-col gap-2">
-                                          <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left">Offer Letter PDF</span>
+                                          <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left">
+                                            Offer Letter PDF
+                                          </span>
                                           {recData.offer_letter_url ? (
                                             <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between">
                                               <a
-                                                href={recData.offer_letter_download_url}
+                                                href={
+                                                  recData.offer_letter_download_url
+                                                }
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="flex items-center gap-1.5 text-xs text-slate-700 font-semibold hover:text-blue-600 transition-colors truncate max-w-[180px]"
                                               >
                                                 <FileText className="w-4 h-4 text-emerald-600 shrink-0" />
-                                                <span className="truncate">Offer Letter.pdf</span>
+                                                <span className="truncate">
+                                                  Offer Letter.pdf
+                                                </span>
                                               </a>
                                               <button
                                                 type="button"
                                                 onClick={() => {
-                                                  onUpdate(candidate.user_id, { clear_recruiter_offer_id: rec.account_id });
+                                                  onUpdate(candidate.user_id, {
+                                                    clear_recruiter_offer_id:
+                                                      rec.account_id,
+                                                  });
                                                 }}
                                                 className="p-1 hover:bg-rose-50 text-rose-600 rounded transition-all"
                                               >
@@ -2497,15 +3040,22 @@ const CandidateDetail = ({
                                                 type="file"
                                                 accept=".pdf"
                                                 onChange={(e) => {
-                                                  const file = e.target.files[0];
+                                                  const file =
+                                                    e.target.files[0];
                                                   if (file) {
-                                                    onUploadOfferLetter(candidate.user_id, file, rec.account_id);
+                                                    onUploadOfferLetter(
+                                                      candidate.user_id,
+                                                      file,
+                                                      rec.account_id,
+                                                    );
                                                   }
                                                 }}
                                                 className="absolute inset-0 opacity-0 cursor-pointer"
                                               />
                                               <Upload className="w-4 h-4 text-slate-400 mb-0.5" />
-                                              <span className="text-[10px] font-bold text-slate-500">Upload Placement Offer PDF</span>
+                                              <span className="text-[10px] font-bold text-slate-500">
+                                                Upload Placement Offer PDF
+                                              </span>
                                             </div>
                                           )}
                                         </div>
@@ -2517,7 +3067,8 @@ const CandidateDetail = ({
                             </div>
                           ) : (
                             <div className="p-4 border border-dashed border-slate-200 rounded-2xl text-center text-slate-400 text-xs font-bold">
-                              No recruiter shares found. Link partners via Explorer Library.
+                              No recruiter shares found. Link partners via
+                              Explorer Library.
                             </div>
                           )}
                         </div>
