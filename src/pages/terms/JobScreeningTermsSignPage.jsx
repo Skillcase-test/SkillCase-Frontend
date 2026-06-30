@@ -451,7 +451,7 @@ export default function JobScreeningTermsSignPage() {
   const renderWidth = useMemo(() => {
     const maxWidth = windowWidth - 32;
     if (isMobile) {
-      return clamp(Math.floor(Math.min(viewerWidth - 20, maxWidth)), 180, 390);
+      return clamp(Math.floor(Math.min(viewerWidth - 10, maxWidth)), 180, 480);
     }
     return clamp(Math.floor(Math.min(viewerWidth - 24, maxWidth)), 320, 1120);
   }, [isMobile, viewerWidth, windowWidth]);
@@ -839,10 +839,7 @@ export default function JobScreeningTermsSignPage() {
     const isActive = activeFieldId === id;
     const value = getDisplayValue(field, fieldValues);
     const placeholder = getFieldPlaceholder(field);
-    const showBubble =
-      activeFieldId === id &&
-      field.field_type !== "checkbox" &&
-      String(value || "").trim().length > 0;
+    const showBubble = activeFieldId === id && field.field_type !== "checkbox";
     const signatureImageUrl =
       field?.config_json?.default_signature_image_data_url || "";
 
@@ -944,6 +941,15 @@ export default function JobScreeningTermsSignPage() {
             value={fieldValues[key] || ""}
             onChange={(e) => setValue(key, e.target.value)}
             onFocus={() => setActiveFieldId(id)}
+            onClick={(e) => {
+              if (typeof e.target.showPicker === "function") {
+                try {
+                  e.target.showPicker();
+                } catch (err) {
+                  console.warn("showPicker error:", err);
+                }
+              }
+            }}
             className="terms-overlay-control terms-overlay-input"
           />
         </div>
@@ -1081,12 +1087,12 @@ export default function JobScreeningTermsSignPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh] p-6">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3">
-          <RefreshCw className="animate-spin h-8 w-8 text-[#002856]" />
-          <p className="text-slate-600 text-sm font-medium">
+          <div className="w-10 h-10 border-4 border-[#002856] border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-[#002856] text-xs font-semibold">
             Loading document details...
-          </p>
+          </span>
         </div>
       </div>
     );
@@ -1105,7 +1111,7 @@ export default function JobScreeningTermsSignPage() {
   // View 4: After successfully signing (Success Page)
   if (justSubmitted || alreadySigned) {
     return (
-      <div className="w-full bg-white flex flex-col justify-start items-center overflow-hidden min-h-screen px-4 pt-4 pb-10">
+      <div className="w-full bg-white flex flex-col justify-start items-center overflow-hidden min-h-screen px-4 pb-10">
         {/* Back & Job Progress Subheader */}
         <div className="w-full max-w-md py-2.5 flex flex-col justify-start items-start gap-2.5">
           <div className="self-stretch inline-flex justify-between items-center">
@@ -1298,7 +1304,7 @@ export default function JobScreeningTermsSignPage() {
   // View 2: Interactive Document Sign Page (Second Page)
   return (
     <div className="w-full bg-white min-h-screen px-4 pt-3 pb-28 flex flex-col items-center overflow-x-hidden">
-      <div className="w-full max-w-md flex flex-col" ref={viewerRef}>
+      <div className="w-full max-w-4xl flex flex-col" ref={viewerRef}>
         {/* Back and Breadcrumb Header */}
         <div className="w-full flex justify-between items-center mb-4">
           <div
@@ -1347,26 +1353,35 @@ export default function JobScreeningTermsSignPage() {
                       Page {pageNumber}
                     </div>
                     <div className="w-full flex justify-center">
+                      {/* Crop wrapper to center the zoomed document and crop left/right A4 margins */}
                       <div
-                        className="terms-pdf-frame relative inline-block overflow-hidden rounded-md border border-zinc-400 bg-slate-50 shadow-sm"
+                        className="overflow-hidden rounded-md border border-zinc-400 bg-slate-50 shadow-sm flex justify-center"
                         style={{ width: renderWidth }}
                       >
-                        <Page
-                          pageNumber={pageNumber}
-                          width={renderWidth}
-                          renderTextLayer={false}
-                          renderAnnotationLayer={false}
-                        />
-                        <div className="terms-overlay-layer">
-                          {pageFields.map((field) => (
-                            <div
-                              key={field.field_id}
-                              className={`terms-overlay-field ${activeFieldId === String(field.field_id) ? "active" : ""}`}
-                              style={getFieldBoxStyle(field, isMobile)}
-                            >
-                              {renderOverlayFieldControl(field)}
-                            </div>
-                          ))}
+                        <div
+                          className="terms-pdf-frame relative inline-block flex-shrink-0"
+                          style={{ width: Math.floor(renderWidth * 1.16) }}
+                        >
+                          <Page
+                            pageNumber={pageNumber}
+                            width={Math.floor(renderWidth * 1.16)}
+                            renderTextLayer={false}
+                            renderAnnotationLayer={false}
+                          />
+                          <div className="terms-overlay-layer">
+                            {pageFields.map((field) => {
+                              const isRightSide = Number(field.x || 0) > 0.55;
+                              return (
+                                <div
+                                  key={field.field_id}
+                                  className={`terms-overlay-field ${activeFieldId === String(field.field_id) ? "active" : ""} ${isRightSide ? "expand-left" : "expand-right"}`}
+                                  style={getFieldBoxStyle(field, isMobile)}
+                                >
+                                  {renderOverlayFieldControl(field)}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     </div>
