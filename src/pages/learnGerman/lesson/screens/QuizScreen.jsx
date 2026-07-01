@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -15,6 +16,7 @@ import handtap from "../../../../assets/handtap.webp";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import WaveformIcon from "./shared/WaveformIcon";
 import { hapticLight } from "../../../../utils/haptics";
+import { resolveAssetUrl } from "../../../../utils/imageUtils";
 
 const LETTERS = ["A", "B", "C", "D"];
 
@@ -31,6 +33,7 @@ export default function QuizScreen({
   title,
   level,
 }) {
+  const [imgError, setImgError] = useState(false);
   const options = screen?.options || ["Option 1", "Option 2", "Option 3"];
   const question = screen?.question || "What is the answer?";
 
@@ -75,12 +78,12 @@ export default function QuizScreen({
           exit={{ opacity: 0, x: -20 }}
           className="w-full flex-1 min-h-0 flex flex-col items-center"
         >
-          {screen?.image && (
+          {screen?.image && !imgError && (
             <img
-              src={screen.image}
+              src={resolveAssetUrl(screen.image)}
               className="w-full h-48 sm:h-52 object-cover rounded-2xl shadow-sm border border-gray-100 mb-4"
-              onError={(e) => {
-                e.target.src = fallbackImg;
+              onError={() => {
+                setImgError(true);
               }}
             />
           )}
