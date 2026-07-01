@@ -15,7 +15,11 @@ let _currentAbortController = null;
 let _lastPlayedText = null;
 
 function normalizeText(text) {
-  return typeof text === "string" ? text.trim().replace(/\s+/g, " ") : "";
+  if (typeof text !== "string") return "";
+  return text
+    .replace(/_{2,}/g, "")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
 function rememberMayaBlob(text, blob) {

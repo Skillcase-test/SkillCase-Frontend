@@ -6,6 +6,7 @@ import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import TypewriterText from "./shared/TypewriterText";
 import { hapticLight } from "../../../../utils/haptics";
+import { resolveAssetUrl } from "../../../../utils/imageUtils";
 
 export default function ConversationIntroScreen({
   screen,
@@ -26,13 +27,24 @@ export default function ConversationIntroScreen({
   const [mayaDialogueIndex, setMayaDialogueIndex] = useState(0);
   const [mayaDone, setMayaDone] = useState(false);
   const [currentDialogueFinished, setCurrentDialogueFinished] = useState(false);
+  const [characterDialogueFinished, setCharacterDialogueFinished] =
+    useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const handleBubbleClick = () => {
     if (!currentDialogueFinished) return;
     if (mayaDialogueIndex < mayaDialogues.length - 1) {
       setMayaDialogueIndex((prev) => prev + 1);
       setCurrentDialogueFinished(false);
+      setCharacterDialogueFinished(false);
     } else {
+      setMayaDone(true);
+    }
+  };
+
+  const handleDialogueDone = () => {
+    setCurrentDialogueFinished(true);
+    if (mayaDialogueIndex === mayaDialogues.length - 1) {
       setMayaDone(true);
     }
   };
@@ -49,17 +61,20 @@ export default function ConversationIntroScreen({
       <ProgressBar progressRatio={progressRatio} title={title} level={level} />
 
       {/* Maya Top Area */}
-      <div className="absolute left-0 top-5 z-0 flex items-center pl-2">
-        <motion.img
-          layoutId="mayaMascot"
-          className="w-22 z-10 drop-shadow-md"
-          src={mayaLooking}
+      <div className="absolute left-0 top-6 z-0 flex items-center pl-2">
+        <img
+          className="w-22 h-22 object-contain z-10 drop-shadow-md"
+          src={
+            screen?.mayaImage ? resolveAssetUrl(screen.mayaImage) : mayaLooking
+          }
+          alt="Character"
         />
-        <motion.div
-          layoutId="mayaDialog"
+        <div
           onClick={handleBubbleClick}
           className={`px-4 py-2.5 bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.08)] z-0 ml-1 relative flex items-center border border-gray-100 mb-5 ${
-            currentDialogueFinished && !mayaDone ? "cursor-pointer active:bg-zinc-50" : ""
+            currentDialogueFinished && !mayaDone
+              ? "cursor-pointer active:bg-zinc-50"
+              : ""
           }`}
         >
           <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rotate-45 border-l border-b border-gray-100" />
@@ -68,12 +83,10 @@ export default function ConversationIntroScreen({
               key={`maya-dialog-${mayaDialogueIndex}`}
               text={mayaDialogues[mayaDialogueIndex]}
               className="block"
-              onDone={() => {
-                setCurrentDialogueFinished(true);
-              }}
+              onDone={handleDialogueDone}
             />
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Main Image Area */}
@@ -83,11 +96,12 @@ export default function ConversationIntroScreen({
           currentDialogueFinished && !mayaDone ? "cursor-pointer" : ""
         }`}
       >
-        {screen?.image && (
+        {screen?.image && !imgError && (
           <img
-            src={screen.image}
+            src={resolveAssetUrl(screen.image)}
             alt="Scenario"
             className="absolute inset-0 w-full h-full object-cover"
+            onError={() => setImgError(true)}
           />
         )}
 
@@ -108,6 +122,7 @@ export default function ConversationIntroScreen({
                     text={
                       screen?.characterDialogue || "Hi, I am Jacob, the baker."
                     }
+                    onDone={() => setCharacterDialogueFinished(true)}
                   />
                 </div>
               </div>
@@ -122,7 +137,8 @@ export default function ConversationIntroScreen({
         <div className="w-full px-4 z-20 relative safe-bottom-pad flex items-center gap-3">
           {canGoPrev && (
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 hapticLight();
                 onPrev?.();
               }}
@@ -133,9 +149,18 @@ export default function ConversationIntroScreen({
             </button>
           )}
           <button
-            disabled={!currentDialogueFinished}
-            onClick={() => {
-              if (!currentDialogueFinished) return;
+            disabled={
+              mayaDialogueIndex < mayaDialogues.length - 1
+                ? !currentDialogueFinished
+                : !characterDialogueFinished
+            }
+            onClick={(e) => {
+              e.stopPropagation();
+              const isFinished =
+                mayaDialogueIndex < mayaDialogues.length - 1
+                  ? currentDialogueFinished
+                  : characterDialogueFinished;
+              if (!isFinished) return;
               hapticLight();
               if (mayaDialogueIndex < mayaDialogues.length - 1) {
                 handleBubbleClick();
@@ -146,7 +171,11 @@ export default function ConversationIntroScreen({
             className={`${
               canGoPrev ? "w-6/5" : "w-full"
             } py-3.5 rounded-xl border font-semibold text-[15px] flex items-center justify-center gap-1.5 transition-all ${
-              currentDialogueFinished
+              (
+                mayaDialogueIndex < mayaDialogues.length - 1
+                  ? currentDialogueFinished
+                  : characterDialogueFinished
+              )
                 ? "bg-gradient-to-r from-amber-200 to-amber-300 text-blue-950 border-[#eec139] shadow-sm active:scale-[0.98] cursor-pointer"
                 : "bg-zinc-200 text-zinc-400 border-zinc-200 cursor-not-allowed"
             }`}
@@ -156,7 +185,17 @@ export default function ConversationIntroScreen({
                 ? "Continue"
                 : "Start Conversation"}
             </span>
-            <ArrowRight className={`w-4 h-4 ${currentDialogueFinished ? "text-blue-950" : "text-zinc-400"}`} />
+            <ArrowRight
+              className={`w-4 h-4 ${
+                (
+                  mayaDialogueIndex < mayaDialogues.length - 1
+                    ? currentDialogueFinished
+                    : characterDialogueFinished
+                )
+                  ? "text-blue-950"
+                  : "text-zinc-400"
+              }`}
+            />
           </button>
         </div>
       </div>

@@ -18,6 +18,7 @@ export default function LessonScenarioScreen({
   onGuidedCompleteTap,
 }) {
   const [dialogueIndex, setDialogueIndex] = useState(0);
+  const [imgError, setImgError] = useState(false);
   const dialogues = screen.dialogues || [];
 
   const handleTap = (e) => {
@@ -55,14 +56,17 @@ export default function LessonScenarioScreen({
       <ProgressBar progressRatio={progressRatio} title={title} level={level} />
       <div className="flex-1 w-full flex flex-col p-4 gap-3 overflow-hidden">
         <div className="w-full flex-1 relative min-h-0">
-          <motion.img
-            layoutId="lessonBg"
-            src={resolveAssetUrl(screen.image)}
-            className="w-full h-full object-cover rounded-2xl shadow-md"
-            transition={{
-              layout: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
-            }}
-          />
+          {screen?.image && !imgError && (
+            <motion.img
+              layoutId="lessonBg"
+              src={resolveAssetUrl(screen.image)}
+              className="w-full h-full object-cover rounded-2xl shadow-md"
+              transition={{
+                layout: { duration: 0.55, ease: [0.22, 1, 0.36, 1] },
+              }}
+              onError={() => setImgError(true)}
+            />
+          )}
         </div>
         <motion.div
           initial={{ y: 20, opacity: 0 }}
