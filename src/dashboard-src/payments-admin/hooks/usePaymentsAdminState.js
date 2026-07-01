@@ -56,8 +56,8 @@ function useDebounce(value, delay) {
 
 export function usePaymentsAdminState() {
   const now = new Date();
-  const [year, setYear] = useState(now.getUTCFullYear());
-  const [month, setMonth] = useState(now.getUTCMonth() + 1);
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
   const [tab, setTab] = useState("month");
 
   // Access control state — null means still loading

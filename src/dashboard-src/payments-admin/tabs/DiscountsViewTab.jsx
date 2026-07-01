@@ -152,28 +152,34 @@ export function DiscountsViewTab({
               {canApproveDiscounts && (
                 <td className="px-2 py-2">
                   {r.status === "pending" ? (
-                    <div className="flex gap-1">
-                      <ActionChip
-                        onClick={() =>
-                          handleDiscountDecision(r.discount_id, "approved")
-                        }
-                        variant="success"
-                      >
-                        Approve
-                      </ActionChip>
-                      <ActionChip
-                        onClick={() =>
-                          setRejectModal({
-                            open: true,
-                            discountId: r.discount_id,
-                            reason: "",
-                          })
-                        }
-                        variant="danger"
-                      >
-                        Reject
-                      </ActionChip>
-                    </div>
+                    r.block_approval ? (
+                      <span className="text-xs font-semibold text-amber-600" title={`This candidate has a monthly discount request starting in ${r.first_month_name}. Please approve or reject it in that month.`}>
+                        Approve in {r.first_month_name}
+                      </span>
+                    ) : (
+                      <div className="flex gap-1">
+                        <ActionChip
+                          onClick={() =>
+                            handleDiscountDecision(r.discount_id, "approved")
+                          }
+                          variant="success"
+                        >
+                          Approve
+                        </ActionChip>
+                        <ActionChip
+                          onClick={() =>
+                            setRejectModal({
+                              open: true,
+                              discountId: r.discount_id,
+                              reason: "",
+                            })
+                          }
+                          variant="danger"
+                        >
+                          Reject
+                        </ActionChip>
+                      </div>
+                    )
                   ) : (
                     <span className="text-xs text-slate-500">Reviewed</span>
                   )}
