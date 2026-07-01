@@ -385,8 +385,12 @@ export default function TermsSignPage() {
   const [enrollmentDetails, setEnrollmentDetails] = useState(null);
   const [wizardStep, setWizardStep] = useState(0);
 
+  const [cameraActive, setCameraActive] = useState(false);
+  const videoRef = useRef(null);
+  const activeStreamRef = useRef(null);
+
   useEffect(() => {
-    if (wizardStep > 0 && wizardStep < 5) {
+    if (wizardStep > 0 && wizardStep < 6) {
       window.scrollTo(0, 0);
     }
   }, [wizardStep]);
@@ -411,13 +415,16 @@ export default function TermsSignPage() {
     passport_gdrive_link: "",
     degree_certificate_gdrive_link: "",
     updated_resume_gdrive_link: "",
+    selfie_key: "",
   });
   const [uploadingFiles, setUploadingFiles] = useState({
     passport: false,
     degree: false,
     resume: false,
+    selfie: false,
   });
   const [uploadError, setUploadError] = useState("");
+  const [selfieLocalUrl, setSelfieLocalUrl] = useState("");
 
   const viewerRef = useRef(null);
   const inputRefMap = useRef(new Map());
@@ -669,6 +676,9 @@ export default function TermsSignPage() {
             const candidateDetails = detailsRes.data?.details || {};
             const detailsFilled = candidateDetails?.candidate_details_filled === "yes";
             if (!detailsFilled) {
+              if (candidateDetails.selfie_url) {
+                setSelfieLocalUrl(candidateDetails.selfie_url);
+              }
               setWizardData((prev) => {
                 const next = { ...prev };
                 next.student_name = detailsRes.data?.student_name || candidateDetails.student_name || "";
@@ -1125,6 +1135,9 @@ export default function TermsSignPage() {
         const candidateDetails = detailsRes.data?.details || {};
         const detailsFilled = candidateDetails?.candidate_details_filled === "yes";
         if (!detailsFilled) {
+          if (candidateDetails.selfie_url) {
+            setSelfieLocalUrl(candidateDetails.selfie_url);
+          }
           setWizardData((prev) => {
             const next = { ...prev };
             next.student_name = detailsRes.data?.student_name || candidateDetails.student_name || "";
@@ -1234,7 +1247,7 @@ export default function TermsSignPage() {
     setError("");
     try {
       await termsApi.saveCandidateDetails(token, wizardData);
-      setWizardStep(5);
+      setWizardStep(6);
     } catch (err) {
       console.error("Failed to save candidate details:", err);
       setError(err?.response?.data?.msg || "Failed to submit candidate details.");
@@ -1242,6 +1255,125 @@ export default function TermsSignPage() {
       setSubmitting(false);
     }
   };
+
+  const startCamera = async () => {
+    try {
+      setUploadError("");
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+      });
+      activeStreamRef.current = stream;
+      setCameraActive(true);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch (err) {
+      console.error(err);
+      setUploadError("Could not access camera. Please check permissions.");
+      setCameraActive(false);
+    }
+  };
+
+  const uploadSelfieBlob = async (blob) => {
+    setUploadingFiles((prev) => ({ ...prev, selfie: true }));
+    setUploadError("");
+    try {
+      const response = await termsApi.createCandidateDocumentUploadUrl(token, {
+        document_type: "selfie",
+        file_name: "selfie.jpg",
+        content_type: "image/jpeg",
+      });
+      const { uploadUrl, key } = response.data;
+      const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        body: blob,
+        headers: { "Content-Type": "image/jpeg" },
+      });
+      if (!uploadRes.ok) throw new Error("S3 upload failed");
+      setWizardData((prev) => ({
+        ...prev,
+        selfie_key: key,
+      }));
+      if (blob) {
+        setSelfieLocalUrl(URL.createObjectURL(blob));
+      }
+    } catch (err) {
+      console.error("Selfie upload failed:", err);
+      setUploadError("Failed to upload selfie. Please try again.");
+    } finally {
+      setUploadingFiles((prev) => ({ ...prev, selfie: false }));
+    }
+  };
+
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.toBlob((blob) => {
+      if (blob) {
+        uploadSelfieBlob(blob);
+      }
+      stopCamera();
+    }, "image/jpeg");
+  };
+
+  const stopCamera = () => {
+    if (activeStreamRef.current) {
+      activeStreamRef.current.getTracks().forEach((track) => track.stop());
+      activeStreamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setCameraActive(false);
+  };
+
+  const handleSelfieFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingFiles((prev) => ({ ...prev, selfie: true }));
+    setUploadError("");
+    try {
+      const response = await termsApi.createCandidateDocumentUploadUrl(token, {
+        document_type: "selfie",
+        file_name: file.name,
+        content_type: file.type || "image/jpeg",
+      });
+      const { uploadUrl, key } = response.data;
+      const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type || "image/jpeg" },
+      });
+      if (!uploadRes.ok) throw new Error("S3 upload failed");
+      setWizardData((prev) => ({
+        ...prev,
+        selfie_key: key,
+      }));
+      if (file) {
+        setSelfieLocalUrl(URL.createObjectURL(file));
+      }
+    } catch (err) {
+      console.error("Selfie upload failed:", err);
+      setUploadError("Failed to upload selfie. Please try again.");
+    } finally {
+      setUploadingFiles((prev) => ({ ...prev, selfie: false }));
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (activeStreamRef.current) {
+        activeStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
 
   const isStep1Valid = () => {
     return (
@@ -1275,8 +1407,9 @@ export default function TermsSignPage() {
   };
 
   const isStep4Valid = () => true;
+  const isStep5Valid = () => true;
 
-  if (wizardStep > 0 && wizardStep < 5) {
+  if (wizardStep > 0 && wizardStep < 6) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col justify-between py-6 px-4 sm:px-6 lg:px-8 font-sans antialiased text-slate-800">
         <div className="max-w-2xl w-full mx-auto bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden flex-grow flex flex-col justify-between">
@@ -1287,7 +1420,7 @@ export default function TermsSignPage() {
                 <p className="text-xs text-slate-300 mt-0.5">Please complete your details to finalize your profile</p>
               </div>
               <span className="text-xs font-semibold bg-emerald-500/20 text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-500/30 whitespace-nowrap flex-shrink-0">
-                Step {wizardStep} of 4
+                Step {wizardStep} of 5
               </span>
             </div>
             
@@ -1295,11 +1428,11 @@ export default function TermsSignPage() {
               <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-slate-700 -translate-y-1/2"></div>
               <div 
                 className="absolute top-1/2 left-0 h-0.5 bg-emerald-50 -translate-y-1/2 transition-all duration-300"
-                style={{ width: `${((wizardStep - 1) / 3) * 100}%` }}
+                style={{ width: `${((wizardStep - 1) / 4) * 100}%` }}
               ></div>
               
               <div className="relative flex justify-between">
-                {[1, 2, 3, 4].map((stepNum) => (
+                {[1, 2, 3, 4, 5].map((stepNum) => (
                   <div key={stepNum} className="flex flex-col items-center">
                     <div 
                       className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 border-2 ${
@@ -1616,6 +1749,119 @@ export default function TermsSignPage() {
                 })}
               </div>
             )}
+
+            {wizardStep === 5 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900 border-b pb-2 border-slate-100">Take or Upload Selfie</h3>
+                  <p className="text-xs text-slate-500 mt-2">Snapping a live selfie or uploading a profile picture is optional but highly recommended to verify your candidacy.</p>
+                </div>
+
+                {uploadError && (
+                  <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-xs text-rose-700">
+                    {uploadError}
+                  </div>
+                )}
+
+                <div className="flex flex-col items-center justify-center border border-slate-200 rounded-2xl p-6 bg-slate-50/50">
+                  {cameraActive ? (
+                    <div className="w-full max-w-sm flex flex-col items-center gap-4">
+                      <div className="relative w-full aspect-square max-w-[240px] rounded-2xl overflow-hidden bg-black shadow-lg border-4 border-slate-900">
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={capturePhoto}
+                          className="px-5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-md shadow-emerald-600/15"
+                        >
+                          Snap Photo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={stopCamera}
+                          className="px-5 py-2 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold text-xs"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full max-w-sm flex flex-col items-center gap-5">
+                      <div className="relative w-full aspect-square max-w-[180px] rounded-full overflow-hidden bg-slate-100 shadow-inner border border-slate-200 flex items-center justify-center">
+                        {selfieLocalUrl ? (
+                          <img
+                            src={selfieLocalUrl}
+                            alt="Selfie Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <svg className="w-16 h-16 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                          </svg>
+                        )}
+                        {uploadingFiles.selfie && (
+                          <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                            <svg className="animate-spin h-8 w-8 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-2 w-full">
+                        <button
+                          type="button"
+                          onClick={startCamera}
+                          className="w-full py-2.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-xs shadow-sm flex items-center justify-center gap-1.5"
+                        >
+                          <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                          </svg>
+                          Use Camera
+                        </button>
+
+                        <div className="relative my-1">
+                          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
+                          <div className="relative flex justify-center text-[10px] uppercase"><span className="bg-white px-2 text-slate-400 font-semibold tracking-wider">or upload file</span></div>
+                        </div>
+
+                        <label className="w-full py-2.5 rounded-xl border border-dashed border-slate-300 bg-slate-50 hover:bg-slate-100/60 text-slate-700 font-semibold text-xs shadow-sm flex items-center justify-center gap-1.5 cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleSelfieFileUpload}
+                            disabled={uploadingFiles.selfie}
+                            className="hidden"
+                          />
+                          <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                          </svg>
+                          Select Photo
+                        </label>
+
+                        {selfieLocalUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelfieLocalUrl("");
+                              setWizardData((prev) => ({ ...prev, selfie_key: "" }));
+                            }}
+                            className="text-xs font-semibold text-rose-600 hover:text-rose-700 underline mt-1 text-center"
+                          >
+                            Remove Photo
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="bg-slate-50 border-t border-slate-200/80 px-6 py-4 flex items-center justify-between gap-4">
@@ -1635,7 +1881,7 @@ export default function TermsSignPage() {
             <button 
               type="button"
               onClick={() => {
-                if (wizardStep < 4) {
+                if (wizardStep < 5) {
                   setWizardStep(prev => prev + 1);
                 } else {
                   handleSaveDetails();
@@ -1646,7 +1892,8 @@ export default function TermsSignPage() {
                 (wizardStep === 1 && !isStep1Valid()) ||
                 (wizardStep === 2 && !isStep2Valid()) ||
                 (wizardStep === 3 && !isStep3Valid()) ||
-                (wizardStep === 4 && !isStep4Valid())
+                (wizardStep === 4 && !isStep4Valid()) ||
+                (wizardStep === 5 && !isStep5Valid())
               }
               className="px-6 py-2.5 rounded-full text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 transition-opacity flex items-center gap-1.5 shadow-md shadow-emerald-600/10"
             >
@@ -1655,7 +1902,7 @@ export default function TermsSignPage() {
                   <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                   Submitting...
                 </>
-              ) : wizardStep === 4 ? (
+              ) : wizardStep === 5 ? (
                 "Submit Details"
               ) : (
                 "Continue"
@@ -1667,7 +1914,7 @@ export default function TermsSignPage() {
     );
   }
 
-  if (wizardStep === 5) {
+  if (wizardStep === 6) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans antialiased text-slate-800">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border border-slate-200/80 p-8 text-center animate-scaleUp">

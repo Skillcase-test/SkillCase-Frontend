@@ -407,9 +407,10 @@ export default function PaymentsAdmin() {
                       onClick={state.loadTabData}
                       variant="secondary"
                       className="h-9 px-3 text-xs"
+                      disabled={state.loading}
                     >
-                      <RefreshCw size={12} className="mr-1.5" />
-                      Refresh
+                      <RefreshCw size={12} className={`mr-1.5 ${state.loading ? 'animate-spin' : ''}`} />
+                      {state.loading ? "Refreshing..." : "Refresh"}
                     </ControlButton>
 
                     <div className="h-4 w-px bg-slate-200" />

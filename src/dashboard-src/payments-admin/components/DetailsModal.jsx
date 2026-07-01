@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 import { CONTROL_BASE, ControlButton, ControlSelect } from "./controls";
 
 /** @param {{editDraft:any,setEditDraft:Function,batches:any[],handleSaveEnrollmentEdit:Function,savingEnrollmentId:string}} props */
@@ -8,14 +10,65 @@ export function DetailsModal({
   handleSaveEnrollmentEdit,
   savingEnrollmentId,
 }) {
+  const [selfieUrl, setSelfieUrl] = useState("");
+
+  useEffect(() => {
+    if (editDraft?.selfie_key) {
+      paymentsAdminApi
+        .getPaymentDocumentDownloadUrl(editDraft.selfie_key)
+        .then((res) => {
+          if (res.data?.downloadUrl) {
+            setSelfieUrl(res.data.downloadUrl);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load selfie url:", err);
+        });
+    } else {
+      setSelfieUrl("");
+    }
+  }, [editDraft?.selfie_key]);
+
   if (!editDraft) return null;
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
       <div className="max-h-[90vh] w-full max-w-6xl overflow-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl">
-        <div className="mb-3 flex items-center justify-between gap-2">
-          <h3 className="text-base font-bold text-slate-800">
-            Candidate Details / Edit
-          </h3>
+        <div className="mb-3 flex items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-3">
+            {selfieUrl ? (
+              <img
+                src={selfieUrl}
+                alt="Selfie"
+                className="h-12 w-full max-w-[48px] rounded-full border border-slate-200 object-cover shadow-sm"
+              />
+            ) : (
+              <div className="flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-slate-300 bg-slate-50 text-slate-400">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </div>
+            )}
+            <div>
+              <h3 className="text-base font-bold text-slate-800">
+                Candidate Details / Edit
+              </h3>
+              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                Profile picture (selfie) uploaded via details form
+              </span>
+            </div>
+          </div>
           <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
             {editDraft.student_phone || "No phone"}
           </span>

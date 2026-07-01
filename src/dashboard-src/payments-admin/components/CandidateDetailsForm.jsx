@@ -259,6 +259,27 @@ export function CandidateDetailsForm({
   }, [paymentIdCounts]);
   const [uploadingDoc, setUploadingDoc] = useState("");
   const [uploadError, setUploadError] = useState("");
+  const [selfiePreviewUrl, setSelfiePreviewUrl] = useState("");
+
+  useEffect(() => {
+    const key = editDraft.selfie_key;
+    if (!key) {
+      setSelfiePreviewUrl("");
+      return;
+    }
+    if (/^blob:/i.test(key) || /^data:/i.test(key) || /^https?:\/\//i.test(key)) {
+      return;
+    }
+    paymentsAdminApi.getPaymentDocumentDownloadUrl(key)
+      .then((res) => {
+        if (res.data?.downloadUrl) {
+          setSelfiePreviewUrl(res.data.downloadUrl);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load selfie preview URL:", err);
+      });
+  }, [editDraft.selfie_key]);
   const [batchLogs, setBatchLogs] = useState([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [statusLogs, setStatusLogs] = useState([]);
@@ -416,6 +437,9 @@ export function CandidateDetailsForm({
       });
       if (!uploadRes.ok) throw new Error("S3 upload failed");
       setEditDraft((p) => ({ ...p, [fieldKey]: key }));
+      if (fieldKey === "selfie_key" && file) {
+        setSelfiePreviewUrl(URL.createObjectURL(file));
+      }
     } catch (err) {
       setUploadError(
         err?.response?.data?.msg || err?.message || "Document upload failed",
@@ -437,6 +461,8 @@ export function CandidateDetailsForm({
       window.open(res.data.downloadUrl, "_blank", "noopener,noreferrer");
     }
   }
+
+
 
   function handleExpectedPaymentStartDateChange(newStartDate) {
     if (!newStartDate) {
@@ -1101,6 +1127,78 @@ export function CandidateDetailsForm({
               </div>
             </Field>
           ))}
+
+          <Field label="Selfie / Profile Picture (Optional)">
+            <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+              <input
+                type="file"
+                accept="image/*"
+                className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
+                onChange={(e) =>
+                  uploadDocument("selfie_key", "selfie", e.target.files?.[0])
+                }
+                disabled={uploadingDoc === "selfie_key"}
+              />
+
+              {selfiePreviewUrl ? (
+                <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 mt-2">
+                  <img
+                    src={selfiePreviewUrl}
+                    alt="Selfie Preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : null}
+
+              {isCreateMode ? (
+                <p className="text-xs text-amber-700">
+                  Save candidate first; upload will work after the profile has
+                  an ID.
+                </p>
+              ) : null}
+
+              <div className="flex items-center justify-between gap-2 border-t border-slate-200/60 pt-2">
+                <span className="truncate text-xs text-slate-500">
+                  {editDraft.selfie_key
+                    ? String(editDraft.selfie_key).split("/").pop()
+                    : "No selfie uploaded"}
+                </span>
+                {editDraft.selfie_key ? (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-slate-800 underline"
+                      onClick={() =>
+                        openDocument(editDraft.selfie_key).catch((err) =>
+                          setUploadError(
+                            err?.response?.data?.msg ||
+                              "Could not open selfie",
+                          ),
+                        )
+                      }
+                    >
+                      View
+                    </button>
+                    <button
+                      type="button"
+                      className="text-xs font-semibold text-rose-600 underline"
+                      onClick={() => {
+                        if (window.confirm("Remove selfie?")) {
+                          setEditDraft((p) => ({ ...p, selfie_key: null }));
+                        }
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              {uploadingDoc === "selfie_key" ? (
+                <p className="text-xs text-slate-500 animate-pulse">Uploading...</p>
+              ) : null}
+            </div>
+          </Field>
         </div>
       </section>
 

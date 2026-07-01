@@ -398,6 +398,8 @@ export function RecruitmentViewTab({
                       </ActionChip>
                       {r.status !== "archived" &&
                         r.lifecycle_state !== "archived" &&
+                        r.status !== "refunded" &&
+                        r.lifecycle_state !== "refunded" &&
                         (() => {
                           const agreementState =
                             r.agreement_state || "not_sent";
