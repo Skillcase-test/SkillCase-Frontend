@@ -404,7 +404,7 @@ export default function PaymentsAdmin() {
                     ) : null}
 
                     <ControlButton
-                      onClick={state.loadTabData}
+                      onClick={() => state.loadTabData(true)}
                       variant="secondary"
                       className="h-9 px-3 text-xs"
                       disabled={state.loading}

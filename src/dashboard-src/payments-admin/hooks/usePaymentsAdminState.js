@@ -215,7 +215,7 @@ export function usePaymentsAdminState() {
     }
   }
 
-  async function loadTabData() {
+  async function loadTabData(forceLoading = false) {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -225,7 +225,7 @@ export function usePaymentsAdminState() {
     const hasData = tab === "invoice"
       ? (invoicePaymentRows.length > 0 || invoiceRows.length > 0)
       : (rows.length > 0);
-    if (!hasData) {
+    if (!hasData || forceLoading) {
       setLoading(true);
     }
     setError("");

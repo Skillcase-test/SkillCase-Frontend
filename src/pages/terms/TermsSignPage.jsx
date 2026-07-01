@@ -1753,8 +1753,8 @@ export default function TermsSignPage() {
             {wizardStep === 5 && (
               <div className="space-y-6 animate-fadeIn">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-900 border-b pb-2 border-slate-100">Take or Upload Selfie</h3>
-                  <p className="text-xs text-slate-500 mt-2">Snapping a live selfie or uploading a profile picture is optional but highly recommended to verify your candidacy.</p>
+                  <h3 className="text-lg font-semibold text-slate-900 border-b pb-2 border-slate-100">Add a Profile Picture</h3>
+                  <p className="text-xs text-slate-500 mt-2">Take a clear photo or choose one from your gallery. Your photo helps us create a complete profile for future recruitment opportunities.</p>
                 </div>
 
                 {uploadError && (
@@ -1780,7 +1780,7 @@ export default function TermsSignPage() {
                           onClick={capturePhoto}
                           className="px-5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs shadow-md shadow-emerald-600/15"
                         >
-                          Snap Photo
+                          Take Photo
                         </button>
                         <button
                           type="button"
@@ -1822,7 +1822,7 @@ export default function TermsSignPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
                           </svg>
-                          Use Camera
+                          Take Photo
                         </button>
 
                         <div className="relative my-1">
@@ -1841,7 +1841,7 @@ export default function TermsSignPage() {
                           <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
                           </svg>
-                          Select Photo
+                          Choose from Gallery
                         </label>
 
                         {selfieLocalUrl && (
