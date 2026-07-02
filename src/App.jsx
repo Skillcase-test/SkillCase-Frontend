@@ -616,6 +616,7 @@ function AppContent() {
         <A1ProductTour>
           <A2ProductTour>
             <GoogleAnalyticsTracker />
+            <ScrollToTop />
             <Toaster position="top-right" />
             <ConditionalNav />
 
@@ -1079,4 +1080,14 @@ function ConditionalBottomModeSwitcher() {
   if (!showSwitcher) return null;
 
   return <BottomModeSwitcher />;
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
 }

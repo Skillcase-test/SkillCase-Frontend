@@ -32,7 +32,7 @@ const STEP_DESCRIPTIONS = {
   },
   registration_form: {
     subtitle: "sign the terms of agreement",
-    desc: "Review and sign the terms and conditions agreement form.",
+    desc: "Please review the agreement. It explains how we'll work together during your placement.",
   },
   review_pending: {
     subtitle: "wait for recruiters to review your application",
@@ -66,6 +66,13 @@ const JobScreening = () => {
   const [executingStepId, setExecutingStepId] = useState(null);
   const [reviewCheckStepId, setReviewCheckStepId] = useState(null);
   const activeStepRef = useRef(null);
+  const activeStepContainerRef = useRef(null);
+
+  useEffect(() => {
+    if (isExecutingStep && activeStepContainerRef.current) {
+      activeStepContainerRef.current.scrollTo(0, 0);
+    }
+  }, [isExecutingStep, executingStepId]);
 
   useEffect(() => {
     if (progress && activeStepRef.current) {
@@ -172,7 +179,7 @@ const JobScreening = () => {
     }
 
     const targetStepId = stepId || displayCurrentStepId;
-    const clickedStep = steps.find(s => s.id === targetStepId);
+    const clickedStep = steps.find((s) => s.id === targetStepId);
 
     if (clickedStep && clickedStep.status === "review") {
       try {
@@ -251,7 +258,10 @@ const JobScreening = () => {
           <ProfileCompletionStep
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => { setIsExecutingStep(false); setExecutingStepId(null); }}
+            onBack={() => {
+              setIsExecutingStep(false);
+              setExecutingStepId(null);
+            }}
           />
         );
       case "interview_attempt":
@@ -259,7 +269,10 @@ const JobScreening = () => {
           <InterviewStep
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => { setIsExecutingStep(false); setExecutingStepId(null); }}
+            onBack={() => {
+              setIsExecutingStep(false);
+              setExecutingStepId(null);
+            }}
           />
         );
       case "registration_form":
@@ -274,7 +287,10 @@ const JobScreening = () => {
           <ReviewPendingStep
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => { setIsExecutingStep(false); setExecutingStepId(null); }}
+            onBack={() => {
+              setIsExecutingStep(false);
+              setExecutingStepId(null);
+            }}
           />
         );
       case "additional_documents":
@@ -282,7 +298,10 @@ const JobScreening = () => {
           <AdditionalDocumentsStep
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => { setIsExecutingStep(false); setExecutingStepId(null); }}
+            onBack={() => {
+              setIsExecutingStep(false);
+              setExecutingStepId(null);
+            }}
           />
         );
       case "interview_training":
@@ -291,7 +310,10 @@ const JobScreening = () => {
             type="training"
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => { setIsExecutingStep(false); setExecutingStepId(null); }}
+            onBack={() => {
+              setIsExecutingStep(false);
+              setExecutingStepId(null);
+            }}
           />
         );
       case "recruiter_status":
@@ -299,7 +321,10 @@ const JobScreening = () => {
           <RecruiterStatusStep
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => { setIsExecutingStep(false); setExecutingStepId(null); }}
+            onBack={() => {
+              setIsExecutingStep(false);
+              setExecutingStepId(null);
+            }}
           />
         );
       default:
@@ -314,7 +339,11 @@ const JobScreening = () => {
   // 1. Full-screen Welcome flow
   // Guard: finalProgressData is set the moment animation starts and never cleared,
   // so if it's non-null we know the welcome was just completed and must NOT re-show this screen.
-  if (currentStepId === "welcome" && welcomeAnimationState === "idle" && finalProgressData === null) {
+  if (
+    currentStepId === "welcome" &&
+    welcomeAnimationState === "idle" &&
+    finalProgressData === null
+  ) {
     return (
       <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-gradient-to-b from-[#002856] to-[#134074] w-full flex flex-col justify-center items-center">
         <AnimatePresence mode="wait">
@@ -336,7 +365,10 @@ const JobScreening = () => {
   // 2. Active Step Execution screen
   if (isExecutingStep) {
     return (
-      <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-white w-full flex flex-col items-center overflow-y-auto">
+      <div
+        ref={activeStepContainerRef}
+        className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-white w-full flex flex-col items-center overflow-y-auto"
+      >
         <div className="w-full max-w-md py-4 px-4">
           <AnimatePresence mode="wait">
             <motion.div
@@ -374,7 +406,8 @@ const JobScreening = () => {
     displayCurrentStepId = nextId;
     displaySteps = baseSteps.map((s) => {
       if (s.id === "welcome") return { ...s, status: "completed" };
-      if (s.id === nextId && s.status !== "completed") return { ...s, status: "pending" };
+      if (s.id === nextId && s.status !== "completed")
+        return { ...s, status: "pending" };
       return s;
     });
   }
@@ -386,7 +419,9 @@ const JobScreening = () => {
   const totalStepsCount = visibleSteps.length;
   const progressPercent =
     totalStepsCount > 0 ? (completedStepsCount / totalStepsCount) * 100 : 0;
-  const activeStepIndex = visibleSteps.findIndex((s) => s.id === displayCurrentStepId);
+  const activeStepIndex = visibleSteps.findIndex(
+    (s) => s.id === displayCurrentStepId,
+  );
   const activeStep = displaySteps.find((s) => s.id === displayCurrentStepId);
 
   // 3. Central Job Progress Timeline screen (Progress Lobby)
@@ -454,11 +489,20 @@ const JobScreening = () => {
             const isLocked = step.status === "locked";
             const isLast = idx === visibleSteps.length - 1;
             // Welcome step was just active — its button should start already open, not animate in
-            const isWelcomeStartPhase = welcomeAnimationState === "welcome_active" && step.id === "welcome";
+            const isWelcomeStartPhase =
+              welcomeAnimationState === "welcome_active" &&
+              step.id === "welcome";
 
             const stepDesc = STEP_DESCRIPTIONS[step.id]?.desc || "";
-            const circleBg = isCompleted ? "#15803d" : (isActive || isReview ? "#002856" : "rgba(0,40,86,0.1)");
-            const circleColor = isCompleted || isActive || isReview ? "#ffffff" : "rgba(0,40,86,0.4)";
+            const circleBg = isCompleted
+              ? "#15803d"
+              : isActive || isReview
+                ? "#002856"
+                : "rgba(0,40,86,0.1)";
+            const circleColor =
+              isCompleted || isActive || isReview
+                ? "#ffffff"
+                : "rgba(0,40,86,0.4)";
 
             return (
               <div
@@ -482,13 +526,21 @@ const JobScreening = () => {
                         <motion.svg
                           initial={{ scale: 0, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
-                          transition={{ type: "spring", stiffness: 320, damping: 22 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 320,
+                            damping: 22,
+                          }}
                           className="w-3.5 h-3.5 stroke-[3] text-white"
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M5 13l4 4L19 7"
+                          />
                         </motion.svg>
                       ) : isActive || isReview ? (
                         idx + 1
@@ -510,11 +562,22 @@ const JobScreening = () => {
                 >
                   <motion.div
                     animate={{
-                      borderColor: isActive || isReview ? "rgba(0,40,86,0.6)" : "rgba(0,40,86,0.1)",
-                      boxShadow: isActive || isReview ? "0 4px 12px rgba(0,40,86,0.06)" : "0 1px 3px rgba(0,0,0,0.02)",
+                      borderColor:
+                        isActive || isReview
+                          ? "rgba(0,40,86,0.6)"
+                          : "rgba(0,40,86,0.1)",
+                      boxShadow:
+                        isActive || isReview
+                          ? "0 4px 12px rgba(0,40,86,0.06)"
+                          : "0 1px 3px rgba(0,0,0,0.02)",
                     }}
                     transition={{ duration: 0.5, ease: "easeInOut" }}
-                    className="p-4 bg-white rounded-2xl border flex flex-col gap-4 w-full"
+                    onClick={() => {
+                      if (!isLocked) {
+                        handleStartStep(step.id);
+                      }
+                    }}
+                    className={`p-4 bg-white rounded-2xl border flex flex-col gap-4 w-full ${!isLocked ? "cursor-pointer hover:border-[#002856]/40 hover:shadow-md transition-all" : ""}`}
                   >
                     {/* Title & Badge */}
                     <div className="flex justify-between items-start gap-2 w-full text-left">
@@ -553,7 +616,11 @@ const JobScreening = () => {
                     <AnimatePresence>
                       {(isActive || isReview) && (
                         <motion.div
-                          initial={isWelcomeStartPhase ? false : { opacity: 0, height: 0 }}
+                          initial={
+                            isWelcomeStartPhase
+                              ? false
+                              : { opacity: 0, height: 0 }
+                          }
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
                           transition={{ duration: 0.45, ease: "easeInOut" }}
@@ -569,6 +636,8 @@ const JobScreening = () => {
                                 <RefreshCw className="w-4 h-4 animate-spin text-white" />
                                 <span>Checking status...</span>
                               </>
+                            ) : step.button_title ? (
+                              step.button_title
                             ) : isReview || step.id === "review_pending" ? (
                               "Check status"
                             ) : (

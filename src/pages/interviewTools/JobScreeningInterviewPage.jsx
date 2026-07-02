@@ -102,7 +102,8 @@ export default function JobScreeningInterviewPage() {
         if (user) {
           const profileName = user.fullname || user.name || "";
           const profileEmail = user.email || "";
-          const profilePhone = user.number || user.phone || user.phone_number || "";
+          const profilePhone =
+            user.number || user.phone || user.phone_number || "";
 
           if (profileName && profileEmail && profilePhone) {
             setForm({
@@ -133,7 +134,10 @@ export default function JobScreeningInterviewPage() {
             }
           }
         } catch (err) {
-          console.error("Failed to load candidate details from user profile API:", err);
+          console.error(
+            "Failed to load candidate details from user profile API:",
+            err,
+          );
         }
 
         // 3. Fallback to API progress candidate details
@@ -141,16 +145,19 @@ export default function JobScreeningInterviewPage() {
           const { data } = await getProgress();
           if (data?.success) {
             setForm({
-              candidate_name: data.data.candidate_name || user?.fullname || user?.name || "",
+              candidate_name:
+                data.data.candidate_name || user?.fullname || user?.name || "",
               candidate_email: data.data.candidate_email || user?.email || "",
-              candidate_phone: data.data.candidate_phone || user?.number || user?.phone || user?.phone_number || "",
+              candidate_phone:
+                data.data.candidate_phone ||
+                user?.number ||
+                user?.phone ||
+                user?.phone_number ||
+                "",
             });
           }
         } catch (err) {
-          console.error(
-            "Failed to load candidate details on bootstrap:",
-            err,
-          );
+          console.error("Failed to load candidate details on bootstrap:", err);
         }
       }
     };
@@ -287,14 +294,19 @@ export default function JobScreeningInterviewPage() {
             const { data } = await getProgress();
             if (data?.success) {
               const steps = data.data.steps_config || [];
-              const interviewStep = steps.find(s => s.id === "interview_attempt");
+              const interviewStep = steps.find(
+                (s) => s.id === "interview_attempt",
+              );
               if (interviewStep && interviewStep.status === "completed") {
                 navigate("/job-screening", { replace: true });
                 return;
               }
             }
           } catch (progressErr) {
-            console.error("Failed to check screening progress on bootstrap:", progressErr);
+            console.error(
+              "Failed to check screening progress on bootstrap:",
+              progressErr,
+            );
           }
         }
 
@@ -434,34 +446,72 @@ export default function JobScreeningInterviewPage() {
           const profileRes = await api.get("/user/profile");
           if (profileRes.data?.profile) {
             const p = profileRes.data.profile;
-            candidateDetails.candidate_name = p.fullname || p.name || candidateDetails.candidate_name || "";
-            candidateDetails.candidate_email = p.email || candidateDetails.candidate_email || "";
-            candidateDetails.candidate_phone = p.number || p.phone || p.phone_number || candidateDetails.candidate_phone || "";
+            candidateDetails.candidate_name =
+              p.fullname || p.name || candidateDetails.candidate_name || "";
+            candidateDetails.candidate_email =
+              p.email || candidateDetails.candidate_email || "";
+            candidateDetails.candidate_phone =
+              p.number ||
+              p.phone ||
+              p.phone_number ||
+              candidateDetails.candidate_phone ||
+              "";
           }
         } catch (err) {
-          console.error("Failed to load user profile in startSubmissionFlow:", err);
+          console.error(
+            "Failed to load user profile in startSubmissionFlow:",
+            err,
+          );
         }
 
         // Secondary fallback to progress details
-        if (!candidateDetails.candidate_name || !candidateDetails.candidate_email || !candidateDetails.candidate_phone) {
+        if (
+          !candidateDetails.candidate_name ||
+          !candidateDetails.candidate_email ||
+          !candidateDetails.candidate_phone
+        ) {
           try {
             const { data } = await getProgress();
             if (data?.success) {
-              candidateDetails.candidate_name = candidateDetails.candidate_name || data.data.candidate_name || "";
-              candidateDetails.candidate_email = candidateDetails.candidate_email || data.data.candidate_email || "";
-              candidateDetails.candidate_phone = candidateDetails.candidate_phone || data.data.candidate_phone || "";
+              candidateDetails.candidate_name =
+                candidateDetails.candidate_name ||
+                data.data.candidate_name ||
+                "";
+              candidateDetails.candidate_email =
+                candidateDetails.candidate_email ||
+                data.data.candidate_email ||
+                "";
+              candidateDetails.candidate_phone =
+                candidateDetails.candidate_phone ||
+                data.data.candidate_phone ||
+                "";
             }
           } catch (progressErr) {
-            console.error("Failed to load progress in startSubmissionFlow:", progressErr);
+            console.error(
+              "Failed to load progress in startSubmissionFlow:",
+              progressErr,
+            );
           }
         }
       }
 
       // If still empty, use fallback from Redux user state
-      if (user && (!candidateDetails.candidate_name || !candidateDetails.candidate_email || !candidateDetails.candidate_phone)) {
-        candidateDetails.candidate_name = candidateDetails.candidate_name || user.fullname || user.name || "";
-        candidateDetails.candidate_email = candidateDetails.candidate_email || user.email || "";
-        candidateDetails.candidate_phone = candidateDetails.candidate_phone || user.number || user.phone || user.phone_number || "";
+      if (
+        user &&
+        (!candidateDetails.candidate_name ||
+          !candidateDetails.candidate_email ||
+          !candidateDetails.candidate_phone)
+      ) {
+        candidateDetails.candidate_name =
+          candidateDetails.candidate_name || user.fullname || user.name || "";
+        candidateDetails.candidate_email =
+          candidateDetails.candidate_email || user.email || "";
+        candidateDetails.candidate_phone =
+          candidateDetails.candidate_phone ||
+          user.number ||
+          user.phone ||
+          user.phone_number ||
+          "";
       }
 
       const existingSessionToken = localStorage.getItem(getStorageKey(slug));
@@ -813,7 +863,7 @@ export default function JobScreeningInterviewPage() {
   ].includes(stage);
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 font-sans flex flex-col items-center overflow-y-auto">
+    <div className="min-h-screen bg-white text-slate-900  flex flex-col items-center overflow-y-auto">
       <div className="w-full max-w-md px-4 py-4">
         {globalTimeLeft !== null && (
           <div className="fixed top-4 right-4 z-50 bg-rose-600 text-white px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 tabular-nums">
@@ -1387,25 +1437,95 @@ export default function JobScreeningInterviewPage() {
         ) : null}
 
         {stage === "done" ? (
-          <div className="w-full bg-white flex flex-col min-h-[400px] items-center justify-center p-8 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600 mb-8">
-              <CheckCircle2 className="h-8 w-8" />
+          <div className="w-full bg-white flex flex-col items-center justify-center py-8 text-center ">
+            {/* Blue Review Card block */}
+            <div className="w-full max-w-md px-5 pt-8 pb-5 bg-gradient-to-b from-[#e0f2fe] to-[#f0f9ff] rounded-2xl border border-white/20 flex flex-col items-center gap-6 shadow-sm">
+              {/* Success Icon */}
+              <div className="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center text-white border border-green-700 shadow-sm shrink-0">
+                <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />
+              </div>
+
+              {/* Heading */}
+              <div className="text-center w-full">
+                <h2 className="text-[#002856] text-2xl font-bold tracking-tight">
+                  Thank you!
+                </h2>
+                <p className="text-[#002856]/70 text-xs sm:text-sm font-medium mt-2 max-w-[285px] mx-auto leading-relaxed">
+                  {position?.thank_you_message ||
+                    "We've received your responses successfully. Our team will review them and get back to you soon."}
+                </p>
+              </div>
+
+              {/* Timeline checklist */}
+              <div className="w-full flex flex-col pl-4 mt-2">
+                {/* Step 1: Interview Submitted (done) */}
+                <div className="flex gap-3.5 w-full items-stretch">
+                  <div className="flex flex-col items-center shrink-0">
+                    <div className="w-6 h-6 bg-[#15803d] rounded-full flex items-center justify-center text-white shadow-sm">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <div className="w-[1.5px] bg-[#002856]/20 flex-1 my-1" />
+                  </div>
+                  <div className="pb-5 text-left flex-1 min-w-0 pr-2">
+                    <h4 className="text-[#002856] text-sm font-semibold leading-tight">
+                      Interview Submitted
+                    </h4>
+                    <p className="text-slate-500 text-[11px] sm:text-xs mt-1 leading-normal">
+                      Your video and voice answers have been uploaded to our
+                      servers.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 2: Evaluation Pending (pending) */}
+                <div className="flex gap-3.5 w-full items-stretch">
+                  <div className="flex flex-col items-center shrink-0">
+                    <div className="w-6 h-6 bg-blue-950 rounded-full flex items-center justify-center text-white shadow-sm">
+                      <div className="w-2.5 h-2.5 bg-white rounded-full" />
+                    </div>
+                  </div>
+                  <div className="pb-5 text-left flex-1 min-w-0 pr-2">
+                    <h4 className="text-[#002856] text-sm font-semibold leading-tight">
+                      Evaluation in progress
+                    </h4>
+                    <p className="text-slate-500 text-[11px] sm:text-xs mt-1 leading-normal">
+                      Our recruiting team will evaluate your assessment result
+                      shortly. It might take 24 - 48 hours.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Please note card - RED color with mascot */}
+              <div className="w-full bg-white rounded-2xl border border-rose-200 flex items-center gap-3.5 shadow-sm text-left">
+                <img
+                  src={mayaShocked}
+                  alt="Mascot Alert"
+                  className="w-20 h-20 object-contain shrink-0 select-none"
+                  draggable="false"
+                />
+                <div className="min-w-0 flex-1 pr-4 py-2">
+                  <h5 className="text-rose-700 text-xs sm:text-sm font-bold">
+                    Attention Required
+                  </h5>
+                  <p className="text-rose-600 text-[10px] sm:text-xs mt-0.5 leading-normal font-semibold">
+                    The next candidate agreement step is very important. Please
+                    fill out the candidate agreement to know the review of your
+                    interview.
+                  </p>
+                </div>
+              </div>
+
+              {/* Go to Home Button */}
+              {isJobScreeningCandidate && (
+                <button
+                  onClick={() => navigate("/job-screening")}
+                  className="w-full h-12 bg-[#002856] hover:bg-[#001f42] text-white rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer border-none"
+                >
+                  <span>Go to Home</span>
+                </button>
+              )}
             </div>
-            <h2 className="text-3xl font-extrabold tracking-tight text-[#002856]">
-              Thank you!
-            </h2>
-            <p className="mx-auto mt-4 max-w-sm text-sm font-medium leading-relaxed text-slate-500">
-              {position?.thank_you_message ||
-                "We've received your responses successfully. Our team will review them and get back to you soon."}
-            </p>
-            {isJobScreeningCandidate && (
-              <button
-                onClick={() => navigate("/job-screening")}
-                className="mt-8 px-8 py-3 bg-[#002856] text-white hover:bg-[#001c3d] rounded-full font-bold text-sm transition-all shadow-md active:scale-[0.99]"
-              >
-                Go to Home
-              </button>
-            )}
           </div>
         ) : null}
       </div>

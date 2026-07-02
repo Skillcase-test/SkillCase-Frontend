@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
-import { Settings, RefreshCw, X } from "lucide-react";
+import { Settings, RefreshCw, X, GripVertical } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  arrayMove,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   adminGetCandidates,
   adminGetCandidateDetail,
@@ -28,10 +44,12 @@ const JobScreeningAdmin = () => {
     default_job_salary_range: "",
     default_job_type: "",
     default_job_description: "",
+    steps_config: [],
   });
   
   const [selectedCandidateId, setSelectedCandidateId] = useState(null);
   const [selectedCandidateDetail, setSelectedCandidateDetail] = useState(null);
+  const [activeTab, setActiveTab] = useState("candidates");
   
   const [searchVal, setSearchVal] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -42,6 +60,27 @@ const JobScreeningAdmin = () => {
   const [detailLoading, setDetailLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState("");
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const handleDragEndGlobal = (event) => {
+    const { active, over } = event;
+    if (active.id !== over.id) {
+      const steps = globalSettings.steps_config || [];
+      const oldIndex = steps.findIndex((s) => s.id === active.id);
+      const newIndex = steps.findIndex((s) => s.id === over.id);
+      const updatedSteps = arrayMove(steps, oldIndex, newIndex);
+      setGlobalSettings((prev) => ({
+        ...prev,
+        steps_config: updatedSteps,
+      }));
+    }
+  };
 
   // Adjust viewport height to eliminate double scrollbars, only when JobScreeningAdmin is mounted
   useEffect(() => {
@@ -119,6 +158,7 @@ const JobScreeningAdmin = () => {
             default_job_salary_range: settings.default_job_salary_range || "",
             default_job_type: settings.default_job_type || "",
             default_job_description: settings.default_job_description || "",
+            steps_config: settings.steps_config || [],
           });
         }
       } catch (err) {
@@ -263,6 +303,7 @@ const JobScreeningAdmin = () => {
           default_job_salary_range: settings.default_job_salary_range || "",
           default_job_type: settings.default_job_type || "",
           default_job_description: settings.default_job_description || "",
+          steps_config: settings.steps_config || [],
         });
         fetchList();
       } else {
@@ -322,23 +363,53 @@ const JobScreeningAdmin = () => {
 
   return (
     <div className="flex flex-col gap-6 h-full font-sans">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-slate-100 pb-4">
         <div>
           <h1 className="text-xl font-extrabold text-[#083262]">Job Screening Admin</h1>
           <p className="text-xs text-slate-500 mt-1">Manage B1/B2 candidate profiles, slot times, and step orderings.</p>
         </div>
+        
         {!selectedCandidateId && (
-          <button
-            type="button"
-            onClick={fetchList}
-            disabled={listLoading}
-            className="p-2 hover:bg-slate-50 border border-slate-150 rounded-xl text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1.5 text-[11px] font-bold disabled:opacity-50"
-          >
-            <RefreshCw
-              className={`w-3.5 h-3.5 ${listLoading ? "animate-spin" : ""}`}
-            />
-            Refresh List
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/40">
+              <button
+                type="button"
+                onClick={() => setActiveTab("candidates")}
+                className={`px-4 py-1.5 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer ${
+                  activeTab === "candidates"
+                    ? "bg-[#083262] text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                Candidates List
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("settings")}
+                className={`px-4 py-1.5 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer ${
+                  activeTab === "settings"
+                    ? "bg-[#083262] text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                Global Settings
+              </button>
+            </div>
+            
+            {activeTab === "candidates" && (
+              <button
+                type="button"
+                onClick={fetchList}
+                disabled={listLoading}
+                className="p-2 hover:bg-slate-50 border border-slate-150 rounded-xl text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1.5 text-[11px] font-bold disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${listLoading ? "animate-spin" : ""}`}
+                />
+                Refresh List
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -365,260 +436,339 @@ const JobScreeningAdmin = () => {
               setSelectedCandidateDetail(null);
             }}
           />
+        ) : activeTab === "candidates" ? (
+          <div className="h-full min-h-0">
+            <CandidateList
+              candidates={candidates}
+              selectedCandidateId={selectedCandidateId}
+              onSelectCandidate={(id) => setSelectedCandidateId(id)}
+              searchVal={searchVal}
+              setSearchVal={setSearchVal}
+              currentPage={page}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              loading={listLoading}
+            />
+          </div>
         ) : (
-          <div className="flex flex-col lg:flex-row gap-6 h-full min-h-0">
-            {/* Left Column: Candidate List */}
-            <div className="flex-1 min-h-0 h-full">
-              <CandidateList
-                candidates={candidates}
-                selectedCandidateId={selectedCandidateId}
-                onSelectCandidate={(id) => setSelectedCandidateId(id)}
-                searchVal={searchVal}
-                setSearchVal={setSearchVal}
-                currentPage={page}
-                totalPages={totalPages}
-                onPageChange={setPage}
-                loading={listLoading}
-              />
-            </div>
-
-            {/* Right Column: Global Pipeline Settings panel */}
-            <div className="w-full lg:w-80 shrink-0 bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-4 self-start font-sans max-h-[calc(100vh-100px)] overflow-y-auto">
-              <div>
+          <div className="h-full overflow-y-auto pr-1 pb-10">
+            {/* Header & Save Action */}
+            <div className="flex justify-between items-center mb-6 bg-slate-50 p-4 border border-slate-200/60 rounded-2xl">
+              <div className="text-left">
                 <h3 className="text-sm font-extrabold text-[#083262]">Global Pipeline Defaults</h3>
                 <p className="text-[10px] text-slate-400 font-medium mt-0.5 leading-relaxed">
-                  Set default interview/agreement templates used for all candidates when no custom overrides exist.
+                  Define default template configurations, customize pipeline step sequences, and manage required document checklists.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => handleUpdateSettings(globalSettings)}
-                  disabled={updating}
-                  className="w-full py-2 bg-[#083262] text-white hover:bg-[#052243] rounded-xl text-xs font-bold transition-all disabled:opacity-50 shadow-none mt-2.5 cursor-pointer"
-                >
-                  Save Global Defaults
-                </button>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleUpdateSettings(globalSettings)}
+                disabled={updating}
+                className="px-6 py-2.5 bg-[#083262] text-white hover:bg-[#052243] rounded-xl text-xs font-extrabold transition-all disabled:opacity-50 shadow-sm cursor-pointer shrink-0"
+              >
+                {updating ? "Saving Defaults..." : "Save Global Defaults"}
+              </button>
+            </div>
+
+            {/* Grid of 3 spacious cards */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              {/* Card 1: Default Templates & Job Info */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-4">
+                <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left border-b border-slate-100 pb-2">
+                  General Defaults
+                </span>
+                
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-1 text-left">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      Default Interview Template
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={globalSettings.default_interview_id}
+                        onChange={(e) =>
+                          setGlobalSettings((prev) => ({
+                            ...prev,
+                            default_interview_id: e.target.value,
+                          }))
+                        }
+                        className="w-full border border-slate-200 rounded-xl p-2.5 pr-8 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all appearance-none"
+                      >
+                        <option value="">No Default Interview</option>
+                        {options.interviews?.map((int) => (
+                          <option key={int.position_id} value={int.position_id}>
+                            {int.title}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+                        <Settings className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1 text-left">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      Default Agreement Template
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={globalSettings.default_agreement_template_id}
+                        onChange={(e) =>
+                          setGlobalSettings((prev) => ({
+                            ...prev,
+                            default_agreement_template_id: e.target.value,
+                          }))
+                        }
+                        className="w-full border border-slate-200 rounded-xl p-2.5 pr-8 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all appearance-none"
+                      >
+                        <option value="">No Default Agreement</option>
+                        {options.agreements?.map((agr) => (
+                          <option key={agr.template_id} value={agr.template_id}>
+                            {agr.title}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+                        <Settings className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1 text-left">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      Default Recruiter Partner
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={globalSettings.default_recruiter_id}
+                        onChange={(e) =>
+                          setGlobalSettings((prev) => ({
+                            ...prev,
+                            default_recruiter_id: e.target.value,
+                          }))
+                        }
+                        className="w-full border border-slate-200 rounded-xl p-2.5 pr-8 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all appearance-none"
+                      >
+                        <option value="">No Default Recruiter</option>
+                        {options.recruiters?.map((rec) => (
+                          <option key={rec.id} value={rec.id}>
+                            {rec.email}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+                        <Settings className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-slate-100/80 my-1" />
+
+                  <div className="flex flex-col gap-1 text-left">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      Default Job Title
+                    </label>
+                    <input
+                      type="text"
+                      value={globalSettings.default_job_title || ""}
+                      onChange={(e) =>
+                        setGlobalSettings((prev) => ({
+                          ...prev,
+                          default_job_title: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g. Registered ICU Nurse"
+                      className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1 text-left">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      Default Job Location
+                    </label>
+                    <input
+                      type="text"
+                      value={globalSettings.default_job_location || ""}
+                      onChange={(e) =>
+                        setGlobalSettings((prev) => ({
+                          ...prev,
+                          default_job_location: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g. Frankfurt, Germany"
+                      className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1 text-left">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      Default Salary Range
+                    </label>
+                    <input
+                      type="text"
+                      value={globalSettings.default_job_salary_range || ""}
+                      onChange={(e) =>
+                        setGlobalSettings((prev) => ({
+                          ...prev,
+                          default_job_salary_range: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g. €50,000 - €70,000 / year"
+                      className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1 text-left">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      Default Job Type
+                    </label>
+                    <input
+                      type="text"
+                      value={globalSettings.default_job_type || ""}
+                      onChange={(e) =>
+                        setGlobalSettings((prev) => ({
+                          ...prev,
+                          default_job_type: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g. Full-time"
+                      className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1 text-left">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      Default Job Description
+                    </label>
+                    <textarea
+                      value={globalSettings.default_job_description || ""}
+                      onChange={(e) =>
+                        setGlobalSettings((prev) => ({
+                          ...prev,
+                          default_job_description: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter default job description..."
+                      rows={3}
+                      className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all resize-none"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <div className="h-px bg-slate-100/80" />
-
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1">
+              {/* Card 2: Steps Configurator (DnD) */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-4">
+                <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left border-b border-slate-100 pb-2">
+                  Pipeline Steps Order & Settings
+                </span>
+                
+                <div className="flex flex-col gap-1 text-left">
                   <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                    Default Interview Template
+                    Global Pipeline Steps
                   </label>
-                  <div className="relative">
-                    <select
-                      value={globalSettings.default_interview_id}
-                      onChange={(e) =>
-                        setGlobalSettings((prev) => ({
-                          ...prev,
-                          default_interview_id: e.target.value,
-                        }))
-                      }
-                      className="w-full border border-slate-200 rounded-xl p-2.5 pr-8 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all appearance-none"
-                    >
-                      <option value="">No Default Interview</option>
-                      {options.interviews?.map((int) => (
-                        <option key={int.position_id} value={int.position_id}>
-                          {int.title}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-                      <Settings className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                    Default Agreement Template
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={globalSettings.default_agreement_template_id}
-                      onChange={(e) =>
-                        setGlobalSettings((prev) => ({
-                          ...prev,
-                          default_agreement_template_id: e.target.value,
-                        }))
-                      }
-                      className="w-full border border-slate-200 rounded-xl p-2.5 pr-8 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all appearance-none"
-                    >
-                      <option value="">No Default Agreement</option>
-                      {options.agreements?.map((agr) => (
-                        <option key={agr.template_id} value={agr.template_id}>
-                          {agr.title}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-                      <Settings className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="h-px bg-slate-100/80 my-1" />
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                    Default Recruiter
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={globalSettings.default_recruiter_id || ""}
-                      onChange={(e) =>
-                        setGlobalSettings((prev) => ({
-                          ...prev,
-                          default_recruiter_id: e.target.value,
-                        }))
-                      }
-                      className="w-full border border-slate-200 rounded-xl p-2.5 pr-8 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all appearance-none"
-                    >
-                      <option value="">No Default Recruiter</option>
-                      {options.recruiters?.map((rec) => (
-                        <option key={rec.id} value={rec.id}>
-                          {rec.email}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-                      <Settings className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                    Default Job Title
-                  </label>
-                  <input
-                    type="text"
-                    value={globalSettings.default_job_title || ""}
-                    onChange={(e) =>
-                      setGlobalSettings((prev) => ({
-                        ...prev,
-                        default_job_title: e.target.value,
-                      }))
-                    }
-                    placeholder="e.g. Software Engineer"
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                    Default Job Location
-                  </label>
-                  <input
-                    type="text"
-                    value={globalSettings.default_job_location || ""}
-                    onChange={(e) =>
-                      setGlobalSettings((prev) => ({
-                        ...prev,
-                        default_job_location: e.target.value,
-                      }))
-                    }
-                    placeholder="e.g. Berlin, Germany"
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                    Default Job Salary Range
-                  </label>
-                  <input
-                    type="text"
-                    value={globalSettings.default_job_salary_range || ""}
-                    onChange={(e) =>
-                      setGlobalSettings((prev) => ({
-                        ...prev,
-                        default_job_salary_range: e.target.value,
-                      }))
-                    }
-                    placeholder="e.g. €50,000 - €70,000 / year"
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                    Default Job Type
-                  </label>
-                  <input
-                    type="text"
-                    value={globalSettings.default_job_type || ""}
-                    onChange={(e) =>
-                      setGlobalSettings((prev) => ({
-                        ...prev,
-                        default_job_type: e.target.value,
-                      }))
-                    }
-                    placeholder="e.g. Full-time"
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                    Default Job Description
-                  </label>
-                  <textarea
-                    value={globalSettings.default_job_description || ""}
-                    onChange={(e) =>
-                      setGlobalSettings((prev) => ({
-                        ...prev,
-                        default_job_description: e.target.value,
-                      }))
-                    }
-                    placeholder="Enter default job description..."
-                    rows={3}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all resize-none"
-                  />
-                </div>
-
-                <div className="h-px bg-slate-100/80 my-1" />
-
-                <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                    Global Supporting Documents
-                  </label>
+                  <p className="text-[10px] text-slate-400 font-medium leading-relaxed mb-2">
+                    Drag handles to reorder default workflow sequence. Toggle whether a step can be skipped by default.
+                  </p>
                   
-                  {/* List of existing requirements */}
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                    {(globalSettings.required_additional_documents || []).length === 0 ? (
-                      <p className="text-[10px] text-slate-400 italic">No global documents required.</p>
-                    ) : (
-                      globalSettings.required_additional_documents.map((doc) => (
-                        <div key={doc.id} className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg p-2 text-[10px]">
-                          <div className="truncate pr-2 text-left">
-                            <span className="font-bold text-slate-700 block truncate">{doc.title}</span>
-                            <span className="text-[8px] text-slate-400 font-medium">
-                              Formats: {doc.allowed_extensions?.join(", ").toUpperCase()}
-                            </span>
+                  <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEndGlobal}
+                    >
+                      <SortableContext
+                        items={(globalSettings.steps_config || []).map((s) => s.id)}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {(globalSettings.steps_config || []).map((step, idx) => (
+                          <SortableGlobalStepItem
+                            key={step.id}
+                            id={step.id}
+                            step={step}
+                            index={idx}
+                            onToggleSkippable={(stepId, isChecked) => {
+                              const updatedSteps = (globalSettings.steps_config || []).map((s) => {
+                                if (s.id === stepId) {
+                                  return { ...s, is_skippable: isChecked };
+                                }
+                                return s;
+                              });
+                              setGlobalSettings((prev) => ({
+                                ...prev,
+                                steps_config: updatedSteps,
+                              }));
+                            }}
+                            onUpdateButtonTitle={(stepId, newTitle) => {
+                              const updatedSteps = (globalSettings.steps_config || []).map((s) => {
+                                if (s.id === stepId) {
+                                  return { ...s, button_title: newTitle };
+                                }
+                                return s;
+                              });
+                              setGlobalSettings((prev) => ({
+                                ...prev,
+                                steps_config: updatedSteps,
+                              }));
+                            }}
+                          />
+                        ))}
+                      </SortableContext>
+                    </DndContext>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Checklist Requirements */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-4">
+                <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left border-b border-slate-100 pb-2">
+                  Checklist & Documents
+                </span>
+                
+                <div className="flex flex-col gap-4 text-left">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                      Global Supporting Documents
+                    </label>
+                    <p className="text-[10px] text-slate-400 font-medium leading-relaxed mb-1">
+                      Candidates must upload these checklist documents under the "Additional Documents" pipeline step.
+                    </p>
+                    
+                    {/* List of existing requirements */}
+                    <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+                      {(globalSettings.required_additional_documents || []).length === 0 ? (
+                        <p className="text-[10px] text-slate-400 italic">No global documents required.</p>
+                      ) : (
+                        globalSettings.required_additional_documents.map((doc) => (
+                          <div key={doc.id} className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg p-2 text-[10px]">
+                            <div className="truncate pr-2 text-left">
+                              <span className="font-bold text-slate-700 block truncate">{doc.title}</span>
+                              <span className="text-[8px] text-slate-400 font-medium">
+                                Formats: {doc.allowed_extensions?.join(", ").toUpperCase()}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveDocRequirement(doc.id)}
+                              className="text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveDocRequirement(doc.id)}
-                            className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))
-                    )}
+                        ))
+                      )}
+                    </div>
                   </div>
 
                   {/* Form to add a new requirement */}
-                  <div className="mt-2 p-2.5 bg-slate-50/50 border border-slate-150 rounded-xl flex flex-col gap-2">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase">Add Document</span>
+                  <div className="p-3 bg-slate-50/50 border border-slate-150 rounded-xl flex flex-col gap-2">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase">Add Global Document Requirement</span>
                     <input
                       type="text"
                       placeholder="e.g. 10th Marks Card"
                       value={newDocTitle}
                       onChange={(e) => setNewDocTitle(e.target.value)}
-                      className="w-full border border-slate-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none focus:border-[#083262]"
+                      className="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-[#083262]"
                     />
                     
                     {/* Checkboxes for file types */}
@@ -639,25 +789,80 @@ const JobScreeningAdmin = () => {
                     <button
                       type="button"
                       onClick={handleAddDocRequirement}
-                      className="w-full py-1.5 bg-[#083262] hover:bg-[#052243] text-white font-bold text-[9px] rounded-lg transition-all mt-1 cursor-pointer"
+                      className="w-full py-2 bg-[#083262] hover:bg-[#052243] text-white font-bold text-[9px] rounded-lg transition-all mt-1 cursor-pointer"
                     >
                       Add to Checklist
                     </button>
                   </div>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleUpdateSettings(globalSettings)}
-                  disabled={updating}
-                  className="w-full py-2.5 bg-[#083262] text-white hover:bg-[#052243] rounded-xl text-xs font-bold transition-all disabled:opacity-50 shadow-none mt-2 cursor-pointer"
-                >
-                  Save Global Defaults
-                </button>
               </div>
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+const SortableGlobalStepItem = ({ id, step, index, onToggleSkippable, onUpdateButtonTitle }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex flex-col gap-2.5 bg-slate-50 border border-slate-100 rounded-lg p-2.5 text-[10px]"
+    >
+      <div className="flex items-center justify-between w-full">
+        <div className="flex items-center gap-2 text-left min-w-0">
+          <button
+            type="button"
+            className="text-slate-400 hover:text-slate-600 cursor-grab active:cursor-grabbing p-1 shrink-0"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="w-3.5 h-3.5" />
+          </button>
+          <div className="flex flex-col truncate">
+            <span className="font-bold text-slate-700 truncate">{step.title}</span>
+            <span className="text-[8px] text-slate-400 font-semibold uppercase mt-0.5">
+              Step {index + 1}
+            </span>
+          </div>
+        </div>
+        <label className="flex items-center gap-1.5 cursor-pointer select-none shrink-0">
+          <input
+            type="checkbox"
+            checked={!!step.is_skippable}
+            onChange={(e) => onToggleSkippable(step.id, e.target.checked)}
+            className="rounded border-slate-200 text-[#083262] focus:ring-0 w-3.5 h-3.5 cursor-pointer"
+          />
+          <span className="text-[9px] font-bold text-slate-500">Skippable</span>
+        </label>
+      </div>
+
+      <div className="flex items-center gap-2 pl-7 w-full">
+        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Button Title</span>
+        <input
+          type="text"
+          value={step.button_title || ""}
+          onChange={(e) => onUpdateButtonTitle(step.id, e.target.value)}
+          placeholder="e.g. Start this step"
+          className="flex-1 border border-slate-200 rounded-md px-2 py-1 text-[10px] bg-white focus:outline-none focus:border-[#083262]"
+        />
       </div>
     </div>
   );

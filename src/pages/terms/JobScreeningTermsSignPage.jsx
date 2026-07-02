@@ -1226,7 +1226,7 @@ export default function JobScreeningTermsSignPage() {
           <div className="self-stretch inline-flex justify-start items-center gap-6">
             <div className="flex-1 inline-flex flex-col justify-start items-start gap-3">
               <div className="self-stretch justify-start text-[#002856] text-2xl font-bold ">
-                Sign job registration form
+                Sign Candidate Agreement
               </div>
               <div className="self-stretch justify-start text-[#002856]/70 text-base font-medium  leading-5">
                 {template?.description ||
@@ -1244,7 +1244,7 @@ export default function JobScreeningTermsSignPage() {
                 <div className="self-stretch inline-flex justify-between items-start">
                   <div className="flex-1 flex justify-between items-center gap-2">
                     <div className="justify-start text-slate-900 text-base font-bold  leading-6 truncate">
-                      {template?.title || "B1 & B2 registration form"}
+                      {template?.title || "B1 & B2 candidate agreement"}
                     </div>
                     <div className="px-2 bg-amber-100/60 rounded-[40px] border border-amber-200 flex justify-center items-center gap-1.5 flex-shrink-0">
                       <div className="text-center justify-start text-amber-600 text-xs font-semibold  leading-5">

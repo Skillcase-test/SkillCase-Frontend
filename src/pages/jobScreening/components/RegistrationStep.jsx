@@ -66,10 +66,10 @@ const RegistrationStep = ({ progress, onComplete }) => {
         </div>
 
         <h2 className="text-xl sm:text-2xl font-extrabold text-[#002856] tracking-tight mb-2">
-          Preparing Registration Form
+          Preparing Candidate Agreement
         </h2>
         <p className="text-zinc-500 text-xs sm:text-sm max-w-md leading-relaxed mb-6">
-          Our team is preparing your registration form.
+          Our team is preparing your candidate agreement.
           We will notify you here once it is ready for signature.
         </p>
 
@@ -99,10 +99,10 @@ const RegistrationStep = ({ progress, onComplete }) => {
       </div>
 
       <h2 className="text-xl sm:text-2xl font-extrabold text-[#002856] tracking-tight mb-1.5">
-        Registration Form
+        Candidate Agreement
       </h2>
       <p className="text-zinc-500 text-xs sm:text-sm max-w-md leading-relaxed mb-5">
-        We have generated your registration form. Please review and sign it directly inside the app.
+        We have generated your candidate agreement. Please review and sign it directly inside the app.
       </p>
 
       {/* Info Block */}
@@ -111,7 +111,7 @@ const RegistrationStep = ({ progress, onComplete }) => {
           Document Template
         </span>
         <span className="text-xs sm:text-sm font-bold text-[#002856] truncate block">
-          {progress.assigned_agreement_title || "Registration Form"}
+          {progress.assigned_agreement_title || "Candidate Agreement"}
         </span>
       </div>
 
