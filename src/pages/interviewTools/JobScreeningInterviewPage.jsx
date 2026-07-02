@@ -951,7 +951,7 @@ export default function JobScreeningInterviewPage() {
                     Your Skillcase interview
                   </h1>
                   <p className="text-blue-950/70 text-sm font-medium leading-relaxed">
-                    This speaking assessment helps us evaluate your language
+                    This assessment helps us evaluate your language
                     fluency and communication skills for the nursing placement.
                   </p>
                 </div>

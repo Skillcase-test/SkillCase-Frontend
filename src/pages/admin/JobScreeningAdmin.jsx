@@ -168,6 +168,15 @@ const JobScreeningAdmin = () => {
     fetchOptionsAndSettings();
   }, []);
 
+  // Parse URL search params to open candidate details on load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const idParam = params.get("id") || params.get("candidateId");
+    if (idParam) {
+      setSelectedCandidateId(idParam);
+    }
+  }, []);
+
   // Fetch details on-demand when selectedCandidateId changes
   const fetchDetail = async (userId) => {
     if (!userId) return;

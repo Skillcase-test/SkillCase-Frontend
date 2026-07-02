@@ -63,7 +63,7 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
               Interview completed!
             </h2>
             <p className="text-[#002856]/70 text-xs sm:text-sm font-medium mt-2 max-w-[285px] mx-auto leading-relaxed">
-              Your speaking assessment has been successfully submitted and is under evaluation.
+              Your interview assessment has been successfully submitted and is under evaluation.
             </p>
           </div>
 

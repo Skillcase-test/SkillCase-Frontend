@@ -27,7 +27,7 @@ const STEP_DESCRIPTIONS = {
     desc: "Upload your CV and language certification documents.",
   },
   interview_attempt: {
-    subtitle: "complete your speaking assessment",
+    subtitle: "complete your interview assessment",
     desc: "Complete the assigned Skillcase speaking and video interview.",
   },
   registration_form: {
