@@ -79,6 +79,9 @@ const CandidateDetail = ({
   const [steps, setSteps] = useState([]);
   const [selectedRecruiterId, setSelectedRecruiterId] = useState("");
 
+  const [paywallEnabled, setPaywallEnabled] = useState("");
+  const [paywallPaid, setPaywallPaid] = useState(false);
+
   const [candDocTitle, setCandDocTitle] = useState("");
   const [candDocExts, setCandDocExts] = useState({
     pdf: true,
@@ -203,6 +206,15 @@ const CandidateDetail = ({
       setRecruiterMeet(candidate.recruiter_meet_link || "");
 
       setSteps(candidate.steps_config || []);
+
+      setPaywallEnabled(
+        candidate.paywall_enabled === true
+          ? "true"
+          : candidate.paywall_enabled === false
+            ? "false"
+            : ""
+      );
+      setPaywallPaid(!!candidate.paywall_paid);
     }
   }, [candidate]);
 
@@ -295,6 +307,14 @@ const CandidateDetail = ({
     e.preventDefault();
     onUpdate(candidate.user_id, {
       assigned_agreement_template_id: agreementId || null,
+    });
+  };
+
+  const handleSavePaywallSettings = (e) => {
+    e.preventDefault();
+    onUpdate(candidate.user_id, {
+      paywall_enabled: paywallEnabled === "true" ? true : paywallEnabled === "false" ? false : null,
+      paywall_paid: paywallPaid,
     });
   };
 
@@ -742,6 +762,72 @@ const CandidateDetail = ({
                 </div>
               )}
           </div>
+
+          {/* Paywall Settings (Collapsible Accordion) */}
+          <details className="group border border-slate-200 rounded-2xl bg-white shadow-[0_2px_8px_rgba(0,40,86,0.03)] shrink-0">
+            <summary className="p-4 text-xs font-bold text-slate-600 cursor-pointer select-none flex items-center justify-between hover:bg-slate-50/30">
+              <span className="flex items-center gap-1.5">
+                <Settings className="w-3.5 h-3.5 text-slate-400" />
+                Paywall Settings
+              </span>
+              <ChevronDown className="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform duration-200" />
+            </summary>
+
+            <form
+              onSubmit={handleSavePaywallSettings}
+              className="p-4 border-t border-slate-100 flex flex-col gap-4 bg-white"
+            >
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    Candidate Paywall Status
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={paywallEnabled}
+                      onChange={(e) => setPaywallEnabled(e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl p-2.5 pr-8 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all appearance-none"
+                    >
+                      <option value="">Inherit Global Default ({candidate.globalSettings?.paywall_enabled ? "Enabled" : "Disabled"})</option>
+                      <option value="true">Force Enabled</option>
+                      <option value="false">Force Disabled</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between border border-slate-200 rounded-xl p-2.5 bg-slate-50/50">
+                  <div className="flex flex-col gap-0.5 text-left">
+                    <span className="text-xs font-semibold text-slate-800">
+                      Payment Received
+                    </span>
+                    <span className="text-[10px] text-slate-400">
+                      Check if candidate has paid the 10000 INR deposit
+                    </span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={paywallPaid}
+                      onChange={(e) => setPaywallPaid(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#002856]"></div>
+                  </label>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={updating}
+                className="w-full py-2.5 bg-[#002856] hover:bg-[#001f42] text-white rounded-xl font-bold text-xs transition-all active:scale-[0.99] cursor-pointer text-center disabled:opacity-50"
+              >
+                {updating ? "Saving Settings..." : "Save Paywall Settings"}
+              </button>
+            </form>
+          </details>
 
           {/* Assign Interview & Agreement (Collapsible Accordion) */}
           <details className="group border border-slate-200 rounded-2xl bg-white shadow-[0_2px_8px_rgba(0,40,86,0.03)] shrink-0">

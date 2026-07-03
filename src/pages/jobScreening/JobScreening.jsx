@@ -5,6 +5,8 @@ import {
   getProgress,
   startAgreement,
   checkAgreement,
+  createPaywallOrder,
+  verifyPaywallPayment,
 } from "../../api/jobScreeningApi";
 import WelcomeStep from "./components/WelcomeStep";
 import ProfileCompletionStep from "./components/ProfileCompletionStep";
@@ -15,7 +17,16 @@ import MeetingStep from "./components/MeetingStep";
 import OfferLetterStep from "./components/OfferLetterStep";
 import AdditionalDocumentsStep from "./components/AdditionalDocumentsStep";
 import RecruiterStatusStep from "./components/RecruiterStatusStep";
-import { Check, Lock, RefreshCw, ArrowLeft } from "lucide-react";
+import {
+  Check,
+  Lock,
+  RefreshCw,
+  ArrowLeft,
+  Phone,
+  CreditCard,
+} from "lucide-react";
+import { toast } from "react-hot-toast";
+import mayaSmiling from "../../assets/onboarding/mayaSmiling.webp";
 
 const STEP_DESCRIPTIONS = {
   welcome: {
@@ -33,6 +44,10 @@ const STEP_DESCRIPTIONS = {
   registration_form: {
     subtitle: "sign the terms of agreement",
     desc: "Please review the agreement. It explains how we'll work together during your placement.",
+  },
+  paywall: {
+    subtitle: "submit refundable security deposit",
+    desc: "Submit your refundable security deposit to proceed with placement.",
   },
   review_pending: {
     subtitle: "wait for recruiters to review your application",
@@ -65,6 +80,7 @@ const JobScreening = () => {
   const [finalProgressData, setFinalProgressData] = useState(null);
   const [executingStepId, setExecutingStepId] = useState(null);
   const [reviewCheckStepId, setReviewCheckStepId] = useState(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const activeStepRef = useRef(null);
   const activeStepContainerRef = useRef(null);
 
@@ -246,6 +262,91 @@ const JobScreening = () => {
     }
   };
 
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handlePaywallPayment = async () => {
+    try {
+      setPaymentLoading(true);
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        toast.error("Razorpay SDK failed to load. Are you online?");
+        setPaymentLoading(false);
+        return;
+      }
+
+      const { data } = await createPaywallOrder();
+      if (!data || !data.success) {
+        toast.error(data?.message || "Failed to initiate payment");
+        setPaymentLoading(false);
+        return;
+      }
+
+      const options = {
+        key: data.key_id,
+        amount: data.amount,
+        currency: data.currency,
+        name: "Skillcase",
+        description: "Screening Refundable Security Deposit",
+        image: "https://learner.skillcase.in/white_mainlogo.webp",
+        order_id: data.order_id,
+        handler: async function (response) {
+          try {
+            setPaymentLoading(true);
+            const verifyRes = await verifyPaywallPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            if (verifyRes.data?.success) {
+              toast.success("Payment successful!");
+              const { data: progressRes } = await getProgress();
+              if (progressRes?.success) {
+                setProgress(progressRes.data);
+              }
+            } else {
+              toast.error("Payment verification failed");
+            }
+          } catch (err) {
+            console.error("Verification error:", err);
+            toast.error("Failed to verify payment");
+          } finally {
+            setPaymentLoading(false);
+          }
+        },
+        prefill: {
+          name: progress?.candidate_name || "",
+          email: progress?.candidate_email || "",
+          contact: progress?.candidate_phone || "",
+        },
+        theme: {
+          color: "#002856",
+        },
+        modal: {
+          ondismiss: function () {
+            setPaymentLoading(false);
+          },
+        },
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
+    } catch (err) {
+      console.error("Payment initiation error:", err);
+      toast.error(
+        err.response?.data?.message || "An error occurred during checkout",
+      );
+      setPaymentLoading(false);
+    }
+  };
+
   const renderActiveStepComponent = () => {
     // Use executingStepId — the step the user explicitly tapped — not the potentially
     // stale currentStepId which lags behind during the welcome animation.
@@ -336,6 +437,81 @@ const JobScreening = () => {
     }
   };
 
+  // 0. Paywall Blocked Screen
+  if (currentStepId === "paywall") {
+    return (
+      <div className="w-full min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] py-12 px-4 flex flex-col items-center justify-center font-sans">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md bg-white border border-slate-200/80 rounded-3xl shadow-xl p-8 flex flex-col items-center text-center gap-6"
+        >
+          {/* Mascot and Speech Bubble */}
+          <div className="flex flex-col items-center gap-4 w-full">
+            <img
+              src={mayaSmiling}
+              alt="Maya mascot smiling"
+              className="w-24 h-24 object-contain"
+            />
+            <div className="relative bg-slate-50 border border-slate-100 rounded-2xl p-4 text-slate-700 text-xs font-semibold leading-relaxed shadow-sm">
+              <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-50 border-t border-l border-slate-100 rotate-45" />
+              Please give us a try with this refundable security deposit. It
+              ensures your commitment to the placement journey.
+            </div>
+          </div>
+
+          {/* Program Details */}
+          <div className="w-full bg-slate-50 rounded-2xl p-4 border border-slate-100 text-left flex flex-col gap-2.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
+              Refundable Placement Deposit
+            </span>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-slate-500 font-semibold">
+                Security Deposit Amount
+              </span>
+              <span className="text-lg font-bold text-slate-800">
+                10,000 INR
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
+              This amount is fully refundable upon completing your onboarding
+              training or securing a placement with our recruiters.
+            </p>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col gap-3 w-full">
+            <button
+              onClick={handlePaywallPayment}
+              disabled={paymentLoading}
+              className="w-full h-12 bg-[#002856] hover:bg-[#001f42] text-white rounded-xl font-bold text-sm transition-all active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-75 disabled:cursor-not-allowed cursor-pointer"
+            >
+              {paymentLoading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <>
+                  <CreditCard className="w-4 h-4 text-white" />
+                  <span>Proceed to Pay</span>
+                </>
+              )}
+            </button>
+
+            <a
+              href="tel:+919731462667"
+              className="w-full h-12 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl font-bold text-xs transition-all active:scale-[0.99] flex items-center justify-center gap-2 text-slate-600 cursor-pointer"
+            >
+              <Phone className="w-3.5 h-3.5 text-slate-400" />
+              <span>Call Skillcase support at +919731462667</span>
+            </a>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   // 1. Full-screen Welcome flow
   // Guard: finalProgressData is set the moment animation starts and never cleared,
   // so if it's non-null we know the welcome was just completed and must NOT re-show this screen.
@@ -345,7 +521,7 @@ const JobScreening = () => {
     finalProgressData === null
   ) {
     return (
-      <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-gradient-to-b from-[#002856] to-[#134074] w-full flex flex-col justify-center items-center">
+      <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-linear-to-b from-[#002856] to-[#134074] w-full flex flex-col justify-center items-center">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStepId}
@@ -412,7 +588,9 @@ const JobScreening = () => {
     });
   }
 
-  const visibleSteps = displaySteps.filter((s) => s.status !== "skipped");
+  const visibleSteps = displaySteps.filter(
+    (s) => s.status !== "skipped" && s.id !== "paywall",
+  );
   const completedStepsCount = visibleSteps.filter(
     (s) => s.status === "completed",
   ).length;
@@ -426,7 +604,7 @@ const JobScreening = () => {
 
   // 3. Central Job Progress Timeline screen (Progress Lobby)
   return (
-    <div className="w-full min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-gradient-to-b from-[#e0f2fe] to-[#dbeafe] py-6 px-4 flex flex-col items-center overflow-y-auto font-sans">
+    <div className="w-full min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] py-6 px-4 flex flex-col items-center overflow-y-auto font-sans">
       <div className="w-full max-w-md flex flex-col gap-6">
         {/* Header Block with Circular Progress Ring */}
         <div className="pb-3 pt-2 flex items-center justify-between">
@@ -531,7 +709,7 @@ const JobScreening = () => {
                             stiffness: 320,
                             damping: 22,
                           }}
-                          className="w-3.5 h-3.5 stroke-[3] text-white"
+                          className="w-3.5 h-3.5 stroke-3 text-white"
                           viewBox="0 0 24 24"
                           fill="none"
                           stroke="currentColor"
@@ -665,7 +843,7 @@ const JobScreening = () => {
             <button
               onClick={() => handleStartStep(currentStepId)}
               disabled={agreementLoading}
-              className="w-full h-12 bg-gradient-to-r from-amber-200 to-amber-300 hover:from-amber-300 hover:to-amber-400 text-[#002856] rounded-lg font-bold text-sm sm:text-base transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-md cursor-pointer border border-amber-300 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+              className="w-full h-12 bg-linear-to-r from-amber-200 to-amber-300 hover:from-amber-300 hover:to-amber-400 text-[#002856] rounded-lg font-bold text-sm sm:text-base transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-md cursor-pointer border border-amber-300 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               {agreementLoading ? (
                 <>

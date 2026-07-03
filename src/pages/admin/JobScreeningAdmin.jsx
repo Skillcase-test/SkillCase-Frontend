@@ -33,7 +33,11 @@ import CandidateDetail from "./components/CandidateDetail";
 
 const JobScreeningAdmin = () => {
   const [candidates, setCandidates] = useState([]);
-  const [options, setOptions] = useState({ interviews: [], agreements: [], recruiters: [] });
+  const [options, setOptions] = useState({
+    interviews: [],
+    agreements: [],
+    recruiters: [],
+  });
   const [globalSettings, setGlobalSettings] = useState({
     default_interview_id: "",
     default_agreement_template_id: "",
@@ -46,16 +50,16 @@ const JobScreeningAdmin = () => {
     default_job_description: "",
     steps_config: [],
   });
-  
+
   const [selectedCandidateId, setSelectedCandidateId] = useState(null);
   const [selectedCandidateDetail, setSelectedCandidateDetail] = useState(null);
   const [activeTab, setActiveTab] = useState("candidates");
-  
+
   const [searchVal, setSearchVal] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  
+
   const [listLoading, setListLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -92,10 +96,20 @@ const JobScreeningAdmin = () => {
       const originalOuterClass = outerEl.className;
 
       mainEl.classList.remove("min-h-[calc(100vh-24px)]");
-      mainEl.classList.add("h-[calc(100vh-79px)]", "lg:h-[calc(100vh-96px)]", "overflow-hidden", "flex", "flex-col");
+      mainEl.classList.add(
+        "h-[calc(100vh-79px)]",
+        "lg:h-[calc(100vh-96px)]",
+        "overflow-hidden",
+        "flex",
+        "flex-col",
+      );
 
       outerEl.classList.remove("min-h-screen");
-      outerEl.classList.add("h-[calc(100vh-55px)]", "lg:h-[calc(100vh-72px)]", "overflow-hidden");
+      outerEl.classList.add(
+        "h-[calc(100vh-55px)]",
+        "lg:h-[calc(100vh-72px)]",
+        "overflow-hidden",
+      );
 
       return () => {
         mainEl.className = originalMainClass;
@@ -150,8 +164,10 @@ const JobScreeningAdmin = () => {
           const settings = resSettings.data.data || {};
           setGlobalSettings({
             default_interview_id: settings.default_interview_id || "",
-            default_agreement_template_id: settings.default_agreement_template_id || "",
-            required_additional_documents: settings.required_additional_documents || [],
+            default_agreement_template_id:
+              settings.default_agreement_template_id || "",
+            required_additional_documents:
+              settings.required_additional_documents || [],
             default_recruiter_id: settings.default_recruiter_id || "",
             default_job_title: settings.default_job_title || "",
             default_job_location: settings.default_job_location || "",
@@ -159,6 +175,7 @@ const JobScreeningAdmin = () => {
             default_job_type: settings.default_job_type || "",
             default_job_description: settings.default_job_description || "",
             steps_config: settings.steps_config || [],
+            paywall_enabled: settings.paywall_enabled || false,
           });
         }
       } catch (err) {
@@ -223,7 +240,9 @@ const JobScreeningAdmin = () => {
       }
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || "Error updating candidate configuration");
+      toast.error(
+        err.response?.data?.message || "Error updating candidate configuration",
+      );
     } finally {
       setUpdating(false);
     }
@@ -235,7 +254,11 @@ const JobScreeningAdmin = () => {
 
     try {
       setUpdating(true);
-      const { data } = await adminUploadOfferLetter(userId, formData, recruiterAccountId);
+      const { data } = await adminUploadOfferLetter(
+        userId,
+        formData,
+        recruiterAccountId,
+      );
       if (data?.success) {
         toast.success("Offer letter uploaded successfully");
         await fetchDetail(userId);
@@ -245,7 +268,9 @@ const JobScreeningAdmin = () => {
       }
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || "Error uploading offer letter PDF");
+      toast.error(
+        err.response?.data?.message || "Error uploading offer letter PDF",
+      );
     } finally {
       setUpdating(false);
     }
@@ -267,19 +292,30 @@ const JobScreeningAdmin = () => {
       }
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || "Error uploading training schedule image");
+      toast.error(
+        err.response?.data?.message ||
+          "Error uploading training schedule image",
+      );
     } finally {
       setUpdating(false);
     }
   };
 
-  const handleUploadRecruiterScheduleImage = async (userId, file, recruiterAccountId) => {
+  const handleUploadRecruiterScheduleImage = async (
+    userId,
+    file,
+    recruiterAccountId,
+  ) => {
     const formData = new FormData();
     formData.append("schedule_image", file);
 
     try {
       setUpdating(true);
-      const { data } = await adminUploadRecruiterScheduleImage(userId, formData, recruiterAccountId);
+      const { data } = await adminUploadRecruiterScheduleImage(
+        userId,
+        formData,
+        recruiterAccountId,
+      );
       if (data?.success) {
         toast.success("Recruiter schedule image uploaded successfully");
         await fetchDetail(userId);
@@ -289,7 +325,10 @@ const JobScreeningAdmin = () => {
       }
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || "Error uploading recruiter schedule image");
+      toast.error(
+        err.response?.data?.message ||
+          "Error uploading recruiter schedule image",
+      );
     } finally {
       setUpdating(false);
     }
@@ -304,8 +343,10 @@ const JobScreeningAdmin = () => {
         const settings = data.data || {};
         setGlobalSettings({
           default_interview_id: settings.default_interview_id || "",
-          default_agreement_template_id: settings.default_agreement_template_id || "",
-          required_additional_documents: settings.required_additional_documents || [],
+          default_agreement_template_id:
+            settings.default_agreement_template_id || "",
+          required_additional_documents:
+            settings.required_additional_documents || [],
           default_recruiter_id: settings.default_recruiter_id || "",
           default_job_title: settings.default_job_title || "",
           default_job_location: settings.default_job_location || "",
@@ -313,6 +354,7 @@ const JobScreeningAdmin = () => {
           default_job_type: settings.default_job_type || "",
           default_job_description: settings.default_job_description || "",
           steps_config: settings.steps_config || [],
+          paywall_enabled: settings.paywall_enabled || false,
         });
         fetchList();
       } else {
@@ -320,7 +362,9 @@ const JobScreeningAdmin = () => {
       }
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || "Error saving global settings");
+      toast.error(
+        err.response?.data?.message || "Error saving global settings",
+      );
     } finally {
       setUpdating(false);
     }
@@ -341,14 +385,17 @@ const JobScreeningAdmin = () => {
       toast.error("Document title cannot be empty");
       return;
     }
-    const slug = newDocTitle.toLowerCase().trim().replace(/[^a-z0-9]/g, "_");
+    const slug = newDocTitle
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]/g, "_");
     const docId = `doc_${slug}_${Date.now()}`;
     const selectedExts = Object.keys(newDocExts).filter((k) => newDocExts[k]);
     if (selectedExts.length === 0) {
       toast.error("Please select at least one allowed file type");
       return;
     }
-    
+
     const newDoc = {
       id: docId,
       title: newDocTitle.trim(),
@@ -358,7 +405,10 @@ const JobScreeningAdmin = () => {
 
     setGlobalSettings((prev) => ({
       ...prev,
-      required_additional_documents: [...(prev.required_additional_documents || []), newDoc],
+      required_additional_documents: [
+        ...(prev.required_additional_documents || []),
+        newDoc,
+      ],
     }));
     setNewDocTitle("");
   };
@@ -366,7 +416,9 @@ const JobScreeningAdmin = () => {
   const handleRemoveDocRequirement = (docId) => {
     setGlobalSettings((prev) => ({
       ...prev,
-      required_additional_documents: (prev.required_additional_documents || []).filter((d) => d.id !== docId),
+      required_additional_documents: (
+        prev.required_additional_documents || []
+      ).filter((d) => d.id !== docId),
     }));
   };
 
@@ -374,10 +426,14 @@ const JobScreeningAdmin = () => {
     <div className="flex flex-col gap-6 h-full font-sans">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-slate-100 pb-4">
         <div>
-          <h1 className="text-xl font-extrabold text-[#083262]">Job Screening Admin</h1>
-          <p className="text-xs text-slate-500 mt-1">Manage B1/B2 candidate profiles, slot times, and step orderings.</p>
+          <h1 className="text-xl font-extrabold text-[#083262]">
+            Job Screening Admin
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Manage B1/B2 candidate profiles, slot times, and step orderings.
+          </p>
         </div>
-        
+
         {!selectedCandidateId && (
           <div className="flex items-center gap-3">
             <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/40">
@@ -404,7 +460,7 @@ const JobScreeningAdmin = () => {
                 Global Settings
               </button>
             </div>
-            
+
             {activeTab === "candidates" && (
               <button
                 type="button"
@@ -464,9 +520,12 @@ const JobScreeningAdmin = () => {
             {/* Header & Save Action */}
             <div className="flex justify-between items-center mb-6 bg-slate-50 p-4 border border-slate-200/60 rounded-2xl">
               <div className="text-left">
-                <h3 className="text-sm font-extrabold text-[#083262]">Global Pipeline Defaults</h3>
+                <h3 className="text-sm font-extrabold text-[#083262]">
+                  Global Pipeline Defaults
+                </h3>
                 <p className="text-[10px] text-slate-400 font-medium mt-0.5 leading-relaxed">
-                  Define default template configurations, customize pipeline step sequences, and manage required document checklists.
+                  Define default template configurations, customize pipeline
+                  step sequences, and manage required document checklists.
                 </p>
               </div>
               <button
@@ -486,7 +545,7 @@ const JobScreeningAdmin = () => {
                 <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left border-b border-slate-100 pb-2">
                   General Defaults
                 </span>
-                
+
                 <div className="flex flex-col gap-4">
                   <div className="flex flex-col gap-1 text-left">
                     <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
@@ -663,6 +722,31 @@ const JobScreeningAdmin = () => {
                       className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] transition-all resize-none"
                     />
                   </div>
+
+                  <div className="flex items-center justify-between border border-slate-200 rounded-xl p-2.5 bg-slate-50/50">
+                    <div className="flex flex-col gap-0.5 text-left">
+                      <span className="text-xs font-semibold text-slate-800">
+                        Global Paywall Enabled
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Require candidates to pay 10000 INR deposit
+                      </span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={globalSettings.paywall_enabled || false}
+                        onChange={(e) =>
+                          setGlobalSettings((prev) => ({
+                            ...prev,
+                            paywall_enabled: e.target.checked,
+                          }))
+                        }
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#002856]"></div>
+                    </label>
+                  </div>
                 </div>
               </div>
 
@@ -671,15 +755,16 @@ const JobScreeningAdmin = () => {
                 <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left border-b border-slate-100 pb-2">
                   Pipeline Steps Order & Settings
                 </span>
-                
+
                 <div className="flex flex-col gap-1 text-left">
                   <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                     Global Pipeline Steps
                   </label>
                   <p className="text-[10px] text-slate-400 font-medium leading-relaxed mb-2">
-                    Drag handles to reorder default workflow sequence. Toggle whether a step can be skipped by default.
+                    Drag handles to reorder default workflow sequence. Toggle
+                    whether a step can be skipped by default.
                   </p>
-                  
+
                   <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
                     <DndContext
                       sensors={sensors}
@@ -687,41 +772,49 @@ const JobScreeningAdmin = () => {
                       onDragEnd={handleDragEndGlobal}
                     >
                       <SortableContext
-                        items={(globalSettings.steps_config || []).map((s) => s.id)}
+                        items={(globalSettings.steps_config || []).map(
+                          (s) => s.id,
+                        )}
                         strategy={verticalListSortingStrategy}
                       >
-                        {(globalSettings.steps_config || []).map((step, idx) => (
-                          <SortableGlobalStepItem
-                            key={step.id}
-                            id={step.id}
-                            step={step}
-                            index={idx}
-                            onToggleSkippable={(stepId, isChecked) => {
-                              const updatedSteps = (globalSettings.steps_config || []).map((s) => {
-                                if (s.id === stepId) {
-                                  return { ...s, is_skippable: isChecked };
-                                }
-                                return s;
-                              });
-                              setGlobalSettings((prev) => ({
-                                ...prev,
-                                steps_config: updatedSteps,
-                              }));
-                            }}
-                            onUpdateButtonTitle={(stepId, newTitle) => {
-                              const updatedSteps = (globalSettings.steps_config || []).map((s) => {
-                                if (s.id === stepId) {
-                                  return { ...s, button_title: newTitle };
-                                }
-                                return s;
-                              });
-                              setGlobalSettings((prev) => ({
-                                ...prev,
-                                steps_config: updatedSteps,
-                              }));
-                            }}
-                          />
-                        ))}
+                        {(globalSettings.steps_config || []).map(
+                          (step, idx) => (
+                            <SortableGlobalStepItem
+                              key={step.id}
+                              id={step.id}
+                              step={step}
+                              index={idx}
+                              onToggleSkippable={(stepId, isChecked) => {
+                                const updatedSteps = (
+                                  globalSettings.steps_config || []
+                                ).map((s) => {
+                                  if (s.id === stepId) {
+                                    return { ...s, is_skippable: isChecked };
+                                  }
+                                  return s;
+                                });
+                                setGlobalSettings((prev) => ({
+                                  ...prev,
+                                  steps_config: updatedSteps,
+                                }));
+                              }}
+                              onUpdateButtonTitle={(stepId, newTitle) => {
+                                const updatedSteps = (
+                                  globalSettings.steps_config || []
+                                ).map((s) => {
+                                  if (s.id === stepId) {
+                                    return { ...s, button_title: newTitle };
+                                  }
+                                  return s;
+                                });
+                                setGlobalSettings((prev) => ({
+                                  ...prev,
+                                  steps_config: updatedSteps,
+                                }));
+                              }}
+                            />
+                          ),
+                        )}
                       </SortableContext>
                     </DndContext>
                   </div>
@@ -733,45 +826,63 @@ const JobScreeningAdmin = () => {
                 <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left border-b border-slate-100 pb-2">
                   Checklist & Documents
                 </span>
-                
+
                 <div className="flex flex-col gap-4 text-left">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
                       Global Supporting Documents
                     </label>
                     <p className="text-[10px] text-slate-400 font-medium leading-relaxed mb-1">
-                      Candidates must upload these checklist documents under the "Additional Documents" pipeline step.
+                      Candidates must upload these checklist documents under the
+                      "Additional Documents" pipeline step.
                     </p>
-                    
+
                     {/* List of existing requirements */}
                     <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-                      {(globalSettings.required_additional_documents || []).length === 0 ? (
-                        <p className="text-[10px] text-slate-400 italic">No global documents required.</p>
+                      {(globalSettings.required_additional_documents || [])
+                        .length === 0 ? (
+                        <p className="text-[10px] text-slate-400 italic">
+                          No global documents required.
+                        </p>
                       ) : (
-                        globalSettings.required_additional_documents.map((doc) => (
-                          <div key={doc.id} className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg p-2 text-[10px]">
-                            <div className="truncate pr-2 text-left">
-                              <span className="font-bold text-slate-700 block truncate">{doc.title}</span>
-                              <span className="text-[8px] text-slate-400 font-medium">
-                                Formats: {doc.allowed_extensions?.join(", ").toUpperCase()}
-                              </span>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveDocRequirement(doc.id)}
-                              className="text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                        globalSettings.required_additional_documents.map(
+                          (doc) => (
+                            <div
+                              key={doc.id}
+                              className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg p-2 text-[10px]"
                             >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ))
+                              <div className="truncate pr-2 text-left">
+                                <span className="font-bold text-slate-700 block truncate">
+                                  {doc.title}
+                                </span>
+                                <span className="text-[8px] text-slate-400 font-medium">
+                                  Formats:{" "}
+                                  {doc.allowed_extensions
+                                    ?.join(", ")
+                                    .toUpperCase()}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRemoveDocRequirement(doc.id)
+                                }
+                                className="text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ),
+                        )
                       )}
                     </div>
                   </div>
 
                   {/* Form to add a new requirement */}
                   <div className="p-3 bg-slate-50/50 border border-slate-150 rounded-xl flex flex-col gap-2">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase">Add Global Document Requirement</span>
+                    <span className="text-[9px] font-bold text-slate-500 uppercase">
+                      Add Global Document Requirement
+                    </span>
                     <input
                       type="text"
                       placeholder="e.g. 10th Marks Card"
@@ -779,15 +890,23 @@ const JobScreeningAdmin = () => {
                       onChange={(e) => setNewDocTitle(e.target.value)}
                       className="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-[#083262]"
                     />
-                    
+
                     {/* Checkboxes for file types */}
                     <div className="flex flex-wrap gap-2 mt-1">
                       {Object.keys(newDocExts).map((ext) => (
-                        <label key={ext} className="flex items-center gap-1 text-[9px] font-bold text-slate-500 cursor-pointer select-none">
+                        <label
+                          key={ext}
+                          className="flex items-center gap-1 text-[9px] font-bold text-slate-500 cursor-pointer select-none"
+                        >
                           <input
                             type="checkbox"
                             checked={newDocExts[ext]}
-                            onChange={(e) => setNewDocExts(prev => ({ ...prev, [ext]: e.target.checked }))}
+                            onChange={(e) =>
+                              setNewDocExts((prev) => ({
+                                ...prev,
+                                [ext]: e.target.checked,
+                              }))
+                            }
                             className="rounded border-slate-200 text-[#083262] focus:ring-0 w-3 h-3"
                           />
                           {ext.toUpperCase()}
@@ -813,7 +932,13 @@ const JobScreeningAdmin = () => {
   );
 };
 
-const SortableGlobalStepItem = ({ id, step, index, onToggleSkippable, onUpdateButtonTitle }) => {
+const SortableGlobalStepItem = ({
+  id,
+  step,
+  index,
+  onToggleSkippable,
+  onUpdateButtonTitle,
+}) => {
   const {
     attributes,
     listeners,
@@ -846,7 +971,9 @@ const SortableGlobalStepItem = ({ id, step, index, onToggleSkippable, onUpdateBu
             <GripVertical className="w-3.5 h-3.5" />
           </button>
           <div className="flex flex-col truncate">
-            <span className="font-bold text-slate-700 truncate">{step.title}</span>
+            <span className="font-bold text-slate-700 truncate">
+              {step.title}
+            </span>
             <span className="text-[8px] text-slate-400 font-semibold uppercase mt-0.5">
               Step {index + 1}
             </span>
@@ -864,7 +991,9 @@ const SortableGlobalStepItem = ({ id, step, index, onToggleSkippable, onUpdateBu
       </div>
 
       <div className="flex items-center gap-2 pl-7 w-full">
-        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider shrink-0">Button Title</span>
+        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
+          Button Title
+        </span>
         <input
           type="text"
           value={step.button_title || ""}

@@ -41,4 +41,8 @@ export const skipRecruiterStatus = () =>
 export const submitCandidateDetails = (payload) =>
   api.post("/job-screening/fill-details", payload);
 
+export const createPaywallOrder = () => api.post("/job-screening/payment/order");
+
+export const verifyPaywallPayment = (payload) => api.post("/job-screening/payment/verify", payload);
+
 
