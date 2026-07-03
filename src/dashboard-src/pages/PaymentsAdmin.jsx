@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { RefreshCw, Search, ShieldOff } from "lucide-react";
 import {
   EmptyState,
@@ -27,11 +28,35 @@ import { usePaymentsAdminState } from "../payments-admin/hooks/usePaymentsAdminS
 import { TabContent } from "../payments-admin/tabs/TabContent";
 import { MONTH_NAMES, TABS } from "../payments-admin/utils/constants";
 import { formatInrFromPaise } from "../payments-admin/utils/formatters";
+import { paymentsAdminApi } from "../../api/paymentsAdminApi";
 
 export default function PaymentsAdmin() {
   const state = usePaymentsAdminState();
   const actions = usePaymentsAdminActions(state);
   const sel = usePaymentsAdminSelectors(state);
+  const [downloadingType, setDownloadingType] = useState(null);
+
+  async function triggerFeeExport(exportType) {
+    if (downloadingType) return;
+    setDownloadingType(exportType);
+    try {
+      const res = await paymentsAdminApi.exportFeeView(state.year, state.month, exportType, state.cohortFilter);
+      const url = URL.createObjectURL(new Blob([res.data], { type: res.headers["content-type"] }));
+      const a = document.createElement("a");
+      const disposition = res.headers["content-disposition"] || "";
+      const nameMatch = disposition.match(/filename="?([^"]+)"?/);
+      a.href = url;
+      a.download = nameMatch ? nameMatch[1] : `fee_export_${exportType}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("XLS export failed:", e);
+    } finally {
+      setDownloadingType(null);
+    }
+  }
 
   // While access is being resolved, show a minimal loading state
   if (state.accessLoading) {
@@ -191,21 +216,46 @@ export default function PaymentsAdmin() {
       </div>
 
       {state.tab === "fee" ? (
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <StatCard
             label="Paid This Month"
             value={formatInrFromPaise(sel.feeSummary.paidSoFar)}
             tone="emerald"
+            onDownload={() => triggerFeeExport("paid")}
+            downloading={downloadingType === "paid"}
           />
           <StatCard
             label="Unpaid This Month"
             value={formatInrFromPaise(sel.feeSummary.unpaidSoFar)}
             tone="amber"
+            onDownload={() => triggerFeeExport("unpaid")}
+            downloading={downloadingType === "unpaid"}
+          />
+          <StatCard
+            label="Potential After Discounts"
+            value={formatInrFromPaise(sel.feeSummary.potentialAfterDiscounts)}
+            tone="purple"
+            onDownload={() => triggerFeeExport("potential")}
+            downloading={downloadingType === "potential"}
+          />
+          <StatCard
+            label="Discounts This Month"
+            value={formatInrFromPaise(sel.feeSummary.totalDiscounts)}
+            tone="blue"
+            onDownload={() => triggerFeeExport("discounts")}
+            downloading={downloadingType === "discounts"}
+          />
+          <StatCard
+            label="Active, Not Scheduled"
+            value={formatInrFromPaise(sel.feeSummary.activeButNotScheduled)}
+            tone="slate"
+            onDownload={() => triggerFeeExport("not_scheduled")}
+            downloading={downloadingType === "not_scheduled"}
           />
           <StatCard
             label="Selected Month"
             value={`${MONTH_NAMES[state.month]} ${state.year}`}
-            tone="blue"
+            tone="indigo"
           />
         </div>
       ) : null}

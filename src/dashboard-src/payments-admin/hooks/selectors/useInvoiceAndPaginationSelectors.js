@@ -55,10 +55,13 @@ export function useInvoiceAndPaginationSelectors(state, core) {
   }, [rows, candidateOptions, enrollmentSearchTerm]);
 
   const resolvedFeeSummary = useMemo(() => {
-    if (tab !== "fee") return { unpaidSoFar: 0, paidSoFar: 0 };
+    if (tab !== "fee") return { unpaidSoFar: 0, paidSoFar: 0, potentialAfterDiscounts: 0, totalDiscounts: 0, activeButNotScheduled: 0 };
     return {
       unpaidSoFar: Number(feeSummary?.unpaid_this_month_paise || 0),
       paidSoFar: Number(feeSummary?.paid_this_month_paise || 0),
+      potentialAfterDiscounts: Number(feeSummary?.potential_after_discounts_paise || 0),
+      totalDiscounts: Number(feeSummary?.total_discounts_paise || 0),
+      activeButNotScheduled: Number(feeSummary?.active_but_not_scheduled_paise || 0),
     };
   }, [feeSummary, tab]);
 

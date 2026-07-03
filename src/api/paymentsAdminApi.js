@@ -51,6 +51,11 @@ export const paymentsAdminApi = {
     api.get("/admin/payments/ledger/total-fee-view", {
       params: { year, month, ...params },
     }),
+  exportFeeView: (year, month, exportType, cohortFilter) =>
+    api.get("/admin/payments/ledger/total-fee-view/export", {
+      params: { year, month, export_type: exportType, cohort_filter: cohortFilter },
+      responseType: "blob",
+    }),
   getTotalFeeBreakdown: (enrollment_id, year, month) =>
     api.get("/admin/payments/ledger/total-fee-breakdown", {
       params: { enrollment_id, year, month, type: "due" },

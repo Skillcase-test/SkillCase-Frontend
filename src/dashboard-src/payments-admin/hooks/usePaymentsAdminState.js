@@ -169,6 +169,9 @@ export function usePaymentsAdminState() {
   const [feeSummary, setFeeSummary] = useState({
     paid_this_month_paise: 0,
     unpaid_this_month_paise: 0,
+    potential_after_discounts_paise: 0,
+    total_discounts_paise: 0,
+    active_but_not_scheduled_paise: 0,
   });
   const [enrollmentSearchTerm, setEnrollmentSearchTerm] = useState("");
   const [invoiceRows, setInvoiceRows] = useState([]);
@@ -328,6 +331,9 @@ export function usePaymentsAdminState() {
           res.data.fee_summary || {
             paid_this_month_paise: 0,
             unpaid_this_month_paise: 0,
+            potential_after_discounts_paise: 0,
+            total_discounts_paise: 0,
+            active_but_not_scheduled_paise: 0,
           },
         );
         setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
