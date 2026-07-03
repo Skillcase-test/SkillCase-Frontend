@@ -55,6 +55,7 @@ const DynamicLessonAdmin = lazy(() => import("../../pages/admin/DynamicLessonAdm
 const JobScreeningAdmin = lazy(() =>
   import("../../pages/admin/JobScreeningAdmin")
 );
+const Paywall = lazy(() => import("./Paywall"));
 
 const A1FlashcardAdd = lazy(() => import("./a1/flashcard/add"));
 const A1FlashcardManage = lazy(() => import("./a1/flashcard/manage"));
@@ -710,6 +711,12 @@ export default function Dashboard() {
         path: "/admin/job-screening",
         module: "job_screening",
       },
+      {
+        key: "paywall",
+        label: "Paywall",
+        path: "/admin/paywall",
+        module: "paywall",
+      },
     ].filter((item) => hasPermission(me, item.module, "view"));
 
     const a1ContentAllowed = hasPermission(me, "content", "view");
@@ -1057,6 +1064,14 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "job_screening")}>
                     <JobScreeningAdmin />
+                  </Guard>
+                }
+              />
+              <Route
+                path="paywall"
+                element={
+                  <Guard allowed={hasPermission(me, "paywall")}>
+                    <Paywall />
                   </Guard>
                 }
               />

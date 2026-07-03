@@ -4,13 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { setUser } from "../redux/auth/authSlice";
 import api from "../api/axios";
 import JobScreeningProfilePage from "./jobScreening/JobScreeningProfilePage";
-import {
-  Send,
-  Eye,
-  BookmarkCheck,
-  CalendarCheck2,
-  Clock,
-} from "lucide-react";
+import { Send, Eye, BookmarkCheck, CalendarCheck2, Clock } from "lucide-react";
+import mayaSad from "../assets/onboarding/mayaSad.webp";
 
 const DEFAULT_AVATAR = (
   <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
@@ -84,7 +79,27 @@ export default function ProfilePage() {
   const [recruitmentLoading, setRecruitmentLoading] = useState(false);
   const [recruitmentError, setRecruitmentError] = useState("");
   const [toast, setToast] = useState({ show: false, msg: "", type: "" });
+  const [cancelling, setCancelling] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const aliveRef = useRef(true);
+
+  const handleDisableAutopay = async () => {
+    setCancelling(true);
+    try {
+      const res = await api.post("/user/disable-autopay");
+      dispatch(setUser(res.data.user));
+      showToast("Subscription cancelled successfully", "success");
+    } catch (err) {
+      console.error(err);
+      showToast(
+        err.response?.data?.msg || "Failed to cancel subscription",
+        "error",
+      );
+    } finally {
+      setCancelling(false);
+      setShowCancelModal(false);
+    }
+  };
 
   useEffect(() => {
     aliveRef.current = true;
@@ -273,7 +288,9 @@ export default function ProfilePage() {
     );
   }
 
-  const isJobScreeningCandidate = user?.lg_preferred_mode === "job_screening" || String(user?.german_preference) === "3";
+  const isJobScreeningCandidate =
+    user?.lg_preferred_mode === "job_screening" ||
+    String(user?.german_preference) === "3";
 
   if (isJobScreeningCandidate) {
     return <JobScreeningProfilePage />;
@@ -376,72 +393,72 @@ export default function ProfilePage() {
       <div className="max-w-lg mx-auto px-4 py-6">
         {/* Recruitment Status Card */}
         {recruitmentStatus?.visible && (
-        <div className="rounded-xl border border-[#e9eaeb] shadow-sm mb-4 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-[#181d27]">
-              Recruitment Status
-            </h2>
-          </div>
-
-          <div>
-            {/* Pipeline Progress Bar */}
-            <div className="flex items-center gap-0.5 mb-3">
-              {stats.map((stat, idx) => {
-                const isActive =
-                  recruitmentStatus?.summary_counts?.[stat.key] > 0;
-                return (
-                  <div key={stat.key} className="flex-1 flex items-center">
-                    <div
-                      className={`flex-1 h-1 rounded-full transition-colors ${isActive ? `bg-gradient-to-r ${stat.color}` : "bg-gray-200"}`}
-                    />
-                    {idx < stats.length - 1 && (
-                      <div className="w-0.5 h-1 bg-gray-200 flex-shrink-0" />
-                    )}
-                  </div>
-                );
-              })}
+          <div className="rounded-xl border border-[#e9eaeb] shadow-sm mb-4 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-[#181d27]">
+                Recruitment Status
+              </h2>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-4 gap-2">
-              {stats.map((stat) => {
-                const count =
-                  recruitmentStatus?.summary_counts?.[stat.key] || 0;
-                const isActive = count > 0;
-                return (
-                  <div
-                    key={stat.key}
-                    className={`relative rounded-lg p-2 text-center transition-all ${
-                      isActive
-                        ? `${stat.bgTint} border border-transparent`
-                        : "bg-white border border-[#e9eaeb]"
-                    }`}
-                  >
+            <div>
+              {/* Pipeline Progress Bar */}
+              <div className="flex items-center gap-0.5 mb-3">
+                {stats.map((stat, idx) => {
+                  const isActive =
+                    recruitmentStatus?.summary_counts?.[stat.key] > 0;
+                  return (
+                    <div key={stat.key} className="flex-1 flex items-center">
+                      <div
+                        className={`flex-1 h-1 rounded-full transition-colors ${isActive ? `bg-gradient-to-r ${stat.color}` : "bg-gray-200"}`}
+                      />
+                      {idx < stats.length - 1 && (
+                        <div className="w-0.5 h-1 bg-gray-200 flex-shrink-0" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-4 gap-2">
+                {stats.map((stat) => {
+                  const count =
+                    recruitmentStatus?.summary_counts?.[stat.key] || 0;
+                  const isActive = count > 0;
+                  return (
                     <div
-                      className={`inline-flex p-1.5 rounded-md ${isActive ? stat.bgTint : "bg-gray-100"}`}
+                      key={stat.key}
+                      className={`relative rounded-lg p-2 text-center transition-all ${
+                        isActive
+                          ? `${stat.bgTint} border border-transparent`
+                          : "bg-white border border-[#e9eaeb]"
+                      }`}
                     >
                       <div
-                        className={isActive ? stat.textTint : "text-gray-400"}
+                        className={`inline-flex p-1.5 rounded-md ${isActive ? stat.bgTint : "bg-gray-100"}`}
                       >
-                        {stat.icon}
+                        <div
+                          className={isActive ? stat.textTint : "text-gray-400"}
+                        >
+                          {stat.icon}
+                        </div>
                       </div>
+                      <p
+                        className={`mt-1.5 text-lg font-bold tracking-tight ${isActive ? "text-[#181d27]" : "text-gray-300"}`}
+                      >
+                        {count}
+                      </p>
+                      <p
+                        className={`text-[8px] font-semibold uppercase tracking-wider ${isActive ? "text-gray-500" : "text-gray-400"}`}
+                      >
+                        {stat.label}
+                      </p>
                     </div>
-                    <p
-                      className={`mt-1.5 text-lg font-bold tracking-tight ${isActive ? "text-[#181d27]" : "text-gray-300"}`}
-                    >
-                      {count}
-                    </p>
-                    <p
-                      className={`text-[8px] font-semibold uppercase tracking-wider ${isActive ? "text-gray-500" : "text-gray-400"}`}
-                    >
-                      {stat.label}
-                    </p>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
         )}
 
         <div className="bg-white rounded-xl border border-[#e9eaeb] shadow-sm">
@@ -713,7 +730,94 @@ export default function ProfilePage() {
             </form>
           )}
         </div>
+
+        {/* Autopay Subscription Card */}
+        {user && user.razorpay_subscription_id && (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm mt-4 overflow-hidden">
+            {/* Header */}
+            <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <BookmarkCheck className="w-4 h-4 text-indigo-600 shrink-0" />
+                  Active Subscription
+                </h3>
+                <p className="text-xs text-slate-400 font-medium mt-0.5 leading-relaxed">
+                  Recurring autopay linked to this account.
+                </p>
+              </div>
+              {user.autopay_enabled ? (
+                <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                  Active
+                </span>
+              ) : (
+                <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200 capitalize">
+                  {user.autopay_status || "Cancelled"}
+                </span>
+              )}
+            </div>
+
+            {/* Plan detail row */}
+            <div className="mx-5 mb-4 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 flex items-center justify-between">
+              <span className="text-xs text-slate-500 font-semibold">
+                Subscription Fee
+              </span>
+              <span className="text-sm font-bold text-slate-800">
+                INR 99 / Month
+              </span>
+            </div>
+
+            {/* Action */}
+            {user.autopay_enabled && (
+              <div className="px-5 pb-5">
+                <button
+                  type="button"
+                  onClick={() => setShowCancelModal(true)}
+                  disabled={cancelling}
+                  className="w-full h-10 border border-rose-200 text-rose-600 font-bold rounded-xl bg-rose-50 hover:bg-rose-100 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {cancelling ? "Processing..." : "Cancel Autopay Subscription"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Cancel Autopay Confirmation Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-xl">
+            <div className="flex flex-col items-center px-6 pt-8 pb-4 gap-3 text-center">
+              <img
+                src={mayaSad}
+                alt="Maya sad"
+                className="w-24 h-24 object-contain"
+                draggable="false"
+              />
+              <h3 className="text-[#181d27] text-lg font-bold">Are you sure?</h3>
+              <p className="text-[#535862] text-sm leading-relaxed">
+                Once cancelled, your monthly plan will not renew and you will no longer be able to enjoy the full Skillcase experience.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 px-6 pb-6 pt-2">
+              <button
+                onClick={handleDisableAutopay}
+                disabled={cancelling}
+                className="w-full py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition-colors disabled:opacity-50"
+              >
+                {cancelling ? "Cancelling..." : "Yes, cancel autopay"}
+              </button>
+              <button
+                onClick={() => setShowCancelModal(false)}
+                disabled={cancelling}
+                className="w-full py-3 rounded-xl border border-[#e9eaeb] text-[#535862] font-semibold text-sm hover:bg-slate-50 transition-colors"
+              >
+                Keep my subscription
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -585,7 +585,7 @@ export default function Navbar({
                     Admin
                   </Link>
                 )}
-                <Link to="/profile" className="flex-shrink-0">
+                <Link to="/profile" id="profile-nav-link" className="flex-shrink-0">
                   {renderProfileAvatar()}
                 </Link>
                 {!isLearnMode && (
@@ -645,7 +645,7 @@ export default function Navbar({
 
             {/* Mobile Profile Avatar */}
             {isAuthenticated && (
-              <Link to="/profile" className="flex-shrink-0">
+              <Link to="/profile" id="profile-nav-link-mobile" className="flex-shrink-0">
                 {renderProfileAvatar()}
               </Link>
             )}
@@ -940,7 +940,7 @@ function PracticeNavbar({ minimal = false, disableNavigation = false, streak = 0
                   </Link>
                 )}
 
-                <Link to="/profile" className="flex-shrink-0">
+                <Link to="/profile" id="profile-nav-link" className="flex-shrink-0">
                   <PracticeAvatar user={user} progressRatio={progressRatio} />
                 </Link>
 
@@ -980,7 +980,7 @@ function PracticeNavbar({ minimal = false, disableNavigation = false, streak = 0
                   </div>
                 </div>
 
-                <Link to="/profile" className="flex-shrink-0">
+                <Link to="/profile" id="profile-nav-link-mobile" className="flex-shrink-0">
                   <PracticeAvatar user={user} progressRatio={progressRatio} />
                 </Link>
               </>
@@ -1336,7 +1336,7 @@ function JobScreeningNavbar({ minimal = false, disableNavigation = false }) {
           <nav className="hidden lg:flex items-center gap-6">
             {isAuthenticated ? (
               <div className="flex items-center gap-4 ml-4">
-                <Link to="/profile" className="flex-shrink-0">
+                <Link to="/profile" id="profile-nav-link" className="flex-shrink-0">
                   {renderSimpleAvatar()}
                 </Link>
 
@@ -1361,7 +1361,7 @@ function JobScreeningNavbar({ minimal = false, disableNavigation = false }) {
         {showNavLinks && (
           <div className="lg:hidden flex items-center gap-3">
             {isAuthenticated && (
-              <Link to="/profile" className="flex-shrink-0">
+              <Link to="/profile" id="profile-nav-link-mobile" className="flex-shrink-0">
                 {renderSimpleAvatar()}
               </Link>
             )}
