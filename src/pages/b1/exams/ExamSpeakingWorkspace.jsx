@@ -73,7 +73,10 @@ export default function ExamSpeakingWorkspace() {
         const storedExpire = localStorage.getItem(timerKey);
         if (storedExpire) {
           const expireTime = parseInt(storedExpire, 10);
-          const remaining = Math.max(0, Math.floor((expireTime - Date.now()) / 1000));
+          const remaining = Math.max(
+            0,
+            Math.floor((expireTime - Date.now()) / 1000),
+          );
           setTimeLeft(remaining);
         } else {
           const durationSeconds = list[0].duration_minutes * 60;
@@ -187,7 +190,9 @@ export default function ExamSpeakingWorkspace() {
         });
       }, 1000);
     } catch (err) {
-      toast.error("Please allow microphone access to record speaking responses.");
+      toast.error(
+        "Please allow microphone access to record speaking responses.",
+      );
     }
   };
 
@@ -264,7 +269,6 @@ export default function ExamSpeakingWorkspace() {
 
       try {
         await submitB1ExamSpeakingAudio(submission.id, formData);
-        toast.success("Recording saved successfully!");
       } catch (err) {
         console.error("Error saving speaking answer:", err);
         toast.error("Failed to evaluate and save speech. Please try again.");
@@ -286,7 +290,9 @@ export default function ExamSpeakingWorkspace() {
     try {
       // Empty payload triggers finalization
       await submitB1ExamSpeakingAudio(submission.id, new FormData());
-      localStorage.removeItem(`b1_exam_timer_${user?.user_id || "guest"}_${paperId}_speaking`);
+      localStorage.removeItem(
+        `b1_exam_timer_${user?.user_id || "guest"}_${paperId}_speaking`,
+      );
       navigate(`/b1/exams/papers/${paperId}/speaking/results`, {
         state: { submissionId: submission.id },
       });
@@ -355,8 +361,8 @@ export default function ExamSpeakingWorkspace() {
     (currentBlock.passage_text
       ? "paragraph"
       : currentBlock.speaking_prompt_image
-      ? "image"
-      : "text");
+        ? "image"
+        : "text");
 
   const isLastBlock = currentBlockIndex === questions.length - 1;
 
@@ -436,7 +442,9 @@ export default function ExamSpeakingWorkspace() {
                 type="button"
                 onClick={() => handleTtsPlay(currentBlock.passage_text)}
                 className={`w-7 h-7 rounded-lg flex items-center justify-center cursor-pointer shrink-0 transition-all hover:bg-zinc-200 text-slate-700 ${
-                  isTtsPlaying ? "bg-zinc-400 animate-pulse text-white" : "bg-zinc-100"
+                  isTtsPlaying
+                    ? "bg-zinc-400 animate-pulse text-white"
+                    : "bg-zinc-100"
                 }`}
               >
                 <Volume2 className="w-4 h-4" />
