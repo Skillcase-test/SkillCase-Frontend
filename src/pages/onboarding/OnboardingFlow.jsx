@@ -72,7 +72,10 @@ function isLearnGermanPref(pref) {
 }
 
 const getPostLoginRoute = (user) => {
-  if (user?.lg_preferred_mode === "job_screening" || user?.german_preference === "3") {
+  if (
+    user?.lg_preferred_mode === "job_screening" ||
+    user?.german_preference === "3"
+  ) {
     return "/job-screening";
   }
   if (user?.lg_preferred_mode === "learn") {
@@ -183,10 +186,13 @@ const OnboardingFlow = () => {
   useEffect(() => {
     setClarityTag("lg_funnel", "onboarding");
     setClarityTag("lg_onboarding_step", step);
-    trackClarityEvent(ONBOARDING_STEP_EVENTS[step] || "lg_onboarding_step_viewed", {
-      lg_funnel: "onboarding",
-      lg_onboarding_step: step,
-    });
+    trackClarityEvent(
+      ONBOARDING_STEP_EVENTS[step] || "lg_onboarding_step_viewed",
+      {
+        lg_funnel: "onboarding",
+        lg_onboarding_step: step,
+      },
+    );
   }, [step]);
 
   useEffect(() => {
@@ -211,7 +217,8 @@ const OnboardingFlow = () => {
   // Web OTP API (Chrome on Android - browser only)
   useEffect(() => {
     if (step !== 3) return undefined;
-    if (!("OTPCredential" in window) || Capacitor.isNativePlatform()) return undefined;
+    if (!("OTPCredential" in window) || Capacitor.isNativePlatform())
+      return undefined;
 
     const ac = new AbortController();
     navigator.credentials
@@ -302,10 +309,14 @@ const OnboardingFlow = () => {
         phone: phoneNumber,
         code,
       });
-      trackClarityEvent("lg_onboarding_otp_verified", {
-        lg_funnel: "onboarding",
-        lg_user_type: data.isNewUser ? "new" : "returning",
-      }, "lg_onboarding_otp_verified");
+      trackClarityEvent(
+        "lg_onboarding_otp_verified",
+        {
+          lg_funnel: "onboarding",
+          lg_user_type: data.isNewUser ? "new" : "returning",
+        },
+        "lg_onboarding_otp_verified",
+      );
       if (data.isNewUser) {
         setStep(4);
       } else {
@@ -370,13 +381,17 @@ const OnboardingFlow = () => {
       });
       dispatch(loginSuccess({ token: data.token, user: data.user }));
       localStorage.setItem("lg_preferred_mode", "job_screening");
-      trackClarityEvent("lg_onboarding_completed", {
-        lg_funnel: "onboarding",
-        lg_selected_mode: "job_screening",
-        lg_selected_level: germanLevel,
-        lg_german_status: germanStatus,
-        lg_occupation: occupation,
-      }, "lg_onboarding_completed");
+      trackClarityEvent(
+        "lg_onboarding_completed",
+        {
+          lg_funnel: "onboarding",
+          lg_selected_mode: "job_screening",
+          lg_selected_level: germanLevel,
+          lg_german_status: germanStatus,
+          lg_occupation: occupation,
+        },
+        "lg_onboarding_completed",
+      );
       navigate("/job-screening", { replace: true });
     } catch (err) {
       setError(
@@ -393,7 +408,8 @@ const OnboardingFlow = () => {
       if (germanStatus === "I have completed learning German") {
         handleInstantJobScreeningSubmit();
       } else {
-        const isB1OrB2 = germanLevel.includes("B1") || germanLevel.includes("B2");
+        const isB1OrB2 =
+          germanLevel.includes("B1") || germanLevel.includes("B2");
         if (isB1OrB2) {
           setPreference("");
           setStep(9);
@@ -428,13 +444,17 @@ const OnboardingFlow = () => {
         "lg_preferred_mode",
         germanPrefCode === "2" ? "practice" : "learn",
       );
-      trackClarityEvent("lg_onboarding_completed", {
-        lg_funnel: "onboarding",
-        lg_selected_mode: germanPrefCode === "2" ? "practice" : "learn",
-        lg_selected_level: germanLevel || "new_to_german",
-        lg_german_status: germanStatus,
-        lg_occupation: occupation,
-      }, "lg_onboarding_completed");
+      trackClarityEvent(
+        "lg_onboarding_completed",
+        {
+          lg_funnel: "onboarding",
+          lg_selected_mode: germanPrefCode === "2" ? "practice" : "learn",
+          lg_selected_level: germanLevel || "new_to_german",
+          lg_german_status: germanStatus,
+          lg_occupation: occupation,
+        },
+        "lg_onboarding_completed",
+      );
 
       // Navigate based on preference
       if (germanPrefCode === "2") {
@@ -475,13 +495,17 @@ const OnboardingFlow = () => {
         "lg_preferred_mode",
         preference === "3" ? "job_screening" : "practice",
       );
-      trackClarityEvent("lg_onboarding_completed", {
-        lg_funnel: "onboarding",
-        lg_selected_mode: preference === "3" ? "job_screening" : "practice",
-        lg_selected_level: germanLevel,
-        lg_german_status: germanStatus,
-        lg_occupation: occupation,
-      }, "lg_onboarding_completed");
+      trackClarityEvent(
+        "lg_onboarding_completed",
+        {
+          lg_funnel: "onboarding",
+          lg_selected_mode: preference === "3" ? "job_screening" : "practice",
+          lg_selected_level: germanLevel,
+          lg_german_status: germanStatus,
+          lg_occupation: occupation,
+        },
+        "lg_onboarding_completed",
+      );
 
       if (preference === "3") {
         navigate("/job-screening", { replace: true });
@@ -873,12 +897,12 @@ const OnboardingFlow = () => {
                   </h2>
                   <div className="flex flex-col gap-3 w-full pb-2 mt-2">
                     {[
+                      { id: "B", label: "Professional nurse", icon: nurseIcon },
                       {
                         id: "A",
                         label: "Student (learning nursing)",
                         icon: studentIcon,
                       },
-                      { id: "B", label: "Professional nurse", icon: nurseIcon },
                       {
                         id: "C",
                         label: "Healthcare support staff",
@@ -1024,29 +1048,49 @@ const OnboardingFlow = () => {
                           "B2 - Upper Intermediate\n(I can speak fairly confidently)",
                       },
                     ]
-                      .filter((lvl) => germanStatus !== "I have completed learning German" || lvl.level >= 3)
-                      .map((lvl) => (
-                      <button
-                        key={lvl.level}
-                        onClick={() => selectGermanLevel(lvl.label)}
-                        className={`w-full p-3 rounded-xl border text-left flex items-center gap-4 transition-all ${
-                          germanLevel === lvl.label
-                            ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
-                            : "border-zinc-300 bg-white hover:bg-zinc-50"
-                        }`}
-                      >
-                        <LevelBars level={lvl.level} />
-                        <span
-                          className={`text-[13px] font-semibold  whitespace-pre-line transition-colors ${
-                            germanLevel === lvl.label
-                              ? "text-[#1E76F3]"
-                              : "text-[#111827]"
-                          }`}
-                        >
-                          {lvl.label}
-                        </span>
-                      </button>
-                    ))}
+                      .filter(
+                        (lvl) =>
+                          germanStatus !== "I have completed learning German" ||
+                          lvl.level >= 3,
+                      )
+                      .map((lvl) => {
+                        const [title, desc] = lvl.label.split("\n");
+                        return (
+                          <button
+                            key={lvl.level}
+                            onClick={() => selectGermanLevel(lvl.label)}
+                            className={`w-full p-3 rounded-xl border text-left flex items-center gap-4 transition-all ${
+                              germanLevel === lvl.label
+                                ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
+                                : "border-zinc-300 bg-white hover:bg-zinc-50"
+                            }`}
+                          >
+                            <LevelBars level={lvl.level} />
+                            <div className="flex flex-col">
+                              <span
+                                className={`text-[14px] font-semibold transition-colors ${
+                                  germanLevel === lvl.label
+                                    ? "text-[#1E76F3]"
+                                    : "text-[#111827]"
+                                }`}
+                              >
+                                {title}
+                              </span>
+                              {desc && (
+                                <span
+                                  className={`text-[12px] font-normal transition-colors ${
+                                    germanLevel === lvl.label
+                                      ? "text-[#1E76F3]/80"
+                                      : "text-zinc-500"
+                                  }`}
+                                >
+                                  {desc}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
                   </div>
                 </div>
                 <BottomActions
@@ -1185,7 +1229,7 @@ const OnboardingFlow = () => {
                         id: "B",
                         code: "3",
                         title: "Job Screening",
-                      }
+                      },
                     ].map((opt) => {
                       const isSelected = preference === opt.code;
                       return (
