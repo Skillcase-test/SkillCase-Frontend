@@ -8,6 +8,8 @@ const MODULE_OPTIONS = [
   { key: "app_analytics", label: "App Analytics" },
   { key: "content", label: "A1" },
   { key: "a2_content", label: "A2" },
+  { key: "b1_content", label: "B1" },
+  { key: "learn_german", label: "Learn German" },
   { key: "events", label: "Events" },
   { key: "interview_tools", label: "Interview Tools" },
   { key: "skillcase_interviews", label: "Skillcase Interviews" },
@@ -23,7 +25,6 @@ const MODULE_OPTIONS = [
   { key: "payments", label: "Payments" },
   { key: "paywall", label: "Paywall" },
 ];
-
 const ACTION_OPTIONS = ["view", "create", "edit", "delete", "manage"];
 const SKILLCASE_INTERVIEW_MODULE = "skillcase_interviews";
 

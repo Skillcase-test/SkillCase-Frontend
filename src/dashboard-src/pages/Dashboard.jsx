@@ -85,6 +85,19 @@ const A2ReadingManage = lazy(() => import("./a2/reading/manage"));
 const A2TestAdd = lazy(() => import("./a2/test/add"));
 const A2TestManage = lazy(() => import("./a2/test/manage"));
 
+const B1FlashcardAdd = lazy(() => import("./b1/flashcard/add"));
+const B1FlashcardManage = lazy(() => import("./b1/flashcard/manage"));
+const B1VideoAdd = lazy(() => import("./b1/video/add"));
+const B1VideoManage = lazy(() => import("./b1/video/manage"));
+const B1DescribeSpeakAdd = lazy(() => import("./b1/describe-speak/add"));
+const B1DescribeSpeakManage = lazy(() => import("./b1/describe-speak/manage"));
+const B1NewsAdd = lazy(() => import("./b1/news/add"));
+const B1NewsManage = lazy(() => import("./b1/news/manage"));
+const B1ArticleAdd = lazy(() => import("./b1/article/add"));
+const B1ArticleManage = lazy(() => import("./b1/article/manage"));
+const B1ExamsAdd = lazy(() => import("./b1/exams/add"));
+const B1ExamsManage = lazy(() => import("./b1/exams/manage"));
+
 function hasPermission(me, moduleKey, action = "view") {
   if (!me) return false;
   if (me.role === "super_admin") return true;
@@ -423,10 +436,10 @@ function ModuleGroup({ title, modules, onLinkClick }) {
   );
 }
 
-function ContentModuleTree({ a1Modules, a2Modules, extraItems = [], onLinkClick }) {
+function ContentModuleTree({ a1Modules, a2Modules, b1Modules = [], extraItems = [], onLinkClick }) {
   const location = useLocation();
   const hasModules =
-    a1Modules.length > 0 || a2Modules.length > 0 || extraItems.length > 0;
+    a1Modules.length > 0 || a2Modules.length > 0 || b1Modules.length > 0 || extraItems.length > 0;
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -436,13 +449,16 @@ function ContentModuleTree({ a1Modules, a2Modules, extraItems = [], onLinkClick 
     const matchesA2 = a2Modules.some((m) =>
       location.pathname.startsWith(m.basePath),
     );
-    if (matchesA1 || matchesA2) {
+    const matchesB1 = b1Modules.some((m) =>
+      location.pathname.startsWith(m.basePath),
+    );
+    if (matchesA1 || matchesA2 || matchesB1) {
       setOpen(true);
     }
     if (extraItems.some((item) => location.pathname.startsWith(item.path))) {
       setOpen(true);
     }
-  }, [location.pathname, a1Modules, a2Modules, extraItems]);
+  }, [location.pathname, a1Modules, a2Modules, b1Modules, extraItems]);
 
   if (!hasModules) return null;
 
@@ -477,6 +493,13 @@ function ContentModuleTree({ a1Modules, a2Modules, extraItems = [], onLinkClick 
             <ModuleGroup
               title="A2"
               modules={a2Modules}
+              onLinkClick={onLinkClick}
+            />
+          )}
+          {b1Modules.length > 0 && (
+            <ModuleGroup
+              title="B1"
+              modules={b1Modules}
               onLinkClick={onLinkClick}
             />
           )}
@@ -654,7 +677,7 @@ export default function Dashboard() {
   }, [me, PAYMENTS_TAB_KEYS]);
 
   const sections = useMemo(() => {
-    if (!me) return { core: [], a1Modules: [], a2Modules: [], superAdmin: [] };
+    if (!me) return { core: [], a1Modules: [], a2Modules: [], b1Modules: [], superAdmin: [] };
 
     const core = [
       {
@@ -766,7 +789,8 @@ export default function Dashboard() {
 
     const a1ContentAllowed = hasPermission(me, "content", "view");
     const a2ContentAllowed = hasPermission(me, "a2_content", "view");
-    const dynamicLessonAllowed = hasPermission(me, "content", "edit");
+    const b1ContentAllowed = hasPermission(me, "b1_content", "view");
+    const dynamicLessonAllowed = hasPermission(me, "learn_german", "view");
 
     const a1Modules = a1ContentAllowed
       ? [
@@ -830,6 +854,41 @@ export default function Dashboard() {
         ]
       : [];
 
+    const b1Modules = b1ContentAllowed
+      ? [
+          {
+            key: "b1-flashcard",
+            label: "B1 Flashcard",
+            basePath: "/admin/b1/flashcard",
+          },
+          {
+            key: "b1-video",
+            label: "B1 Video",
+            basePath: "/admin/b1/video",
+          },
+          {
+            key: "b1-describe-speak",
+            label: "B1 Describe & Speak",
+            basePath: "/admin/b1/describe-speak",
+          },
+          {
+            key: "b1-news",
+            label: "B1 News",
+            basePath: "/admin/b1/news",
+          },
+          {
+            key: "b1-article",
+            label: "B1 Article",
+            basePath: "/admin/b1/article",
+          },
+          {
+            key: "b1-exams",
+            label: "B1 Exams",
+            basePath: "/admin/b1/exams",
+          },
+        ]
+      : [];
+
     const superAdmin =
       me.role === "super_admin"
         ? [
@@ -854,7 +913,7 @@ export default function Dashboard() {
         ]
       : [];
 
-    return { core, a1Modules, a2Modules, extraContentItems, superAdmin };
+    return { core, a1Modules, a2Modules, b1Modules, extraContentItems, superAdmin };
   }, [me, hasPaymentsAccess]);
 
   const defaultPath =
@@ -862,6 +921,7 @@ export default function Dashboard() {
     sections.extraContentItems?.[0]?.path ||
     (sections.a1Modules[0] ? `${sections.a1Modules[0].basePath}/add` : null) ||
     (sections.a2Modules[0] ? `${sections.a2Modules[0].basePath}/add` : null) ||
+    (sections.b1Modules[0] ? `${sections.b1Modules[0].basePath}/add` : null) ||
     sections.superAdmin[0]?.path ||
     "/admin/no-access";
 
@@ -949,6 +1009,7 @@ export default function Dashboard() {
               <ContentModuleTree
                 a1Modules={sections.a1Modules}
                 a2Modules={sections.a2Modules}
+                b1Modules={sections.b1Modules}
                 extraItems={sections.extraContentItems}
               />
               <SidebarSection title="Super Admin" items={sections.superAdmin} />
@@ -974,6 +1035,7 @@ export default function Dashboard() {
               <ContentModuleTree
                 a1Modules={sections.a1Modules}
                 a2Modules={sections.a2Modules}
+                b1Modules={sections.b1Modules}
                 extraItems={sections.extraContentItems}
                 onLinkClick={closeMobileSidebar}
               />
@@ -1140,7 +1202,7 @@ export default function Dashboard() {
               <Route
                 path="dynamic-lesson"
                 element={
-                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                  <Guard allowed={hasPermission(me, "learn_german", "edit")}>
                     <DynamicLessonAdmin />
                   </Guard>
                 }
@@ -1335,6 +1397,104 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "content", "edit")}>
                     <A2TestManage />
+                  </Guard>
+                }
+              />
+
+              {/* B1 Routes */}
+              <Route
+                path="b1/flashcard/add"
+                element={
+                  <Guard allowed={hasPermission(me, "b1_content", "edit")}>
+                    <B1FlashcardAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b1/flashcard/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "b1_content", "edit")}>
+                    <B1FlashcardManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b1/video/add"
+                element={
+                  <Guard allowed={hasPermission(me, "b1_content", "edit")}>
+                    <B1VideoAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b1/video/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "b1_content", "edit")}>
+                    <B1VideoManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b1/describe-speak/add"
+                element={
+                  <Guard allowed={hasPermission(me, "b1_content", "edit")}>
+                    <B1DescribeSpeakAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b1/describe-speak/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "b1_content", "edit")}>
+                    <B1DescribeSpeakManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b1/news/add"
+                element={
+                  <Guard allowed={hasPermission(me, "b1_content", "edit")}>
+                    <B1NewsAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b1/news/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "b1_content", "edit")}>
+                    <B1NewsManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b1/article/add"
+                element={
+                  <Guard allowed={hasPermission(me, "b1_content", "edit")}>
+                    <B1ArticleAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b1/article/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "b1_content", "edit")}>
+                    <B1ArticleManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b1/exams/add"
+                element={
+                  <Guard allowed={hasPermission(me, "b1_content", "edit")}>
+                    <B1ExamsAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b1/exams/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "b1_content", "edit")}>
+                    <B1ExamsManage />
                   </Guard>
                 }
               />
