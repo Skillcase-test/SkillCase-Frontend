@@ -13,7 +13,10 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { getB1Flashcards as getFlashcards, saveB1FlashcardProgress as saveFlashcardProgress } from "../../../api/b1Api";
+import {
+  getB1Flashcards as getFlashcards,
+  saveB1FlashcardProgress as saveFlashcardProgress,
+} from "../../../api/b1Api";
 import api from "../../../api/axios";
 import B1FlashcardDeck from "../../../components/b1/B1FlashcardDeck";
 import ProgressBar from "../../../components/b1/ProgressBar";
@@ -51,8 +54,8 @@ function WordItem({ word, isDragging, isOverlay }) {
         isOverlay
           ? "bg-[#002856] text-white shadow-2xl scale-110 cursor-grabbing z-50"
           : isDragging
-          ? "opacity-30 scale-95 bg-gray-200"
-          : "bg-white text-[#002856] border-2 border-[#002856] shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
+            ? "opacity-30 scale-95 bg-gray-200"
+            : "bg-white text-[#002856] border-2 border-[#002856] shadow-sm cursor-grab active:cursor-grabbing hover:shadow-md hover:-translate-y-0.5"
       }`}
     >
       {word}
@@ -264,13 +267,13 @@ function QuizMatching({ question, value, onChange, showResult }) {
                     ? status === "correct"
                       ? "border-green-500 bg-green-50 text-green-700"
                       : status === "incorrect"
-                      ? "border-red-500 bg-red-50 text-red-700"
-                      : "border-gray-200 bg-gray-50 text-gray-500"
+                        ? "border-red-500 bg-red-50 text-red-700"
+                        : "border-gray-200 bg-gray-50 text-gray-500"
                     : isSelected
-                    ? "border-[#002856] bg-[#002856] text-white shadow-md"
-                    : isMatched
-                    ? "border-[#002856]/40 bg-[#edfaff] text-[#002856]"
-                    : "border-gray-200 bg-white hover:border-gray-300"
+                      ? "border-[#002856] bg-[#002856] text-white shadow-md"
+                      : isMatched
+                        ? "border-[#002856]/40 bg-[#edfaff] text-[#002856]"
+                        : "border-gray-200 bg-white hover:border-gray-300"
                 }`}
               >
                 {item}
@@ -310,13 +313,13 @@ function QuizMatching({ question, value, onChange, showResult }) {
                     ? status === "correct"
                       ? "border-green-500 bg-green-50 text-green-700"
                       : status === "incorrect"
-                      ? "border-red-500 bg-red-50 text-red-700"
-                      : "border-gray-200 bg-gray-50 text-gray-500"
+                        ? "border-red-500 bg-red-50 text-red-700"
+                        : "border-gray-200 bg-gray-50 text-gray-500"
                     : isSelected
-                    ? "border-[#002856] bg-[#002856] text-white shadow-md"
-                    : isMatched
-                    ? "border-[#002856]/40 bg-[#edfaff] text-[#002856]"
-                    : "border-gray-200 bg-white hover:border-gray-300"
+                      ? "border-[#002856] bg-[#002856] text-white shadow-md"
+                      : isMatched
+                        ? "border-[#002856]/40 bg-[#edfaff] text-[#002856]"
+                        : "border-gray-200 bg-white hover:border-gray-300"
                 }`}
               >
                 {item}
@@ -820,7 +823,12 @@ export default function B1Flashcard() {
     setIsFinalTest(isFin);
     setUserAnswers({});
     if (alreadyPassed) {
-      setTestResults({ correct: qs.length, total: qs.length, passed: true, wrongIndices: [] });
+      setTestResults({
+        correct: qs.length,
+        total: qs.length,
+        passed: true,
+        wrongIndices: [],
+      });
       setTestSubmitted(true);
     } else {
       setTestSubmitted(false);
@@ -856,7 +864,9 @@ export default function B1Flashcard() {
       const correctPairs = q.correctAnswer || [];
       if (ans.length !== leftItems.length) return false;
       const correctMap = {};
-      leftItems.forEach((l, i) => { correctMap[l] = correctPairs[i]; });
+      leftItems.forEach((l, i) => {
+        correctMap[l] = correctPairs[i];
+      });
       return ans.every((pair) => pair.right === correctMap[pair.left]);
     }
     if (q.type === "mcq_multi") {
@@ -990,8 +1000,8 @@ export default function B1Flashcard() {
                 {isPassed
                   ? "Review Results"
                   : isAtFinalTest
-                  ? "Start Final Test"
-                  : "Start Test"}
+                    ? "Start Final Test"
+                    : "Start Test"}
               </button>
               {!isAtFinalTest && (
                 <button
@@ -1056,175 +1066,56 @@ export default function B1Flashcard() {
                 const qIndex = origIdx;
                 const isLocked = lockedCorrectSet.has(qIndex);
                 return (
-                <div
-                  key={qIndex}
-                  className={`border rounded-2xl p-5 transition-all ${
-                    isLocked
-                      ? "border-green-300 bg-green-50/50 opacity-60"
-                      : userAnswers[qIndex] !== undefined
-                      ? "border-[#edb843] bg-white shadow-sm"
-                      : "border-[#e0e0e0] bg-white"
-                  }`}
-                  style={isLocked ? { pointerEvents: "none" } : {}}
-                >
-                  <p className="text-[10px] text-gray-400 uppercase tracking-widest font-medium mb-2">
-                    {q.questionLabel}
-                  </p>
-                  <p className="text-lg font-bold text-[#002856] mb-4 leading-snug">
-                    <span className="inline-flex items-center justify-center w-6 h-6 bg-[#002856] text-white text-xs rounded-full mr-2">
-                      {qIndex + 1}
-                    </span>
-                    {q.type === "truefalse"
-                      ? `"${q.question}" = "${q.displayAnswer}"`
-                      : q.type === "sentence_correction"
-                      ? q.question_data?.incorrect_sentence
-                      : q.type === "sentence_reorder"
-                      ? `Arrange: ${q.question_data?.hint_en}`
-                      : q.type === "matching"
-                      ? "Match the pairs below"
-                      : q.question || ""}
-                  </p>
-                  <div className="space-y-2">
-                    {(q.type === "mcq" || q.type === "fill_options") &&
-                      q.options?.map((opt, oIndex) => (
-                        <div
-                          key={oIndex}
-                          onClick={() =>
-                            setUserAnswers({ ...userAnswers, [qIndex]: opt })
-                          }
-                          className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                            userAnswers[qIndex] === opt
-                              ? "border-[#edb843] bg-[#fffbf0]"
-                              : "border-[#e0e0e0] hover:border-[#edb843]"
-                          }`}
-                        >
-                          <div
-                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              userAnswers[qIndex] === opt
-                                ? "border-[#edb843] bg-[#edb843]"
-                                : "border-[#d0d0d0]"
-                            }`}
-                          >
-                            {userAnswers[qIndex] === opt && (
-                              <Check className="w-3 h-3 text-white" />
-                            )}
-                          </div>
-                          <span className="text-sm text-[#181d27]">{opt}</span>
-                        </div>
-                      ))}
-                    {q.type === "truefalse" && (
-                      <div className="flex gap-3">
-                        {[true, false].map((val) => (
-                          <div
-                            key={String(val)}
-                            onClick={() =>
-                              setUserAnswers({ ...userAnswers, [qIndex]: val })
-                            }
-                            className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                              userAnswers[qIndex] === val
-                                ? "border-[#002856] bg-[#edfaff]"
-                                : "border-[#e0e0e0] hover:border-[#888]"
-                            }`}
-                          >
-                            <span
-                              className={`text-sm font-semibold ${
-                                userAnswers[qIndex] === val
-                                  ? "text-[#002856]"
-                                  : "text-[#555]"
-                              }`}
-                            >
-                              {val ? "True" : "False"}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {(q.type === "fill_typing" ||
-                      q.type === "sentence_correction") && (
-                      <div className="space-y-0">
-                        <input
-                          id={`fc-test-input-${qIndex}`}
-                          type="text"
-                          className="w-full p-4 border rounded-xl"
-                          placeholder={
-                            q.type === "sentence_correction"
-                              ? "Type corrected sentence"
-                              : "Type your answer"
-                          }
-                          value={userAnswers[qIndex] || ""}
-                          onChange={(e) =>
-                            setUserAnswers({
-                              ...userAnswers,
-                              [qIndex]: e.target.value,
-                            })
-                          }
-                        />
-                        <UmlautKeyboard
-                          onInsert={(char) => {
-                            const input = document.getElementById(
-                              `fc-test-input-${qIndex}`,
-                            );
-                            const current = userAnswers[qIndex] || "";
-                            if (!input) {
-                              setUserAnswers({
-                                ...userAnswers,
-                                [qIndex]: current + char,
-                              });
-                              return;
-                            }
-                            const start =
-                              input.selectionStart ?? current.length;
-                            const end = input.selectionEnd ?? start;
-                            const newVal =
-                              current.slice(0, start) +
-                              char +
-                              current.slice(end);
-                            setUserAnswers({
-                              ...userAnswers,
-                              [qIndex]: newVal,
-                            });
-                            requestAnimationFrame(() => {
-                              input.focus();
-                              input.setSelectionRange(
-                                start + char.length,
-                                start + char.length,
-                              );
-                            });
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    {q.type === "mcq_multi" &&
-                      q.options?.map((opt, oIndex) => {
-                        const current = userAnswers[qIndex] || [];
-                        const isSel = current.includes(opt);
-                        return (
+                  <div
+                    key={qIndex}
+                    className={`border rounded-2xl p-5 transition-all ${
+                      isLocked
+                        ? "border-green-300 bg-green-50/50 opacity-60"
+                        : userAnswers[qIndex] !== undefined
+                          ? "border-[#edb843] bg-white shadow-sm"
+                          : "border-[#e0e0e0] bg-white"
+                    }`}
+                    style={isLocked ? { pointerEvents: "none" } : {}}
+                  >
+                    <p className="text-[10px] text-gray-400 uppercase tracking-widest font-medium mb-2">
+                      {q.questionLabel}
+                    </p>
+                    <p className="text-lg font-bold text-[#002856] mb-4 leading-snug">
+                      <span className="inline-flex items-center justify-center w-6 h-6 bg-[#002856] text-white text-xs rounded-full mr-2">
+                        {qIndex + 1}
+                      </span>
+                      {q.type === "truefalse"
+                        ? `"${q.question}" = "${q.displayAnswer}"`
+                        : q.type === "sentence_correction"
+                          ? q.question_data?.incorrect_sentence
+                          : q.type === "sentence_reorder"
+                            ? `Arrange: ${q.question_data?.hint_en}`
+                            : q.type === "matching"
+                              ? "Match the pairs below"
+                              : q.question || ""}
+                    </p>
+                    <div className="space-y-2">
+                      {(q.type === "mcq" || q.type === "fill_options") &&
+                        q.options?.map((opt, oIndex) => (
                           <div
                             key={oIndex}
-                            onClick={() => {
-                              const newArr = isSel
-                                ? current.filter((x) => x !== opt)
-                                : [...current, opt];
-                              setUserAnswers({
-                                ...userAnswers,
-                                [qIndex]: newArr,
-                              });
-                            }}
+                            onClick={() =>
+                              setUserAnswers({ ...userAnswers, [qIndex]: opt })
+                            }
                             className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                              isSel
+                              userAnswers[qIndex] === opt
                                 ? "border-[#edb843] bg-[#fffbf0]"
-                                : "border-[#e0e0e0]"
+                                : "border-[#e0e0e0] hover:border-[#edb843]"
                             }`}
                           >
                             <div
-                              className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
-                                isSel
+                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                userAnswers[qIndex] === opt
                                   ? "border-[#edb843] bg-[#edb843]"
                                   : "border-[#d0d0d0]"
                               }`}
                             >
-                              {isSel && (
+                              {userAnswers[qIndex] === opt && (
                                 <Check className="w-3 h-3 text-white" />
                               )}
                             </div>
@@ -1232,36 +1123,158 @@ export default function B1Flashcard() {
                               {opt}
                             </span>
                           </div>
-                        );
-                      })}
-                    {q.type === "sentence_reorder" && (
-                      <QuizSentenceReorder
-                        question={q}
-                        value={userAnswers[qIndex]}
-                        onChange={(val) =>
-                          setUserAnswers({ ...userAnswers, [qIndex]: val })
-                        }
-                      />
-                    )}
-                    {q.type === "matching" && (
-                      <QuizMatching
-                        question={q}
-                        value={userAnswers[qIndex]}
-                        onChange={(val) =>
-                          setUserAnswers({ ...userAnswers, [qIndex]: val })
-                        }
-                        showResult={false}
-                      />
-                    )}
+                        ))}
+                      {q.type === "truefalse" && (
+                        <div className="flex gap-3">
+                          {[true, false].map((val) => (
+                            <div
+                              key={String(val)}
+                              onClick={() =>
+                                setUserAnswers({
+                                  ...userAnswers,
+                                  [qIndex]: val,
+                                })
+                              }
+                              className={`flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                userAnswers[qIndex] === val
+                                  ? "border-[#002856] bg-[#edfaff]"
+                                  : "border-[#e0e0e0] hover:border-[#888]"
+                              }`}
+                            >
+                              <span
+                                className={`text-sm font-semibold ${
+                                  userAnswers[qIndex] === val
+                                    ? "text-[#002856]"
+                                    : "text-[#555]"
+                                }`}
+                              >
+                                {val ? "True" : "False"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {(q.type === "fill_typing" ||
+                        q.type === "sentence_correction") && (
+                        <div className="space-y-0">
+                          <input
+                            id={`fc-test-input-${qIndex}`}
+                            type="text"
+                            className="w-full p-4 border rounded-xl"
+                            placeholder={
+                              q.type === "sentence_correction"
+                                ? "Type corrected sentence"
+                                : "Type your answer"
+                            }
+                            value={userAnswers[qIndex] || ""}
+                            onChange={(e) =>
+                              setUserAnswers({
+                                ...userAnswers,
+                                [qIndex]: e.target.value,
+                              })
+                            }
+                          />
+                          <UmlautKeyboard
+                            onInsert={(char) => {
+                              const input = document.getElementById(
+                                `fc-test-input-${qIndex}`,
+                              );
+                              const current = userAnswers[qIndex] || "";
+                              if (!input) {
+                                setUserAnswers({
+                                  ...userAnswers,
+                                  [qIndex]: current + char,
+                                });
+                                return;
+                              }
+                              const start =
+                                input.selectionStart ?? current.length;
+                              const end = input.selectionEnd ?? start;
+                              const newVal =
+                                current.slice(0, start) +
+                                char +
+                                current.slice(end);
+                              setUserAnswers({
+                                ...userAnswers,
+                                [qIndex]: newVal,
+                              });
+                              requestAnimationFrame(() => {
+                                input.focus();
+                                input.setSelectionRange(
+                                  start + char.length,
+                                  start + char.length,
+                                );
+                              });
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {q.type === "mcq_multi" &&
+                        q.options?.map((opt, oIndex) => {
+                          const current = userAnswers[qIndex] || [];
+                          const isSel = current.includes(opt);
+                          return (
+                            <div
+                              key={oIndex}
+                              onClick={() => {
+                                const newArr = isSel
+                                  ? current.filter((x) => x !== opt)
+                                  : [...current, opt];
+                                setUserAnswers({
+                                  ...userAnswers,
+                                  [qIndex]: newArr,
+                                });
+                              }}
+                              className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                                isSel
+                                  ? "border-[#edb843] bg-[#fffbf0]"
+                                  : "border-[#e0e0e0]"
+                              }`}
+                            >
+                              <div
+                                className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                                  isSel
+                                    ? "border-[#edb843] bg-[#edb843]"
+                                    : "border-[#d0d0d0]"
+                                }`}
+                              >
+                                {isSel && (
+                                  <Check className="w-3 h-3 text-white" />
+                                )}
+                              </div>
+                              <span className="text-sm text-[#181d27]">
+                                {opt}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      {q.type === "sentence_reorder" && (
+                        <QuizSentenceReorder
+                          question={q}
+                          value={userAnswers[qIndex]}
+                          onChange={(val) =>
+                            setUserAnswers({ ...userAnswers, [qIndex]: val })
+                          }
+                        />
+                      )}
+                      {q.type === "matching" && (
+                        <QuizMatching
+                          question={q}
+                          value={userAnswers[qIndex]}
+                          onChange={(val) =>
+                            setUserAnswers({ ...userAnswers, [qIndex]: val })
+                          }
+                          showResult={false}
+                        />
+                      )}
+                    </div>
                   </div>
-                </div>
                 );
               })}
               <button
                 onClick={submitTest}
-                disabled={
-                  answeredCount !== totalActive || isSubmitting
-                }
+                disabled={answeredCount !== totalActive || isSubmitting}
                 className={`w-full py-4 rounded-2xl font-bold text-lg transition-all flex items-center justify-center gap-2 ${
                   answeredCount === totalActive && !isSubmitting
                     ? "bg-[#002856] text-white hover:bg-[#003a70] shadow-lg"
@@ -1350,21 +1363,25 @@ export default function B1Flashcard() {
                         q.type === "matching"
                           ? "Match the pairs"
                           : q.type === "sentence_correction"
-                          ? q.question_data?.incorrect_sentence
-                          : q.type === "sentence_reorder"
-                          ? q.question_data?.hint_en
-                          : q.type === "truefalse"
-                          ? `"${q.question}" = "${q.displayAnswer}"`
-                          : q.question || "";
+                            ? q.question_data?.incorrect_sentence
+                            : q.type === "sentence_reorder"
+                              ? q.question_data?.hint_en
+                              : q.type === "truefalse"
+                                ? `"${q.question}" = "${q.displayAnswer}"`
+                                : q.question || "";
                       const ansText = Array.isArray(q.correctAnswer)
                         ? q.correctAnswer.join(", ")
                         : q.type === "fill_typing"
-                        ? q.correct || q.correctAnswer || ""
-                        : q.type === "sentence_correction"
-                        ? q.question_data?.correct_sentence || q.correctAnswer || ""
-                        : q.type === "truefalse"
-                        ? q.correctAnswer ? "True" : "False"
-                        : String(q.correctAnswer ?? "");
+                          ? q.correct || q.correctAnswer || ""
+                          : q.type === "sentence_correction"
+                            ? q.question_data?.correct_sentence ||
+                              q.correctAnswer ||
+                              ""
+                            : q.type === "truefalse"
+                              ? q.correctAnswer
+                                ? "True"
+                                : "False"
+                              : String(q.correctAnswer ?? "");
                       return (
                         <div
                           key={i}
@@ -1382,28 +1399,52 @@ export default function B1Flashcard() {
                                 {qText}
                               </p>
                               <div className="mt-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2">
-                                <p className="text-xs text-green-600 font-medium mb-1">Correct answer:</p>
-                                {q.type === "matching" && Array.isArray(q.question_data?.left_items) ? (
+                                <p className="text-xs text-green-600 font-medium mb-1">
+                                  Correct answer:
+                                </p>
+                                {q.type === "matching" &&
+                                Array.isArray(q.question_data?.left_items) ? (
                                   <div className="space-y-1">
-                                    {q.question_data.left_items.map((left, pi) => {
-                                      const correctRight = (q.question_data.correct_pairs || q.question_data.right_items)?.[pi];
-                                      return (
-                                        <p key={pi} className="text-sm text-green-800 font-semibold">
-                                          {left} → {correctRight ?? "?"}
-                                        </p>
-                                      );
-                                    })}
+                                    {q.question_data.left_items.map(
+                                      (left, pi) => {
+                                        const correctRight = (q.question_data
+                                          .correct_pairs ||
+                                          q.question_data.right_items)?.[pi];
+                                        return (
+                                          <p
+                                            key={pi}
+                                            className="text-sm text-green-800 font-semibold"
+                                          >
+                                            {left} → {correctRight ?? "?"}
+                                          </p>
+                                        );
+                                      },
+                                    )}
                                   </div>
-                                ) : q.type === "matching" && Array.isArray(q.question_data?.pairs) ? (
+                                ) : q.type === "matching" &&
+                                  Array.isArray(q.question_data?.pairs) ? (
                                   <div className="space-y-1">
                                     {q.question_data.pairs.map((pair, pi) => (
-                                      <p key={pi} className="text-sm text-green-800 font-semibold">
-                                        {pair.de || pair.left || pair.german || "?"} → {pair.en || pair.right || pair.english || "?"}
+                                      <p
+                                        key={pi}
+                                        className="text-sm text-green-800 font-semibold"
+                                      >
+                                        {pair.de ||
+                                          pair.left ||
+                                          pair.german ||
+                                          "?"}{" "}
+                                        →{" "}
+                                        {pair.en ||
+                                          pair.right ||
+                                          pair.english ||
+                                          "?"}
                                       </p>
                                     ))}
                                   </div>
                                 ) : (
-                                  <p className="text-sm text-green-800 font-semibold">{ansText}</p>
+                                  <p className="text-sm text-green-800 font-semibold">
+                                    {ansText}
+                                  </p>
                                 )}
                               </div>
                             </div>
@@ -1414,7 +1455,7 @@ export default function B1Flashcard() {
                   </div>
                 </div>
               )}
-              
+
               {testResults.passed ? (
                 <button
                   onClick={continueAfterTest}
@@ -1426,7 +1467,10 @@ export default function B1Flashcard() {
                 <div className="flex gap-3 w-full">
                   <button
                     onClick={() => {
-                      const allIdx = Array.from({ length: testQuestions.length }, (_, i) => i);
+                      const allIdx = Array.from(
+                        { length: testQuestions.length },
+                        (_, i) => i,
+                      );
                       setActiveQIndices(allIdx);
                       setUserAnswers({});
                       setTestSubmitted(false);
@@ -1454,7 +1498,7 @@ export default function B1Flashcard() {
 
   // MAIN VIEW
   return (
-    <div className="min-h-100dvh bg-white flex flex-col">
+    <div className="min-h-[calc(100vh-65px)] bg-white flex flex-col relative">
       <div className="px-4 py-2.5">
         <div className="flex items-center justify-between">
           <button

@@ -1247,7 +1247,7 @@ export default function A1Flashcard() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col relative overflow-hidden">
+    <div className="min-h-[calc(100vh-65px)] bg-white flex flex-col relative">
       <div className="px-4 py-2.5">
         <div className="flex items-center justify-between">
           <button
