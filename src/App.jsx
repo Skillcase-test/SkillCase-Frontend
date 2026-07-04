@@ -30,6 +30,7 @@ import OtaUpdateModal from "./components/OtaUpdateModal";
 import MaintenanceModal from "./components/MaintenanceModal";
 import PullToRefreshIndicator from "./components/PullToRefreshIndicator";
 import { useDispatch, useSelector } from "react-redux";
+import SupportWidget from "./components/SupportWidget";
 import api from "./api/axios";
 import { setUser, logout } from "./redux/auth/authSlice";
 
@@ -1222,6 +1223,7 @@ function AppContent() {
 
               <ConditionalBottomModeSwitcher />
               <ConditionalFooter />
+              <SupportWidget />
             </A2ProductTour>
           </A1ProductTour>
         </ProductTour>

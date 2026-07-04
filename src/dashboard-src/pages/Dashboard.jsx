@@ -52,6 +52,7 @@ const AdminAccessManagement = lazy(() => import("./AdminAccessManagement"));
 const ExploreCandidatesAdmin = lazy(() => import("./ExploreCandidatesAdmin"));
 const PaymentsAdmin = lazy(() => import("./PaymentsAdmin"));
 const CallEnginePage = lazy(() => import("./CallEngine"));
+const SupportTicketsAdmin = lazy(() => import("./SupportTicketsAdmin"));
 const DynamicLessonAdmin = lazy(() => import("../../pages/admin/DynamicLessonAdmin"));
 const JobScreeningAdmin = lazy(() =>
   import("../../pages/admin/JobScreeningAdmin")
@@ -833,6 +834,7 @@ export default function Dashboard() {
       me.role === "super_admin"
         ? [
             { key: "access", label: "Admin Access", path: "/admin/access" },
+            { key: "tickets", label: "Issues & Tickets", path: "/admin/tickets" },
             { key: "payments", label: "Payments", path: "/admin/payments" },
             {
               key: "call-engine",
@@ -1342,6 +1344,16 @@ export default function Dashboard() {
                 element={
                   me.role === "super_admin" ? (
                     <AdminAccessManagement />
+                  ) : (
+                    <Navigate to="/admin/no-access" replace />
+                  )
+                }
+              />
+              <Route
+                path="tickets"
+                element={
+                  me.role === "super_admin" ? (
+                    <SupportTicketsAdmin />
                   ) : (
                     <Navigate to="/admin/no-access" replace />
                   )
