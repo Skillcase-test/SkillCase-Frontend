@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import api from "../../../api/axios";
 const useTextToSpeech = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const activeAudioRef = useRef(null);
   const speakText = async (text, language = "de-DE") => {
     try {
       setIsLoadingAudio(true);
@@ -14,14 +15,21 @@ const useTextToSpeech = () => {
       );
       const audioBlob = new Blob([response.data], { type: "audio/mpeg" });
       const audioUrl = URL.createObjectURL(audioBlob);
+      if (activeAudioRef.current) {
+        activeAudioRef.current.pause();
+        activeAudioRef.current = null;
+      }
       const audio = new Audio(audioUrl);
+      activeAudioRef.current = audio;
       audio.onended = () => {
         setIsSpeaking(false);
+        activeAudioRef.current = null;
         URL.revokeObjectURL(audioUrl);
       };
       audio.onerror = () => {
         setIsSpeaking(false);
         setIsLoadingAudio(false);
+        activeAudioRef.current = null;
       };
       await audio.play();
       setIsLoadingAudio(false);
@@ -29,6 +37,7 @@ const useTextToSpeech = () => {
       console.error("TTS Error:", err);
       setIsSpeaking(false);
       setIsLoadingAudio(false);
+      activeAudioRef.current = null;
       // Fallback to browser TTS
       if ("speechSynthesis" in window) {
         window.speechSynthesis.cancel();
@@ -41,11 +50,27 @@ const useTextToSpeech = () => {
     }
   };
   const cancelSpeech = () => {
+    if (activeAudioRef.current) {
+      activeAudioRef.current.pause();
+      activeAudioRef.current = null;
+    }
     if ("speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
     setIsSpeaking(false);
   };
+
+  useEffect(() => {
+    return () => {
+      if (activeAudioRef.current) {
+        activeAudioRef.current.pause();
+        activeAudioRef.current = null;
+      }
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
   return {
     isSpeaking,
     isLoadingAudio,
