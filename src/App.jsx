@@ -183,6 +183,69 @@ const NewLessonFlow = lazy(
 );
 const RecapScreen = lazy(() => import("./pages/learnGerman/RecapScreen"));
 
+// B1 German Imports
+const ReadListenSelect = lazy(
+  () => import("./pages/b1/read-listen/ReadListenSelect"),
+);
+const ReadListenTopicSelect = lazy(
+  () => import("./pages/b1/read-listen/ReadListenTopicSelect"),
+);
+const NewsArticleReader = lazy(
+  () => import("./pages/b1/read-listen/NewsArticleReader"),
+);
+const NewsArticleSuccess = lazy(
+  () => import("./pages/b1/read-listen/NewsArticleSuccess"),
+);
+const DescribeSpeakSelect = lazy(
+  () => import("./pages/b1/describe-speak/DescribeSpeakSelect"),
+);
+const DescribeSpeakWorkspace = lazy(
+  () => import("./pages/b1/describe-speak/DescribeSpeakWorkspace"),
+);
+const DescribeSpeakSuccess = lazy(
+  () => import("./pages/b1/describe-speak/DescribeSpeakSuccess"),
+);
+const ExamSelect = lazy(() => import("./pages/b1/exams/ExamSelect"));
+const PaperSelect = lazy(() => import("./pages/b1/exams/PaperSelect"));
+const ExamBlockSelector = lazy(
+  () => import("./pages/b1/exams/ExamBlockSelector"),
+);
+const ExamReadingWorkspace = lazy(
+  () => import("./pages/b1/exams/ExamReadingWorkspace"),
+);
+const ExamReadingResults = lazy(
+  () => import("./pages/b1/exams/ExamReadingResults"),
+);
+const ExamWritingWorkspace = lazy(
+  () => import("./pages/b1/exams/ExamWritingWorkspace"),
+);
+const ExamWritingResults = lazy(
+  () => import("./pages/b1/exams/ExamWritingResults"),
+);
+const ExamListeningWorkspace = lazy(
+  () => import("./pages/b1/exams/ExamListeningWorkspace"),
+);
+const ExamListeningResults = lazy(
+  () => import("./pages/b1/exams/ExamListeningResults"),
+);
+const ExamSpeakingWorkspace = lazy(
+  () => import("./pages/b1/exams/ExamSpeakingWorkspace"),
+);
+const ExamSpeakingResults = lazy(
+  () => import("./pages/b1/exams/ExamSpeakingResults"),
+);
+const ExamCongratulations = lazy(
+  () => import("./pages/b1/exams/ExamCongratulations"),
+);
+const B1FlashcardSelect = lazy(
+  () => import("./pages/b1/flashcard/B1FlashcardSelect"),
+);
+const B1Flashcard = lazy(() => import("./pages/b1/flashcard/B1Flashcard"));
+const B1MayaPage = lazy(() => import("./pages/b1/maya/B1MayaPage"));
+const VideoReader = lazy(() => import("./pages/b1/read-listen/VideoReader"));
+const VideoSuccess = lazy(() => import("./pages/b1/read-listen/VideoSuccess"));
+const B1AdminPage = lazy(() => import("./pages/b1/B1AdminPage"));
+
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 2000;
 const PLAY_STORE_URL = "market://details?id=com.skillcase.app";
@@ -227,7 +290,9 @@ function AppContent() {
     }
     const updateRect = () => {
       const isMobile = window.innerWidth < 1024;
-      const selector = isMobile ? "#profile-nav-link-mobile" : "#profile-nav-link";
+      const selector = isMobile
+        ? "#profile-nav-link-mobile"
+        : "#profile-nav-link";
       const el = document.querySelector(selector);
       if (el) {
         const rect = el.getBoundingClientRect();
@@ -239,12 +304,12 @@ function AppContent() {
         });
       }
     };
-    
+
     const timer = setTimeout(updateRect, 150);
-    
+
     window.addEventListener("resize", updateRect);
     window.addEventListener("scroll", updateRect, true);
-    
+
     return () => {
       clearTimeout(timer);
       window.removeEventListener("resize", updateRect);
@@ -735,9 +800,9 @@ function AppContent() {
               <Toaster position="top-right" />
               <ConditionalNav />
               {isPaywallLocked && (
-                <PaywallBlocker 
-                  user={user} 
-                  dispatch={dispatch} 
+                <PaywallBlocker
+                  user={user}
+                  dispatch={dispatch}
                   onSuccess={() => setShowPaymentSuccess(true)}
                 />
               )}
@@ -756,9 +821,12 @@ function AppContent() {
                       className="w-24 h-24 object-contain animate-bounce"
                       draggable="false"
                     />
-                    <h3 className="text-[#181d27] text-lg font-bold">Autopay Enabled!</h3>
+                    <h3 className="text-[#181d27] text-lg font-bold">
+                      Autopay Enabled!
+                    </h3>
                     <p className="text-[#535862] text-sm leading-relaxed font-semibold">
-                      Let's make your German strong! Your learning journey is now unlocked.
+                      Let's make your German strong! Your learning journey is
+                      now unlocked.
                     </p>
                     <button
                       onClick={() => {
@@ -784,7 +852,8 @@ function AppContent() {
                     Click here to manage your subscription.
                   </p>
                   <p className="relative mt-1 text-[12px] font-medium leading-snug text-slate-500">
-                    You can modify or cancel your autopay anytime from your profile settings.
+                    You can modify or cancel your autopay anytime from your
+                    profile settings.
                   </p>
                 </GuideSpotlight>
               )}
@@ -1219,6 +1288,215 @@ function AppContent() {
                   path="/internal/wise"
                   element={<Navigate to="/admin/wise" replace />}
                 />
+
+                {/* B1 Reading & Listening */}
+                <Route
+                  path="/b1"
+                  element={
+                    <LearningRoute>
+                      <ReadListenSelect />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/read-listen"
+                  element={
+                    <LearningRoute>
+                      <ReadListenSelect />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/read-listen/list/:module"
+                  element={
+                    <LearningRoute>
+                      <ReadListenTopicSelect />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/read-listen/content/:contentId"
+                  element={
+                    <LearningRoute>
+                      <NewsArticleReader />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/read-listen/success"
+                  element={
+                    <LearningRoute>
+                      <NewsArticleSuccess />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/describe-speak"
+                  element={
+                    <LearningRoute>
+                      <DescribeSpeakSelect />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/describe-speak/workspace/:topicId"
+                  element={
+                    <LearningRoute>
+                      <DescribeSpeakWorkspace />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/describe-speak/success"
+                  element={
+                    <LearningRoute>
+                      <DescribeSpeakSuccess />
+                    </LearningRoute>
+                  }
+                />
+                {/* B1 Exams (Goethe & TELC) Routes */}
+                <Route
+                  path="/b1/exams"
+                  element={
+                    <LearningRoute>
+                      <ExamSelect />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/exams/:examType/papers"
+                  element={
+                    <LearningRoute>
+                      <PaperSelect />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/exams/papers/:paperId/dashboard"
+                  element={
+                    <LearningRoute>
+                      <ExamBlockSelector />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/exams/papers/:paperId/reading"
+                  element={
+                    <LearningRoute>
+                      <ExamReadingWorkspace />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/exams/papers/:paperId/reading/results"
+                  element={
+                    <LearningRoute>
+                      <ExamReadingResults />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/exams/papers/:paperId/writing"
+                  element={
+                    <LearningRoute>
+                      <ExamWritingWorkspace />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/exams/papers/:paperId/writing/results"
+                  element={
+                    <LearningRoute>
+                      <ExamWritingResults />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/exams/papers/:paperId/listening"
+                  element={
+                    <LearningRoute>
+                      <ExamListeningWorkspace />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/exams/papers/:paperId/listening/results"
+                  element={
+                    <LearningRoute>
+                      <ExamListeningResults />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/exams/papers/:paperId/speaking"
+                  element={
+                    <LearningRoute>
+                      <ExamSpeakingWorkspace />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/exams/papers/:paperId/speaking/results"
+                  element={
+                    <LearningRoute>
+                      <ExamSpeakingResults />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/exams/papers/:paperId/congratulations"
+                  element={
+                    <LearningRoute>
+                      <ExamCongratulations />
+                    </LearningRoute>
+                  }
+                />
+                {/* B1 Flashcards Routes */}
+                <Route
+                  path="/b1/flashcard"
+                  element={
+                    <LearningRoute>
+                      <B1FlashcardSelect />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/flashcard/:chapterId"
+                  element={
+                    <LearningRoute>
+                      <B1Flashcard />
+                    </LearningRoute>
+                  }
+                />
+                {/* B1 Maya Route */}
+                <Route
+                  path="/b1/maya"
+                  element={
+                    <LearningRoute>
+                      <B1MayaPage />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/read-listen/video/:videoId"
+                  element={
+                    <LearningRoute>
+                      <VideoReader />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1/read-listen/video-success"
+                  element={
+                    <LearningRoute>
+                      <VideoSuccess />
+                    </LearningRoute>
+                  }
+                />
+                <Route
+                  path="/b1admin"
+                  element={lazyScreen(<B1AdminPage />, "Loading B1 Admin...")}
+                />
               </Routes>
 
               <ConditionalBottomModeSwitcher />
@@ -1245,6 +1523,14 @@ function RouteScreenSkeleton({ title }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function LearningRoute({ children }) {
+  return (
+    <Suspense fallback={<RouteScreenSkeleton title="Loading B1 Practice..." />}>
+      {children}
+    </Suspense>
   );
 }
 
@@ -1324,5 +1610,3 @@ function ScrollToTop() {
 
   return null;
 }
-
-

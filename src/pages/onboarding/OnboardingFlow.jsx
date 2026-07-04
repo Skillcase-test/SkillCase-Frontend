@@ -36,8 +36,8 @@ import { setLgFirstLandingMarker } from "../learnGerman/lgFirstTimeGuide";
 const LEVEL_ROUTE_MAP = {
   "A1 - Beginner\n(I know a few words)": "/a1",
   "A2 - Elementary\n(I understand basic sentences)": "/a2",
-  "B1 - Intermediate\n(I can have simple conversations)": "/a2",
-  "B2 - Upper Intermediate\n(I can speak fairly confidently)": "/a2",
+  "B1 - Intermediate\n(I can have simple conversations)": "/b1",
+  "B2 - Upper Intermediate\n(I can speak fairly confidently)": "/b1",
 };
 
 const OTP_RESEND_SECONDS = 90;

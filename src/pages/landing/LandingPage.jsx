@@ -33,6 +33,10 @@ import {
   getReadingChapters as getA2Reading,
   getTestTopics as getA2Test,
 } from "../../api/a2Api";
+import {
+  getB1PracticeProgressRatio,
+  isB1PracticeLevel,
+} from "../../utils/b1Progress";
 import A1MigrationModal from "../../components/a1/A1MigrationModal";
 import ModalPortal from "../../components/common/ModalPortal";
 
@@ -81,8 +85,9 @@ export default function LandingPage() {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   const rawLevel = user?.user_prof_level || "A1";
-  const currentLevel = (rawLevel === "B1" || rawLevel === "B2") ? "A2" : rawLevel;
-  const { sections } = useLandingSections(currentLevel);
+  const currentLevel = rawLevel;
+  const contentLevel = isB1PracticeLevel(rawLevel) ? "B1" : rawLevel;
+  const { sections } = useLandingSections(contentLevel);
 
   const [showA1MigrationModal, setShowA1MigrationModal] = useState(false);
   const [migrationStatus, setMigrationStatus] = useState(null);
@@ -368,11 +373,10 @@ export default function LandingPage() {
     isA1User && ["legacy_a1", "legacy_acknowledged"].includes(migrationStatus);
   const shouldHoldA1FeatureRender = isA1User && migrationStatusLoading;
 
-  const isA2User =
-    (user?.user_prof_level || "").toLowerCase() === "a2" ||
-    (user?.user_prof_level || "").toLowerCase() === "b1" ||
-    (user?.user_prof_level || "").toLowerCase() === "b2";
-  const isDynamic = isA2User || isRevampA1User;
+  const normalizedLevel = (user?.user_prof_level || "").toLowerCase();
+  const isA2User = normalizedLevel === "a2";
+  const isB1User = isB1PracticeLevel(normalizedLevel);
+  const isDynamic = isA2User || isB1User || isRevampA1User;
 
   useEffect(() => {
     if (!user?.user_id) return;
@@ -382,6 +386,12 @@ export default function LandingPage() {
 
     const fetchProgress = async () => {
       try {
+        if (isB1User) {
+          const b1Ratio = await getB1PracticeProgressRatio();
+          if (mounted) setLevelProgress(b1Ratio * 100);
+          return;
+        }
+
         const apis = isRevampA1User
           ? [
               getA1Flashcards(),
@@ -504,7 +514,14 @@ export default function LandingPage() {
     return () => {
       mounted = false;
     };
-  }, [user?.user_id, user?.user_prof_level, migrationStatus, migrationStatusLoading, isDynamic]);
+  }, [
+    user?.user_id,
+    user?.user_prof_level,
+    migrationStatus,
+    migrationStatusLoading,
+    isDynamic,
+    isB1User,
+  ]);
 
   const handleSwitchToNew = async () => {
     setSwitchingToNew(true);

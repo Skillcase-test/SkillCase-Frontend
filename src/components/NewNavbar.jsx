@@ -24,6 +24,11 @@ import {
   getReadingChapters as getA2Reading,
   getTestTopics as getA2Test,
 } from "../api/a2Api";
+import {
+  getB1PracticeProgressRatio,
+  getPracticeHomeForLevel,
+  isB1PracticeLevel,
+} from "../utils/b1Progress";
 import api from "../api/axios";
 import { hapticLight, hapticMedium, hapticHeavy } from "../utils/haptics";
 
@@ -130,8 +135,10 @@ export default function Navbar({
       let mounted = true;
       const fetchPracticeProgress = async () => {
         try {
-          const isA1User = (user?.user_prof_level || "").toLowerCase() === "a1";
-          const isA2User = (user?.user_prof_level || "").toLowerCase() === "a2";
+          const normalizedLevel = (user?.user_prof_level || "").toLowerCase();
+          const isA1User = normalizedLevel === "a1";
+          const isA2User = normalizedLevel === "a2";
+          const isB1User = isB1PracticeLevel(normalizedLevel);
 
           let isRevampA1User = false;
           if (isA1User) {
@@ -141,8 +148,14 @@ export default function Navbar({
           }
 
           const isDynamic = isA2User || isRevampA1User;
-          if (!isDynamic) {
+          if (!isDynamic && !isB1User) {
             if (mounted) setPracticeProgressRatio(0);
+            return;
+          }
+
+          if (isB1User) {
+            const b1Ratio = await getB1PracticeProgressRatio();
+            if (mounted) setPracticeProgressRatio(b1Ratio);
             return;
           }
 
@@ -336,6 +349,9 @@ export default function Navbar({
 
   // Get user's proficiency level for dynamic links
   const profLevel = user?.user_prof_level || "A1";
+  const normalizedProfLevel = String(profLevel).toLowerCase();
+  const isA2PracticeLevel = normalizedProfLevel === "a2";
+  const isB1Level = isB1PracticeLevel(profLevel);
   const showNavLinks = !minimal || isAuthenticated;
 
   if (!activeLearnNavbar) {
@@ -455,7 +471,7 @@ export default function Navbar({
             if (!isAuthenticated) { navigate("/"); return; }
             if (user?.german_preference === "3" || user?.lg_preferred_mode === "job_screening") { navigate("/job-screening"); return; }
             if (isLearnMode) { navigate("/learn-german"); return; }
-            navigate(profLevel === "A2" ? "/a2" : "/a1");
+            navigate(getPracticeHomeForLevel(profLevel));
           }}
           className="flex-shrink-0"
         >
@@ -469,7 +485,40 @@ export default function Navbar({
         {/* Desktop Menu - Hidden on mobile or during onboarding */}
         {!isOnboarding && showNavLinks && (
           <nav className="hidden lg:flex items-center gap-6">
-            {profLevel === "A2" ? (
+            {isB1Level ? (
+              <>
+                <Link
+                  to="/b1/flashcard"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Flashcards
+                </Link>
+                <Link
+                  to="/b1/read-listen"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Read & Listen
+                </Link>
+                <Link
+                  to="/b1/describe-speak"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Describe
+                </Link>
+                <Link
+                  to="/b1/exams"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Exams
+                </Link>
+                <Link
+                  to="/b1/maya"
+                  className="text-[#414651] hover:text-[#002856] transition font-medium text-sm"
+                >
+                  Maya
+                </Link>
+              </>
+            ) : isA2PracticeLevel ? (
               <>
                 <Link
                   to="/a2/flashcard"
@@ -678,7 +727,45 @@ export default function Navbar({
             >
               Home
             </Link>
-            {profLevel === "A2" ? (
+            {isB1Level ? (
+              <>
+                <Link
+                  to="/b1/flashcard"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Flashcards
+                </Link>
+                <Link
+                  to="/b1/read-listen"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Read & Listen
+                </Link>
+                <Link
+                  to="/b1/describe-speak"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Describe
+                </Link>
+                <Link
+                  to="/b1/exams"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Exams
+                </Link>
+                <Link
+                  to="/b1/maya"
+                  className="block px-4 py-3 rounded-lg hover:bg-gray-50 text-[#414651] font-medium"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Maya
+                </Link>
+              </>
+            ) : isA2PracticeLevel ? (
               <>
                 <Link
                   to="/a2/flashcard"
@@ -856,6 +943,9 @@ function PracticeNavbar({ minimal = false, disableNavigation = false, streak = 0
   };
 
   const profLevel = user?.user_prof_level || "A1";
+  const normalizedProfLevel = String(profLevel).toLowerCase();
+  const isA2PracticeLevel = normalizedProfLevel === "a2";
+  const isB1Level = isB1PracticeLevel(profLevel);
   const showNavLinks = !minimal || isAuthenticated;
 
   return (
@@ -881,7 +971,15 @@ function PracticeNavbar({ minimal = false, disableNavigation = false, streak = 0
 
         {showNavLinks && (
           <nav className="hidden lg:flex items-center gap-6">
-            {profLevel === "A2" ? (
+            {isB1Level ? (
+              <>
+                <PracticeNavLink to="/b1/flashcard">Flashcards</PracticeNavLink>
+                <PracticeNavLink to="/b1/read-listen">Read & Listen</PracticeNavLink>
+                <PracticeNavLink to="/b1/describe-speak">Describe</PracticeNavLink>
+                <PracticeNavLink to="/b1/exams">Exams</PracticeNavLink>
+                <PracticeNavLink to="/b1/maya">Maya</PracticeNavLink>
+              </>
+            ) : isA2PracticeLevel ? (
               <>
                 <PracticeNavLink to="/a2/flashcard">Flashcards</PracticeNavLink>
                 <PracticeNavLink to="/a2/grammar">Grammar</PracticeNavLink>
@@ -1023,7 +1121,25 @@ function PracticeNavbar({ minimal = false, disableNavigation = false, streak = 0
             >
               Home
             </MobilePracticeLink>
-            {profLevel === "A2" ? (
+            {isB1Level ? (
+              <>
+                <MobilePracticeLink to="/b1/flashcard" onClick={() => setIsMenuOpen(false)}>
+                  Flashcards
+                </MobilePracticeLink>
+                <MobilePracticeLink to="/b1/read-listen" onClick={() => setIsMenuOpen(false)}>
+                  Read & Listen
+                </MobilePracticeLink>
+                <MobilePracticeLink to="/b1/describe-speak" onClick={() => setIsMenuOpen(false)}>
+                  Describe
+                </MobilePracticeLink>
+                <MobilePracticeLink to="/b1/exams" onClick={() => setIsMenuOpen(false)}>
+                  Exams
+                </MobilePracticeLink>
+                <MobilePracticeLink to="/b1/maya" onClick={() => setIsMenuOpen(false)}>
+                  Maya
+                </MobilePracticeLink>
+              </>
+            ) : isA2PracticeLevel ? (
               <>
                 <MobilePracticeLink to="/a2/flashcard" onClick={() => setIsMenuOpen(false)}>
                   Flashcards
