@@ -5,6 +5,32 @@ import { setUser } from "../redux/auth/authSlice";
 import api from "../api/axios";
 import mayaSmiling from "../assets/onboarding/mayaSmiling.webp";
 
+const normalizeIndianPhone = (value) => {
+  const digits = String(value || "").replace(/\D/g, "");
+  if (digits.length < 10) return "";
+  const last10 = digits.slice(-10);
+  return /^[6-9]\d{9}$/.test(last10) ? last10 : "";
+};
+
+const buildCheckoutPrefill = (source = {}) => {
+  const contact = normalizeIndianPhone(
+    source.contact ||
+      source.phone ||
+      source.number ||
+      source.phone_number ||
+      source.username,
+  );
+  const email =
+    String(source.email || "").trim() ||
+    (contact ? `student-${contact}@skillcase.in` : "");
+
+  return {
+    name: source.name || source.fullname || source.username || "SkillCase Student",
+    contact,
+    email,
+  };
+};
+
 export default function PaywallBlocker({ user, dispatch, onSuccess }) {
   const [loading, setLoading] = useState(false);
 
@@ -31,9 +57,31 @@ export default function PaywallBlocker({ user, dispatch, onSuccess }) {
       }
       const response = await api.post("/user/create-subscription");
       const { key, subscription_id } = response.data;
-      const rawPhone = user.number || user.phone || user.username || "";
-      const cleanPhone = String(rawPhone).replace(/[^0-9]/g, "");
-      const cleanContact = cleanPhone.slice(-10);
+      let checkoutPrefill = buildCheckoutPrefill({
+        ...user,
+        ...(response.data?.prefill || {}),
+      });
+
+      if (!checkoutPrefill.contact) {
+        try {
+          const profileRes = await api.get("/user/profile");
+          checkoutPrefill = buildCheckoutPrefill({
+            ...user,
+            ...(profileRes.data?.profile || {}),
+            ...(response.data?.prefill || {}),
+          });
+        } catch (profileErr) {
+          console.error("Failed to load profile for checkout prefill:", profileErr);
+        }
+      }
+
+      if (!checkoutPrefill.contact) {
+        alert(
+          "We could not find a valid Indian mobile number for autopay. Please contact Skillcase support.",
+        );
+        setLoading(false);
+        return;
+      }
 
       const options = {
         key,
@@ -59,14 +107,18 @@ export default function PaywallBlocker({ user, dispatch, onSuccess }) {
           }
         },
         prefill: {
-          name: user.fullname || user.username || "Student",
-          contact: cleanContact,
-          email: user.email || `${cleanContact || "student"}@example.com`,
+          name: checkoutPrefill.name,
+          contact: checkoutPrefill.contact,
+          email: checkoutPrefill.email,
         },
         readonly: {
           contact: true,
           email: true,
           name: true,
+        },
+        hidden: {
+          contact: true,
+          email: true,
         },
         theme: {
           color: "#002856",
