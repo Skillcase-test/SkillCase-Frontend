@@ -10,14 +10,14 @@ import {
   HelpCircle,
   Play,
   Pause,
-  Clock,
   MessageSquare,
 } from "lucide-react";
 import {
   getB1ExamSubmissionStatus,
   getB1ExamSectionContent,
 } from "../../../api/b1Api";
-import { images } from "../../../assets/images";
+
+const padZero = (num) => String(num || 0).padStart(2, "0");
 
 export default function ExamListeningResults() {
   const navigate = useNavigate();
@@ -32,11 +32,11 @@ export default function ExamListeningResults() {
   const [sectionData, setSectionData] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [reviewMode, setReviewMode] = useState(false);
-  const [selectedReviewIndex, setSelectedReviewIndex] = useState(null);
+  const [reviewBlockIndex, setReviewBlockIndex] = useState(null);
   const [isOverallCompleted, setIsOverallCompleted] = useState(false);
   const containerRef = useRef(null);
 
-  // Custom audio waveform player states for the modal overlay
+  // Custom audio player states
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioDuration, setAudioDuration] = useState(0);
   const [audioProgress, setAudioProgress] = useState(0);
@@ -53,29 +53,47 @@ export default function ExamListeningResults() {
     if (typeof userAns === "string" && !userAns.trim()) return false;
     if (Array.isArray(userAns) && userAns.length === 0) return false;
 
-    if (type === "mcq_single" || type === "true_false" || type === "matching_headers" || type === "matching_ads" || type === "cloze_mcq" || type === "cloze_box") {
-      return String(userAns).trim().toLowerCase() === String(q.correct_option).trim().toLowerCase();
+    if (
+      type === "mcq_single" ||
+      type === "true_false" ||
+      type === "matching_headers" ||
+      type === "matching_ads" ||
+      type === "cloze_mcq" ||
+      type === "cloze_box"
+    ) {
+      return (
+        String(userAns).trim().toLowerCase() ===
+        String(q.correct_option).trim().toLowerCase()
+      );
     }
 
     if (type === "mcq_multi") {
       const userArr = (Array.isArray(userAns) ? userAns : [userAns])
-        .map(v => String(v).trim().toLowerCase())
+        .map((v) => String(v).trim().toLowerCase())
         .filter(Boolean);
 
       let correctArr = [];
       if (Array.isArray(q.correct_option)) {
-        correctArr = q.correct_option.map(v => String(v).trim().toLowerCase());
+        correctArr = q.correct_option.map((v) => String(v).trim().toLowerCase());
       } else if (typeof q.correct_option === "string") {
-        correctArr = q.correct_option.split(",").map(v => v.trim().toLowerCase()).filter(Boolean);
+        correctArr = q.correct_option
+          .split(",")
+          .map((v) => v.trim().toLowerCase())
+          .filter(Boolean);
       }
       if (userArr.length === 0) return false;
-      return userArr.length === correctArr.length && userArr.every(v => correctArr.includes(v));
+      return (
+        userArr.length === correctArr.length &&
+        userArr.every((v) => correctArr.includes(v))
+      );
     }
 
     if (type === "fill_blanks") {
       const userStr = String(userAns).trim().toLowerCase();
       if (Array.isArray(q.correct_option)) {
-        return q.correct_option.some(opt => String(opt).trim().toLowerCase() === userStr);
+        return q.correct_option.some(
+          (opt) => String(opt).trim().toLowerCase() === userStr,
+        );
       } else {
         return String(q.correct_option).trim().toLowerCase() === userStr;
       }
@@ -84,13 +102,8 @@ export default function ExamListeningResults() {
     return false;
   };
 
-  const getB1Image = (name) => {
-    return images[name] || images.videoPlaceholder;
-  };
-
-  // Convert array of block structures into a single flat list of questions with audio metadata
   const flatQuestions = [];
-  questions.forEach((block) => {
+  questions.forEach((block, blockIdx) => {
     const blockQ = block.questions || [];
     blockQ.forEach((q, idx) => {
       const ansKey = `${block.id}_${idx}`;
@@ -100,6 +113,7 @@ export default function ExamListeningResults() {
       flatQuestions.push({
         ...q,
         blockId: block.id,
+        blockIndex: blockIdx,
         qIdx: idx,
         userSelection,
         isCorrect,
@@ -109,8 +123,27 @@ export default function ExamListeningResults() {
     });
   });
 
-  const currentReviewQuestion =
-    selectedReviewIndex !== null ? flatQuestions[selectedReviewIndex] : null;
+  const currentBlock =
+    reviewBlockIndex !== null ? questions[reviewBlockIndex] : null;
+  const blockQuestions = currentBlock ? currentBlock.questions || [] : [];
+  const alphabet = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"];
+
+  let questionRangeText = "";
+  if (reviewBlockIndex !== null) {
+    let globalStartIdx = 1;
+    for (let i = 0; i < reviewBlockIndex; i++) {
+      globalStartIdx += questions[i].questions?.length || 0;
+    }
+    const globalEndIdx = globalStartIdx + blockQuestions.length - 1;
+    questionRangeText =
+      blockQuestions.length > 1
+        ? `Question ${padZero(globalStartIdx)}-${padZero(
+            globalEndIdx,
+          )} of ${padZero(flatQuestions.length)}`
+        : `Question ${padZero(globalStartIdx)} of ${padZero(
+            flatQuestions.length,
+          )}`;
+  }
 
   const handleBackToDashboard = () => {
     if (isOverallCompleted) {
@@ -154,7 +187,7 @@ export default function ExamListeningResults() {
     fetchResults();
   }, [user?.user_id, paperId, submissionId]);
 
-  // Initialize and preload audio whenever selected review question changes
+  // Audio track initializer
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -164,7 +197,7 @@ export default function ExamListeningResults() {
     setAudioProgress(0);
     setAudioDuration(0);
 
-    const audioUrl = currentReviewQuestion?.audio_url;
+    const audioUrl = currentBlock?.audio_url;
     if (audioUrl) {
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
@@ -189,7 +222,6 @@ export default function ExamListeningResults() {
       audio.addEventListener("ended", handleEnded);
       audio.addEventListener("error", handleError);
 
-      // Preload audio track
       audio.load();
 
       return () => {
@@ -199,14 +231,14 @@ export default function ExamListeningResults() {
         audio.removeEventListener("error", handleError);
       };
     }
-  }, [selectedReviewIndex, currentReviewQuestion?.audio_url]);
+  }, [reviewBlockIndex, currentBlock?.audio_url]);
 
-  // Scroll to top when review question changes
+  // Scroll to top when review page changes
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = 0;
     }
-  }, [selectedReviewIndex]);
+  }, [reviewBlockIndex]);
 
   const handlePlayPause = () => {
     if (!audioRef.current) return;
@@ -268,30 +300,37 @@ export default function ExamListeningResults() {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  // Waveform bars details for the overlay
-  const totalWaveformBars = 20;
-  const currentPlayedRatio =
-    audioDuration > 0 ? audioProgress / audioDuration : 0;
-  const playedBarsCount = Math.floor(currentPlayedRatio * totalWaveformBars);
 
-  // SVG circular ring details
-  const radius = 60;
-  const circumference = 2 * Math.PI * radius;
+  const getGreeting = () => {
+    if (score >= 70) return "Good job";
+    if (score >= 50) return "Well done!";
+    return "Keep practicing!";
+  };
+
+  const size = 120;
+  const strokeWidth = 10;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
   const strokeDashoffset = circumference - (score / 100) * circumference;
+
+  // Waveform bars variables
+  const totalWaveformBars = 44;
+  const currentPlayedRatio = audioDuration > 0 ? audioProgress / audioDuration : 0;
+  const playedBarsCount = Math.floor(currentPlayedRatio * totalWaveformBars);
 
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden shadow-sm relative">
-      {/* Top Header Logo & Profile bar */}
-
       {/* Navigation bar */}
       <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
         <div className="self-stretch inline-flex justify-between items-center">
           <button
             onClick={() => {
-              if (selectedReviewIndex !== null) {
-                setSelectedReviewIndex(null);
-              } else if (reviewMode) {
-                setReviewMode(false);
+              if (reviewMode) {
+                if (reviewBlockIndex !== null) {
+                  setReviewBlockIndex(null);
+                } else {
+                  setReviewMode(false);
+                }
               } else {
                 handleBackToDashboard();
               }
@@ -304,346 +343,108 @@ export default function ExamListeningResults() {
             </span>
           </button>
           <span className="text-center text-neutral-500 text-sm font-semibold leading-6">
-            {selectedReviewIndex !== null
-              ? "Listening Review"
-              : reviewMode
-              ? "TELC"
-              : "Listening Feedback"}
+            {reviewBlockIndex !== null ? "Listening" : "Listening Feedback"}
           </span>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      {selectedReviewIndex !== null ? (
-        /* ================= DETAILED QUESTION REVIEW PAGE ================= */
-        <div
-          ref={containerRef}
-          className="flex-1 w-full overflow-y-auto pb-48 flex flex-col justify-start items-center"
-        >
-          {/* Progress segments bar */}
-          <div className="self-stretch px-4 pt-1 flex flex-col justify-start items-start gap-1.5 shrink-0 bg-white">
-            <div className="self-stretch inline-flex justify-between items-center">
-              <span className="text-sky-950 text-base font-semibold leading-5">
-                Question {(selectedReviewIndex + 1).toString().padStart(2, "0")}{" "}
-                of {flatQuestions.length.toString().padStart(2, "0")}
-              </span>
-              <div className="px-2 py-1 bg-black/5 rounded-[40px] border border-black/5 flex justify-center items-center gap-1 shrink-0">
-                <CheckCircle2
-                  className={`w-3.5 h-3.5 ${
-                    currentReviewQuestion.isCorrect
-                      ? "text-green-700"
-                      : "text-red-500"
-                  }`}
+      {!reviewMode ? (
+        /* ================= RESULTS DASHBOARD VIEW ================= */
+        <div className="flex-1 w-full overflow-y-auto px-4 py-6 flex flex-col justify-start items-center">
+          <div className="w-full max-w-[360px] px-5 pt-8 pb-6 bg-black/5 rounded-xl flex flex-col justify-start items-center gap-6 border border-zinc-200/50">
+            <h2 className="text-center text-sky-950 text-2xl font-semibold leading-9">
+              {getGreeting()}
+            </h2>
+
+            <div className="relative flex items-center justify-center w-32 h-32">
+              <svg width={size} height={size} className="transform -rotate-90">
+                <circle
+                  stroke="#e2e8f0"
+                  fill="transparent"
+                  strokeWidth={strokeWidth}
+                  r={radius}
+                  cx={size / 2}
+                  cy={size / 2}
                 />
-                <span className="text-center text-sky-950 text-xs font-semibold leading-5">
-                  {currentReviewQuestion.isCorrect ? "Correct" : "Incorrect"}
+                <circle
+                  stroke="#0BAA45"
+                  fill="transparent"
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={circumference}
+                  strokeDashoffset={strokeDashoffset}
+                  strokeLinecap="round"
+                  r={radius}
+                  cx={size / 2}
+                  cy={size / 2}
+                  className="transition-all duration-500 ease-out"
+                />
+              </svg>
+              <div className="absolute flex flex-col items-center justify-center">
+                <span className="text-2xl font-semibold text-sky-950 leading-none">
+                  {score}%
+                </span>
+                <span className="text-sky-950 text-[8px] font-semibold mt-1 text-center whitespace-nowrap">
+                  {sectionData.correct_count} of {flatQuestions.length} correct
                 </span>
               </div>
             </div>
 
-            {/* Horizontal progress bar segments */}
-            <div className="self-stretch flex justify-start items-center gap-0.5 pb-1">
-              {flatQuestions.map((_, idx) => (
-                <div
-                  key={idx}
-                  className={`flex-1 h-3 rounded-[200px] transition-all ${
-                    idx <= selectedReviewIndex ? "bg-amber-300" : "bg-zinc-100"
-                  }`}
-                ></div>
-              ))}
-            </div>
-          </div>
-
-          {/* Waveform Player Section */}
-          {currentReviewQuestion.audio_url && (
-            <div className="self-stretch px-4 pt-0.5 pb-1 flex flex-col items-center gap-1.5 bg-white shrink-0">
-              <div className="self-stretch flex flex-col items-center gap-2">
-                <div className="inline-flex justify-center items-center gap-5">
-                  {/* Play/Pause Button */}
-                  <button
-                    onClick={handlePlayPause}
-                    className="size-16 relative bg-[#0a1f44] hover:bg-[#06142c] active:scale-95 text-white rounded-full flex items-center justify-center outline-none border-0 cursor-pointer shadow-md transition-all shrink-0"
-                  >
-                    {isPlaying ? (
-                      <Pause className="w-6 h-6 fill-white stroke-white" />
-                    ) : (
-                      <Play className="w-6 h-6 fill-white stroke-white ml-1" />
-                    )}
-                  </button>
-
-                  {/* Waveform bars */}
-                  <div className="flex justify-start items-center gap-5">
-                    <div className="flex justify-start items-center gap-1">
-                      {Array.from({ length: 24 }).map((_, barIdx) => {
-                        const isPlayed =
-                          barIdx <=
-                          Math.floor(
-                            (audioDuration > 0
-                              ? audioProgress / audioDuration
-                              : 0) * 24,
-                          );
-                        const heights = [
-                          10, 12, 16, 8, 12, 5, 5, 12, 8, 12, 5, 5, 16, 12, 5,
-                          5, 12, 5, 5, 12, 14, 20, 6, 6,
-                        ];
-                        const height = heights[barIdx % heights.length];
-
-                        return (
-                          <div
-                            key={barIdx}
-                            style={{ height: `${height}px` }}
-                            className={`w-1 rounded-full transition-all ${
-                              isPlayed ? "bg-blue-950" : "bg-black/20"
-                            }`}
-                          ></div>
-                        );
-                      })}
-                    </div>
-                    <div className="text-center justify-start text-black/30 text-xs font-semibold leading-5 shrink-0">
-                      {/* Fallback 0 (shows 00:00) not 60 (shows a misleading 01:00) */}
-                      {formatSeconds(Math.round(audioDuration || 0))}
-                    </div>
-                  </div>
+            <div className="self-stretch inline-flex justify-start items-center gap-2">
+              <div className="flex-1 p-2 bg-green-700/10 rounded-md border border-green-700/20 flex justify-center items-center">
+                <div className="w-11 inline-flex flex-col justify-center items-center">
+                  <span className="w-16 text-center text-green-700 text-[10px] font-medium leading-5">
+                    Correct
+                  </span>
+                  <span className="text-center text-green-700 text-xl font-semibold mt-0.5">
+                    {padZero(sectionData.correct_count)}
+                  </span>
                 </div>
               </div>
-              <div className="w-80 justify-start text-sky-950 text-base font-semibold leading-5 text-center">
-                Listen to the audio and answer the questions below
-              </div>
-            </div>
-          )}
-
-          {/* Divider Section */}
-          <div className="self-stretch px-4 pt-3 pb-1 bg-black/5 inline-flex justify-center items-center gap-3.5 shrink-0">
-            <div className="size-9 relative bg-blue-950 rounded-sm overflow-hidden flex items-center justify-center shrink-0">
-              <div className="size-4 relative overflow-hidden flex items-center justify-center">
-                <MessageSquare className="w-3.5 h-3.5 text-white" />
-              </div>
-            </div>
-            <div className="flex-1 justify-start text-sky-950 text-base font-semibold leading-5 text-left">
-              Question Feedback
-            </div>
-          </div>
-
-          {/* Question card details */}
-          <div className="self-stretch px-4 pt-4 pb-12 bg-black/5 flex flex-col justify-start items-center gap-6 flex-1 w-full min-h-[350px]">
-            <div className="self-stretch p-3 bg-white rounded-xl border border-zinc-300 flex flex-col justify-start items-start gap-2.5 shadow-sm">
-              <div className="self-stretch flex flex-col justify-start items-center gap-5">
-                <div className="self-stretch justify-start text-sky-950 text-base font-semibold leading-5 text-left">
-                  {currentReviewQuestion.question_text}
+              <div className="flex-1 p-2 bg-red-100 rounded-md border border-red-200/30 flex justify-center items-center">
+                <div className="w-11 inline-flex flex-col justify-center items-center">
+                  <span className="w-16 text-center text-red-500 text-[10px] font-medium leading-5">
+                    Incorrect
+                  </span>
+                  <span className="text-center text-red-500 text-xl font-semibold mt-0.5">
+                    {padZero(sectionData.incorrect_count)}
+                  </span>
                 </div>
-
-                {/* MCQ option feedback list */}
-                {currentReviewQuestion.type === "fill_blanks" ? (
-                  <div className="w-full">
-                    <input
-                      type="text"
-                      disabled
-                      value={currentReviewQuestion.userSelection || ""}
-                      className={`w-full px-3.5 py-2.5 border rounded-lg text-xs font-semibold ${
-                        currentReviewQuestion.isCorrect
-                          ? "border-green-700 bg-emerald-50 text-green-700"
-                          : "border-red-500 bg-red-50 text-red-500"
-                      }`}
-                    />
-                  </div>
-                ) : (
-                  <div className="self-stretch flex flex-col justify-start items-start gap-2 w-full">
-                    {(currentReviewQuestion.options || []).map((option, oIdx) => {
-                      const optionLetter = String.fromCharCode(65 + oIdx);
-                      
-                      let isCorrectOption = false;
-                      let isUserSelection = false;
-
-                      if (currentReviewQuestion.type === "mcq_multi") {
-                        let correctArr = [];
-                        if (Array.isArray(currentReviewQuestion.correct_option)) {
-                          correctArr = currentReviewQuestion.correct_option.map(v => String(v).trim().toUpperCase());
-                        } else if (typeof currentReviewQuestion.correct_option === "string") {
-                          correctArr = currentReviewQuestion.correct_option.split(",").map(v => v.trim().toUpperCase()).filter(Boolean);
-                        }
-                        const userArr = (Array.isArray(currentReviewQuestion.userSelection) ? currentReviewQuestion.userSelection : [currentReviewQuestion.userSelection])
-                          .map(v => String(v).trim().toUpperCase())
-                          .filter(Boolean);
-                        
-                        isCorrectOption = correctArr.includes(optionLetter);
-                        isUserSelection = userArr.includes(optionLetter);
-                      } else {
-                        isCorrectOption = optionLetter === currentReviewQuestion.correct_option;
-                        isUserSelection = optionLetter === currentReviewQuestion.userSelection;
-                      }
-
-                      let optionStyle = "bg-white border-zinc-300 text-slate-900";
-                      let letterTagStyle = "bg-black/5 text-gray-900/30";
-
-                      if (isCorrectOption) {
-                        optionStyle =
-                          "bg-emerald-100/50 border-green-700 text-green-700 font-semibold";
-                        letterTagStyle = "bg-green-700/10 text-green-700";
-                      } else if (isUserSelection) {
-                        optionStyle =
-                          "bg-rose-200/40 border-red-500 text-red-500 font-semibold";
-                        letterTagStyle = "bg-red-500/10 text-red-500";
-                      } else {
-                        optionStyle = "bg-white border-zinc-200 opacity-60 text-slate-400";
-                      }
-
-                      return (
-                        <div
-                          key={oIdx}
-                          className={`self-stretch p-2.5 rounded-lg border inline-flex justify-start items-center gap-9 w-full text-left ${optionStyle}`}
-                        >
-                          <div className="flex-1 flex justify-start items-center gap-2">
-                            <div
-                              className={`size-8 rounded-sm flex items-center justify-center shrink-0 ${letterTagStyle}`}
-                            >
-                              <span className="text-base font-medium leading-6">
-                                {optionLetter}
-                              </span>
-                            </div>
-                            <span className="text-base font-medium leading-6">
-                              {option}
-                            </span>
-
-                            {isCorrectOption && (
-                              <span className="ml-auto flex items-center justify-center size-5 bg-green-700 rounded-full shrink-0">
-                                <span className="w-1.5 h-[3px] border-b-2 border-r-2 border-white rotate-45 mb-0.5" />
-                              </span>
-                            )}
-                            {isUserSelection && !isCorrectOption && (
-                              <span className="ml-auto flex items-center justify-center size-5 bg-red-500 rounded-full shrink-0">
-                                <span className="text-white text-xs font-bold leading-none">
-                                  ×
-                                </span>
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Explanation text */}
-                {currentReviewQuestion.type === "fill_blanks" ? (
-                  currentReviewQuestion.userSelection ? (
-                    currentReviewQuestion.isCorrect ? (
-                      <div className="self-stretch p-3 bg-emerald-100/10 border border-green-700/20 rounded-lg text-left flex flex-col gap-1 w-full mt-2">
-                        <span className="text-green-700 text-xs font-semibold">
-                          Correct:
-                        </span>
-                        <p className="text-green-700 text-xs font-normal leading-relaxed">
-                          {currentReviewQuestion.explanation || `The correct answer is "${Array.isArray(currentReviewQuestion.correct_option) ? currentReviewQuestion.correct_option.join(" or ") : currentReviewQuestion.correct_option}".`}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="self-stretch p-3 bg-red-100/10 border border-red-500/20 rounded-lg text-left flex flex-col gap-1 w-full mt-2">
-                        <span className="text-red-500 text-xs font-semibold">
-                          Incorrect:
-                        </span>
-                        <p className="text-red-500 text-xs font-normal leading-relaxed">
-                          {currentReviewQuestion.explanation || `The correct answer is "${Array.isArray(currentReviewQuestion.correct_option) ? currentReviewQuestion.correct_option.join(" or ") : currentReviewQuestion.correct_option}".`}
-                        </p>
-                      </div>
-                    )
-                  ) : (
-                    <div className="self-stretch p-3 bg-zinc-100 border border-zinc-300 rounded-lg text-left flex flex-col gap-1 w-full mt-2">
-                      <span className="text-zinc-500 text-xs font-semibold">
-                        Skipped:
-                      </span>
-                      <p className="text-zinc-500 text-xs font-normal leading-relaxed">
-                        You skipped this question. The correct answer is "{Array.isArray(currentReviewQuestion.correct_option) ? currentReviewQuestion.correct_option.join(" or ") : currentReviewQuestion.correct_option}".
-                      </p>
-                    </div>
-                  )
-                ) : (
-                  (() => {
-                    const isSkipped = currentReviewQuestion.type === "mcq_multi"
-                      ? (!currentReviewQuestion.userSelection || (Array.isArray(currentReviewQuestion.userSelection) && currentReviewQuestion.userSelection.length === 0))
-                      : !currentReviewQuestion.userSelection;
-
-                    if (isSkipped) {
-                      let correctStr = "";
-                      if (Array.isArray(currentReviewQuestion.correct_option)) {
-                        correctStr = currentReviewQuestion.correct_option.join(", ");
-                      } else {
-                        correctStr = String(currentReviewQuestion.correct_option);
-                      }
-                      return (
-                        <div className="self-stretch p-3 bg-zinc-100 border border-zinc-300 rounded-lg text-left flex flex-col gap-1 w-full mt-2">
-                          <span className="text-zinc-500 text-xs font-semibold">
-                            Skipped:
-                          </span>
-                          <p className="text-zinc-500 text-xs font-normal leading-relaxed">
-                            You skipped this question. The correct option is {correctStr}.
-                          </p>
-                        </div>
-                      );
-                    }
-
-                    const displayCorrectOpt = Array.isArray(currentReviewQuestion.correct_option)
-                      ? currentReviewQuestion.correct_option.join(", ")
-                      : currentReviewQuestion.correct_option;
-
-                    if (currentReviewQuestion.isCorrect) {
-                      return (
-                        <div className="self-stretch p-3 bg-emerald-100/10 border border-green-700/20 rounded-lg text-left flex flex-col gap-1 w-full mt-2">
-                          <span className="text-green-700 text-xs font-semibold">
-                            Correct:
-                          </span>
-                          <p className="text-green-700 text-xs font-normal leading-relaxed">
-                            {currentReviewQuestion.explanation || `The correct answer is Option ${displayCorrectOpt}.`}
-                          </p>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div className="self-stretch p-3 bg-red-100/10 border border-red-500/20 rounded-lg text-left flex flex-col gap-1 w-full mt-2">
-                        <span className="text-red-500 text-xs font-semibold">
-                          Incorrect:
-                        </span>
-                        <p className="text-red-500 text-xs font-normal leading-relaxed">
-                          {currentReviewQuestion.explanation || `The correct answer is Option ${displayCorrectOpt}.`}
-                        </p>
-                      </div>
-                    );
-                  })()
-                )}
+              </div>
+              <div className="flex-1 p-2 bg-neutral-400/20 rounded-md border border-neutral-300/30 flex justify-center items-center">
+                <div className="w-11 inline-flex flex-col justify-center items-center">
+                  <span className="w-16 text-center text-neutral-500 text-[10px] font-medium leading-5">
+                    Skipped
+                  </span>
+                  <span className="text-center text-neutral-500 text-xl font-semibold mt-0.5">
+                    {padZero(sectionData.skipped_count)}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Sticky Actions Footer */}
-          <div className="absolute bottom-0 inset-x-0 p-4 flex flex-col gap-2 shrink-0 ">
-            <button
-              onClick={() => {
-                if (selectedReviewIndex === flatQuestions.length - 1) {
-                  setSelectedReviewIndex(null); // return to list index
-                } else {
-                  setSelectedReviewIndex((prev) => prev + 1);
-                }
-              }}
-              className="w-full py-3 bg-[#0a1f44] hover:bg-[#06142c] active:scale-[0.99] text-white text-base font-semibold rounded-lg shadow-md transition-all outline-none border-0 cursor-pointer flex justify-center items-center"
-            >
-              {selectedReviewIndex === flatQuestions.length - 1
-                ? "Review Answers List"
-                : "Review Next Question"}
-            </button>
+            <div className="self-stretch flex flex-col justify-start items-start gap-2">
+              <button
+                onClick={() => {
+                  setReviewMode(true);
+                  setReviewBlockIndex(null);
+                }}
+                className="self-stretch px-4 py-3 active:scale-95 text-xs font-semibold leading-5 rounded-lg cursor-pointer outline-none transition-all flex justify-center items-center border-0 bg-[#002856] hover:bg-blue-900 text-white"
+              >
+                Review Answers
+              </button>
 
-            <button
-              onClick={handleStartNextSection}
-              className="w-full py-3 bg-transparent hover:bg-black/5 border border-zinc-400 active:scale-[0.99] text-[#0a1f44] text-base font-semibold rounded-lg transition-all outline-none cursor-pointer flex justify-center items-center"
-            >
-              Start Next Section
-            </button>
+              <button
+                onClick={handleStartNextSection}
+                className="self-stretch px-4 py-3 active:scale-95 text-xs font-semibold leading-5 rounded-lg cursor-pointer outline-none transition-all flex justify-center items-center text-blue-950 hover:bg-slate-50 border border-zinc-300"
+              >
+                Start Next Section
+              </button>
+            </div>
           </div>
         </div>
-      ) : reviewMode ? (
+      ) : reviewBlockIndex === null ? (
         /* ================= REVIEW ANSWER INDEX LIST VIEW ================= */
-        <div
-          ref={containerRef}
-          className="flex-1 w-full overflow-y-auto px-4 py-3 flex flex-col gap-3 pb-24"
-        >
+        <div className="flex-1 w-full overflow-y-auto px-4 py-3 flex flex-col gap-3 pb-36">
           <div className="flex flex-col items-start gap-1 pb-2">
             <h3 className="text-sky-950 text-base font-semibold">
               Listening Review
@@ -671,7 +472,7 @@ export default function ExamListeningResults() {
               return (
                 <div
                   key={idx}
-                  onClick={() => setSelectedReviewIndex(idx)}
+                  onClick={() => setReviewBlockIndex(q.blockIndex)}
                   className={`p-3 rounded-xl border flex justify-between items-center cursor-pointer transition-all ${cardBg}`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -684,7 +485,7 @@ export default function ExamListeningResults() {
                           : "bg-red-500/10 text-red-500"
                       }`}
                     >
-                      {(q.qIdx + 1).toString().padStart(2, "0")}
+                      {padZero(q.qIdx + 1)}
                     </div>
                     <span className="text-slate-900 text-xs font-semibold leading-snug truncate">
                       {q.question_text}
@@ -704,113 +505,345 @@ export default function ExamListeningResults() {
             })}
           </div>
 
-          {/* Sticky Actions Footer */}
-          <div className="absolute bottom-0 inset-x-0  p-4 flex flex-col gap-2 shrink-0">
+          <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col gap-2.5 z-40 shrink-0">
             <button
               onClick={handleStartNextSection}
-              className="w-full py-3 bg-[#0a1f44] hover:bg-[#06142c] active:scale-[0.99] text-white text-base font-semibold rounded-lg shadow-md transition-all outline-none border-0 cursor-pointer flex justify-center items-center"
+              className="w-full max-w-[380px] mx-auto py-3 bg-[#002856] hover:bg-blue-900 active:scale-[0.99] text-white text-base font-semibold rounded-lg shadow-md transition-all outline-none border-0 cursor-pointer flex justify-center items-center"
             >
               Start Next Section
             </button>
           </div>
         </div>
       ) : (
-        /* ================= RESULTS DASHBOARD VIEW ================= */
-        <div className="flex-1 w-full overflow-y-auto px-4 py-6 flex flex-col justify-start items-center gap-6 bg-white pb-36">
-          <div className="self-stretch inline-flex justify-start items-center gap-2.5">
-            <div className="flex-1 px-5 pt-10 pb-5 bg-black/5 rounded-xl flex flex-col justify-start items-center gap-9">
-              <div className="flex flex-col justify-start items-center gap-3">
-                <div className="text-center justify-start text-sky-950 text-base font-semibold">
-                  Listening Result
-                </div>
-                <div className="text-center justify-start text-sky-950 text-3xl font-semibold leading-9">
-                  {score >= 50 ? "Good job" : "Keep practicing"}
-                </div>
-              </div>
+        /* ================= DETAILED BLOCK REVIEW VIEW ================= */
+        <div className="flex-1 w-full flex flex-col justify-start items-center overflow-hidden">
+          <div className="self-stretch px-4 pt-1 flex flex-col justify-start items-start gap-2 shrink-0 bg-white">
+            <div className="self-stretch text-center text-sky-950 text-base font-semibold leading-5">
+              {questionRangeText}
+            </div>
+            <div className="self-stretch flex justify-start items-center gap-1.5 pb-4">
+              {questions.map((_, idx) => (
+                <div
+                  key={idx}
+                  className={`flex-1 h-2.5 rounded-[200px] transition-all ${
+                    idx <= reviewBlockIndex ? "bg-amber-300" : "bg-zinc-100"
+                  }`}
+                ></div>
+              ))}
+            </div>
+          </div>
 
-              {/* Dynamic Circular Gauge */}
-              <div className="relative w-40 h-40 flex items-center justify-center">
-                <svg className="w-full h-full transform -rotate-90">
-                  <circle
-                    cx="80"
-                    cy="80"
-                    r={radius}
-                    className="stroke-zinc-300 fill-none"
-                    strokeWidth="12"
-                  />
-                  <circle
-                    cx="80"
-                    cy="80"
-                    r={radius}
-                    className="stroke-green-600 fill-none transition-all duration-1000 ease-out"
-                    strokeWidth="12"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={strokeDashoffset}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute text-center flex flex-col items-center justify-center px-4">
-                  <span className="text-slate-900 text-3xl font-extrabold">
-                    {score}%
+          <div className="flex-1 w-full overflow-y-auto">
+            {/* Waveform Player Section */}
+            {currentBlock?.audio_url && (
+              <div className="self-stretch px-4 pt-3 pb-6 flex flex-col gap-2.5 bg-white shrink-0 border-b border-zinc-100">
+                {/* Player row: play button + waveform bars + duration */}
+                <div className="self-stretch flex items-center gap-4">
+                  {/* Play/Pause Button — large navy circle */}
+                  <button
+                    onClick={handlePlayPause}
+                    className="size-16 bg-[#0a1f44] hover:bg-[#06142c] active:scale-95 text-white rounded-full flex items-center justify-center outline-none border-0 cursor-pointer shadow-md transition-all shrink-0"
+                  >
+                    {isPlaying ? (
+                      <Pause className="w-7 h-7 fill-white stroke-white" />
+                    ) : (
+                      <Play className="w-7 h-7 fill-white stroke-white ml-1" />
+                    )}
+                  </button>
+
+                  {/* Waveform bars — centered on middle axis, fills remaining width */}
+                  <div className="flex-1 flex items-center justify-between h-8 overflow-hidden">
+                    {Array.from({ length: totalWaveformBars }).map((_, barIdx) => {
+                      const isPlayed = barIdx <= playedBarsCount;
+                      const heights = [
+                        10, 18, 24, 12, 28, 8, 20, 14, 28, 8, 16, 22, 10, 26, 8, 12,
+                        28, 6, 18, 24, 14, 28, 8, 10, 20, 16, 28, 8, 12, 22, 10, 26,
+                        8, 18, 14, 28, 6, 20, 12, 28, 10, 16, 8, 24,
+                      ];
+                      const height = heights[barIdx % heights.length];
+                      return (
+                        <div
+                          key={barIdx}
+                          style={{ height: `${height}px` }}
+                          className={`w-[3px] rounded-full transition-colors shrink-0 ${
+                            isPlayed ? "bg-[#0a1f44]" : "bg-black/20"
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+
+                  {/* Duration label */}
+                  <span className="text-xs font-semibold text-black/40 shrink-0">
+                    {formatSeconds(Math.round(audioDuration || 0))}
                   </span>
-                  <span className="text-neutral-500 text-[10px] font-bold mt-1">
-                    {sectionData.correct_count} out of {flatQuestions.length}{" "}
-                    correct
-                  </span>
                 </div>
+
+                {/* Subtitle — left-aligned, bold, larger */}
+                <p className="self-stretch text-sky-950 text-base font-bold leading-6">
+                  Listen to the audio and answer the questions below
+                </p>
               </div>
+            )}
 
-              {/* Stats colored grid */}
-              <div className="self-stretch inline-flex justify-start items-center gap-2">
-                <div className="flex-1 p-2.5 bg-green-700/20 rounded-md flex justify-center items-center">
-                  <div className="inline-flex flex-col justify-center items-center gap-1">
-                    <span className="text-green-700 text-xs font-normal leading-none">
-                      Correct
-                    </span>
-                    <span className="text-green-700 text-3xl font-semibold leading-none mt-1">
-                      {sectionData.correct_count.toString().padStart(2, "0")}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex-1 p-2.5 bg-red-100 rounded-md flex justify-center items-center">
-                  <div className="inline-flex flex-col justify-center items-center gap-1">
-                    <span className="text-red-500 text-xs font-normal leading-none">
-                      Incorrect
-                    </span>
-                    <span className="text-red-500 text-3xl font-semibold leading-none mt-1">
-                      {sectionData.incorrect_count.toString().padStart(2, "0")}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex-1 p-2.5 bg-neutral-400/20 rounded-md flex justify-center items-center">
-                  <div className="inline-flex flex-col justify-center items-center gap-1">
-                    <span className="text-neutral-500 text-xs font-normal leading-none">
-                      Skipped
-                    </span>
-                    <span className="text-neutral-500 text-3xl font-semibold leading-none mt-1">
-                      {sectionData.skipped_count.toString().padStart(2, "0")}
-                    </span>
-                  </div>
-                </div>
+            <div className="self-stretch w-full px-4 py-4 bg-black/5 inline-flex justify-center items-center gap-3.5">
+              <div className="w-9 h-9 relative bg-blue-950 rounded-sm overflow-hidden flex items-center justify-center shrink-0">
+                <span className="text-white text-base font-bold">?</span>
               </div>
+              <h2 className="flex-1 justify-start text-sky-950 text-base font-semibold leading-5 text-left">
+                Questions
+              </h2>
+            </div>
 
-              {/* Action buttons (swapped order) */}
-              <div className="self-stretch flex flex-col justify-start items-start gap-2 w-full mt-4">
+            <div className="self-stretch px-4 pt-4 pb-48 bg-black/5 flex flex-col justify-start items-center gap-6">
+              {blockQuestions.map((q, qIdx) => {
+                const ansKey = `${currentBlock.id}_${qIdx}`;
+                const userSelection = answersMap[ansKey];
+                const isCorrect = isExamQuestionCorrect(userSelection, q);
+                const qType = q.type || "mcq_single";
+
+                return (
+                  <div
+                    key={qIdx}
+                    className="w-full p-3 bg-white rounded-xl border border-zinc-200 flex flex-col justify-start items-start gap-4 text-left shadow-sm"
+                  >
+                    <div className="self-stretch justify-start text-sky-950 text-sm font-semibold leading-5 text-left">
+                      {qIdx + 1}. {q.question_text}
+                    </div>
+
+                    {qType === "fill_blanks" ? (
+                      <div className="w-full">
+                        <input
+                          type="text"
+                          disabled
+                          value={userSelection || ""}
+                          className={`w-full px-3.5 py-2.5 border rounded-lg text-xs font-semibold ${
+                            isCorrect
+                              ? "border-green-700 bg-emerald-50 text-green-700"
+                              : "border-red-500 bg-red-50 text-red-500"
+                          }`}
+                        />
+                      </div>
+                    ) : (
+                      <div className="self-stretch flex flex-col justify-start items-start gap-2 w-full">
+                        {(q.options || []).map((option, optIdx) => {
+                          const optionLetter = String.fromCharCode(65 + optIdx);
+
+                          let isCorrectOption = false;
+                          let isUserSelection = false;
+
+                          if (qType === "mcq_multi") {
+                            let correctArr = [];
+                            if (Array.isArray(q.correct_option)) {
+                              correctArr = q.correct_option.map((v) =>
+                                String(v).trim().toUpperCase(),
+                              );
+                            } else if (typeof q.correct_option === "string") {
+                              correctArr = q.correct_option
+                                .split(",")
+                                .map((v) => v.trim().toUpperCase())
+                                .filter(Boolean);
+                            }
+                            const userArr = (
+                              Array.isArray(userSelection)
+                                ? userSelection
+                                : [userSelection]
+                            )
+                              .map((v) => String(v).trim().toUpperCase())
+                              .filter(Boolean);
+
+                            isCorrectOption = correctArr.includes(optionLetter);
+                            isUserSelection = userArr.includes(optionLetter);
+                          } else {
+                            isCorrectOption = optionLetter === q.correct_option;
+                            isUserSelection = optionLetter === userSelection;
+                          }
+
+                          let optionStyle =
+                            "bg-white border-zinc-200 text-slate-700";
+                          let letterTagStyle = "bg-black/5 text-gray-900/30";
+                          let showCheck = false;
+                          let showCross = false;
+
+                          if (isCorrectOption) {
+                            optionStyle =
+                              "bg-emerald-50 border-green-700 text-green-700 font-semibold";
+                            letterTagStyle = "bg-green-700/10 text-green-700";
+                            if (isUserSelection) showCheck = true;
+                          } else if (isUserSelection) {
+                            optionStyle =
+                              "bg-red-50 border-red-500 text-red-500 font-semibold";
+                            letterTagStyle = "bg-red-500/10 text-red-500";
+                            showCross = true;
+                          } else {
+                            optionStyle =
+                              "bg-white border-zinc-200 opacity-60 text-slate-400";
+                          }
+
+                          return (
+                            <div
+                              key={optIdx}
+                              className={`w-full p-2.5 rounded-lg border inline-flex justify-start items-center gap-3 ${optionStyle}`}
+                            >
+                              <div
+                                className={`w-8 h-8 rounded-sm overflow-hidden shrink-0 flex items-center justify-center ${letterTagStyle}`}
+                              >
+                                <span className="text-sm font-medium leading-6">
+                                  {optionLetter}
+                                </span>
+                              </div>
+                              <div className="flex-1 flex justify-between items-center min-w-0">
+                                <span className="text-xs font-medium leading-5 break-words text-left">
+                                  {option}
+                                </span>
+                                {showCheck && (
+                                  <CheckCircle2 className="w-4 h-4 text-green-700 shrink-0 ml-2" />
+                                )}
+                                {showCross && (
+                                  <XCircle className="w-4 h-4 text-red-500 shrink-0 ml-2" />
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {qType === "fill_blanks" ? (
+                      userSelection ? (
+                        isCorrect ? (
+                          <div className="text-left mt-2 w-full">
+                            <span className="text-green-700 text-xs font-semibold">
+                              Correct:
+                            </span>
+                            <p className="text-green-700 text-[11px] leading-normal mt-0.5">
+                              {q.explanation ||
+                                `The correct answer is "${
+                                  Array.isArray(q.correct_option)
+                                    ? q.correct_option.join(" or ")
+                                    : q.correct_option
+                                }".`}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="text-left mt-2 w-full">
+                            <span className="text-red-500 text-xs font-semibold">
+                              Incorrect:
+                            </span>
+                            <p className="text-red-500 text-[11px] leading-normal mt-0.5">
+                              {q.explanation ||
+                                `The correct answer is "${
+                                  Array.isArray(q.correct_option)
+                                    ? q.correct_option.join(" or ")
+                                    : q.correct_option
+                                }".`}
+                            </p>
+                          </div>
+                        )
+                      ) : (
+                        <div className="text-left mt-2 w-full">
+                          <span className="text-zinc-500 text-xs font-semibold">
+                            Skipped:
+                          </span>
+                          <p className="text-zinc-500 text-[11px] leading-normal mt-0.5">
+                            You skipped this question. The correct answer is "
+                            {Array.isArray(q.correct_option)
+                              ? q.correct_option.join(" or ")
+                              : q.correct_option}
+                            ".
+                          </p>
+                        </div>
+                      )
+                    ) : (
+                      (() => {
+                        const isSkipped =
+                          qType === "mcq_multi"
+                            ? !userSelection ||
+                              (Array.isArray(userSelection) &&
+                                userSelection.length === 0)
+                            : !userSelection;
+
+                        if (isSkipped) {
+                          let correctStr = "";
+                          if (Array.isArray(q.correct_option)) {
+                            correctStr = q.correct_option.join(", ");
+                          } else {
+                            correctStr = String(q.correct_option);
+                          }
+                          return (
+                            <div className="text-left w-full mt-2">
+                              <span className="text-zinc-500 text-xs font-semibold">
+                                Skipped:
+                              </span>
+                              <p className="text-zinc-500 text-[11px] leading-normal mt-0.5">
+                                You skipped this question. The correct option
+                                is {correctStr}.
+                              </p>
+                            </div>
+                          );
+                        }
+
+                        const displayCorrectOpt = Array.isArray(q.correct_option)
+                          ? q.correct_option.join(", ")
+                          : q.correct_option;
+
+                        if (isCorrect) {
+                          return (
+                            <div className="text-left w-full mt-2">
+                              <span className="text-green-700 text-xs font-semibold">
+                                Correct:
+                              </span>
+                              <p className="text-green-700 text-[11px] leading-normal mt-0.5">
+                                {q.explanation ||
+                                  `The correct answer is Option ${displayCorrectOpt}.`}
+                              </p>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="text-left w-full mt-2">
+                            <span className="text-red-500 text-xs font-semibold">
+                              Incorrect:
+                            </span>
+                            <p className="text-red-500 text-[11px] leading-normal mt-0.5">
+                              {q.explanation ||
+                                  `The correct answer is Option ${displayCorrectOpt}.`}
+                            </p>
+                          </div>
+                        );
+                      })()
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col gap-2.5 z-40 shrink-0 bg-transparent">
+            <div className="w-full max-w-[380px] flex flex-col gap-2 mx-auto">
+              {reviewBlockIndex < questions.length - 1 ? (
                 <button
-                  onClick={() => setReviewMode(true)}
-                  className="self-stretch px-4 py-3 bg-[#0a1f44] hover:bg-[#06142c] text-white text-base font-semibold rounded-lg shadow-md border-0 cursor-pointer flex justify-center items-center"
+                  onClick={() => setReviewBlockIndex((prev) => prev + 1)}
+                  className="w-full py-3 bg-[#002856] hover:bg-blue-900 active:scale-[0.99] text-white text-sm font-semibold rounded-lg transition-all outline-none border-0 cursor-pointer flex justify-center items-center shadow-md"
                 >
-                  Review Answers
+                  Review Next Question
                 </button>
+              ) : null}
+              {reviewBlockIndex > 0 && (
                 <button
-                  onClick={handleStartNextSection}
-                  className="self-stretch px-4 py-3 bg-transparent hover:bg-black/5 border border-zinc-400 text-sky-950 text-base font-semibold rounded-lg transition-colors cursor-pointer flex justify-center items-center"
+                  onClick={() => setReviewBlockIndex((prev) => prev - 1)}
+                  className="w-full py-3 bg-[#002856] hover:bg-blue-900 active:scale-[0.99] text-white text-sm font-semibold rounded-lg transition-all outline-none border-0 cursor-pointer flex justify-center items-center shadow-md"
                 >
-                  Start Next Section
+                  Review Previous Question
                 </button>
-              </div>
+              )}
+              <button
+                onClick={handleStartNextSection}
+                className="w-full py-3 border border-zinc-300 bg-white text-blue-950 hover:bg-slate-50 active:scale-[0.99] text-xs font-semibold rounded-lg transition-all outline-none cursor-pointer flex justify-center items-center shadow-sm"
+              >
+                Start Next Section
+              </button>
             </div>
           </div>
         </div>
