@@ -42,6 +42,10 @@ import {
   stopHeartbeat,
   sendAppVersion,
 } from "./utils/heartbeat";
+import {
+  endAppAnalyticsSession,
+  startAppAnalyticsSession,
+} from "./utils/appAnalytics";
 
 import "./dashboard-src/css/style.css";
 
@@ -367,11 +371,16 @@ function AppContent() {
       // Start heartbeat for all users, but it only sends when dashboard is active
       startHeartbeat();
       sendAppVersion();
+      startAppAnalyticsSession();
     } else {
       stopHeartbeat();
+      endAppAnalyticsSession();
     }
 
-    return () => stopHeartbeat();
+    return () => {
+      stopHeartbeat();
+      endAppAnalyticsSession();
+    };
   }, [user]);
 
   // Helper function to open Play Store

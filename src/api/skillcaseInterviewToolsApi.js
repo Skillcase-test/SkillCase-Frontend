@@ -47,6 +47,7 @@ export const skillcaseInterviewToolsApi = {
   getInviteEventLog: (positionId) =>
     api.get(`/admin/skillcase-interviews/positions/${positionId}/invite-events`),
 
+
   downloadCandidatePDF: (positionId, submissionId) =>
     api.get(
       `/admin/skillcase-interviews/positions/${positionId}/candidates/${submissionId}/pdf`,
@@ -57,4 +58,9 @@ export const skillcaseInterviewToolsApi = {
     api.get(`/admin/skillcase-interviews/positions/${positionId}/pdf`, {
       responseType: "blob",
     }),
+
+  runAiScore: (positionId, submissionId, answerId) =>
+    api.post(
+      `/admin/skillcase-interviews/positions/${positionId}/candidates/${submissionId}/answers/${answerId}/ai-score`,
+    ),
 };

@@ -1,6 +1,7 @@
 import { ActionChip, ControlDropdown } from "../components/controls";
 import { StatCard } from "../components/common";
 import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
+import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 
 function lifecycleActionsForRow(row) {
   const s = String(row.lifecycle_state || row.status || "").toLowerCase();
@@ -29,9 +30,37 @@ export function AllViewTab({
   setAllBatchFilter,
   batches,
   openLifecycleModal,
-  handleSendAgreement,
-  sendingAgreementEnrollmentId,
+  handleChangeCandidateBatch,
+  handleChangeCandidateStatus,
+  updatingBatchEnrollmentId,
+  allSortBy,
+  allSortOrder,
+  setAllSortBy,
+  setAllSortOrder,
 }) {
+  const handleSort = (field) => {
+    if (field === "created_at") {
+      if (allSortBy === "created_at") {
+        setAllSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+      } else {
+        setAllSortBy("created_at");
+        setAllSortOrder("desc");
+      }
+    } else {
+      if (allSortBy === field) {
+        if (allSortOrder === "desc") {
+          setAllSortOrder("asc");
+        } else {
+          setAllSortBy("created_at");
+          setAllSortOrder("desc");
+        }
+      } else {
+        setAllSortBy(field);
+        setAllSortOrder("desc");
+      }
+    }
+  };
+
   const batchOptions = [
     { value: "", label: "All Batches" },
     ...batches.map((b) => ({ value: b.batch_id, label: b.batch_name })),
@@ -44,7 +73,7 @@ export function AllViewTab({
     { value: "completed", label: "Completed" },
     { value: "pending", label: "Pending" },
     { value: "finalized", label: "Finalized" },
-    { value: "archived", label: "Archived" },
+    { value: "refunded", label: "Refunded" },
   ];
 
   return (
@@ -75,54 +104,227 @@ export function AllViewTab({
         <table className="min-w-full text-sm">
           <thead>
             <tr className="border-b bg-slate-50 text-left text-xs uppercase text-slate-500">
-              <th className="px-3 py-3">Name</th>
-              <th className="px-2 py-2">Phone</th>
-              <th className="px-2 py-2">Email</th>
-              <th className="px-2 py-2">Batch</th>
+              <th
+                onClick={() => handleSort("student_name")}
+                className="px-3 py-3 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span>Name</span>
+                  <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                    {allSortBy === "student_name" ? (
+                      allSortOrder === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </span>
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("candidate_id")}
+                className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span>Candidate ID</span>
+                  <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                    {allSortBy === "candidate_id" ? (
+                      allSortOrder === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </span>
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("student_phone")}
+                className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span>Phone</span>
+                  <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                    {allSortBy === "student_phone" ? (
+                      allSortOrder === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </span>
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("student_email")}
+                className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span>Email</span>
+                  <span className="text-slate-400 group-hover:text-slate-650 transition-colors">
+                    {allSortBy === "student_email" ? (
+                      allSortOrder === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </span>
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("batch_name")}
+                className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span>Batch</span>
+                  <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                    {allSortBy === "batch_name" ? (
+                      allSortOrder === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </span>
+                </div>
+              </th>
               <th className="px-2 py-2">Status</th>
-              <th className="px-2 py-2">Paid Total</th>
-              <th className="px-2 py-2">Last Paid</th>
+              <th
+                onClick={() => handleSort("paid_total_paise")}
+                className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span>Paid Total</span>
+                  <span className="text-slate-400 group-hover:text-slate-650 transition-colors">
+                    {allSortBy === "paid_total_paise" ? (
+                      allSortOrder === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </span>
+                </div>
+              </th>
+              <th
+                onClick={() => handleSort("last_paid_at")}
+                className="px-2 py-2 cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span>Last Paid</span>
+                  <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                    {allSortBy === "last_paid_at" ? (
+                      allSortOrder === "asc" ? (
+                        <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+                      ) : (
+                        <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+                      )
+                    ) : (
+                      <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </span>
+                </div>
+              </th>
               <th className="px-2 py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, idx) => (
-              <tr key={r.enrollment_id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
-                <td className="px-3 py-3">{r.student_name || "-"}</td>
-                <td className="px-2 py-2">{r.student_phone || "-"}</td>
-                <td className="px-2 py-2">{r.student_email || "-"}</td>
-                <td className="px-2 py-2">{r.batch_name || "-"}</td>
-                <td className="px-2 py-2">{r.lifecycle_state || r.status || "-"}</td>
-                <td className="px-2 py-2">{formatInrFromPaise(r.paid_total_paise)}</td>
-                <td className="px-2 py-2">{formatIstDateTime(r.last_paid_at)}</td>
-                <td className="px-2 py-2">
-                  <div className="flex min-w-48 flex-wrap gap-2">
-                    <ActionChip onClick={() => setEditDraft({ ...r, ...(r.notes || {}) })}>
-                      Details
-                    </ActionChip>
-                    <ActionChip
-                      onClick={() => handleSendAgreement?.(r)}
-                      disabled={sendingAgreementEnrollmentId === r.enrollment_id}
-                    >
-                      {sendingAgreementEnrollmentId === r.enrollment_id ? "Sending..." : "Send Agreement"}
-                    </ActionChip>
-                    <div className="w-24">
-                      <ControlDropdown
-                        value=""
-                        onChange={(action) => openLifecycleModal(action, r)}
-                        placeholder="Action"
-                        compact
-                        fixedMenu
-                        options={lifecycleActionsForRow(r).map((action) => ({
-                          value: action,
-                          label: actionLabels[action] || action,
-                        }))}
-                      />
-                    </div>
-                  </div>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="px-3 py-8 text-center text-slate-500">
+                  No candidates found matching the filters.
                 </td>
               </tr>
-            ))}
+            ) : (
+              rows.map((r, idx) => (
+                <tr key={r.enrollment_id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
+                  <td className="px-3 py-3">{r.student_name || "-"}</td>
+                  <td className="px-2 py-2">
+                    <span className="font-mono text-xs text-slate-700">
+                      {r.notes?.candidate_id || "-"}
+                    </span>
+                  </td>
+                  <td className="px-2 py-2">{r.student_phone || "-"}</td>
+                  <td className="px-2 py-2">{r.student_email || "-"}</td>
+                  <td className="px-2 py-2">
+                    <div className="w-40">
+                      <ControlDropdown
+                        value={r.batch_id || ""}
+                        onChange={(val) => handleChangeCandidateBatch?.(r.enrollment_id, val)}
+                        options={[
+                          { value: "", label: "Unassigned" },
+                          ...batches.map((b) => ({ value: b.batch_id, label: b.batch_name })),
+                        ]}
+                        placeholder="Select Batch"
+                        compact
+                        fixedMenu
+                        disabled={updatingBatchEnrollmentId === r.enrollment_id}
+                      />
+                    </div>
+                  </td>
+                  <td className="px-2 py-2">
+                    <div className="w-32">
+                      <ControlDropdown
+                        value={String(r.lifecycle_state || r.status || "").toLowerCase()}
+                        onChange={(val) => handleChangeCandidateStatus?.(r, val)}
+                        placeholder="Status"
+                        compact
+                        fixedMenu
+                        disabled={updatingBatchEnrollmentId === r.enrollment_id || String(r.lifecycle_state || r.status || "").toLowerCase() === "refunded"}
+                        options={(() => {
+                          const s = String(r.lifecycle_state || r.status || "").toLowerCase();
+                          const opts = [
+                            {
+                              value: s,
+                              label: s === "on_hold" ? "On Hold" : s === "archived" ? "Rejected" : s === "refunded" ? "Refunded" : s.charAt(0).toUpperCase() + s.slice(1)
+                            }
+                          ];
+
+                          if (s === "dropped" || s === "archived") {
+                            opts.push({ value: "active", label: "Active" });
+                          } else if (s === "on_hold") {
+                            opts.push({ value: "active", label: "Active" });
+                            opts.push({ value: "dropped", label: "Dropped" });
+                          } else if (s === "active" || s === "pending" || s === "completed" || s === "finalized") {
+                            opts.push({ value: "on_hold", label: "On Hold" });
+                            opts.push({ value: "dropped", label: "Dropped" });
+                            if (s !== "completed") {
+                              opts.push({ value: "completed", label: "Completed" });
+                            }
+                            if (s === "completed") {
+                              opts.push({ value: "active", label: "Active" });
+                            }
+                          }
+                          return opts;
+                        })()}
+                      />
+                    </div>
+                  </td>
+                  <td className="px-2 py-2">{formatInrFromPaise(r.paid_total_paise)}</td>
+                  <td className="px-2 py-2">{formatIstDateTime(r.last_paid_at)}</td>
+                  <td className="px-2 py-2">
+                    <div className="flex gap-2">
+                      <ActionChip onClick={() => setEditDraft({ ...r, ...(r.notes || {}) })}>
+                        Details
+                      </ActionChip>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

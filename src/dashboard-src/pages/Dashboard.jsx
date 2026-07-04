@@ -10,6 +10,7 @@ import {
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { adminAccessApi } from "../../api/adminAccessApi";
 const Analytics = lazy(() => import("./Analytics"));
+const AppAnalytics = lazy(() => import("./AppAnalytics"));
 const ManageEvents = lazy(() => import("./event/ManageEvents"));
 const LandingPageManagement = lazy(() => import("./LandingPageManagement"));
 const SendNotification = lazy(() => import("./notification/send"));
@@ -315,7 +316,7 @@ function SidebarSection({ title, items, onLinkClick }) {
 function ModuleItem({ module, onLinkClick }) {
   const location = useLocation();
   const [open, setOpen] = useState(() =>
-    location.pathname.startsWith(module.basePath)
+    location.pathname.startsWith(module.basePath),
   );
 
   useEffect(() => {
@@ -379,7 +380,7 @@ function ModuleItem({ module, onLinkClick }) {
 function ModuleGroup({ title, modules, onLinkClick }) {
   const location = useLocation();
   const [open, setOpen] = useState(() =>
-    modules.some((m) => location.pathname.startsWith(m.basePath))
+    modules.some((m) => location.pathname.startsWith(m.basePath)),
   );
 
   useEffect(() => {
@@ -429,10 +430,10 @@ function ContentModuleTree({ a1Modules, a2Modules, extraItems = [], onLinkClick 
 
   useEffect(() => {
     const matchesA1 = a1Modules.some((m) =>
-      location.pathname.startsWith(m.basePath)
+      location.pathname.startsWith(m.basePath),
     );
     const matchesA2 = a2Modules.some((m) =>
-      location.pathname.startsWith(m.basePath)
+      location.pathname.startsWith(m.basePath),
     );
     if (matchesA1 || matchesA2) {
       setOpen(true);
@@ -623,6 +624,34 @@ export default function Dashboard() {
     };
   }, []);
 
+  const PAYMENTS_TAB_KEYS = useMemo(
+    () => [
+      "tab_overall",
+      "tab_month",
+      "tab_all",
+      "tab_batch",
+      "tab_fee",
+      "tab_discounts",
+      "tab_discounts_view",
+      "tab_payments",
+      "tab_rawlogs",
+      "tab_invoice",
+      "tab_import",
+    ],
+    [],
+  );
+
+  const hasPaymentsAccess = useMemo(() => {
+    return (
+      me &&
+      (me.role === "super_admin" ||
+        me.permissions?.["payments"]?.includes("manage") ||
+        PAYMENTS_TAB_KEYS.some((k) =>
+          me.permissions?.["payments"]?.includes(k),
+        ))
+    );
+  }, [me, PAYMENTS_TAB_KEYS]);
+
   const sections = useMemo(() => {
     if (!me) return { core: [], a1Modules: [], a2Modules: [], superAdmin: [] };
 
@@ -632,6 +661,12 @@ export default function Dashboard() {
         label: "Analytics",
         path: "/admin/analytics",
         module: "analytics",
+      },
+      {
+        key: "app-analytics",
+        label: "App Analytics",
+        path: "/admin/app-analytics",
+        module: "app_analytics",
       },
       {
         key: "events",
@@ -719,6 +754,15 @@ export default function Dashboard() {
       },
     ].filter((item) => hasPermission(me, item.module, "view"));
 
+    if (me.role !== "super_admin" && hasPaymentsAccess) {
+      core.push({
+        key: "payments",
+        label: "Payments",
+        path: "/admin/payments",
+        module: "payments",
+      });
+    }
+
     const a1ContentAllowed = hasPermission(me, "content", "view");
     const a2ContentAllowed = hasPermission(me, "a2_content", "view");
     const dynamicLessonAllowed = hasPermission(me, "content", "edit");
@@ -790,7 +834,11 @@ export default function Dashboard() {
         ? [
             { key: "access", label: "Admin Access", path: "/admin/access" },
             { key: "payments", label: "Payments", path: "/admin/payments" },
-            { key: "call-engine", label: "Call Engine", path: "/admin/call-engine" },
+            {
+              key: "call-engine",
+              label: "Call Engine",
+              path: "/admin/call-engine",
+            },
           ]
         : [];
 
@@ -805,7 +853,7 @@ export default function Dashboard() {
       : [];
 
     return { core, a1Modules, a2Modules, extraContentItems, superAdmin };
-  }, [me]);
+  }, [me, hasPaymentsAccess]);
 
   const defaultPath =
     sections.core[0]?.path ||
@@ -916,14 +964,22 @@ export default function Dashboard() {
               <p className="mb-2 px-2 text-xs font-bold uppercase tracking-widest text-slate-500">
                 Admin Panel
               </p>
-              <SidebarSection title="Core" items={sections.core} onLinkClick={closeMobileSidebar} />
+              <SidebarSection
+                title="Core"
+                items={sections.core}
+                onLinkClick={closeMobileSidebar}
+              />
               <ContentModuleTree
                 a1Modules={sections.a1Modules}
                 a2Modules={sections.a2Modules}
                 extraItems={sections.extraContentItems}
                 onLinkClick={closeMobileSidebar}
               />
-              <SidebarSection title="Super Admin" items={sections.superAdmin} onLinkClick={closeMobileSidebar} />
+              <SidebarSection
+                title="Super Admin"
+                items={sections.superAdmin}
+                onLinkClick={closeMobileSidebar}
+              />
             </div>
           </div>
         </aside>
@@ -950,6 +1006,14 @@ export default function Dashboard() {
                 }
               />
               <Route
+                path="app-analytics"
+                element={
+                  <Guard allowed={hasPermission(me, "app_analytics")}>
+                    <AppAnalytics me={me} />
+                  </Guard>
+                }
+              />
+              <Route
                 path="events"
                 element={
                   <Guard allowed={hasPermission(me, "events")}>
@@ -972,11 +1036,7 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "skillcase_interviews")}>
                     <SkillcaseInterviewsModule
-                      isSuperAdmin={hasPermission(
-                        me,
-                        "skillcase_interviews",
-                        "manage",
-                      )}
+                      isSuperAdmin={me.role === "super_admin"}
                       canDownload={hasPermission(
                         me,
                         "skillcase_interviews",
@@ -1290,7 +1350,7 @@ export default function Dashboard() {
               <Route
                 path="payments"
                 element={
-                  me.role === "super_admin" ? (
+                  hasPaymentsAccess ? (
                     <PaymentsAdmin />
                   ) : (
                     <Navigate to="/admin/no-access" replace />

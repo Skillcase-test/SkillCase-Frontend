@@ -1,4 +1,5 @@
 export const TABS = [
+  { key: "overall", label: "Overall View" },
   { key: "all", label: "All View" },
   { key: "month", label: "Month View" },
   { key: "batch", label: "Batch View" },
@@ -7,7 +8,7 @@ export const TABS = [
   { key: "payments", label: "Payment View" },
   { key: "rawlogs", label: "Raw Logs" },
   { key: "invoice", label: "Invoice Send" },
-  { key: "import", label: "Import Dump" },
+  { key: "recruitment", label: "Recruitment View" },
 ];
 
 export const MONTH_NAMES = [

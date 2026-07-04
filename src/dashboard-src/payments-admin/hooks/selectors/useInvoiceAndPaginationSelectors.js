@@ -14,25 +14,22 @@ export function useInvoiceAndPaginationSelectors(state, core) {
     feeSummary,
   } = state;
 
-  const selectedEnrollment = useMemo(
-    () =>
-      (candidateOptions || rows).find(
-        (r) => String(r.enrollment_id) === String(selectedEnrollmentId),
-      ),
-    [rows, candidateOptions, selectedEnrollmentId],
-  );
+  const selectedEnrollment = useMemo(() => {
+    const found = (candidateOptions || rows || []).find(
+      (r) => String(r.enrollment_id) === String(selectedEnrollmentId),
+    ) || invoicePaymentRows.find(
+      (r) => String(r.enrollment_id) === String(selectedEnrollmentId),
+    );
+    if (!found) return null;
+    return {
+      ...found,
+      notes: found.enrollment_notes || found.notes || {},
+    };
+  }, [rows, candidateOptions, invoicePaymentRows, selectedEnrollmentId]);
 
   const invoicePaymentOptions = useMemo(() => {
-    const alreadyInvoicedPaymentIds = new Set(
-      invoiceRows.map((r) => String(r.payment_id || "")).filter(Boolean),
-    );
-    return invoicePaymentRows.filter(
-      (p) =>
-        String(p.enrollment_id) === String(selectedEnrollmentId) &&
-        p.payment_status !== "refunded" &&
-        !alreadyInvoicedPaymentIds.has(String(p.payment_id)),
-    );
-  }, [invoicePaymentRows, invoiceRows, selectedEnrollmentId]);
+    return invoicePaymentRows;
+  }, [invoicePaymentRows]);
 
   const selectedEnrollmentInvoiceRows = useMemo(
     () =>

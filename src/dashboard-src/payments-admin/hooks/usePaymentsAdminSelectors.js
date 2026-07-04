@@ -27,6 +27,13 @@ export function usePaymentsAdminSelectors(state) {
     state.rawStatusFilter,
     state.year,
     state.month,
+    state.paymentAllTime,
+    state.paymentBookedOnly,
+    state.paymentRecruitmentOnly,
+    state.paymentTrainingOnly,
+    state.activeBatchId,
+    state.batchSortBy,
+    state.batchSortOrder,
   ]);
 
   return { ...core, ...extra };

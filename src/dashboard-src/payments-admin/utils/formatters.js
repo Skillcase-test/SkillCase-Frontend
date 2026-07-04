@@ -32,6 +32,23 @@ export function formatIstDateTime(value) {
   return `${day} ${month} ${year} ${hour}:${minute} ${dayPeriod}`;
 }
 
+export function formatIstDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  const parts = new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).formatToParts(date);
+  const get = (type) => parts.find((p) => p.type === type)?.value || "";
+  const day = get("day");
+  const month = get("month");
+  const year = get("year");
+  return `${day} ${month} ${year}`;
+}
+
 export function formatDiscountHistoryTooltip(history) {
   if (!Array.isArray(history) || history.length === 0) {
     return "No month-wise discounts applied";

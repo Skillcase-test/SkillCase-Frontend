@@ -42,11 +42,16 @@ export function LifecycleActionModal({ lifecycleModal, setLifecycleModal, handle
           <ControlButton
             variant="secondary"
             onClick={() => setLifecycleModal((prev) => ({ ...prev, open: false }))}
+            disabled={lifecycleModal.submitting}
           >
             Cancel
           </ControlButton>
-          <ControlButton variant="primary" onClick={handleLifecycleSubmit}>
-            Confirm
+          <ControlButton
+            variant="primary"
+            onClick={handleLifecycleSubmit}
+            disabled={lifecycleModal.submitting}
+          >
+            {lifecycleModal.submitting ? "Confirming..." : "Confirm"}
           </ControlButton>
         </div>
       </div>

@@ -8,11 +8,16 @@ import {
   LineController,
   LineElement,
   PointElement,
+  BarController,
+  BarElement,
   TimeScale,
   Tooltip,
 } from "chart.js";
 import "chartjs-adapter-moment";
 import {
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
   Bot,
   CalendarDays,
   ChevronLeft,
@@ -25,12 +30,17 @@ import {
   MessageSquareText,
   PhoneCall,
   PhoneForwarded,
+  PhoneMissed,
   PhoneOff,
+  Play,
+  Pause,
   RefreshCw,
+  Search,
   Send,
   Sparkles,
   UserRound,
   Waves,
+  X,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -46,6 +56,8 @@ Chart.register(
   LineController,
   LineElement,
   PointElement,
+  BarController,
+  BarElement,
   TimeScale,
   Tooltip,
 );
@@ -85,10 +97,34 @@ const metricConfig = {
     iconBg: "bg-rose-500/10",
     iconColor: "text-rose-600",
   },
+  missed: {
+    label: "Missed Calls",
+    color: "#f59e0b",
+    cssVar: "--color-amber-500",
+    icon: PhoneMissed,
+    iconBg: "bg-amber-500/10",
+    iconColor: "text-amber-600",
+  },
 };
 
 function cx(...classes) {
   return classes.filter(Boolean).join(" ");
+}
+
+function toIstDateString(d) {
+  const formatter = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  return formatter.format(d);
+}
+
+function getIstShiftedDate(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return toIstDateString(d);
 }
 
 function toDateInput(d) {
@@ -167,6 +203,18 @@ function formatDuration(seconds) {
   return `${mins}m ${String(secs).padStart(2, "0")}s`;
 }
 
+function formatTotalDuration(seconds) {
+  const total = Number(seconds || 0);
+  const hrs = Math.floor(total / 3600);
+  const mins = Math.floor((total % 3600) / 60);
+  const secs = total % 60;
+  const parts = [];
+  if (hrs > 0) parts.push(`${hrs}h`);
+  if (mins > 0 || hrs > 0) parts.push(`${mins}m`);
+  parts.push(`${secs}s`);
+  return parts.join(" ");
+}
+
 function Button({
   children,
   variant = "secondary",
@@ -204,6 +252,100 @@ function Button({
   );
 }
 
+function TableAudioPlayer({ url }) {
+  const audioRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  const togglePlay = () => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio(url);
+      audioRef.current.addEventListener("timeupdate", () => {
+        setCurrentTime(audioRef.current.currentTime);
+        if (audioRef.current.duration) {
+          setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
+        }
+      });
+      audioRef.current.addEventListener("loadedmetadata", () => {
+        setDuration(audioRef.current.duration);
+      });
+      audioRef.current.addEventListener("ended", () => {
+        setIsPlaying(false);
+        setProgress(0);
+        setCurrentTime(0);
+      });
+    }
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play().catch((err) => console.error("Audio play failed:", err));
+      setIsPlaying(true);
+    }
+  };
+
+  const formatTime = (secs) => {
+    if (isNaN(secs)) return "0:00";
+    const m = Math.floor(secs / 60);
+    const s = Math.floor(secs % 60);
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
+  const handleSeek = (e) => {
+    if (!audioRef.current || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
+    const percentage = clickX / width;
+    const newTime = percentage * duration;
+    audioRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+    setProgress(percentage * 100);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 shadow-xs max-w-[280px]">
+      <button
+        onClick={togglePlay}
+        className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-slate-900 text-white transition hover:bg-slate-800 hover:scale-105 active:scale-95 cursor-pointer"
+      >
+        {isPlaying ? (
+          <Pause className="h-3 w-3 fill-white" />
+        ) : (
+          <Play className="h-3 w-3 fill-white translate-x-[0.5px]" />
+        )}
+      </button>
+      <div className="flex flex-1 flex-col gap-1 min-w-0">
+        <div
+          onClick={handleSeek}
+          className="relative h-1.5 w-full cursor-pointer rounded-full bg-slate-200 transition hover:h-2"
+        >
+          <div
+            className="absolute left-0 top-0 h-full rounded-full bg-slate-900"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between text-[9px] font-semibold text-slate-500 select-none">
+          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(duration || 0)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SkeletonCard() {
   return (
     <div className="bg-white shadow-xs rounded-xl p-5 animate-pulse">
@@ -222,7 +364,7 @@ function SkeletonCard() {
 function SkeletonTableRows() {
   return Array.from({ length: 5 }).map((_, i) => (
     <tr key={i} className="border-t border-slate-100">
-      {Array.from({ length: 5 }).map((_, j) => (
+      {Array.from({ length: 6 }).map((_, j) => (
         <td key={j} className="px-4 py-3">
           <div className="h-4 w-full rounded bg-slate-100 animate-pulse" />
         </td>
@@ -237,6 +379,8 @@ function StatCard({
   previousValue,
   previousWindow,
   loading,
+  onClick,
+  duration,
 }) {
   const config = metricConfig[metricKey];
   const Icon = config.icon;
@@ -245,7 +389,10 @@ function StatCard({
   if (loading) return <SkeletonCard />;
 
   return (
-    <div className="group bg-white shadow-xs rounded-xl p-5 transition-shadow duration-200 hover:shadow-md">
+    <div
+      onClick={onClick}
+      className="group bg-white shadow-xs rounded-xl p-5 transition-all duration-200 hover:shadow-md cursor-pointer hover:scale-[1.01] border border-transparent hover:border-slate-200/60 active:scale-[0.99]"
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
@@ -263,7 +410,6 @@ function StatCard({
                   bg,
                 )}
               >
-                {delta > 0 ? "+" : ""}
                 {pct}
               </span>
             )}
@@ -277,6 +423,15 @@ function StatCard({
         >
           <Icon className={cx("h-4 w-4", config.iconColor)} />
         </div>
+      </div>
+      <div className="mt-3 flex justify-end select-none">
+        {duration !== undefined ? (
+          <span className="text-xs font-semibold text-slate-500">
+            {formatTotalDuration(duration)}
+          </span>
+        ) : (
+          <span className="text-xs opacity-0">-</span>
+        )}
       </div>
       {previousWindow && (
         <div className="mt-3 flex items-center justify-between">
@@ -318,14 +473,16 @@ function OverviewChart({ rows, loading }) {
           label: "Dialed",
           data: rows.map((r) => Number(r.dialed || 0)),
           fill: true,
-          backgroundColor: function (context) {
-            const chart = context.chart;
-            const { ctx, chartArea } = chart;
-            return chartAreaGradient(ctx, chartArea, [
-              { stop: 0, color: adjustColorOpacity(dialedColor, 0) },
-              { stop: 1, color: adjustColorOpacity(dialedColor, 0.2) },
-            ]);
-          },
+          backgroundColor: rows.length === 1
+            ? adjustColorOpacity(dialedColor, 0.2)
+            : function (context) {
+                const chart = context.chart;
+                const { ctx, chartArea } = chart;
+                return chartAreaGradient(ctx, chartArea, [
+                  { stop: 0, color: adjustColorOpacity(dialedColor, 0) },
+                  { stop: 1, color: adjustColorOpacity(dialedColor, 0.2) },
+                ]);
+              },
           borderColor: dialedColor,
           borderWidth: 2,
           pointRadius: 0,
@@ -338,14 +495,16 @@ function OverviewChart({ rows, loading }) {
           label: "Connected",
           data: rows.map((r) => Number(r.connected || 0)),
           fill: true,
-          backgroundColor: function (context) {
-            const chart = context.chart;
-            const { ctx, chartArea } = chart;
-            return chartAreaGradient(ctx, chartArea, [
-              { stop: 0, color: adjustColorOpacity(connectedColor, 0) },
-              { stop: 1, color: adjustColorOpacity(connectedColor, 0.2) },
-            ]);
-          },
+          backgroundColor: rows.length === 1
+            ? adjustColorOpacity(connectedColor, 0.2)
+            : function (context) {
+                const chart = context.chart;
+                const { ctx, chartArea } = chart;
+                return chartAreaGradient(ctx, chartArea, [
+                  { stop: 0, color: adjustColorOpacity(connectedColor, 0) },
+                  { stop: 1, color: adjustColorOpacity(connectedColor, 0.2) },
+                ]);
+              },
           borderColor: connectedColor,
           borderWidth: 2,
           pointRadius: 0,
@@ -358,14 +517,16 @@ function OverviewChart({ rows, loading }) {
           label: ">= 5 Min",
           data: rows.map((r) => Number(r.over_five || 0)),
           fill: true,
-          backgroundColor: function (context) {
-            const chart = context.chart;
-            const { ctx, chartArea } = chart;
-            return chartAreaGradient(ctx, chartArea, [
-              { stop: 0, color: adjustColorOpacity(overFiveColor, 0) },
-              { stop: 1, color: adjustColorOpacity(overFiveColor, 0.2) },
-            ]);
-          },
+          backgroundColor: rows.length === 1
+            ? adjustColorOpacity(overFiveColor, 0.2)
+            : function (context) {
+                const chart = context.chart;
+                const { ctx, chartArea } = chart;
+                return chartAreaGradient(ctx, chartArea, [
+                  { stop: 0, color: adjustColorOpacity(overFiveColor, 0) },
+                  { stop: 1, color: adjustColorOpacity(overFiveColor, 0.2) },
+                ]);
+              },
           borderColor: overFiveColor,
           borderWidth: 2,
           pointRadius: 0,
@@ -383,7 +544,7 @@ function OverviewChart({ rows, loading }) {
     if (chartRef.current) chartRef.current.destroy();
 
     const newChart = new Chart(canvasRef.current, {
-      type: "line",
+      type: rows.length === 1 ? "bar" : "line",
       data: chartData,
       options: {
         layout: { padding: 20 },
@@ -438,21 +599,8 @@ function OverviewChart({ rows, loading }) {
 
   const totalDialed = rows ? rows.reduce((s, r) => s + Number(r.dialed || 0), 0) : 0;
 
-  // Loading skeleton
-  if (loading) {
-    return (
-      <div className="col-span-full bg-white shadow-xs rounded-xl p-5">
-        <div className="animate-pulse space-y-3">
-          <div className="h-5 w-32 rounded bg-slate-100" />
-          <div className="h-3 w-48 rounded bg-slate-100" />
-          <div className="h-40 rounded bg-slate-100" />
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="col-span-full bg-white shadow-xs rounded-xl">
+    <div className="col-span-full bg-white shadow-xs rounded-xl relative overflow-hidden">
       {/* Header — same structure as DashboardCardDAU */}
       <div className="px-5 pt-5">
         <header className="flex justify-between items-start mb-2">
@@ -475,20 +623,36 @@ function OverviewChart({ rows, loading }) {
         </header>
         <div className="text-xs font-semibold text-gray-400 uppercase mb-1">Daily call movement</div>
         <div className="flex items-baseline gap-2">
-          <div className="text-3xl font-bold text-gray-800">{totalDialed}</div>
-          <div className="text-sm text-gray-500">total calls in period</div>
+          <div className="text-3xl font-bold text-gray-800">
+            {loading ? (
+              <span className="inline-block h-8 w-16 rounded bg-slate-100 animate-pulse" />
+            ) : (
+              totalDialed
+            )}
+          </div>
+          <div className="text-sm text-gray-500 ml-2">total calls in period</div>
         </div>
       </div>
-      {/* Chart — taller than DAU to fit axes */}
-      {chartData ? (
-        <div className="grow max-sm:max-h-[220px] xl:max-h-[220px]">
-          <canvas ref={canvasRef} width={800} height={220} />
-        </div>
-      ) : (
-        <div className="px-5 pb-5 pt-4 text-center text-sm text-gray-400">
-          No data for this period
-        </div>
-      )}
+      {/* Chart container */}
+      <div className="relative grow max-sm:max-h-[220px] xl:max-h-[220px] min-h-[220px] pb-5">
+        {loading && (
+          <div className="absolute inset-0 z-10 bg-white/80 backdrop-blur-xs flex items-center justify-center p-5">
+            <div className="animate-pulse space-y-3 w-full px-5">
+              <div className="h-32 rounded bg-slate-50 border border-slate-100/50" />
+            </div>
+          </div>
+        )}
+        
+        {chartData ? (
+          <div className="w-full h-[220px]">
+            <canvas ref={canvasRef} width={800} height={220} />
+          </div>
+        ) : (
+          <div className="px-5 pt-12 text-center text-sm text-gray-400">
+            No data for this period
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -504,11 +668,10 @@ function DateRangePicker({ fromDate, toDate, onChange, disabled }) {
   };
 
   const handleClear = () => {
-    const now = new Date();
-    const fromDefault = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    setTempFrom(toDateInput(fromDefault));
-    setTempTo(toDateInput(now));
-    onChange({ from: toDateInput(fromDefault), to: toDateInput(now) });
+    const todayStr = toIstDateString(new Date());
+    setTempFrom(todayStr);
+    setTempTo(todayStr);
+    onChange({ from: todayStr, to: todayStr });
     setOpen(false);
   };
 
@@ -582,16 +745,24 @@ function DateRangePicker({ fromDate, toDate, onChange, disabled }) {
                 </Button>
               </div>
               <div className="flex flex-wrap gap-1.5 pt-1 border-t border-slate-100">
+                <button
+                  onClick={() => {
+                    const todayStr = toIstDateString(new Date());
+                    setTempFrom(todayStr);
+                    setTempTo(todayStr);
+                  }}
+                  className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
+                >
+                  Today
+                </button>
                 {[7, 14, 30].map((days) => (
                   <button
                     key={days}
                     onClick={() => {
-                      const now = new Date();
-                      const from = new Date(
-                        now.getTime() - days * 24 * 60 * 60 * 1000,
-                      );
-                      setTempFrom(toDateInput(from));
-                      setTempTo(toDateInput(now));
+                      const fromStr = getIstShiftedDate(-days);
+                      const toStr = toIstDateString(new Date());
+                      setTempFrom(fromStr);
+                      setTempTo(toStr);
                     }}
                     className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:bg-slate-100"
                   >
@@ -607,15 +778,179 @@ function DateRangePicker({ fromDate, toDate, onChange, disabled }) {
   );
 }
 
-function CallEnginePage() {
-  const now = new Date();
-  const fromDefault = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+function MultiSelectCaller({ callers, selectedDialers, onChange, callersLoading }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef(null);
 
-  const [fromDate, setFromDate] = useState(toDateInput(fromDefault));
-  const [toDate, setToDate] = useState(toDateInput(now));
-  const [dialer, setDialer] = useState("all");
-  const [sort, setSort] = useState("recent");
-  const [hasRecording, setHasRecording] = useState(false);
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredCallers = useMemo(() => {
+    return callers.filter((caller) => {
+      const val = (caller.dialer_number || caller.number || "").toLowerCase();
+      const name = (caller.name || caller.employee_name || "").toLowerCase();
+      return val.includes(searchQuery.toLowerCase()) || name.includes(searchQuery.toLowerCase());
+    });
+  }, [callers, searchQuery]);
+
+  const handleToggle = (value) => {
+    if (selectedDialers.includes(value)) {
+      onChange(selectedDialers.filter((v) => v !== value));
+    } else {
+      onChange([...selectedDialers, value]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    onChange([]);
+    setSearchQuery("");
+  };
+
+  const handleClearAll = () => {
+    onChange([]);
+  };
+
+  const selectedLabels = useMemo(() => {
+    if (selectedDialers.length === 0) return "All callers";
+    if (selectedDialers.length === 1) {
+      const match = callers.find((c) => c.dialer_number === selectedDialers[0]);
+      return match ? `${match.name || match.dialer_number}` : selectedDialers[0];
+    }
+    return `${selectedDialers.length} callers selected`;
+  }, [selectedDialers, callers]);
+
+  return (
+    <div className="relative w-full" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={callersLoading}
+        className={cx(
+          "flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white pl-9 pr-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 hover:shadow-md disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer",
+          isOpen && "border-slate-400 ring-2 ring-slate-100"
+        )}
+      >
+        <span className="truncate text-left">{selectedLabels}</span>
+        <ChevronRight className={cx("h-4 w-4 text-slate-400 transition-transform duration-200", isOpen ? "-rotate-90" : "rotate-90")} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 top-full mt-2 z-50 w-full min-w-[280px] rounded-xl border border-slate-200 bg-white p-3 shadow-lg max-h-80 flex flex-col">
+          <div className="relative mb-2 flex-none">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search callers..."
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-8 pr-3 py-1.5 text-xs text-slate-800 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-100"
+            />
+          </div>
+
+          <div className="flex justify-between items-center px-1 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-none">
+            <button
+              type="button"
+              onClick={handleSelectAll}
+              className="hover:text-slate-800 transition cursor-pointer"
+            >
+              Select All (Reset)
+            </button>
+            {selectedDialers.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="hover:text-rose-600 transition cursor-pointer text-rose-500"
+              >
+                Clear Selected
+              </button>
+            )}
+          </div>
+
+          <div className="overflow-y-auto flex-1 space-y-1 pr-1">
+            <div className="border-b border-slate-100 pb-1.5 mb-1.5">
+              <div
+                onClick={handleSelectAll}
+                className={cx(
+                  "flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-semibold cursor-pointer select-none transition",
+                  selectedDialers.length === 0 ? "bg-slate-50 text-slate-900" : "text-slate-600 hover:bg-slate-50"
+                )}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedDialers.length === 0}
+                  readOnly
+                  className="rounded border-slate-300 text-slate-900 focus:ring-slate-500 focus:ring-offset-0 pointer-events-none cursor-pointer"
+                />
+                <span className="truncate">All callers</span>
+              </div>
+            </div>
+
+            {filteredCallers.map((caller, idx) => {
+              const value =
+                caller.dialer_number ||
+                caller.number ||
+                caller.employee_number ||
+                caller.mobile ||
+                "";
+              const label =
+                caller.name ||
+                caller.employee_name ||
+                caller.dialer_number ||
+                value;
+              const isChecked = selectedDialers.includes(value);
+
+              return value ? (
+                <div
+                  key={`${value}-${idx}`}
+                  onClick={() => handleToggle(value)}
+                  className={cx(
+                    "flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs cursor-pointer select-none transition",
+                    isChecked ? "bg-slate-50 text-slate-900 font-semibold" : "text-slate-600 hover:bg-slate-50"
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    readOnly
+                    className="rounded border-slate-300 text-slate-900 focus:ring-slate-500 focus:ring-offset-0 pointer-events-none cursor-pointer"
+                  />
+                  <span className="truncate text-left">
+                    {label} <span className="text-[10px] text-slate-400 font-normal">({value})</span>
+                  </span>
+                </div>
+              ) : null;
+            })}
+
+            {filteredCallers.length === 0 && (
+              <div className="py-4 text-center text-xs text-slate-400">
+                No callers match search
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CallEnginePage() {
+  const todayStr = toIstDateString(new Date());
+
+  const [fromDate, setFromDate] = useState(todayStr);
+  const [toDate, setToDate] = useState(todayStr);
+  const [selectedDialers, setSelectedDialers] = useState([]);
+  const [sortBy, setSortBy] = useState("call_datetime");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [recordingFilter, setRecordingFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
   const [callers, setCallers] = useState([]);
   const [overview, setOverview] = useState([]);
@@ -624,9 +959,21 @@ function CallEnginePage() {
   const [logs, setLogs] = useState([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
+  
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const loading = dashboardLoading || logsLoading;
+
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState("");
+
+  const [selectedMetric, setSelectedMetric] = useState(null);
+  const [metricLogs, setMetricLogs] = useState([]);
+  const [metricPage, setMetricPage] = useState(1);
+  const [metricTotal, setMetricTotal] = useState(0);
+  const [metricLoading, setMetricLoading] = useState(false);
+  const [missedStatusFilter, setMissedStatusFilter] = useState("all");
+  const [callersLoading, setCallersLoading] = useState(false);
 
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([
@@ -639,26 +986,74 @@ function CallEnginePage() {
   ]);
   const [assistantLoading, setAssistantLoading] = useState(false);
 
-  const loadSeq = useRef(0);
+  const dashboardSeq = useRef(0);
+  const logsSeq = useRef(0);
   const chatEndRef = useRef(null);
 
-  const selectedCaller = useMemo(
-    () => callers.find((caller) => caller.dialer_number === dialer),
-    [callers, dialer],
-  );
+  const selectedCallerNames = useMemo(() => {
+    if (selectedDialers.length === 0) return null;
+    return selectedDialers
+      .map((num) => {
+        const match = callers.find((c) => c.dialer_number === num);
+        return match ? match.name : num;
+      })
+      .join(", ");
+  }, [callers, selectedDialers]);
 
   const filterPayload = useMemo(
-    () => ({ fromDate, toDate, dialerNumber: dialer }),
-    [fromDate, toDate, dialer],
+    () => ({ fromDate, toDate, dialerNumber: selectedDialers.length > 0 ? selectedDialers : "all" }),
+    [fromDate, toDate, selectedDialers],
   );
   const previousWindow = useMemo(
     () => getPreviousWindow(fromDate, toDate),
     [fromDate, toDate],
   );
   const previousFilterPayload = useMemo(
-    () => (previousWindow ? { ...previousWindow, dialerNumber: dialer } : null),
-    [previousWindow, dialer],
+    () => (previousWindow ? { ...previousWindow, dialerNumber: selectedDialers.length > 0 ? selectedDialers : "all" } : null),
+    [previousWindow, selectedDialers],
   );
+
+  const loadMetricLogs = useCallback(
+    async (nextPage = 1) => {
+      if (!selectedMetric) return;
+      setMetricLoading(true);
+      try {
+        const res = await callEngineApi.getMetricLogs({
+          ...filterPayload,
+          metric: selectedMetric,
+          page: nextPage,
+          limit: PAGE_SIZE,
+          statusFilter: selectedMetric === "missed" ? missedStatusFilter : undefined,
+        });
+        setMetricLogs(res.data?.rows || []);
+        setMetricTotal(Number(res.data?.pagination?.total || 0));
+        setMetricPage(nextPage);
+      } catch (err) {
+        console.error("Failed to load metric logs:", err);
+      } finally {
+        setMetricLoading(false);
+      }
+    },
+    [selectedMetric, filterPayload, missedStatusFilter],
+  );
+
+  useEffect(() => {
+    if (selectedMetric) {
+      loadMetricLogs(1);
+    } else {
+      setMetricLogs([]);
+      setMetricTotal(0);
+      setMetricPage(1);
+      setMissedStatusFilter("all");
+    }
+  }, [selectedMetric, loadMetricLogs]);
+
+  const metricTotalPages = Math.max(1, Math.ceil(metricTotal / PAGE_SIZE));
+  const metricPageNumbers = useMemo(() => {
+    const start = Math.max(1, Math.min(metricPage - 2, metricTotalPages - 4));
+    const end = Math.min(metricTotalPages, start + 4);
+    return Array.from({ length: end - start + 1 }, (_, idx) => start + idx);
+  }, [metricPage, metricTotalPages]);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const pageNumbers = useMemo(() => {
@@ -667,56 +1062,103 @@ function CallEnginePage() {
     return Array.from({ length: end - start + 1 }, (_, idx) => start + idx);
   }, [page, totalPages]);
 
-  const loadAll = useCallback(
+  const loadCallers = useCallback(async () => {
+    setCallersLoading(true);
+    try {
+      const res = await callEngineApi.getCallers();
+      setCallers(res.data?.callers || []);
+    } catch (err) {
+      console.error("Failed to load callers:", err);
+    } finally {
+      setCallersLoading(false);
+    }
+  }, []);
+
+  const loadDashboard = useCallback(async () => {
+    const seq = dashboardSeq.current + 1;
+    dashboardSeq.current = seq;
+    setDashboardLoading(true);
+    setError("");
+    try {
+      const [overviewRes, reportRes, previousReportRes] =
+        await Promise.all([
+          callEngineApi.getOverview(filterPayload),
+          callEngineApi.getReport(filterPayload),
+          previousFilterPayload
+            ? callEngineApi.getReport(previousFilterPayload)
+            : Promise.resolve({ data: { report: {} } }),
+        ]);
+
+      if (dashboardSeq.current !== seq) return;
+      setOverview(overviewRes.data?.rows || []);
+      setReport(reportRes.data?.report || {});
+      setPreviousReport(previousReportRes.data?.report || {});
+    } catch (err) {
+      if (dashboardSeq.current !== seq) return;
+      setError(
+        err?.response?.data?.msg ||
+          err?.message ||
+          "Failed to load call engine overview data",
+      );
+    } finally {
+      if (dashboardSeq.current !== seq) return;
+      setDashboardLoading(false);
+    }
+  }, [filterPayload, previousFilterPayload]);
+
+  const loadLogs = useCallback(
     async (nextPage = 1) => {
-      const seq = loadSeq.current + 1;
-      loadSeq.current = seq;
-      setLoading(true);
+      const seq = logsSeq.current + 1;
+      logsSeq.current = seq;
+      setLogsLoading(true);
       setError("");
       try {
-        const [callersRes, overviewRes, reportRes, previousReportRes, logsRes] =
-          await Promise.all([
-            callEngineApi.getCallers(),
-            callEngineApi.getOverview(filterPayload),
-            callEngineApi.getReport(filterPayload),
-            previousFilterPayload
-              ? callEngineApi.getReport(previousFilterPayload)
-              : Promise.resolve({ data: { report: {} } }),
-            callEngineApi.getLogs({
-              ...filterPayload,
-              page: nextPage,
-              limit: PAGE_SIZE,
-              sort,
-              hasRecording,
-            }),
-          ]);
+        const res = await callEngineApi.getLogs({
+          ...filterPayload,
+          page: nextPage,
+          limit: PAGE_SIZE,
+          sortBy,
+          sortOrder,
+          recordingFilter,
+          search,
+        });
 
-        if (loadSeq.current !== seq) return;
-        setCallers(callersRes.data?.callers || []);
-        setOverview(overviewRes.data?.rows || []);
-        setReport(reportRes.data?.report || {});
-        setPreviousReport(previousReportRes.data?.report || {});
-        setLogs(logsRes.data?.rows || []);
-        setTotal(Number(logsRes.data?.pagination?.total || 0));
+        if (logsSeq.current !== seq) return;
+        setLogs(res.data?.rows || []);
+        setTotal(Number(res.data?.pagination?.total || 0));
         setPage(nextPage);
       } catch (err) {
-        if (loadSeq.current === seq) {
-          setError(
-            err?.response?.data?.msg ||
-              err?.message ||
-              "Failed to load call engine data",
-          );
-        }
+        if (logsSeq.current !== seq) return;
+        setError(
+          err?.response?.data?.msg ||
+            err?.message ||
+            "Failed to load call logs",
+        );
       } finally {
-        if (loadSeq.current === seq) setLoading(false);
+        if (logsSeq.current !== seq) return;
+        setLogsLoading(false);
       }
     },
-    [filterPayload, previousFilterPayload, sort, hasRecording],
+    [filterPayload, sortBy, sortOrder, recordingFilter, search],
   );
 
+  const handleRefresh = useCallback(() => {
+    loadCallers();
+    loadDashboard();
+    loadLogs(1);
+  }, [loadCallers, loadDashboard, loadLogs]);
+
   useEffect(() => {
-    loadAll(1);
-  }, [loadAll]);
+    loadCallers();
+  }, [loadCallers]);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  useEffect(() => {
+    loadLogs(1);
+  }, [loadLogs]);
 
   const runBackfill = async () => {
     setSyncing(true);
@@ -729,7 +1171,7 @@ function CallEnginePage() {
         limit: 100,
         maxPages: 10,
       });
-      await loadAll(1);
+      handleRefresh();
     } catch (err) {
       setError(
         err?.response?.data?.error ||
@@ -752,11 +1194,9 @@ function CallEnginePage() {
     ]);
     setAssistantLoading(true);
     try {
-      const systemPrompt =
-        "You are a call analytics assistant. Respond in 2-4 short sentences max. Use bullet points for lists. Be direct and concise. No long explanations. Use brief markdown formatting only when helpful.";
       const res = await callEngineApi.askAssistant({
         ...filterPayload,
-        question: `${systemPrompt}\n\nQuestion: ${trimmed}`,
+        question: trimmed,
       });
       setMessages((prev) => [
         ...prev,
@@ -817,12 +1257,46 @@ function CallEnginePage() {
     }
   };
 
+  const handleSort = (field) => {
+    if (field === "call_datetime") {
+      if (sortBy === "call_datetime") {
+        setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+      } else {
+        setSortBy("call_datetime");
+        setSortOrder("desc");
+      }
+    } else {
+      if (sortBy === field) {
+        if (sortOrder === "desc") {
+          setSortOrder("asc");
+        } else {
+          setSortBy("call_datetime");
+          setSortOrder("desc");
+        }
+      } else {
+        setSortBy(field);
+        setSortOrder("desc");
+      }
+    }
+  };
+
+  const toggleRecordingFilter = () => {
+    setRecordingFilter((prev) => {
+      if (prev === "all") return "recorded";
+      if (prev === "recorded") return "not_recorded";
+      return "all";
+    });
+  };
+
   const resetFilters = () => {
-    setFromDate(toDateInput(fromDefault));
-    setToDate(toDateInput(now));
-    setDialer("all");
-    setSort("recent");
-    setHasRecording(false);
+    const todayStr = toIstDateString(new Date());
+    setFromDate(todayStr);
+    setToDate(todayStr);
+    setSelectedDialers([]);
+    setSortBy("call_datetime");
+    setSortOrder("desc");
+    setRecordingFilter("all");
+    setSearch("");
   };
 
   const handleDateRangeChange = ({ from, to }) => {
@@ -850,7 +1324,7 @@ function CallEnginePage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
-            onClick={() => loadAll(1)}
+            onClick={handleRefresh}
             loading={loading}
             variant="secondary"
             size="sm"
@@ -889,34 +1363,13 @@ function CallEnginePage() {
               Caller
             </label>
             <div className="relative">
-              <UserRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <select
-                value={dialer}
-                onChange={(e) => setDialer(e.target.value)}
-                disabled={loading}
-                className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-8 py-2.5 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all duration-200 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:opacity-60 disabled:cursor-not-allowed appearance-none"
-              >
-                <option value="all">All callers</option>
-                {callers.map((caller, idx) => {
-                  const value =
-                    caller.dialer_number ||
-                    caller.number ||
-                    caller.employee_number ||
-                    caller.mobile ||
-                    "";
-                  const label =
-                    caller.name ||
-                    caller.employee_name ||
-                    caller.dialer_number ||
-                    value;
-                  return value ? (
-                    <option key={`${value}-${idx}`} value={value}>
-                      {label} ({value})
-                    </option>
-                  ) : null;
-                })}
-              </select>
-              <ChevronRight className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none rotate-90" />
+              <UserRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none z-10" />
+              <MultiSelectCaller
+                callers={callers}
+                selectedDialers={selectedDialers}
+                onChange={setSelectedDialers}
+                callersLoading={callersLoading}
+              />
             </div>
           </div>
           <Button
@@ -942,7 +1395,7 @@ function CallEnginePage() {
       </section>
 
       {/* Report Cards */}
-      <section className="mb-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <section className="mb-4 grid grid-cols-2 lg:grid-cols-5 gap-3">
         {Object.keys(metricConfig).map((key) => (
           <StatCard
             key={key}
@@ -951,6 +1404,8 @@ function CallEnginePage() {
             previousValue={previousReport[key] || 0}
             previousWindow={previousWindow}
             loading={loading}
+            onClick={() => setSelectedMetric(key)}
+            duration={key !== "missed" && key !== "not_connected" ? report[`${key}_duration`] : undefined}
           />
         ))}
       </section>
@@ -964,40 +1419,133 @@ function CallEnginePage() {
               Recent calls, recordings, and dialer activity
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              disabled={loading}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all duration-200 hover:border-slate-300 focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              <option value="recent">Recent first</option>
-              <option value="oldest">Oldest first</option>
-            </select>
-            <button
-              onClick={() => setHasRecording((value) => !value)}
-              disabled={loading}
-              className={cx(
-                "inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium shadow-sm transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed",
-                hasRecording
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300",
-              )}
-            >
-              <FileAudio className="h-4 w-4" />
-              Recordings only
-            </button>
+          <div className="relative max-w-xs w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search Candidate ID or Phone..."
+              className="w-full rounded-xl border border-slate-200 bg-white pl-9 pr-8 py-2.5 text-sm text-slate-800 shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[800px] text-sm">
             <thead className="text-xs font-semibold uppercase text-slate-500 bg-slate-50 border-b border-slate-100">
               <tr>
-                <th className="px-4 py-3 text-left">Client Number</th>
+                <th
+                  onClick={() => handleSort("candidate_id")}
+                  className="px-4 py-3 text-left cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Candidate ID</span>
+                    <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                      {sortBy === "candidate_id" ? (
+                        sortOrder === "asc" ? (
+                          <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+                        ) : (
+                          <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </span>
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort("client_number")}
+                  className="px-4 py-3 text-left cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Client Number</span>
+                    <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                      {sortBy === "client_number" ? (
+                        sortOrder === "asc" ? (
+                          <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+                        ) : (
+                          <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </span>
+                  </div>
+                </th>
                 <th className="px-4 py-3 text-left">Dialer</th>
-                <th className="px-4 py-3 text-left">Call Date & Time</th>
-                <th className="px-4 py-3 text-left">Duration</th>
-                <th className="px-4 py-3 text-left">Recording</th>
+                <th
+                  onClick={() => handleSort("call_datetime")}
+                  className="px-4 py-3 text-left cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Call Date & Time</span>
+                    <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                      {sortBy === "call_datetime" ? (
+                        sortOrder === "asc" ? (
+                          <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+                        ) : (
+                          <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </span>
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleSort("duration_sec")}
+                  className="px-4 py-3 text-left cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <span>Duration</span>
+                    <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
+                      {sortBy === "duration_sec" ? (
+                        sortOrder === "asc" ? (
+                          <ArrowUp className="h-3.5 w-3.5 text-slate-800" />
+                        ) : (
+                          <ArrowDown className="h-3.5 w-3.5 text-slate-800" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </span>
+                  </div>
+                </th>
+                <th
+                  onClick={toggleRecordingFilter}
+                  className="px-4 py-3 text-left cursor-pointer select-none hover:bg-slate-100/50 transition-colors group"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span>Recording</span>
+                      <FileAudio
+                        className={cx(
+                          "h-3.5 w-3.5 transition-colors",
+                          recordingFilter === "recorded"
+                            ? "text-emerald-600 font-semibold"
+                            : recordingFilter === "not_recorded"
+                              ? "text-rose-600 font-semibold"
+                              : "text-slate-400"
+                        )}
+                      />
+                    </div>
+                    <span className="text-[10px] font-semibold uppercase bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">
+                      {recordingFilter === "recorded"
+                        ? "Recorded Only"
+                        : recordingFilter === "not_recorded"
+                          ? "No Recording"
+                          : "All"}
+                    </span>
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -1010,7 +1558,10 @@ function CallEnginePage() {
                       key={row.callyzer_call_id}
                       className="border-t border-slate-100 transition-colors hover:bg-slate-50/80"
                     >
-                      <td className="px-4 py-3 font-medium text-slate-900">
+                      <td className="px-4 py-3 font-semibold text-slate-900">
+                        {row.candidate_id || "-"}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">
                         {row.client_number || "-"}
                       </td>
                       <td className="px-4 py-3 text-slate-700">
@@ -1026,15 +1577,7 @@ function CallEnginePage() {
                       </td>
                       <td className="px-4 py-3">
                         {row.recording_url ? (
-                          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm max-w-sm">
-                            <Waves className="h-4 w-4 flex-none text-sky-600" />
-                            <audio
-                              controls
-                              preload="none"
-                              src={row.recording_url}
-                              className="h-8 w-full min-w-[180px]"
-                            />
-                          </div>
+                          <TableAudioPlayer url={row.recording_url} />
                         ) : (
                           <span className="text-xs text-slate-400 italic">
                             No recording
@@ -1045,7 +1588,7 @@ function CallEnginePage() {
                   ))}
                   {!logs.length && !loading && (
                     <tr>
-                      <td colSpan={5} className="px-4 py-12 text-center">
+                      <td colSpan={6} className="px-4 py-12 text-center">
                         <div className="flex flex-col items-center gap-2 text-slate-400">
                           <FileAudio className="h-8 w-8" />
                           <p className="text-sm font-medium">
@@ -1072,7 +1615,7 @@ function CallEnginePage() {
             <div className="flex items-center gap-1.5">
               <button
                 disabled={page <= 1 || loading}
-                onClick={() => loadAll(page - 1)}
+                onClick={() => loadLogs(page - 1)}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -1080,7 +1623,7 @@ function CallEnginePage() {
               {pageNumbers.map((pageNumber) => (
                 <button
                   key={pageNumber}
-                  onClick={() => loadAll(pageNumber)}
+                  onClick={() => loadLogs(pageNumber)}
                   className={cx(
                     "inline-flex h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm font-semibold transition-all duration-200",
                     pageNumber === page
@@ -1093,7 +1636,7 @@ function CallEnginePage() {
               ))}
               <button
                 disabled={page >= totalPages || loading}
-                onClick={() => loadAll(page + 1)}
+                onClick={() => loadLogs(page + 1)}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm transition-all duration-200 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="h-4 w-4" />
@@ -1132,7 +1675,7 @@ function CallEnginePage() {
             <Button
               onClick={() =>
                 sendQuestion(
-                  "How did the selected dialer perform with these clients?",
+                  "Evaluate the dialer performance during this period. Analyze their communication tone, sales pitch structure, objection handling, strengths, and areas of improvement.",
                 )
               }
               variant="secondary"
@@ -1339,10 +1882,10 @@ function CallEnginePage() {
               <CalendarDays className="h-3 w-3" />
               {fromDate} to {toDate}
             </span>
-            {selectedCaller && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
-                <UserRound className="h-3 w-3" />
-                {selectedCaller.name || dialer}
+            {selectedCallerNames && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 max-w-[300px] truncate" title={selectedCallerNames}>
+                <UserRound className="h-3 w-3 flex-shrink-0" />
+                <span className="truncate">{selectedCallerNames}</span>
               </span>
             )}
           </div>
@@ -1370,6 +1913,174 @@ function CallEnginePage() {
           </div>
         </div>
       </section>
+
+      {/* Metric Details Modal */}
+      {selectedMetric && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setSelectedMetric(null)}
+          />
+
+          {/* Modal Content */}
+          <div className="relative w-full max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-2xl transition-all flex flex-col max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 p-5">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">
+                  {metricConfig[selectedMetric]?.label || "Call Details"}
+                </h2>
+                <p className="text-xs text-slate-500 mt-1">
+                  Showing calls matching active filters ({metricTotal} total)
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                {selectedMetric === "missed" && (
+                  <select
+                    value={missedStatusFilter}
+                    onChange={(e) => {
+                      setMissedStatusFilter(e.target.value);
+                    }}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs outline-none transition focus:border-slate-400 focus:ring-1 focus:ring-slate-100 cursor-pointer"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="never_called">Never Called</option>
+                    <option value="called_back">Called Back</option>
+                  </select>
+                )}
+                <button
+                  onClick={() => setSelectedMetric(null)}
+                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content Table */}
+            <div className="flex-1 overflow-y-auto p-5">
+              <div className="overflow-x-auto rounded-xl border border-slate-100 bg-white">
+                <table className="w-full text-sm min-w-[600px]">
+                   <thead className="text-xs font-semibold uppercase text-slate-500 bg-slate-50 border-b border-slate-100">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Candidate ID</th>
+                      <th className="px-4 py-3 text-left">Client Number</th>
+                      <th className="px-4 py-3 text-left">Dialer</th>
+                      <th className="px-4 py-3 text-left">Call Date & Time</th>
+                      {selectedMetric !== "missed" && <th className="px-4 py-3 text-left">Duration</th>}
+                      {selectedMetric === "missed" && <th className="px-4 py-3 text-left">Status</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {metricLoading ? (
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <tr key={i} className="border-t border-slate-100 animate-pulse">
+                          <td className="px-4 py-4"><div className="h-4 w-16 rounded bg-slate-100" /></td>
+                          <td className="px-4 py-4"><div className="h-4 w-28 rounded bg-slate-100" /></td>
+                          <td className="px-4 py-4"><div className="h-4 w-24 rounded bg-slate-100" /></td>
+                          <td className="px-4 py-4"><div className="h-4 w-40 rounded bg-slate-100" /></td>
+                          {selectedMetric !== "missed" && <td className="px-4 py-4"><div className="h-4 w-16 rounded bg-slate-100" /></td>}
+                          {selectedMetric === "missed" && <td className="px-4 py-4"><div className="h-4 w-20 rounded bg-slate-100" /></td>}
+                        </tr>
+                      ))
+                    ) : metricLogs.length > 0 ? (
+                      metricLogs.map((row) => (
+                        <tr
+                          key={row.callyzer_call_id}
+                          className="border-t border-slate-100 transition hover:bg-slate-50/50"
+                        >
+                          <td className="px-4 py-3.5 font-semibold text-slate-900">
+                            {row.candidate_id || "-"}
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-600">
+                            {row.client_number || "-"}
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-700">
+                            {row.dialer_name || row.dialer_number || "-"}
+                          </td>
+                          <td className="px-4 py-3.5 text-slate-600">
+                            {formatDateTime(row.call_datetime)}
+                          </td>
+                          {selectedMetric !== "missed" && (
+                            <td className="px-4 py-3.5">
+                              <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+                                {formatDuration(row.duration_sec)}
+                              </span>
+                            </td>
+                          )}
+                          {selectedMetric === "missed" && (
+                            <td className="px-4 py-3.5">
+                              {row.was_called_back ? (
+                                <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                                  Called Back
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 border border-amber-200">
+                                  Never Called
+                                </span>
+                              )}
+                            </td>
+                          )}
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-12 text-center text-slate-400">
+                          <div className="flex flex-col items-center gap-2">
+                            <PhoneOff className="h-8 w-8 text-slate-300" />
+                            <p className="text-sm font-medium">No calls found</p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Pagination */}
+            {!metricLoading && metricLogs.length > 0 && (
+              <div className="flex flex-col gap-3 border-t border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between bg-slate-50/50">
+                <p className="text-xs text-slate-500">
+                  Showing {metricLogs.length ? (metricPage - 1) * PAGE_SIZE + 1 : 0}-
+                  {Math.min(metricPage * PAGE_SIZE, metricTotal)} of {metricTotal}
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    disabled={metricPage <= 1 || metricLoading}
+                    onClick={() => loadMetricLogs(metricPage - 1)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-xs transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  {metricPageNumbers.map((pageNumber) => (
+                    <button
+                      key={pageNumber}
+                      onClick={() => loadMetricLogs(pageNumber)}
+                      className={cx(
+                        "inline-flex h-8 min-w-8 items-center justify-center rounded-lg border px-2.5 text-xs font-semibold transition",
+                        pageNumber === metricPage
+                          ? "border-slate-900 bg-slate-900 text-white shadow-xs"
+                          : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                      )}
+                    >
+                      {pageNumber}
+                    </button>
+                  ))}
+                  <button
+                    disabled={metricPage >= metricTotalPages || metricLoading}
+                    onClick={() => loadMetricLogs(metricPage + 1)}
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 shadow-xs transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

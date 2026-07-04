@@ -2,39 +2,65 @@ import { paymentsAdminApi } from "../../../../api/paymentsAdminApi";
 
 export function useActionsEnrollment(state) {
   const {
-    SESSION_UNLOCK_KEY,
-    password,
-    setPassword,
-    setAuthorized,
     setError,
     setNotice,
     setSavingEnrollmentId,
     setSendingAgreementEnrollmentId,
+    setCopyLinkModal,
     loadTabData,
     editDraft,
     setEditDraft,
   } = state;
 
-  async function handleStepUp() {
-    setError("");
-    try {
-      await paymentsAdminApi.verifyStepUp(password);
-      setAuthorized(true);
-      try {
-        sessionStorage.setItem(SESSION_UNLOCK_KEY, "1");
-      } catch {
-        // ignore storage errors
-      }
-      setPassword("");
-    } catch (err) {
-      setError(err?.response?.data?.msg || "Invalid password");
-    }
-  }
+  async function handleFinalize(row) {
+    const enrollmentId = row?.enrollment_id;
+    if (!enrollmentId) return;
 
-  async function handleFinalize(enrollmentId) {
+    const agreementState = String(row?.agreement_state || "not_sent");
+    const agreementSent = agreementState !== "not_sent";
+    if (!agreementSent) {
+      const confirmed = window.confirm(
+        "This candidate has not been sent the agreement yet. Are you sure you want to finalize?",
+      );
+      if (!confirmed) return;
+    }
+
+    const notesObj = (row?.notes && typeof row.notes === "object") ? row.notes : {};
+    const fullCandidate = {
+      ...row,
+      ...notesObj,
+    };
+
+    const requiredChecks = [
+      { key: "student_name", label: "Name" },
+      { key: "student_phone", label: "Phone Number" },
+      { key: "student_email", label: "Email" },
+      { key: "batch_id", label: "Batch" },
+      { key: "dob", label: "DOB" },
+      { key: "gender", label: "Gender" },
+      { key: "nationality", label: "Nationality" },
+      { key: "current_location_city", label: "Current Location" },
+      { key: "state", label: "State" },
+      { key: "educational_qualification", label: "Educational Qualification" },
+      { key: "terms_ack_status", label: "Terms Acknowledgement" },
+    ];
+
+    const missing = requiredChecks
+      .filter((x) => !String(fullCandidate?.[x.key] ?? "").trim())
+      .map((x) => x.label);
+
+    if (missing.length) {
+      setError(`Cannot finalize. Please fill required fields in Details: ${missing.join(", ")}`);
+      return;
+    }
+
     setSavingEnrollmentId(enrollmentId);
     try {
-      await paymentsAdminApi.finalizeEnrollment(enrollmentId);
+      const res = await paymentsAdminApi.finalizeEnrollment(enrollmentId);
+      const warning = res?.data?.candidate_id_warning;
+      if (warning) {
+        setNotice?.(`Finalized. ${warning}`);
+      }
       await loadTabData();
     } catch (err) {
       setError(err?.response?.data?.msg || "Finalize failed");
@@ -43,13 +69,15 @@ export function useActionsEnrollment(state) {
     }
   }
 
-  async function handleReject(enrollmentId) {
+  async function handleDeleteCandidate(enrollmentId) {
     setSavingEnrollmentId(enrollmentId);
     try {
-      await paymentsAdminApi.rejectEnrollment(enrollmentId);
+      await paymentsAdminApi.deleteEnrollment(enrollmentId);
+      setNotice?.("Candidate deleted successfully.");
+      setEditDraft(null);
       await loadTabData();
     } catch (err) {
-      setError(err?.response?.data?.msg || "Reject failed");
+      setError(err?.response?.data?.msg || "Delete failed");
     } finally {
       setSavingEnrollmentId("");
     }
@@ -61,15 +89,6 @@ export function useActionsEnrollment(state) {
       { key: "student_name", label: "Name" },
       { key: "student_phone", label: "Phone Number" },
       { key: "student_email", label: "Email" },
-      { key: "batch_id", label: "Batch" },
-      { key: "candidate_id", label: "Candidate ID" },
-      { key: "dob", label: "DOB" },
-      { key: "gender", label: "Gender" },
-      { key: "nationality", label: "Nationality" },
-      { key: "current_location_city", label: "Current Location" },
-      { key: "state", label: "State" },
-      { key: "educational_qualification", label: "Educational Qualification" },
-      { key: "terms_ack_status", label: "Acknowledgement" },
     ];
     const missing = requiredChecks
       .filter((x) => !String(editDraft?.[x.key] ?? "").trim())
@@ -86,8 +105,8 @@ export function useActionsEnrollment(state) {
       const actualDate = String(row.actual_date || row.date || "").slice(0, 10);
       const expectedRaw = row.expected_payment_inr ?? row.expected_amount_inr ?? "";
       const actualRaw = row.actual_payment_inr ?? "";
-      const hasExpected = String(expectedRaw).trim() !== "";
-      const hasActual = String(actualRaw).trim() !== "";
+      const hasExpected = String(expectedRaw).trim() !== "" && Number(expectedRaw) !== 0;
+      const hasActual = String(actualRaw).trim() !== "" && Number(actualRaw) !== 0;
       const expected = Number(expectedRaw || 0);
       const actual = Number(actualRaw || 0);
       return (
@@ -109,7 +128,11 @@ export function useActionsEnrollment(state) {
       student_phone: editDraft.student_phone,
       batch_id: editDraft.batch_id || null,
       notes: editDraft.notes || "",
-      enforce_profile_validation: true,
+      status: editDraft.status,
+      expected_payment_start_date: editDraft.expected_payment_start_date || "",
+      created_at: editDraft.created_at || undefined,
+      enforce_profile_validation: false,
+      notify_discord: true,
       candidate_id: editDraft.candidate_id || "",
       total_fee_inr: editDraft.total_fee_inr || "",
       monthly_fee_inr: editDraft.monthly_fee_inr || "",
@@ -178,25 +201,25 @@ export function useActionsEnrollment(state) {
       student_email: "",
       batch_id: "",
       candidate_id: "",
-      alternate_number: "",
+      alternate_number: "-",
       dob: "",
       gender: "",
-      nationality: "",
-      current_location_city: "",
+      nationality: "-",
+      current_location_city: "-",
       state: "",
       educational_qualification: "",
       year_of_passing: "",
       shift_pattern: "",
-      first_shift_timing: "",
-      second_shift_timing: "",
-      third_shift_timing: "",
-      daily_shift_timing: "",
+      first_shift_timing: "-",
+      second_shift_timing: "-",
+      third_shift_timing: "-",
+      daily_shift_timing: "-",
       passport_gdrive_link: "",
       degree_certificate_gdrive_link: "",
       updated_resume_gdrive_link: "",
       terms_ack_status: "",
-      lead_owner: "",
-      internal_remark: "",
+      lead_owner: "-",
+      internal_remark: "-",
       total_fee_inr: 60000,
       monthly_fee_inr: 6000,
       expected_payments: [],
@@ -206,8 +229,17 @@ export function useActionsEnrollment(state) {
   async function handleSendAgreement(row) {
     const enrollmentId = row?.enrollment_id;
     if (!enrollmentId) return;
-    if (!String(row?.student_email || "").trim()) {
+    const email = String(row?.student_email || "").trim();
+    if (!email) {
       setError("candidate email is required before sending agreement");
+      return;
+    }
+    if (/@razorpay/i.test(email)) {
+      setError("Cannot send agreements to razorpay email addresses. A valid candidate email is required.");
+      return;
+    }
+    if (String(row?.student_name || "").trim().startsWith("#")) {
+      setError("Cannot send agreements to candidates with placeholder names starting with '#'. Please update the candidate name first.");
       return;
     }
     const confirmed = window.confirm(
@@ -218,8 +250,23 @@ export function useActionsEnrollment(state) {
     setNotice?.("");
     setSendingAgreementEnrollmentId?.(enrollmentId);
     try {
-      await paymentsAdminApi.sendAgreement(enrollmentId);
-      setNotice?.(`Agreement sent to ${row.student_email}.`);
+      const res = await paymentsAdminApi.sendAgreement(enrollmentId);
+      const signingUrl = res.data?.envelope?.signing_url;
+      if (signingUrl) {
+        try {
+          await navigator.clipboard.writeText(signingUrl);
+          setNotice?.("Agreement link copied to clipboard!");
+        } catch (clipErr) {
+          console.error("Clipboard copy failed:", clipErr);
+        }
+        setCopyLinkModal?.({
+          open: true,
+          url: signingUrl,
+          studentName: row.student_name || "Candidate",
+        });
+      } else {
+        setNotice?.(`Agreement sent to ${row.student_email}.`);
+      }
       await loadTabData();
     } catch (err) {
       setError(err?.response?.data?.msg || "Agreement send failed");
@@ -228,12 +275,34 @@ export function useActionsEnrollment(state) {
     }
   }
 
+  async function handleTagRecruitment(enrollmentId, studentName) {
+    if (!enrollmentId) return;
+    const confirmed = window.confirm(
+      `Are you sure you want to tag candidate "${studentName || ""}" as Recruitment? This will move them to the Recruitment View.`,
+    );
+    if (!confirmed) return;
+    setError("");
+    setNotice?.("");
+    setSavingEnrollmentId(enrollmentId);
+    try {
+      await paymentsAdminApi.updateEnrollment(enrollmentId, {
+        candidate_type: "recruitment",
+      });
+      setNotice?.(`Candidate "${studentName || ""}" tagged as Recruitment successfully.`);
+      await loadTabData();
+    } catch (err) {
+      setError(err?.response?.data?.msg || "Tag recruitment failed");
+    } finally {
+      setSavingEnrollmentId("");
+    }
+  }
+
   return {
-    handleStepUp,
     handleFinalize,
-    handleReject,
+    handleDeleteCandidate,
     handleSaveEnrollmentEdit,
     handleStartManualCandidate,
     handleSendAgreement,
+    handleTagRecruitment,
   };
 }

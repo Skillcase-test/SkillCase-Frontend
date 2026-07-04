@@ -1,9 +1,12 @@
 import api from "./axios";
+import { adminAccessApi } from "./adminAccessApi";
 
 export const paymentsAdminApi = {
-  verifyStepUp: (password) =>
-    api.post("/admin/payments/auth/verify-password", { password }),
-  getStepUpStatus: () => api.get("/admin/payments/auth/status"),
+  // Fetches the current admin's role + permissions (used on panel mount).
+  getMyAccess: () => adminAccessApi.getMyAccess(),
+
+  getOverallStats: (params = {}) =>
+    api.get("/admin/payments/reports/overall-stats", { params }),
 
   getMonthView: (year, month, params = {}) =>
     api.get("/admin/payments/enrollments/month-view", {
@@ -33,10 +36,12 @@ export const paymentsAdminApi = {
     api.post(`/admin/payments/enrollments/${enrollmentId}/undrop`, payload),
   finalizeEnrollment: (enrollmentId) =>
     api.post(`/admin/payments/enrollments/${enrollmentId}/finalize`),
-  rejectEnrollment: (enrollmentId) =>
-    api.post(`/admin/payments/enrollments/${enrollmentId}/reject`),
+  deleteEnrollment: (enrollmentId) =>
+    api.post(`/admin/payments/enrollments/${enrollmentId}/delete`),
 
-  getBatches: () => api.get("/admin/payments/batches"),
+  getBatches: (params = {}) => api.get("/admin/payments/batches", { params }),
+  getBatchStudents: (batchId, params = {}) =>
+    api.get(`/admin/payments/batches/${batchId}/students`, { params }),
   createBatch: (payload) => api.post("/admin/payments/batches", payload),
   updateBatch: (batchId, payload) =>
     api.put(`/admin/payments/batches/${batchId}`, payload),
@@ -62,8 +67,6 @@ export const paymentsAdminApi = {
     api.get("/admin/payments/reports/payment-view", {
       params: { year, month, ...params },
     }),
-  refundPayment: (paymentId) =>
-    api.post(`/admin/payments/reports/payments/${paymentId}/refund`),
   reconcile: (payload = {}) =>
     api.post("/admin/payments/reports/reconcile", payload),
   importDumpDryRun: (formData) =>
@@ -72,15 +75,65 @@ export const paymentsAdminApi = {
     }),
   importDumpConfirm: (payload) =>
     api.post("/admin/payments/import/confirm", payload),
+  importCandidatesDryRun: (formData) =>
+    api.post("/admin/payments/import/candidates/dry-run", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+  importCandidatesConfirm: (payload) =>
+    api.post("/admin/payments/import/candidates/confirm", payload),
 
   getRawLogs: (params = {}) =>
     api.get("/admin/payments/razorpay-raw-logs", { params }),
   getInvoices: (year, month, params = {}) =>
     api.get("/admin/payments/invoices", { params: { year, month, ...params } }),
-  getInvoicePaymentOptions: (enrollment_id) =>
-    api.get("/admin/payments/invoices/payments", { params: { enrollment_id } }),
+  getInvoicePaymentOptions: (enrollment_id, params = {}) => {
+    const cleanId = enrollment_id && enrollment_id !== "null" && enrollment_id !== "undefined" ? enrollment_id : undefined;
+    return api.get("/admin/payments/invoices/payments", { params: { enrollment_id: cleanId, ...params } });
+  },
 
   generateInvoice: (payload) =>
     api.post("/admin/payments/invoices/generate", payload),
   sendInvoice: (payload) => api.post("/admin/payments/invoices/send", payload),
+  deleteInvoice: (invoiceId) =>
+    api.delete(`/admin/payments/invoices/${invoiceId}`),
+  getInvoicePdf: (invoiceId) =>
+    api.get(`/admin/payments/invoices/${invoiceId}/pdf`),
+  getBookedSummary: (params = {}) =>
+    api.get("/admin/payments/invoices/booked-summary", { params }),
+  getBookedSummaryCandidates: (year, month) =>
+    api.get("/admin/payments/invoices/booked-summary/candidates", { params: { year, month } }),
+
+  createManualTransaction: (payload) =>
+    api.post("/admin/payments/transactions/manual", payload),
+  updateManualTransaction: (paymentId, payload) =>
+    api.patch(`/admin/payments/transactions/manual/${paymentId}`, payload),
+  deleteManualTransaction: (paymentId) =>
+    api.delete(`/admin/payments/transactions/manual/${paymentId}`),
+  relinkTransactionByPhone: (paymentId, phone) =>
+    api.patch(`/admin/payments/transactions/${paymentId}/link-by-phone`, { phone }),
+  checkDuplicateTransactions: (payload) =>
+    api.post("/admin/payments/transactions/check-duplicates", payload),
+  createBatchManualTransactions: (payload) =>
+    api.post("/admin/payments/transactions/batch-manual", payload),
+  getImportHistory: (params = {}) =>
+    api.get("/admin/payments/import/history", { params }),
+  downloadImportFile: (importId) =>
+    api.get(`/admin/payments/import/history/${importId}/download`),
+  rollbackImport: (importId) =>
+    api.post("/admin/payments/import/rollback", { importId }),
+  getBookedAmountCandidatePayments: (phone) =>
+    api.get("/admin/payments/booked-amounts/candidate-payments", { params: { phone } }),
+  bookAmount: (payload) =>
+    api.post("/admin/payments/booked-amounts", payload),
+
+  getCandidatePaymentsWithReceipts: (enrollmentId) =>
+    api.get(`/admin/payments/recruitment/candidates/${enrollmentId}/payments-with-receipts`),
+  generateReceipt: (payload) =>
+    api.post("/admin/payments/recruitment/receipts/generate", payload),
+  sendReceipt: (payload) =>
+    api.post("/admin/payments/recruitment/receipts/send", payload),
+  getReceiptPdf: (receiptId) =>
+    api.get(`/admin/payments/recruitment/receipts/${receiptId}/pdf`),
+  deleteReceiptDraft: (receiptId) =>
+    api.delete(`/admin/payments/recruitment/receipts/${receiptId}`),
 };

@@ -1,5 +1,33 @@
 // index.js
 
+// Catch global dynamic import/chunk loading failures and reload the page to get the latest build assets.
+window.addEventListener('error', (event) => {
+  const msg = event.message || "";
+  if (msg.includes("Failed to fetch dynamically imported module")) {
+    const chunkErrorKey = 'chunk-load-error-timestamp';
+    const now = Date.now();
+    const lastErrorTime = sessionStorage.getItem(chunkErrorKey);
+    if (!lastErrorTime || now - Number(lastErrorTime) > 15000) {
+      sessionStorage.setItem(chunkErrorKey, String(now));
+      window.location.reload();
+    }
+  }
+}, true);
+
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason;
+  const msg = (reason && (reason.message || String(reason))) || "";
+  if (msg.includes("Failed to fetch dynamically imported module")) {
+    const chunkErrorKey = 'chunk-load-error-timestamp';
+    const now = Date.now();
+    const lastErrorTime = sessionStorage.getItem(chunkErrorKey);
+    if (!lastErrorTime || now - Number(lastErrorTime) > 15000) {
+      sessionStorage.setItem(chunkErrorKey, String(now));
+      window.location.reload();
+    }
+  }
+});
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
