@@ -241,6 +241,14 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
       link: "/b1/maya",
       enabled: true,
     },
+    {
+      id: "news",
+      title: "News",
+      description: "Read top headlines in German and English",
+      image: images.news,
+      link: "/news",
+      enabled: true,
+    },
   ];
 
   const features = isB1

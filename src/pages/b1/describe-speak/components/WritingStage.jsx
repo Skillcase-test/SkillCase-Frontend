@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Volume2, Maximize2 } from "lucide-react";
+import UmlautKeyboard from "../../../../components/b1/UmlautKeyboard";
 
 export default function WritingStage({
   topic,
@@ -10,6 +11,23 @@ export default function WritingStage({
   onHelpfulWordClick,
 }) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
+  const handleInsertUmlaut = (char) => {
+    const input = document.getElementById("ds-writing-textarea");
+    const current = writingText || "";
+    if (!input) {
+      setWritingText(current + char);
+      return;
+    }
+    const start = input.selectionStart ?? current.length;
+    const end = input.selectionEnd ?? start;
+    const newVal = current.slice(0, start) + char + current.slice(end);
+    setWritingText(newVal);
+    requestAnimationFrame(() => {
+      input.focus();
+      input.setSelectionRange(start + char.length, start + char.length);
+    });
+  };
 
   return (
     <div className="w-full">
@@ -45,7 +63,6 @@ export default function WritingStage({
           </button>
         </div>
 
-
         {topic?.helpful_words?.length > 0 && (
           <div className="self-stretch flex flex-col justify-start items-start gap-1.5">
             <div className="inline-flex justify-center items-center gap-2">
@@ -55,7 +72,8 @@ export default function WritingStage({
               </span>
             </div>
             <p className="self-stretch opacity-70 text-black text-[10px] font-normal leading-4 text-left">
-              Tap these words to view their meanings and add them to your writing.
+              Tap these words to view their meanings and add them to your
+              writing.
             </p>
             <div className="w-full flex flex-wrap gap-1.5 pt-1.5">
               {topic.helpful_words.map((wordObj, idx) => (
@@ -65,7 +83,8 @@ export default function WritingStage({
                   onClick={() => onHelpfulWordClick(wordObj)}
                   className="h-7 px-2.5 py-1.5 bg-blue-950/10 hover:bg-blue-950/20 active:scale-95 rounded-lg text-blue-950 text-xs font-medium transition-all cursor-pointer border-0 outline-none"
                 >
-                  {wordObj?.article && `${wordObj.article} `}{wordObj?.word || wordObj}
+                  {wordObj?.article && `${wordObj.article} `}
+                  {wordObj?.word || wordObj}
                 </button>
               ))}
             </div>
@@ -80,7 +99,9 @@ export default function WritingStage({
             <span className="text-white text-base font-bold">✎</span>
           </div>
           <h2 className="text-sky-950 text-sm font-semibold leading-5 text-left">
-            {topic?.question ? "Write your response in German." : "Write about the above image in German."}
+            {topic?.question
+              ? "Write your response in German."
+              : "Write about the above image in German."}
           </h2>
         </div>
       </div>
@@ -89,6 +110,7 @@ export default function WritingStage({
       <div className="self-stretch px-4 pt-4 flex flex-col justify-start items-center gap-4 bg-[#F5F5F5]">
         <div className="w-full h-60 p-2 bg-white rounded-xl border border-zinc-300 flex flex-col justify-between items-stretch gap-2 shadow-sm">
           <textarea
+            id="ds-writing-textarea"
             value={writingText}
             onChange={(e) => setWritingText(e.target.value)}
             placeholder="Schreibe hier..."
@@ -105,11 +127,14 @@ export default function WritingStage({
             {currentWordCount}/{wordLimit} words
           </div>
         </div>
+        <div className="w-full flex justify-center mb-2">
+          <UmlautKeyboard onInsert={handleInsertUmlaut} />
+        </div>
       </div>
 
       {/* Full screen image preview modal */}
       {isPreviewOpen && (
-        <div 
+        <div
           className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setIsPreviewOpen(false)}
         >

@@ -9,6 +9,7 @@ import {
   startB1ExamSubmission,
 } from "../../../api/b1Api";
 import OcrModal from "../describe-speak/components/OcrModal";
+import UmlautKeyboard from "../../../components/b1/UmlautKeyboard";
 import toast, { Toaster } from "react-hot-toast";
 
 export default function ExamWritingWorkspace() {
@@ -51,7 +52,10 @@ export default function ExamWritingWorkspace() {
         const storedExpire = localStorage.getItem(timerKey);
         if (storedExpire) {
           const expireTime = parseInt(storedExpire, 10);
-          const remaining = Math.max(0, Math.floor((expireTime - Date.now()) / 1000));
+          const remaining = Math.max(
+            0,
+            Math.floor((expireTime - Date.now()) / 1000),
+          );
           setTimeLeft(remaining);
         } else {
           const durationSeconds = list[0].duration_minutes * 60;
@@ -112,7 +116,9 @@ export default function ExamWritingWorkspace() {
       await submitB1ExamWritingAnswers(submission.id, {
         answers: currentAnswers,
       });
-      localStorage.removeItem(`b1_exam_timer_${user?.user_id || "guest"}_${paperId}_writing`);
+      localStorage.removeItem(
+        `b1_exam_timer_${user?.user_id || "guest"}_${paperId}_writing`,
+      );
       navigate(`/b1/exams/papers/${paperId}/writing/results`, {
         state: { submissionId: submission.id },
       });
@@ -133,6 +139,24 @@ export default function ExamWritingWorkspace() {
       ...prev,
       [qId]: text,
     }));
+  };
+
+  const handleInsertUmlaut = (char) => {
+    const textareaId = `exam-writing-textarea-${currentBlock.id}`;
+    const input = document.getElementById(textareaId);
+    const current = currentText || "";
+    if (!input) {
+      handleTextChange(currentBlock.id, current + char);
+      return;
+    }
+    const start = input.selectionStart ?? current.length;
+    const end = input.selectionEnd ?? start;
+    const newVal = current.slice(0, start) + char + current.slice(end);
+    handleTextChange(currentBlock.id, newVal);
+    requestAnimationFrame(() => {
+      input.focus();
+      input.setSelectionRange(start + char.length, start + char.length);
+    });
   };
 
   const handleOcrUpload = async (e) => {
@@ -314,7 +338,10 @@ export default function ExamWritingWorkspace() {
 
         <div className="flex justify-between items-center w-full">
           <h2 className="text-sky-950 text-base font-bold leading-5 text-left">
-            {currentBlock.block_title || (currentBlock.passage_text ? "Write your response in German" : "Write about this image in German")}
+            {currentBlock.block_title ||
+              (currentBlock.passage_text
+                ? "Write your response in German"
+                : "Write about this image in German")}
           </h2>
         </div>
 
@@ -327,10 +354,10 @@ export default function ExamWritingWorkspace() {
 
       {/* Bottom Content Area (Grey background) */}
       <div className="flex-1 w-full overflow-y-auto bg-[#f5f5f5] px-4 pt-5 pb-48 flex flex-col gap-4">
-
         {/* Text Area Card */}
         <div className="w-full h-60 p-2 bg-white rounded-xl border border-zinc-300 flex flex-col justify-between items-stretch gap-2 shadow-sm">
           <textarea
+            id={`exam-writing-textarea-${currentBlock.id}`}
             value={currentText}
             onChange={(e) => handleTextChange(currentBlock.id, e.target.value)}
             placeholder="Schreibe hier..."
@@ -346,6 +373,9 @@ export default function ExamWritingWorkspace() {
           >
             {getWordCount(currentText)}/{wordLimit} words
           </div>
+        </div>
+        <div className="w-full flex justify-center mb-2">
+          <UmlautKeyboard onInsert={handleInsertUmlaut} />
         </div>
       </div>
 
