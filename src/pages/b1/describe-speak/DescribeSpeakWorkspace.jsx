@@ -7,6 +7,8 @@ import {
   uploadB1DescribeSpeakOcr,
   submitB1DescribeSpeakWriting,
   submitB1DescribeSpeakSpeaking,
+  skipB1DescribeSpeakSpeaking,
+  getB1DescribeSpeakChapters,
 } from "../../../api/b1Api";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -32,6 +34,7 @@ export default function DescribeSpeakWorkspace() {
   const [writingText, setWritingText] = useState("");
   const [isOcrLoading, setIsOcrLoading] = useState(false);       // OCR image upload in-flight
   const [isSubmittingWriting, setIsSubmittingWriting] = useState(false); // Writing AI submit in-flight
+  const [isSkipping, setIsSkipping] = useState(false);
   const [isOcrParsing, setIsOcrParsing] = useState(false);
   const [showOcrModal, setShowOcrModal] = useState(false);
   const [selectedVocab, setSelectedVocab] = useState(null);
@@ -472,6 +475,36 @@ export default function DescribeSpeakWorkspace() {
     }
   };
 
+  const handleSkipAndMoveToNext = async () => {
+    setIsSkipping(true);
+    try {
+      await skipB1DescribeSpeakSpeaking(topicId);
+      const res = await getB1DescribeSpeakChapters();
+      const list = Array.isArray(res.data) ? res.data : [];
+      const currentId = parseInt(topicId, 10);
+      const nextTopic = list.find((t) => !t.is_completed && t.id !== currentId);
+
+      if (nextTopic) {
+        toast.success("Skipped speaking and marked complete!");
+        navigate(`/b1/describe-speak/workspace/${nextTopic.id}`);
+      } else {
+        const currentIdx = list.findIndex((t) => t.id === currentId);
+        if (currentIdx !== -1 && currentIdx < list.length - 1) {
+          toast.success("Skipped speaking and marked complete!");
+          navigate(`/b1/describe-speak/workspace/${list[currentIdx + 1].id}`);
+        } else {
+          toast.success("All Describe & Speak chapters completed!");
+          navigate("/b1/describe-speak");
+        }
+      }
+    } catch (err) {
+      console.error("Error skipping speaking:", err);
+      toast.error("Failed to complete topic. Please try again.");
+    } finally {
+      setIsSkipping(false);
+    }
+  };
+
   const handleSeeResults = () => {
     if (!topic) return; // guard: topic must be loaded before navigating
     navigate("/b1/describe-speak/success", {
@@ -534,6 +567,7 @@ export default function DescribeSpeakWorkspace() {
             writingFeedback={writingFeedback}
             writingText={writingText}
             onPracticeSpeaking={() => setStage("speaking")}
+            onSkipAndMoveToNext={handleSkipAndMoveToNext}
           />
         )}
 
@@ -638,14 +672,16 @@ export default function DescribeSpeakWorkspace() {
         />
       )}
 
-      {/* Full screen loader — shown during OCR image parse OR writing AI submit */}
-      {(isOcrLoading || isSubmittingWriting) && (
+      {/* Full screen loader — shown during OCR image parse, writing AI submit, or skipping */}
+      {(isOcrLoading || isSubmittingWriting || isSkipping) && (
         <div className="fixed inset-0 z-[2000] bg-black/30 backdrop-blur-sm flex flex-col items-center justify-center gap-3 select-none">
           <Loader2 className="w-8 h-8 animate-spin text-white" />
           <span className="text-white text-sm font-semibold">
             {isOcrLoading
               ? "Analyzing image and extracting text..."
-              : "Analyzing writing..."}
+              : isSubmittingWriting
+              ? "Analyzing writing..."
+              : "Moving to next topic..."}
           </span>
         </div>
       )}

@@ -7,6 +7,7 @@ export default function WritingFeedbackStage({
   writingFeedback,
   writingText,
   onPracticeSpeaking,
+  onSkipAndMoveToNext,
 }) {
   const writingScore = writingFeedback?.score || 0;
 
@@ -125,13 +126,20 @@ export default function WritingFeedbackStage({
           </div>
 
           {/* Practice Speaking button */}
-          <div className="self-stretch flex flex-col justify-start items-start gap-2 w-full">
+          <div className="self-stretch flex flex-col justify-start items-start gap-2.5 w-full">
             <button
               type="button"
               onClick={onPracticeSpeaking}
               className="w-full px-4 py-3 bg-blue-950 hover:bg-blue-900 active:scale-95 text-white text-base font-semibold font-['Inter'] rounded-lg transition-all border-0 cursor-pointer flex justify-center items-center shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] outline outline-offset-[-2px] outline-white/10 shrink-0"
             >
               Practice Speaking
+            </button>
+            <button
+              type="button"
+              onClick={onSkipAndMoveToNext}
+              className="w-full px-4 py-3 border border-zinc-300 bg-white hover:bg-slate-50 text-blue-950 text-base font-semibold font-['Inter'] rounded-lg transition-all cursor-pointer flex justify-center items-center shrink-0 active:scale-95 shadow-sm"
+            >
+              Move to next topic
             </button>
           </div>
         </div>

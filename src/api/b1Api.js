@@ -15,6 +15,7 @@ export const submitB1DescribeSpeakSpeaking = (formData) => api.post("/b1/describ
   headers: { "Content-Type": "multipart/form-data" },
 });
 export const resetB1DescribeSpeakProgress = (topicId) => api.post(`/b1/describe-speak/reset/${topicId}`);
+export const skipB1DescribeSpeakSpeaking = (topicId) => api.post(`/b1/describe-speak/skip-speaking/${topicId}`);
 
 export const getB1FlashcardChapters = () => api.get("/b1/flashcard/chapters");
 export const getB1Flashcards = (chapterId) => api.get(`/b1/flashcard/cards/${chapterId}`);
