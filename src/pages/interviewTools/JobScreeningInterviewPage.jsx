@@ -18,6 +18,7 @@ import {
 import { interviewToolsApi } from "../../api/interviewToolsApi";
 import { getProgress, checkInterview } from "../../api/jobScreeningApi";
 import api from "../../api/axios";
+import { hapticMedium, hapticHeavy } from "../../utils/haptics";
 import InterviewVideoPlayer from "./shared/InterviewVideoPlayer";
 import useInterviewRecorder from "./shared/useInterviewRecorder";
 import { uploadFileToSignedUrl } from "./shared/uploadFileToSignedUrl";
@@ -552,6 +553,7 @@ export default function JobScreeningInterviewPage() {
   };
 
   const beginQuestionRecording = async () => {
+    hapticMedium();
     resetRecording();
     setRetakesUsed(0);
 
@@ -570,6 +572,7 @@ export default function JobScreeningInterviewPage() {
   };
 
   const skipThinkingTime = async () => {
+    hapticMedium();
     setThinkingRemaining(0);
     try {
       await startRecording();
@@ -583,11 +586,13 @@ export default function JobScreeningInterviewPage() {
   };
 
   const handleStopManual = async () => {
+    hapticMedium();
     await stopRecording();
     setStage("reviewless-stop");
   };
 
   const handleRetake = async () => {
+    hapticMedium();
     resetRecording();
     setRetakesUsed((prev) => prev + 1);
     try {
@@ -795,6 +800,7 @@ export default function JobScreeningInterviewPage() {
   };
 
   const finishInterview = async () => {
+    hapticHeavy();
     if (isFinishing) return;
     setIsFinishing(true);
     try {

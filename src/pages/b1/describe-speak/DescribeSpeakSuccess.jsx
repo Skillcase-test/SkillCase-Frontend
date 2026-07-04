@@ -8,6 +8,7 @@ import {
   resetB1DescribeSpeakProgress,
 } from "../../../api/b1Api";
 import toast, { Toaster } from "react-hot-toast";
+import { hapticHeavy } from "../../../utils/haptics";
 
 import WorkspaceHeader from "./components/WorkspaceHeader";
 import OverallResultsView from "./components/OverallResultsView";
@@ -51,6 +52,12 @@ export default function DescribeSpeakSuccess() {
   const navigatingRef = useRef(false); // ref guard — prevents double-tap race on handleTryNext
 
   // Recover state or load from database on manual refresh
+  useEffect(() => {
+    if (data && !loading) {
+      hapticHeavy();
+    }
+  }, [data, loading]);
+
   useEffect(() => {
     if (!user?.user_id) return;
 

@@ -4,11 +4,16 @@ import { ChevronLeft } from "lucide-react";
 import { useSelector } from "react-redux";
 import { getB1Videos } from "../../../api/b1Api";
 import toast, { Toaster } from "react-hot-toast";
+import { hapticHeavy } from "../../../utils/haptics";
 
 export default function VideoSuccess() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
+
+  React.useEffect(() => {
+    hapticHeavy();
+  }, []);
 
   const {
     contentId,

@@ -14,6 +14,7 @@ import {
   getB1ExamSubmissionStatus,
   resetB1ExamSubmission,
 } from "../../../api/b1Api";
+import { hapticHeavy } from "../../../utils/haptics";
 
 export default function ExamCongratulations() {
   const navigate = useNavigate();
@@ -71,6 +72,12 @@ export default function ExamCongratulations() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (submissionData && !loading) {
+      hapticHeavy();
+    }
+  }, [submissionData, loading]);
 
   useEffect(() => {
     if (!user?.user_id || !paperId) return;

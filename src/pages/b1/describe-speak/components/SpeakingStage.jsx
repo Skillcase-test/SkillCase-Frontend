@@ -1,6 +1,7 @@
 import React from "react";
 import { Mic, Square } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
+import { hapticMedium } from "../../../../utils/haptics";
 
 export default function SpeakingStage({
   writingFeedback,
@@ -33,7 +34,10 @@ export default function SpeakingStage({
       <div className="w-full flex flex-col items-center justify-center gap-5 pt-4">
         <button
           type="button"
-          onClick={onToggleRecord}
+          onClick={() => {
+            hapticMedium();
+            onToggleRecord();
+          }}
           disabled={isPlayingBack}
           className={`w-32 h-32 rounded-full flex items-center justify-center shadow-md transition-all border-0 outline-none cursor-pointer select-none ${
             isRecording

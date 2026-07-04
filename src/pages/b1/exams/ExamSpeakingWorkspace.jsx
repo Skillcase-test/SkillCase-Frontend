@@ -12,6 +12,7 @@ import {
   Pause,
   Square,
 } from "lucide-react";
+import { hapticMedium } from "../../../utils/haptics";
 import {
   getB1ExamSectionContent,
   submitB1ExamSpeakingAudio,
@@ -469,7 +470,10 @@ export default function ExamSpeakingWorkspace() {
         <div className="w-full flex flex-col items-center justify-center gap-5 pt-4 select-none">
           {/* Circular Mic Trigger button */}
           <button
-            onClick={handleToggleRecord}
+            onClick={() => {
+              hapticMedium();
+              handleToggleRecord();
+            }}
             disabled={isEvaluating}
             className={`w-32 h-32 rounded-full flex items-center justify-center outline-none border-0 cursor-pointer shadow-md transition-all shrink-0 relative ${
               isRecording

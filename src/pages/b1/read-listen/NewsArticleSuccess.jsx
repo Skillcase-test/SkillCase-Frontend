@@ -3,11 +3,16 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { useSelector } from "react-redux";
 import { getB1ReadingChapters } from "../../../api/b1Api";
+import { hapticHeavy } from "../../../utils/haptics";
 
 export default function NewsArticleSuccess() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
+
+  React.useEffect(() => {
+    hapticHeavy();
+  }, []);
 
   const {
     contentId,
