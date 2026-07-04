@@ -1,5 +1,5 @@
-import React from "react";
-import { Volume2 } from "lucide-react";
+import React, { useState } from "react";
+import { Volume2, Maximize2 } from "lucide-react";
 
 export default function WritingStage({
   topic,
@@ -9,6 +9,8 @@ export default function WritingStage({
   wordLimit,
   onHelpfulWordClick,
 }) {
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+
   return (
     <div className="w-full">
       {/* Topic Title, Badges, Image, Helpful Words */}
@@ -27,11 +29,21 @@ export default function WritingStage({
           </div>
         </div>
 
-        <img
-          className="self-stretch max-h-72 rounded-sm object-contain w-full bg-zinc-50 border border-zinc-100"
-          src={topic?.prompt_image_url}
-          alt="Describe Prompt"
-        />
+        <div className="relative self-stretch w-full">
+          <img
+            className="self-stretch max-h-72 rounded-sm object-contain w-full bg-zinc-50 border border-zinc-100"
+            src={topic?.prompt_image_url}
+            alt="Describe Prompt"
+          />
+          <button
+            type="button"
+            onClick={() => setIsPreviewOpen(true)}
+            className="absolute bottom-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded text-white flex items-center justify-center border-0 outline-none cursor-pointer transition shadow-sm"
+            title="Preview Image"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
+        </div>
 
 
         {topic?.helpful_words?.length > 0 && (
@@ -94,6 +106,31 @@ export default function WritingStage({
           </div>
         </div>
       </div>
+
+      {/* Full screen image preview modal */}
+      {isPreviewOpen && (
+        <div 
+          className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsPreviewOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsPreviewOpen(false);
+            }}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border-0 outline-none cursor-pointer text-xl font-bold transition duration-200"
+          >
+            ✕
+          </button>
+          <img
+            src={topic?.prompt_image_url}
+            alt="Fullscreen Preview"
+            className="max-w-full max-h-full object-contain rounded-lg animate-in zoom-in-95 duration-200 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }

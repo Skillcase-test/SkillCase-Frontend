@@ -1,5 +1,5 @@
-import React from "react";
-import { Volume2 } from "lucide-react";
+import React, { useState } from "react";
+import { Volume2, Maximize2 } from "lucide-react";
 import ScoreRing from "./ScoreRing";
 import MetricBar from "./MetricBar";
 import AudioPlayer from "./AudioPlayer";
@@ -12,6 +12,7 @@ export default function ReviewAnswersView({
   onPlayPause,
   formatSeconds,
 }) {
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const writingScore = Number(data?.writingFeedback?.score || 0);
   const speakingScore = Number(data?.speakingFeedback?.overallScore || 0);
 
@@ -91,11 +92,21 @@ export default function ReviewAnswersView({
           </div>
         </div>
 
-        <img
-          className="self-stretch h-52 rounded-sm object-cover w-full shadow-sm"
-          src={data?.topic?.prompt_image_url}
-          alt="Describe Prompt"
-        />
+        <div className="relative self-stretch w-full">
+          <img
+            className="self-stretch h-52 rounded-sm object-cover w-full shadow-sm"
+            src={data?.topic?.prompt_image_url}
+            alt="Describe Prompt"
+          />
+          <button
+            type="button"
+            onClick={() => setIsPreviewOpen(true)}
+            className="absolute bottom-2 right-2 p-1.5 bg-black/60 hover:bg-black/80 rounded text-white flex items-center justify-center border-0 outline-none cursor-pointer transition shadow-sm"
+            title="Preview Image"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </button>
+        </div>
 
         {data?.topic?.helpful_words?.length > 0 && (
           <div className="self-stretch flex flex-col justify-start items-start gap-1.5">
@@ -283,6 +294,31 @@ export default function ReviewAnswersView({
           </div>
         </div>
       </div>
+
+      {/* Full screen image preview modal */}
+      {isPreviewOpen && (
+        <div 
+          className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setIsPreviewOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsPreviewOpen(false);
+            }}
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border-0 outline-none cursor-pointer text-xl font-bold transition duration-200"
+          >
+            ✕
+          </button>
+          <img
+            src={data?.topic?.prompt_image_url}
+            alt="Fullscreen Preview"
+            className="max-w-full max-h-full object-contain rounded-lg animate-in zoom-in-95 duration-200 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
