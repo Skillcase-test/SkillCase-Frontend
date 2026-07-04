@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Lightbulb } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import ProgressBar from "./shared/ProgressBar";
 import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
 import handtap from "../../../../assets/handtap.webp";
@@ -115,6 +116,26 @@ export default function VocabScreen({
                 {vocab.translation}
               </p>
             </div>
+            {screen?.markdown && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="w-full mt-4 bg-gradient-to-r from-amber-50 to-orange-50/30 border border-amber-100/70 rounded-2xl p-4 shadow-sm relative overflow-hidden text-left"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 bg-amber-100 text-amber-700 rounded-lg shrink-0">
+                    <Lightbulb className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800/80">
+                    Did you know?
+                  </span>
+                </div>
+                <div className="text-gray-700 text-sm leading-relaxed max-h-[120px] overflow-y-auto pr-1 select-text scrollbar-thin">
+                  <ReactMarkdown>{screen.markdown}</ReactMarkdown>
+                </div>
+              </motion.div>
+            )}
           </div>
         </motion.div>
 
