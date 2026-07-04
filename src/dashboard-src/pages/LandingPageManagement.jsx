@@ -460,10 +460,34 @@ export default function LandingPageManagement() {
   const tt = currentData?.talk_to_team || {};
 
   return (
-    <div>
-      <h2 className="text-xl font-semibold text-[#004E92] mb-5">
-        Landing Page Sections
-      </h2>
+    <div className="pb-32">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-4 border-b border-gray-100">
+        <h2 className="text-xl font-semibold text-[#004E92]">
+          Landing Page Sections
+        </h2>
+        {!isLoading && currentData && (
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center gap-2 bg-[#004E92] text-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-blue-900 transition shadow-sm"
+            >
+              <Save className="w-4 h-4" />
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
+            <button
+              type="button"
+              onClick={handleCopyToOther}
+              disabled={copying}
+              className="flex items-center gap-2 border border-gray-300 text-gray-700 bg-white px-5 py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-gray-50 transition shadow-sm"
+            >
+              <Copy className="w-4 h-4" />
+              {copying ? "Copying..." : `Apply same to ${otherLevel}`}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Level tabs (A1 / A2) */}
       <div className="flex gap-2 mb-5">
@@ -567,13 +591,7 @@ export default function LandingPageManagement() {
                     uploadSectionImage("demo_class", activeLevel, file)
                   }
                 />
-                <ActionButtons
-                  onSave={handleSave}
-                  onCopy={handleCopyToOther}
-                  saving={saving}
-                  copying={copying}
-                  otherLevel={otherLevel}
-                />
+
               </SectionCard>
             )}
 
@@ -641,13 +659,7 @@ export default function LandingPageManagement() {
                     uploadSectionImage("salary_info", activeLevel, file)
                   }
                 />
-                <ActionButtons
-                  onSave={handleSave}
-                  onCopy={handleCopyToOther}
-                  saving={saving}
-                  copying={copying}
-                  otherLevel={otherLevel}
-                />
+
               </SectionCard>
             )}
 
@@ -717,13 +729,7 @@ export default function LandingPageManagement() {
                     uploadSectionImage("talk_to_team", activeLevel, file)
                   }
                 />
-                <ActionButtons
-                  onSave={handleSave}
-                  onCopy={handleCopyToOther}
-                  saving={saving}
-                  copying={copying}
-                  otherLevel={otherLevel}
-                />
+
               </SectionCard>
             )}
           </div>

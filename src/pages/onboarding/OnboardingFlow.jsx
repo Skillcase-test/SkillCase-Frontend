@@ -85,13 +85,13 @@ const getPostLoginRoute = (user) => {
 };
 
 const TopSection = React.memo(({ mascot, tooltip }) => (
-  <div className="h-[42%] relative flex items-end px-4 pb-8">
+  <div className="h-[42%] relative flex items-end px-4 pb-8 md:h-full md:w-[45%] md:flex md:items-end md:pb-0 md:px-6">
     <img
       src={mascot}
       alt="Maya"
-      className="h-[85%] w-[45%] object-contain object-bottom"
+      className="h-[85%] w-[45%] object-contain object-bottom md:h-[80%] md:w-[220px]"
     />
-    <div className="relative bg-white px-5 py-4 rounded-2xl shadow-sm mb-12 ml-2 w-[50%]">
+    <div className="relative bg-white px-5 py-4 rounded-2xl shadow-sm mb-12 ml-2 w-[50%] md:mb-24 md:ml-2 md:w-[200px]">
       <p className="text-black text-[15px] font-medium leading-tight">
         <TypewriterText text={tooltip} speed={30} onCharacter={hapticLight} />
       </p>
@@ -114,18 +114,18 @@ const Step8TopSection = React.memo(({ germanStatus, mayaFull }) => {
       : "Wonderful! You already know some German. Would you like to practice German or continue learning it.";
 
   return (
-    <div className="h-[50%] relative flex items-end px-4 pb-4">
+    <div className="h-[50%] relative flex items-end px-4 pb-4 md:h-full md:w-[45%] md:flex md:items-end md:pb-0 md:px-6">
       <img
         src={mayaFull}
         alt="Maya"
-        className="h-[95%] w-[45%] object-contain object-bottom"
+        className="h-[95%] w-[45%] object-contain object-bottom md:h-[80%] md:w-[220px]"
       />
-      <div className="absolute right-4 top-[15%] bg-white px-4 py-4 rounded-2xl shadow-sm w-[50%] z-10">
+      <div className="absolute right-4 top-[15%] bg-white px-4 py-4 rounded-2xl shadow-sm w-[50%] z-10 md:relative md:right-auto md:top-auto md:w-[200px] md:mb-24 md:ml-2">
         <p className="text-black text-[14px] font-medium leading-snug">
           <TypewriterText text={text} speed={30} onCharacter={hapticLight} />
         </p>
         <svg
-          className="absolute -left-[14px] top-[30%] -translate-y-1/2 w-[15px] h-[18px]"
+          className="absolute -left-[14px] top-[30%] -translate-y-1/2 w-[15px] h-[18px] md:top-[50%]"
           viewBox="0 0 15 18"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
@@ -566,7 +566,7 @@ const OnboardingFlow = () => {
     nextText = "Next",
     showBack = true,
   }) => (
-    <div className="mt-auto mb-4 flex gap-3">
+    <div className="mt-auto mb-4 flex gap-3 md:mt-0 md:mb-0">
       {showBack && (
         <button
           onClick={() => {
@@ -597,14 +597,14 @@ const OnboardingFlow = () => {
 
   return (
     <div
-      className={`w-full overflow-x-hidden flex justify-center items-center bg-gray-100 sm:p-4 ${
+      className={`w-full overflow-x-hidden flex justify-center items-center bg-gray-100 sm:p-4 md:min-h-screen ${
         step === 1
           ? "min-h-[100vh] sm:min-h-[100vh]"
           : "min-h-[calc(100vh-55px)] sm:min-h-[calc(100vh-72px)]"
       }`}
     >
       <div
-        className={`w-full max-w-[600px] sm:h-[844px] bg-white relative overflow-hidden sm:rounded-[40px] sm:shadow-2xl flex flex-col ${
+        className={`w-full max-w-[600px] sm:h-[844px] md:max-w-[1000px] md:h-[650px] bg-white relative overflow-hidden sm:rounded-[40px] sm:shadow-2xl flex flex-col md:flex-row md:rounded-[45px] ${
           step === 1 ? "h-[100vh]" : "h-[calc(100vh-55px)]"
         }`}
       >
@@ -614,14 +614,14 @@ const OnboardingFlow = () => {
               key="splash"
               initial={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-gradient-to-b from-[#001D4A] to-[#1A4B9F] flex flex-col items-center pt-24 pb-0"
+              className="absolute inset-0 bg-gradient-to-b from-[#001D4A] to-[#1A4B9F] flex flex-col items-center pt-24 pb-0 md:pt-12"
             >
               <div className="absolute w-[600px] h-[600px] -left-[100px] top-[400px] bg-white/10 rounded-full blur-sm" />
               <div className="absolute w-[300px] h-[300px] -right-[50px] top-[500px] bg-white/20 rounded-full blur-sm" />
               <img
                 src={whiteLogo}
                 alt="Skillcase"
-                className="h-60 z-10 -mt-26"
+                className="h-60 z-10 -mt-26 md:h-48 md:-mt-10"
               />
               <div className="flex-1 w-full flex flex-col items-center justify-end relative z-10">
                 <div className="mb-2 relative bg-white px-6 py-3 rounded-2xl shadow-xl">
@@ -633,7 +633,7 @@ const OnboardingFlow = () => {
                 <img
                   src={mayaStanding}
                   alt="Maya"
-                  className="w-[80%] max-w-[280px] object-contain object-bottom"
+                  className="w-[80%] max-w-[280px] object-contain object-bottom md:max-w-[220px]"
                 />
               </div>
             </motion.div>
@@ -645,11 +645,11 @@ const OnboardingFlow = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-[#E5F0FF] flex flex-col"
+              className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
             >
               <TopSection mascot={mayaWave} tooltip="Welcome to Skillcase" />
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8">
-                <div className="flex-1">
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-16 md:justify-center">
+                <div className="flex-1 md:flex-initial md:mb-8">
                   <h2 className="text-black text-[16px] font-medium mb-6">
                     Enter your 10 digit phone number
                   </h2>
@@ -683,7 +683,7 @@ const OnboardingFlow = () => {
                     {error}
                   </p>
                 )}
-                <div className="mt-auto mb-4">
+                <div className="mt-auto mb-4 md:mt-0 md:mb-0">
                   <button
                     onClick={() => {
                       hapticLight();
@@ -709,11 +709,11 @@ const OnboardingFlow = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-[#E5F0FF] flex flex-col"
+              className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
             >
               <TopSection mascot={mayaSmiling} tooltip="Enter your OTP." />
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8">
-                <div className="flex-1">
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-16 md:justify-center">
+                <div className="flex-1 md:flex-initial md:mb-8">
                   <h2 className="text-black text-[16px] font-medium mb-6">
                     Enter the 6 digit OTP
                   </h2>
@@ -772,7 +772,7 @@ const OnboardingFlow = () => {
                     {error}
                   </p>
                 )}
-                <div className="flex flex-col gap-4 mt-auto mb-4">
+                <div className="flex flex-col gap-4 mt-auto mb-4 md:mt-0 md:mb-0">
                   <button
                     onClick={() => {
                       hapticLight();
@@ -804,14 +804,14 @@ const OnboardingFlow = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-[#E5F0FF] flex flex-col"
+              className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
             >
               <TopSection
                 mascot={mayaSmiling}
                 tooltip="What shall I call you?"
               />
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8">
-                <div className="flex-1">
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-16 md:justify-center">
+                <div className="flex-1 md:flex-initial md:mb-8">
                   <h2 className="text-black text-[16px] font-medium mb-6">
                     Enter your name
                   </h2>
@@ -863,11 +863,11 @@ const OnboardingFlow = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-[#E5F0FF] flex flex-col"
+              className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
             >
               <TopSection mascot={mayaSmiling} tooltip="What do you do?" />
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-5 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8">
-                <div className="flex-1">
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-5 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-12 md:justify-center">
+                <div className="flex-1 md:flex-initial md:mb-8">
                   <h2 className="text-black text-[16px] font-medium mb-4">
                     Select your current occupation
                   </h2>
@@ -929,14 +929,14 @@ const OnboardingFlow = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-[#E5F0FF] flex flex-col"
+              className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
             >
               <TopSection
                 mascot={mayaSmiling}
                 tooltip="What is your current German level?"
               />
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8">
-                <div className="flex-1">
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-12 md:justify-center">
+                <div className="flex-1 md:flex-initial md:mb-8">
                   <h2 className="text-black text-[16px] font-medium mb-4">
                     Select your German level
                   </h2>
@@ -991,14 +991,14 @@ const OnboardingFlow = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-[#E5F0FF] flex flex-col"
+              className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
             >
               <TopSection
                 mascot={mayaSmiling}
                 tooltip="What is your current German level?"
               />
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-3 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-10">
-                <div className="flex-1">
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-3 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-10 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-12 md:justify-center">
+                <div className="flex-1 md:flex-initial md:mb-8">
                   <h2 className="text-black text-[16px] font-medium mb-4">
                     Select your German level
                   </h2>
@@ -1063,15 +1063,15 @@ const OnboardingFlow = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-[#E5F0FF] flex flex-col"
+              className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
             >
               <Step8TopSection
                 germanStatus={germanStatus}
                 mayaFull={mayaFull}
               />
 
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-18">
-                <div className="flex-1">
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-18 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-12 md:justify-center">
+                <div className="flex-1 md:flex-initial md:mb-8">
                   <h2 className="text-black text-[16px] font-medium mb-4">
                     Select your preference
                   </h2>
@@ -1162,15 +1162,15 @@ const OnboardingFlow = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-[#E5F0FF] flex flex-col"
+              className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
             >
               <TopSection
                 mascot={mayaSmiling}
                 tooltip="Since you already have intermediate or advanced German skills, which path would you like to take?"
               />
 
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-10">
-                <div className="flex-1">
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-10 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-12 md:justify-center">
+                <div className="flex-1 md:flex-initial md:mb-8">
                   <h2 className="text-black text-[16px] font-medium mb-4">
                     Choose your pathway
                   </h2>
