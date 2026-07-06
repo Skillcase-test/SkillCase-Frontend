@@ -4,10 +4,23 @@ import { Browser } from "@capacitor/browser";
 import api from "../api/axios";
 import { captureFeatureError } from "../observability/sentry";
 
+let listenerHandles = [];
+
+const clearPushNotificationListeners = async () => {
+  await Promise.all(
+    listenerHandles.map((handle) =>
+      handle?.remove ? handle.remove().catch(() => {}) : Promise.resolve(),
+    ),
+  );
+  listenerHandles = [];
+};
+
 export const initPushNotifications = async () => {
   if (!Capacitor.isNativePlatform()) return;
 
   try {
+    await clearPushNotificationListeners();
+
     // Request permission
     const permStatus = await PushNotifications.requestPermissions();
     if (permStatus.receive !== "granted") {
@@ -15,21 +28,21 @@ export const initPushNotifications = async () => {
       return;
     }
 
-    // Register for push
-    await PushNotifications.register();
-
     // Handle registration
-    PushNotifications.addListener("registration", async (token) => {
-      // Store token in backend
-      try {
-        await api.post("/user/fcm-token", { fcmToken: token.value });
-      } catch (err) {
-        console.error("Failed to save FCM token:", err);
-      }
-    });
+    const registrationHandle = await PushNotifications.addListener(
+      "registration",
+      async (token) => {
+        // Store token in backend
+        try {
+          await api.post("/user/fcm-token", { fcmToken: token.value });
+        } catch (err) {
+          console.error("Failed to save FCM token:", err);
+        }
+      },
+    );
 
     // Handle notification tap
-    PushNotifications.addListener(
+    const actionHandle = await PushNotifications.addListener(
       "pushNotificationActionPerformed",
       async (action) => {
         console.log("Notification tapped:", action);
@@ -59,6 +72,11 @@ export const initPushNotifications = async () => {
         }
       },
     );
+
+    listenerHandles = [registrationHandle, actionHandle];
+
+    // Register after listeners are attached so the registration event cannot be missed.
+    await PushNotifications.register();
   } catch (error) {
     captureFeatureError(error, {
       featureArea: "push_notifications",
