@@ -14,7 +14,16 @@ import {
   useLocation,
   Navigate,
 } from "react-router-dom";
-import { Lock, Phone, LogOut, Loader2, CreditCard } from "lucide-react";
+import {
+  Lock,
+  Phone,
+  LogOut,
+  Loader2,
+  CreditCard,
+  Unlock,
+  Check,
+  X,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import mayaSmiling from "./assets/onboarding/mayaSmiling.webp";
 import mayaThumbsup from "./assets/onboarding/mayaThumbsup.webp";
@@ -798,128 +807,173 @@ function AppContent() {
             <A2ProductTour>
               <B1ProductTour>
                 <GoogleAnalyticsTracker />
-              <ScrollToTop />
-              <Toaster position="top-right" />
-              <ConditionalNav />
-              {isPaywallLocked && (
-                <PaywallBlocker
-                  user={user}
-                  dispatch={dispatch}
-                  onSuccess={() => setShowPaymentSuccess(true)}
+                <ScrollToTop />
+                <Toaster
+                  position="top-right"
+                  containerStyle={{ zIndex: 100000 }}
                 />
-              )}
+                <ConditionalNav />
+                {isPaywallLocked && (
+                  <PaywallBlocker
+                    user={user}
+                    dispatch={dispatch}
+                    onSuccess={() => setShowPaymentSuccess(true)}
+                  />
+                )}
 
-              {/* Autopay Success Modal */}
-              {showPaymentSuccess && (
-                <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs select-none font-sans">
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="w-full max-w-sm bg-white border border-slate-200/80 rounded-3xl shadow-xl p-8 flex flex-col items-center text-center gap-4 animate-[bounce-in-scale_0.4s_ease-out]"
+                {/* Autopay Success Modal */}
+                {showPaymentSuccess && (
+                  <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs select-none font-sans">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="w-full max-w-[390px] bg-white border border-slate-100 rounded-[32px] shadow-2xl py-6 sm:py-8 px-4 sm:px-6 flex flex-col items-center gap-5 sm:gap-6 relative"
+                    >
+                      {/* Close Button */}
+                      <button
+                        onClick={() => {
+                          setShowPaymentSuccess(false);
+                          setShowProfileHighlight(true);
+                        }}
+                        className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+
+                      {/* Mascot Image positioned inside the card */}
+                      <div className="w-20 h-20 rounded-full shadow-sm bg-[#a2c5f2] overflow-hidden flex items-center justify-center shrink-0">
+                        <img
+                          src={mayaThumbsup}
+                          alt="Maya mascot thumbs up"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+
+                      {/* Unlocked Badge */}
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-full">
+                        <Unlock className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+                          Learning plan unlocked
+                        </span>
+                      </div>
+
+                      {/* Title */}
+                      <div className="flex items-center justify-center gap-2 flex-wrap">
+                        <h3 className="text-2xl sm:text-[26px] font-bold text-[#002856] text-center leading-tight tracking-tight">
+                          Autopay enabled
+                        </h3>
+                        <div className="w-6 h-6 bg-[#22c55e] rounded-full flex items-center justify-center shrink-0 shadow-xs">
+                          <Check
+                            className="w-4 h-4 text-white"
+                            strokeWidth={4}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      <p className="text-[#002856] text-center text-xs sm:text-sm leading-relaxed font-semibold px-2">
+                        Your learning plan is now unlocked.
+                        <br className="hidden sm:inline" /> Continue your German
+                        journey.
+                      </p>
+
+                      {/* Lets Go Button */}
+                      <button
+                        onClick={() => {
+                          setShowPaymentSuccess(false);
+                          setShowProfileHighlight(true);
+                        }}
+                        className="w-full h-12 sm:h-13 bg-[#002856] hover:bg-[#001f42] active:bg-[#001f42] text-white rounded-2xl transition-all cursor-pointer font-bold text-xs sm:text-sm flex items-center justify-center mt-2"
+                      >
+                        Let's go
+                      </button>
+                    </motion.div>
+                  </div>
+                )}
+
+                {/* Profile Spotlight Guide */}
+                {showProfileHighlight && profileRect && (
+                  <GuideSpotlight
+                    rect={profileRect}
+                    radius={28}
+                    onClick={() => setShowProfileHighlight(false)}
                   >
-                    <img
-                      src={mayaThumbsup}
-                      alt="Maya thumbs up"
-                      className="w-24 h-24 object-contain animate-bounce"
-                      draggable="false"
-                    />
-                    <h3 className="text-[#181d27] text-lg font-bold">
-                      Autopay Enabled!
-                    </h3>
-                    <p className="text-[#535862] text-sm leading-relaxed font-semibold">
-                      Let's make your German strong! Your learning journey is
-                      now unlocked.
+                    <p className="relative text-[15px] font-bold leading-snug text-slate-950">
+                      Click here to manage your subscription.
                     </p>
-                    <button
-                      onClick={() => {
-                        setShowPaymentSuccess(false);
-                        setShowProfileHighlight(true);
-                      }}
-                      className="w-full py-3 rounded-xl bg-[#002856] hover:bg-[#001f42] text-white font-bold text-sm transition-colors mt-2 cursor-pointer"
-                    >
-                      Let's Go!
-                    </button>
-                  </motion.div>
-                </div>
-              )}
+                    <p className="relative mt-1 text-[12px] font-medium leading-snug text-slate-500">
+                      You can modify or cancel your autopay anytime from your
+                      profile settings.
+                    </p>
+                  </GuideSpotlight>
+                )}
 
-              {/* Profile Spotlight Guide */}
-              {showProfileHighlight && profileRect && (
-                <GuideSpotlight
-                  rect={profileRect}
-                  radius={28}
-                  onClick={() => setShowProfileHighlight(false)}
-                >
-                  <p className="relative text-[15px] font-bold leading-snug text-slate-950">
-                    Click here to manage your subscription.
-                  </p>
-                  <p className="relative mt-1 text-[12px] font-medium leading-snug text-slate-500">
-                    You can modify or cancel your autopay anytime from your
-                    profile settings.
-                  </p>
-                </GuideSpotlight>
-              )}
+                <Routes>
+                  <Route
+                    path="/signup"
+                    element={<Navigate to="/onboarding" replace />}
+                  />
+                  <Route
+                    path="/login"
+                    element={<Navigate to="/onboarding" replace />}
+                  />
+                  <Route path="/" element={<LandingPage />} />
+                  <Route
+                    path="/test/:prof_level"
+                    element={lazyScreen(<TestSelect />, "Loading Tests...")}
+                  />
+                  {/* <Route path ='/interview/:prof_level' element = {<InterviewSelect/>}/> */}
+                  <Route
+                    path="/practice/:prof_level"
+                    element={lazyScreen(
+                      <ChapterSelect />,
+                      "Loading Chapters...",
+                    )}
+                  />
+                  <Route
+                    path="/pronounce/:prof_level"
+                    element={lazyScreen(
+                      <PronounceSelect />,
+                      "Loading Pronunciation...",
+                    )}
+                  />
+                  <Route
+                    path="/practice/:prof_level/:set_id"
+                    element={
+                      <Suspense
+                        fallback={
+                          <RouteScreenSkeleton title="Loading Flashcards..." />
+                        }
+                      >
+                        <FlashcardStudyPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/admin/*"
+                    element={lazyScreen(<Dashboard />, "Loading Admin...")}
+                  />
+                  <Route
+                    path="/pronounce/:prof_level/:pronounce_id"
+                    element={lazyScreen(
+                      <Pronounce />,
+                      "Loading Pronunciation...",
+                    )}
+                  />
+                  {/* <Route path="/Login" element={<LoginSignupPage />} /> */}
+                  <Route
+                    path="/stories"
+                    element={lazyScreen(
+                      <ShortStoryHome />,
+                      "Loading Stories...",
+                    )}
+                  />
+                  <Route
+                    path="/story/:slug"
+                    element={lazyScreen(<StoryPage />, "Loading Story...")}
+                  />
 
-              <Routes>
-                <Route
-                  path="/signup"
-                  element={<Navigate to="/onboarding" replace />}
-                />
-                <Route
-                  path="/login"
-                  element={<Navigate to="/onboarding" replace />}
-                />
-                <Route path="/" element={<LandingPage />} />
-                <Route
-                  path="/test/:prof_level"
-                  element={lazyScreen(<TestSelect />, "Loading Tests...")}
-                />
-                {/* <Route path ='/interview/:prof_level' element = {<InterviewSelect/>}/> */}
-                <Route
-                  path="/practice/:prof_level"
-                  element={lazyScreen(<ChapterSelect />, "Loading Chapters...")}
-                />
-                <Route
-                  path="/pronounce/:prof_level"
-                  element={lazyScreen(
-                    <PronounceSelect />,
-                    "Loading Pronunciation...",
-                  )}
-                />
-                <Route
-                  path="/practice/:prof_level/:set_id"
-                  element={
-                    <Suspense
-                      fallback={
-                        <RouteScreenSkeleton title="Loading Flashcards..." />
-                      }
-                    >
-                      <FlashcardStudyPage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/admin/*"
-                  element={lazyScreen(<Dashboard />, "Loading Admin...")}
-                />
-                <Route
-                  path="/pronounce/:prof_level/:pronounce_id"
-                  element={lazyScreen(
-                    <Pronounce />,
-                    "Loading Pronunciation...",
-                  )}
-                />
-                {/* <Route path="/Login" element={<LoginSignupPage />} /> */}
-                <Route
-                  path="/stories"
-                  element={lazyScreen(<ShortStoryHome />, "Loading Stories...")}
-                />
-                <Route
-                  path="/story/:slug"
-                  element={lazyScreen(<StoryPage />, "Loading Story...")}
-                />
-
-                {/* <Route path="/resume" element={<ResumePage />} />
+                  {/* <Route path="/resume" element={<ResumePage />} />
         <Route path="/resume/ai-builder" element={<AIResumeBuilder />} />
         <Route
           path="/resume/manual-builder"
@@ -928,586 +982,606 @@ function AppContent() {
         <Route path="/resume/my-resumes" element={<MyResumes />} />
         <Route path="/resume/edit/:resumeId" element={<AIResumeBuilder />} /> */}
 
-                <Route
-                  path="/conversation/:prof_level"
-                  element={lazyScreen(
-                    <ConversationSelect />,
-                    "Loading Conversation...",
-                  )}
-                />
-                <Route
-                  path="/conversation/:prof_level/:conversation_id"
-                  element={lazyScreen(
-                    <ConversationPlayer />,
-                    "Loading Conversation...",
-                  )}
-                />
-                <Route
-                  path="/register"
-                  element={lazyScreen(<NursingGermanyLanding />, "Loading...")}
-                />
-                <Route
-                  path="/thank-you"
-                  element={lazyScreen(<ThankYouPage />, "Loading...")}
-                />
-                <Route
-                  path="/open-app"
-                  element={lazyScreen(<FallbackPage />, "Loading...")}
-                />
-                <Route
-                  path="/terms/sign/:token"
-                  element={lazyScreen(<TermsSignPage />, "Loading Terms...")}
-                />
-                <Route
-                  path="/job-screening/terms/sign/:token"
-                  element={lazyScreen(
-                    <JobScreeningTermsSignPage />,
-                    "Loading Document...",
-                  )}
-                />
-                <Route
-                  path="/onboarding"
-                  element={lazyScreen(
-                    <OnboardingFlow />,
-                    "Loading Onboarding...",
-                  )}
-                />
-                <Route
-                  path="/job-screening"
-                  element={lazyScreen(
-                    <JobScreening />,
-                    "Loading Job Screening...",
-                  )}
-                />
-                <Route
-                  path="/continue"
-                  element={lazyScreen(<ContinuePractice />, "Loading...")}
-                />
-                <Route
-                  path="/internal/lead-form"
-                  element={<Navigate to="/admin/internal-leads" replace />}
-                />
-                <Route
-                  path="/events"
-                  element={lazyScreen(<AllEventsPage />, "Loading Events...")}
-                />
-                <Route
-                  path="/events/featured"
-                  element={lazyScreen(
-                    <FeaturedEventPage />,
-                    "Loading Event...",
-                  )}
-                />
-                <Route
-                  path="/events/:slug"
-                  element={lazyScreen(<EventDetailPage />, "Loading Event...")}
-                />
-                <Route
-                  path="/manage-event"
-                  element={<Navigate to="/admin/events" replace />}
-                />
+                  <Route
+                    path="/conversation/:prof_level"
+                    element={lazyScreen(
+                      <ConversationSelect />,
+                      "Loading Conversation...",
+                    )}
+                  />
+                  <Route
+                    path="/conversation/:prof_level/:conversation_id"
+                    element={lazyScreen(
+                      <ConversationPlayer />,
+                      "Loading Conversation...",
+                    )}
+                  />
+                  <Route
+                    path="/register"
+                    element={lazyScreen(
+                      <NursingGermanyLanding />,
+                      "Loading...",
+                    )}
+                  />
+                  <Route
+                    path="/thank-you"
+                    element={lazyScreen(<ThankYouPage />, "Loading...")}
+                  />
+                  <Route
+                    path="/open-app"
+                    element={lazyScreen(<FallbackPage />, "Loading...")}
+                  />
+                  <Route
+                    path="/terms/sign/:token"
+                    element={lazyScreen(<TermsSignPage />, "Loading Terms...")}
+                  />
+                  <Route
+                    path="/job-screening/terms/sign/:token"
+                    element={lazyScreen(
+                      <JobScreeningTermsSignPage />,
+                      "Loading Document...",
+                    )}
+                  />
+                  <Route
+                    path="/onboarding"
+                    element={lazyScreen(
+                      <OnboardingFlow />,
+                      "Loading Onboarding...",
+                    )}
+                  />
+                  <Route
+                    path="/job-screening"
+                    element={lazyScreen(
+                      <JobScreening />,
+                      "Loading Job Screening...",
+                    )}
+                  />
+                  <Route
+                    path="/continue"
+                    element={lazyScreen(<ContinuePractice />, "Loading...")}
+                  />
+                  <Route
+                    path="/internal/lead-form"
+                    element={<Navigate to="/admin/internal-leads" replace />}
+                  />
+                  <Route
+                    path="/events"
+                    element={lazyScreen(<AllEventsPage />, "Loading Events...")}
+                  />
+                  <Route
+                    path="/events/featured"
+                    element={lazyScreen(
+                      <FeaturedEventPage />,
+                      "Loading Event...",
+                    )}
+                  />
+                  <Route
+                    path="/events/:slug"
+                    element={lazyScreen(
+                      <EventDetailPage />,
+                      "Loading Event...",
+                    )}
+                  />
+                  <Route
+                    path="/manage-event"
+                    element={<Navigate to="/admin/events" replace />}
+                  />
 
-                <Route
-                  path="/profile"
-                  element={lazyScreen(<ProfilePage />, "Loading Profile...")}
-                />
+                  <Route
+                    path="/profile"
+                    element={lazyScreen(<ProfilePage />, "Loading Profile...")}
+                  />
 
-                {/* A1 REVAMP ROUTES */}
-                <Route path="/a1" element={<A1EntryResolver />} />
+                  {/* A1 REVAMP ROUTES */}
+                  <Route path="/a1" element={<A1EntryResolver />} />
 
-                {/* A1 Flashcard */}
-                <Route
-                  path="/a1/flashcard"
-                  element={lazyScreen(
-                    <A1FlashcardSelect />,
-                    "Loading A1 Flashcards...",
-                  )}
-                />
-                <Route
-                  path="/a1/flashcard/:chapterId"
-                  element={lazyScreen(
-                    <A1Flashcard />,
-                    "Loading A1 Flashcards...",
-                  )}
-                />
+                  {/* A1 Flashcard */}
+                  <Route
+                    path="/a1/flashcard"
+                    element={lazyScreen(
+                      <A1FlashcardSelect />,
+                      "Loading A1 Flashcards...",
+                    )}
+                  />
+                  <Route
+                    path="/a1/flashcard/:chapterId"
+                    element={lazyScreen(
+                      <A1Flashcard />,
+                      "Loading A1 Flashcards...",
+                    )}
+                  />
 
-                {/* A1 Grammar */}
-                <Route
-                  path="/a1/grammar"
-                  element={lazyScreen(
-                    <A1GrammarSelect />,
-                    "Loading A1 Grammar...",
-                  )}
-                />
-                <Route
-                  path="/a1/grammar/:topicId"
-                  element={lazyScreen(
-                    <A1GrammarPractice />,
-                    "Loading A1 Grammar...",
-                  )}
-                />
+                  {/* A1 Grammar */}
+                  <Route
+                    path="/a1/grammar"
+                    element={lazyScreen(
+                      <A1GrammarSelect />,
+                      "Loading A1 Grammar...",
+                    )}
+                  />
+                  <Route
+                    path="/a1/grammar/:topicId"
+                    element={lazyScreen(
+                      <A1GrammarPractice />,
+                      "Loading A1 Grammar...",
+                    )}
+                  />
 
-                {/* A1 Listening */}
-                <Route
-                  path="/a1/listening"
-                  element={lazyScreen(
-                    <A1ListeningSelect />,
-                    "Loading A1 Listening...",
-                  )}
-                />
-                <Route
-                  path="/a1/listening/:chapterId"
-                  element={
-                    <Suspense
-                      fallback={
-                        <RouteScreenSkeleton title="Loading A1 Listening..." />
-                      }
-                    >
-                      <A1ListeningContent />
-                    </Suspense>
-                  }
-                />
+                  {/* A1 Listening */}
+                  <Route
+                    path="/a1/listening"
+                    element={lazyScreen(
+                      <A1ListeningSelect />,
+                      "Loading A1 Listening...",
+                    )}
+                  />
+                  <Route
+                    path="/a1/listening/:chapterId"
+                    element={
+                      <Suspense
+                        fallback={
+                          <RouteScreenSkeleton title="Loading A1 Listening..." />
+                        }
+                      >
+                        <A1ListeningContent />
+                      </Suspense>
+                    }
+                  />
 
-                {/* A1 Speaking */}
-                <Route
-                  path="/a1/speaking"
-                  element={lazyScreen(
-                    <A1SpeakingSelect />,
-                    "Loading A1 Speaking...",
-                  )}
-                />
-                <Route
-                  path="/a1/speaking/:chapterId"
-                  element={lazyScreen(<A1Speaking />, "Loading A1 Speaking...")}
-                />
+                  {/* A1 Speaking */}
+                  <Route
+                    path="/a1/speaking"
+                    element={lazyScreen(
+                      <A1SpeakingSelect />,
+                      "Loading A1 Speaking...",
+                    )}
+                  />
+                  <Route
+                    path="/a1/speaking/:chapterId"
+                    element={lazyScreen(
+                      <A1Speaking />,
+                      "Loading A1 Speaking...",
+                    )}
+                  />
 
-                {/* A1 Reading */}
-                <Route
-                  path="/a1/reading"
-                  element={lazyScreen(
-                    <A1ReadingSelect />,
-                    "Loading A1 Reading...",
-                  )}
-                />
-                <Route
-                  path="/a1/reading/:chapterId"
-                  element={lazyScreen(<A1Reading />, "Loading A1 Reading...")}
-                />
+                  {/* A1 Reading */}
+                  <Route
+                    path="/a1/reading"
+                    element={lazyScreen(
+                      <A1ReadingSelect />,
+                      "Loading A1 Reading...",
+                    )}
+                  />
+                  <Route
+                    path="/a1/reading/:chapterId"
+                    element={lazyScreen(<A1Reading />, "Loading A1 Reading...")}
+                  />
 
-                {/* A1 Test */}
-                <Route
-                  path="/a1/test"
-                  element={lazyScreen(<A1TestSelect />, "Loading A1 Tests...")}
-                />
-                <Route
-                  path="/a1/test/:topicId"
-                  element={lazyScreen(<A1TestLevel />, "Loading A1 Test...")}
-                />
-                <Route
-                  path="/a1/test/:topicId/:level"
-                  element={lazyScreen(
-                    <A1TestQuestions />,
-                    "Loading A1 Questions...",
-                  )}
-                />
+                  {/* A1 Test */}
+                  <Route
+                    path="/a1/test"
+                    element={lazyScreen(
+                      <A1TestSelect />,
+                      "Loading A1 Tests...",
+                    )}
+                  />
+                  <Route
+                    path="/a1/test/:topicId"
+                    element={lazyScreen(<A1TestLevel />, "Loading A1 Test...")}
+                  />
+                  <Route
+                    path="/a1/test/:topicId/:level"
+                    element={lazyScreen(
+                      <A1TestQuestions />,
+                      "Loading A1 Questions...",
+                    )}
+                  />
 
-                {/* A2 ROUTES */}
-                <Route
-                  path="/a2"
-                  element={<Navigate to="/a2/flashcard" replace />}
-                />
+                  {/* A2 ROUTES */}
+                  <Route
+                    path="/a2"
+                    element={<Navigate to="/a2/flashcard" replace />}
+                  />
 
-                {/* Learn German */}
-                <Route
-                  path="/learn-german"
-                  element={lazyScreen(
-                    <LearnGermanHome />,
-                    "Loading Learn German...",
-                  )}
-                />
-                <Route
-                  path="/learn-german/lesson/:chapterId"
-                  element={lazyScreen(<NewLessonFlow />, "Loading Lesson...")}
-                />
-                <Route
-                  path="/learn-german/recap"
-                  element={lazyScreen(<RecapScreen />, "Loading Recap...")}
-                />
-                <Route
-                  path="/learn-german/recap/:chapterId"
-                  element={lazyScreen(<RecapScreen />, "Loading Recap...")}
-                />
+                  {/* Learn German */}
+                  <Route
+                    path="/learn-german"
+                    element={lazyScreen(
+                      <LearnGermanHome />,
+                      "Loading Learn German...",
+                    )}
+                  />
+                  <Route
+                    path="/learn-german/lesson/:chapterId"
+                    element={lazyScreen(<NewLessonFlow />, "Loading Lesson...")}
+                  />
+                  <Route
+                    path="/learn-german/recap"
+                    element={lazyScreen(<RecapScreen />, "Loading Recap...")}
+                  />
+                  <Route
+                    path="/learn-german/recap/:chapterId"
+                    element={lazyScreen(<RecapScreen />, "Loading Recap...")}
+                  />
 
-                {/* A2 Flashcard */}
-                <Route
-                  path="/a2/flashcard"
-                  element={lazyScreen(
-                    <A2FlashcardSelect />,
-                    "Loading A2 Flashcards...",
-                  )}
-                />
-                <Route
-                  path="/a2/flashcard/:chapterId"
-                  element={
-                    <Suspense
-                      fallback={
-                        <RouteScreenSkeleton title="Loading A2 Flashcards..." />
-                      }
-                    >
-                      <A2Flashcard />
-                    </Suspense>
-                  }
-                />
+                  {/* A2 Flashcard */}
+                  <Route
+                    path="/a2/flashcard"
+                    element={lazyScreen(
+                      <A2FlashcardSelect />,
+                      "Loading A2 Flashcards...",
+                    )}
+                  />
+                  <Route
+                    path="/a2/flashcard/:chapterId"
+                    element={
+                      <Suspense
+                        fallback={
+                          <RouteScreenSkeleton title="Loading A2 Flashcards..." />
+                        }
+                      >
+                        <A2Flashcard />
+                      </Suspense>
+                    }
+                  />
 
-                {/* A2 Grammar */}
-                <Route
-                  path="/a2/grammar"
-                  element={lazyScreen(
-                    <A2GrammarSelect />,
-                    "Loading A2 Grammar...",
-                  )}
-                />
-                <Route
-                  path="/a2/grammar/:topicId"
-                  element={lazyScreen(
-                    <A2GrammarPractice />,
-                    "Loading A2 Grammar...",
-                  )}
-                />
+                  {/* A2 Grammar */}
+                  <Route
+                    path="/a2/grammar"
+                    element={lazyScreen(
+                      <A2GrammarSelect />,
+                      "Loading A2 Grammar...",
+                    )}
+                  />
+                  <Route
+                    path="/a2/grammar/:topicId"
+                    element={lazyScreen(
+                      <A2GrammarPractice />,
+                      "Loading A2 Grammar...",
+                    )}
+                  />
 
-                {/* A2 Listening */}
-                <Route
-                  path="/a2/listening"
-                  element={lazyScreen(
-                    <A2ListeningSelect />,
-                    "Loading A2 Listening...",
-                  )}
-                />
-                <Route
-                  path="/a2/listening/:chapterId"
-                  element={
-                    <Suspense
-                      fallback={
-                        <RouteScreenSkeleton title="Loading A2 Listening..." />
-                      }
-                    >
-                      <A2ListeningContent />
-                    </Suspense>
-                  }
-                />
+                  {/* A2 Listening */}
+                  <Route
+                    path="/a2/listening"
+                    element={lazyScreen(
+                      <A2ListeningSelect />,
+                      "Loading A2 Listening...",
+                    )}
+                  />
+                  <Route
+                    path="/a2/listening/:chapterId"
+                    element={
+                      <Suspense
+                        fallback={
+                          <RouteScreenSkeleton title="Loading A2 Listening..." />
+                        }
+                      >
+                        <A2ListeningContent />
+                      </Suspense>
+                    }
+                  />
 
-                {/* A2 Speaking */}
-                <Route
-                  path="/a2/speaking"
-                  element={lazyScreen(
-                    <A2SpeakingSelect />,
-                    "Loading A2 Speaking...",
-                  )}
-                />
-                <Route
-                  path="/a2/speaking/:chapterId"
-                  element={lazyScreen(<A2Speaking />, "Loading A2 Speaking...")}
-                />
+                  {/* A2 Speaking */}
+                  <Route
+                    path="/a2/speaking"
+                    element={lazyScreen(
+                      <A2SpeakingSelect />,
+                      "Loading A2 Speaking...",
+                    )}
+                  />
+                  <Route
+                    path="/a2/speaking/:chapterId"
+                    element={lazyScreen(
+                      <A2Speaking />,
+                      "Loading A2 Speaking...",
+                    )}
+                  />
 
-                {/* A2 Reading */}
-                <Route
-                  path="/a2/reading"
-                  element={lazyScreen(
-                    <A2ReadingSelect />,
-                    "Loading A2 Reading...",
-                  )}
-                />
-                <Route
-                  path="/a2/reading/:chapterId"
-                  element={lazyScreen(<A2Reading />, "Loading A2 Reading...")}
-                />
+                  {/* A2 Reading */}
+                  <Route
+                    path="/a2/reading"
+                    element={lazyScreen(
+                      <A2ReadingSelect />,
+                      "Loading A2 Reading...",
+                    )}
+                  />
+                  <Route
+                    path="/a2/reading/:chapterId"
+                    element={lazyScreen(<A2Reading />, "Loading A2 Reading...")}
+                  />
 
-                {/* A2 Test */}
-                <Route
-                  path="/a2/test"
-                  element={lazyScreen(<A2TestSelect />, "Loading A2 Tests...")}
-                />
-                <Route
-                  path="/a2/test/:topicId"
-                  element={lazyScreen(<A2TestLevel />, "Loading A2 Test...")}
-                />
-                <Route
-                  path="/a2/test/:topicId/:level"
-                  element={lazyScreen(
-                    <A2TestQuestions />,
-                    "Loading A2 Questions...",
-                  )}
-                />
+                  {/* A2 Test */}
+                  <Route
+                    path="/a2/test"
+                    element={lazyScreen(
+                      <A2TestSelect />,
+                      "Loading A2 Tests...",
+                    )}
+                  />
+                  <Route
+                    path="/a2/test/:topicId"
+                    element={lazyScreen(<A2TestLevel />, "Loading A2 Test...")}
+                  />
+                  <Route
+                    path="/a2/test/:topicId/:level"
+                    element={lazyScreen(
+                      <A2TestQuestions />,
+                      "Loading A2 Questions...",
+                    )}
+                  />
 
-                {/* Hard Core Test */}
-                <Route
-                  path="/exam/:testId"
-                  element={lazyScreen(<ExamLobby />, "Loading Exam...")}
-                />
-                <Route
-                  path="/exam/:testId/take"
-                  element={
-                    <Suspense
-                      fallback={<RouteScreenSkeleton title="Loading Exam..." />}
-                    >
-                      <ExamPage />
-                    </Suspense>
-                  }
-                />
-                <Route
-                  path="/exam/:testId/result"
-                  element={lazyScreen(<ExamResult />, "Loading Result...")}
-                />
+                  {/* Hard Core Test */}
+                  <Route
+                    path="/exam/:testId"
+                    element={lazyScreen(<ExamLobby />, "Loading Exam...")}
+                  />
+                  <Route
+                    path="/exam/:testId/take"
+                    element={
+                      <Suspense
+                        fallback={
+                          <RouteScreenSkeleton title="Loading Exam..." />
+                        }
+                      >
+                        <ExamPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/exam/:testId/result"
+                    element={lazyScreen(<ExamResult />, "Loading Result...")}
+                  />
 
-                {/* News Module */}
-                <Route
-                  path="/news"
-                  element={lazyScreen(<NewsHome />, "Loading News...")}
-                />
-                <Route
-                  path="/news/:newsId"
-                  element={lazyScreen(<NewsPage />, "Loading News...")}
-                />
+                  {/* News Module */}
+                  <Route
+                    path="/news"
+                    element={lazyScreen(<NewsHome />, "Loading News...")}
+                  />
+                  <Route
+                    path="/news/:newsId"
+                    element={lazyScreen(<NewsPage />, "Loading News...")}
+                  />
 
-                {/* Interview */}
-                <Route
-                  path="/interview/:slug"
-                  element={lazyScreen(
-                    <PublicInterviewPage />,
-                    "Loading Interview...",
-                  )}
-                />
-                <Route
-                  path="/job-screening/interview/:slug"
-                  element={lazyScreen(
-                    <JobScreeningInterviewPage />,
-                    "Loading Interview...",
-                  )}
-                />
+                  {/* Interview */}
+                  <Route
+                    path="/interview/:slug"
+                    element={lazyScreen(
+                      <PublicInterviewPage />,
+                      "Loading Interview...",
+                    )}
+                  />
+                  <Route
+                    path="/job-screening/interview/:slug"
+                    element={lazyScreen(
+                      <JobScreeningInterviewPage />,
+                      "Loading Interview...",
+                    )}
+                  />
 
-                {/* Wise */}
-                <Route
-                  path="/internal/wise"
-                  element={<Navigate to="/admin/wise" replace />}
-                />
+                  {/* Wise */}
+                  <Route
+                    path="/internal/wise"
+                    element={<Navigate to="/admin/wise" replace />}
+                  />
 
-                {/* B1 Reading & Listening */}
-                <Route
-                  path="/b1"
-                  element={
-                    <LearningRoute>
-                      <ReadListenSelect />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/read-listen"
-                  element={
-                    <LearningRoute>
-                      <ReadListenSelect />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/read-listen/list/:module"
-                  element={
-                    <LearningRoute>
-                      <ReadListenTopicSelect />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/read-listen/content/:contentId"
-                  element={
-                    <LearningRoute>
-                      <NewsArticleReader />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/read-listen/success"
-                  element={
-                    <LearningRoute>
-                      <NewsArticleSuccess />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/describe-speak"
-                  element={
-                    <LearningRoute>
-                      <DescribeSpeakSelect />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/describe-speak/workspace/:topicId"
-                  element={
-                    <LearningRoute>
-                      <DescribeSpeakWorkspace />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/describe-speak/success"
-                  element={
-                    <LearningRoute>
-                      <DescribeSpeakSuccess />
-                    </LearningRoute>
-                  }
-                />
-                {/* B1 Exams (Goethe & TELC) Routes */}
-                <Route
-                  path="/b1/exams"
-                  element={
-                    <LearningRoute>
-                      <ExamSelect />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/exams/:examType/papers"
-                  element={
-                    <LearningRoute>
-                      <PaperSelect />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/exams/papers/:paperId/dashboard"
-                  element={
-                    <LearningRoute>
-                      <ExamBlockSelector />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/exams/papers/:paperId/reading"
-                  element={
-                    <LearningRoute>
-                      <ExamReadingWorkspace />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/exams/papers/:paperId/reading/results"
-                  element={
-                    <LearningRoute>
-                      <ExamReadingResults />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/exams/papers/:paperId/writing"
-                  element={
-                    <LearningRoute>
-                      <ExamWritingWorkspace />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/exams/papers/:paperId/writing/results"
-                  element={
-                    <LearningRoute>
-                      <ExamWritingResults />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/exams/papers/:paperId/listening"
-                  element={
-                    <LearningRoute>
-                      <ExamListeningWorkspace />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/exams/papers/:paperId/listening/results"
-                  element={
-                    <LearningRoute>
-                      <ExamListeningResults />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/exams/papers/:paperId/speaking"
-                  element={
-                    <LearningRoute>
-                      <ExamSpeakingWorkspace />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/exams/papers/:paperId/speaking/results"
-                  element={
-                    <LearningRoute>
-                      <ExamSpeakingResults />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/exams/papers/:paperId/congratulations"
-                  element={
-                    <LearningRoute>
-                      <ExamCongratulations />
-                    </LearningRoute>
-                  }
-                />
-                {/* B1 Flashcards Routes */}
-                <Route
-                  path="/b1/flashcard"
-                  element={
-                    <LearningRoute>
-                      <B1FlashcardSelect />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/flashcard/:chapterId"
-                  element={
-                    <LearningRoute>
-                      <B1Flashcard />
-                    </LearningRoute>
-                  }
-                />
-                {/* B1 Maya Route */}
-                <Route
-                  path="/b1/maya"
-                  element={
-                    <LearningRoute>
-                      <B1MayaPage />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/read-listen/video/:videoId"
-                  element={
-                    <LearningRoute>
-                      <VideoReader />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1/read-listen/video-success"
-                  element={
-                    <LearningRoute>
-                      <VideoSuccess />
-                    </LearningRoute>
-                  }
-                />
-                <Route
-                  path="/b1admin"
-                  element={lazyScreen(<B1AdminPage />, "Loading B1 Admin...")}
-                />
-              </Routes>
+                  {/* B1 Reading & Listening */}
+                  <Route
+                    path="/b1"
+                    element={
+                      <LearningRoute>
+                        <ReadListenSelect />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/read-listen"
+                    element={
+                      <LearningRoute>
+                        <ReadListenSelect />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/read-listen/list/:module"
+                    element={
+                      <LearningRoute>
+                        <ReadListenTopicSelect />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/read-listen/content/:contentId"
+                    element={
+                      <LearningRoute>
+                        <NewsArticleReader />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/read-listen/success"
+                    element={
+                      <LearningRoute>
+                        <NewsArticleSuccess />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/describe-speak"
+                    element={
+                      <LearningRoute>
+                        <DescribeSpeakSelect />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/describe-speak/workspace/:topicId"
+                    element={
+                      <LearningRoute>
+                        <DescribeSpeakWorkspace />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/describe-speak/success"
+                    element={
+                      <LearningRoute>
+                        <DescribeSpeakSuccess />
+                      </LearningRoute>
+                    }
+                  />
+                  {/* B1 Exams (Goethe & TELC) Routes */}
+                  <Route
+                    path="/b1/exams"
+                    element={
+                      <LearningRoute>
+                        <ExamSelect />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/exams/:examType/papers"
+                    element={
+                      <LearningRoute>
+                        <PaperSelect />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/exams/papers/:paperId/dashboard"
+                    element={
+                      <LearningRoute>
+                        <ExamBlockSelector />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/exams/papers/:paperId/reading"
+                    element={
+                      <LearningRoute>
+                        <ExamReadingWorkspace />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/exams/papers/:paperId/reading/results"
+                    element={
+                      <LearningRoute>
+                        <ExamReadingResults />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/exams/papers/:paperId/writing"
+                    element={
+                      <LearningRoute>
+                        <ExamWritingWorkspace />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/exams/papers/:paperId/writing/results"
+                    element={
+                      <LearningRoute>
+                        <ExamWritingResults />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/exams/papers/:paperId/listening"
+                    element={
+                      <LearningRoute>
+                        <ExamListeningWorkspace />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/exams/papers/:paperId/listening/results"
+                    element={
+                      <LearningRoute>
+                        <ExamListeningResults />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/exams/papers/:paperId/speaking"
+                    element={
+                      <LearningRoute>
+                        <ExamSpeakingWorkspace />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/exams/papers/:paperId/speaking/results"
+                    element={
+                      <LearningRoute>
+                        <ExamSpeakingResults />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/exams/papers/:paperId/congratulations"
+                    element={
+                      <LearningRoute>
+                        <ExamCongratulations />
+                      </LearningRoute>
+                    }
+                  />
+                  {/* B1 Flashcards Routes */}
+                  <Route
+                    path="/b1/flashcard"
+                    element={
+                      <LearningRoute>
+                        <B1FlashcardSelect />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/flashcard/:chapterId"
+                    element={
+                      <LearningRoute>
+                        <B1Flashcard />
+                      </LearningRoute>
+                    }
+                  />
+                  {/* B1 Maya Route */}
+                  <Route
+                    path="/b1/maya"
+                    element={
+                      <LearningRoute>
+                        <B1MayaPage />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/read-listen/video/:videoId"
+                    element={
+                      <LearningRoute>
+                        <VideoReader />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1/read-listen/video-success"
+                    element={
+                      <LearningRoute>
+                        <VideoSuccess />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b1admin"
+                    element={lazyScreen(<B1AdminPage />, "Loading B1 Admin...")}
+                  />
+                </Routes>
 
-              <ConditionalBottomModeSwitcher />
-              <ConditionalFooter />
-              <SupportWidget />
-            </B1ProductTour>
-          </A2ProductTour>
-        </A1ProductTour>
-      </ProductTour>
+                <ConditionalBottomModeSwitcher />
+                <ConditionalFooter />
+                <SupportWidget />
+              </B1ProductTour>
+            </A2ProductTour>
+          </A1ProductTour>
+        </ProductTour>
       </div>
     </div>
   );

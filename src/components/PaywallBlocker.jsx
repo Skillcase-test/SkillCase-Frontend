@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Loader2, CreditCard, Phone } from "lucide-react";
+import { Loader2, Phone, Lock, Check } from "lucide-react";
 import { setUser } from "../redux/auth/authSlice";
 import api from "../api/axios";
-import mayaSmiling from "../assets/onboarding/mayaSmiling.webp";
+import mayaLooking from "../assets/onboarding/mayaLooking.webp";
+import toast from "react-hot-toast";
 
 const normalizeIndianPhone = (value) => {
   const digits = String(value || "").replace(/\D/g, "");
@@ -25,7 +26,8 @@ const buildCheckoutPrefill = (source = {}) => {
     (contact ? `student-${contact}@skillcase.in` : "");
 
   return {
-    name: source.name || source.fullname || source.username || "SkillCase Student",
+    name:
+      source.name || source.fullname || source.username || "SkillCase Student",
     contact,
     email,
   };
@@ -49,7 +51,7 @@ export default function PaywallBlocker({ user, dispatch, onSuccess }) {
     try {
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
-        alert(
+        toast.error(
           "Failed to load payment gateway. Please check your internet connection.",
         );
         setLoading(false);
@@ -71,12 +73,15 @@ export default function PaywallBlocker({ user, dispatch, onSuccess }) {
             ...(response.data?.prefill || {}),
           });
         } catch (profileErr) {
-          console.error("Failed to load profile for checkout prefill:", profileErr);
+          console.error(
+            "Failed to load profile for checkout prefill:",
+            profileErr,
+          );
         }
       }
 
       if (!checkoutPrefill.contact) {
-        alert(
+        toast.error(
           "We could not find a valid Indian mobile number for autopay. Please contact Skillcase support.",
         );
         setLoading(false);
@@ -101,7 +106,7 @@ export default function PaywallBlocker({ user, dispatch, onSuccess }) {
             if (onSuccess) onSuccess();
           } catch (err) {
             console.error("Signature verification failed:", err);
-            alert("Payment verification failed. Please contact support.");
+            toast.error("Payment verification failed. Please contact support.");
           } finally {
             setLoading(false);
           }
@@ -133,7 +138,7 @@ export default function PaywallBlocker({ user, dispatch, onSuccess }) {
       rzp.open();
     } catch (err) {
       console.error("Initiating subscription failed:", err);
-      alert(
+      toast.error(
         err.response?.data?.msg ||
           "Failed to start payment checkout session. Please try again.",
       );
@@ -158,78 +163,88 @@ export default function PaywallBlocker({ user, dispatch, onSuccess }) {
             "0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.08)",
         }}
         transition={{ duration: 0.2 }}
-        className="w-full max-w-md bg-white border border-slate-200/80 rounded-3xl shadow-xl p-8 flex flex-col items-center text-center gap-6"
+        className="w-full max-w-[390px] bg-white border border-slate-100 rounded-[32px] shadow-2xl py-6 sm:py-8 px-4 sm:px-6 flex flex-col items-center gap-5 sm:gap-6 relative"
       >
-        {/* Mascot and Chat Bubble (Horizontal Chat Layout) */}
-        <div className="flex items-center gap-4 w-full text-left">
+        {/* Mascot Image positioned inside the card */}
+        <div className="w-20 h-20 rounded-full shadow-sm bg-[#a2c5f2] overflow-hidden flex items-center justify-center shrink-0">
           <img
-            src={mayaSmiling}
-            alt="Maya mascot smiling"
-            className="w-16 h-16 object-contain shrink-0"
+            src={mayaLooking}
+            alt="Maya mascot looking"
+            className="w-full h-full object-cover"
           />
-          <div className="relative bg-slate-50 border border-slate-100 rounded-2xl p-4 text-slate-700 text-xs font-semibold leading-relaxed shadow-xs flex-1">
-            {/* Left triangle pointer pointing to mascot */}
-            <div className="absolute top-1/2 -translate-y-1/2 -left-2 w-4.5 h-4.5 bg-slate-50 border-b border-l border-slate-100/80 rotate-45" />
-            Your learning path is locked. Please enable subscription to continue
-            the journey.
-          </div>
         </div>
-        {/* Program Details */}
-        <div className="w-full bg-slate-50 rounded-2xl p-5 border border-slate-100 text-left flex flex-col gap-3">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-            Recurring Subscription Plan
+
+        {/* Locked Badge */}
+        <div className="inline-flex items-center gap-1.5 px-3 bg-slate-100 rounded-full">
+          <Lock className="w-3 h-3 text-slate-500" />
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            Learning plan locked
           </span>
-          <div className="flex justify-between items-center bg-white border border-slate-100 rounded-xl p-3 shadow-xs">
-            <span className="text-xs text-slate-500 font-semibold">
-              Subscription Fee
-            </span>
-            <span className="text-2xl font-black text-[#002856] flex items-baseline">
-              <span className="text-lg font-bold mr-0.5">₹</span>99
-              <span className="text-[11px] text-slate-400 font-bold ml-1">
-                / month
-              </span>
-            </span>
-          </div>
-          <p className="text-[10px] text-slate-400 font-semibold leading-relaxed px-1">
-            Unlocks unlimited access to German level lessons, streak challenges,
-            flashcards, pronunciation practice, and more. Cancel anytime.
-          </p>
         </div>
+
+        {/* Title */}
+        <h2 className="text-2xl sm:text-[26px] font-bold text-[#002856] text-center leading-tight tracking-tight px-1">
+          Subscribe for continued access
+        </h2>
+
+        {/* Features card inset */}
+        <div className="w-full bg-[#f8f9fa] rounded-3xl p-4 sm:p-5 flex flex-col gap-3 sm:gap-4">
+          <div className="text-center flex items-baseline justify-center gap-1.5">
+            <span className="text-3xl sm:text-4xl font-extrabold text-[#002856]">
+              ₹99
+            </span>
+            <span className="text-sm font-bold text-slate-400">/ month</span>
+          </div>
+          <div className="border-t border-slate-200/60 w-full" />
+          <div className="flex flex-col gap-3">
+            {[
+              "Streak Challenges",
+              "German Lessons",
+              "Flashcards",
+              "Pronunciation practice",
+              "Chapter tests",
+            ].map((feature, idx) => (
+              <div
+                key={idx}
+                className="flex justify-between items-center text-[11px] sm:text-xs"
+              >
+                <span className="font-semibold text-slate-600">{feature}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-[#002856]">Unlimited</span>
+                  <div className="w-4 h-4 bg-[#22c55e] rounded-full flex items-center justify-center">
+                    <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Actions */}
         <div className="flex flex-col gap-3 w-full">
           <motion.button
             onClick={handlePay}
             disabled={loading}
-            whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.985 }}
-            className="w-full h-12 bg-[#002856] hover:bg-[#001f42] text-white rounded-xl transition-all disabled:opacity-75 disabled:cursor-not-allowed cursor-pointer flex items-center justify-between px-5 font-bold"
+            className="w-full h-12 sm:h-13 bg-[#002856] hover:bg-[#001f42] active:bg-[#001f42] text-white rounded-2xl transition-all disabled:opacity-75 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center font-bold text-xs sm:text-sm"
           >
             {loading ? (
-              <div className="w-full flex items-center justify-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-white" />
-                <span className="text-sm font-bold">Processing...</span>
-              </div>
+              <Loader2 className="w-5 h-5 animate-spin text-white" />
             ) : (
-              <>
-                <span className="text-sm font-extrabold tracking-wide">
-                  ₹99 / month
-                </span>
-                <span className="text-sm font-extrabold flex items-center gap-1.5">
-                  Subscribe Now
-                  <CreditCard className="w-4 h-4" />
-                </span>
-              </>
+              "Subscribe and pay"
             )}
           </motion.button>
           <motion.a
             href="tel:+919731462667"
-            whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.985 }}
-            className="w-full h-12 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl font-bold text-xs flex items-center justify-center gap-2 text-slate-600 cursor-pointer"
+            className="w-full h-12 sm:h-13 bg-white border border-slate-200 hover:bg-slate-50 rounded-2xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 text-[#002856] cursor-pointer shadow-xs"
           >
-            <Phone className="w-3.5 h-3.5 text-slate-400" />
-            <span>Call Skillcase support at +919731462667</span>
+            <Phone className="w-4 h-4" />
+            <span>Talk to an expert</span>
           </motion.a>
+          <p className="text-[10px] text-slate-400 font-semibold text-center mt-1">
+            You can cancel it anytime.
+          </p>
         </div>
       </motion.div>
     </div>

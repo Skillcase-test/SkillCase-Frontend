@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { setUser } from "../redux/auth/authSlice";
 import api from "../api/axios";
 import JobScreeningProfilePage from "./jobScreening/JobScreeningProfilePage";
-import { Send, Eye, BookmarkCheck, CalendarCheck2, Clock } from "lucide-react";
+import { Send, Eye, BookmarkCheck, CalendarCheck2, Clock, Check, X } from "lucide-react";
 import mayaSad from "../assets/onboarding/mayaSad.webp";
 
 const DEFAULT_AVATAR = (
@@ -733,51 +733,62 @@ export default function ProfilePage() {
 
         {/* Autopay Subscription Card */}
         {user && user.razorpay_subscription_id && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm mt-4 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm mt-4 p-5 flex flex-col gap-4">
             {/* Header */}
-            <div className="px-5 pt-5 pb-4 flex items-start justify-between gap-3">
-              <div>
-                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                  <BookmarkCheck className="w-4 h-4 text-indigo-600 shrink-0" />
-                  Active Subscription
-                </h3>
-                <p className="text-xs text-slate-400 font-medium mt-0.5 leading-relaxed">
-                  Recurring autopay linked to this account.
-                </p>
-              </div>
+            <div className="flex justify-between items-center w-full">
+              <h3 className="text-[#002856] text-lg font-bold">Paid Subscription</h3>
               {user.autopay_enabled ? (
-                <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                  Active
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                  active
                 </span>
               ) : (
-                <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-200 capitalize">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-600 border border-amber-100 capitalize">
                   {user.autopay_status || "Cancelled"}
                 </span>
               )}
             </div>
 
-            {/* Plan detail row */}
-            <div className="mx-5 mb-4 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 flex items-center justify-between">
-              <span className="text-xs text-slate-500 font-semibold">
-                Subscription Fee
-              </span>
-              <span className="text-sm font-bold text-slate-800">
-                INR 99 / Month
-              </span>
+            {/* Features card inset */}
+            <div className="w-full bg-[#f8f9fa] rounded-3xl p-5 flex flex-col gap-4">
+              <div className="text-center py-1 flex items-baseline justify-center gap-1.5">
+                <span className="text-3xl font-extrabold text-[#002856]">₹99</span>
+                <span className="text-sm font-bold text-slate-400">/ month</span>
+              </div>
+              <div className="border-t border-slate-200/60 w-full" />
+              <div className="flex flex-col gap-3">
+                {[
+                  "Streak Challenges",
+                  "German Lessons",
+                  "Flashcards",
+                  "Pronunciation practice",
+                  "Chapter tests",
+                ].map((feature, idx) => (
+                  <div
+                    key={idx}
+                    className="flex justify-between items-center text-xs"
+                  >
+                    <span className="font-semibold text-slate-600">{feature}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-[#22c55e]">Active</span>
+                      <div className="w-4 h-4 bg-[#22c55e] rounded-full flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Action */}
             {user.autopay_enabled && (
-              <div className="px-5 pb-5">
-                <button
-                  type="button"
-                  onClick={() => setShowCancelModal(true)}
-                  disabled={cancelling}
-                  className="w-full h-10 border border-rose-200 text-rose-600 font-bold rounded-xl bg-rose-50 hover:bg-rose-100 transition-colors text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {cancelling ? "Processing..." : "Cancel Autopay Subscription"}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowCancelModal(true)}
+                disabled={cancelling}
+                className="w-full h-12 bg-white border border-[#ef4444] hover:bg-red-50 text-[#ef4444] font-bold rounded-2xl transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+              >
+                {cancelling ? "Processing..." : "Cancel subscription"}
+              </button>
             )}
           </div>
         )}
@@ -785,34 +796,51 @@ export default function ProfilePage() {
 
       {/* Cancel Autopay Confirmation Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl overflow-hidden shadow-xl">
-            <div className="flex flex-col items-center px-6 pt-8 pb-4 gap-3 text-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 select-none font-sans">
+          <div className="bg-white w-full max-w-[390px] rounded-[32px] shadow-2xl py-6 sm:py-8 px-4 sm:px-6 flex flex-col items-center gap-5 sm:gap-6 relative">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowCancelModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Mascot Image positioned inside the card */}
+            <div className="w-20 h-20 rounded-full shadow-sm bg-[#a2c5f2] overflow-hidden flex items-center justify-center shrink-0">
               <img
                 src={mayaSad}
-                alt="Maya sad"
-                className="w-24 h-24 object-contain"
-                draggable="false"
+                alt="Maya sad mascot"
+                className="w-full h-full object-cover"
               />
-              <h3 className="text-[#181d27] text-lg font-bold">Are you sure?</h3>
-              <p className="text-[#535862] text-sm leading-relaxed">
-                Once cancelled, your monthly plan will not renew and you will no longer be able to enjoy the full Skillcase experience.
-              </p>
             </div>
-            <div className="flex flex-col gap-2 px-6 pb-6 pt-2">
-              <button
-                onClick={handleDisableAutopay}
-                disabled={cancelling}
-                className="w-full py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-sm transition-colors disabled:opacity-50"
-              >
-                {cancelling ? "Cancelling..." : "Yes, cancel autopay"}
-              </button>
+
+            {/* Title */}
+            <h3 className="text-2xl sm:text-[26px] font-bold text-[#002856] text-center leading-tight tracking-tight px-1">
+              Please don't leave us
+            </h3>
+
+            {/* Description */}
+            <p className="text-[#002856] text-center text-xs sm:text-sm leading-relaxed font-semibold px-2">
+              You have covered a long way in your German journey.
+              <br className="hidden sm:inline" /> Once cancelled, your monthly plan will not renew.
+            </p>
+
+            {/* Actions Button Stack */}
+            <div className="flex flex-col gap-3 w-full">
               <button
                 onClick={() => setShowCancelModal(false)}
                 disabled={cancelling}
-                className="w-full py-3 rounded-xl border border-[#e9eaeb] text-[#535862] font-semibold text-sm hover:bg-slate-50 transition-colors"
+                className="w-full h-12 sm:h-13 bg-[#002856] hover:bg-[#001f42] active:bg-[#001f42] text-white rounded-2xl transition-all cursor-pointer font-bold text-xs sm:text-sm flex items-center justify-center"
               >
-                Keep my subscription
+                Continue subscription
+              </button>
+              <button
+                onClick={handleDisableAutopay}
+                disabled={cancelling}
+                className="w-full text-center text-red-500 hover:text-red-700 font-bold text-xs sm:text-sm cursor-pointer hover:underline py-1 transition-colors disabled:opacity-50"
+              >
+                {cancelling ? "Processing..." : "Cancel Subscription"}
               </button>
             </div>
           </div>
