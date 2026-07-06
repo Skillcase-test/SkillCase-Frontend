@@ -1589,7 +1589,7 @@ export default function A2Flashcard() {
 
   // MAIN VIEW
   return (
-    <div className="min-h-100dvh bg-white flex flex-col">
+    <div className="min-h-[calc(100vh-65px)] bg-white flex flex-col relative">
       <div className="px-4 py-2.5">
         <div className="flex items-center justify-between">
           <button

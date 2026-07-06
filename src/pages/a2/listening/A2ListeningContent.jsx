@@ -61,12 +61,16 @@ const CustomDropdown = memo(({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const menuRef = useRef(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
 
   // Handle outside click and scroll to close
   useEffect(() => {
     const handlePointerOutside = (event) => {
-      if (dropdownRef.current && dropdownRef.current.contains(event.target)) {
+      if (
+        (dropdownRef.current && dropdownRef.current.contains(event.target)) ||
+        (menuRef.current && menuRef.current.contains(event.target))
+      ) {
         return;
       }
       setIsOpen(false);
@@ -147,6 +151,7 @@ const CustomDropdown = memo(({
         !disabled &&
         createPortal(
           <div
+            ref={menuRef}
             className="fixed z-[9999] bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-100"
             style={{
               top: dropdownPos.top,

@@ -59,7 +59,7 @@ export default function Footer() {
         <div className="border-t border-[#7f56d9] pt-8">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex flex-row items-center gap-2">
-              <img src="/s.png" alt="Skillcase" className="h-8" />
+              <img src="/s.webp" alt="Skillcase" className="h-8" />
               <p className="text-[#d6bbfb] text-md font-bold">SkillCase</p>
             </div>
             <p className="text-[#d6bbfb] text-sm">

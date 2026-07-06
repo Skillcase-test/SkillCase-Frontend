@@ -5,6 +5,7 @@ import ExamCards from "../../exam/ExamCards";
 import { images } from "../../../assets/images.js";
 import { useState } from "react";
 import { hapticLight } from "../../../utils/haptics";
+import { isB1PracticeLevel } from "../../../utils/b1Progress";
 
 /* Feature Cards */
 
@@ -12,7 +13,9 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
   const { user } = useSelector((state) => state.auth);
   const profLevel = user?.user_prof_level || "A1";
 
-  const isA2 = profLevel.toLowerCase() === "a2";
+  const normalizedProfLevel = profLevel.toLowerCase();
+  const isB1 = isB1PracticeLevel(normalizedProfLevel);
+  const isA2 = normalizedProfLevel === "a2";
 
   const a1Features = [
     {
@@ -193,13 +196,72 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
     },
   ];
 
-  const features = isA2
-    ? a2Features
-    : useRevampA1
-      ? a1RevampFeatures
-      : a1Features;
+  const b1Features = [
+    {
+      id: "b1-flashcard",
+      title: "Flashcards",
+      description: "Practice basic German using Flashcards",
+      image: images.flashcards,
+      link: "/b1/flashcard",
+      enabled: true,
+    },
+    {
+      id: "b1-read-listen",
+      title: "Reading & Listening",
+      description: "Read articles and answer questions",
+      image:
+        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090498/read_listen_pwnige.webp",
+      link: "/b1/read-listen",
+      enabled: true,
+    },
+    {
+      id: "b1-describe-speak",
+      title: "Describe & Speak",
+      description: "Describe images and practice pronunciation",
+      image:
+        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090503/describe_speak_dtdpvf.webp",
+      link: "/b1/describe-speak",
+      enabled: true,
+    },
+    {
+      id: "b1-exams",
+      title: "TELC & GOETHE Exam Papers",
+      description: "Take mock exams under real constraints",
+      image:
+        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090510/exam_isoiv2.webp",
+      link: "/b1/exams",
+      enabled: true,
+    },
+    {
+      id: "b1-maya",
+      title: "Talk to Maya",
+      description: "Have real German conversation & get instant feedback",
+      image:
+        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781600945/maya_ylcppy.webp",
+      link: "/b1/maya",
+      enabled: true,
+    },
+    {
+      id: "news",
+      title: "News",
+      description: "Read top headlines in German and English",
+      image: images.news,
+      link: "/news",
+      enabled: true,
+    },
+  ];
+
+  const features = isB1
+    ? b1Features
+    : isA2
+      ? a2Features
+      : useRevampA1
+        ? a1RevampFeatures
+        : a1Features;
 
   const getTourId = (id) => {
+    if (isB1 && id === "news") return "b1-news-card";
+
     const tourIds = {
       flashcards: "flashcard-card",
       vocabulary: "pronunciation-card",
@@ -220,14 +282,25 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
       "a1-revamp-speaking": "a1-revamp-speaking-card",
       "a1-revamp-reading": "a1-revamp-reading-card",
       "a1-revamp-test": "a1-revamp-test-card",
+      "b1-flashcard": "b1-flashcard-card",
+      "b1-read-listen": "b1-read-listen-card",
+      "b1-describe-speak": "b1-describe-speak-card",
+      "b1-exams": "b1-exams-card",
+      "b1-maya": "b1-maya-card",
     };
     return tourIds[id] || undefined;
   };
 
   return (
     <div
-      id={isA2 ? "a2-feature-cards-grid" : "feature-cards-grid"}
-      className="px-4 pt-8 pb-4"
+      id={
+        isB1
+          ? "b1-feature-cards-grid"
+          : isA2
+            ? "a2-feature-cards-grid"
+            : "feature-cards-grid"
+      }
+      className="px-4 pt-2 pb-4"
     >
       <div id="feature-cards-grid" className="grid grid-cols-3 gap-2.5">
         {features.map((feature) => (

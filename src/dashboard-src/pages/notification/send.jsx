@@ -91,7 +91,7 @@ export default function SendNotification() {
   const [imageSource, setImageSource] = useState("none"); // none, url, upload
 
   // Target level state
-  const [targetLevel, setTargetLevel] = useState("all"); // all, a1, a2
+  const [targetLevel, setTargetLevel] = useState("all"); // all, a1, a2, b1
 
   // Target mode state
   const [targetMode, setTargetMode] = useState("all"); // all, learn, practice, job_screening
@@ -372,6 +372,17 @@ export default function SendNotification() {
               }`}
             >
               A2 Only
+            </button>
+            <button
+              type="button"
+              onClick={() => setTargetLevel("b1")}
+              className={`px-4 py-2 rounded-lg border transition ${
+                targetLevel === "b1"
+                  ? "bg-amber-50 border-amber-500 text-amber-700"
+                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              B1 Only
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-2">

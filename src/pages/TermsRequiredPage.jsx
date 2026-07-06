@@ -107,7 +107,7 @@ function TermsRequiredPage() {
           <div className="flex justify-between items-center h-16">
             <div className="text-2xl font-bold text-slate-800 flex items-center gap-2">
               <img
-                src="/mainlogo.png"
+                src="/mainlogo.webp"
                 alt="Logo"
                 className="w-30 sm:w-30 md:w-30 lg:w-40 h-auto pt-1"
               />

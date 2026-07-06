@@ -15,7 +15,28 @@ import PlayStoreRatingModal from "../../components/PlayStoreRatingModal";
 import { useLandingSections } from "../../hooks/useLandingSections";
 import { AlertTriangle, Sparkles } from "lucide-react";
 import api from "../../api/axios";
-import { getA1MigrationStatus, saveA1MigrationDecision } from "../../api/a1Api";
+import {
+  getA1MigrationStatus,
+  saveA1MigrationDecision,
+  getFlashcardChapters as getA1Flashcards,
+  getGrammarTopics as getA1Grammar,
+  getListeningChapters as getA1Listening,
+  getSpeakingChapters as getA1Speaking,
+  getReadingChapters as getA1Reading,
+  getTestTopics as getA1Test,
+} from "../../api/a1Api";
+import {
+  getFlashcardChapters as getA2Flashcards,
+  getGrammarTopics as getA2Grammar,
+  getListeningChapters as getA2Listening,
+  getSpeakingChapters as getA2Speaking,
+  getReadingChapters as getA2Reading,
+  getTestTopics as getA2Test,
+} from "../../api/a2Api";
+import {
+  getB1PracticeProgressRatio,
+  isB1PracticeLevel,
+} from "../../utils/b1Progress";
 import A1MigrationModal from "../../components/a1/A1MigrationModal";
 import ModalPortal from "../../components/common/ModalPortal";
 
@@ -63,11 +84,14 @@ function LandingFeatureCardsSkeleton() {
 export default function LandingPage() {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
-  const currentLevel = user?.user_prof_level || "A1";
-  const { sections } = useLandingSections(currentLevel);
+  const rawLevel = user?.user_prof_level || "A1";
+  const currentLevel = rawLevel;
+  const contentLevel = isB1PracticeLevel(rawLevel) ? "B1" : rawLevel;
+  const { sections } = useLandingSections(contentLevel);
 
   const [showA1MigrationModal, setShowA1MigrationModal] = useState(false);
   const [migrationStatus, setMigrationStatus] = useState(null);
+  const [levelProgress, setLevelProgress] = useState(0);
   const [migrationStatusLoading, setMigrationStatusLoading] = useState(true);
   const [migrationMeta, setMigrationMeta] = useState({ gracePeriodMonths: 2 });
   const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
@@ -85,6 +109,48 @@ export default function LandingPage() {
   const switchTimeoutRef = useRef(null);
 
   const location = useLocation();
+  const [lgMode, setLgMode] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("lg_preferred_mode") || "";
+  });
+  useEffect(() => {
+    const handleModeChange = (event) => {
+      setLgMode(
+        event?.detail?.mode || localStorage.getItem("lg_preferred_mode") || "",
+      );
+    };
+    window.addEventListener("lgModeChange", handleModeChange);
+    return () => window.removeEventListener("lgModeChange", handleModeChange);
+  }, []);
+  const prefersLearnMode =
+    (lgMode || user?.lg_preferred_mode) === "learn" ||
+    (!lgMode &&
+      (user?.german_preference === "1" ||
+        String(user?.german_preference || "").toLowerCase().includes("learn")));
+
+  const isJobScreening =
+    user?.german_preference === "3" ||
+    user?.lg_preferred_mode === "job_screening";
+
+  useEffect(() => {
+    if (isJobScreening) {
+      navigate("/job-screening", { replace: true });
+    } else if (prefersLearnMode) {
+      navigate("/learn-german", { replace: true });
+    }
+  }, [navigate, isJobScreening, prefersLearnMode]);
+
+  useEffect(() => {
+    const active = showA1MigrationModal || showSwitchConfirm || isUpgrading;
+    if (active) {
+      window.dispatchEvent(new CustomEvent("lgTourStart"));
+    } else {
+      window.dispatchEvent(new CustomEvent("lgTourEnd"));
+    }
+    return () => {
+      window.dispatchEvent(new CustomEvent("lgTourEnd"));
+    };
+  }, [showA1MigrationModal, showSwitchConfirm, isUpgrading]);
 
   const handleOpenLeaderboard = useCallback(() => {
     if (!user?.user_id) return;
@@ -110,9 +176,13 @@ export default function LandingPage() {
   }, [user?.user_id]);
 
   // 1. Passive Auto-Open (Only on Saturday)
+  // Guard includes migrationStatusLoading so we never open while the A1 migration
+  // modal is still in-flight (avoids dual-modal overlap).
   useEffect(() => {
     if (
+      prefersLearnMode ||
       !user?.user_id ||
+      migrationStatusLoading ||
       showA1MigrationModal ||
       showSwitchConfirm ||
       isUpgrading
@@ -130,11 +200,25 @@ export default function LandingPage() {
     localStorage.setItem(seenKey, "1");
   }, [
     handleOpenLeaderboard,
+    prefersLearnMode,
     user?.user_id,
+    migrationStatusLoading,
     showA1MigrationModal,
     showSwitchConfirm,
     isUpgrading,
   ]);
+
+  // 1a. Suppress Saturday auto-open for users who just completed onboarding.
+  // OnboardingFlow sets location.state.justOnboarded when navigating to "/".
+  // We pre-mark today's seenKey so the auto-open won't fire for them this Saturday,
+  // then clear the navigation state so a page refresh doesn't repeat the suppression.
+  useEffect(() => {
+    if (!location.state?.justOnboarded || !user?.user_id) return;
+    const dayKey = getTodayISTKey();
+    const seenKey = getLeaderboardSeenKey(user.user_id, dayKey);
+    localStorage.setItem(seenKey, "1");
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.state?.justOnboarded, user?.user_id, navigate, location.pathname]);
 
   // 2. Global Event Listener from Navbar
   useEffect(() => {
@@ -153,6 +237,12 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (!user?.user_id) return;
+
+    if (prefersLearnMode) {
+      setShowA1MigrationModal(false);
+      setMigrationStatusLoading(false);
+      return;
+    }
 
     const isA1User = (user?.user_prof_level || "").toLowerCase() === "a1";
     if (!isA1User) {
@@ -188,7 +278,7 @@ export default function LandingPage() {
     return () => {
       mounted = false;
     };
-  }, [user?.user_id, user?.user_prof_level]);
+  }, [prefersLearnMode, user?.user_id, user?.user_prof_level]);
 
   useEffect(() => {
     return () => {
@@ -201,6 +291,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (
+      prefersLearnMode ||
       !user?.user_id ||
       showA1MigrationModal ||
       showSwitchConfirm ||
@@ -234,7 +325,13 @@ export default function LandingPage() {
     return () => {
       mounted = false;
     };
-  }, [user?.user_id, showA1MigrationModal, showSwitchConfirm, isUpgrading]);
+  }, [
+    prefersLearnMode,
+    user?.user_id,
+    showA1MigrationModal,
+    showSwitchConfirm,
+    isUpgrading,
+  ]);
 
   const handleOpenPlayStoreRating = async () => {
     try {
@@ -275,6 +372,156 @@ export default function LandingPage() {
   const isLegacyA1User =
     isA1User && ["legacy_a1", "legacy_acknowledged"].includes(migrationStatus);
   const shouldHoldA1FeatureRender = isA1User && migrationStatusLoading;
+
+  const normalizedLevel = (user?.user_prof_level || "").toLowerCase();
+  const isA2User = normalizedLevel === "a2";
+  const isB1User = isB1PracticeLevel(normalizedLevel);
+  const isDynamic = isA2User || isB1User || isRevampA1User;
+
+  useEffect(() => {
+    if (!user?.user_id) return;
+    if (!isDynamic) return;
+
+    let mounted = true;
+
+    const fetchProgress = async () => {
+      try {
+        if (isB1User) {
+          const b1Ratio = await getB1PracticeProgressRatio();
+          if (mounted) setLevelProgress(b1Ratio * 100);
+          return;
+        }
+
+        const apis = isRevampA1User
+          ? [
+              getA1Flashcards(),
+              getA1Grammar(),
+              getA1Listening(),
+              getA1Speaking(),
+              getA1Reading(),
+              getA1Test()
+            ]
+          : [
+              getA2Flashcards(),
+              getA2Grammar(),
+              getA2Listening(),
+              getA2Speaking(),
+              getA2Reading(),
+              getA2Test()
+            ];
+
+        const [
+          flashcardRes,
+          grammarRes,
+          listeningRes,
+          speakingRes,
+          readingRes,
+          testRes
+        ] = await Promise.all(apis);
+
+        if (!mounted) return;
+
+        let totalChapters = 0;
+        let completedChapters = 0;
+
+        // 1. Flashcards (Aggregated)
+        if (flashcardRes?.data) {
+          const chaptersList = Array.isArray(flashcardRes.data) ? flashcardRes.data : [];
+          let flashTotal = Math.max(chaptersList.length, 12);
+          let flashCompleted = chaptersList.filter(ch => ch.is_completed || ch.final_quiz_passed).length;
+          totalChapters += flashTotal;
+          completedChapters += flashCompleted;
+        }
+
+        // 2. Grammar (Grouped by chapter)
+        if (grammarRes?.data) {
+          const grammarList = Array.isArray(grammarRes.data) ? grammarRes.data : [];
+          const grammarMap = {};
+          grammarList.forEach((row) => {
+            if (row.chapter_id) {
+              if (!grammarMap[row.chapter_id]) {
+                grammarMap[row.chapter_id] = { completed: 0, total: 0 };
+              }
+              if (row.topic_id) {
+                grammarMap[row.chapter_id].total++;
+                if (row.is_completed) {
+                  grammarMap[row.chapter_id].completed++;
+                }
+              }
+            }
+          });
+          const chapters = Object.values(grammarMap);
+          totalChapters += chapters.length;
+          completedChapters += chapters.filter(ch => ch.completed === ch.total && ch.total > 0).length;
+        }
+
+        // 3. Listening (Aggregated)
+        if (listeningRes?.data) {
+          const listeningList = Array.isArray(listeningRes.data) ? listeningRes.data : [];
+          totalChapters += listeningList.length;
+          completedChapters += listeningList.filter(ch => 
+            ch.completed_count === ch.content_count && ch.content_count > 0
+          ).length;
+        }
+
+        // 4. Speaking (Aggregated)
+        if (speakingRes?.data) {
+          const speakingList = Array.isArray(speakingRes.data) ? speakingRes.data : [];
+          totalChapters += speakingList.length;
+          completedChapters += speakingList.filter(ch => ch.is_completed).length;
+        }
+
+        // 5. Reading (Aggregated)
+        if (readingRes?.data) {
+          const readingList = Array.isArray(readingRes.data) ? readingRes.data : [];
+          totalChapters += readingList.length;
+          completedChapters += readingList.filter(ch => 
+            ch.completed_count === ch.content_count && ch.content_count > 0
+          ).length;
+        }
+
+        // 6. Test (Grouped by chapter and fully finished)
+        if (testRes?.data) {
+          const testList = Array.isArray(testRes.data) ? testRes.data : [];
+          const testMap = {};
+          testList.forEach((row) => {
+            if (row.chapter_id) {
+              if (!testMap[row.chapter_id]) {
+                testMap[row.chapter_id] = { completed: 0, total: 0 };
+              }
+              if (row.topic_id) {
+                testMap[row.chapter_id].total += 5;
+                testMap[row.chapter_id].completed += (row.current_level || 0);
+              }
+            }
+          });
+          const chapters = Object.values(testMap);
+          totalChapters += chapters.length;
+          completedChapters += chapters.filter(ch => ch.completed === ch.total && ch.total > 0).length;
+        }
+
+        const percentage = totalChapters > 0 ? (completedChapters / totalChapters) * 100 : 0;
+        setLevelProgress(percentage);
+      } catch (err) {
+        console.error("Failed to calculate overall level progress:", err);
+      }
+    };
+
+    if (migrationStatusLoading && isA1User) return;
+
+    fetchProgress();
+
+    return () => {
+      mounted = false;
+    };
+  }, [
+    user?.user_id,
+    user?.user_prof_level,
+    migrationStatus,
+    migrationStatusLoading,
+    isDynamic,
+    isB1User,
+  ]);
 
   const handleSwitchToNew = async () => {
     setSwitchingToNew(true);
@@ -324,7 +571,11 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white">
       <main className="max-w-lg mx-auto lg:max-w-6xl xl:max-w-7xl lg:px-8">
-        <LevelProgress currentLevel={currentLevel} />
+        <LevelProgress
+          currentLevel={currentLevel}
+          progress={levelProgress}
+          isDynamic={isDynamic}
+        />
 
         {isLegacyA1User && (
           <div className="px-4 py-3">
@@ -360,9 +611,15 @@ export default function LandingPage() {
           <FeatureCardsGrid useRevampA1={isRevampA1User} />
         )}
         <StreakWidget />
-        <DemoClassSection data={sections?.demo_class} />
-        <SalaryInfoCard data={sections?.salary_info} />
-        <TalkToTeamSection data={sections?.talk_to_team} />
+        {sections?.demo_class && sections.demo_class.is_visible !== false && (
+          <DemoClassSection data={sections?.demo_class} />
+        )}
+        {sections?.salary_info && sections.salary_info.is_visible !== false && (
+          <SalaryInfoCard data={sections?.salary_info} />
+        )}
+        {sections?.talk_to_team && sections.talk_to_team.is_visible !== false && (
+          <TalkToTeamSection data={sections?.talk_to_team} />
+        )}
         <div className="px-4">
           <hr className="border-gray-200" />
         </div>

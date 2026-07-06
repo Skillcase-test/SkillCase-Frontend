@@ -5,12 +5,14 @@ export default function PullToRefreshIndicator({ pullProgress, isRefreshing }) {
 
   if (!pullProgress && !isRefreshing) return null;
 
+  const showPill = pullProgress > 0.15 || isRefreshing;
+
   return (
     <div
-      className="fixed left-0 right-0 top-[68px] z-[998] flex justify-center pointer-events-none"
+      className="fixed left-0 right-0 top-[68px] z-[998] flex flex-col items-center justify-center pointer-events-none gap-2"
       aria-hidden
     >
-      <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-md">
         {isRefreshing ? (
           <svg
             className="h-5 w-5 animate-spin text-[#002856]"
@@ -61,6 +63,30 @@ export default function PullToRefreshIndicator({ pullProgress, isRefreshing }) {
             />
           </svg>
         )}
+      </div>
+
+      {/* Dynamic Instruction Badge */}
+      <div
+        className="transition-all duration-200 transform origin-top"
+        style={{
+          opacity: showPill ? 1 : 0,
+          transform: `scale(${showPill ? 1 : 0.8})`,
+        }}
+      >
+        <span
+          className="text-[9px] uppercase tracking-wider font-extrabold px-3 py-1 rounded-full shadow-md border"
+          style={{
+            backgroundColor: pullProgress >= 1 && !isRefreshing ? "#002856" : "#ffffff",
+            color: pullProgress >= 1 && !isRefreshing ? "#ffffff" : "#002856",
+            borderColor: pullProgress >= 1 && !isRefreshing ? "#002856" : "#f1f5f9",
+          }}
+        >
+          {isRefreshing
+            ? "Refreshing..."
+            : pullProgress >= 1
+            ? "Release to refresh"
+            : "Pull to refresh"}
+        </span>
       </div>
     </div>
   );

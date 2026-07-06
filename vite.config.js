@@ -3,14 +3,33 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import svgr from '@svgr/rollup'
 import { sentryVitePlugin } from "@sentry/vite-plugin";
+import { resolve } from "path";
+import { readdirSync, rmSync, statSync } from "fs";
+
+function deleteSourcemapsPlugin() {
+  return {
+    name: "delete-sourcemaps",
+    closeBundle() {
+      const distDir = resolve(__dirname, "dist");
+      const deleteRecursive = (dir) => {
+        for (const file of readdirSync(dir)) {
+          const fullPath = resolve(dir, file);
+          if (statSync(fullPath).isDirectory()) {
+            deleteRecursive(fullPath);
+          } else if (file.endsWith(".map")) {
+            rmSync(fullPath);
+            console.log(`[sourcemaps] Deleted: ${fullPath}`);
+          }
+        }
+      };
+      deleteRecursive(distDir);
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const shouldUploadSourcemaps =
-    mode === "production" &&
-    !!env.SENTRY_AUTH_TOKEN &&
-    !!env.SENTRY_ORG &&
-    !!env.SENTRY_PROJECT;
+  const isProd = mode === "production";
 
   return {
     plugins: [
@@ -20,7 +39,7 @@ export default defineConfig(({ mode }) => {
         exportType: "default",
         jsxRuntime: "automatic",
       }),
-      ...(shouldUploadSourcemaps
+      ...(isProd
         ? [
             sentryVitePlugin({
               org: env.SENTRY_ORG,
@@ -28,11 +47,12 @@ export default defineConfig(({ mode }) => {
               authToken: env.SENTRY_AUTH_TOKEN,
               telemetry: false,
             }),
+            deleteSourcemapsPlugin(),
           ]
         : []),
     ],
   build: {
-    sourcemap: mode === "production",
+    sourcemap: isProd,
     rollupOptions: {
       output: {
         manualChunks(id) {

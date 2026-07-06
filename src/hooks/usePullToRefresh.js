@@ -1,9 +1,9 @@
 import { useCallback, useRef, useState } from "react";
 import { hapticLight, hapticMedium } from "../utils/haptics";
 
-const THRESHOLD = 80;
-const MAX_PULL = 120;
-const RESISTANCE = 0.45;
+const THRESHOLD = 150;
+const MAX_PULL = 180;
+const RESISTANCE = 0.40;
 const DEFAULT_ACTIVATION_Y = 96;
 
 export function usePullToRefresh(onRefresh, enabled = true, options = {}) {
@@ -26,13 +26,12 @@ export function usePullToRefresh(onRefresh, enabled = true, options = {}) {
     (event) => {
       if (!enabled || isRefreshing) return;
       if (window.scrollY > 0) return;
-      if (event.touches[0].clientY > activationY) return;
 
       startY.current = event.touches[0].clientY;
       pulling.current = true;
       hapticFired.current = false;
     },
-    [activationY, enabled, isRefreshing],
+    [enabled, isRefreshing],
   );
 
   const onTouchMove = useCallback(

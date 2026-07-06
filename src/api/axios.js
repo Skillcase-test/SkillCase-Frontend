@@ -1,5 +1,6 @@
 import axios from "axios";
 import { store } from "../redux/store";
+import { setUser } from "../redux/auth/authSlice";
 import { setMaintenanceStatus } from "../utils/maintenanceSignal";
 import { addSentryBreadcrumb, captureApiError } from "../observability/sentry";
 
@@ -17,6 +18,7 @@ const GET_CACHE_TTLS = {
 const getCache = new Map();
 const inFlightGet = new Map();
 let activeAuthScope = "";
+let paywallRefreshPromise = null;
 
 function getAuthScope() {
   const state = store.getState().auth;
@@ -106,6 +108,28 @@ api.interceptors.response.use(
 
     if (statusCode === 503) {
       setMaintenanceStatus(true);
+    }
+
+    if (
+      statusCode === 402 &&
+      error?.response?.data?.locked === true &&
+      !error?.config?.meta?.skipPaywallRefresh &&
+      store.getState().auth?.token
+    ) {
+      clearGetCaches();
+      if (!paywallRefreshPromise) {
+        paywallRefreshPromise = api
+          .post("/user/me", null, { meta: { skipPaywallRefresh: true } })
+          .then((res) => {
+            if (res.data?.user) {
+              store.dispatch(setUser(res.data.user));
+            }
+          })
+          .catch(() => {})
+          .finally(() => {
+            paywallRefreshPromise = null;
+          });
+      }
     }
 
     if (!axios.isCancel(error) && error?.code !== "ERR_CANCELED") {

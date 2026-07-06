@@ -3,13 +3,9 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setUser } from "../redux/auth/authSlice";
 import api from "../api/axios";
-import {
-  Send,
-  Eye,
-  BookmarkCheck,
-  CalendarCheck2,
-  Clock,
-} from "lucide-react";
+import JobScreeningProfilePage from "./jobScreening/JobScreeningProfilePage";
+import { Send, Eye, BookmarkCheck, CalendarCheck2, Clock, Check, X } from "lucide-react";
+import mayaSad from "../assets/onboarding/mayaSad.webp";
 
 const DEFAULT_AVATAR = (
   <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
@@ -83,7 +79,27 @@ export default function ProfilePage() {
   const [recruitmentLoading, setRecruitmentLoading] = useState(false);
   const [recruitmentError, setRecruitmentError] = useState("");
   const [toast, setToast] = useState({ show: false, msg: "", type: "" });
+  const [cancelling, setCancelling] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const aliveRef = useRef(true);
+
+  const handleDisableAutopay = async () => {
+    setCancelling(true);
+    try {
+      const res = await api.post("/user/disable-autopay");
+      dispatch(setUser(res.data.user));
+      showToast("Subscription cancelled successfully", "success");
+    } catch (err) {
+      console.error(err);
+      showToast(
+        err.response?.data?.msg || "Failed to cancel subscription",
+        "error",
+      );
+    } finally {
+      setCancelling(false);
+      setShowCancelModal(false);
+    }
+  };
 
   useEffect(() => {
     aliveRef.current = true;
@@ -272,6 +288,14 @@ export default function ProfilePage() {
     );
   }
 
+  const isJobScreeningCandidate =
+    user?.lg_preferred_mode === "job_screening" ||
+    String(user?.german_preference) === "3";
+
+  if (isJobScreeningCandidate) {
+    return <JobScreeningProfilePage />;
+  }
+
   return (
     <div className="min-h-screen bg-white">
       {/* Toast Notification */}
@@ -369,72 +393,72 @@ export default function ProfilePage() {
       <div className="max-w-lg mx-auto px-4 py-6">
         {/* Recruitment Status Card */}
         {recruitmentStatus?.visible && (
-        <div className="rounded-xl border border-[#e9eaeb] shadow-sm mb-4 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-[#181d27]">
-              Recruitment Status
-            </h2>
-          </div>
-
-          <div>
-            {/* Pipeline Progress Bar */}
-            <div className="flex items-center gap-0.5 mb-3">
-              {stats.map((stat, idx) => {
-                const isActive =
-                  recruitmentStatus?.summary_counts?.[stat.key] > 0;
-                return (
-                  <div key={stat.key} className="flex-1 flex items-center">
-                    <div
-                      className={`flex-1 h-1 rounded-full transition-colors ${isActive ? `bg-gradient-to-r ${stat.color}` : "bg-gray-200"}`}
-                    />
-                    {idx < stats.length - 1 && (
-                      <div className="w-0.5 h-1 bg-gray-200 flex-shrink-0" />
-                    )}
-                  </div>
-                );
-              })}
+          <div className="rounded-xl border border-[#e9eaeb] shadow-sm mb-4 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-[#181d27]">
+                Recruitment Status
+              </h2>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-4 gap-2">
-              {stats.map((stat) => {
-                const count =
-                  recruitmentStatus?.summary_counts?.[stat.key] || 0;
-                const isActive = count > 0;
-                return (
-                  <div
-                    key={stat.key}
-                    className={`relative rounded-lg p-2 text-center transition-all ${
-                      isActive
-                        ? `${stat.bgTint} border border-transparent`
-                        : "bg-white border border-[#e9eaeb]"
-                    }`}
-                  >
+            <div>
+              {/* Pipeline Progress Bar */}
+              <div className="flex items-center gap-0.5 mb-3">
+                {stats.map((stat, idx) => {
+                  const isActive =
+                    recruitmentStatus?.summary_counts?.[stat.key] > 0;
+                  return (
+                    <div key={stat.key} className="flex-1 flex items-center">
+                      <div
+                        className={`flex-1 h-1 rounded-full transition-colors ${isActive ? `bg-gradient-to-r ${stat.color}` : "bg-gray-200"}`}
+                      />
+                      {idx < stats.length - 1 && (
+                        <div className="w-0.5 h-1 bg-gray-200 flex-shrink-0" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-4 gap-2">
+                {stats.map((stat) => {
+                  const count =
+                    recruitmentStatus?.summary_counts?.[stat.key] || 0;
+                  const isActive = count > 0;
+                  return (
                     <div
-                      className={`inline-flex p-1.5 rounded-md ${isActive ? stat.bgTint : "bg-gray-100"}`}
+                      key={stat.key}
+                      className={`relative rounded-lg p-2 text-center transition-all ${
+                        isActive
+                          ? `${stat.bgTint} border border-transparent`
+                          : "bg-white border border-[#e9eaeb]"
+                      }`}
                     >
                       <div
-                        className={isActive ? stat.textTint : "text-gray-400"}
+                        className={`inline-flex p-1.5 rounded-md ${isActive ? stat.bgTint : "bg-gray-100"}`}
                       >
-                        {stat.icon}
+                        <div
+                          className={isActive ? stat.textTint : "text-gray-400"}
+                        >
+                          {stat.icon}
+                        </div>
                       </div>
+                      <p
+                        className={`mt-1.5 text-lg font-bold tracking-tight ${isActive ? "text-[#181d27]" : "text-gray-300"}`}
+                      >
+                        {count}
+                      </p>
+                      <p
+                        className={`text-[8px] font-semibold uppercase tracking-wider ${isActive ? "text-gray-500" : "text-gray-400"}`}
+                      >
+                        {stat.label}
+                      </p>
                     </div>
-                    <p
-                      className={`mt-1.5 text-lg font-bold tracking-tight ${isActive ? "text-[#181d27]" : "text-gray-300"}`}
-                    >
-                      {count}
-                    </p>
-                    <p
-                      className={`text-[8px] font-semibold uppercase tracking-wider ${isActive ? "text-gray-500" : "text-gray-400"}`}
-                    >
-                      {stat.label}
-                    </p>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
-        </div>
         )}
 
         <div className="bg-white rounded-xl border border-[#e9eaeb] shadow-sm">
@@ -706,7 +730,122 @@ export default function ProfilePage() {
             </form>
           )}
         </div>
+
+        {/* Autopay Subscription Card */}
+        {user && user.razorpay_subscription_id && (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm mt-4 p-5 flex flex-col gap-4">
+            {/* Header */}
+            <div className="flex justify-between items-center w-full">
+              <h3 className="text-[#002856] text-lg font-bold">Paid Subscription</h3>
+              {user.autopay_enabled ? (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100">
+                  active
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-600 border border-amber-100 capitalize">
+                  {user.autopay_status || "Cancelled"}
+                </span>
+              )}
+            </div>
+
+            {/* Features card inset */}
+            <div className="w-full bg-[#f8f9fa] rounded-3xl p-5 flex flex-col gap-4">
+              <div className="text-center py-1 flex items-baseline justify-center gap-1.5">
+                <span className="text-3xl font-extrabold text-[#002856]">₹99</span>
+                <span className="text-sm font-bold text-slate-400">/ month</span>
+              </div>
+              <div className="border-t border-slate-200/60 w-full" />
+              <div className="flex flex-col gap-3">
+                {[
+                  "Streak Challenges",
+                  "German Lessons",
+                  "Flashcards",
+                  "Pronunciation practice",
+                  "Chapter tests",
+                ].map((feature, idx) => (
+                  <div
+                    key={idx}
+                    className="flex justify-between items-center text-xs"
+                  >
+                    <span className="font-semibold text-slate-600">{feature}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-[#22c55e]">Active</span>
+                      <div className="w-4 h-4 bg-[#22c55e] rounded-full flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Action */}
+            {user.autopay_enabled && (
+              <button
+                type="button"
+                onClick={() => setShowCancelModal(true)}
+                disabled={cancelling}
+                className="w-full h-12 bg-white border border-[#ef4444] hover:bg-red-50 text-[#ef4444] font-bold rounded-2xl transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+              >
+                {cancelling ? "Processing..." : "Cancel subscription"}
+              </button>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Cancel Autopay Confirmation Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 select-none font-sans">
+          <div className="bg-white w-full max-w-[390px] rounded-[32px] shadow-2xl py-6 sm:py-8 px-4 sm:px-6 flex flex-col items-center gap-5 sm:gap-6 relative">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowCancelModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Mascot Image positioned inside the card */}
+            <div className="w-20 h-20 rounded-full shadow-sm bg-[#a2c5f2] overflow-hidden flex items-center justify-center shrink-0">
+              <img
+                src={mayaSad}
+                alt="Maya sad mascot"
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            {/* Title */}
+            <h3 className="text-2xl sm:text-[26px] font-bold text-[#002856] text-center leading-tight tracking-tight px-1">
+              Please don't leave us
+            </h3>
+
+            {/* Description */}
+            <p className="text-[#002856] text-center text-xs sm:text-sm leading-relaxed font-semibold px-2">
+              You have covered a long way in your German journey.
+              <br className="hidden sm:inline" /> Once cancelled, your monthly plan will not renew.
+            </p>
+
+            {/* Actions Button Stack */}
+            <div className="flex flex-col gap-3 w-full">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                disabled={cancelling}
+                className="w-full h-12 sm:h-13 bg-[#002856] hover:bg-[#001f42] active:bg-[#001f42] text-white rounded-2xl transition-all cursor-pointer font-bold text-xs sm:text-sm flex items-center justify-center"
+              >
+                Continue subscription
+              </button>
+              <button
+                onClick={handleDisableAutopay}
+                disabled={cancelling}
+                className="w-full text-center text-red-500 hover:text-red-700 font-bold text-xs sm:text-sm cursor-pointer hover:underline py-1 transition-colors disabled:opacity-50"
+              >
+                {cancelling ? "Processing..." : "Cancel Subscription"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { Document, Page, pdfjs } from "react-pdf";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { termsApi } from "../../api/termsApi";
+import { checkAgreement } from "../../api/jobScreeningApi";
 import "./TermsSignPage.css";
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
@@ -356,6 +357,11 @@ function SignatureModal({
 
 export default function TermsSignPage() {
   const { token } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const query = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const isJobScreeningFlow = query.get("source") === "job_screening";
+
   const windowWidth = useWindowWidth();
   const isMobile = windowWidth < 768;
 
@@ -586,11 +592,12 @@ export default function TermsSignPage() {
 
   useEffect(() => {
     if (!alreadySigned) return undefined;
+    if (isJobScreeningFlow) return undefined;
     const timer = window.setTimeout(() => {
       window.location.href = "https://skillcase.in";
     }, 3500);
     return () => window.clearTimeout(timer);
-  }, [alreadySigned]);
+  }, [alreadySigned, isJobScreeningFlow]);
 
   useEffect(() => {
     if (!showSignatureModal) return undefined;
@@ -1130,6 +1137,23 @@ export default function TermsSignPage() {
       const signedUrl = response.data?.signed_pdf_url || "";
       setShowSignatureModal(false);
 
+      if (isJobScreeningFlow) {
+        try {
+          await checkAgreement();
+        } catch (checkErr) {
+          console.error("Failed to auto-verify job screening agreement status", checkErr);
+        }
+        setSuccess(
+          "Signature completed successfully. Thank you. You will be redirected to Skillcase.",
+        );
+        setJustSubmitted(true);
+        setAlreadySigned(true);
+        if (signedUrl) {
+          window.open(signedUrl, "_blank", "noopener,noreferrer");
+        }
+        return;
+      }
+
       try {
         const detailsRes = await termsApi.getCandidateDetails(token);
         const candidateDetails = detailsRes.data?.details || {};
@@ -1174,6 +1198,7 @@ export default function TermsSignPage() {
           window.open(signedUrl, "_blank", "noopener,noreferrer");
         }
       }
+
     } catch (requestError) {
       setError(
         requestError?.response?.data?.msg ||
@@ -1969,9 +1994,18 @@ export default function TermsSignPage() {
           <p className="mt-2 text-sm text-emerald-800">
             Thank you. Your document has been signed and submitted.
           </p>
-          <p className="mt-3 text-xs text-emerald-700">
-            Redirecting you to Skillcase...
-          </p>
+          {isJobScreeningFlow ? (
+            <button
+              onClick={() => navigate("/job-screening")}
+              className="mt-6 px-8 py-3 bg-[#083262] text-white hover:bg-[#062446] rounded-full font-bold text-sm transition-all shadow-md active:scale-[0.99]"
+            >
+              Return to Job Screening
+            </button>
+          ) : (
+            <p className="mt-3 text-xs text-emerald-700">
+              Redirecting you to Skillcase...
+            </p>
+          )}
         </div>
       </div>
     );
@@ -1987,9 +2021,18 @@ export default function TermsSignPage() {
           <p className="mt-2 text-sm text-emerald-800">
             This document has already been signed and submitted by you.
           </p>
-          <p className="mt-3 text-xs text-emerald-700">
-            Redirecting you to Skillcase...
-          </p>
+          {isJobScreeningFlow ? (
+            <button
+              onClick={() => navigate("/job-screening")}
+              className="mt-6 px-8 py-3 bg-[#083262] text-white hover:bg-[#062446] rounded-full font-bold text-sm transition-all shadow-md active:scale-[0.99]"
+            >
+              Return to Job Screening
+            </button>
+          ) : (
+            <p className="mt-3 text-xs text-emerald-700">
+              Redirecting you to Skillcase...
+            </p>
+          )}
         </div>
       </div>
     );
