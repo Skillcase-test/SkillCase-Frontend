@@ -260,6 +260,8 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
         : a1Features;
 
   const getTourId = (id) => {
+    if (isB1 && id === "news") return "b1-news-card";
+
     const tourIds = {
       flashcards: "flashcard-card",
       vocabulary: "pronunciation-card",
@@ -280,6 +282,11 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
       "a1-revamp-speaking": "a1-revamp-speaking-card",
       "a1-revamp-reading": "a1-revamp-reading-card",
       "a1-revamp-test": "a1-revamp-test-card",
+      "b1-flashcard": "b1-flashcard-card",
+      "b1-read-listen": "b1-read-listen-card",
+      "b1-describe-speak": "b1-describe-speak-card",
+      "b1-exams": "b1-exams-card",
+      "b1-maya": "b1-maya-card",
     };
     return tourIds[id] || undefined;
   };

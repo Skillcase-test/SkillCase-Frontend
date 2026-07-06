@@ -33,6 +33,7 @@ export default function SpeakingStage({
       {/* Mic interface & timer */}
       <div className="w-full flex flex-col items-center justify-center gap-5 pt-4">
         <button
+          id="b1-describe-speak-mic-btn"
           type="button"
           onClick={() => {
             hapticMedium();

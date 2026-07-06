@@ -47,7 +47,7 @@ export default function WritingStage({
           </div>
         </div>
 
-        <div className="relative self-stretch w-full">
+        <div id="b1-describe-speak-image-prompt" className="relative self-stretch w-full">
           <img
             className="self-stretch max-h-72 rounded-sm object-contain w-full bg-zinc-50 border border-zinc-100"
             src={topic?.prompt_image_url}

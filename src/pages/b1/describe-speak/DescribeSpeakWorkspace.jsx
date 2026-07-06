@@ -601,6 +601,7 @@ export default function DescribeSpeakWorkspace() {
           {stage === "writing" && (
             <div className="w-full max-w-[380px] flex flex-col gap-2">
               <button
+                id="b1-describe-speak-upload-writing-btn"
                 type="button"
                 onClick={() => setShowOcrModal(true)}
                 className="w-full py-3 rounded-lg border border-zinc-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all flex items-center justify-center gap-1.5 outline-none cursor-pointer active:scale-95 shadow-sm"
@@ -610,6 +611,7 @@ export default function DescribeSpeakWorkspace() {
               </button>
 
               <button
+                id="b1-describe-speak-submit-writing-btn"
                 onClick={handleWritingSubmit}
                 disabled={isSubmittingWriting}
                 className="w-full bg-blue-950 hover:bg-blue-900 disabled:bg-blue-950/70 disabled:cursor-not-allowed active:scale-95 text-white font-semibold py-3 rounded-lg shadow-md transition-all cursor-pointer text-center text-sm flex items-center justify-center gap-2 border-0 outline-none"

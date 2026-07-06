@@ -61,6 +61,7 @@ import A2ProductTour from "./tour/A2ProductTour";
 // A1 Revamp
 import A1EntryResolver from "./components/a1/A1EntryResolver";
 import A1ProductTour from "./tour/A1ProductTour";
+import B1ProductTour from "./tour/B1ProductTour";
 import { Capacitor } from "@capacitor/core";
 import { Fullscreen } from "@boengli/capacitor-fullscreen";
 import { LiveUpdate } from "@capawesome/capacitor-live-update";
@@ -795,7 +796,8 @@ function AppContent() {
         <ProductTour>
           <A1ProductTour>
             <A2ProductTour>
-              <GoogleAnalyticsTracker />
+              <B1ProductTour>
+                <GoogleAnalyticsTracker />
               <ScrollToTop />
               <Toaster position="top-right" />
               <ConditionalNav />
@@ -1502,9 +1504,10 @@ function AppContent() {
               <ConditionalBottomModeSwitcher />
               <ConditionalFooter />
               <SupportWidget />
-            </A2ProductTour>
-          </A1ProductTour>
-        </ProductTour>
+            </B1ProductTour>
+          </A2ProductTour>
+        </A1ProductTour>
+      </ProductTour>
       </div>
     </div>
   );

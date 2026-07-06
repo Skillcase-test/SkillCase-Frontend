@@ -108,6 +108,10 @@
   display: none !important;
 }
 
+.driver-popover.no-arrow-popover .driver-popover-arrow {
+  display: none !important;
+}
+
 /* Continue Tour Button */
 .tour-continue-btn {
   position: fixed;

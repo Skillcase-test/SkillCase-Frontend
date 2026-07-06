@@ -100,7 +100,10 @@ export default function DescribeSpeakSelect() {
       </div>
 
       {/* Topics list deck */}
-      <div className="flex-1 w-full pb-8 pt-4 bg-white flex flex-col justify-start items-center gap-3 overflow-y-auto px-4">
+      <div
+        id="b1-describe-speak-chapter-list"
+        className="flex-1 w-full pb-8 pt-4 bg-white flex flex-col justify-start items-center gap-3 overflow-y-auto px-4"
+      >
         {fetchError ? (
           <div className="w-full text-center py-12 flex flex-col items-center gap-3">
             <p className="text-slate-500 text-xs font-semibold">
@@ -118,11 +121,12 @@ export default function DescribeSpeakSelect() {
             No topics uploaded yet. Check back soon.
           </div>
         ) : (
-          topics.map((topic) => {
+          topics.map((topic, index) => {
             const hasStatus = !!topic.status;
             return (
               <div
                 key={topic.id}
+                id={index === 0 ? "b1-describe-speak-first-chapter" : undefined}
                 onClick={() => handleCardClick(topic.id)}
                 className="w-full p-3 bg-white rounded-xl border border-zinc-200 flex justify-start items-start gap-3 cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all shrink-0"
               >

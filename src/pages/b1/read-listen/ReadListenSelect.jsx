@@ -100,6 +100,7 @@ export default function ReadListenSelect() {
       <div className="flex-1 w-full pb-8 pt-4 bg-white flex flex-col justify-start items-center gap-3 overflow-y-auto px-4">
         {/* News Card */}
         <div
+          id="b1-read-listen-news"
           onClick={() => handleCardClick("news", true)}
           className="w-full max-w-[380px] p-3 bg-white rounded-xl border border-zinc-200 flex justify-start items-start gap-3 cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all shrink-0"
         >
@@ -135,6 +136,7 @@ export default function ReadListenSelect() {
 
         {/* Articles Card */}
         <div
+          id="b1-read-listen-articles"
           onClick={() => handleCardClick("article", true)}
           className="w-full max-w-[380px] p-3 bg-white rounded-xl border border-zinc-200 flex justify-start items-start gap-3 cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all shrink-0"
         >
@@ -170,6 +172,7 @@ export default function ReadListenSelect() {
 
         {/* Video & Audio Card */}
         <div
+          id="b1-read-listen-video"
           onClick={() => handleCardClick("video", true)}
           className="w-full max-w-[380px] p-3 bg-white rounded-xl border border-zinc-200 flex justify-start items-start gap-3 cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all shrink-0"
         >

@@ -197,7 +197,11 @@ export default function LobbyScreen({ onStartCall, isConnecting, error }) {
 
         <div className="w-full flex flex-col justify-start items-start gap-2">
           <button
-            onClick={onStartCall}
+            id="b1-maya-call-btn"
+            onClick={() => {
+              window.dispatchEvent(new Event("tour:b1MayaCallStarted"));
+              onStartCall();
+            }}
             disabled={isConnecting}
             className="w-full px-4 py-3 bg-green-700 hover:bg-green-800 active:scale-98 text-white rounded-lg shadow-[0px_1px_2px_rgba(10,13,18,0.05)] flex justify-center items-center gap-3 overflow-hidden cursor-pointer transition-all border-0 font-sans font-semibold text-base"
           >

@@ -86,7 +86,10 @@ export default function ExamSelect() {
       </div>
 
       {/* Cards List Container */}
-      <div className="flex-1 w-full pb-8 pt-4 bg-white flex flex-col justify-start items-center gap-4 overflow-y-auto px-4">
+      <div
+        id="b1-exams-list-container"
+        className="flex-1 w-full pb-8 pt-4 bg-white flex flex-col justify-start items-center gap-4 overflow-y-auto px-4"
+      >
         {fetchError ? (
           <div className="w-full text-center py-12 flex flex-col items-center gap-3">
             <AlertCircle className="w-6 h-6 text-red-500" />
@@ -105,7 +108,7 @@ export default function ExamSelect() {
             No exams configured yet. Check back soon.
           </div>
         ) : (
-          exams.map((exam) => {
+          exams.map((exam, index) => {
             const completed = parseInt(exam.completed_papers || 0, 10);
             const total = parseInt(exam.total_papers || 0, 10);
             const hasStarted = total > 0;
@@ -113,6 +116,7 @@ export default function ExamSelect() {
             return (
               <div
                 key={exam.id}
+                id={index === 0 ? "b1-exam-first-item" : undefined}
                 onClick={() => handleExamClick(exam.exam_type)}
                 className="w-full p-2 bg-white rounded-xl border border-zinc-200 flex justify-start items-center gap-4 cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all shrink-0"
               >

@@ -162,6 +162,7 @@ export default function SupportWidget() {
       {/* Floating Trigger Button */}
       <div className={`fixed right-5 ${widgetBottomStyle} z-[99] transition-all duration-300`}>
         <motion.button
+          id="support-widget-trigger"
           onClick={() => setIsOpen(true)}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}

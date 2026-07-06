@@ -616,7 +616,13 @@ export default function B1Flashcard() {
   };
 
   const handleCardClick = () => {
-    if (!isDragging && Math.abs(dragOffset) < 10) setIsFlipped(!isFlipped);
+    if (!isDragging && Math.abs(dragOffset) < 10) {
+      const nextFlipped = !isFlipped;
+      setIsFlipped(nextFlipped);
+      if (nextFlipped) {
+        window.dispatchEvent(new CustomEvent("tour:b1FlashcardRevealed"));
+      }
+    }
   };
 
   const handleNextButton = () => {
