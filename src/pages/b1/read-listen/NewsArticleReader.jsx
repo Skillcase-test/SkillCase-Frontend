@@ -381,13 +381,17 @@ export default function NewsArticleReader() {
               disabled={isLoadingAudio}
               className="h-7 px-2.5 bg-black/5 hover:bg-blue-950/20 active:scale-95 rounded-lg inline-flex justify-center items-center gap-1.5 cursor-pointer border-0 outline-none transition-all"
             >
-              <Volume2
-                className={`w-3.5 h-3.5 text-blue-950 ${
-                  isSpeaking ? "animate-pulse" : ""
-                }`}
-              />
+              {isLoadingAudio ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-950" />
+              ) : (
+                <Volume2
+                  className={`w-3.5 h-3.5 text-blue-950 ${
+                    isSpeaking ? "animate-pulse" : ""
+                  }`}
+                />
+              )}
               <span className="text-blue-950 text-xs font-medium">
-                {isSpeaking ? "Stop" : "Listen"}
+                {isLoadingAudio ? "Loading..." : isSpeaking ? "Stop" : "Listen"}
               </span>
             </button>
           </div>

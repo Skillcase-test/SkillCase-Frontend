@@ -38,6 +38,7 @@ export default function VideoReader() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const controlsTimeoutRef = useRef(null);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
 
   // Checks if we are visiting in "Review Mode" (from success page or if already completed)
   const reviewMode =
@@ -525,10 +526,23 @@ export default function VideoReader() {
                   onLoadedMetadata={handleLoadedMetadata}
                   onEnded={handleVideoEnded}
                   onClick={togglePlay}
+                  onWaiting={() => setIsVideoLoading(true)}
+                  onPlaying={() => setIsVideoLoading(false)}
+                  onCanPlay={() => setIsVideoLoading(false)}
+                  onSeeking={() => setIsVideoLoading(true)}
+                  onSeeked={() => setIsVideoLoading(false)}
+                  onLoadStart={() => setIsVideoLoading(true)}
                 />
 
-                {/* Big Center Play Button (only when paused) */}
-                {!isPlaying && (
+                {/* Loader Spinner Overlay */}
+                {isVideoLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10 pointer-events-none">
+                    <Loader2 className="w-8 h-8 animate-spin text-white" />
+                  </div>
+                )}
+
+                {/* Big Center Play Button (only when paused and not loading) */}
+                {!isPlaying && !isVideoLoading && (
                   <div
                     onClick={togglePlay}
                     className="absolute inset-0 flex items-center justify-center bg-black/10 cursor-pointer z-10"
