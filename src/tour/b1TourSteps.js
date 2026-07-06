@@ -90,7 +90,6 @@ export const getB1LandingSteps = (onSkip) => [
       align: "end",
     },
   },
-
   {
     element: "#streak-widget",
     popover: {
@@ -98,16 +97,6 @@ export const getB1LandingSteps = (onSkip) => [
       description:
         "Practice every day to maintain your streak and keep your German strong.",
       side: "top",
-    },
-  },
-  {
-    element: "#support-widget-trigger",
-    popover: {
-      title: `${ICONS.tap} Support`,
-      description:
-        "Use this help button when you need support or want to share an issue with the team.",
-      side: "left",
-      align: "center",
     },
   },
   {
