@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { useSelector } from "react-redux";
 import { getB1ReadingChapters } from "../../../api/b1Api";
 import { hapticHeavy } from "../../../utils/haptics";
+import toast, { Toaster } from "react-hot-toast";
 
 export default function NewsArticleSuccess() {
   const navigate = useNavigate();
@@ -57,8 +58,9 @@ export default function NewsArticleSuccess() {
         if (currentIdx !== -1 && currentIdx < list.length - 1) {
           navigate(`/b1/read-listen/content/${list[currentIdx + 1].id}`);
         } else {
-          alert(
+          toast.success(
             "Congratulations! You have finished all topics in this section.",
+            { duration: 4000 },
           );
           navigate(`/b1/read-listen/list/${module}`);
         }
@@ -88,6 +90,7 @@ export default function NewsArticleSuccess() {
 
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden shadow-sm">
+      <Toaster position="top-center" />
       {/* Back & Module Title navigation bar */}
       <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
         <div className="self-stretch inline-flex justify-between items-center">
