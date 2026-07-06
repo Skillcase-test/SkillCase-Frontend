@@ -87,6 +87,12 @@ function QuizSentenceReorder({ question, value, onChange }) {
   );
   const [activeId, setActiveId] = useState(null);
   const [activeWord, setActiveWord] = useState(null);
+  // Auto-submit initial order so submit button is active without needing to drag
+  useEffect(() => {
+    if (orderedWords.length > 0 && !value) {
+      onChange(orderedWords);
+    }
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
