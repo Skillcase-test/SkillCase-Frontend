@@ -54,7 +54,9 @@ export default function NewsArticleReader() {
               contentId: parseInt(contentId),
               score: parseFloat(fetchedData.progress.score || 0),
               correctCount: parseInt(fetchedData.progress.correct_count || 0),
-              incorrectCount: parseInt(fetchedData.progress.incorrect_count || 0),
+              incorrectCount: parseInt(
+                fetchedData.progress.incorrect_count || 0,
+              ),
               skippedCount: parseInt(fetchedData.progress.skipped_count || 0),
               answers: savedAnswers,
               results: generatedResults,
@@ -130,7 +132,9 @@ export default function NewsArticleReader() {
     const qType = q?.type || "mcq_single";
 
     if (qType === "mcq_multi") {
-      const currentSelection = Array.isArray(answers[qIdx]) ? answers[qIdx] : [];
+      const currentSelection = Array.isArray(answers[qIdx])
+        ? answers[qIdx]
+        : [];
       const nextSelection = currentSelection.includes(optIdx)
         ? currentSelection.filter((i) => i !== optIdx)
         : [...currentSelection, optIdx];
@@ -167,13 +171,25 @@ export default function NewsArticleReader() {
       const type = q.type || "mcq_single";
 
       if (userAns === undefined || userAns === null) {
-        return { questionIndex: i, status: "skipped", correctAnswer: q.correct };
+        return {
+          questionIndex: i,
+          status: "skipped",
+          correctAnswer: q.correct,
+        };
       }
       if (typeof userAns === "string" && !userAns.trim()) {
-        return { questionIndex: i, status: "skipped", correctAnswer: q.correct };
+        return {
+          questionIndex: i,
+          status: "skipped",
+          correctAnswer: q.correct,
+        };
       }
       if (Array.isArray(userAns) && userAns.length === 0) {
-        return { questionIndex: i, status: "skipped", correctAnswer: q.correct };
+        return {
+          questionIndex: i,
+          status: "skipped",
+          correctAnswer: q.correct,
+        };
       }
 
       let status = "incorrect";
@@ -181,30 +197,45 @@ export default function NewsArticleReader() {
       if (type === "mcq_single" || type === "true_false") {
         const selectedOptText = q.options?.[userAns];
         if (selectedOptText !== undefined) {
-          const isCorrect = String(selectedOptText).trim().toLowerCase() === String(q.correct).trim().toLowerCase();
+          const isCorrect =
+            String(selectedOptText).trim().toLowerCase() ===
+            String(q.correct).trim().toLowerCase();
           status = isCorrect ? "correct" : "incorrect";
         }
       } else if (type === "mcq_multi") {
         const selectedIndices = Array.isArray(userAns) ? userAns : [userAns];
-        const userArr = selectedIndices.map(idx => String(q.options?.[idx] || "").trim().toLowerCase()).filter(Boolean);
+        const userArr = selectedIndices
+          .map((idx) =>
+            String(q.options?.[idx] || "")
+              .trim()
+              .toLowerCase(),
+          )
+          .filter(Boolean);
 
         let correctArr = [];
         if (Array.isArray(q.correct)) {
-          correctArr = q.correct.map(v => String(v).trim().toLowerCase());
+          correctArr = q.correct.map((v) => String(v).trim().toLowerCase());
         } else if (typeof q.correct === "string") {
-          correctArr = q.correct.split(",").map(v => v.trim().toLowerCase()).filter(Boolean);
+          correctArr = q.correct
+            .split(",")
+            .map((v) => v.trim().toLowerCase())
+            .filter(Boolean);
         }
 
         if (userArr.length === 0) {
           status = "skipped";
         } else {
-          const match = userArr.length === correctArr.length && userArr.every(v => correctArr.includes(v));
+          const match =
+            userArr.length === correctArr.length &&
+            userArr.every((v) => correctArr.includes(v));
           status = match ? "correct" : "incorrect";
         }
       } else if (type === "fill_blanks") {
         const userStr = String(userAns).trim().toLowerCase();
         if (Array.isArray(q.correct)) {
-          const isCorrect = q.correct.some(opt => String(opt).trim().toLowerCase() === userStr);
+          const isCorrect = q.correct.some(
+            (opt) => String(opt).trim().toLowerCase() === userStr,
+          );
           status = isCorrect ? "correct" : "incorrect";
         } else {
           const isCorrect = String(q.correct).trim().toLowerCase() === userStr;
@@ -425,12 +456,15 @@ export default function NewsArticleReader() {
             if (qType === "fill_blanks") {
               const value = String(answers[qIdx] || "").trim();
               const isCorrect = result?.status === "correct";
-              let inputClass = "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white border-zinc-300 text-xs text-slate-800";
+              let inputClass =
+                "w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 bg-white border-zinc-300 text-xs text-slate-800";
               if (reviewMode) {
                 if (isCorrect) {
-                  inputClass = "w-full px-3 py-2 border rounded-lg bg-emerald-50/20 border-green-700 text-green-700 font-semibold";
+                  inputClass =
+                    "w-full px-3 py-2 border rounded-lg bg-emerald-50/20 border-green-700 text-green-700 font-semibold";
                 } else {
-                  inputClass = "w-full px-3 py-2 border rounded-lg bg-red-50/20 border-red-600 text-red-500 font-semibold";
+                  inputClass =
+                    "w-full px-3 py-2 border rounded-lg bg-red-50/20 border-red-600 text-red-500 font-semibold";
                 }
               }
 
@@ -472,7 +506,9 @@ export default function NewsArticleReader() {
                             Correct Answer:
                           </span>
                           <p className="text-green-700 text-[11px] font-normal leading-normal mt-0.5">
-                            {Array.isArray(q.correct) ? q.correct.join(" or ") : q.correct}
+                            {Array.isArray(q.correct)
+                              ? q.correct.join(" or ")
+                              : q.correct}
                           </p>
                         </div>
                       ) : (
@@ -481,7 +517,8 @@ export default function NewsArticleReader() {
                             Correct:
                           </span>
                           <p className="text-green-700 text-[11px] font-normal leading-normal mt-0.5">
-                            {q.explanation || `The correct answer is "${Array.isArray(q.correct) ? q.correct.join(" or ") : q.correct}".`}
+                            {q.explanation ||
+                              `The correct answer is "${Array.isArray(q.correct) ? q.correct.join(" or ") : q.correct}".`}
                           </p>
                         </div>
                       )}
@@ -506,17 +543,28 @@ export default function NewsArticleReader() {
                     let isCorrectAnswer = false;
 
                     if (qType === "mcq_multi") {
-                      isSelected = Array.isArray(userSelectedIdx) && userSelectedIdx.includes(optIdx);
+                      isSelected =
+                        Array.isArray(userSelectedIdx) &&
+                        userSelectedIdx.includes(optIdx);
                       let correctArr = [];
                       if (Array.isArray(q.correct)) {
-                        correctArr = q.correct.map(v => String(v).trim().toLowerCase());
+                        correctArr = q.correct.map((v) =>
+                          String(v).trim().toLowerCase(),
+                        );
                       } else if (typeof q.correct === "string") {
-                        correctArr = q.correct.split(",").map(v => v.trim().toLowerCase()).filter(Boolean);
+                        correctArr = q.correct
+                          .split(",")
+                          .map((v) => v.trim().toLowerCase())
+                          .filter(Boolean);
                       }
-                      isCorrectAnswer = correctArr.includes(String(opt).trim().toLowerCase());
+                      isCorrectAnswer = correctArr.includes(
+                        String(opt).trim().toLowerCase(),
+                      );
                     } else {
                       isSelected = userSelectedIdx === optIdx;
-                      isCorrectAnswer = String(opt).trim().toLowerCase() === String(q.correct).trim().toLowerCase();
+                      isCorrectAnswer =
+                        String(opt).trim().toLowerCase() ===
+                        String(q.correct).trim().toLowerCase();
                     }
 
                     let cardClass = "bg-white border-zinc-200";
@@ -607,20 +655,38 @@ export default function NewsArticleReader() {
                             ? (() => {
                                 let correctArr = [];
                                 if (Array.isArray(q.correct)) {
-                                  correctArr = q.correct.map(v => String(v).trim().toLowerCase());
+                                  correctArr = q.correct.map((v) =>
+                                    String(v).trim().toLowerCase(),
+                                  );
                                 } else if (typeof q.correct === "string") {
-                                  correctArr = q.correct.split(",").map(v => v.trim().toLowerCase()).filter(Boolean);
+                                  correctArr = q.correct
+                                    .split(",")
+                                    .map((v) => v.trim().toLowerCase())
+                                    .filter(Boolean);
                                 }
                                 return q.options
-                                  ?.map((o, oi) => correctArr.includes(String(o).trim().toLowerCase()) ? alphabet[oi] : null)
+                                  ?.map((o, oi) =>
+                                    correctArr.includes(
+                                      String(o).trim().toLowerCase(),
+                                    )
+                                      ? alphabet[oi]
+                                      : null,
+                                  )
                                   .filter(Boolean)
                                   .join(", ");
                               })()
                             : alphabet[
-                                q.options?.findIndex((o) => String(o).trim().toLowerCase() === String(q.correct).trim().toLowerCase())
-                              ]
-                          }
-                          : "{Array.isArray(q.correct) ? q.correct.join(", ") : q.correct}"
+                                q.options?.findIndex(
+                                  (o) =>
+                                    String(o).trim().toLowerCase() ===
+                                    String(q.correct).trim().toLowerCase(),
+                                )
+                              ]}
+                          : "
+                          {Array.isArray(q.correct)
+                            ? q.correct.join(", ")
+                            : q.correct}
+                          "
                         </p>
                       </div>
                     )}
@@ -633,7 +699,7 @@ export default function NewsArticleReader() {
       </div>
 
       {/* Floating Bottom Button Bar */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col items-center gap-2.5 z-40 shrink-0">
+      <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col items-center gap-2.5 z-40 shrink-0 bg-[#F5F5F5]">
         <button
           onClick={reviewMode ? handleViewSavedResult : handleSubmit}
           className="w-full max-w-[380px] bg-blue-950 hover:bg-blue-900 active:scale-95 text-white font-semibold py-3 rounded-lg shadow-md transition-all cursor-pointer text-center text-sm"

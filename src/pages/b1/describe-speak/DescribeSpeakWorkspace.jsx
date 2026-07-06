@@ -465,7 +465,7 @@ export default function DescribeSpeakWorkspace() {
 
   const handleBackPress = () => {
     if (stage === "feedback") {
-      setStage("writing");
+      navigate("/b1/describe-speak");
     } else if (stage === "speaking") {
       setStage("feedback");
     } else if (stage === "speaking_feedback") {
@@ -597,7 +597,7 @@ export default function DescribeSpeakWorkspace() {
 
       {/* Floating Bottom Button Bar */}
       {stage !== "feedback" && stage !== "speaking_feedback" && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col items-center gap-2.5 z-40 shrink-0">
+        <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col items-center gap-2.5 z-40 shrink-0 bg-[#F5F5F5]">
           {stage === "writing" && (
             <div className="w-full max-w-[380px] flex flex-col gap-2">
               <button
