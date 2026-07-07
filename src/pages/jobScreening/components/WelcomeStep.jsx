@@ -93,7 +93,7 @@ const WelcomeStep = ({ onComplete }) => {
           Welcome to Skillcase Job Screening
         </h2>
         <p className="text-white/60 text-sm leading-relaxed">
-          You are just 10 steps away from getting placed in Germany
+          You are just few steps away from getting placed in Germany
         </p>
       </div>
 

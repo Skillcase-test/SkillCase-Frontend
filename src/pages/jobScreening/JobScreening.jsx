@@ -148,7 +148,7 @@ const JobScreening = () => {
       <div className="w-full min-h-screen bg-[#f6f8fc] flex items-center justify-center flex-col gap-3 font-sans">
         <div className="w-10 h-10 border-[3.5px] border-[#002856] border-t-transparent rounded-full animate-spin" />
         <span className="text-slate-550 text-xs font-semibold">
-          Loading screening dashboard...
+          Loading dashboard...
         </span>
       </div>
     );
@@ -851,7 +851,7 @@ const JobScreening = () => {
                   <span>Preparing document...</span>
                 </>
               ) : (
-                <span>Continue with Step {activeStepIndex + 1}</span>
+                <span>Continue with Next Step</span>
               )}
             </button>
           </div>

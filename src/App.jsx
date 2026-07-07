@@ -1033,7 +1033,7 @@ function AppContent() {
                     path="/job-screening"
                     element={lazyScreen(
                       <JobScreening />,
-                      "Loading Job Screening...",
+                      "Loading Jobs...",
                     )}
                   />
                   <Route

@@ -1228,7 +1228,7 @@ const OnboardingFlow = () => {
                       {
                         id: "B",
                         code: "3",
-                        title: "Job Screening",
+                        title: "Apply for a job",
                       },
                     ].map((opt) => {
                       const isSelected = preference === opt.code;
