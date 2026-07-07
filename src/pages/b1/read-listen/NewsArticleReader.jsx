@@ -374,16 +374,12 @@ export default function NewsArticleReader() {
       <div className="flex-1 w-full overflow-y-auto">
         {/* Cover image & Headline section */}
         <div className="self-stretch px-4 pt-4 flex flex-col justify-start items-start gap-4">
-          {content.hero_image_url ? (
+          {content.hero_image_url && (
             <img
               className="self-stretch h-52 rounded-lg object-cover w-full"
               src={content.hero_image_url}
               alt={content.title}
             />
-          ) : (
-            <div className="self-stretch h-52 rounded-lg bg-blue-50/50 flex items-center justify-center border border-slate-100 shrink-0">
-              <span className="text-[#002856] font-black text-xl">B1</span>
-            </div>
           )}
 
           <div className="self-stretch inline-flex justify-start items-start gap-4">

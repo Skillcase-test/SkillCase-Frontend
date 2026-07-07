@@ -30,17 +30,11 @@ export default function ReadListenSelect() {
 
         const getStats = (rows) => {
           const list = Array.isArray(rows) ? rows : [];
-          const hasAggregateCounts = list.some((r) => r.total_count !== undefined || r.completed_count !== undefined);
-          if (hasAggregateCounts) {
-            return list.reduce(
-              (acc, row) => ({
-                completed: acc.completed + Number(row.completed_count || 0),
-                total: acc.total + Number(row.total_count || 0),
-              }),
-              { completed: 0, total: 0 },
-            );
-          }
-          const completed = list.filter((r) => r.is_completed || r.completed).length;
+          const completed = list.filter((r) => {
+            const total = Number(r.total_count || 0);
+            const comp = Number(r.completed_count || 0);
+            return total > 0 && comp >= total;
+          }).length;
           return { completed, total: list.length };
         };
 
