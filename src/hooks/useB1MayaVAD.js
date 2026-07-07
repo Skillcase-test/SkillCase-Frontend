@@ -428,8 +428,13 @@ export default function useB1MayaVAD() {
         await vadRef.current.destroy();
       }
     } catch {}
+    if (vadStreamRef.current) {
+      try {
+        vadStreamRef.current.getTracks().forEach((track) => track.stop());
+      } catch {}
+      vadStreamRef.current = null;
+    }
     vadRef.current = null;
-    vadStreamRef.current = null;
     if (audioContextRef.current) {
       try { await audioContextRef.current.close(); } catch {}
       audioContextRef.current = null;
@@ -666,7 +671,7 @@ export default function useB1MayaVAD() {
     }
   }, [armVad, pauseVad, playBase64Audio, stopLiveTranscription]);
 
-  const createVad = useCallback(async () => {
+  const createVad = useCallback(async (existingStream) => {
     if (vadRef.current) return vadRef.current;
     const vad = await MicVAD.new({
       model: "v5",
@@ -684,6 +689,10 @@ export default function useB1MayaVAD() {
       minSpeechMs: 650,
       submitUserSpeechOnPause: false,
       getStream: async () => {
+        if (existingStream && existingStream.active) {
+          vadStreamRef.current = existingStream;
+          return existingStream;
+        }
         const stream = await navigator.mediaDevices.getUserMedia({
           audio: {
             channelCount: 1,
@@ -750,6 +759,29 @@ export default function useB1MayaVAD() {
   }, [armVad, discardVadTurnRecording, startLiveTranscription, startVadTurnRecording, stopLiveTranscription, stopVadTurnRecording, uploadAndRespond]);
 
   const startCall = useCallback(async () => {
+    // 1. Synchronously trigger getUserMedia inside user click gesture tick to prevent Webkit/iOS/Safari blocks
+    let permissionStream = null;
+    try {
+      permissionStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+    } catch (err) {
+      console.warn("[B1Maya] getUserMedia with constraints failed, retrying with simple constraints:", err);
+      try {
+        permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (innerErr) {
+        console.error("[B1Maya] microphone permission request failed:", innerErr);
+        setError("Microphone permission denied. Please allow access in settings.");
+        setCallState("idle");
+        return;
+      }
+    }
+
     await cleanup();
     setError(null);
     setCallState("connecting");
@@ -778,7 +810,7 @@ export default function useB1MayaVAD() {
         console.warn("[B1Maya] prefetch token failed:", err.message);
       });
 
-      await createVad();
+      await createVad(permissionStream);
       const res = await api.post("/b1-maya/start");
       if (!res.data?.success) throw new Error("Maya session did not start");
 
@@ -794,6 +826,11 @@ export default function useB1MayaVAD() {
     } catch (err) {
       console.error("[B1Maya] start error:", err);
       setError("Maya konnte nicht starten. Bitte pruefe Mikrofon und Verbindung.");
+      if (permissionStream) {
+        try {
+          permissionStream.getTracks().forEach((track) => track.stop());
+        } catch {}
+      }
       await cleanup();
       setCallState("idle");
     }
