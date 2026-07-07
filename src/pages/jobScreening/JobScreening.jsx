@@ -34,7 +34,7 @@ import { setUser } from "../../redux/auth/authSlice";
 const STEP_DESCRIPTIONS = {
   welcome: {
     subtitle: "Read the overview of the program",
-    desc: "Welcome to the job screening process.",
+    desc: "Welcome to the skillcase job process.",
   },
   profile_completion: {
     subtitle: "fill your education and personal details",

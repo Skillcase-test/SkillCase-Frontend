@@ -158,7 +158,7 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
     } catch (err) {
       console.error(err);
       setError(
-        err.response?.data?.message || "Failed to sync screening status",
+        err.response?.data?.message || "Failed to sync status",
       );
     } finally {
       setRefreshing(false);

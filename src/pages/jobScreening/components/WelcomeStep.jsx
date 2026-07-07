@@ -139,10 +139,10 @@ const WelcomeStep = ({ onComplete }) => {
           {loading ? (
             <span className="flex items-center gap-2">
               <RefreshCw className="animate-spin h-4 w-4 text-[#002856]" />
-              Preparing Screening...
+              Preparing your process...
             </span>
           ) : (
-            <span>Start Job Screening</span>
+            <span>Start Job Process</span>
           )}
         </button>
       </div>

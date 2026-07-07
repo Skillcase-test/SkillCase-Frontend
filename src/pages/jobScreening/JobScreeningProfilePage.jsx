@@ -219,7 +219,7 @@ export default function JobScreeningProfilePage() {
         <div className="flex justify-between items-center bg-white border border-slate-200/80 p-5 rounded-2xl shadow-sm">
           <div>
             <h1 className="text-xl font-extrabold text-[#002856]">
-              Job Screening Profile
+              Job Profile
             </h1>
             <p className="text-xs text-zinc-400 mt-1 font-medium">
               Manage your personal details, credentials, and verify supporting files.

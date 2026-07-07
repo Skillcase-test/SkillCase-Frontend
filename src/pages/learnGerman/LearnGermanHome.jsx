@@ -39,6 +39,9 @@ import {
   clearLgFirstLandingMarker,
 } from "./lgFirstTimeGuide";
 
+const LEARN_GERMAN_FALLBACK_IMAGE =
+  "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778253329/99ee50b94881e4e072cc6de5dde475531353120d_f100ew.webp";
+
 // Static City Background using the provided 3 PNGs
 const CityBackground = ({ fromSwitcher }) => (
   <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -267,9 +270,6 @@ function CompletedCardContent({
   onRestart,
   onRecap,
 }) {
-  const fallbackImage =
-    "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778253329/99ee50b94881e4e072cc6de5dde475531353120d_f100ew.webp";
-
   return (
     <div className="w-[200px] h-full px-2.5 pt-2.5 pb-3 bg-gradient-to-br from-blue-50 to-blue-200 rounded-[20px] shadow-[2px_2px_4px_0px_rgba(0,0,0,0.25)] outline-[5px] outline-offset-[-5px] outline-white flex flex-col items-center gap-2.5 relative overflow-visible">
       {/* Energy double ripple on just-completed card */}
@@ -360,7 +360,7 @@ function CompletedCardContent({
       <div className="w-full h-28 overflow-hidden rounded-[10px]">
         <img
           className="w-full h-full object-cover"
-          src={mod.chapter_image || fallbackImage}
+          src={mod.chapter_image || LEARN_GERMAN_FALLBACK_IMAGE}
           alt={mod.title}
           loading="lazy"
           decoding="async"
@@ -558,7 +558,7 @@ function ActiveCardContent({
       <div className="w-full h-28 overflow-hidden rounded-[10px]">
         <img
           className="w-full h-full object-cover"
-          src={mod.chapter_image || fallbackImage}
+          src={mod.chapter_image || LEARN_GERMAN_FALLBACK_IMAGE}
           alt={mod.title}
           loading="eager"
           decoding="async"
@@ -615,7 +615,7 @@ function LockedCardContent({ mod, displayId }) {
       <div className="w-full h-28 overflow-hidden rounded-[10px]">
         <img
           className="w-full h-full object-cover opacity-60 grayscale"
-          src={mod.chapter_image || fallbackImage}
+          src={mod.chapter_image || LEARN_GERMAN_FALLBACK_IMAGE}
           alt={mod.title}
           loading="lazy"
           decoding="async"
@@ -752,9 +752,6 @@ export default function LearnGermanHome() {
       window.dispatchEvent(new CustomEvent("lgTourEnd"));
     };
   }, [showFirstChapterGuide, tourStep]);
-
-  const fallbackImage =
-    "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778253329/99ee50b94881e4e072cc6de5dde475531353120d_f100ew.webp";
 
   const applyCompletedProgressOverride = useCallback(
     (lessons, completedLessonId) => {

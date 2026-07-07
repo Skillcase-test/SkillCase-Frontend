@@ -5,6 +5,9 @@ import ProgressBar from "./shared/ProgressBar";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import { resolveAssetUrl } from "../../../../utils/imageUtils";
 
+const DEFAULT_LESSON_BACKGROUND =
+  "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778253329/99ee50b94881e4e072cc6de5dde475531353120d_f100ew.webp";
+
 export default function IntroScreen({
   screen,
   title,
@@ -14,7 +17,7 @@ export default function IntroScreen({
   onDialogueDone,
   onNext,
 }) {
-  const bgImage = screen.image ? resolveAssetUrl(screen.image) : lesson1Bg;
+  const bgImage = screen.image ? resolveAssetUrl(screen.image) : DEFAULT_LESSON_BACKGROUND;
   const dialogueText =
     screen.dialogue ||
     "You will learn about food items and how to pronounce them. Lets start.";

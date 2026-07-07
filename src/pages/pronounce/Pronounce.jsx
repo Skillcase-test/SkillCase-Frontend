@@ -18,6 +18,7 @@ import { TOUR_PAGES } from "../../tour/tourSteps";
 const Pronounce = () => {
   const { user } = useSelector((state) => state.auth);
   const { isTourActive, tourPage, pronounceStep } = useTour();
+  const [localPronounceStep, setLocalPronounceStep] = useState(pronounceStep || 0);
   const navigate = useNavigate();
   const { prof_level, pronounce_id } = useParams();
   const [searchParams] = useSearchParams();
@@ -25,6 +26,10 @@ const Pronounce = () => {
 
   // Detect if we're in tour mode for pronunciation practice
   const isTourMode = isTourActive && tourPage === TOUR_PAGES.PRONOUNCE_PRACTICE;
+
+  useEffect(() => {
+    setLocalPronounceStep(pronounceStep || 0);
+  }, [pronounceStep]);
 
   // Data states
   const [flashcardSet, setFlashcardSet] = useState([]);
