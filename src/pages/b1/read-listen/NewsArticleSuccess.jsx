@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { useSelector } from "react-redux";
-import { getB1ReadingChapters } from "../../../api/b1Api";
+import { getB1ReadingChapterItems } from "../../../api/b1Api";
 import { hapticHeavy } from "../../../utils/haptics";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -24,6 +24,7 @@ export default function NewsArticleSuccess() {
     answers = {},
     results = [],
     module = "news",
+    chapterId = "unassigned",
     totalQuestions = 0,
   } = location.state || {};
 
@@ -47,7 +48,7 @@ export default function NewsArticleSuccess() {
 
   const handleTryNext = async () => {
     try {
-      const res = await getB1ReadingChapters(module);
+      const res = await getB1ReadingChapterItems(module, chapterId);
       const list = Array.isArray(res.data) ? res.data : [];
       const nextTopic = list.find((t) => !t.is_completed && t.id !== contentId);
 
@@ -62,12 +63,12 @@ export default function NewsArticleSuccess() {
             "Congratulations! You have finished all topics in this section.",
             { duration: 4000 },
           );
-          navigate(`/b1/read-listen/list/${module}`);
+          navigate(`/b1/read-listen/list/${module}/${chapterId}`);
         }
       }
     } catch (err) {
       console.error("Error finding next topic:", err);
-      navigate(`/b1/read-listen/list/${module}`);
+      navigate(`/b1/read-listen/list/${module}/${chapterId}`);
     }
   };
 
@@ -95,7 +96,7 @@ export default function NewsArticleSuccess() {
       <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
         <div className="self-stretch inline-flex justify-between items-center">
           <button
-            onClick={() => navigate(`/b1/read-listen/list/${module}`)}
+            onClick={() => navigate(`/b1/read-listen/list/${module}/${chapterId}`)}
             className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
           >
             <ChevronLeft className="w-4 h-4 text-slate-900" />

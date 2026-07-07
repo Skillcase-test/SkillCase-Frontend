@@ -1412,6 +1412,14 @@ function AppContent() {
                     }
                   />
                   <Route
+                    path="/b1/read-listen/list/:module/:chapterId"
+                    element={
+                      <LearningRoute>
+                        <ReadListenTopicSelect />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
                     path="/b1/read-listen/content/:contentId"
                     element={
                       <LearningRoute>

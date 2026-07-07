@@ -133,7 +133,7 @@ export default function B1AdminPage() {
           const reader = new FileReader();
           reader.onload = (event) => {
             try {
-              resolve(JSON.parse(event.target.result));
+              resolve(JSON.parse(String(event.target.result || "").replace(/^\uFEFF/, "")));
             } catch (err) {
               reject(new Error("Invalid JSON file format."));
             }
@@ -143,8 +143,11 @@ export default function B1AdminPage() {
         });
 
         // 2. Initialize upload with backend
+        const videoItems = Array.isArray(metadata.videos) ? metadata.videos : [];
+        const videoMetadata = videoItems[0] || metadata;
+
         const initRes = await initB1VideoUpload({
-          title: metadata.title || jsonFile.name,
+          title: videoMetadata.title || metadata.title || jsonFile.name,
           contentType: videoFile.type || "video/mp4",
         });
 
@@ -171,12 +174,14 @@ export default function B1AdminPage() {
         // video_duration is auto-read from the file; all other metadata comes from the JSON
         const completeData = new FormData();
         completeData.append("s3_key", s3_key);
-        completeData.append("title", metadata.title || jsonFile.name);
-        completeData.append("transcript", metadata.transcript || "");
+        completeData.append("chapter_name", metadata.chapter_name || metadata.chapterName || "");
+        completeData.append("chapter_description", metadata.description || metadata.chapter_description || "");
+        completeData.append("title", videoMetadata.title || metadata.title || jsonFile.name);
+        completeData.append("transcript", videoMetadata.transcript || metadata.transcript || "");
         completeData.append("video_duration", videoDuration || 0);
-        completeData.append("display_order", metadata.display_order || 0);
-        completeData.append("questions", JSON.stringify(metadata.questions || []));
-        completeData.append("difficulty", metadata.difficulty || "Medium");
+        completeData.append("display_order", videoMetadata.display_order || metadata.display_order || 0);
+        completeData.append("questions", JSON.stringify(videoMetadata.questions || metadata.questions || []));
+        completeData.append("difficulty", videoMetadata.difficulty || metadata.difficulty || "Medium");
         if (thumbnailFile) {
           completeData.append("thumbnail", thumbnailFile);
         }
@@ -557,6 +562,8 @@ export default function B1AdminPage() {
               <h2 className="text-lg font-black text-[#002856] capitalize">
                 {activeModule === "exam-papers"
                   ? "Exam Papers"
+                  : activeModule === "news" || activeModule === "article"
+                  ? `${activeModule.replace("-", " ")} Chapters`
                   : `${activeModule.replace("-", " ")} Topics`}{" "}
                 ({topics.length})
               </h2>
@@ -617,7 +624,7 @@ export default function B1AdminPage() {
                       {/* Title & Info */}
                       <div className="flex-1 min-w-0">
                         <h3 className="text-[13px] font-bold text-slate-700 truncate pr-2">
-                          {t.title}
+                          {t.title || t.course_name}
                         </h3>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="text-[9px] px-1.5 py-0.2 bg-slate-100 rounded text-slate-500 font-bold uppercase">
@@ -631,14 +638,14 @@ export default function B1AdminPage() {
                             </span>
                           ) : activeModule === "video" ? (
                             <span className="text-[9px] px-1.5 py-0.2 bg-blue-50 text-[#002856] rounded font-bold capitalize">
-                              Video ({Math.round(t.video_duration / 60) || 1}{" "}
-                              mins)
+                              {t.course_name ? `${t.course_name} - ` : ""}
+                              {Math.round(t.video_duration / 60) || 1} mins
                             </span>
                           ) : (
                             <span className="text-[9px] px-1.5 py-0.2 bg-blue-50 text-[#002856] rounded font-bold capitalize">
                               {activeModule === "exam-papers"
                                 ? `${t.question_count} Qs`
-                                : t.difficulty_tag || "Easy"}
+                                : `${t.item_count || 0} items`}
                             </span>
                           )}
                           {activeModule === "exam-papers" && (

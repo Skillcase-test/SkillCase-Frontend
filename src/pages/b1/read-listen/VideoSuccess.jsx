@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { useSelector } from "react-redux";
-import { getB1Videos } from "../../../api/b1Api";
+import { getB1ReadingChapterItems } from "../../../api/b1Api";
 import toast, { Toaster } from "react-hot-toast";
 import { hapticHeavy } from "../../../utils/haptics";
 
@@ -23,6 +23,7 @@ export default function VideoSuccess() {
     skippedCount = 0,
     answers = {},
     results = [],
+    chapterId = "unassigned",
     totalQuestions = 0,
   } = location.state || {};
 
@@ -46,7 +47,7 @@ export default function VideoSuccess() {
 
   const handleTryNext = async () => {
     try {
-      const res = await getB1Videos("B1");
+      const res = await getB1ReadingChapterItems("video", chapterId);
       const list = Array.isArray(res.data) ? res.data : [];
       const nextVideo = list.find(
         (v) => !v.completed && v.video_id !== contentId,
@@ -63,12 +64,12 @@ export default function VideoSuccess() {
             "Congratulations! You have finished all videos in this section.",
             { duration: 4000 },
           );
-          navigate("/b1/read-listen/list/video");
+          navigate(`/b1/read-listen/list/video/${chapterId}`);
         }
       }
     } catch (err) {
       console.error("Error finding next video:", err);
-      navigate("/b1/read-listen/list/video");
+      navigate(`/b1/read-listen/list/video/${chapterId}`);
     }
   };
 
@@ -96,7 +97,7 @@ export default function VideoSuccess() {
       <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
         <div className="self-stretch inline-flex justify-between items-center">
           <button
-            onClick={() => navigate("/b1/read-listen/list/video")}
+            onClick={() => navigate(`/b1/read-listen/list/video/${chapterId}`)}
             className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
           >
             <ChevronLeft className="w-4 h-4 text-slate-900" />

@@ -2,6 +2,7 @@ import api from "./axios";
 
 // STUDENT ENDPOINTS
 export const getB1ReadingChapters = (module) => api.get(`/b1/read-listen/chapters/${module}`);
+export const getB1ReadingChapterItems = (module, chapterId) => api.get(`/b1/read-listen/chapters/${module}/${chapterId}/items`);
 export const getB1ReadingContent = (contentId) => api.get(`/b1/read-listen/content/${contentId}`);
 export const submitB1ReadingQuiz = (data) => api.post("/b1/read-listen/submit", data);
 

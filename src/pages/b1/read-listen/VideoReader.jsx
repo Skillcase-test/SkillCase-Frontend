@@ -80,6 +80,7 @@ export default function VideoReader() {
               skippedCount: parseInt(fetchedData.video.skipped_count || 0),
               answers: savedAnswers,
               results: generatedResults,
+              chapterId: fetchedData.video.course_id || "unassigned",
               totalQuestions: fetchedData.video.questions?.length || 0,
             },
             replace: true,
@@ -318,6 +319,7 @@ export default function VideoReader() {
         skippedCount: parseInt(data.video.skipped_count || 0),
         answers: savedAnswers,
         results: generatedResults,
+        chapterId: data.video.course_id || "unassigned",
         totalQuestions: data.video.questions?.length || 0,
       },
     });
@@ -414,7 +416,7 @@ export default function VideoReader() {
 
   const handleSubmit = async () => {
     if (reviewMode) {
-      navigate("/b1/read-listen/list/video");
+      navigate(`/b1/read-listen/list/video/${data?.video?.course_id || "unassigned"}`);
       return;
     }
 
@@ -443,6 +445,7 @@ export default function VideoReader() {
             skippedCount: res.data.skippedCount,
             answers,
             results: res.data.results,
+            chapterId: data?.video?.course_id || "unassigned",
             totalQuestions: qCount,
           },
         });
@@ -483,7 +486,7 @@ export default function VideoReader() {
       <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
         <div className="self-stretch inline-flex justify-between items-center">
           <button
-            onClick={() => navigate("/b1/read-listen/list/video")}
+            onClick={() => navigate(`/b1/read-listen/list/video/${video.course_id || "unassigned"}`)}
             className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
           >
             <ChevronLeft className="w-4 h-4 text-slate-900" />

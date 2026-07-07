@@ -61,6 +61,7 @@ export default function NewsArticleReader() {
               answers: savedAnswers,
               results: generatedResults,
               module: fetchedData.module,
+              chapterId: fetchedData.chapter_id || "unassigned",
               totalQuestions: fetchedData.questions?.length || 0,
             },
             replace: true,
@@ -267,6 +268,7 @@ export default function NewsArticleReader() {
         answers: savedAnswers,
         results: generatedResults,
         module: content.module,
+        chapterId: content.chapter_id || "unassigned",
         totalQuestions: content.questions?.length || 0,
       },
     });
@@ -274,7 +276,7 @@ export default function NewsArticleReader() {
 
   const handleSubmit = async () => {
     if (reviewMode) {
-      navigate(`/b1/read-listen/list/${content?.module}`);
+      navigate(`/b1/read-listen/list/${content?.module}/${content?.chapter_id || "unassigned"}`);
       return;
     }
 
@@ -305,6 +307,7 @@ export default function NewsArticleReader() {
             answers,
             results: res.data.results,
             module: content?.module,
+            chapterId: content?.chapter_id || "unassigned",
             totalQuestions: qCount,
           },
         });
@@ -353,7 +356,7 @@ export default function NewsArticleReader() {
       <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
         <div className="self-stretch inline-flex justify-between items-center">
           <button
-            onClick={() => navigate(`/b1/read-listen/list/${content.module}`)}
+            onClick={() => navigate(`/b1/read-listen/list/${content.module}/${content.chapter_id || "unassigned"}`)}
             className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
           >
             <ChevronLeft className="w-4 h-4 text-slate-900" />

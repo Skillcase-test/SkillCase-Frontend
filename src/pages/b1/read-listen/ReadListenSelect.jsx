@@ -5,7 +5,7 @@ import { ChevronLeft } from "lucide-react";
 import { ImNewspaper } from "react-icons/im";
 import { RiNewspaperFill } from "react-icons/ri";
 import { FaHeadphonesSimple } from "react-icons/fa6";
-import { getB1ReadingChapters, getB1Videos } from "../../../api/b1Api";
+import { getB1ReadingChapters } from "../../../api/b1Api";
 
 export default function ReadListenSelect() {
   const navigate = useNavigate();
@@ -25,11 +25,21 @@ export default function ReadListenSelect() {
         const [newsRes, articleRes, videoRes] = await Promise.all([
           getB1ReadingChapters("news"),
           getB1ReadingChapters("article"),
-          getB1Videos("B1"),
+          getB1ReadingChapters("video"),
         ]);
 
         const getStats = (rows) => {
           const list = Array.isArray(rows) ? rows : [];
+          const hasAggregateCounts = list.some((r) => r.total_count !== undefined || r.completed_count !== undefined);
+          if (hasAggregateCounts) {
+            return list.reduce(
+              (acc, row) => ({
+                completed: acc.completed + Number(row.completed_count || 0),
+                total: acc.total + Number(row.total_count || 0),
+              }),
+              { completed: 0, total: 0 },
+            );
+          }
           const completed = list.filter((r) => r.is_completed || r.completed).length;
           return { completed, total: list.length };
         };
