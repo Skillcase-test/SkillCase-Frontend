@@ -659,7 +659,8 @@ export default function B1AdminPage() {
                       {/* Actions */}
                       <div className="flex items-center gap-1 shrink-0">
                         {activeModule !== "exam-papers" &&
-                          activeModule !== "video" && (
+                          activeModule !== "video" &&
+                          id !== "unassigned" && (
                             <>
                               <button
                                 onClick={() => handleMove(idx, "up")}
@@ -671,7 +672,7 @@ export default function B1AdminPage() {
                               </button>
                               <button
                                 onClick={() => handleMove(idx, "down")}
-                                disabled={idx === topics.length - 1}
+                                disabled={idx === topics.length - 1 || topics[idx + 1]?.id === "unassigned"}
                                 className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30 disabled:hover:text-slate-400 cursor-pointer"
                                 title="Move Down"
                               >
