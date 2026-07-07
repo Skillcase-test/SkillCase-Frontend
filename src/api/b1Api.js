@@ -7,6 +7,7 @@ export const getB1ReadingContent = (contentId) => api.get(`/b1/read-listen/conte
 export const submitB1ReadingQuiz = (data) => api.post("/b1/read-listen/submit", data);
 
 export const getB1DescribeSpeakChapters = () => api.get("/b1/describe-speak/chapters");
+export const getB1DescribeSpeakChapterItems = (chapterId) => api.get(`/b1/describe-speak/chapters/${chapterId}/items`);
 export const getB1DescribeSpeakContent = (topicId) => api.get(`/b1/describe-speak/content/${topicId}`);
 export const uploadB1DescribeSpeakOcr = (formData) => api.post("/b1/describe-speak/upload-ocr", formData, {
   headers: { "Content-Type": "multipart/form-data" },
@@ -80,5 +81,3 @@ export const completeB1VideoUpload = (formData) => api.post("/admin/b1/video/com
   headers: { "Content-Type": "multipart/form-data" },
 });
 export const deleteB1Video = (videoId) => api.delete(`/admin/b1/video/${videoId}`);
-
-
