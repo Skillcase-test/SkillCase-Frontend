@@ -56,15 +56,6 @@ export default function Navbar({
     )) ||
     isJobScreeningParam;
 
-  if (isJobScreening) {
-    return (
-      <JobScreeningNavbar
-        minimal={minimal}
-        disableNavigation={disableNavigation}
-      />
-    );
-  }
-
   const [streak, setStreak] = useState(0);
   const [isLearnMode, setIsLearnMode] = useState(() => {
     const cached = localStorage.getItem("lg_preferred_mode");
@@ -353,6 +344,15 @@ export default function Navbar({
   const isA2PracticeLevel = normalizedProfLevel === "a2";
   const isB1Level = isB1PracticeLevel(profLevel);
   const showNavLinks = !minimal || isAuthenticated;
+
+  if (isJobScreening) {
+    return (
+      <JobScreeningNavbar
+        minimal={minimal}
+        disableNavigation={disableNavigation}
+      />
+    );
+  }
 
   if (!activeLearnNavbar) {
     return (

@@ -47,6 +47,21 @@ if (typeof global === "undefined") {
   window.global = window;
 }
 
+const syncPreferredModeCache = (user) => {
+  if (typeof window === "undefined" || !user) return;
+
+  const serverMode =
+    user.lg_preferred_mode ||
+    (String(user.german_preference) === "3" ? "job_screening" : "");
+
+  if (!["learn", "practice", "job_screening"].includes(serverMode)) return;
+
+  localStorage.setItem("lg_preferred_mode", serverMode);
+  window.dispatchEvent(
+    new CustomEvent("lgModeChange", { detail: { mode: serverMode } }),
+  );
+};
+
 import {
   startHeartbeat,
   stopHeartbeat,
@@ -649,6 +664,7 @@ function AppContent() {
         const res = await api.post("/user/me");
         if (!active) return;
         dispatch(setUser(res.data.user));
+        syncPreferredModeCache(res.data.user);
       } catch (err) {
         if (!active) return;
         console.error("Token expired or invalid");
@@ -663,6 +679,12 @@ function AppContent() {
       active = false;
     };
   }, [token, dispatch]);
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      syncPreferredModeCache(user);
+    }
+  }, [isAuthenticated, user]);
 
   useEffect(() => {
     const unsubscribe = subscribeMaintenanceStatus(setMaintenanceOpen);
@@ -739,8 +761,7 @@ function AppContent() {
     isAuthenticated &&
     user &&
     (String(user.german_preference) === "3" ||
-      user.lg_preferred_mode === "job_screening" ||
-      localStorage.getItem("lg_preferred_mode") === "job_screening");
+      user.lg_preferred_mode === "job_screening");
 
   const isPaywallLocked =
     isAuthenticated &&

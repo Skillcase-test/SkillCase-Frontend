@@ -4,6 +4,110 @@ import EditMenu from "../../components/DropdownEditMenu";
 import api from "../../../api/axios";
 import { X, Search, Download } from "lucide-react";
 
+const USER_TRACK_OPTIONS = [
+  {
+    value: "A1",
+    label: "A1",
+    payload: {
+      current_profeciency_level: "A1",
+      language_level: "A1",
+      lg_preferred_mode: "practice",
+      german_preference: "2",
+    },
+  },
+  {
+    value: "A2",
+    label: "A2",
+    payload: {
+      current_profeciency_level: "A2",
+      language_level: "A2",
+      lg_preferred_mode: "practice",
+      german_preference: "2",
+    },
+  },
+  {
+    value: "B1_PRACTICE",
+    label: "B1 Practice",
+    payload: {
+      current_profeciency_level: "B1",
+      language_level: "B1",
+      lg_preferred_mode: "practice",
+      german_preference: "2",
+    },
+  },
+  {
+    value: "B2_PRACTICE",
+    label: "B2 Practice",
+    payload: {
+      current_profeciency_level: "B2",
+      language_level: "B2",
+      lg_preferred_mode: "practice",
+      german_preference: "2",
+    },
+  },
+  {
+    value: "B1_JOB_SCREENING",
+    label: "B1 Job Screening",
+    payload: {
+      current_profeciency_level: "B1",
+      language_level: "B1",
+      lg_preferred_mode: "job_screening",
+      german_preference: "3",
+    },
+  },
+  {
+    value: "B2_JOB_SCREENING",
+    label: "B2 Job Screening",
+    payload: {
+      current_profeciency_level: "B1",
+      language_level: "B2",
+      lg_preferred_mode: "job_screening",
+      german_preference: "3",
+    },
+  },
+];
+
+const getUserTrackValue = (user = {}) => {
+  const mode = String(user.lg_preferred_mode || "").toLowerCase();
+  const preference = String(user.german_preference || "");
+  const languageLevel = String(
+    user.language_level || user.current_profeciency_level || "A1",
+  ).toUpperCase();
+  const learningLevel = String(
+    user.current_profeciency_level || "A1",
+  ).toUpperCase();
+  const isJobScreening = mode === "job_screening" || preference === "3";
+
+  if (isJobScreening) {
+    return languageLevel === "B2" ? "B2_JOB_SCREENING" : "B1_JOB_SCREENING";
+  }
+
+  if (languageLevel === "B2" || learningLevel === "B2") return "B2_PRACTICE";
+  if (languageLevel === "B1" || learningLevel === "B1") return "B1_PRACTICE";
+  if (learningLevel === "A2") return "A2";
+  return "A1";
+};
+
+const getUserTrackLabel = (user) => {
+  const value = getUserTrackValue(user);
+  return (
+    USER_TRACK_OPTIONS.find((option) => option.value === value)?.label || "A1"
+  );
+};
+
+const getTrackSelectClass = (trackValue) => {
+  if (trackValue.endsWith("JOB_SCREENING")) {
+    return "bg-amber-100 text-amber-800";
+  }
+  if (trackValue.includes("B1") || trackValue.includes("B2")) {
+    return "bg-purple-100 text-purple-700";
+  }
+  if (trackValue === "A2") {
+    return "bg-emerald-100 text-emerald-700";
+  }
+  return "bg-blue-100 text-blue-700";
+};
+
 function DashboardCard03() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [a1Count, setA1Count] = useState(0);
@@ -20,8 +124,6 @@ function DashboardCard03() {
   // Inline edit state
   const [savingUserId, setSavingUserId] = useState(null);
   const [rowErrors, setRowErrors] = useState({});
-
-  const PROFICIENCY_LEVELS = ["A1", "A2", "B1", "B2"];
 
   useEffect(() => {
     const fetchTotalUsers = async () => {
@@ -73,18 +175,21 @@ function DashboardCard03() {
     }
   };
 
-  const handleLevelChange = (userId, newLevel) => {
+  const handleTrackChange = (userId, selectedTrack) => {
+    const option = USER_TRACK_OPTIONS.find(
+      (item) => item.value === selectedTrack,
+    );
+    if (!option) return;
+
     const prevUsers = allUsers;
     setAllUsers((prev) =>
       prev.map((u) =>
         u.user_id === userId
-          ? { ...u, current_profeciency_level: newLevel }
+          ? { ...u, ...option.payload }
           : u,
       ),
     );
-    updateUser(userId, { current_profeciency_level: newLevel }, () =>
-      setAllUsers(prevUsers),
-    );
+    updateUser(userId, option.payload, () => setAllUsers(prevUsers));
   };
 
   const handlePaidToggle = (userId, currentPaid) => {
@@ -129,7 +234,7 @@ function DashboardCard03() {
       "Username",
       "Full Name",
       "Phone",
-      "Level",
+      "Track",
       "Source",
       "Payment Status",
       "Signup Date",
@@ -139,7 +244,7 @@ function DashboardCard03() {
       u.username,
       u.fullname || "",
       u.phone || "",
-      u.current_profeciency_level || "",
+      getUserTrackLabel(u),
       u.signup_source || "",
       u.is_paid ? "Paid" : "Not Paid",
       formatDate(u.created_at),
@@ -303,7 +408,7 @@ function DashboardCard03() {
                       <th className="py-3 pr-4">#</th>
                       <th className="py-3 pr-4">User Name</th>
                       <th className="py-3 pr-4">Phone</th>
-                      <th className="py-3 pr-4">Level</th>
+                      <th className="py-3 pr-4">Track</th>
                       <th className="py-3 pr-4">Payment</th>
                       <th className="py-3 pr-4">Signup Date</th>
                       <th className="py-3">Last Usage</th>
@@ -313,6 +418,7 @@ function DashboardCard03() {
                     {filteredUsers.map((user, idx) => {
                       const isSaving = savingUserId === user.user_id;
                       const rowError = rowErrors[user.user_id];
+                      const trackValue = getUserTrackValue(user);
                       return (
                         <tr
                           key={user.user_id}
@@ -343,32 +449,21 @@ function DashboardCard03() {
                             {user.phone || "—"}
                           </td>
 
-                          {/* Level — inline dropdown */}
+                          {/* Track inline dropdown */}
                           <td className="py-2.5 pr-4">
                             <select
-                              value={user.current_profeciency_level || "A1"}
+                              value={trackValue}
                               onChange={(e) =>
-                                handleLevelChange(user.user_id, e.target.value)
+                                handleTrackChange(user.user_id, e.target.value)
                               }
                               disabled={isSaving}
-                              className={`text-xs font-medium rounded-full px-2 py-0.5 border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 ${
-                                (
-                                  user.current_profeciency_level || "A1"
-                                ).toUpperCase() === "A2"
-                                  ? "bg-emerald-100 text-emerald-700"
-                                  : (
-                                        user.current_profeciency_level || "A1"
-                                      ).toUpperCase() === "B1" ||
-                                      (
-                                        user.current_profeciency_level || "A1"
-                                      ).toUpperCase() === "B2"
-                                    ? "bg-purple-100 text-purple-700"
-                                    : "bg-blue-100 text-blue-700"
-                              } disabled:opacity-60`}
+                              className={`text-xs font-medium rounded-full px-2 py-0.5 border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-400 ${getTrackSelectClass(
+                                trackValue,
+                              )} disabled:opacity-60`}
                             >
-                              {PROFICIENCY_LEVELS.map((lvl) => (
-                                <option key={lvl} value={lvl}>
-                                  {lvl}
+                              {USER_TRACK_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
                                 </option>
                               ))}
                             </select>

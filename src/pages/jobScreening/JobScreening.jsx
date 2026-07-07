@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import api from "../../api/axios";
 import {
   getProgress,
   startAgreement,
@@ -27,6 +29,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import mayaSmiling from "../../assets/onboarding/mayaSmiling.webp";
+import { setUser } from "../../redux/auth/authSlice";
 
 const STEP_DESCRIPTIONS = {
   welcome: {
@@ -67,10 +70,35 @@ const STEP_DESCRIPTIONS = {
   },
 };
 
+const getEligibleHomeRoute = (user = {}) => {
+  const mode = user.lg_preferred_mode;
+  const preference = String(user.german_preference || "");
+
+  if (mode === "learn" || preference === "1") {
+    return "/learn-german";
+  }
+
+  return "/";
+};
+
+const syncPreferredModeCache = (user = {}) => {
+  const mode =
+    user.lg_preferred_mode ||
+    (String(user.german_preference) === "3" ? "job_screening" : "practice");
+
+  if (!["learn", "practice", "job_screening"].includes(mode)) return;
+
+  localStorage.setItem("lg_preferred_mode", mode);
+  window.dispatchEvent(new CustomEvent("lgModeChange", { detail: { mode } }));
+};
+
 const JobScreening = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState("");
   const [isExecutingStep, setIsExecutingStep] = useState(false);
   const [agreementLoading, setAgreementLoading] = useState(false);
@@ -113,6 +141,31 @@ const JobScreening = () => {
       }
     } catch (err) {
       console.error("Error loading progress:", err);
+      if (
+        err.response?.status === 403 &&
+        String(err.response?.data?.message || "")
+          .toLowerCase()
+          .includes("not eligible")
+      ) {
+        setRedirecting(true);
+        setError("");
+        let refreshedUser = user;
+        try {
+          api.clearGetCache?.();
+          const res = await api.post("/user/me");
+          if (res.data?.user) {
+            refreshedUser = res.data.user;
+            dispatch(setUser(refreshedUser));
+            syncPreferredModeCache(refreshedUser);
+          }
+        } catch (refreshErr) {
+          console.error("Error refreshing user after eligibility change:", refreshErr);
+        }
+
+        const redirectTo = getEligibleHomeRoute(refreshedUser);
+        navigate(redirectTo, { replace: true });
+        return;
+      }
       setError(
         err.response?.data?.message || "Failed to load progress settings",
       );
@@ -143,12 +196,12 @@ const JobScreening = () => {
     }
   }, [welcomeAnimationState, finalProgressData]);
 
-  if (loading) {
+  if (loading || redirecting) {
     return (
       <div className="w-full min-h-screen bg-[#f6f8fc] flex items-center justify-center flex-col gap-3 font-sans">
         <div className="w-10 h-10 border-[3.5px] border-[#002856] border-t-transparent rounded-full animate-spin" />
         <span className="text-slate-550 text-xs font-semibold">
-          Loading dashboard...
+          {redirecting ? "Taking you to your dashboard..." : "Loading dashboard..."}
         </span>
       </div>
     );
