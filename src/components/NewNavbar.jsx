@@ -1452,6 +1452,14 @@ function JobScreeningNavbar({ minimal = false, disableNavigation = false }) {
           <nav className="hidden lg:flex items-center gap-6">
             {isAuthenticated ? (
               <div className="flex items-center gap-4 ml-4">
+                {["admin", "super_admin"].includes(user?.role) && (
+                  <Link
+                    to="/admin/job-screening"
+                    className="bg-[#002856] text-white px-4 py-2 rounded-lg hover:bg-[#003d83] transition font-semibold text-sm"
+                  >
+                    Admin
+                  </Link>
+                )}
                 <Link to="/profile" id="profile-nav-link" className="flex-shrink-0">
                   {renderSimpleAvatar()}
                 </Link>
@@ -1504,15 +1512,26 @@ function JobScreeningNavbar({ minimal = false, disableNavigation = false }) {
         >
           <nav className="px-4 py-4 space-y-1">
             {isAuthenticated ? (
-              <button
-                onClick={() => {
-                  handleLogout();
-                  setIsMenuOpen(false);
-                }}
-                className="w-full px-4 py-3 rounded-lg bg-[#edb843] text-[#002856] font-semibold text-center cursor-pointer"
-              >
-                Logout
-              </button>
+              <>
+                {["admin", "super_admin"].includes(user?.role) && (
+                  <Link
+                    to="/admin/job-screening"
+                    className="block px-4 py-3 rounded-lg bg-[#002856] text-white font-semibold text-center"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Admin
+                  </Link>
+                )}
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full px-4 py-3 rounded-lg bg-[#edb843] text-[#002856] font-semibold text-center cursor-pointer"
+                >
+                  Logout
+                </button>
+              </>
             ) : (
               <Link
                 to="/login"
