@@ -178,44 +178,55 @@ const CandidateDetail = ({
     });
   };
 
-  // Bind values from candidate details when candidate loads/updates
+  // Only reseed all local fields when switching to a different candidate.
+  // For the same candidate (e.g. after a save/refetch), we selectively update
+  // everything except steps, which are managed locally after a drag reorder.
+  const prevCandidateIdRef = React.useRef(null);
   useEffect(() => {
-    if (candidate) {
-      setFullname(candidate.fullname || "");
-      setEmail(candidate.email || candidate.extracted_email || "");
-      setNumber(candidate.number || "");
-      setProficiency(
-        candidate.language_level || candidate.current_profeciency_level || "",
-      );
+    if (!candidate) return;
 
-      setInterviewId(candidate.assigned_interview_id || "");
-      setAgreementId(candidate.assigned_agreement_template_id || "");
+    const isNewCandidate = prevCandidateIdRef.current !== candidate.user_id;
+    prevCandidateIdRef.current = candidate.user_id;
 
-      setTrainingTime(
-        candidate.training_slot_time
-          ? formatToLocalDateTimeString(candidate.training_slot_time)
-          : "",
-      );
-      setTrainingMeet(candidate.training_meet_link || "");
+    setFullname(candidate.fullname || "");
+    setEmail(candidate.email || candidate.extracted_email || "");
+    setNumber(candidate.number || "");
+    setProficiency(
+      candidate.language_level || candidate.current_profeciency_level || "",
+    );
 
-      setRecruiterTime(
-        candidate.recruiter_slot_time
-          ? formatToLocalDateTimeString(candidate.recruiter_slot_time)
-          : "",
-      );
-      setRecruiterMeet(candidate.recruiter_meet_link || "");
+    setInterviewId(candidate.assigned_interview_id || "");
+    setAgreementId(candidate.assigned_agreement_template_id || "");
 
+    setTrainingTime(
+      candidate.training_slot_time
+        ? formatToLocalDateTimeString(candidate.training_slot_time)
+        : "",
+    );
+    setTrainingMeet(candidate.training_meet_link || "");
+
+    setRecruiterTime(
+      candidate.recruiter_slot_time
+        ? formatToLocalDateTimeString(candidate.recruiter_slot_time)
+        : "",
+    );
+    setRecruiterMeet(candidate.recruiter_meet_link || "");
+
+    // Only reset step order when opening a brand new candidate.
+    // When updating the same candidate (refetch after save), keep the
+    // locally reordered steps so drag-and-drop changes are not lost.
+    if (isNewCandidate) {
       setSteps(candidate.steps_config || []);
-
-      setPaywallEnabled(
-        candidate.paywall_enabled === true
-          ? "true"
-          : candidate.paywall_enabled === false
-            ? "false"
-            : ""
-      );
-      setPaywallPaid(!!candidate.paywall_paid);
     }
+
+    setPaywallEnabled(
+      candidate.paywall_enabled === true
+        ? "true"
+        : candidate.paywall_enabled === false
+          ? "false"
+          : ""
+    );
+    setPaywallPaid(!!candidate.paywall_paid);
   }, [candidate]);
 
   const cleanString = (val) => {

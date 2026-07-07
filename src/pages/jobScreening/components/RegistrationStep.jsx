@@ -52,7 +52,7 @@ const RegistrationStep = ({ progress, onComplete }) => {
     }
   };
 
-  const hasAgreement = !!(progress?.assigned_agreement_template_id || progress?.globalSettings?.default_agreement_template_id);
+  const hasAgreement = !!(progress?.assigned_agreement_title || progress?.assigned_agreement_template_id || progress?.globalSettings?.default_agreement_template_id);
 
   if (!hasAgreement) {
     return (

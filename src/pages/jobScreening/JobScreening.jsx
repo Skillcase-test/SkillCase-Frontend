@@ -804,11 +804,11 @@ const JobScreening = () => {
                     }}
                     transition={{ duration: 0.5, ease: "easeInOut" }}
                     onClick={() => {
-                      if (!isLocked) {
+                      if (!isLocked && !isCompleted) {
                         handleStartStep(step.id);
                       }
                     }}
-                    className={`p-4 bg-white rounded-2xl border flex flex-col gap-4 w-full ${!isLocked ? "cursor-pointer hover:border-[#002856]/40 hover:shadow-md transition-all" : ""}`}
+                    className={`p-4 bg-white rounded-2xl border flex flex-col gap-4 w-full ${!isLocked && !isCompleted ? "cursor-pointer hover:border-[#002856]/40 hover:shadow-md transition-all" : ""}`}
                   >
                     {/* Title & Badge */}
                     <div className="flex justify-between items-start gap-2 w-full text-left">

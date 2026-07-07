@@ -90,7 +90,7 @@ const WelcomeStep = ({ onComplete }) => {
       {/* Header and Subtext */}
       <div className="text-center max-w-xs mb-8">
         <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight mb-3">
-          Welcome to Skillcase Job Screening
+          Welcome to Skillcase Jobs
         </h2>
         <p className="text-white/60 text-sm leading-relaxed">
           You are just few steps away from getting placed in Germany
