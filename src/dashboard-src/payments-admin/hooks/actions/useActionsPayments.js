@@ -23,6 +23,7 @@ export function useActionsPayments(state) {
     paymentSortBy,
     paymentSortOrder,
     paymentBookedOnly,
+    paymentNotBookedOnly,
     paymentRecruitmentOnly,
   } = state;
 
@@ -34,6 +35,7 @@ export function useActionsPayments(state) {
         sortOrder: paymentSortOrder,
         all: paymentAllTime || undefined,
         booked: paymentBookedOnly || undefined,
+        not_booked: paymentNotBookedOnly || undefined,
         recruitment: paymentRecruitmentOnly || undefined,
         download: true,
       });
@@ -126,7 +128,7 @@ export function useActionsPayments(state) {
       const baseFilename = paymentAllTime
         ? "payments_all_time"
         : `payments_${year}_${String(month).padStart(2, "0")}`;
-      const filename = `${baseFilename}${paymentBookedOnly ? "_booked" : ""}${paymentRecruitmentOnly ? "_recruitment" : ""}.xls`;
+      const filename = `${baseFilename}${paymentBookedOnly ? "_booked" : ""}${paymentNotBookedOnly ? "_not_booked" : ""}${paymentRecruitmentOnly ? "_recruitment" : ""}.xls`;
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);

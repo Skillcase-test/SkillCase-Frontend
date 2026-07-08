@@ -387,6 +387,21 @@ export default function PaymentsAdmin() {
                         <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer">
                           <input
                             type="checkbox"
+                            checked={state.paymentNotBookedOnly}
+                            onChange={(e) => {
+                              state.setCurrentPage(1);
+                              state.setPaymentNotBookedOnly(e.target.checked);
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                          />
+                          <span className="font-semibold text-slate-700">
+                            Not Booked Only
+                          </span>
+                        </label>
+                        <div className="h-4 w-px bg-slate-200" />
+                        <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer">
+                          <input
+                            type="checkbox"
                             checked={state.paymentRecruitmentOnly}
                             onChange={(e) => {
                               state.setCurrentPage(1);

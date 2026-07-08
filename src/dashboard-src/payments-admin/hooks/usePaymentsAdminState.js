@@ -117,7 +117,18 @@ export function usePaymentsAdminState() {
   const [paymentSortBy, setPaymentSortBy] = useState("paid_at");
   const [paymentSortOrder, setPaymentSortOrder] = useState("desc");
   const [paymentAllTime, setPaymentAllTime] = useState(false);
-  const [paymentBookedOnly, setPaymentBookedOnly] = useState(false);
+  const [paymentBookedOnly, setPaymentBookedOnlyState] = useState(false);
+  const [paymentNotBookedOnly, setPaymentNotBookedOnlyState] = useState(false);
+
+  const setPaymentBookedOnly = (val) => {
+    setPaymentBookedOnlyState(val);
+    if (val) setPaymentNotBookedOnlyState(false);
+  };
+
+  const setPaymentNotBookedOnly = (val) => {
+    setPaymentNotBookedOnlyState(val);
+    if (val) setPaymentBookedOnlyState(false);
+  };
   const [paymentRecruitmentOnly, setPaymentRecruitmentOnlyState] = useState(false);
   const [paymentTrainingOnly, setPaymentTrainingOnlyState] = useState(false);
   const [paymentTotalAmountPaise, setPaymentTotalAmountPaise] = useState(0);
@@ -379,6 +390,7 @@ export function usePaymentsAdminState() {
           sortOrder: paymentSortOrder,
           all: paymentAllTime || undefined,
           booked: paymentBookedOnly || undefined,
+          not_booked: paymentNotBookedOnly || undefined,
           recruitment: paymentRecruitmentOnly || undefined,
           training: paymentTrainingOnly || undefined,
         });
@@ -485,6 +497,7 @@ export function usePaymentsAdminState() {
     tab === "payments" ? paymentAllTime : null,
     tab === "recruitment" ? recruitmentAllTime : null,
     tab === "payments" ? paymentBookedOnly : null,
+    tab === "payments" ? paymentNotBookedOnly : null,
     tab === "payments" ? paymentRecruitmentOnly : null,
     tab === "payments" ? paymentTrainingOnly : null,
     tab === "rawlogs" ? debouncedRawSearch : null,
@@ -517,6 +530,7 @@ export function usePaymentsAdminState() {
     setPaymentAllTime(false);
     setRecruitmentAllTime(false);
     setPaymentBookedOnly(false);
+    setPaymentNotBookedOnly(false);
     setPaymentRecruitmentOnly(false);
     setPaymentTrainingOnly(false);
     setPaymentTotalAmountPaise(0);
@@ -644,6 +658,8 @@ export function usePaymentsAdminState() {
     setPaymentAllTime,
     paymentBookedOnly,
     setPaymentBookedOnly,
+    paymentNotBookedOnly,
+    setPaymentNotBookedOnly,
     paymentRecruitmentOnly,
     setPaymentRecruitmentOnly,
     paymentTrainingOnly,
