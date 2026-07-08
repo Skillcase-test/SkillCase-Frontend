@@ -53,9 +53,11 @@ const ExploreCandidatesAdmin = lazy(() => import("./ExploreCandidatesAdmin"));
 const PaymentsAdmin = lazy(() => import("./PaymentsAdmin"));
 const CallEnginePage = lazy(() => import("./CallEngine"));
 const SupportTicketsAdmin = lazy(() => import("./SupportTicketsAdmin"));
-const DynamicLessonAdmin = lazy(() => import("../../pages/admin/DynamicLessonAdmin"));
-const JobScreeningAdmin = lazy(() =>
-  import("../../pages/admin/JobScreeningAdmin")
+const DynamicLessonAdmin = lazy(
+  () => import("../../pages/admin/DynamicLessonAdmin"),
+);
+const JobScreeningAdmin = lazy(
+  () => import("../../pages/admin/JobScreeningAdmin"),
 );
 const Paywall = lazy(() => import("./Paywall"));
 
@@ -314,7 +316,7 @@ function SidebarSection({ title, items, onLinkClick }) {
             className={({ isActive }) =>
               `block rounded-md px-3 py-2 text-sm font-semibold ${
                 isActive
-                  ? "bg-blue-700 text-white"
+                  ? "bg-[#002856] text-white"
                   : "text-slate-700 hover:bg-slate-100"
               }`
             }
@@ -436,10 +438,19 @@ function ModuleGroup({ title, modules, onLinkClick }) {
   );
 }
 
-function ContentModuleTree({ a1Modules, a2Modules, b1Modules = [], extraItems = [], onLinkClick }) {
+function ContentModuleTree({
+  a1Modules,
+  a2Modules,
+  b1Modules = [],
+  extraItems = [],
+  onLinkClick,
+}) {
   const location = useLocation();
   const hasModules =
-    a1Modules.length > 0 || a2Modules.length > 0 || b1Modules.length > 0 || extraItems.length > 0;
+    a1Modules.length > 0 ||
+    a2Modules.length > 0 ||
+    b1Modules.length > 0 ||
+    extraItems.length > 0;
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -677,7 +688,14 @@ export default function Dashboard() {
   }, [me, PAYMENTS_TAB_KEYS]);
 
   const sections = useMemo(() => {
-    if (!me) return { core: [], a1Modules: [], a2Modules: [], b1Modules: [], superAdmin: [] };
+    if (!me)
+      return {
+        core: [],
+        a1Modules: [],
+        a2Modules: [],
+        b1Modules: [],
+        superAdmin: [],
+      };
 
     const core = [
       {
@@ -893,7 +911,11 @@ export default function Dashboard() {
       me.role === "super_admin"
         ? [
             { key: "access", label: "Admin Access", path: "/admin/access" },
-            { key: "tickets", label: "Issues & Tickets", path: "/admin/tickets" },
+            {
+              key: "tickets",
+              label: "Issues & Tickets",
+              path: "/admin/tickets",
+            },
             { key: "payments", label: "Payments", path: "/admin/payments" },
             {
               key: "call-engine",
@@ -913,7 +935,14 @@ export default function Dashboard() {
         ]
       : [];
 
-    return { core, a1Modules, a2Modules, b1Modules, extraContentItems, superAdmin };
+    return {
+      core,
+      a1Modules,
+      a2Modules,
+      b1Modules,
+      extraContentItems,
+      superAdmin,
+    };
   }, [me, hasPaymentsAccess]);
 
   const defaultPath =
