@@ -15,34 +15,42 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (modal && modal.open && modal.payment) {
-      const p = modal.payment;
+    if (modal && modal.open) {
       setYear(new Date().getUTCFullYear());
       setMonth(new Date().getUTCMonth() + 1);
       setNotes("");
       setError("");
-      setSelectedIds([p.payment_id]);
-      setPayments([]);
 
-      // Fetch all capture/processed unbooked transactions for this phone number
-      if (p.student_phone) {
-        setFetching(true);
-        paymentsAdminApi
-          .getBookedAmountCandidatePayments(p.student_phone)
-          .then((res) => {
-            setPayments(res.data.rows || []);
-          })
-          .catch((err) => {
-            setError(err?.response?.data?.msg || "Failed to load candidate payments");
-          })
-          .finally(() => {
-            setFetching(false);
-          });
+      if (modal.isBulk && Array.isArray(modal.payments)) {
+        setPayments(modal.payments);
+        setSelectedIds(modal.payments.map((p) => p.payment_id));
+        setFetching(false);
+      } else if (modal.payment) {
+        const p = modal.payment;
+        setSelectedIds([p.payment_id]);
+        setPayments([]);
+
+        // Fetch all capture/processed unbooked transactions for this phone number
+        if (p.student_phone) {
+          setFetching(true);
+          paymentsAdminApi
+            .getBookedAmountCandidatePayments(p.student_phone)
+            .then((res) => {
+              setPayments(res.data.rows || []);
+            })
+            .catch((err) => {
+              setError(err?.response?.data?.msg || "Failed to load candidate payments");
+            })
+            .finally(() => {
+              setFetching(false);
+            });
+        }
       }
     }
   }, [modal]);
 
-  if (!modal || !modal.open || !modal.payment) return null;
+  if (!modal || !modal.open) return null;
+  if (!modal.isBulk && !modal.payment) return null;
 
   const initialPayment = modal.payment;
 
@@ -70,13 +78,23 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
     setLoading(true);
     setError("");
     try {
-      await onConfirm({
-        enrollment_id: initialPayment.enrollment_id,
-        payment_ids: selectedIds,
-        year,
-        month,
-        notes,
-      });
+      if (modal.isBulk) {
+        await onConfirm({
+          payment_ids: selectedIds,
+          year,
+          month,
+          notes,
+          isBulk: true,
+        });
+      } else {
+        await onConfirm({
+          enrollment_id: initialPayment.enrollment_id,
+          payment_ids: selectedIds,
+          year,
+          month,
+          notes,
+        });
+      }
       handleClose();
     } catch (err) {
       setError(err?.response?.data?.msg || "Failed to book amount");
@@ -104,14 +122,23 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
         <div className="flex-1 overflow-y-auto my-4 space-y-4 pr-1">
           {/* Candidate Info card */}
           <div className="rounded-xl bg-slate-50 p-3.5 text-xs text-slate-700 space-y-1">
-            <div className="flex justify-between">
-              <span className="font-semibold">Candidate Name:</span>
-              <span>{initialPayment.student_name || "-"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="font-semibold">Candidate Phone:</span>
-              <span>{initialPayment.student_phone || "-"}</span>
-            </div>
+            {modal.isBulk ? (
+              <div className="flex justify-between">
+                <span className="font-semibold">Bulk Booking:</span>
+                <span>{selectedIds.length} Payments Selected</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between">
+                  <span className="font-semibold">Candidate Name:</span>
+                  <span>{initialPayment?.student_name || "-"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold">Candidate Phone:</span>
+                  <span>{initialPayment?.student_phone || "-"}</span>
+                </div>
+              </>
+            )}
             <div className="flex justify-between border-t pt-1.5 mt-1.5">
               <span className="font-semibold">Total Selected to Book:</span>
               <span className="text-slate-900 font-bold text-sm">

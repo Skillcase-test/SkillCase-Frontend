@@ -130,6 +130,8 @@ export const paymentsAdminApi = {
     api.get("/admin/payments/booked-amounts/candidate-payments", { params: { phone } }),
   bookAmount: (payload) =>
     api.post("/admin/payments/booked-amounts", payload),
+  bookAmountBulk: (payload) =>
+    api.post("/admin/payments/booked-amounts/bulk", payload),
 
   getCandidatePaymentsWithReceipts: (enrollmentId) =>
     api.get(`/admin/payments/recruitment/candidates/${enrollmentId}/payments-with-receipts`),

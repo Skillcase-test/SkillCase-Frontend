@@ -276,8 +276,13 @@ export function useActionsPayments(state) {
     handleBookAmount: async (payload) => {
       setError("");
       try {
-        await paymentsAdminApi.bookAmount(payload);
-        setNotice("Amount booked successfully");
+        if (payload.isBulk) {
+          await paymentsAdminApi.bookAmountBulk(payload);
+          setNotice("Amounts booked successfully");
+        } else {
+          await paymentsAdminApi.bookAmount(payload);
+          setNotice("Amount booked successfully");
+        }
         setBookAmountModal({ open: false, payment: null });
         await loadTabData();
       } catch (err) {
