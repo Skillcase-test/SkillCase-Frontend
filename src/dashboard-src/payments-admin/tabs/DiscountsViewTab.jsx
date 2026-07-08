@@ -8,6 +8,17 @@ import {
 import { MONTH_NAMES } from "../utils/constants";
 import { formatInrFromPaise } from "../utils/formatters";
 
+const MONTH_SHORT_NAMES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function getActiveMonthsRange(targetYear, targetMonth, durationMonths) {
+  const startYm = Number(targetYear) * 12 + Number(targetMonth);
+  const endYm = startYm + Number(durationMonths) - 1;
+  const startYearNum = Math.floor((startYm - 1) / 12);
+  const startMonthNum = ((startYm - 1) % 12) + 1;
+  const endYearNum = Math.floor((endYm - 1) / 12);
+  const endMonthNum = ((endYm - 1) % 12) + 1;
+  return `${MONTH_SHORT_NAMES[startMonthNum]} ${startYearNum} - ${MONTH_SHORT_NAMES[endMonthNum]} ${endYearNum}`;
+}
+
 export function DiscountsViewTab({
   rows,
   discountForm,
@@ -27,7 +38,7 @@ export function DiscountsViewTab({
     <div className="space-y-3">
       <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
         <p className="mb-2 text-sm font-semibold text-slate-700">Create Discount Request</p>
-        <div className="grid gap-2 md:grid-cols-4">
+        <div className={`grid gap-2 ${discountForm.discount_type === "monthly" ? "md:grid-cols-5" : "md:grid-cols-4"}`}>
           <ControlDropdown
             value={discountForm.enrollment_id}
             onChange={(val) => {
@@ -76,13 +87,27 @@ export function DiscountsViewTab({
               placeholder="Percent (%)"
             />
           ) : (
-            <ControlInput
-              value={discountForm.discount_value}
-              onChange={(e) =>
-                setDiscountForm((prev) => ({ ...prev, discount_value: e.target.value }))
-              }
-              placeholder="Amount in INR"
-            />
+            <>
+              <ControlInput
+                value={discountForm.discount_value}
+                onChange={(e) =>
+                  setDiscountForm((prev) => ({ ...prev, discount_value: e.target.value }))
+                }
+                placeholder="Amount in INR"
+              />
+              {discountForm.discount_type === "monthly" && (
+                <ControlInput
+                  value={discountForm.duration_months || ""}
+                  onChange={(e) =>
+                    setDiscountForm((prev) => ({ ...prev, duration_months: e.target.value }))
+                  }
+                  placeholder="Duration (Months)"
+                  type="number"
+                  min="1"
+                  step="1"
+                />
+              )}
+            </>
           )}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -127,7 +152,14 @@ export function DiscountsViewTab({
               <td className="px-2 py-2">
                 {MONTH_NAMES[Number(r.target_month) || 0] || r.target_month}
               </td>
-              <td className="px-2 py-2">{r.discount_type}</td>
+              <td className="px-2 py-2">
+                <div>{r.discount_type}</div>
+                {r.discount_type === "monthly" && r.duration_months && (
+                  <div className="text-xs text-slate-500">
+                    ({r.duration_months} mos: {getActiveMonthsRange(r.target_year, r.target_month, r.duration_months)})
+                  </div>
+                )}
+              </td>
               <td
                 className="px-2 py-2"
                 title={r.reason || "No discount reason"}

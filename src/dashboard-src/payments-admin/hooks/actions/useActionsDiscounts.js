@@ -32,6 +32,10 @@ export function useActionsDiscounts(state) {
           discountForm.discount_type === "percentage"
             ? Number(discountForm.discount_percent || 0)
             : undefined,
+        duration_months:
+          discountForm.discount_type === "monthly" && discountForm.duration_months
+            ? Number(discountForm.duration_months)
+            : undefined,
         reason: discountForm.reason,
       });
       setDiscountForm((prev) => ({
@@ -41,6 +45,7 @@ export function useActionsDiscounts(state) {
         student_phone: "",
         discount_value: "",
         discount_percent: "",
+        duration_months: "",
         reason: "",
       }));
       await loadTabData();

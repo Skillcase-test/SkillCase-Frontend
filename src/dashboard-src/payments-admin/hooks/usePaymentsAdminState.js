@@ -87,6 +87,7 @@ export function usePaymentsAdminState() {
     discount_type: "one_time",
     discount_value: "",
     discount_percent: "",
+    duration_months: "",
     reason: "",
   });
   const [rawEventTypeFilter, setRawEventTypeFilter] = useState("");
@@ -318,25 +319,42 @@ export function usePaymentsAdminState() {
           );
         }
       } else if (tab === "fee") {
-        const res = await paymentsAdminApi.getTotalFeeView(year, month, {
-          page: currentPage,
-          limit: rowsPerPage,
-          search: debouncedFeeSearch || undefined,
-          fee_filter: feeFilter || undefined,
-          cohort_filter: cohortFilter || undefined,
-        });
-        if (controller.signal.aborted) return;
-        setRows(res.data.rows || []);
-        setFeeSummary(
-          res.data.fee_summary || {
+        const now = new Date();
+        const physYm = now.getFullYear() * 12 + (now.getMonth() + 1);
+        const selectedYm = Number(year) * 12 + Number(month);
+
+        if (selectedYm > physYm) {
+          setRows([]);
+          setFeeSummary({
             paid_this_month_paise: 0,
             unpaid_this_month_paise: 0,
             potential_after_discounts_paise: 0,
             total_discounts_paise: 0,
             active_but_not_scheduled_paise: 0,
-          },
-        );
-        setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
+          });
+          setPagination({ page: 1, limit: rowsPerPage, total: 0, total_pages: 1 });
+          setLoading(false);
+        } else {
+          const res = await paymentsAdminApi.getTotalFeeView(year, month, {
+            page: currentPage,
+            limit: rowsPerPage,
+            search: debouncedFeeSearch || undefined,
+            fee_filter: feeFilter || undefined,
+            cohort_filter: cohortFilter || undefined,
+          });
+          if (controller.signal.aborted) return;
+          setRows(res.data.rows || []);
+          setFeeSummary(
+            res.data.fee_summary || {
+              paid_this_month_paise: 0,
+              unpaid_this_month_paise: 0,
+              potential_after_discounts_paise: 0,
+              total_discounts_paise: 0,
+              active_but_not_scheduled_paise: 0,
+            },
+          );
+          setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
+        }
       } else if (tab === "discounts") {
         const res = await paymentsAdminApi.getDiscounts(year, month, {
           page: currentPage,

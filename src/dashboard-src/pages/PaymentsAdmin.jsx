@@ -36,6 +36,11 @@ export default function PaymentsAdmin() {
   const sel = usePaymentsAdminSelectors(state);
   const [downloadingType, setDownloadingType] = useState(null);
 
+  const now = new Date();
+  const physYm = now.getFullYear() * 12 + (now.getMonth() + 1);
+  const selectedYm = Number(state.year) * 12 + Number(state.month);
+  const isFuture = state.tab === "fee" && selectedYm > physYm;
+
   async function triggerFeeExport(exportType) {
     if (downloadingType) return;
     setDownloadingType(exportType);
@@ -215,7 +220,7 @@ export default function PaymentsAdmin() {
         </div>
       </div>
 
-      {state.tab === "fee" ? (
+      {state.tab === "fee" && !isFuture ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <StatCard
             label="Paid This Month"
@@ -289,7 +294,7 @@ export default function PaymentsAdmin() {
               <div className="mb-5 flex flex-col gap-4 border-b border-slate-100 pb-4">
                 {/* Row 1: Search & Operations */}
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  {qph ? (
+                  {qph && !isFuture ? (
                     <ControlInput
                       value={q}
                       onChange={(e) => setQ(e.target.value)}
@@ -453,47 +458,57 @@ export default function PaymentsAdmin() {
                       </div>
                     ) : null}
 
-                    <ControlButton
-                      onClick={() => state.loadTabData(true)}
-                      variant="secondary"
-                      className="h-9 px-3 text-xs"
-                      disabled={state.loading}
-                    >
-                      <RefreshCw size={12} className={`mr-1.5 ${state.loading ? 'animate-spin' : ''}`} />
-                      {state.loading ? "Refreshing..." : "Refresh"}
-                    </ControlButton>
+                    {!isFuture && (
+                      <>
+                        <ControlButton
+                          onClick={() => state.loadTabData(true)}
+                          variant="secondary"
+                          className="h-9 px-3 text-xs"
+                          disabled={state.loading}
+                        >
+                          <RefreshCw size={12} className={`mr-1.5 ${state.loading ? 'animate-spin' : ''}`} />
+                          {state.loading ? "Refreshing..." : "Refresh"}
+                        </ControlButton>
 
-                    <div className="h-4 w-px bg-slate-200" />
+                        <div className="h-4 w-px bg-slate-200" />
 
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs text-slate-500 font-medium">
-                        Rows
-                      </span>
-                      <ControlSelect
-                        value={state.rowsPerPage}
-                        onChange={(e) =>
-                          state.setRowsPerPage(Number(e.target.value))
-                        }
-                        className="w-20 h-9 text-xs"
-                      >
-                        <option value={10}>10</option>
-                        <option value={20}>20</option>
-                        <option value={50}>50</option>
-                      </ControlSelect>
-                    </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs text-slate-500 font-medium">
+                            Rows
+                          </span>
+                          <ControlSelect
+                            value={state.rowsPerPage}
+                            onChange={(e) =>
+                              state.setRowsPerPage(Number(e.target.value))
+                            }
+                            className="w-20 h-9 text-xs"
+                          >
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                          </ControlSelect>
+                        </div>
 
-                    <span className="rounded-lg border border-slate-200 bg-slate-100/70 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                      {Number(
-                        state.pagination?.total || sel.baseRowsForTable.length,
-                      )}{" "}
-                      results
-                    </span>
+                        <span className="rounded-lg border border-slate-200 bg-slate-100/70 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                          {Number(
+                            state.pagination?.total || sel.baseRowsForTable.length,
+                          )}{" "}
+                          results
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
             )}
 
-            {state.loading ? (
+            {isFuture ? (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/50 p-12 text-center">
+                <p className="text-lg font-semibold text-slate-500">
+                  Snapshots will be visible in {MONTH_NAMES[state.month]} {state.year}
+                </p>
+              </div>
+            ) : state.loading ? (
               <TableSkeleton />
             ) : !["fee", "discounts", "all", "month", "invoice"].includes(
                 state.tab,
@@ -608,7 +623,7 @@ export default function PaymentsAdmin() {
               />
             )}
 
-            {state.tab !== "overall" && (
+            {state.tab !== "overall" && !isFuture && (
               <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
                 <PaginationBar
                   currentPage={state.currentPage}
