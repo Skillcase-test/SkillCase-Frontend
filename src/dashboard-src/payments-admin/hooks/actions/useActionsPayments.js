@@ -25,6 +25,7 @@ export function useActionsPayments(state) {
     paymentBookedOnly,
     paymentNotBookedOnly,
     paymentRecruitmentOnly,
+    paymentLinksOnly,
   } = state;
 
   async function exportPaymentsExcel() {
@@ -37,35 +38,62 @@ export function useActionsPayments(state) {
         booked: paymentBookedOnly || undefined,
         not_booked: paymentNotBookedOnly || undefined,
         recruitment: paymentRecruitmentOnly || undefined,
+        payment_links: paymentLinksOnly || undefined,
         download: true,
       });
       const downloadRows = res.data.rows || [];
 
-      const headers = [
-        "Student Name",
-        "Phone",
-        "Batch",
-        "Amount (INR)",
-        "Status",
-        "Payment ID",
-        "Paid At",
-        "Booked Month",
-        "Candidate Type",
-      ];
-      const data = downloadRows.map((r) => [
-        r.student_name || "",
-        r.student_phone || "",
-        r.batch_name || "",
-        (Number(r.amount_paise || 0) / 100).toFixed(2),
-        r.payment_status || "",
-        r.razorpay_payment_id || "",
-        r.paid_at ? formatIstDateTime(r.paid_at) : "",
-        r.booked_month ? (MONTH_NAMES[r.booked_month] || "null") : "null",
-        r.enrollment_notes?.candidate_type === "recruitment" ? "Recruitment" : "Student",
-      ]);
+      const headers = paymentLinksOnly
+        ? [
+            "Candidate Name",
+            "Phone",
+            "Email",
+            "Amount (INR)",
+            "Created Date",
+            "Reference ID",
+            "Short URL",
+            "Description",
+          ]
+        : [
+            "Student Name",
+            "Phone",
+            "Batch",
+            "Amount (INR)",
+            "Status",
+            "Payment ID",
+            "Paid At",
+            "Booked Month",
+            "Candidate Type",
+          ];
+
+      const data = downloadRows.map((r) =>
+        paymentLinksOnly
+          ? [
+              r.student_name || "",
+              r.student_phone || "",
+              r.student_email || "",
+              (Number(r.amount_paise || 0) / 100).toFixed(2),
+              r.paid_at ? formatIstDateTime(r.paid_at) : "",
+              r.razorpay_payment_id || "",
+              r.short_url || "",
+              r.description || "",
+            ]
+          : [
+              r.student_name || "",
+              r.student_phone || "",
+              r.batch_name || "",
+              (Number(r.amount_paise || 0) / 100).toFixed(2),
+              r.payment_status || "",
+              r.razorpay_payment_id || "",
+              r.paid_at ? formatIstDateTime(r.paid_at) : "",
+              r.booked_month ? (MONTH_NAMES[r.booked_month] || "null") : "null",
+              r.enrollment_notes?.candidate_type === "recruitment" ? "Recruitment" : "Student",
+            ]
+      );
 
       const totalAmountPaise = downloadRows.reduce((sum, r) => sum + Number(r.signed_amount_paise ?? r.amount_paise ?? 0), 0);
       const totalAmountInr = (totalAmountPaise / 100).toFixed(2);
+      const emptyCellsCount = headers.length - 4;
 
       let html = `
         <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -75,7 +103,7 @@ export function useActionsPayments(state) {
             <x:ExcelWorkbook>
               <x:ExcelWorksheets>
                 <x:ExcelWorksheet>
-                  <x:Name>Payments</x:Name>
+                  <x:Name>${paymentLinksOnly ? "Payment Links" : "Payments"}</x:Name>
                   <x:WorksheetOptions>
                     <x:DisplayGridlines/>
                   </x:WorksheetOptions>
@@ -109,11 +137,7 @@ export function useActionsPayments(state) {
                 <td></td>
                 <td></td>
                 <td>${totalAmountInr}</td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
+                ${Array.from({ length: emptyCellsCount }).map(() => `<td></td>`).join("")}
               </tr>
             </tbody>
           </table>
@@ -125,15 +149,15 @@ export function useActionsPayments(state) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const baseFilename = paymentAllTime
-        ? "payments_all_time"
-        : `payments_${year}_${String(month).padStart(2, "0")}`;
-      const filename = `${baseFilename}${paymentBookedOnly ? "_booked" : ""}${paymentNotBookedOnly ? "_not_booked" : ""}${paymentRecruitmentOnly ? "_recruitment" : ""}.xls`;
+      const baseFilename = paymentLinksOnly
+        ? paymentAllTime ? "payment_links_all_time" : `payment_links_${year}_${String(month).padStart(2, "0")}`
+        : paymentAllTime ? "payments_all_time" : `payments_${year}_${String(month).padStart(2, "0")}`;
+      const filename = `${baseFilename}${!paymentLinksOnly && paymentBookedOnly ? "_booked" : ""}${!paymentLinksOnly && paymentNotBookedOnly ? "_not_booked" : ""}${!paymentLinksOnly && paymentRecruitmentOnly ? "_recruitment" : ""}.xls`;
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err?.response?.data?.msg || "Failed to download payments Excel");
+      setError(err?.response?.data?.msg || "Failed to download Excel");
     }
   }
 

@@ -378,10 +378,11 @@ export default function PaymentsAdmin() {
                           </span>
                         </label>
                         <div className="h-4 w-px bg-slate-200" />
-                        <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer">
+                        <label className={`flex items-center gap-2 text-sm text-slate-700 select-none ${state.paymentLinksOnly ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
                           <input
                             type="checkbox"
                             checked={state.paymentBookedOnly}
+                            disabled={state.paymentLinksOnly}
                             onChange={(e) => {
                               state.setCurrentPage(1);
                               state.setPaymentBookedOnly(e.target.checked);
@@ -393,10 +394,11 @@ export default function PaymentsAdmin() {
                           </span>
                         </label>
                         <div className="h-4 w-px bg-slate-200" />
-                        <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer">
+                        <label className={`flex items-center gap-2 text-sm text-slate-700 select-none ${state.paymentLinksOnly ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
                           <input
                             type="checkbox"
                             checked={state.paymentNotBookedOnly}
+                            disabled={state.paymentLinksOnly}
                             onChange={(e) => {
                               state.setCurrentPage(1);
                               state.setPaymentNotBookedOnly(e.target.checked);
@@ -408,10 +410,11 @@ export default function PaymentsAdmin() {
                           </span>
                         </label>
                         <div className="h-4 w-px bg-slate-200" />
-                        <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer">
+                        <label className={`flex items-center gap-2 text-sm text-slate-700 select-none ${state.paymentLinksOnly ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
                           <input
                             type="checkbox"
                             checked={state.paymentRecruitmentOnly}
+                            disabled={state.paymentLinksOnly}
                             onChange={(e) => {
                               state.setCurrentPage(1);
                               state.setPaymentRecruitmentOnly(e.target.checked);
@@ -423,10 +426,11 @@ export default function PaymentsAdmin() {
                           </span>
                         </label>
                         <div className="h-4 w-px bg-slate-200" />
-                        <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer">
+                        <label className={`flex items-center gap-2 text-sm text-slate-700 select-none ${state.paymentLinksOnly ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
                           <input
                             type="checkbox"
                             checked={state.paymentTrainingOnly}
+                            disabled={state.paymentLinksOnly}
                             onChange={(e) => {
                               state.setCurrentPage(1);
                               state.setPaymentTrainingOnly(e.target.checked);
@@ -435,6 +439,27 @@ export default function PaymentsAdmin() {
                           />
                           <span className="font-semibold text-slate-700">
                             Training Only
+                          </span>
+                        </label>
+                        <div className="h-4 w-px bg-slate-200" />
+                        <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={state.paymentLinksOnly}
+                            onChange={(e) => {
+                              state.setCurrentPage(1);
+                              state.setPaymentLinksOnly(e.target.checked);
+                              if (e.target.checked) {
+                                state.setPaymentBookedOnly(false);
+                                state.setPaymentNotBookedOnly(false);
+                                state.setPaymentRecruitmentOnly(false);
+                                state.setPaymentTrainingOnly(false);
+                              }
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                          />
+                          <span className="font-semibold text-slate-700">
+                            Payment Links
                           </span>
                         </label>
                       </div>
@@ -632,7 +657,7 @@ export default function PaymentsAdmin() {
                   setRelinkModal: state.setRelinkModal,
                   bookAmountModal: state.bookAmountModal,
                   setBookAmountModal: state.setBookAmountModal,
-                  setCreatePaymentLinkModal: setCreatePaymentLinkModal,
+                  paymentLinksOnly: state.paymentLinksOnly,
                   handleCreateManualTransaction:
                     actions.handleCreateManualTransaction,
                   handleUpdateManualTransaction:

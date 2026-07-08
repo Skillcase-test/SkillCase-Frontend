@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
 import { ArrowUp, ArrowDown, ArrowUpDown, Edit2 } from "lucide-react";
-import { ActionChip, ControlButton } from "../components/controls";
+import { ActionChip } from "../components/controls";
 import { MONTH_NAMES } from "../utils/constants";
 
 export function PaymentViewTab({
@@ -18,7 +18,6 @@ export function PaymentViewTab({
   handleTagRecruitment,
   savingEnrollmentId,
   totalAmountPaise,
-  setCreatePaymentLinkModal,
 }) {
   const [selectedTxIds, setSelectedTxIds] = useState([]);
 
@@ -28,9 +27,10 @@ export function PaymentViewTab({
 
   const bookableRows = rows.filter(
     (r) =>
+      !r.is_payment_link &&
       !r.booked_amount_id &&
       ["captured", "authorized", "processed"].includes(r.payment_status) &&
-      Number(r.signed_amount_paise ?? r.amount_paise) > 0
+      Number(r.signed_amount_paise ?? r.amount_paise) > 0,
   );
 
   const handleToggleSelectAll = () => {
@@ -45,9 +45,10 @@ export function PaymentViewTab({
     setSelectedTxIds((prev) =>
       prev.includes(paymentId)
         ? prev.filter((id) => id !== paymentId)
-        : [...prev, paymentId]
+        : [...prev, paymentId],
     );
   };
+
   const handleSort = (field) => {
     if (field === "paid_at") {
       if (paymentSortBy === "paid_at") {
@@ -84,35 +85,29 @@ export function PaymentViewTab({
     );
   };
 
-  const selectedPayments = rows.filter((r) => selectedTxIds.includes(r.payment_id));
+  const selectedPayments = rows.filter((r) =>
+    selectedTxIds.includes(r.payment_id),
+  );
   const selectedAmountPaise = selectedPayments.reduce(
     (sum, r) => sum + Number(r.signed_amount_paise ?? r.amount_paise ?? 0),
-    0
+    0,
   );
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm">
-        <div>
-          <h3 className="text-sm font-bold uppercase text-slate-500">
-            Payment Transactions
-          </h3>
-          <p className="text-xs text-slate-400 mt-0.5">View transaction logs and generate custom billing links.</p>
-        </div>
-        <ControlButton
-          onClick={() => setCreatePaymentLinkModal({ open: true })}
-          variant="primary"
-          className="h-9 text-xs px-4"
-        >
-          Create Payment Link
-        </ControlButton>
-      </div>
-
       {selectedTxIds.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-slate-700">
-              Selected <span className="font-bold text-slate-900">{selectedTxIds.length}</span> payments (Total: <span className="font-bold text-slate-900">{formatInrFromPaise(selectedAmountPaise)}</span>)
+              Selected{" "}
+              <span className="font-bold text-slate-900">
+                {selectedTxIds.length}
+              </span>{" "}
+              payments (Total:{" "}
+              <span className="font-bold text-slate-900">
+                {formatInrFromPaise(selectedAmountPaise)}
+              </span>
+              )
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -144,7 +139,10 @@ export function PaymentViewTab({
               <th className="px-3 py-3 w-10 text-center">
                 <input
                   type="checkbox"
-                  checked={bookableRows.length > 0 && selectedTxIds.length === bookableRows.length}
+                  checked={
+                    bookableRows.length > 0 &&
+                    selectedTxIds.length === bookableRows.length
+                  }
                   onChange={handleToggleSelectAll}
                   className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 cursor-pointer"
                 />
@@ -216,8 +214,11 @@ export function PaymentViewTab({
                 }`}
               >
                 <td className="px-3 py-3 text-center">
-                  {!r.booked_amount_id &&
-                  ["captured", "authorized", "processed"].includes(r.payment_status) &&
+                  {!r.is_payment_link &&
+                  !r.booked_amount_id &&
+                  ["captured", "authorized", "processed"].includes(
+                    r.payment_status,
+                  ) &&
                   Number(r.signed_amount_paise ?? r.amount_paise) > 0 ? (
                     <input
                       type="checkbox"
@@ -237,77 +238,110 @@ export function PaymentViewTab({
                 <td className="px-2 py-2">
                   <div className="flex items-center gap-1.5">
                     <span>{r.student_phone || "-"}</span>
-                    {(!r.metadata_json || r.metadata_json.source !== "admin_manual_actual") && (
-                      <button
-                        onClick={() => setRelinkModal({ open: true, payment: r })}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-slate-200 transition-all text-slate-500"
-                        title="Link or relink transaction by phone number"
-                      >
-                        <Edit2 className="h-3 w-3" />
-                      </button>
-                    )}
+                    {!r.is_payment_link &&
+                      (!r.metadata_json ||
+                        r.metadata_json.source !== "admin_manual_actual") && (
+                        <button
+                          onClick={() =>
+                            setRelinkModal({ open: true, payment: r })
+                          }
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-slate-200 transition-all text-slate-500"
+                          title="Link or relink transaction by phone number"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                        </button>
+                      )}
                   </div>
                 </td>
                 <td className="px-2 py-2">
                   {formatInrFromPaise(r.signed_amount_paise ?? r.amount_paise)}
                 </td>
-                <td className="px-2 py-2">{r.paid_at ? formatIstDateTime(r.paid_at) : "-"}</td>
+                <td className="px-2 py-2">
+                  {r.paid_at ? formatIstDateTime(r.paid_at) : "-"}
+                </td>
                 <td className="px-2 py-2">{r.razorpay_payment_id || "-"}</td>
                 <td className="px-2 py-2 text-center">
                   <div className="flex items-center justify-center gap-2">
-                    {r.booked_amount_id ? (
-                      <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
-                        Booked: {MONTH_NAMES[r.booked_month] || r.booked_month}{" "}
-                        {r.booked_year}
-                      </span>
-                    ) : (
-                      ["captured", "authorized", "processed"].includes(
-                        r.payment_status,
-                      ) &&
-                      Number(r.signed_amount_paise ?? r.amount_paise) > 0 && (
+                    {r.is_payment_link ? (
+                      <div className="flex flex-col items-center gap-0.5">
                         <ActionChip
-                          onClick={() =>
-                            setBookAmountModal({ open: true, payment: r })
-                          }
-                          variant="success"
-                        >
-                          Book
-                        </ActionChip>
-                      )
-                    )}
-                    {r.enrollment_id &&
-                      (r.enrollment_notes?.candidate_type === "recruitment" ? (
-                        <span
-                          className="rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 border border-indigo-200"
-                          title="Candidate tagged as recruitment"
-                        >
-                          Recruitment
-                        </span>
-                      ) : (
-                        <ActionChip
-                          onClick={() =>
-                            handleTagRecruitment?.(
-                              r.enrollment_id,
-                              r.student_name,
-                            )
-                          }
-                          disabled={savingEnrollmentId === r.enrollment_id}
+                          onClick={() => {
+                            navigator.clipboard.writeText(r.short_url || "");
+                            alert("Payment link copied to clipboard!");
+                          }}
                           variant="primary"
                         >
-                          {savingEnrollmentId === r.enrollment_id
-                            ? "Tagging..."
-                            : "Tag as Recruitment"}
+                          Copy Link
                         </ActionChip>
-                      ))}
-                    {r.metadata_json?.source === "admin_manual_actual" && (
-                      <ActionChip
-                        onClick={() =>
-                          handleDeleteManualTransaction(r.payment_id)
-                        }
-                        variant="danger"
-                      >
-                        Delete
-                      </ActionChip>
+                        {r.description && (
+                          <span
+                            className="text-[9px] text-slate-400 font-medium truncate max-w-[150px]"
+                            title={r.description}
+                          >
+                            {r.description}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        {r.booked_amount_id ? (
+                          <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                            Booked:{" "}
+                            {MONTH_NAMES[r.booked_month] || r.booked_month}{" "}
+                            {r.booked_year}
+                          </span>
+                        ) : (
+                          ["captured", "authorized", "processed"].includes(
+                            r.payment_status,
+                          ) &&
+                          Number(r.signed_amount_paise ?? r.amount_paise) >
+                            0 && (
+                            <ActionChip
+                              onClick={() =>
+                                setBookAmountModal({ open: true, payment: r })
+                              }
+                              variant="success"
+                            >
+                              Book
+                            </ActionChip>
+                          )
+                        )}
+                        {r.enrollment_id &&
+                          (r.enrollment_notes?.candidate_type ===
+                          "recruitment" ? (
+                            <span
+                              className="rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 border border-indigo-200"
+                              title="Candidate tagged as recruitment"
+                            >
+                              Recruitment
+                            </span>
+                          ) : (
+                            <ActionChip
+                              onClick={() =>
+                                handleTagRecruitment?.(
+                                  r.enrollment_id,
+                                  r.student_name,
+                                )
+                              }
+                              disabled={savingEnrollmentId === r.enrollment_id}
+                              variant="primary"
+                            >
+                              {savingEnrollmentId === r.enrollment_id
+                                ? "Tagging..."
+                                : "Tag as Recruitment"}
+                            </ActionChip>
+                          ))}
+                        {r.metadata_json?.source === "admin_manual_actual" && (
+                          <ActionChip
+                            onClick={() =>
+                              handleDeleteManualTransaction(r.payment_id)
+                            }
+                            variant="danger"
+                          >
+                            Delete
+                          </ActionChip>
+                        )}
+                      </>
                     )}
                   </div>
                 </td>
@@ -317,7 +351,9 @@ export function PaymentViewTab({
           <tfoot>
             <tr className="border-t-2 border-slate-200 bg-slate-50 font-semibold text-slate-700">
               <td className="px-3 py-3"></td>
-              <td className="px-3 py-3 font-bold text-slate-800">Total Amount</td>
+              <td className="px-3 py-3 font-bold text-slate-800">
+                Total Amount
+              </td>
               <td className="px-2 py-2"></td>
               <td className="px-2 py-2 font-bold">
                 {formatInrFromPaise(totalAmountPaise)}

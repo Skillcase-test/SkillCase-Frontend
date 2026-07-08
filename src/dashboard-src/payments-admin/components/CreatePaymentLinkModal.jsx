@@ -18,8 +18,6 @@ export function CreatePaymentLinkModal({
   setModal,
   candidateOptions = [],
 }) {
-  if (!modal?.open) return null;
-
   const [isCustomCandidate, setIsCustomCandidate] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [phoneSearch, setPhoneSearch] = useState("");
@@ -86,6 +84,8 @@ export function CreatePaymentLinkModal({
       }
     };
   }, []);
+
+  if (!modal?.open) return null;
 
   const handlePhoneChange = async (val) => {
     setPhoneSearch(val);

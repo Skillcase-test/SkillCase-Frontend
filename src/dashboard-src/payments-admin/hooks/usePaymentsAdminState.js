@@ -119,6 +119,7 @@ export function usePaymentsAdminState() {
   const [paymentAllTime, setPaymentAllTime] = useState(false);
   const [paymentBookedOnly, setPaymentBookedOnlyState] = useState(false);
   const [paymentNotBookedOnly, setPaymentNotBookedOnlyState] = useState(false);
+  const [paymentLinksOnly, setPaymentLinksOnly] = useState(false);
 
   const setPaymentBookedOnly = (val) => {
     setPaymentBookedOnlyState(val);
@@ -393,6 +394,7 @@ export function usePaymentsAdminState() {
           not_booked: paymentNotBookedOnly || undefined,
           recruitment: paymentRecruitmentOnly || undefined,
           training: paymentTrainingOnly || undefined,
+          payment_links: paymentLinksOnly || undefined,
         });
         if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
@@ -500,6 +502,7 @@ export function usePaymentsAdminState() {
     tab === "payments" ? paymentNotBookedOnly : null,
     tab === "payments" ? paymentRecruitmentOnly : null,
     tab === "payments" ? paymentTrainingOnly : null,
+    tab === "payments" ? paymentLinksOnly : null,
     tab === "rawlogs" ? debouncedRawSearch : null,
     tab === "rawlogs" ? rawEventTypeFilter : null,
     tab === "rawlogs" ? rawStatusFilter : null,
@@ -727,5 +730,7 @@ export function usePaymentsAdminState() {
     refreshBatches,
     refreshCandidateOptions,
     loadTabData,
+    paymentLinksOnly,
+    setPaymentLinksOnly,
   };
 }
