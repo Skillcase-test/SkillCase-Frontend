@@ -195,6 +195,65 @@ function parseStatusLogs(rawLogs) {
       if (payload.undropped_from_month && payload.undropped_from_year) {
         effectiveStr = "(Effective " + String(payload.undropped_from_month).padStart(2, "0") + "/" + payload.undropped_from_year + ")";
       }
+    } else if (log.event_type === "payment.marked_on_hold_automatically_60days") {
+      if (currentState === "Pending") {
+        statusEvents.push({
+          raw_log_id: "inferred-finalize-" + log.raw_log_id,
+          fromStatus: "Pending",
+          toStatus: "Active",
+          effectiveStr: "",
+          received_at: log.received_at,
+        });
+        currentState = "Active";
+      }
+      fromStatus = currentState;
+      toStatus = "On Hold";
+      currentState = "On Hold";
+      effectiveStr = "(Auto Hold)";
+      if (payload.hold_start_month && payload.hold_start_year) {
+        effectiveStr += " (Effective " + String(payload.hold_start_month).padStart(2, "0") + "/" + payload.hold_start_year + ")";
+      }
+    } else if (log.event_type === "payment.marked_on_hold_ended_automatically") {
+      fromStatus = "On Hold";
+      toStatus = "Active";
+      currentState = "Active";
+      effectiveStr = "(Auto Resume)";
+    } else if (log.event_type === "payment.marked_dropped_automatically_90days") {
+      if (currentState === "Pending") {
+        statusEvents.push({
+          raw_log_id: "inferred-finalize-" + log.raw_log_id,
+          fromStatus: "Pending",
+          toStatus: "Active",
+          effectiveStr: "",
+          received_at: log.received_at,
+        });
+        currentState = "Active";
+      }
+      fromStatus = currentState;
+      toStatus = "Dropped";
+      currentState = "Dropped";
+      effectiveStr = "(Auto Drop)";
+      if (payload.dropped_from_month && payload.dropped_from_year) {
+        effectiveStr += " (Effective " + String(payload.dropped_from_month).padStart(2, "0") + "/" + payload.dropped_from_year + ")";
+      }
+    } else if (log.event_type.startsWith("admin.state_override_")) {
+      const subState = log.event_type.replace("admin.state_override_", "");
+      fromStatus = currentState;
+      if (subState === "cleared") {
+        toStatus = "Auto";
+        currentState = "Active";
+        effectiveStr = "(Override Cleared)";
+      } else {
+        const stateLabels = {
+          active: "Active",
+          on_hold: "On Hold",
+          dropped: "Dropped",
+          completed: "Completed"
+        };
+        toStatus = stateLabels[subState] || subState;
+        currentState = toStatus;
+        effectiveStr = `(Override: "${payload.reason || "No reason"}")`;
+      }
     }
 
     if (toStatus) {
@@ -218,6 +277,7 @@ export function CandidateDetailsForm({
   handleSaveEnrollmentEdit,
   handleDeleteCandidate,
   savingEnrollmentId,
+  onRefresh,
 }) {
   const paymentIdCounts = useMemo(() => {
     const counts = {};
@@ -293,10 +353,51 @@ export function CandidateDetailsForm({
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
 
+  const [isOverrideModalOpen, setIsOverrideModalOpen] = useState(false);
+  const [overrideState, setOverrideState] = useState("");
+  const [overrideReason, setOverrideReason] = useState("");
+  const [isSubmittingOverride, setIsSubmittingOverride] = useState(false);
+  const [overrideError, setOverrideError] = useState("");
+
   useEffect(() => {
     setIsEditingCandidateId(false);
     setIsEditingEnrollmentDate(false);
+    setOverrideState(editDraft?.state_override?.state || "");
+    setOverrideReason(editDraft?.state_override?.reason || "");
+    setOverrideError("");
   }, [editDraft?.enrollment_id]);
+
+  const handleApplyOverride = async (e) => {
+    e?.preventDefault();
+    if (overrideState && !overrideReason.trim()) {
+      setOverrideError("Reason is required to override lifecycle state.");
+      return;
+    }
+    setIsSubmittingOverride(true);
+    setOverrideError("");
+    try {
+      const res = await paymentsAdminApi.overrideEnrollmentState(editDraft.enrollment_id, {
+        state: overrideState || null,
+        reason: overrideReason.trim(),
+      });
+      if (res.data?.success) {
+        setEditDraft((p) => ({
+          ...p,
+          notes: res.data.notes,
+          status: res.data.status ?? p.status,
+          state_override: res.data.notes?.state_override || null,
+          lifecycle_state: res.data.lifecycle_state ?? p.lifecycle_state,
+        }));
+        setIsOverrideModalOpen(false);
+        onRefresh?.();
+      }
+    } catch (err) {
+      console.error(err);
+      setOverrideError(err.response?.data?.msg || "Failed to save state override.");
+    } finally {
+      setIsSubmittingOverride(false);
+    }
+  };
 
   useEffect(() => {
     if (!editDraft) return;
@@ -399,7 +500,7 @@ export function CandidateDetailsForm({
     return () => {
       active = false;
     };
-  }, [editDraft?.enrollment_id, isCreateMode]);
+  }, [editDraft?.enrollment_id, isCreateMode, editDraft?.notes, editDraft?.status]);
 
   const textField = ([key, label]) => (
     <Field key={key} label={label} required={requiredFieldKeys.has(key)}>
@@ -908,6 +1009,51 @@ export function CandidateDetailsForm({
               </div>
             )}
           </Field>
+          {!isCreateMode && (
+            <Field label="Lifecycle State">
+              <div className="flex items-center gap-2">
+                <div className="relative flex h-10 flex-1 items-center justify-between rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm">
+                  <div className="flex items-center gap-2">
+                    {(() => {
+                      const st = String(editDraft.state_override?.state || editDraft.lifecycle_state || editDraft.status || "active").toLowerCase();
+                      if (st === "archived" || st === "dropped" || st === "rejected") {
+                        return <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-bold text-rose-700 border border-rose-100">Dropped</span>;
+                      }
+                      if (st === "on_hold") {
+                        return <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-700 border border-amber-100">On Hold</span>;
+                      }
+                      if (st === "completed") {
+                        return <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-bold text-sky-700 border border-sky-100">Completed</span>;
+                      }
+                      if (st === "refunded") {
+                        return <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700 border border-slate-200">Refunded</span>;
+                      }
+                      return <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700 border border-emerald-100">Active</span>;
+                    })()}
+                  </div>
+
+                  {editDraft.state_override?.state ? (
+                    <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 animate-pulse">
+                      Manual Override
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Auto (System)
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsOverrideModalOpen(true)}
+                  className="flex h-10 px-4 items-center justify-center rounded-xl border border-slate-200 bg-white text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-800 shadow-sm transition active:scale-95"
+                  title="Override State"
+                >
+                  Override
+                </button>
+              </div>
+            </Field>
+          )}
           {personalFields.map(textField)}
           <Field label="State" required={requiredFieldKeys.has("state")}>
             <ControlSelect
@@ -1415,6 +1561,69 @@ export function CandidateDetailsForm({
           ) : null}
         </div>
       </section>
+
+      {/* State Override Modal */}
+      {isOverrideModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-slate-800 mb-2">
+              State Override
+            </h3>
+            <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+              Manually force this candidate into a specific lifecycle state, bypassing auto sweeps. To restore auto-calculation, select "Restore Auto-Calculation (Clear Override)".
+            </p>
+
+            <form onSubmit={handleApplyOverride} className="space-y-4">
+              {overrideError && (
+                <div className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-xs font-semibold text-rose-700">
+                  {overrideError}
+                </div>
+              )}
+
+              <Field label="Target Lifecycle State">
+                <ControlSelect
+                  value={overrideState}
+                  onChange={(e) => setOverrideState(e.target.value)}
+                  className="w-full"
+                >
+                  <option value="">-- Restore Auto (No Override) --</option>
+                  <option value="active">Active</option>
+                  <option value="on_hold">On Hold</option>
+                  <option value="dropped">Dropped</option>
+                  <option value="completed">Completed</option>
+                </ControlSelect>
+              </Field>
+
+              <Field label="Reason / Documentation" required={!!overrideState}>
+                <textarea
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  placeholder="Provide details on why this override is being applied..."
+                  rows={3}
+                  className="flex w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-slate-400 focus:ring-1 focus:ring-slate-400 resize-none min-h-[90px]"
+                />
+              </Field>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsOverrideModalOpen(false)}
+                  disabled={isSubmittingOverride}
+                  className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <ControlButton
+                  type="submit"
+                  disabled={isSubmittingOverride}
+                >
+                  {isSubmittingOverride ? "Saving..." : "Apply Override"}
+                </ControlButton>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

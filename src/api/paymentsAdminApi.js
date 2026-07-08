@@ -38,6 +38,8 @@ export const paymentsAdminApi = {
     api.post(`/admin/payments/enrollments/${enrollmentId}/finalize`),
   deleteEnrollment: (enrollmentId) =>
     api.post(`/admin/payments/enrollments/${enrollmentId}/delete`),
+  overrideEnrollmentState: (enrollmentId, payload) =>
+    api.post(`/admin/payments/enrollments/${enrollmentId}/override-state`, payload),
 
   getBatches: (params = {}) => api.get("/admin/payments/batches", { params }),
   getBatchStudents: (batchId, params = {}) =>

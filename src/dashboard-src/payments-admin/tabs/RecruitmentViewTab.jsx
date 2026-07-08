@@ -301,74 +301,34 @@ export function RecruitmentViewTab({
                     </div>
                   </td>
                   <td className="px-2 py-2">
-                    {r.status === "pending" ? (
+                    {r.lifecycle_state === "dropped" ? (
+                      <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
+                        Dropped
+                      </span>
+                    ) : r.status === "archived" || r.lifecycle_state === "archived" ? (
+                      <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
+                        Rejected
+                      </span>
+                    ) : r.status === "refunded" || r.lifecycle_state === "refunded" ? (
+                      <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                        Refunded
+                      </span>
+                    ) : r.lifecycle_state === "on_hold" ? (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                        On Hold
+                      </span>
+                    ) : r.lifecycle_state === "completed" ? (
+                      <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
+                        Completed
+                      </span>
+                    ) : r.lifecycle_state === "active" || r.status === "finalized" ? (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                        Active
+                      </span>
+                    ) : (
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
                         Pending
                       </span>
-                    ) : (
-                      <div className="w-32">
-                        <ControlDropdown
-                          value={String(
-                            r.lifecycle_state || r.status || "",
-                          ).toLowerCase()}
-                          onChange={(val) =>
-                            handleChangeCandidateStatus?.(r, val)
-                          }
-                          placeholder="Status"
-                          compact
-                          fixedMenu
-                          disabled={
-                            updatingBatchEnrollmentId === r.enrollment_id ||
-                            String(
-                              r.lifecycle_state || r.status || "",
-                            ).toLowerCase() === "refunded"
-                          }
-                          options={(() => {
-                            const s = String(
-                              r.lifecycle_state || r.status || "",
-                            ).toLowerCase();
-                            const opts = [
-                              {
-                                value: s,
-                                label:
-                                  s === "on_hold"
-                                    ? "On Hold"
-                                    : s === "archived"
-                                      ? "Rejected"
-                                      : s === "refunded"
-                                        ? "Refunded"
-                                        : s.charAt(0).toUpperCase() +
-                                          s.slice(1),
-                              },
-                            ];
-
-                            if (s === "dropped" || s === "archived") {
-                              opts.push({ value: "active", label: "Active" });
-                            } else if (s === "on_hold") {
-                              opts.push({ value: "active", label: "Active" });
-                              opts.push({ value: "dropped", label: "Dropped" });
-                            } else if (
-                              s === "active" ||
-                              s === "pending" ||
-                              s === "completed" ||
-                              s === "finalized"
-                            ) {
-                              opts.push({ value: "on_hold", label: "On Hold" });
-                              opts.push({ value: "dropped", label: "Dropped" });
-                              if (s !== "completed") {
-                                opts.push({
-                                  value: "completed",
-                                  label: "Completed",
-                                });
-                              }
-                              if (s === "completed") {
-                                opts.push({ value: "active", label: "Active" });
-                              }
-                            }
-                            return opts;
-                          })()}
-                        />
-                      </div>
                     )}
                   </td>
                   <td className="px-2 py-2">
