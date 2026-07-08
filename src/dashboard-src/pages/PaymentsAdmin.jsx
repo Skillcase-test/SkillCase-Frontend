@@ -22,6 +22,7 @@ import { CopyAgreementModal } from "../payments-admin/components/CopyAgreementMo
 import { ImportPaymentsPage } from "../payments-admin/components/ImportPaymentsPage";
 import { ImportCandidatesPage } from "../payments-admin/components/ImportCandidatesPage";
 import { BookAmountModal } from "../payments-admin/components/BookAmountModal";
+import { CreatePaymentLinkModal } from "../payments-admin/components/CreatePaymentLinkModal";
 import { usePaymentsAdminActions } from "../payments-admin/hooks/usePaymentsAdminActions";
 import { usePaymentsAdminSelectors } from "../payments-admin/hooks/usePaymentsAdminSelectors";
 import { usePaymentsAdminState } from "../payments-admin/hooks/usePaymentsAdminState";
@@ -34,6 +35,7 @@ export default function PaymentsAdmin() {
   const state = usePaymentsAdminState();
   const actions = usePaymentsAdminActions(state);
   const sel = usePaymentsAdminSelectors(state);
+  const [createPaymentLinkModal, setCreatePaymentLinkModal] = useState({ open: false });
   const [downloadingType, setDownloadingType] = useState(null);
 
   const now = new Date();
@@ -326,6 +328,12 @@ export default function PaymentsAdmin() {
                     ) : null}
                     {state.tab === "payments" ? (
                       <>
+                        <ControlButton
+                          onClick={() => setCreatePaymentLinkModal({ open: true })}
+                          variant="secondary"
+                        >
+                          Create Payment Link
+                        </ControlButton>
                         <ControlButton
                           onClick={() =>
                             state.setManualPaymentModal({
@@ -624,6 +632,7 @@ export default function PaymentsAdmin() {
                   setRelinkModal: state.setRelinkModal,
                   bookAmountModal: state.bookAmountModal,
                   setBookAmountModal: state.setBookAmountModal,
+                  setCreatePaymentLinkModal: setCreatePaymentLinkModal,
                   handleCreateManualTransaction:
                     actions.handleCreateManualTransaction,
                   handleUpdateManualTransaction:
@@ -729,6 +738,11 @@ export default function PaymentsAdmin() {
         modal={state.bookAmountModal}
         setModal={state.setBookAmountModal}
         onConfirm={actions.handleBookAmount}
+      />
+      <CreatePaymentLinkModal
+        modal={createPaymentLinkModal}
+        setModal={setCreatePaymentLinkModal}
+        candidateOptions={state.candidateOptions}
       />
     </div>
   );

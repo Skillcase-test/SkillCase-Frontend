@@ -236,6 +236,11 @@ function parseStatusLogs(rawLogs) {
       if (payload.dropped_from_month && payload.dropped_from_year) {
         effectiveStr += " (Effective " + String(payload.dropped_from_month).padStart(2, "0") + "/" + payload.dropped_from_year + ")";
       }
+    } else if (log.event_type === "admin.payment_link_created") {
+      fromStatus = "Link Generated";
+      const amountInr = (Number(payload.amount_paise || 0) / 100).toFixed(2);
+      toStatus = `₹${amountInr}`;
+      effectiveStr = `(${payload.description || "No description"})`;
     } else if (log.event_type.startsWith("admin.state_override_")) {
       const subState = log.event_type.replace("admin.state_override_", "");
       fromStatus = currentState;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
 import { ArrowUp, ArrowDown, ArrowUpDown, Edit2 } from "lucide-react";
-import { ActionChip } from "../components/controls";
+import { ActionChip, ControlButton } from "../components/controls";
 import { MONTH_NAMES } from "../utils/constants";
 
 export function PaymentViewTab({
@@ -18,6 +18,7 @@ export function PaymentViewTab({
   handleTagRecruitment,
   savingEnrollmentId,
   totalAmountPaise,
+  setCreatePaymentLinkModal,
 }) {
   const [selectedTxIds, setSelectedTxIds] = useState([]);
 
@@ -91,6 +92,22 @@ export function PaymentViewTab({
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm">
+        <div>
+          <h3 className="text-sm font-bold uppercase text-slate-500">
+            Payment Transactions
+          </h3>
+          <p className="text-xs text-slate-400 mt-0.5">View transaction logs and generate custom billing links.</p>
+        </div>
+        <ControlButton
+          onClick={() => setCreatePaymentLinkModal({ open: true })}
+          variant="primary"
+          className="h-9 text-xs px-4"
+        >
+          Create Payment Link
+        </ControlButton>
+      </div>
+
       {selectedTxIds.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
           <div className="flex items-center gap-2">
