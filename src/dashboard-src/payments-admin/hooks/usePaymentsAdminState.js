@@ -121,6 +121,7 @@ export function usePaymentsAdminState() {
   const [paymentRecruitmentOnly, setPaymentRecruitmentOnlyState] = useState(false);
   const [paymentTrainingOnly, setPaymentTrainingOnlyState] = useState(false);
   const [paymentTotalAmountPaise, setPaymentTotalAmountPaise] = useState(0);
+  const [recruitmentAllTime, setRecruitmentAllTime] = useState(false);
 
   const setPaymentRecruitmentOnly = (val) => {
     setPaymentRecruitmentOnlyState(val);
@@ -235,7 +236,7 @@ export function usePaymentsAdminState() {
     setError("");
     try {
       if (tab === "all" || tab === "recruitment") {
-        const res = await paymentsAdminApi.getAllView({
+        const params = {
           page: currentPage,
           limit: rowsPerPage,
           search: debouncedAllSearch || undefined,
@@ -244,7 +245,12 @@ export function usePaymentsAdminState() {
           sortBy: allSortBy,
           sortOrder: allSortOrder,
           candidate_type: tab === "recruitment" ? "recruitment" : "student",
-        });
+        };
+        if (tab === "recruitment" && !recruitmentAllTime) {
+          params.year = year;
+          params.month = month;
+        }
+        const res = await paymentsAdminApi.getAllView(params);
         if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
         setAllSummary(
@@ -477,6 +483,7 @@ export function usePaymentsAdminState() {
     tab === "payments" ? paymentSortBy : null,
     tab === "payments" ? paymentSortOrder : null,
     tab === "payments" ? paymentAllTime : null,
+    tab === "recruitment" ? recruitmentAllTime : null,
     tab === "payments" ? paymentBookedOnly : null,
     tab === "payments" ? paymentRecruitmentOnly : null,
     tab === "payments" ? paymentTrainingOnly : null,
@@ -508,6 +515,7 @@ export function usePaymentsAdminState() {
     setEditDraft(null);
     setCurrentPage(1);
     setPaymentAllTime(false);
+    setRecruitmentAllTime(false);
     setPaymentBookedOnly(false);
     setPaymentRecruitmentOnly(false);
     setPaymentTrainingOnly(false);
@@ -667,6 +675,8 @@ export function usePaymentsAdminState() {
     setFeeSummary,
     manualPaymentModal,
     setManualPaymentModal,
+    recruitmentAllTime,
+    setRecruitmentAllTime,
     relinkModal,
     setRelinkModal,
     copyLinkModal,

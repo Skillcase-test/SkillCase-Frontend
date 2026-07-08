@@ -415,6 +415,24 @@ export default function PaymentsAdmin() {
                         </label>
                       </div>
                     )}
+                    {state.tab === "recruitment" && (
+                      <div className="flex flex-wrap items-center gap-4">
+                        <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={state.recruitmentAllTime}
+                            onChange={(e) => {
+                              state.setCurrentPage(1);
+                              state.setRecruitmentAllTime(e.target.checked);
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                          />
+                          <span className="font-semibold text-slate-700">
+                            All Time
+                          </span>
+                        </label>
+                      </div>
+                    )}
                   </div>
 
                   {/* Right: Date Selectors, Refresh & Rows Per Page */}
@@ -429,7 +447,8 @@ export default function PaymentsAdmin() {
                             state.setYear(Number(e.target.value))
                           }
                           disabled={
-                            state.tab === "payments" && state.paymentAllTime
+                            (state.tab === "payments" && state.paymentAllTime) ||
+                            (state.tab === "recruitment" && state.recruitmentAllTime)
                           }
                           className="w-24 h-9 text-xs"
                         >
@@ -445,7 +464,8 @@ export default function PaymentsAdmin() {
                             state.setMonth(Number(e.target.value))
                           }
                           disabled={
-                            state.tab === "payments" && state.paymentAllTime
+                            (state.tab === "payments" && state.paymentAllTime) ||
+                            (state.tab === "recruitment" && state.recruitmentAllTime)
                           }
                           className="w-32 h-9 text-xs"
                         >
