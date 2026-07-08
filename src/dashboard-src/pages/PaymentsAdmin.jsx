@@ -228,6 +228,7 @@ export default function PaymentsAdmin() {
             label="Paid This Month"
             value={formatInrFromPaise(sel.feeSummary.paidSoFar)}
             tone="emerald"
+            infoText="Money received from students during this month."
             onDownload={() => triggerFeeExport("paid")}
             downloading={downloadingType === "paid"}
           />
@@ -235,6 +236,7 @@ export default function PaymentsAdmin() {
             label="Unpaid This Month"
             value={formatInrFromPaise(sel.feeSummary.unpaidSoFar)}
             tone="amber"
+            infoText="Money still pending from students for this month, including any previous pending balance."
             onDownload={() => triggerFeeExport("unpaid")}
             downloading={downloadingType === "unpaid"}
           />
@@ -242,6 +244,7 @@ export default function PaymentsAdmin() {
             label="Potential After Discounts"
             value={formatInrFromPaise(sel.feeSummary.potentialAfterDiscounts)}
             tone="purple"
+            infoText="Money we expected to collect this month from active students after discounts."
             onDownload={() => triggerFeeExport("potential")}
             downloading={downloadingType === "potential"}
           />
@@ -249,6 +252,7 @@ export default function PaymentsAdmin() {
             label="Discounts This Month"
             value={formatInrFromPaise(sel.feeSummary.totalDiscounts)}
             tone="blue"
+            infoText="Total discount given to students for this month."
             onDownload={() => triggerFeeExport("discounts")}
             downloading={downloadingType === "discounts"}
           />
@@ -256,13 +260,17 @@ export default function PaymentsAdmin() {
             label="Active, Not Scheduled"
             value={formatInrFromPaise(sel.feeSummary.activeButNotScheduled)}
             tone="slate"
+            infoText="Active students who are expected to pay this month but do not have a fee schedule set."
             onDownload={() => triggerFeeExport("not_scheduled")}
             downloading={downloadingType === "not_scheduled"}
           />
           <StatCard
-            label="Selected Month"
-            value={`${MONTH_NAMES[state.month]} ${state.year}`}
-            tone="indigo"
+            label="Potential Lost"
+            value={formatInrFromPaise(sel.feeSummary.potentialLost)}
+            tone="rose"
+            infoText="Money we expected this month but lost because students went on hold or were dropped."
+            onDownload={() => triggerFeeExport("potential_lost")}
+            downloading={downloadingType === "potential_lost"}
           />
         </div>
       ) : null}

@@ -1,3 +1,5 @@
+import { Info } from "lucide-react";
+
 export function TableSkeleton({ rows = 6 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -16,7 +18,7 @@ export function TableSkeleton({ rows = 6 }) {
   );
 }
 
-export function StatCard({ label, value, tone = "slate", subText, onDownload, downloading }) {
+export function StatCard({ label, value, tone = "slate", subText, infoText, onDownload, downloading }) {
   const toneClass =
     tone === "emerald"
       ? "border-emerald-200 bg-emerald-50 text-emerald-900"
@@ -28,7 +30,9 @@ export function StatCard({ label, value, tone = "slate", subText, onDownload, do
             ? "border-indigo-200 bg-indigo-50 text-indigo-900"
             : tone === "purple"
               ? "border-purple-200 bg-purple-50 text-purple-900"
-              : "border-slate-200 bg-white text-slate-900";
+              : tone === "rose"
+                ? "border-rose-200 bg-rose-50 text-rose-900"
+                : "border-slate-200 bg-white text-slate-900";
 
   const btnClass =
     tone === "emerald"
@@ -41,14 +45,33 @@ export function StatCard({ label, value, tone = "slate", subText, onDownload, do
             ? "border-indigo-300 text-indigo-700 bg-white hover:bg-indigo-100/50"
             : tone === "purple"
               ? "border-purple-300 text-purple-700 bg-white hover:bg-purple-100/50"
-              : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50";
+              : tone === "rose"
+                ? "border-rose-300 text-rose-700 bg-white hover:bg-rose-100/50"
+                : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50";
 
   return (
     <div className={`flex flex-col justify-between rounded-2xl border p-4 shadow-sm ${toneClass}`}>
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
-          {label}
-        </p>
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
+            {label}
+          </p>
+          {infoText ? (
+            <span className="group relative inline-flex shrink-0">
+              <button
+                type="button"
+                className="rounded-full p-0.5 opacity-70 transition hover:bg-white/70 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-current/25"
+                aria-label={`${label} definition`}
+                title={infoText}
+              >
+                <Info className="h-3.5 w-3.5" />
+              </button>
+              <span className="pointer-events-none absolute right-0 top-6 z-20 w-56 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-[11px] font-medium leading-snug text-slate-700 opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-within:opacity-100">
+                {infoText}
+              </span>
+            </span>
+          ) : null}
+        </div>
         <p className="mt-2 text-xl font-bold">{value}</p>
         {subText && (
           <p className="mt-1 text-[10px] opacity-75">
