@@ -690,6 +690,7 @@ export default function PaymentsAdmin() {
                   invoiceRows: state.invoiceRows,
                   allSearch: state.allSearch,
                   bookedSummaryRows: state.bookedSummaryRows,
+                  bookedSummaryUnbookedTotal: state.bookedSummaryUnbookedTotal,
                   summaryMonthsLimit: state.summaryMonthsLimit,
                   setSummaryMonthsLimit: state.setSummaryMonthsLimit,
                   summaryMonthDetail: state.summaryMonthDetail,

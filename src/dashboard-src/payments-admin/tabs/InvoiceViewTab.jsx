@@ -68,6 +68,7 @@ export function InvoiceViewTab({
   invoiceRows = [],
   allSearch = "",
   bookedSummaryRows = [],
+  bookedSummaryUnbookedTotal = { amount_paise: 0, count: 0 },
   summaryMonthsLimit = 6,
   setSummaryMonthsLimit,
   summaryMonthDetail = null,
@@ -742,84 +743,99 @@ export function InvoiceViewTab({
                 <th className="px-2 py-3 text-right">Booked (New)</th>
                 <th className="px-2 py-3 text-right">Booked (Old)</th>
                 <th className="px-2 py-3 text-right">Total Booked</th>
-                <th className="px-2 py-3 text-right">Amount Not Booked</th>
               </tr>
             </thead>
             <tbody>
               {bookedSummaryRows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={4}
                     className="px-3 py-8 text-center text-slate-500 text-xs"
                   >
                     No booked amount records found.
                   </td>
                 </tr>
               ) : (
-                bookedSummaryRows.map((r, idx) => (
-                  <tr
-                    key={`${r.target_year}-${r.target_month}`}
-                    onClick={() =>
-                      setMonthSelectionModal({
-                        year: r.target_year,
-                        month: r.target_month,
-                        label: formatMonthYearName(
+                <>
+                  {bookedSummaryRows.map((r, idx) => (
+                    <tr
+                      key={`${r.target_year}-${r.target_month}`}
+                      onClick={() =>
+                        handleViewSummaryMonthCandidates(
                           r.target_year,
                           r.target_month,
-                        ),
-                      })
+                          formatMonthYearName(r.target_year, r.target_month)
+                        )
+                      }
+                      className={
+                        idx % 2 === 0
+                          ? "bg-white hover:bg-slate-50/80 cursor-pointer select-none transition-colors duration-150"
+                          : "bg-slate-50/60 hover:bg-slate-50/80 cursor-pointer select-none transition-colors duration-150"
+                      }
+                    >
+                      <td className="px-3 py-3 font-semibold text-slate-700 text-left">
+                        {formatMonthYearName(r.target_year, r.target_month)}
+                      </td>
+                      <td className="px-2 py-3 text-right">
+                        <div className="font-semibold text-slate-700">
+                          {formatInrFromPaise(r.amount_new_paise)}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {r.count_new}{" "}
+                          {r.count_new === 1 ? "candidate" : "candidates"}
+                        </div>
+                      </td>
+                      <td className="px-2 py-3 text-right">
+                        <div className="font-semibold text-slate-700">
+                          {formatInrFromPaise(r.amount_old_paise)}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {r.count_old}{" "}
+                          {r.count_old === 1 ? "candidate" : "candidates"}
+                        </div>
+                      </td>
+                      <td className="px-2 py-3 text-right">
+                        <div className="font-bold text-slate-800">
+                          {formatInrFromPaise(
+                            Number(r.amount_new_paise) +
+                              Number(r.amount_old_paise),
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-medium">
+                          {Number(r.count_new) + Number(r.count_old)} total
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  <tr
+                    onClick={() =>
+                      handleViewSummaryMonthUnbooked(
+                        "",
+                        "",
+                        "Money Not Booked"
+                      )
                     }
-                    className={
-                      idx % 2 === 0
-                        ? "bg-white hover:bg-slate-50/80 cursor-pointer select-none transition-colors duration-150"
-                        : "bg-slate-50/60 hover:bg-slate-50/80 cursor-pointer select-none transition-colors duration-150"
-                    }
+                    className="bg-amber-50/30 hover:bg-amber-50/60 cursor-pointer select-none transition-colors duration-150 border-t border-slate-200"
                   >
-                    <td className="px-3 py-3 font-semibold text-slate-700 text-left">
-                      {formatMonthYearName(r.target_year, r.target_month)}
+                    <td className="px-3 py-3 text-left">
+                      {/* Month is blank */}
                     </td>
                     <td className="px-2 py-3 text-right">
-                      <div className="font-semibold text-slate-700">
-                        {formatInrFromPaise(r.amount_new_paise)}
-                      </div>
-                      <div className="text-[10px] text-slate-400">
-                        {r.count_new}{" "}
-                        {r.count_new === 1 ? "candidate" : "candidates"}
-                      </div>
+                      {/* Booked New is blank */}
                     </td>
                     <td className="px-2 py-3 text-right">
-                      <div className="font-semibold text-slate-700">
-                        {formatInrFromPaise(r.amount_old_paise)}
-                      </div>
-                      <div className="text-[10px] text-slate-400">
-                        {r.count_old}{" "}
-                        {r.count_old === 1 ? "candidate" : "candidates"}
-                      </div>
+                      {/* Booked Old is blank */}
                     </td>
                     <td className="px-2 py-3 text-right">
-                      <div className="font-bold text-slate-800">
-                        {formatInrFromPaise(
-                          Number(r.amount_new_paise) +
-                            Number(r.amount_old_paise),
-                        )}
+                      <div className="font-bold text-amber-700">
+                        {formatInrFromPaise(bookedSummaryUnbookedTotal?.amount_paise || 0)}
                       </div>
                       <div className="text-[10px] text-slate-500 font-medium">
-                        {Number(r.count_new) + Number(r.count_old)} total
-                      </div>
-                    </td>
-                    <td className="px-2 py-3 text-right">
-                      <div className="font-semibold text-amber-700">
-                        {formatInrFromPaise(r.amount_unbooked_paise || 0)}
-                      </div>
-                      <div className="text-[10px] text-slate-400">
-                        {r.count_unbooked || 0}{" "}
-                        {r.count_unbooked === 1
-                          ? "transaction"
-                          : "transactions"}
+                        {bookedSummaryUnbookedTotal?.count || 0} total not booked
                       </div>
                     </td>
                   </tr>
-                ))
+                </>
               )}
             </tbody>
           </table>
@@ -1157,73 +1173,6 @@ export function InvoiceViewTab({
         </div>
       )}
 
-      {/* Month Selection Modal (Booked vs Not Booked) */}
-      {monthSelectionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 transition-all duration-300 animate-in fade-in zoom-in-95">
-          <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-950/20 flex flex-col relative transform transition-transform duration-300 scale-100">
-            {/* Close Cross button */}
-            <button
-              onClick={() => setMonthSelectionModal(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors text-sm font-sans"
-            >
-              ✕
-            </button>
-
-            {/* Header */}
-            <div className="pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-lg font-bold text-slate-900">
-                View Details — {monthSelectionModal.label}
-              </h3>
-              <p className="mt-1 text-xs text-slate-500">
-                Choose the type of list you want to display.
-              </p>
-            </div>
-
-            {/* Content Body */}
-            <div className="py-2 text-sm text-slate-600 mb-6 leading-relaxed">
-              Select whether you want to view candidates with booked collections
-              or payments that are currently unbooked for this month.
-            </div>
-
-            {/* Actions Grid */}
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => {
-                  handleViewSummaryMonthCandidates(
-                    monthSelectionModal.year,
-                    monthSelectionModal.month,
-                    monthSelectionModal.label,
-                  );
-                  setMonthSelectionModal(null);
-                }}
-                className="w-full py-3 rounded-2xl bg-[#002856] hover:bg-[#002870] text-white font-bold text-sm shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-150 text-center cursor-pointer"
-              >
-                View Booked Payments
-              </button>
-              <button
-                onClick={() => {
-                  handleViewSummaryMonthUnbooked(
-                    monthSelectionModal.year,
-                    monthSelectionModal.month,
-                    monthSelectionModal.label,
-                  );
-                  setMonthSelectionModal(null);
-                }}
-                className="w-full py-3 rounded-2xl bg-black/90 hover:bg-black text-white font-bold text-sm shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-150 text-center cursor-pointer"
-              >
-                View Not Booked Payments
-              </button>
-              <button
-                onClick={() => setMonthSelectionModal(null)}
-                className="w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-all duration-150 text-center mt-1 cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Not Booked Payments Details Modal */}
       {summaryUnbookedDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 transition-all duration-300">
@@ -1232,10 +1181,14 @@ export function InvoiceViewTab({
             <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">
-                  Not Booked Payments — {summaryUnbookedDetail.label}
+                  {summaryUnbookedDetail.label === "Money Not Booked"
+                    ? "Money Not Booked"
+                    : `Not Booked Payments — ${summaryUnbookedDetail.label}`}
                 </h3>
                 <p className="mt-1 text-xs text-slate-500">
-                  Payments received this month that have not yet been booked.
+                  {summaryUnbookedDetail.label === "Money Not Booked"
+                    ? "Payments received that have not yet been booked."
+                    : "Payments received this month that have not yet been booked."}
                 </p>
               </div>
               <div className="flex items-center gap-2">

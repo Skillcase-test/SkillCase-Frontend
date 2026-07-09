@@ -192,6 +192,10 @@ export function usePaymentsAdminState() {
   const [invoiceRows, setInvoiceRows] = useState([]);
   const [invoicePaymentRows, setInvoicePaymentRows] = useState([]);
   const [bookedSummaryRows, setBookedSummaryRows] = useState([]);
+  const [bookedSummaryUnbookedTotal, setBookedSummaryUnbookedTotal] = useState({
+    amount_paise: 0,
+    count: 0,
+  });
   const [summaryMonthsLimit, setSummaryMonthsLimit] = useState(6);
   const [summaryMonthDetail, setSummaryMonthDetail] = useState(null);
   const [summaryCandidatesRows, setSummaryCandidatesRows] = useState([]);
@@ -303,6 +307,9 @@ export function usePaymentsAdminState() {
         setInvoiceRows(invRes.data.rows || []);
         setInvoicePaymentRows(pendingRes.data.rows || []);
         setBookedSummaryRows(summaryRes.data.rows || []);
+        setBookedSummaryUnbookedTotal(
+          summaryRes.data.unbooked_total || { amount_paise: 0, count: 0 },
+        );
         setRows([]);
         setPagination({ page: 1, limit: rowsPerPage, total: (pendingRes.data.rows || []).length, total_pages: 1 });
       } else if (tab === "batch") {
@@ -731,6 +738,23 @@ export function usePaymentsAdminState() {
     setInvoicePaymentRows,
     bookedSummaryRows,
     setBookedSummaryRows,
+    bookedSummaryUnbookedTotal,
+    setBookedSummaryUnbookedTotal,
+    summaryMonthsLimit,
+    setSummaryMonthsLimit,
+    summaryMonthDetail,
+    setSummaryMonthDetail,
+    summaryCandidatesRows,
+    setSummaryCandidatesRows,
+    summaryCandidatesLoading,
+    setSummaryCandidatesLoading,
+    handleViewSummaryMonthCandidates,
+    summaryUnbookedDetail,
+    setSummaryUnbookedDetail,
+    summaryUnbookedRows,
+    setSummaryUnbookedRows,
+    summaryUnbookedLoading,
+    setSummaryUnbookedLoading,
     summaryMonthsLimit,
     setSummaryMonthsLimit,
     summaryMonthDetail,
@@ -762,5 +786,7 @@ export function usePaymentsAdminState() {
     loadTabData,
     paymentLinksOnly,
     setPaymentLinksOnly,
+    bookedSummaryUnbookedTotal,
+    setBookedSummaryUnbookedTotal,
   };
 }
