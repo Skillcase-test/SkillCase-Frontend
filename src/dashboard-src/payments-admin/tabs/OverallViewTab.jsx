@@ -42,6 +42,17 @@ function getDayOffsetDate(offset) {
   return d.toISOString().slice(0, 10);
 }
 
+function getFirstDayOfCurrentMonth() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
+function getLastDayOfCurrentMonth() {
+  const d = new Date();
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+}
+
 function getCurrentMonthStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -280,10 +291,10 @@ function ComparativeBarChart({
 export function OverallViewTab() {
   const [interval, setInterval] = useState("day");
   
-  const [fromDate, setFromDate] = useState(() => getDayOffsetDate(-30));
-  const [toDate, setToDate] = useState(() => getDayOffsetDate(0));
+  const [fromDate, setFromDate] = useState(() => getFirstDayOfCurrentMonth());
+  const [toDate, setToDate] = useState(() => getLastDayOfCurrentMonth());
 
-  const [fromMonth, setFromMonth] = useState(() => getMonthsOffsetStr(-5));
+  const [fromMonth, setFromMonth] = useState(() => getCurrentMonthStr());
   const [toMonth, setToMonth] = useState(() => getCurrentMonthStr());
 
   const [loading, setLoading] = useState(false);

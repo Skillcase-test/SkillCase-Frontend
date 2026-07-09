@@ -828,7 +828,7 @@ export function InvoiceViewTab({
 
       {/* Verify Candidate State Modal */}
       {step === 2 && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-slate-900/40 p-4 transition-all duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 transition-all duration-300">
           <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-950/20 flex flex-col transform transition-transform duration-300 scale-100">
             <div className="border-b border-slate-100 pb-3">
               <h3 className="text-lg font-bold text-slate-900">
@@ -894,7 +894,7 @@ export function InvoiceViewTab({
 
       {/* Preview/View GST Invoice Modal */}
       {step === 3 && draftInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-slate-900/40 p-4 transition-all duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 transition-all duration-300">
           <div className="w-full max-w-5xl rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-950/20 flex flex-col h-[90vh]">
             <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
               <div>
@@ -997,7 +997,7 @@ export function InvoiceViewTab({
 
       {/* Booked Candidates Details Modal */}
       {summaryMonthDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-slate-900/40 p-4 transition-all duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 transition-all duration-300">
           <div className="w-full max-w-4xl rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-950/20 flex flex-col h-[75vh] transform transition-transform duration-300 scale-100">
             {/* Modal Header */}
             <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
@@ -1159,7 +1159,7 @@ export function InvoiceViewTab({
 
       {/* Month Selection Modal (Booked vs Not Booked) */}
       {monthSelectionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-slate-900/40 p-4 transition-all duration-300 animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 transition-all duration-300 animate-in fade-in zoom-in-95">
           <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-950/20 flex flex-col relative transform transition-transform duration-300 scale-100">
             {/* Close Cross button */}
             <button
@@ -1226,7 +1226,7 @@ export function InvoiceViewTab({
 
       {/* Not Booked Payments Details Modal */}
       {summaryUnbookedDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-slate-900/40 p-4 transition-all duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 transition-all duration-300">
           <div className="w-full max-w-4xl rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-950/20 flex flex-col h-[75vh] transform transition-transform duration-300 scale-100">
             {/* Modal Header */}
             <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
