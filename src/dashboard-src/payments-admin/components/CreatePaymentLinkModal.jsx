@@ -29,6 +29,7 @@ export function CreatePaymentLinkModal({
 
   const [amountInr, setAmountInr] = useState("");
   const [description, setDescription] = useState("");
+  const [linkType, setLinkType] = useState("standard");
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -59,6 +60,7 @@ export function CreatePaymentLinkModal({
     setCustomEmail("");
     setAmountInr("");
     setDescription("");
+    setLinkType("standard");
     setErrorMsg("");
     setGeneratedLink("");
     setCopied(false);
@@ -187,6 +189,7 @@ export function CreatePaymentLinkModal({
       const payload = {
         amount_inr: amt,
         description: description.trim() || undefined,
+        link_type: linkType,
       };
 
       if (isCustomCandidate) {
@@ -410,6 +413,67 @@ export function CreatePaymentLinkModal({
                   disabled={submitting}
                   className="w-full"
                 />
+              </div>
+
+              {/* Link Type Selector */}
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  Payment Method
+                </label>
+                <div className="flex gap-3">
+                  <label
+                    htmlFor="link-type-standard"
+                    className={`flex-1 flex items-center gap-2.5 rounded-xl border p-3 cursor-pointer transition ${
+                      linkType === "standard"
+                        ? "border-slate-800 bg-slate-50"
+                        : "border-slate-200 bg-white hover:bg-slate-50/60"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      id="link-type-standard"
+                      name="link_type"
+                      value="standard"
+                      checked={linkType === "standard"}
+                      onChange={() => setLinkType("standard")}
+                      disabled={submitting}
+                      className="h-3.5 w-3.5 accent-slate-800"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-slate-800">Standard</div>
+                      <div className="text-xs text-slate-400">All methods</div>
+                    </div>
+                  </label>
+
+                  <label
+                    htmlFor="link-type-upi"
+                    className={`flex-1 flex items-center gap-2.5 rounded-xl border p-3 cursor-pointer transition ${
+                      linkType === "upi"
+                        ? "border-slate-800 bg-slate-50"
+                        : "border-slate-200 bg-white hover:bg-slate-50/60"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      id="link-type-upi"
+                      name="link_type"
+                      value="upi"
+                      checked={linkType === "upi"}
+                      onChange={() => setLinkType("upi")}
+                      disabled={submitting}
+                      className="h-3.5 w-3.5 accent-slate-800"
+                    />
+                    <div>
+                      <div className="text-xs font-bold text-slate-800">UPI Only</div>
+                      <div className="text-xs text-slate-400">Mobile only</div>
+                    </div>
+                  </label>
+                </div>
+                {linkType === "upi" && (
+                  <p className="text-xs text-amber-600 font-medium">
+                    UPI-only links open in UPI apps (GPay, PhonePe), require live Razorpay keys, and cannot be paid from desktop.
+                  </p>
+                )}
               </div>
 
               {/* Confirmation section to prevent wrong amounts */}

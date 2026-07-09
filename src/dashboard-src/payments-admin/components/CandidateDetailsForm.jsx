@@ -236,8 +236,12 @@ function parseStatusLogs(rawLogs) {
       if (payload.dropped_from_month && payload.dropped_from_year) {
         effectiveStr += " (Effective " + String(payload.dropped_from_month).padStart(2, "0") + "/" + payload.dropped_from_year + ")";
       }
-    } else if (log.event_type === "admin.payment_link_created") {
-      fromStatus = "Link Generated";
+    } else if (
+      log.event_type === "admin.payment_link_created" ||
+      log.event_type === "admin.razorpay_standard_link_created" ||
+      log.event_type === "admin.razorpay_upi_link_created"
+    ) {
+      fromStatus = payload.link_type === "upi" ? "UPI Link Generated" : "Link Generated";
       const amountInr = (Number(payload.amount_paise || 0) / 100).toFixed(2);
       toStatus = `₹${amountInr}`;
       effectiveStr = `(${payload.description || "No description"})`;
