@@ -196,6 +196,10 @@ export function usePaymentsAdminState() {
   const [summaryMonthDetail, setSummaryMonthDetail] = useState(null);
   const [summaryCandidatesRows, setSummaryCandidatesRows] = useState([]);
   const [summaryCandidatesLoading, setSummaryCandidatesLoading] = useState(false);
+  const [summaryUnbookedDetail, setSummaryUnbookedDetail] = useState(null);
+  const [summaryUnbookedRows, setSummaryUnbookedRows] = useState([]);
+  const [summaryUnbookedLoading, setSummaryUnbookedLoading] = useState(false);
+  const [monthSelectionModal, setMonthSelectionModal] = useState(null);
   const [selectedInvoicePaymentId, setSelectedInvoicePaymentId] = useState("");
   const [candidateOptions, setCandidateOptions] = useState([]);
   const [isImportingPayments, setIsImportingPayments] = useState(false);
@@ -440,6 +444,20 @@ export function usePaymentsAdminState() {
       setError(err?.response?.data?.msg || "Failed to load month candidates");
     } finally {
       setSummaryCandidatesLoading(false);
+    }
+  }
+
+  async function handleViewSummaryMonthUnbooked(year, month, label) {
+    setSummaryUnbookedDetail({ year, month, label });
+    setSummaryUnbookedLoading(true);
+    setSummaryUnbookedRows([]);
+    try {
+      const res = await paymentsAdminApi.getUnbookedSummaryPayments(year, month);
+      setSummaryUnbookedRows(res.data.rows || []);
+    } catch (err) {
+      setError(err?.response?.data?.msg || "Failed to load unbooked payments");
+    } finally {
+      setSummaryUnbookedLoading(false);
     }
   }
 
@@ -722,6 +740,15 @@ export function usePaymentsAdminState() {
     summaryCandidatesLoading,
     setSummaryCandidatesLoading,
     handleViewSummaryMonthCandidates,
+    summaryUnbookedDetail,
+    setSummaryUnbookedDetail,
+    summaryUnbookedRows,
+    setSummaryUnbookedRows,
+    summaryUnbookedLoading,
+    setSummaryUnbookedLoading,
+    monthSelectionModal,
+    setMonthSelectionModal,
+    handleViewSummaryMonthUnbooked,
     selectedInvoicePaymentId,
     setSelectedInvoicePaymentId,
     candidateOptions,

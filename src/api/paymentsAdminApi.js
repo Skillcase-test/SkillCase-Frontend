@@ -111,6 +111,8 @@ export const paymentsAdminApi = {
     api.get("/admin/payments/invoices/booked-summary", { params }),
   getBookedSummaryCandidates: (year, month) =>
     api.get("/admin/payments/invoices/booked-summary/candidates", { params: { year, month } }),
+  getUnbookedSummaryPayments: (year, month) =>
+    api.get("/admin/payments/invoices/booked-summary/unbooked", { params: { year, month } }),
 
   createManualTransaction: (payload) =>
     api.post("/admin/payments/transactions/manual", payload),

@@ -48,7 +48,11 @@ const INDIAN_STATES = [
 
 const formatMonthYearName = (year, month) => {
   const date = new Date(Date.UTC(year, month - 1, 1));
-  return date.toLocaleString("en-US", { month: "long", year: "numeric", timeZone: "UTC" });
+  return date.toLocaleString("en-US", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 };
 
 export function InvoiceViewTab({
@@ -71,6 +75,13 @@ export function InvoiceViewTab({
   summaryCandidatesRows = [],
   summaryCandidatesLoading = false,
   handleViewSummaryMonthCandidates,
+  summaryUnbookedDetail = null,
+  setSummaryUnbookedDetail,
+  summaryUnbookedRows = [],
+  summaryUnbookedLoading = false,
+  monthSelectionModal = null,
+  setMonthSelectionModal,
+  handleViewSummaryMonthUnbooked,
 }) {
   const [step, setStep] = useState(1);
   const [verifiedState, setVerifiedState] = useState("");
@@ -97,12 +108,18 @@ export function InvoiceViewTab({
       if (typeof str !== "string") return str;
       return str.replace(/[<>&'"]/g, (c) => {
         switch (c) {
-          case "<": return "&lt;";
-          case ">": return "&gt;";
-          case "&": return "&amp;";
-          case "'": return "&apos;";
-          case "\"": return "&quot;";
-          default: return c;
+          case "<":
+            return "&lt;";
+          case ">":
+            return "&gt;";
+          case "&":
+            return "&amp;";
+          case "'":
+            return "&apos;";
+          case '"':
+            return "&quot;";
+          default:
+            return c;
         }
       });
     };
@@ -113,7 +130,7 @@ export function InvoiceViewTab({
       "Enrollment Date",
       "Candidate Status",
       "Booked On",
-      "Booked Amount (INR)"
+      "Booked Amount (INR)",
     ];
 
     const data = filtered.map((r) => [
@@ -122,10 +139,13 @@ export function InvoiceViewTab({
       r.created_at ? formatIstDate(r.created_at) : "",
       r.is_new ? "New Candidate" : "Old Candidate",
       r.booked_at ? formatIstDate(r.booked_at) : "",
-      (Number(r.amount_paise || 0) / 100).toFixed(2)
+      (Number(r.amount_paise || 0) / 100).toFixed(2),
     ]);
 
-    const totalAmountPaise = filtered.reduce((sum, r) => sum + Number(r.amount_paise || 0), 0);
+    const totalAmountPaise = filtered.reduce(
+      (sum, r) => sum + Number(r.amount_paise || 0),
+      0,
+    );
     const totalAmountInr = (totalAmountPaise / 100).toFixed(2);
 
     let html = `
@@ -160,11 +180,15 @@ export function InvoiceViewTab({
             </tr>
           </thead>
           <tbody>
-            ${data.map((row) => `
+            ${data
+              .map(
+                (row) => `
               <tr>
                 ${row.map((cell) => `<td>${cell}</td>`).join("")}
               </tr>
-            `).join("")}
+            `,
+              )
+              .join("")}
             <tr style="font-weight: bold; background-color: #f8fafc;">
               <td>Total</td>
               <td></td>
@@ -187,6 +211,131 @@ export function InvoiceViewTab({
       ? summaryMonthDetail.label.toLowerCase().replace(/\s+/g, "_")
       : "booked_candidates";
     a.download = `booked_candidates_${baseMonthLabel}.xls`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadUnbookedExcel = () => {
+    const filtered = (summaryUnbookedRows || []).filter((r) => {
+      const q = candidatesSearch.trim().toLowerCase();
+      if (!q) return true;
+      return (
+        (r.student_name || "").toLowerCase().includes(q) ||
+        (r.student_email || "").toLowerCase().includes(q) ||
+        (r.student_phone || "").toLowerCase().includes(q)
+      );
+    });
+
+    const escapeXml = (str) => {
+      if (typeof str !== "string") return str;
+      return str.replace(/[<>&'"]/g, (c) => {
+        switch (c) {
+          case "<":
+            return "&lt;";
+          case ">":
+            return "&gt;";
+          case "&":
+            return "&amp;";
+          case "'":
+            return "&apos;";
+          case '"':
+            return "&quot;";
+          default:
+            return c;
+        }
+      });
+    };
+
+    const headers = [
+      "Candidate Name",
+      "Phone",
+      "Email",
+      "Paid At",
+      "Payment ID",
+      "Method",
+      "Amount (INR)",
+    ];
+
+    const data = filtered.map((r) => [
+      escapeXml(r.student_name || ""),
+      escapeXml(r.student_phone || ""),
+      escapeXml(r.student_email || ""),
+      r.paid_at ? formatIstDate(r.paid_at) : "",
+      r.razorpay_payment_id || "",
+      r.payment_method || "",
+      (Number(r.amount_paise || 0) / 100).toFixed(2),
+    ]);
+
+    const totalAmountPaise = filtered.reduce(
+      (sum, r) => sum + Number(r.amount_paise || 0),
+      0,
+    );
+    const totalAmountInr = (totalAmountPaise / 100).toFixed(2);
+
+    let html = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <!--[if gte mso 9]>
+        <xml>
+          <x:ExcelWorkbook>
+            <x:ExcelWorksheets>
+              <x:ExcelWorksheet>
+                <x:Name>Unbooked Payments</x:Name>
+                <x:WorksheetOptions>
+                  <x:DisplayGridlines/>
+                </x:WorksheetOptions>
+              </x:ExcelWorksheet>
+            </x:ExcelWorksheets>
+          </x:ExcelWorkbook>
+        </xml>
+        <![endif]-->
+        <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+        <style>
+          table { border-collapse: collapse; }
+          th { background-color: #f1f5f9; font-weight: bold; border: 1px solid #cbd5e1; padding: 6px; }
+          td { border: 1px solid #cbd5e1; padding: 6px; }
+        </style>
+      </head>
+      <body>
+        <table>
+          <thead>
+            <tr>
+              ${headers.map((h) => `<th>${h}</th>`).join("")}
+            </tr>
+          </thead>
+          <tbody>
+            ${data
+              .map(
+                (row) => `
+              <tr>
+                ${row.map((cell) => `<td>${cell}</td>`).join("")}
+              </tr>
+            `,
+              )
+              .join("")}
+            <tr style="font-weight: bold; background-color: #f8fafc;">
+              <td>Total</td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td></td>
+              <td>${totalAmountInr}</td>
+            </tr>
+          </tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([html], { type: "application/vnd.ms-excel" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const baseMonthLabel = summaryUnbookedDetail?.label
+      ? summaryUnbookedDetail.label.toLowerCase().replace(/\s+/g, "_")
+      : "unbooked_payments";
+    a.download = `unbooked_payments_${baseMonthLabel}.xls`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -361,7 +510,7 @@ export function InvoiceViewTab({
   return (
     <div className="space-y-6">
       <div className="space-y-3">
-        <div className="flex items-center justify-between border-b pb-2">
+        <div className="flex items-center justify-between border-b pb-2 border-slate-200">
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
             Pending Invoices
           </h3>
@@ -490,7 +639,7 @@ export function InvoiceViewTab({
       </div>
 
       <div className="space-y-3">
-        <div className="flex items-center justify-between border-b pb-2">
+        <div className="flex items-center justify-between border-b pb-2 border-slate-200">
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
             Sent Invoices
           </h3>
@@ -566,7 +715,7 @@ export function InvoiceViewTab({
       </div>
 
       <div className="space-y-3">
-        <div className="flex items-center justify-between border-b pb-2">
+        <div className="flex items-center justify-between border-b pb-2 border-slate-200">
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
             Amount Booked by Month
           </h3>
@@ -590,16 +739,17 @@ export function InvoiceViewTab({
             <thead>
               <tr className="border-b bg-slate-50 text-xs uppercase text-slate-500 font-semibold">
                 <th className="px-3 py-3 text-left">Month</th>
-                <th className="px-2 py-3 text-right">Amount Booked (New Candidates)</th>
-                <th className="px-2 py-3 text-right">Amount Booked (Old Candidates)</th>
-                <th className="px-2 py-3 text-right">Total (Old + New)</th>
+                <th className="px-2 py-3 text-right">Booked (New)</th>
+                <th className="px-2 py-3 text-right">Booked (Old)</th>
+                <th className="px-2 py-3 text-right">Total Booked</th>
+                <th className="px-2 py-3 text-right">Amount Not Booked</th>
               </tr>
             </thead>
             <tbody>
               {bookedSummaryRows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={5}
                     className="px-3 py-8 text-center text-slate-500 text-xs"
                   >
                     No booked amount records found.
@@ -610,11 +760,14 @@ export function InvoiceViewTab({
                   <tr
                     key={`${r.target_year}-${r.target_month}`}
                     onClick={() =>
-                      handleViewSummaryMonthCandidates(
-                        r.target_year,
-                        r.target_month,
-                        formatMonthYearName(r.target_year, r.target_month),
-                      )
+                      setMonthSelectionModal({
+                        year: r.target_year,
+                        month: r.target_month,
+                        label: formatMonthYearName(
+                          r.target_year,
+                          r.target_month,
+                        ),
+                      })
                     }
                     className={
                       idx % 2 === 0
@@ -630,7 +783,8 @@ export function InvoiceViewTab({
                         {formatInrFromPaise(r.amount_new_paise)}
                       </div>
                       <div className="text-[10px] text-slate-400">
-                        {r.count_new} {r.count_new === 1 ? "candidate" : "candidates"}
+                        {r.count_new}{" "}
+                        {r.count_new === 1 ? "candidate" : "candidates"}
                       </div>
                     </td>
                     <td className="px-2 py-3 text-right">
@@ -638,15 +792,30 @@ export function InvoiceViewTab({
                         {formatInrFromPaise(r.amount_old_paise)}
                       </div>
                       <div className="text-[10px] text-slate-400">
-                        {r.count_old} {r.count_old === 1 ? "candidate" : "candidates"}
+                        {r.count_old}{" "}
+                        {r.count_old === 1 ? "candidate" : "candidates"}
                       </div>
                     </td>
                     <td className="px-2 py-3 text-right">
                       <div className="font-bold text-slate-800">
-                        {formatInrFromPaise(Number(r.amount_new_paise) + Number(r.amount_old_paise))}
+                        {formatInrFromPaise(
+                          Number(r.amount_new_paise) +
+                            Number(r.amount_old_paise),
+                        )}
                       </div>
                       <div className="text-[10px] text-slate-500 font-medium">
                         {Number(r.count_new) + Number(r.count_old)} total
+                      </div>
+                    </td>
+                    <td className="px-2 py-3 text-right">
+                      <div className="font-semibold text-amber-700">
+                        {formatInrFromPaise(r.amount_unbooked_paise || 0)}
+                      </div>
+                      <div className="text-[10px] text-slate-400">
+                        {r.count_unbooked || 0}{" "}
+                        {r.count_unbooked === 1
+                          ? "transaction"
+                          : "transactions"}
                       </div>
                     </td>
                   </tr>
@@ -885,69 +1054,88 @@ export function InvoiceViewTab({
                 <tbody>
                   {summaryCandidatesLoading ? (
                     <tr>
-                      <td colSpan={4} className="px-3 py-12 text-center text-slate-500 text-xs">
+                      <td
+                        colSpan={4}
+                        className="px-3 py-12 text-center text-slate-500 text-xs"
+                      >
                         <div className="flex flex-col items-center justify-center gap-2">
                           <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-indigo-600" />
                           <span>Loading booked candidates...</span>
                         </div>
                       </td>
                     </tr>
-                  ) : (() => {
-                    const filtered = (summaryCandidatesRows || []).filter((r) => {
-                      const q = candidatesSearch.trim().toLowerCase();
-                      if (!q) return true;
-                      return (
-                        (r.student_name || "").toLowerCase().includes(q) ||
-                        (r.student_email || "").toLowerCase().includes(q) ||
-                        (r.student_phone || "").toLowerCase().includes(q)
+                  ) : (
+                    (() => {
+                      const filtered = (summaryCandidatesRows || []).filter(
+                        (r) => {
+                          const q = candidatesSearch.trim().toLowerCase();
+                          if (!q) return true;
+                          return (
+                            (r.student_name || "").toLowerCase().includes(q) ||
+                            (r.student_email || "").toLowerCase().includes(q) ||
+                            (r.student_phone || "").toLowerCase().includes(q)
+                          );
+                        },
                       );
-                    });
 
-                    if (filtered.length === 0) {
-                      return (
-                        <tr>
-                          <td colSpan={4} className="px-3 py-8 text-center text-slate-500 text-xs">
-                            No matching candidates found.
+                      if (filtered.length === 0) {
+                        return (
+                          <tr>
+                            <td
+                              colSpan={4}
+                              className="px-3 py-8 text-center text-slate-500 text-xs"
+                            >
+                              No matching candidates found.
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return filtered.map((r, idx) => (
+                        <tr
+                          key={r.booked_amount_id}
+                          className={
+                            idx % 2 === 0
+                              ? "bg-white hover:bg-slate-50/50"
+                              : "bg-slate-50/60 hover:bg-slate-50/50"
+                          }
+                        >
+                          <td className="px-3 py-3">
+                            <div className="font-semibold text-slate-800">
+                              {r.student_name}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              {r.student_email}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              {r.student_phone}
+                            </div>
+                            <div className="text-[10px] text-slate-400 mt-1">
+                              Enrolled:{" "}
+                              {r.created_at ? formatIstDate(r.created_at) : "-"}
+                            </div>
+                          </td>
+                          <td className="px-2 py-3">
+                            {r.is_new ? (
+                              <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200/50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 shadow-sm">
+                                New Candidate
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-200/50 px-2.5 py-0.5 text-[11px] font-bold text-indigo-800 shadow-sm">
+                                Old Candidate
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-2 py-3 text-slate-600 font-medium">
+                            {r.booked_at ? formatIstDate(r.booked_at) : "-"}
+                          </td>
+                          <td className="px-2 py-3 text-right font-semibold text-slate-700">
+                            {formatInrFromPaise(r.amount_paise)}
                           </td>
                         </tr>
-                      );
-                    }
-
-                    return filtered.map((r, idx) => (
-                      <tr
-                        key={r.booked_amount_id}
-                        className={
-                          idx % 2 === 0
-                            ? "bg-white hover:bg-slate-50/50"
-                            : "bg-slate-50/60 hover:bg-slate-50/50"
-                        }
-                      >
-                        <td className="px-3 py-3">
-                          <div className="font-semibold text-slate-800">{r.student_name}</div>
-                          <div className="text-xs text-slate-500">{r.student_email}</div>
-                          <div className="text-xs text-slate-500">{r.student_phone}</div>
-                          <div className="text-[10px] text-slate-400 mt-1">Enrolled: {r.created_at ? formatIstDate(r.created_at) : "-"}</div>
-                        </td>
-                        <td className="px-2 py-3">
-                          {r.is_new ? (
-                            <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200/50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 shadow-sm">
-                              New Candidate
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-full bg-indigo-50 border border-indigo-200/50 px-2.5 py-0.5 text-[11px] font-bold text-indigo-800 shadow-sm">
-                              Old Candidate
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-2 py-3 text-slate-600 font-medium">
-                          {r.booked_at ? formatIstDate(r.booked_at) : "-"}
-                        </td>
-                        <td className="px-2 py-3 text-right font-semibold text-slate-700">
-                          {formatInrFromPaise(r.amount_paise)}
-                        </td>
-                      </tr>
-                    ));
-                  })()}
+                      ));
+                    })()
+                  )}
                 </tbody>
               </table>
             </div>
@@ -958,6 +1146,234 @@ export function InvoiceViewTab({
                 variant="secondary"
                 onClick={() => {
                   setSummaryMonthDetail(null);
+                  setCandidatesSearch("");
+                }}
+                className="border-slate-200 text-slate-600 hover:bg-slate-50 active:scale-95 transition-all duration-150"
+              >
+                Close
+              </ControlButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Month Selection Modal (Booked vs Not Booked) */}
+      {monthSelectionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-slate-900/40 p-4 transition-all duration-300 animate-in fade-in zoom-in-95">
+          <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-950/20 flex flex-col relative transform transition-transform duration-300 scale-100">
+            {/* Close Cross button */}
+            <button
+              onClick={() => setMonthSelectionModal(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors text-sm font-sans"
+            >
+              ✕
+            </button>
+
+            {/* Header */}
+            <div className="pb-3 border-b border-slate-100 mb-4">
+              <h3 className="text-lg font-bold text-slate-900">
+                View Details — {monthSelectionModal.label}
+              </h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Choose the type of list you want to display.
+              </p>
+            </div>
+
+            {/* Content Body */}
+            <div className="py-2 text-sm text-slate-600 mb-6 leading-relaxed">
+              Select whether you want to view candidates with booked collections
+              or payments that are currently unbooked for this month.
+            </div>
+
+            {/* Actions Grid */}
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  handleViewSummaryMonthCandidates(
+                    monthSelectionModal.year,
+                    monthSelectionModal.month,
+                    monthSelectionModal.label,
+                  );
+                  setMonthSelectionModal(null);
+                }}
+                className="w-full py-3 rounded-2xl bg-[#002856] hover:bg-[#002870] text-white font-bold text-sm shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-150 text-center cursor-pointer"
+              >
+                View Booked Payments
+              </button>
+              <button
+                onClick={() => {
+                  handleViewSummaryMonthUnbooked(
+                    monthSelectionModal.year,
+                    monthSelectionModal.month,
+                    monthSelectionModal.label,
+                  );
+                  setMonthSelectionModal(null);
+                }}
+                className="w-full py-3 rounded-2xl bg-black/90 hover:bg-black text-white font-bold text-sm shadow-md hover:shadow-lg transition-all active:scale-[0.98] duration-150 text-center cursor-pointer"
+              >
+                View Not Booked Payments
+              </button>
+              <button
+                onClick={() => setMonthSelectionModal(null)}
+                className="w-full py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-sm transition-all duration-150 text-center mt-1 cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Not Booked Payments Details Modal */}
+      {summaryUnbookedDetail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-slate-900/40 p-4 transition-all duration-300">
+          <div className="w-full max-w-4xl rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-950/20 flex flex-col h-[75vh] transform transition-transform duration-300 scale-100">
+            {/* Modal Header */}
+            <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Not Booked Payments — {summaryUnbookedDetail.label}
+                </h3>
+                <p className="mt-1 text-xs text-slate-500">
+                  Payments received this month that have not yet been booked.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <ControlButton
+                  onClick={handleDownloadUnbookedExcel}
+                  variant="secondary"
+                  className="h-9 rounded-xl px-4 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm active:scale-95 transition-all duration-150"
+                >
+                  Download Excel
+                </ControlButton>
+                <ControlButton
+                  variant="secondary"
+                  onClick={() => {
+                    setSummaryUnbookedDetail(null);
+                    setCandidatesSearch("");
+                  }}
+                  className="h-8 w-8 rounded-full p-0 flex items-center justify-center border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 shadow-none font-sans font-normal"
+                >
+                  ✕
+                </ControlButton>
+              </div>
+            </div>
+
+            {/* Local Search Input inside Modal */}
+            <div className="my-4">
+              <ControlInput
+                value={candidatesSearch}
+                onChange={(e) => setCandidatesSearch(e.target.value)}
+                placeholder="Search candidate name, email, or phone"
+                className="w-full"
+              />
+            </div>
+
+            {/* Payments Table Container */}
+            <div className="flex-1 overflow-y-auto rounded-xl border border-slate-200">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-slate-50 text-left text-xs uppercase text-slate-500 font-semibold sticky top-0 z-10">
+                    <th className="px-3 py-3">Candidate Details</th>
+                    <th className="px-2 py-3">Paid At</th>
+                    <th className="px-2 py-3">Payment Info</th>
+                    <th className="px-2 py-3 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summaryUnbookedLoading ? (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="px-3 py-12 text-center text-slate-500 text-xs"
+                      >
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-emerald-600" />
+                          <span>Loading unbooked payments...</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    (() => {
+                      const filtered = (summaryUnbookedRows || []).filter(
+                        (r) => {
+                          const q = candidatesSearch.trim().toLowerCase();
+                          if (!q) return true;
+                          return (
+                            (r.student_name || "").toLowerCase().includes(q) ||
+                            (r.student_email || "").toLowerCase().includes(q) ||
+                            (r.student_phone || "").toLowerCase().includes(q)
+                          );
+                        },
+                      );
+
+                      if (filtered.length === 0) {
+                        return (
+                          <tr>
+                            <td
+                              colSpan={4}
+                              className="px-3 py-8 text-center text-slate-500 text-xs"
+                            >
+                              No matching unbooked payments found.
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return filtered.map((r, idx) => (
+                        <tr
+                          key={r.payment_id}
+                          className={
+                            idx % 2 === 0
+                              ? "bg-white hover:bg-slate-50/50"
+                              : "bg-slate-50/60 hover:bg-slate-50/50"
+                          }
+                        >
+                          <td className="px-3 py-3">
+                            <div className="font-semibold text-slate-800">
+                              {r.student_name}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              {r.student_email}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                              {r.student_phone}
+                            </div>
+                            <div className="text-[10px] text-slate-400 mt-1">
+                              Enrolled:{" "}
+                              {r.candidate_created_at
+                                ? formatIstDate(r.candidate_created_at)
+                                : "-"}
+                            </div>
+                          </td>
+                          <td className="px-2 py-3 text-slate-600 font-medium">
+                            {r.paid_at ? formatIstDate(r.paid_at) : "-"}
+                          </td>
+                          <td className="px-2 py-3 text-slate-600">
+                            <div className="font-mono text-xs text-slate-700">
+                              {r.razorpay_payment_id || "-"}
+                            </div>
+                            <div className="text-[10px] text-slate-400 uppercase font-semibold">
+                              {r.payment_method || "-"}
+                            </div>
+                          </td>
+                          <td className="px-2 py-3 text-right font-semibold text-slate-700">
+                            {formatInrFromPaise(r.amount_paise)}
+                          </td>
+                        </tr>
+                      ));
+                    })()
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t border-slate-100 pt-3 mt-4 flex justify-end">
+              <ControlButton
+                variant="secondary"
+                onClick={() => {
+                  setSummaryUnbookedDetail(null);
                   setCandidatesSearch("");
                 }}
                 className="border-slate-200 text-slate-600 hover:bg-slate-50 active:scale-95 transition-all duration-150"

@@ -697,6 +697,13 @@ export default function PaymentsAdmin() {
                   summaryCandidatesRows: state.summaryCandidatesRows,
                   summaryCandidatesLoading: state.summaryCandidatesLoading,
                   handleViewSummaryMonthCandidates: state.handleViewSummaryMonthCandidates,
+                  summaryUnbookedDetail: state.summaryUnbookedDetail,
+                  setSummaryUnbookedDetail: state.setSummaryUnbookedDetail,
+                  summaryUnbookedRows: state.summaryUnbookedRows,
+                  summaryUnbookedLoading: state.summaryUnbookedLoading,
+                  monthSelectionModal: state.monthSelectionModal,
+                  setMonthSelectionModal: state.setMonthSelectionModal,
+                  handleViewSummaryMonthUnbooked: state.handleViewSummaryMonthUnbooked,
                 }}
               />
             )}
