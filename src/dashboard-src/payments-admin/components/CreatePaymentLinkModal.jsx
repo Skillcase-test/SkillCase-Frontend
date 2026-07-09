@@ -276,7 +276,7 @@ export function CreatePaymentLinkModal({
                   htmlFor="custom-candidate-checkbox"
                   className="text-xs font-bold text-slate-600 select-none cursor-pointer"
                 >
-                  Generate for New candidate
+                  Generate without selecting candidate
                 </label>
               </div>
 
