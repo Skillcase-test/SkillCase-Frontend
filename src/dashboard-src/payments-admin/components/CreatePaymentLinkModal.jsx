@@ -29,6 +29,7 @@ export function CreatePaymentLinkModal({
 
   const [amountInr, setAmountInr] = useState("");
   const [description, setDescription] = useState("");
+  const [gateway, setGateway] = useState("razorpay");
   const [linkType, setLinkType] = useState("standard");
 
   const [submitting, setSubmitting] = useState(false);
@@ -60,6 +61,7 @@ export function CreatePaymentLinkModal({
     setCustomEmail("");
     setAmountInr("");
     setDescription("");
+    setGateway("razorpay");
     setLinkType("standard");
     setErrorMsg("");
     setGeneratedLink("");
@@ -187,6 +189,7 @@ export function CreatePaymentLinkModal({
     setErrorMsg("");
     try {
       const payload = {
+        gateway,
         amount_inr: amt,
         description: description.trim() || undefined,
         link_type: linkType,
@@ -234,7 +237,7 @@ export function CreatePaymentLinkModal({
         <div className="flex items-center justify-between border-b border-slate-100 p-4 bg-slate-50/50">
           <div>
             <h3 className="text-lg font-bold text-slate-800">
-              Generate Razorpay Link
+              Generate Payment Link
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
               Create a secure checkout link for candidate payments.
@@ -384,6 +387,22 @@ export function CreatePaymentLinkModal({
                 </div>
               )}
 
+              {/* Gateway Selection */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  Select Payment Gateway *
+                </label>
+                <select
+                  value={gateway}
+                  onChange={(e) => setGateway(e.target.value)}
+                  disabled={submitting}
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-slate-400 focus:ring-1 focus:ring-slate-400 disabled:opacity-50"
+                >
+                  <option value="razorpay">Razorpay</option>
+                  <option value="zoho">Zoho Pay</option>
+                </select>
+              </div>
+
               {/* Amount Input */}
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
@@ -465,11 +484,21 @@ export function CreatePaymentLinkModal({
                     />
                     <div>
                       <div className="text-xs font-bold text-slate-800">UPI Only</div>
-                      <div className="text-xs text-slate-400">Mobile only</div>
+                      <div className="text-xs text-slate-400">UPI payments</div>
                     </div>
                   </label>
                 </div>
-                {linkType === "upi" && (
+                {gateway === "zoho" && linkType === "standard" ? (
+                  <p className="text-xs text-slate-500 font-medium">
+                    Zoho Pay Standard uses all payment methods enabled on the account.
+                  </p>
+                ) : null}
+                {gateway === "zoho" && linkType === "upi" ? (
+                  <p className="text-xs text-slate-500 font-medium">
+                    Zoho Pay UPI Only restricts checkout to UPI payments.
+                  </p>
+                ) : null}
+                {gateway === "razorpay" && linkType === "upi" && (
                   <p className="text-xs text-amber-600 font-medium">
                     UPI-only links open in UPI apps (GPay, PhonePe), require live Razorpay keys, and cannot be paid from desktop.
                   </p>
@@ -528,10 +557,15 @@ export function CreatePaymentLinkModal({
                   submitting ||
                   (!isCustomCandidate && !selectedCandidate) ||
                   (isCustomCandidate && (!customName || !customPhone)) ||
-                  !amountInr
+                  !amountInr ||
+                  !gateway
                 }
               >
-                {submitting ? "Generating..." : "Generate Razorpay Link"}
+                {submitting
+                  ? "Generating..."
+                  : gateway
+                    ? `Generate ${gateway === "zoho" ? "Zoho" : "Razorpay"} Link`
+                    : "Generate Link"}
               </ControlButton>
             </div>
           </form>
@@ -545,7 +579,7 @@ export function CreatePaymentLinkModal({
                 Link Generated Successfully!
               </h4>
               <p className="text-xs text-emerald-700">
-                Razorpay payment link for ₹
+                Payment link for ₹
                 {Number(amountInr).toLocaleString("en-IN", {
                   minimumFractionDigits: 2,
                 })}{" "}

@@ -239,9 +239,17 @@ function parseStatusLogs(rawLogs) {
     } else if (
       log.event_type === "admin.payment_link_created" ||
       log.event_type === "admin.razorpay_standard_link_created" ||
+      log.event_type === "admin.razorpay_payment_link_created" ||
+      log.event_type === "admin.zoho_payment_link_created" ||
       log.event_type === "admin.razorpay_upi_link_created"
     ) {
-      fromStatus = payload.link_type === "upi" ? "UPI Link Generated" : "Link Generated";
+      fromStatus = payload.gateway === "zoho"
+        ? payload.link_type === "upi"
+          ? "Zoho UPI Link Generated"
+          : "Zoho Standard Link Generated"
+        : payload.link_type === "upi"
+          ? "UPI Link Generated"
+          : "Razorpay Link Generated";
       const amountInr = (Number(payload.amount_paise || 0) / 100).toFixed(2);
       toStatus = `₹${amountInr}`;
       effectiveStr = `(${payload.description || "No description"})`;
