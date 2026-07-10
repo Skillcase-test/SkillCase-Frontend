@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
-import { ArrowUp, ArrowDown, ArrowUpDown, Edit2 } from "lucide-react";
-import { ActionChip } from "../components/controls";
+import { ArrowUp, ArrowDown, ArrowUpDown, Edit2, Filter, X } from "lucide-react";
+import { ActionChip, ControlInput } from "../components/controls";
 import { MONTH_NAMES } from "../utils/constants";
 
 export function PaymentViewTab({
@@ -10,6 +10,10 @@ export function PaymentViewTab({
   paymentSortOrder,
   setPaymentSortBy,
   setPaymentSortOrder,
+  paymentAmountInr,
+  setPaymentAmountInr,
+  paymentLinksOnly,
+  setCurrentPage,
   setRelinkModal,
   handleDeleteManualTransaction,
   handleRefund,
@@ -20,10 +24,33 @@ export function PaymentViewTab({
   totalAmountPaise,
 }) {
   const [selectedTxIds, setSelectedTxIds] = useState([]);
+  const [amountFilterOpen, setAmountFilterOpen] = useState(false);
+  const [amountDraft, setAmountDraft] = useState(paymentAmountInr || "");
+  const [amountFilterError, setAmountFilterError] = useState("");
+  const amountFilterRef = useRef(null);
 
   useEffect(() => {
     setSelectedTxIds([]);
   }, [rows]);
+
+  useEffect(() => {
+    setAmountDraft(paymentAmountInr || "");
+    setAmountFilterError("");
+  }, [paymentAmountInr]);
+
+  useEffect(() => {
+    if (paymentLinksOnly) setAmountFilterOpen(false);
+  }, [paymentLinksOnly]);
+
+  useEffect(() => {
+    function closeAmountFilter(event) {
+      if (amountFilterRef.current && !amountFilterRef.current.contains(event.target)) {
+        setAmountFilterOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", closeAmountFilter);
+    return () => document.removeEventListener("mousedown", closeAmountFilter);
+  }, []);
 
   const bookableRows = rows.filter(
     (r) =>
@@ -92,6 +119,32 @@ export function PaymentViewTab({
     (sum, r) => sum + Number(r.signed_amount_paise ?? r.amount_paise ?? 0),
     0,
   );
+
+  const applyAmountFilter = () => {
+    const normalizedAmount = amountDraft.trim();
+    if (!normalizedAmount) {
+      clearAmountFilter();
+      return;
+    }
+    if (
+      !/^\d+(?:\.\d{1,2})?$/.test(normalizedAmount) ||
+      Number(normalizedAmount) <= 0
+    ) {
+      setAmountFilterError("Enter a positive INR amount with up to two decimal places.");
+      return;
+    }
+    setCurrentPage(1);
+    setPaymentAmountInr(normalizedAmount);
+    setAmountFilterOpen(false);
+  };
+
+  const clearAmountFilter = () => {
+    setCurrentPage(1);
+    setAmountDraft("");
+    setAmountFilterError("");
+    setPaymentAmountInr("");
+    setAmountFilterOpen(false);
+  };
 
   return (
     <div className="space-y-4">
@@ -178,6 +231,74 @@ export function PaymentViewTab({
                   <span className="text-slate-400 group-hover:text-slate-600 transition-colors">
                     {renderSortIcon("amount")}
                   </span>
+                  <div ref={amountFilterRef} className="relative">
+                    <button
+                      type="button"
+                      aria-label="Filter by exact payment amount"
+                      title="Filter by exact payment amount"
+                      disabled={paymentLinksOnly}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setAmountFilterOpen((open) => !open);
+                      }}
+                      className={`inline-flex h-6 w-6 items-center justify-center rounded-md transition disabled:cursor-not-allowed disabled:opacity-40 ${
+                        paymentAmountInr
+                          ? "bg-slate-900 text-white"
+                          : "text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+                      }`}
+                    >
+                      <Filter size={13} />
+                    </button>
+                    {amountFilterOpen && !paymentLinksOnly ? (
+                      <div
+                        onClick={(event) => event.stopPropagation()}
+                        className="absolute left-0 top-full z-30 mt-2 w-64 rounded-lg border border-slate-200 bg-white p-3 shadow-lg"
+                      >
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-700">
+                            Exact payment amount
+                          </span>
+                          <button
+                            type="button"
+                            aria-label="Close amount filter"
+                            title="Close"
+                            onClick={() => setAmountFilterOpen(false)}
+                            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                        <ControlInput
+                          value={amountDraft}
+                          onChange={(event) => {
+                            setAmountDraft(event.target.value);
+                            setAmountFilterError("");
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") applyAmountFilter();
+                          }}
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          placeholder="Amount in INR"
+                          className="h-9 w-full text-xs"
+                        />
+                        {amountFilterError ? (
+                          <p className="mt-1.5 text-xs font-medium text-rose-600" role="alert">
+                            {amountFilterError}
+                          </p>
+                        ) : null}
+                        <div className="mt-3 flex justify-end gap-2">
+                          <ActionChip type="button" onClick={clearAmountFilter}>
+                            Clear
+                          </ActionChip>
+                          <ActionChip type="button" variant="success" onClick={applyAmountFilter}>
+                            Apply
+                          </ActionChip>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </th>
               <th
@@ -206,7 +327,13 @@ export function PaymentViewTab({
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => (
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-4 py-10 text-center text-sm font-medium text-slate-500">
+                  No payments found for the current filters.
+                </td>
+              </tr>
+            ) : rows.map((r, i) => (
               <tr
                 key={r.payment_id || i}
                 className={`group ${i % 2 === 0 ? "bg-white" : "bg-slate-50/60"} ${

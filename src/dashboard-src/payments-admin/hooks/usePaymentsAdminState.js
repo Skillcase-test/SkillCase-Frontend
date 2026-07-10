@@ -120,6 +120,8 @@ export function usePaymentsAdminState() {
   const [paymentBookedOnly, setPaymentBookedOnlyState] = useState(false);
   const [paymentNotBookedOnly, setPaymentNotBookedOnlyState] = useState(false);
   const [paymentLinksOnly, setPaymentLinksOnly] = useState(false);
+  const [paymentIncludeRefunded, setPaymentIncludeRefunded] = useState(true);
+  const [paymentAmountInr, setPaymentAmountInr] = useState("");
 
   const setPaymentBookedOnly = (val) => {
     setPaymentBookedOnlyState(val);
@@ -409,6 +411,8 @@ export function usePaymentsAdminState() {
           recruitment: paymentRecruitmentOnly || undefined,
           training: paymentTrainingOnly || undefined,
           payment_links: paymentLinksOnly || undefined,
+          include_refunded: paymentIncludeRefunded,
+          amount_inr: paymentLinksOnly ? undefined : paymentAmountInr.trim() || undefined,
         });
         if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
@@ -531,6 +535,8 @@ export function usePaymentsAdminState() {
     tab === "payments" ? paymentRecruitmentOnly : null,
     tab === "payments" ? paymentTrainingOnly : null,
     tab === "payments" ? paymentLinksOnly : null,
+    tab === "payments" ? paymentIncludeRefunded : null,
+    tab === "payments" ? paymentAmountInr : null,
     tab === "rawlogs" ? debouncedRawSearch : null,
     tab === "rawlogs" ? rawEventTypeFilter : null,
     tab === "rawlogs" ? rawStatusFilter : null,
@@ -695,6 +701,10 @@ export function usePaymentsAdminState() {
     setPaymentRecruitmentOnly,
     paymentTrainingOnly,
     setPaymentTrainingOnly,
+    paymentIncludeRefunded,
+    setPaymentIncludeRefunded,
+    paymentAmountInr,
+    setPaymentAmountInr,
     paymentTotalAmountPaise,
     monthSortBy,
     setMonthSortBy,

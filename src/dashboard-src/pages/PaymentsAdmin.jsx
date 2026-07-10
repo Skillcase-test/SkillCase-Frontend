@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { RefreshCw, Search, ShieldOff } from "lucide-react";
+import { RefreshCw, Search, ShieldOff, X } from "lucide-react";
 import {
   EmptyState,
   StatCard,
@@ -389,6 +389,40 @@ export default function PaymentsAdmin() {
                         <label className={`flex items-center gap-2 text-sm text-slate-700 select-none ${state.paymentLinksOnly ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
                           <input
                             type="checkbox"
+                            checked={state.paymentIncludeRefunded}
+                            disabled={state.paymentLinksOnly}
+                            onChange={(e) => {
+                              state.setCurrentPage(1);
+                              state.setPaymentIncludeRefunded(e.target.checked);
+                            }}
+                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                          />
+                          <span className="font-semibold text-slate-700">
+                            Include Refunded
+                          </span>
+                        </label>
+                        {state.paymentAmountInr && !state.paymentLinksOnly ? (
+                          <>
+                            <div className="h-4 w-px bg-slate-200" />
+                            <ActionChip
+                              type="button"
+                              variant="warning"
+                              title="Clear amount filter"
+                              onClick={() => {
+                                state.setCurrentPage(1);
+                                state.setPaymentAmountInr("");
+                              }}
+                              className="gap-1.5"
+                            >
+                              Amount: Rs. {state.paymentAmountInr}
+                              <X size={13} />
+                            </ActionChip>
+                          </>
+                        ) : null}
+                        <div className="h-4 w-px bg-slate-200" />
+                        <label className={`flex items-center gap-2 text-sm text-slate-700 select-none ${state.paymentLinksOnly ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
+                          <input
+                            type="checkbox"
                             checked={state.paymentBookedOnly}
                             disabled={state.paymentLinksOnly}
                             onChange={(e) => {
@@ -462,6 +496,8 @@ export default function PaymentsAdmin() {
                                 state.setPaymentNotBookedOnly(false);
                                 state.setPaymentRecruitmentOnly(false);
                                 state.setPaymentTrainingOnly(false);
+                                state.setPaymentIncludeRefunded(true);
+                                state.setPaymentAmountInr("");
                               }
                             }}
                             className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
@@ -563,6 +599,8 @@ export default function PaymentsAdmin() {
                             <option value={10}>10</option>
                             <option value={20}>20</option>
                             <option value={50}>50</option>
+                            <option value={100}>100</option>
+                            <option value={150}>150</option>
                           </ControlSelect>
                         </div>
 
@@ -587,7 +625,7 @@ export default function PaymentsAdmin() {
               </div>
             ) : state.loading ? (
               <TableSkeleton />
-            ) : !["fee", "discounts", "all", "month", "invoice"].includes(
+            ) : !["fee", "discounts", "all", "month", "invoice", "payments"].includes(
                 state.tab,
               ) &&
               isDataTableTab &&
@@ -638,6 +676,10 @@ export default function PaymentsAdmin() {
                   paymentSortOrder: state.paymentSortOrder,
                   setPaymentSortBy: state.setPaymentSortBy,
                   setPaymentSortOrder: state.setPaymentSortOrder,
+                  paymentAmountInr: state.paymentAmountInr,
+                  setPaymentAmountInr: state.setPaymentAmountInr,
+                  paymentLinksOnly: state.paymentLinksOnly,
+                  setCurrentPage: state.setCurrentPage,
                   totalAmountPaise: state.paymentTotalAmountPaise,
                   monthSortBy: state.monthSortBy,
                   monthSortOrder: state.monthSortOrder,
@@ -665,7 +707,6 @@ export default function PaymentsAdmin() {
                   setRelinkModal: state.setRelinkModal,
                   bookAmountModal: state.bookAmountModal,
                   setBookAmountModal: state.setBookAmountModal,
-                  paymentLinksOnly: state.paymentLinksOnly,
                   handleCreateManualTransaction:
                     actions.handleCreateManualTransaction,
                   handleUpdateManualTransaction:

@@ -25,7 +25,10 @@ export function useActionsPayments(state) {
     paymentBookedOnly,
     paymentNotBookedOnly,
     paymentRecruitmentOnly,
+    paymentTrainingOnly,
     paymentLinksOnly,
+    paymentIncludeRefunded,
+    paymentAmountInr,
   } = state;
 
   async function exportPaymentsExcel() {
@@ -38,7 +41,10 @@ export function useActionsPayments(state) {
         booked: paymentBookedOnly || undefined,
         not_booked: paymentNotBookedOnly || undefined,
         recruitment: paymentRecruitmentOnly || undefined,
+        training: paymentTrainingOnly || undefined,
         payment_links: paymentLinksOnly || undefined,
+        include_refunded: paymentIncludeRefunded,
+        amount_inr: paymentLinksOnly ? undefined : paymentAmountInr.trim() || undefined,
         download: true,
       });
       const downloadRows = res.data.rows || [];
