@@ -10,6 +10,7 @@ import {
   ControlButton,
   ControlInput,
   ControlSelect,
+  ControlDropdown,
 } from "../payments-admin/components/controls";
 import { CandidateDetailsForm } from "../payments-admin/components/CandidateDetailsForm";
 import { FeeBreakdownModal } from "../payments-admin/components/FeeBreakdownModal";
@@ -367,11 +368,55 @@ export default function PaymentsAdmin() {
 
                 {/* Row 2: Filters & Pagination Utilities */}
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3">
-                  {/* Left: Tab Checkbox Filters */}
+                  {/* Left: Tab filters */}
                   <div className="flex flex-wrap items-center gap-4">
                     {state.tab === "payments" && (
-                      <div className="flex flex-wrap items-center gap-4">
-                        <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <div
+                          role="group"
+                          aria-label="Payment view"
+                          className="inline-flex h-8 rounded-lg border border-slate-300 bg-white p-0.5"
+                        >
+                          <button
+                            type="button"
+                            aria-pressed={!state.paymentLinksOnly}
+                            onClick={() => {
+                              state.setCurrentPage(1);
+                              state.setPaymentLinksOnly(false);
+                            }}
+                            className={`rounded-md px-2.5 text-xs font-semibold transition ${
+                              !state.paymentLinksOnly
+                                ? "bg-slate-900 text-white"
+                                : "text-slate-600 hover:bg-slate-100"
+                            }`}
+                          >
+                            Transactions
+                          </button>
+                          <button
+                            type="button"
+                            aria-pressed={state.paymentLinksOnly}
+                            onClick={() => {
+                              state.setCurrentPage(1);
+                              state.setPaymentLinksOnly(true);
+                              state.setPaymentBookedOnly(false);
+                              state.setPaymentNotBookedOnly(false);
+                              state.setPaymentRecruitmentOnly(false);
+                              state.setPaymentTrainingOnly(false);
+                              state.setPaymentIncludeRefunded(true);
+                              state.setPaymentAmountInr("");
+                            }}
+                            className={`rounded-md px-2.5 text-xs font-semibold transition ${
+                              state.paymentLinksOnly
+                                ? "bg-slate-900 text-white"
+                                : "text-slate-600 hover:bg-slate-100"
+                            }`}
+                          >
+                            Payment Links
+                          </button>
+                        </div>
+
+                        <label className="inline-flex h-8 items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 cursor-pointer">
+                          <span>All time</span>
                           <input
                             type="checkbox"
                             checked={state.paymentAllTime}
@@ -379,133 +424,85 @@ export default function PaymentsAdmin() {
                               state.setCurrentPage(1);
                               state.setPaymentAllTime(e.target.checked);
                             }}
-                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                            className="h-3.5 w-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
                           />
-                          <span className="font-semibold text-slate-700">
-                            All Time
-                          </span>
                         </label>
-                        <div className="h-4 w-px bg-slate-200" />
-                        <label className={`flex items-center gap-2 text-sm text-slate-700 select-none ${state.paymentLinksOnly ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
+
+                        <ControlDropdown
+                          disabled={state.paymentLinksOnly}
+                          value={
+                            state.paymentBookedOnly
+                              ? "booked"
+                              : state.paymentNotBookedOnly
+                                ? "not_booked"
+                                : "all"
+                          }
+                          onChange={(val) => {
+                            state.setCurrentPage(1);
+                            state.setPaymentBookedOnly(val === "booked");
+                            state.setPaymentNotBookedOnly(val === "not_booked");
+                          }}
+                          options={[
+                            { value: "all", label: "Booking: All" },
+                            { value: "booked", label: "Booking: Booked" },
+                            { value: "not_booked", label: "Booking: Not booked" },
+                          ]}
+                          compact={true}
+                          className="w-40"
+                        />
+
+                        <ControlDropdown
+                          disabled={state.paymentLinksOnly}
+                          value={
+                            state.paymentRecruitmentOnly
+                              ? "recruitment"
+                              : state.paymentTrainingOnly
+                                ? "training"
+                                : "all"
+                          }
+                          onChange={(val) => {
+                            state.setCurrentPage(1);
+                            state.setPaymentRecruitmentOnly(val === "recruitment");
+                            state.setPaymentTrainingOnly(val === "training");
+                          }}
+                          options={[
+                            { value: "all", label: "Type: All" },
+                            { value: "training", label: "Type: Training" },
+                            { value: "recruitment", label: "Type: Recruitment" },
+                          ]}
+                          compact={true}
+                          className="w-40"
+                        />
+
+                        <label className={`inline-flex h-8 items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 ${state.paymentLinksOnly ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>
+                          <span>Hide refunded</span>
                           <input
                             type="checkbox"
-                            checked={state.paymentIncludeRefunded}
+                            checked={!state.paymentIncludeRefunded}
                             disabled={state.paymentLinksOnly}
                             onChange={(e) => {
                               state.setCurrentPage(1);
-                              state.setPaymentIncludeRefunded(e.target.checked);
+                              state.setPaymentIncludeRefunded(!e.target.checked);
                             }}
-                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                            className="h-3.5 w-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
                           />
-                          <span className="font-semibold text-slate-700">
-                            Include Refunded
-                          </span>
                         </label>
+
                         {state.paymentAmountInr && !state.paymentLinksOnly ? (
-                          <>
-                            <div className="h-4 w-px bg-slate-200" />
-                            <ActionChip
-                              type="button"
-                              variant="warning"
-                              title="Clear amount filter"
-                              onClick={() => {
-                                state.setCurrentPage(1);
-                                state.setPaymentAmountInr("");
-                              }}
-                              className="gap-1.5"
-                            >
-                              Amount: Rs. {state.paymentAmountInr}
-                              <X size={13} />
-                            </ActionChip>
-                          </>
+                          <ActionChip
+                            type="button"
+                            variant="warning"
+                            title="Clear amount filter"
+                            onClick={() => {
+                              state.setCurrentPage(1);
+                              state.setPaymentAmountInr("");
+                            }}
+                            className="gap-1.5"
+                          >
+                            Amount: Rs. {state.paymentAmountInr}
+                            <X size={13} />
+                          </ActionChip>
                         ) : null}
-                        <div className="h-4 w-px bg-slate-200" />
-                        <label className={`flex items-center gap-2 text-sm text-slate-700 select-none ${state.paymentLinksOnly ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
-                          <input
-                            type="checkbox"
-                            checked={state.paymentBookedOnly}
-                            disabled={state.paymentLinksOnly}
-                            onChange={(e) => {
-                              state.setCurrentPage(1);
-                              state.setPaymentBookedOnly(e.target.checked);
-                            }}
-                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                          />
-                          <span className="font-semibold text-slate-700">
-                            Booked Only
-                          </span>
-                        </label>
-                        <div className="h-4 w-px bg-slate-200" />
-                        <label className={`flex items-center gap-2 text-sm text-slate-700 select-none ${state.paymentLinksOnly ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
-                          <input
-                            type="checkbox"
-                            checked={state.paymentNotBookedOnly}
-                            disabled={state.paymentLinksOnly}
-                            onChange={(e) => {
-                              state.setCurrentPage(1);
-                              state.setPaymentNotBookedOnly(e.target.checked);
-                            }}
-                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                          />
-                          <span className="font-semibold text-slate-700">
-                            Not Booked Only
-                          </span>
-                        </label>
-                        <div className="h-4 w-px bg-slate-200" />
-                        <label className={`flex items-center gap-2 text-sm text-slate-700 select-none ${state.paymentLinksOnly ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
-                          <input
-                            type="checkbox"
-                            checked={state.paymentRecruitmentOnly}
-                            disabled={state.paymentLinksOnly}
-                            onChange={(e) => {
-                              state.setCurrentPage(1);
-                              state.setPaymentRecruitmentOnly(e.target.checked);
-                            }}
-                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                          />
-                          <span className="font-semibold text-slate-700">
-                            Recruitment Only
-                          </span>
-                        </label>
-                        <div className="h-4 w-px bg-slate-200" />
-                        <label className={`flex items-center gap-2 text-sm text-slate-700 select-none ${state.paymentLinksOnly ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
-                          <input
-                            type="checkbox"
-                            checked={state.paymentTrainingOnly}
-                            disabled={state.paymentLinksOnly}
-                            onChange={(e) => {
-                              state.setCurrentPage(1);
-                              state.setPaymentTrainingOnly(e.target.checked);
-                            }}
-                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                          />
-                          <span className="font-semibold text-slate-700">
-                            Training Only
-                          </span>
-                        </label>
-                        <div className="h-4 w-px bg-slate-200" />
-                        <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={state.paymentLinksOnly}
-                            onChange={(e) => {
-                              state.setCurrentPage(1);
-                              state.setPaymentLinksOnly(e.target.checked);
-                              if (e.target.checked) {
-                                state.setPaymentBookedOnly(false);
-                                state.setPaymentNotBookedOnly(false);
-                                state.setPaymentRecruitmentOnly(false);
-                                state.setPaymentTrainingOnly(false);
-                                state.setPaymentIncludeRefunded(true);
-                                state.setPaymentAmountInr("");
-                              }
-                            }}
-                            className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
-                          />
-                          <span className="font-semibold text-slate-700">
-                            Payment Links
-                          </span>
-                        </label>
                       </div>
                     )}
                     {state.tab === "recruitment" && (

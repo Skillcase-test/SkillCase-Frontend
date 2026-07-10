@@ -150,7 +150,8 @@ export function ControlDropdown({
             clearTimeout(typeaheadTimerRef.current);
           typeaheadTimerRef.current = setTimeout(() => setTypeahead(""), 500);
         }}
-        className={`${compact ? "h-8 rounded-lg px-2.5 text-xs" : CONTROL_BASE} flex w-full items-center justify-between border border-slate-300 bg-white text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400`}
+        className={`${compact ? "h-8 rounded-lg px-2.5 text-xs font-semibold text-slate-700" : CONTROL_BASE} flex w-full items-center justify-between border border-slate-300 bg-white outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400`}
+        style={compact ? { paddingLeft: "10px", paddingRight: "10px" } : undefined}
       >
         <span className="truncate text-left">
           {selected?.label || placeholder || "Select"}
