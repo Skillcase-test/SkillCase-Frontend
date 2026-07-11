@@ -1,943 +1,969 @@
-import { useState, useMemo, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Send,
-  CheckCircle,
   AlertCircle,
   Bell,
-  Link as LinkIcon,
+  CheckCircle,
+  ChevronDown,
   ExternalLink,
   Image,
-  Upload,
-  X,
+  Link as LinkIcon,
   Search,
-  ChevronDown,
-  Users,
+  Send,
   Smartphone,
+  Upload,
+  Users,
+  X,
 } from "lucide-react";
 import api from "../../../api/axios";
 
-// All available in-app routes for deep linking
 const DEEP_LINK_ROUTES = [
   { path: "/", label: "Home", category: "General" },
   { path: "/continue", label: "Continue Practice", category: "General" },
   { path: "/stories", label: "All Stories", category: "Stories" },
   { path: "/events", label: "All Events", category: "Events" },
   { path: "/events/featured", label: "Featured Events", category: "Events" },
-
-  // A1 Routes
-  {
-    path: "/a1",
-    label: "A1 Flashcards (Auto Route)",
-    category: "A1 Level",
-  },
-  {
-    path: "/pronounce/A1",
-    label: "A1 Pronunciation Chapters",
-    category: "A1 Level",
-  },
-  {
-    path: "/conversation/A1",
-    label: "A1 Conversations",
-    category: "A1 Level",
-  },
+  { path: "/a1", label: "A1 Flashcards", category: "A1 Level" },
+  { path: "/pronounce/A1", label: "A1 Pronunciation", category: "A1 Level" },
+  { path: "/conversation/A1", label: "A1 Conversations", category: "A1 Level" },
   { path: "/test/A1", label: "A1 Tests", category: "A1 Level" },
-
-  // A2 Routes
-  {
-    path: "/a2/flashcard",
-    label: "A2 Flashcard Chapters",
-    category: "A2 Level",
-  },
-  {
-    path: "/a2/speaking",
-    label: "A2 Speaking Chapters",
-    category: "A2 Level",
-  },
-  {
-    path: "/a2/grammar",
-    label: "A2 Grammar Topics",
-    category: "A2 Level",
-  },
-  {
-    path: "/a2/listening",
-    label: "A2 Listening Chapters",
-    category: "A2 Level",
-  },
-  {
-    path: "/a2/reading",
-    label: "A2 Reading Chapters",
-    category: "A2 Level",
-  },
+  { path: "/a2/flashcard", label: "A2 Flashcards", category: "A2 Level" },
+  { path: "/a2/speaking", label: "A2 Speaking", category: "A2 Level" },
+  { path: "/a2/grammar", label: "A2 Grammar", category: "A2 Level" },
+  { path: "/a2/listening", label: "A2 Listening", category: "A2 Level" },
+  { path: "/a2/reading", label: "A2 Reading", category: "A2 Level" },
   { path: "/a2/test", label: "A2 Tests", category: "A2 Level" },
 ];
 
+const ButtonChoice = ({ active, children, ...props }) => (
+  <button
+    type="button"
+    {...props}
+    className={`px-3 py-2 rounded-lg border text-sm transition ${active ? "bg-blue-50 border-blue-500 text-blue-700" : "border-gray-300 text-gray-600 hover:bg-gray-50"}`}
+  >
+    {children}
+  </button>
+);
+const formatDateTime = (value) =>
+  value
+    ? new Date(value).toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "—";
+
+function NotificationTrail() {
+  const [filters, setFilters] = useState({
+    search: "",
+    startDate: "",
+    endDate: "",
+    notificationType: "",
+    openStatus: "",
+  });
+  const [appliedFilters, setAppliedFilters] = useState(filters);
+  const [page, setPage] = useState(1);
+  const [data, setData] = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [pagination, setPagination] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const loadTrail = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const params = new URLSearchParams({ page: String(page), limit: "20" });
+      Object.entries(appliedFilters).forEach(
+        ([key, value]) => value && params.set(key, value),
+      );
+      const response = await api.get(`/notifications/trail?${params}`);
+      setData(response.data.data || []);
+      setSummary(response.data.summary);
+      setPagination(response.data.pagination);
+    } catch (err) {
+      setError(
+        err.response?.data?.error || "Unable to load notification trail",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    loadTrail();
+  }, [page, appliedFilters]);
+  const applyFilters = (event) => {
+    event.preventDefault();
+    setPage(1);
+    setAppliedFilters(filters);
+  };
+  const clearFilters = () => {
+    const next = {
+      search: "",
+      startDate: "",
+      endDate: "",
+      notificationType: "",
+      openStatus: "",
+    };
+    setFilters(next);
+    setPage(1);
+    setAppliedFilters(next);
+  };
+  return (
+    <div className="space-y-5">
+      <form
+        onSubmit={applyFilters}
+        className="bg-white rounded-xl shadow p-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3"
+      >
+        <div className="xl:col-span-2">
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Candidate / phone
+          </label>
+          <div className="relative">
+            <Search className="absolute w-4 h-4 text-gray-400 left-3 top-1/2 -translate-y-1/2" />
+            <input
+              value={filters.search}
+              onChange={(e) =>
+                setFilters({ ...filters, search: e.target.value })
+              }
+              placeholder="Search name, username or phone"
+              className="w-full pl-9 pr-3 py-2.5 border rounded-lg"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            From date
+          </label>
+          <input
+            type="date"
+            value={filters.startDate}
+            onChange={(e) =>
+              setFilters({ ...filters, startDate: e.target.value })
+            }
+            className="w-full px-3 py-2.5 border rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            To date
+          </label>
+          <input
+            type="date"
+            value={filters.endDate}
+            onChange={(e) =>
+              setFilters({ ...filters, endDate: e.target.value })
+            }
+            className="w-full px-3 py-2.5 border rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Notification type
+          </label>
+          <select
+            value={filters.notificationType}
+            onChange={(e) =>
+              setFilters({ ...filters, notificationType: e.target.value })
+            }
+            className="w-full px-3 py-2.5 border rounded-lg"
+          >
+            <option value="">All types</option>
+            <option value="broadcast">Broadcast</option>
+            <option value="direct">Individual</option>
+            <option value="morning_reminder">Morning reminder</option>
+            <option value="evening_reminder">Evening reminder</option>
+            <option value="daily_news">Daily news</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Open status
+          </label>
+          <select
+            value={filters.openStatus}
+            onChange={(e) =>
+              setFilters({ ...filters, openStatus: e.target.value })
+            }
+            className="w-full px-3 py-2.5 border rounded-lg"
+          >
+            <option value="">All statuses</option>
+            <option value="opened">Opened</option>
+            <option value="unopened">Not opened</option>
+          </select>
+        </div>
+        <div className="flex gap-2 items-end">
+          <button className="px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+            Apply filters
+          </button>
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="px-3 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg"
+          >
+            Clear
+          </button>
+        </div>
+      </form>
+      {summary && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Metric label="Successful sends" value={summary.totalSent} />
+          <Metric label="Opened" value={summary.totalOpened} />
+          <Metric label="Not opened" value={summary.unopened} />
+          <Metric label="Open rate" value={`${summary.openRate}%`} />
+        </div>
+      )}
+      <div className="bg-white rounded-xl shadow overflow-hidden">
+        <div className="px-5 py-4 border-b">
+          <h3 className="font-semibold text-gray-800">Delivery trail</h3>
+          <p className="text-sm text-gray-500">
+            Successful notification sends, newest first.
+          </p>
+        </div>
+        {error && (
+          <div className="m-5 p-3 bg-red-50 text-red-700 rounded-lg">
+            {error}
+          </div>
+        )}
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-sm">
+            <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
+              <tr>
+                <th className="text-left px-5 py-3">Recipient</th>
+                <th className="text-left px-5 py-3">Notification</th>
+                <th className="text-left px-5 py-3">Type</th>
+                <th className="text-left px-5 py-3">Sent</th>
+                <th className="text-left px-5 py-3">Engagement</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {loading ? (
+                <tr>
+                  <td colSpan="5" className="py-10 text-center text-gray-500">
+                    Loading trail…
+                  </td>
+                </tr>
+              ) : data.length ? (
+                data.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-5 py-3">
+                      <div className="font-medium text-gray-800">
+                        {item.recipient_name}
+                      </div>
+                      <div className="text-gray-500">
+                        {item.phone || "No phone"}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 max-w-xs">
+                      <div className="font-medium text-gray-800 truncate">
+                        {item.title || "Untitled notification"}
+                      </div>
+                      <div className="text-gray-500 line-clamp-2">
+                        {item.body || "—"}
+                      </div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="capitalize px-2 py-1 rounded bg-blue-50 text-blue-700">
+                        {item.notification_type.replaceAll("_", " ")}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-gray-600">
+                      {formatDateTime(item.sent_at)}
+                    </td>
+                    <td className="px-5 py-3">
+                      {item.opened ? (
+                        <>
+                          <span className="text-green-700 font-medium">
+                            Opened
+                          </span>
+                          <div className="text-gray-500 text-xs">
+                            {formatDateTime(item.opened_at)}
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-gray-500">Not opened</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="py-10 text-center text-gray-500">
+                    No notifications match these filters.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        {pagination?.totalPages > 1 && (
+          <div className="px-5 py-3 border-t flex items-center justify-between text-sm">
+            <span className="text-gray-500">
+              Page {pagination.page} of {pagination.totalPages} ·{" "}
+              {pagination.total} records
+            </span>
+            <div className="flex gap-2">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage(page - 1)}
+                className="px-3 py-1.5 border rounded disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                disabled={page >= pagination.totalPages}
+                onClick={() => setPage(page + 1)}
+                className="px-3 py-1.5 border rounded disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const Metric = ({ label, value }) => (
+  <div className="bg-white rounded-xl shadow p-4">
+    <div className="text-sm text-gray-500">{label}</div>
+    <div className="text-2xl font-semibold text-gray-800 mt-1">{value}</div>
+  </div>
+);
+
 export default function SendNotification() {
+  const [tab, setTab] = useState("compose");
+  const [audienceMode, setAudienceMode] = useState("broadcast");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
-
-  // Deep Link state
-  const [linkType, setLinkType] = useState("none"); // none, deep, external, custom
+  const [linkType, setLinkType] = useState("none");
   const [selectedDeepLink, setSelectedDeepLink] = useState("");
   const [customDeepLink, setCustomDeepLink] = useState("");
   const [externalLink, setExternalLink] = useState("");
   const [deepLinkSearch, setDeepLinkSearch] = useState("");
   const [showDeepLinkDropdown, setShowDeepLinkDropdown] = useState(false);
-
-  // Image state
   const [imageUrl, setImageUrl] = useState("");
-  const [imageSource, setImageSource] = useState("none"); // none, url, upload
-
-  // Target level state
-  const [targetLevel, setTargetLevel] = useState("all"); // all, a1, a2, b1
-
-  // Target mode state
-  const [targetMode, setTargetMode] = useState("all"); // all, learn, practice, job_screening
-
-  // Version filter state
-  const [isManualExactVersion, setIsManualExactVersion] = useState(false);
-  const [isManualRangeVersion, setIsManualRangeVersion] = useState(false);
+  const [imageSource, setImageSource] = useState("none");
+  const [targetLevel, setTargetLevel] = useState("all");
+  const [targetMode, setTargetMode] = useState("all");
   const [availableVersions, setAvailableVersions] = useState([]);
-  const [versionFilterType, setVersionFilterType] = useState("all"); // all | exact | range
+  const [versionFilterType, setVersionFilterType] = useState("all");
   const [exactVersion, setExactVersion] = useState("");
   const [minVersion, setMinVersion] = useState("");
   const [maxVersion, setMaxVersion] = useState("");
-
-  // Fetch available versions on mount
+  const [recipientSearch, setRecipientSearch] = useState("");
+  const [recipients, setRecipients] = useState([]);
+  const [selectedRecipient, setSelectedRecipient] = useState(null);
+  const [recipientLoading, setRecipientLoading] = useState(false);
+  const [showRecipients, setShowRecipients] = useState(false);
   useEffect(() => {
     api
       .get("/notifications/versions")
-      .then((res) => {
-        setAvailableVersions(res.data.versions || []);
-      })
+      .then((res) => setAvailableVersions(res.data.versions || []))
       .catch(() => {});
   }, []);
-
-  // Filter deep links based on search
-  const filteredRoutes = useMemo(() => {
-    if (!deepLinkSearch) return DEEP_LINK_ROUTES;
-    const search = deepLinkSearch.toLowerCase();
-    return DEEP_LINK_ROUTES.filter(
-      (route) =>
-        route.label.toLowerCase().includes(search) ||
-        route.path.toLowerCase().includes(search) ||
-        route.category.toLowerCase().includes(search),
-    );
-  }, [deepLinkSearch]);
-
-  // Group routes by category
-  const groupedRoutes = useMemo(() => {
-    return filteredRoutes.reduce((acc, route) => {
-      if (!acc[route.category]) acc[route.category] = [];
-      acc[route.category].push(route);
-      return acc;
-    }, {});
-  }, [filteredRoutes]);
-
-  const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0];
+  useEffect(() => {
+    if (audienceMode !== "individual") return;
+    const query = recipientSearch.trim();
+    const timeout = setTimeout(async () => {
+      setRecipientLoading(true);
+      try {
+        const response = await api.get(
+          `/notifications/recipients?query=${encodeURIComponent(query)}&limit=20`,
+        );
+        setRecipients(response.data.recipients || []);
+      } catch {
+        setRecipients([]);
+      } finally {
+        setRecipientLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [recipientSearch, audienceMode]);
+  const routes = useMemo(
+    () =>
+      DEEP_LINK_ROUTES.filter((route) =>
+        `${route.label} ${route.path} ${route.category}`
+          .toLowerCase()
+          .includes(deepLinkSearch.toLowerCase()),
+      ),
+    [deepLinkSearch],
+  );
+  const buildVersionFilter = () =>
+    versionFilterType === "exact" && exactVersion
+      ? { type: "exact", exact: exactVersion }
+      : versionFilterType === "range" && (minVersion || maxVersion)
+        ? {
+            type: "range",
+            minVersion: minVersion || undefined,
+            maxVersion: maxVersion || undefined,
+          }
+        : { type: "all" };
+  const getLink = () =>
+    linkType === "deep"
+      ? selectedDeepLink
+      : linkType === "custom"
+        ? customDeepLink
+        : linkType === "external"
+          ? externalLink
+          : "";
+  const resetForm = () => {
+    setTitle("");
+    setBody("");
+    setLinkType("none");
+    setSelectedDeepLink("");
+    setCustomDeepLink("");
+    setExternalLink("");
+    setImageUrl("");
+    setImageSource("none");
+    setTargetLevel("all");
+    setTargetMode("all");
+    setVersionFilterType("all");
+    setExactVersion("");
+    setMinVersion("");
+    setMaxVersion("");
+    setRecipientSearch("");
+    setSelectedRecipient(null);
+  };
+  const uploadImage = async (event) => {
+    const file = event.target.files?.[0];
     if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      setStatus({ type: "error", message: "Please select an image file" });
+    if (!file.type.startsWith("image/") || file.size > 5 * 1024 * 1024) {
+      setStatus({
+        type: "error",
+        message: "Use an image file smaller than 5MB",
+      });
       return;
     }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setStatus({ type: "error", message: "Image must be less than 5MB" });
-      return;
-    }
-
     setUploading(true);
-    setStatus({ type: "", message: "" });
-
     try {
       const formData = new FormData();
       formData.append("image", file);
-
-      const res = await api.post("/admin/upload/notification-image", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      setImageUrl(res.data.url);
-      setStatus({ type: "success", message: "Image uploaded successfully!" });
+      const response = await api.post(
+        "/admin/upload/notification-image",
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } },
+      );
+      setImageUrl(response.data.url);
     } catch (err) {
       setStatus({
         type: "error",
-        message: err.response?.data?.error || "Failed to upload image",
+        message: err.response?.data?.error || "Image upload failed",
       });
     } finally {
       setUploading(false);
     }
   };
-
-  const buildVersionFilter = () => {
-    if (versionFilterType === "exact" && exactVersion) {
-      return { type: "exact", exact: exactVersion };
-    }
-    if (versionFilterType === "range" && (minVersion || maxVersion)) {
-      return {
-        type: "range",
-        minVersion: minVersion || undefined,
-        maxVersion: maxVersion || undefined,
-      };
-    }
-    return { type: "all" };
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!title || !body) {
-      setStatus({ type: "error", message: "Title and message are required" });
-      return;
-    }
-
-    if (versionFilterType === "exact" && !exactVersion) {
-      setStatus({
+  const submit = async (event) => {
+    event.preventDefault();
+    if (!title || !body)
+      return setStatus({
         type: "error",
-        message: "Please select a version or switch to All Versions",
+        message: "Title and message are required",
       });
-      return;
-    }
-
-    if (versionFilterType === "range" && !minVersion && !maxVersion) {
-      setStatus({
+    if (audienceMode === "individual" && !selectedRecipient)
+      return setStatus({
         type: "error",
-        message: "Please set at least one bound for the version range",
+        message: "Choose a recipient with an active push token",
       });
-      return;
-    }
-
+    if (versionFilterType === "exact" && !exactVersion)
+      return setStatus({
+        type: "error",
+        message: "Choose an exact app version or switch to all versions",
+      });
+    if (versionFilterType === "range" && !minVersion && !maxVersion)
+      return setStatus({
+        type: "error",
+        message: "Choose at least one version range boundary",
+      });
     setLoading(true);
     setStatus({ type: "", message: "" });
-
-    // Build payload
     const payload = { title, body };
-
-    // Add deep link based on selection
-    if (linkType === "deep" && selectedDeepLink) {
-      payload.deepLink = selectedDeepLink;
-    } else if (linkType === "custom" && customDeepLink) {
-      payload.deepLink = customDeepLink;
-    } else if (linkType === "external" && externalLink) {
+    if (linkType === "external" && externalLink)
       payload.externalLink = externalLink;
-    }
-
-    // Add image if provided
-    if (imageSource !== "none" && imageUrl) {
-      payload.imageUrl = imageUrl;
-    }
-
-    // Add target level
-    if (targetLevel !== "all") {
-      payload.targetLevel = targetLevel;
-    }
-
-    // Add target mode
-    if (targetMode !== "all") {
-      payload.targetMode = targetMode;
-    }
-
-    payload.versionFilter = buildVersionFilter();
-
+    else if (getLink()) payload.deepLink = getLink();
+    if (imageUrl && imageSource !== "none") payload.imageUrl = imageUrl;
+    if (audienceMode === "broadcast") {
+      if (targetLevel !== "all") payload.targetLevel = targetLevel;
+      if (targetMode !== "all") payload.targetMode = targetMode;
+      payload.versionFilter = buildVersionFilter();
+    } else payload.userId = selectedRecipient.userId;
     try {
-      const res = await api.post("/notifications/broadcast", payload);
+      const response = await api.post(
+        audienceMode === "individual"
+          ? "/notifications/send"
+          : "/notifications/broadcast",
+        payload,
+      );
       setStatus({
         type: "success",
-        message: `Notification sent to ${res.data.sentTo} users!${
-          res.data.failedCount > 0 ? ` (${res.data.failedCount} failed)` : ""
-        }`,
+        message:
+          audienceMode === "individual"
+            ? `Notification sent to ${selectedRecipient.name}.`
+            : `Sent to ${response.data.sentTo} of ${response.data.targeted} targeted users${response.data.failedCount ? ` (${response.data.failedCount} failed)` : ""}.`,
       });
-
-      // Reset form
-      setTitle("");
-      setBody("");
-      setLinkType("none");
-      setSelectedDeepLink("");
-      setCustomDeepLink("");
-      setExternalLink("");
-      setImageUrl("");
-      setImageSource("none");
-      setTargetLevel("all");
-      setTargetMode("all");
-      setVersionFilterType("all");
-      setExactVersion("");
-      setMinVersion("");
-      setMaxVersion("");
+      resetForm();
     } catch (err) {
       setStatus({
         type: "error",
-        message: err.response?.data?.error || "Failed to send notification",
+        message: err.response?.data?.error || "Notification could not be sent",
       });
     } finally {
       setLoading(false);
     }
   };
-
-  const getLinkPreview = () => {
-    if (linkType === "deep" && selectedDeepLink) {
-      const route = DEEP_LINK_ROUTES.find((r) => r.path === selectedDeepLink);
-      return route ? `${route.label} (${route.path})` : selectedDeepLink;
-    }
-    if (linkType === "custom" && customDeepLink) return customDeepLink;
-    if (linkType === "external" && externalLink) return externalLink;
-    return "No link";
-  };
-
+  const audienceLabel =
+    audienceMode === "individual"
+      ? selectedRecipient?.name || "recipient"
+      : targetLevel === "all"
+        ? "all users"
+        : `${targetLevel.toUpperCase()} users`;
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
+    <div className="max-w-5xl mx-auto">
+      <div className="flex items-center gap-3 mb-2">
         <Bell className="w-8 h-8 text-blue-500" />
-        <h2 className="text-2xl font-bold text-gray-800">
-          Broadcast Notification
-        </h2>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">Notifications</h2>
+          <p className="text-gray-600">
+            Send targeted push notifications and review engagement.
+          </p>
+        </div>
       </div>
-
-      <p className="text-gray-600 mb-6">
-        Send a push notification to all users. Add optional images and links.
-      </p>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Title */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Notification Title <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter notification title"
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            required
-          />
-        </div>
-
-        {/* Message */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Notification Message <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Enter notification message"
-            rows={3}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            required
-          />
-        </div>
-
-        {/* Target Audience */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            <Users className="w-4 h-4 inline mr-2" />
-            Target Audience
-          </label>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setTargetLevel("all")}
-              className={`px-4 py-2 rounded-lg border transition ${
-                targetLevel === "all"
-                  ? "bg-blue-50 border-blue-500 text-blue-700"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              All Users
-            </button>
-            <button
-              type="button"
-              onClick={() => setTargetLevel("a1")}
-              className={`px-4 py-2 rounded-lg border transition ${
-                targetLevel === "a1"
-                  ? "bg-green-50 border-green-500 text-green-700"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              A1 Only
-            </button>
-            <button
-              type="button"
-              onClick={() => setTargetLevel("a2")}
-              className={`px-4 py-2 rounded-lg border transition ${
-                targetLevel === "a2"
-                  ? "bg-purple-50 border-purple-500 text-purple-700"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              A2 Only
-            </button>
-            <button
-              type="button"
-              onClick={() => setTargetLevel("b1")}
-              className={`px-4 py-2 rounded-lg border transition ${
-                targetLevel === "b1"
-                  ? "bg-amber-50 border-amber-500 text-amber-700"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              B1 Only
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Send notification to specific proficiency level users
-          </p>
-        </div>
-
-        {/* Target Learning Mode */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            <Users className="w-4 h-4 inline mr-2" />
-            Target Learning Mode
-          </label>
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setTargetMode("all")}
-              className={`px-4 py-2 rounded-lg border transition ${
-                targetMode === "all"
-                  ? "bg-blue-50 border-blue-500 text-blue-700"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              All Modes
-            </button>
-            <button
-              type="button"
-              onClick={() => setTargetMode("learn")}
-              className={`px-4 py-2 rounded-lg border transition ${
-                targetMode === "learn"
-                  ? "bg-green-50 border-green-500 text-green-700"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              Learn German
-            </button>
-            <button
-              type="button"
-              onClick={() => setTargetMode("practice")}
-              className={`px-4 py-2 rounded-lg border transition ${
-                targetMode === "practice"
-                  ? "bg-purple-50 border-purple-500 text-purple-700"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              Practice
-            </button>
-            <button
-              type="button"
-              onClick={() => setTargetMode("job_screening")}
-              className={`px-4 py-2 rounded-lg border transition ${
-                targetMode === "job_screening"
-                  ? "bg-amber-50 border-amber-500 text-amber-700"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              Job Screening
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            Send notification to users with a specific preferred learning mode
-          </p>
-        </div>
-
-        {/* App Version Filter */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            <Smartphone className="w-4 h-4 inline mr-2" />
-            App Version
-            {availableVersions.length > 0 && (
-              <span className="ml-2 text-xs text-gray-400 font-normal">
-                {availableVersions.length} version
-                {availableVersions.length !== 1 ? "s" : ""} in DB
-              </span>
-            )}
-          </label>
-
-          <div className="flex gap-3 mb-4">
-            {[
-              { value: "all", label: "All Versions" },
-              { value: "exact", label: "Exact Version" },
-              { value: "range", label: "Version Range" },
-            ].map(({ value, label }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => {
-                  setVersionFilterType(value);
-                  setExactVersion("");
-                  setMinVersion("");
-                  setMaxVersion("");
-                }}
-                className={`px-4 py-2 rounded-lg border transition ${
-                  versionFilterType === value
-                    ? "bg-blue-50 border-blue-500 text-blue-700"
-                    : "border-gray-300 text-gray-600 hover:bg-gray-50"
-                }`}
+      <div className="flex gap-1 mt-6 mb-6 border-b">
+        <button
+          onClick={() => setTab("compose")}
+          className={`px-4 py-3 font-medium ${tab === "compose" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500"}`}
+        >
+          Compose
+        </button>
+        <button
+          onClick={() => setTab("trail")}
+          className={`px-4 py-3 font-medium ${tab === "trail" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500"}`}
+        >
+          Notification Trail
+        </button>
+      </div>
+      {tab === "trail" ? (
+        <NotificationTrail />
+      ) : (
+        <form onSubmit={submit} className="space-y-5">
+          <section className="bg-white rounded-xl shadow p-5">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Send to
+            </label>
+            <div className="flex gap-3">
+              <ButtonChoice
+                active={audienceMode === "broadcast"}
+                onClick={() => setAudienceMode("broadcast")}
               >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {versionFilterType === "exact" && (
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-xs text-gray-500">Target Version</label>
-                <button
-                  type="button"
-                  onClick={() => setIsManualExactVersion(!isManualExactVersion)}
-                  className="text-xs text-blue-600 hover:text-blue-800"
-                >
-                  {isManualExactVersion ? "Choose from list" : "Enter manually"}
-                </button>
-              </div>
-
-              {isManualExactVersion ? (
-                <input
-                  type="text"
-                  value={exactVersion}
-                  onChange={(e) => setExactVersion(e.target.value)}
-                  placeholder="e.g. 1.1.0"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              ) : (
-                <>
-                  <select
-                    value={exactVersion}
-                    onChange={(e) => setExactVersion(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Select a version...</option>
-                    {availableVersions.map((v) => (
-                      <option key={v} value={v}>
-                        v{v}
-                      </option>
-                    ))}
-                  </select>
-                  {availableVersions.length === 0 && (
-                    <p className="text-xs text-amber-600 mt-1">
-                      No versions recorded yet. You can click "Enter manually"
-                      to type one.
-                    </p>
-                  )}
-                </>
-              )}
+                <Users className="inline w-4 h-4 mr-1" />
+                Broadcast
+              </ButtonChoice>
+              <ButtonChoice
+                active={audienceMode === "individual"}
+                onClick={() => setAudienceMode("individual")}
+              >
+                <Send className="inline w-4 h-4 mr-1" />
+                Individual
+              </ButtonChoice>
             </div>
-          )}
-
-          {versionFilterType === "range" && (
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-xs text-gray-500">Target Range</label>
-                <button
-                  type="button"
-                  onClick={() => setIsManualRangeVersion(!isManualRangeVersion)}
-                  className="text-xs text-blue-600 hover:text-blue-800"
-                >
-                  {isManualRangeVersion ? "Choose from list" : "Enter manually"}
-                </button>
+            {audienceMode === "individual" && (
+              <div className="relative mt-4 max-w-xl">
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Search recipient by name or phone
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    value={recipientSearch}
+                    onFocus={() => setShowRecipients(true)}
+                    onChange={(e) => {
+                      setRecipientSearch(e.target.value);
+                      setSelectedRecipient(null);
+                      setShowRecipients(true);
+                    }}
+                    placeholder="Start typing a name or phone number"
+                    className="w-full pl-9 pr-3 py-3 border rounded-lg"
+                  />
+                </div>
+                {showRecipients && (
+                  <div className="absolute z-20 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-64 overflow-auto">
+                    {recipientLoading ? (
+                      <div className="p-3 text-sm text-gray-500">
+                        Searching…
+                      </div>
+                    ) : recipients.length ? (
+                      recipients.map((recipient) => (
+                        <button
+                          type="button"
+                          disabled={!recipient.hasActivePushToken}
+                          key={recipient.userId}
+                          onClick={() => {
+                            setSelectedRecipient(recipient);
+                            setRecipientSearch(
+                              `${recipient.name} · ${recipient.phone || "No phone"}`,
+                            );
+                            setShowRecipients(false);
+                          }}
+                          className="w-full text-left px-4 py-3 border-b last:border-0 hover:bg-blue-50 disabled:bg-gray-50 disabled:cursor-not-allowed"
+                        >
+                          <div className="flex justify-between gap-3">
+                            <span className="font-medium text-gray-800">
+                              {recipient.name}
+                            </span>
+                            {!recipient.hasActivePushToken && (
+                              <span className="text-xs text-amber-700">
+                                No active device
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {recipient.phone || "No phone number"}
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="p-3 text-sm text-gray-500">
+                        No users found.
+                      </div>
+                    )}
+                  </div>
+                )}
+                {selectedRecipient && (
+                  <p className="mt-2 text-sm text-green-700">
+                    Selected: {selectedRecipient.name} (
+                    {selectedRecipient.phone || "No phone"})
+                  </p>
+                )}
               </div>
-
-              <div className="flex gap-4 items-center">
-                <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">
-                    Min version (from)
-                  </label>
-                  {isManualRangeVersion ? (
+            )}
+          </section>
+          <section className="bg-white rounded-xl shadow p-5 grid gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Notification title <span className="text-red-500">*</span>
+              </label>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                className="w-full px-4 py-3 border rounded-lg"
+                placeholder="Enter notification title"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Message <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                required
+                rows="3"
+                className="w-full px-4 py-3 border rounded-lg resize-none"
+                placeholder="Enter notification message"
+              />
+            </div>
+          </section>
+          {audienceMode === "broadcast" && (
+            <section className="bg-white rounded-xl shadow p-5 grid gap-5">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  <Users className="inline w-4 h-4 mr-1" />
+                  Proficiency level
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {["all", "a1", "a2", "b1"].map((level) => (
+                    <ButtonChoice
+                      key={level}
+                      active={targetLevel === level}
+                      onClick={() => setTargetLevel(level)}
+                    >
+                      {level === "all"
+                        ? "All users"
+                        : `${level.toUpperCase()} only`}
+                    </ButtonChoice>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Learning mode
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    ["all", "All modes"],
+                    ["learn", "Learn German"],
+                    ["practice", "Practice"],
+                    ["job_screening", "Job Screening"],
+                  ].map(([value, label]) => (
+                    <ButtonChoice
+                      key={value}
+                      active={targetMode === value}
+                      onClick={() => setTargetMode(value)}
+                    >
+                      {label}
+                    </ButtonChoice>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  <Smartphone className="inline w-4 h-4 mr-1" />
+                  App version
+                </label>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {[
+                    ["all", "All versions"],
+                    ["exact", "Exact version"],
+                    ["range", "Version range"],
+                  ].map(([value, label]) => (
+                    <ButtonChoice
+                      key={value}
+                      active={versionFilterType === value}
+                      onClick={() => setVersionFilterType(value)}
+                    >
+                      {label}
+                    </ButtonChoice>
+                  ))}
+                </div>
+                {versionFilterType === "exact" && (
+                  <>
                     <input
-                      type="text"
+                      list="notification-versions"
+                      value={exactVersion}
+                      onChange={(e) => setExactVersion(e.target.value)}
+                      placeholder="Select or type a version, e.g. 1.1.8"
+                      className="w-full max-w-sm px-3 py-2 border rounded-lg"
+                    />
+                    <datalist id="notification-versions">
+                      {availableVersions.map((version) => (
+                        <option key={version} value={version} />
+                      ))}
+                    </datalist>
+                  </>
+                )}
+                {versionFilterType === "range" && (
+                  <div className="flex gap-3 max-w-lg">
+                    <input
                       value={minVersion}
                       onChange={(e) => setMinVersion(e.target.value)}
-                      placeholder="e.g. 1.0.0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      placeholder="Min version"
+                      className="w-full px-3 py-2 border rounded-lg"
                     />
-                  ) : (
-                    <select
-                      value={minVersion}
-                      onChange={(e) => setMinVersion(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    >
-                      <option value="">Any</option>
-                      {availableVersions.map((v) => (
-                        <option key={v} value={v}>
-                          v{v}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-                <span className="text-gray-400 mt-5">–</span>
-                <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">
-                    Max version (to)
-                  </label>
-                  {isManualRangeVersion ? (
                     <input
-                      type="text"
                       value={maxVersion}
                       onChange={(e) => setMaxVersion(e.target.value)}
-                      placeholder="e.g. 1.1.0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      placeholder="Max version"
+                      className="w-full px-3 py-2 border rounded-lg"
                     />
-                  ) : (
-                    <select
-                      value={maxVersion}
-                      onChange={(e) => setMaxVersion(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    >
-                      <option value="">Any</option>
-                      {availableVersions.map((v) => (
-                        <option key={v} value={v}>
-                          v{v}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
+            </section>
+          )}
+          <section className="bg-white rounded-xl shadow p-5">
+            <label className="block text-sm font-medium mb-3">
+              <Image className="inline w-4 h-4 mr-1" />
+              Image (optional)
+            </label>
+            <div className="flex gap-2 mb-3">
+              <ButtonChoice
+                active={imageSource === "none"}
+                onClick={() => {
+                  setImageSource("none");
+                  setImageUrl("");
+                }}
+              >
+                No image
+              </ButtonChoice>
+              <ButtonChoice
+                active={imageSource === "url"}
+                onClick={() => setImageSource("url")}
+              >
+                Paste URL
+              </ButtonChoice>
+              <ButtonChoice
+                active={imageSource === "upload"}
+                onClick={() => setImageSource("upload")}
+              >
+                Upload
+              </ButtonChoice>
             </div>
-          )}
-        </div>
-
-        {/* Image Section */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            <Image className="w-4 h-4 inline mr-2" />
-            Notification Image (Optional)
-          </label>
-
-          <div className="flex gap-3 mb-4">
-            <button
-              type="button"
-              onClick={() => {
-                setImageSource("none");
-                setImageUrl("");
-              }}
-              className={`px-4 py-2 rounded-lg border transition ${
-                imageSource === "none"
-                  ? "bg-blue-50 border-blue-500 text-blue-700"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              No Image
-            </button>
-            <button
-              type="button"
-              onClick={() => setImageSource("url")}
-              className={`px-4 py-2 rounded-lg border transition ${
-                imageSource === "url"
-                  ? "bg-blue-50 border-blue-500 text-blue-700"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              Paste URL
-            </button>
-            <button
-              type="button"
-              onClick={() => setImageSource("upload")}
-              className={`px-4 py-2 rounded-lg border transition ${
-                imageSource === "upload"
-                  ? "bg-blue-50 border-blue-500 text-blue-700"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              Upload File
-            </button>
-          </div>
-
-          {imageSource === "url" && (
-            <input
-              type="url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          )}
-
-          {imageSource === "upload" && (
-            <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 px-4 py-3 bg-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition">
-                <Upload className="w-5 h-5" />
-                {uploading ? "Uploading..." : "Choose File"}
+            {imageSource === "url" && (
+              <input
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                type="url"
+                placeholder="https://example.com/image.jpg"
+                className="w-full px-3 py-2 border rounded-lg"
+              />
+            )}
+            {imageSource === "upload" && (
+              <label className="inline-flex gap-2 items-center px-3 py-2 bg-gray-100 rounded-lg cursor-pointer">
+                <Upload className="w-4 h-4" />
+                {uploading ? "Uploading…" : "Choose image"}
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
                   disabled={uploading}
+                  onChange={uploadImage}
+                  className="hidden"
                 />
               </label>
-              {imageUrl && (
-                <span className="text-green-600 text-sm flex items-center gap-1">
-                  <CheckCircle className="w-4 h-4" /> Uploaded
-                </span>
-              )}
-            </div>
-          )}
-
-          {imageUrl && (
-            <div className="mt-4 relative inline-block">
-              <img
-                src={imageUrl}
-                alt="Preview"
-                className="max-h-32 rounded-lg border"
-              />
-              <button
-                type="button"
-                onClick={() => setImageUrl("")}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Link Section */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            <LinkIcon className="w-4 h-4 inline mr-2" />
-            Notification Link (Optional)
-          </label>
-
-          <div className="flex flex-wrap gap-3 mb-4">
-            <button
-              type="button"
-              onClick={() => setLinkType("none")}
-              className={`px-4 py-2 rounded-lg border transition ${
-                linkType === "none"
-                  ? "bg-blue-50 border-blue-500 text-blue-700"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              No Link
-            </button>
-            <button
-              type="button"
-              onClick={() => setLinkType("deep")}
-              className={`px-4 py-2 rounded-lg border transition flex items-center gap-2 ${
-                linkType === "deep"
-                  ? "bg-blue-50 border-blue-500 text-blue-700"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              <LinkIcon className="w-4 h-4" /> In-App Page
-            </button>
-            <button
-              type="button"
-              onClick={() => setLinkType("custom")}
-              className={`px-4 py-2 rounded-lg border transition ${
-                linkType === "custom"
-                  ? "bg-blue-50 border-blue-500 text-blue-700"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              Custom Path
-            </button>
-            <button
-              type="button"
-              onClick={() => setLinkType("external")}
-              className={`px-4 py-2 rounded-lg border transition flex items-center gap-2 ${
-                linkType === "external"
-                  ? "bg-blue-50 border-blue-500 text-blue-700"
-                  : "border-gray-300 text-gray-600 hover:bg-gray-50"
-              }`}
-            >
-              <ExternalLink className="w-4 h-4" /> External URL
-            </button>
-          </div>
-
-          {/* In-App Deep Link Dropdown */}
-          {linkType === "deep" && (
-            <div className="relative">
-              <div
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg cursor-pointer flex items-center justify-between"
-                onClick={() => setShowDeepLinkDropdown(!showDeepLinkDropdown)}
-              >
-                <span
-                  className={
-                    selectedDeepLink ? "text-gray-900" : "text-gray-400"
-                  }
+            )}
+            {imageUrl && (
+              <div className="relative inline-block mt-3">
+                <img
+                  src={imageUrl}
+                  alt="Notification preview"
+                  className="h-24 rounded border"
+                />
+                <button
+                  type="button"
+                  onClick={() => setImageUrl("")}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
                 >
-                  {selectedDeepLink
-                    ? DEEP_LINK_ROUTES.find((r) => r.path === selectedDeepLink)
-                        ?.label
-                    : "Select a page..."}
-                </span>
-                <ChevronDown className="w-5 h-5 text-gray-400" />
+                  <X className="w-3 h-3" />
+                </button>
               </div>
-
-              {showDeepLinkDropdown && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-hidden">
-                  <div className="p-2 border-b sticky top-0 bg-white">
-                    <div className="relative">
-                      <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Search pages..."
-                        value={deepLinkSearch}
-                        onChange={(e) => setDeepLinkSearch(e.target.value)}
-                        className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-                  </div>
-                  <div className="overflow-y-auto max-h-48">
-                    {Object.entries(groupedRoutes).map(([category, routes]) => (
-                      <div key={category}>
-                        <div className="px-3 py-1 text-xs font-semibold text-gray-500 bg-gray-50">
-                          {category}
+            )}
+          </section>
+          <section className="bg-white rounded-xl shadow p-5">
+            <label className="block text-sm font-medium mb-3">
+              <LinkIcon className="inline w-4 h-4 mr-1" />
+              Link (optional)
+            </label>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {[
+                ["none", "No link"],
+                ["deep", "In-app page"],
+                ["custom", "Custom path"],
+                ["external", "External URL"],
+              ].map(([value, label]) => (
+                <ButtonChoice
+                  key={value}
+                  active={linkType === value}
+                  onClick={() => setLinkType(value)}
+                >
+                  {value === "external" && (
+                    <ExternalLink className="inline w-4 h-4 mr-1" />
+                  )}
+                  {label}
+                </ButtonChoice>
+              ))}
+            </div>
+            {linkType === "deep" && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowDeepLinkDropdown(!showDeepLinkDropdown)}
+                  className="w-full px-3 py-2 border rounded-lg text-left flex justify-between"
+                >
+                  <span>
+                    {DEEP_LINK_ROUTES.find(
+                      (route) => route.path === selectedDeepLink,
+                    )?.label || "Select an in-app page"}
+                  </span>
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                {showDeepLinkDropdown && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow max-h-56 overflow-auto">
+                    <input
+                      value={deepLinkSearch}
+                      onChange={(e) => setDeepLinkSearch(e.target.value)}
+                      placeholder="Search pages"
+                      className="m-2 w-[calc(100%-1rem)] px-3 py-2 border rounded"
+                    />
+                    {routes.map((route) => (
+                      <button
+                        type="button"
+                        key={route.path}
+                        onClick={() => {
+                          setSelectedDeepLink(route.path);
+                          setShowDeepLinkDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-2 hover:bg-blue-50"
+                      >
+                        <div>{route.label}</div>
+                        <div className="text-xs text-gray-500">
+                          {route.path}
                         </div>
-                        {routes.map((route) => (
-                          <div
-                            key={route.path}
-                            onClick={() => {
-                              setSelectedDeepLink(route.path);
-                              setShowDeepLinkDropdown(false);
-                              setDeepLinkSearch("");
-                            }}
-                            className={`px-3 py-2 cursor-pointer hover:bg-blue-50 ${
-                              selectedDeepLink === route.path
-                                ? "bg-blue-100"
-                                : ""
-                            }`}
-                          >
-                            <div className="font-medium text-sm">
-                              {route.label}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {route.path}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      </button>
                     ))}
                   </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Custom Deep Link Input */}
-          {linkType === "custom" && (
-            <div>
+                )}
+              </div>
+            )}
+            {linkType === "custom" && (
               <input
-                type="text"
                 value={customDeepLink}
                 onChange={(e) => setCustomDeepLink(e.target.value)}
-                placeholder="/a1/flashcard/1"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="/path/to/page"
+                className="w-full px-3 py-2 border rounded-lg"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Enter any in-app path including parameters (e.g.,
-                /story/my-story-slug)
-              </p>
-            </div>
-          )}
-
-          {/* External Link Input */}
-          {linkType === "external" && (
-            <div>
+            )}
+            {linkType === "external" && (
               <input
                 type="url"
                 value={externalLink}
                 onChange={(e) => setExternalLink(e.target.value)}
                 placeholder="https://example.com"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 border rounded-lg"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                This will open in the device browser
-              </p>
+            )}
+          </section>
+          <section className="bg-gray-50 rounded-xl p-4 border">
+            <div className="text-sm font-medium text-gray-700 mb-2">
+              Preview
+            </div>
+            <div className="bg-white rounded-lg p-3 border flex gap-3">
+              {imageUrl && (
+                <img
+                  src={imageUrl}
+                  alt=""
+                  className="w-14 h-14 object-cover rounded"
+                />
+              )}
+              <div>
+                <div className="font-semibold">
+                  {title || "Notification title"}
+                </div>
+                <div className="text-sm text-gray-600">
+                  {body || "Notification message"}
+                </div>
+                {getLink() && (
+                  <div className="text-xs text-blue-600 mt-1">{getLink()}</div>
+                )}
+              </div>
+            </div>
+          </section>
+          {status.message && (
+            <div
+              className={`p-4 rounded-lg flex gap-2 ${status.type === "success" ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"}`}
+            >
+              {status.type === "success" ? (
+                <CheckCircle className="w-5 h-5 shrink-0" />
+              ) : (
+                <AlertCircle className="w-5 h-5 shrink-0" />
+              )}
+              <span>{status.message}</span>
             </div>
           )}
-        </div>
-
-        {/* Preview */}
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <h3 className="font-medium text-gray-700 mb-2">Preview</h3>
-          <div className="bg-white rounded-lg p-3 shadow-sm border flex gap-3">
-            {imageUrl && (
-              <img
-                src={imageUrl}
-                alt=""
-                className="w-16 h-16 rounded object-cover"
-              />
-            )}
-            <div className="flex-1">
-              <p className="font-semibold text-sm">
-                {title || "Notification Title"}
-              </p>
-              <p className="text-gray-600 text-sm">
-                {body || "Notification message..."}
-              </p>
-              <p className="text-xs text-blue-600 mt-1">{getLinkPreview()}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Status Message */}
-        {status.message && (
-          <div
-            className={`rounded-lg p-4 flex items-center gap-3 ${
-              status.type === "success"
-                ? "bg-green-50 border border-green-200"
-                : "bg-red-50 border border-red-200"
-            }`}
+          <button
+            disabled={
+              loading ||
+              uploading ||
+              (audienceMode === "individual" && !selectedRecipient)
+            }
+            className="w-full flex justify-center items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
-            {status.type === "success" ? (
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-            ) : (
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-            )}
-            <p
-              className={`text-sm ${
-                status.type === "success" ? "text-green-800" : "text-red-800"
-              }`}
-            >
-              {status.message}
-            </p>
-          </div>
-        )}
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={loading || uploading}
-          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-        >
-          <Send className="w-5 h-5" />
-          {(() => {
-            let audience = targetLevel === "all" ? "All Users" : `${targetLevel.toUpperCase()} Users`;
-            if (targetMode !== "all") {
-              const modeLabel = targetMode === "learn" ? "Learn German" : targetMode === "practice" ? "Practice" : "Job Screening";
-              audience += ` (${modeLabel})`;
-            }
-            if (versionFilterType === "exact" && exactVersion)
-              return `${loading ? "Sending..." : "Send"} to ${audience} on v${exactVersion}`;
-
-            if (versionFilterType === "range" && (minVersion || maxVersion)) {
-              const range = [
-                minVersion && `v${minVersion}`,
-                maxVersion && `v${maxVersion}`,
-              ]
-                .filter(Boolean)
-                .join(" – ");
-
-              return `${loading ? "Sending..." : "Send"} to ${audience} (${range})`;
-            }
-
-            return loading ? "Sending..." : `Send to ${audience}`;
-          })()}
-        </button>
-      </form>
+            <Send className="w-5 h-5" />
+            {loading ? "Sending…" : `Send to ${audienceLabel}`}
+          </button>
+        </form>
+      )}
     </div>
   );
 }
