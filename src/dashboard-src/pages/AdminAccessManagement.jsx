@@ -20,6 +20,7 @@ const MODULE_OPTIONS = [
   { key: "landing_page", label: "Landing Page" },
   { key: "notifications", label: "Notifications" },
   { key: "wise", label: "Wise Dashboard" },
+  { key: "wise_classes", label: "Wise Classes" },
   { key: "internal", label: "Internal Forms" },
   { key: "terms", label: "Terms & Signatures" },
   { key: "payments", label: "Payments" },

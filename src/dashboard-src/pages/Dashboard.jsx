@@ -742,7 +742,7 @@ export default function Dashboard() {
         key: "wise-classes",
         label: "Wise Classes",
         path: "/admin/wise-classes",
-        module: "wise",
+        module: "wise_classes",
       },
       {
         key: "internal",
