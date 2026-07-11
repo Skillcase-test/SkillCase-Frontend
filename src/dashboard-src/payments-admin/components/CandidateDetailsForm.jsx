@@ -985,7 +985,7 @@ export function CandidateDetailsForm({
                 onChange={(e) =>
                   setEditDraft((p) => ({ ...p, candidate_id: e.target.value.toUpperCase() }))
                 }
-                placeholder="Candidate ID (e.g. SK-A2-05260001)"
+                placeholder="Candidate ID (e.g. SK-052600001)"
                 className="w-full font-mono"
               />
             ) : (
