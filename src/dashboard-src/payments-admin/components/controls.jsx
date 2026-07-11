@@ -70,6 +70,7 @@ export function ActionChip({
           : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50";
   return (
     <button
+      type="button"
       {...props}
       className={`inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${variantClass} ${className}`}
     />

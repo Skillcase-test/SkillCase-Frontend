@@ -1051,6 +1051,7 @@ export default function SendNotification() {
             )}
 
             <ControlButton
+              type="submit"
               disabled={
                 loading ||
                 uploading ||
