@@ -34,6 +34,13 @@ function formatDateTime(iso) {
   });
 }
 
+function isStartWindowOpen(scheduledStartAt) {
+  if (!scheduledStartAt) return false;
+  const scheduledMs = new Date(scheduledStartAt).getTime();
+  if (Number.isNaN(scheduledMs)) return false;
+  return Date.now() >= scheduledMs - 5 * 60 * 1000;
+}
+
 function makeWiseApi() {
   return {
     get: async (path, params = {}) => {
@@ -368,6 +375,7 @@ export default function WiseClassesDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [rowActionState, setRowActionState] = useState({});
+  const [hostSelections, setHostSelections] = useState({});
   const [copiedSessionId, setCopiedSessionId] = useState(null);
   const [verifyModalSession, setVerifyModalSession] = useState(null);
   const [verifySaving, setVerifySaving] = useState(false);
@@ -398,7 +406,21 @@ export default function WiseClassesDashboard() {
       setError("");
       try {
         const res = await wiseApi.get("/wise/sessions/control", { date: sessionDate });
-        setSessions(res.sessions || []);
+        const nextSessions = res.sessions || [];
+        setSessions(nextSessions);
+        setHostSelections((previous) => {
+          const next = {};
+          nextSessions.forEach((session) => {
+            const candidates = session.hostCandidates || [];
+            const previousKey = previous[session.sessionId];
+            next[session.sessionId] = candidates.some(
+              (candidate) => candidate.key === previousKey,
+            )
+              ? previousKey
+              : session.selectedHostKey || candidates[0]?.key || "";
+          });
+          return next;
+        });
       } catch (e) {
         setError(e.message || "Failed to load session control");
         if (!silent) setSessions([]);
@@ -438,6 +460,15 @@ export default function WiseClassesDashboard() {
     const routeByAction = { start: "start", end: "end", restart: "restart" };
     const verb = routeByAction[nextAction];
     if (!verb) return;
+    const hostKey = hostSelections[session.sessionId] || session.selectedHostKey || "";
+    if ((nextAction === "start" || nextAction === "restart") && !hostKey) {
+      setError("Select an assigned host before starting this class");
+      return;
+    }
+    if (nextAction === "start" && !isStartWindowOpen(session.scheduledStartAt)) {
+      setError("This class can be started only within 5 minutes of its scheduled time");
+      return;
+    }
 
     const optimisticStatusByAction = { start: "live", end: "completed", restart: "live" };
     const optimisticNextByAction = { start: "end", end: "restart", restart: "end" };
@@ -465,10 +496,18 @@ export default function WiseClassesDashboard() {
       await wiseApi.post(`/wise/sessions/${session.sessionId}/${verb}`, {
         batchId: session.batchId,
         meetingJoinUrl: session.joinUrl || "",
+        ...(nextAction === "start" || nextAction === "restart"
+          ? { hostKey }
+          : {}),
       });
       await fetchSessionControl({ silent: true });
     } catch (e) {
-      setError(e.response?.data?.detail || e.message || `Failed to ${nextAction} session`);
+      setError(
+        e.response?.data?.detail ||
+          e.response?.data?.error ||
+          e.message ||
+          `Failed to ${nextAction} session`,
+      );
       await fetchSessionControl({ silent: true });
     } finally {
       setRowActionState((prev) => {
@@ -609,6 +648,9 @@ export default function WiseClassesDashboard() {
                         Batch
                       </th>
                       <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                        Host
+                      </th>
+                      <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                         Scheduled
                       </th>
                       <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">
@@ -629,6 +671,13 @@ export default function WiseClassesDashboard() {
                     {sessions.map((s, idx) => {
                       const isActionLoading = Boolean(rowActionState[s.sessionId]);
                       const nextAction = s.actions?.nextAction;
+                      const actionDisabled =
+                        !nextAction ||
+                        isActionLoading ||
+                        (nextAction === "start" &&
+                          (!hostSelections[s.sessionId] ||
+                            s.hostConflictSessionId ||
+                            !isStartWindowOpen(s.scheduledStartAt)));
                       return (
                         <tr
                           key={s.sessionId || idx}
@@ -651,6 +700,35 @@ export default function WiseClassesDashboard() {
                             <span className="text-sm text-slate-600 font-medium">
                               {s.batchName}
                             </span>
+                          </td>
+
+                          {/* Host */}
+                          <td className="px-4 py-4 text-center min-w-[190px]">
+                            <select
+                              value={hostSelections[s.sessionId] || ""}
+                              onChange={(event) =>
+                                setHostSelections((previous) => ({
+                                  ...previous,
+                                  [s.sessionId]: event.target.value,
+                                }))
+                              }
+                              disabled={s.status === "live" || s.status === "completed" || isActionLoading}
+                              className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-[#083262] disabled:bg-slate-50 disabled:text-slate-500"
+                            >
+                              {(s.hostCandidates || []).length === 0 && (
+                                <option value="">No assigned host found</option>
+                              )}
+                              {(s.hostCandidates || []).map((host) => (
+                                <option key={host.key} value={host.key}>
+                                  {host.name}{host.role === "primary_host" ? " (Primary)" : ""}
+                                </option>
+                              ))}
+                            </select>
+                            {s.hostConflictSessionId && (
+                              <div className="mt-1 text-[10px] font-semibold text-rose-600">
+                                Host is already live
+                              </div>
+                            )}
                           </td>
 
                           {/* Scheduled */}
@@ -755,8 +833,8 @@ export default function WiseClassesDashboard() {
                               {/* Primary Action Button */}
                               <button
                                 onClick={() => runPrimaryAction(s)}
-                                disabled={!nextAction || isActionLoading}
-                                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${getActionButtonStyle(nextAction, !nextAction || isActionLoading)}`}
+                                disabled={actionDisabled}
+                                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${getActionButtonStyle(nextAction, actionDisabled)}`}
                               >
                                 {getActionButtonIcon(nextAction)}
                                 {getActionButtonLabel(nextAction, rowActionState[s.sessionId])}
@@ -778,7 +856,7 @@ export default function WiseClassesDashboard() {
 
                     {sessions.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="text-center py-14">
+                        <td colSpan={8} className="text-center py-14">
                           <div className="flex flex-col items-center gap-3 text-slate-400">
                             <Calendar className="w-10 h-10 text-slate-300" />
                             <p className="text-sm font-medium">
@@ -798,6 +876,13 @@ export default function WiseClassesDashboard() {
               {sessions.map((s) => {
                 const isActionLoading = Boolean(rowActionState[s.sessionId]);
                 const nextAction = s.actions?.nextAction;
+                const actionDisabled =
+                  !nextAction ||
+                  isActionLoading ||
+                  (nextAction === "start" &&
+                    (!hostSelections[s.sessionId] ||
+                      s.hostConflictSessionId ||
+                      !isStartWindowOpen(s.scheduledStartAt)));
                 return (
                   <div
                     key={s.sessionId}
@@ -833,6 +918,34 @@ export default function WiseClassesDashboard() {
                           <Clock className="w-3 h-3 text-slate-400" />
                           {formatDateTime(s.scheduledStartAt)}
                         </div>
+                      </div>
+                      <div className="col-span-2">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Host</div>
+                        <select
+                          value={hostSelections[s.sessionId] || ""}
+                          onChange={(event) =>
+                            setHostSelections((previous) => ({
+                              ...previous,
+                              [s.sessionId]: event.target.value,
+                            }))
+                          }
+                          disabled={s.status === "live" || s.status === "completed" || isActionLoading}
+                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-[#083262] disabled:bg-slate-50"
+                        >
+                          {(s.hostCandidates || []).length === 0 && (
+                            <option value="">No assigned host found</option>
+                          )}
+                          {(s.hostCandidates || []).map((host) => (
+                            <option key={host.key} value={host.key}>
+                              {host.name}{host.role === "primary_host" ? " (Primary)" : ""}
+                            </option>
+                          ))}
+                        </select>
+                        {s.hostConflictSessionId && (
+                          <div className="mt-1 text-[10px] font-semibold text-rose-600">
+                            Host is already running another class
+                          </div>
+                        )}
                       </div>
                       <div>
                         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Attendance</div>
@@ -906,8 +1019,8 @@ export default function WiseClassesDashboard() {
                       )}
                       <button
                         onClick={() => runPrimaryAction(s)}
-                        disabled={!nextAction || isActionLoading}
-                        className={`flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition ${getActionButtonStyle(nextAction, !nextAction || isActionLoading)}`}
+                        disabled={actionDisabled}
+                        className={`flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition ${getActionButtonStyle(nextAction, actionDisabled)}`}
                       >
                         {getActionButtonIcon(nextAction)}
                         {getActionButtonLabel(nextAction, rowActionState[s.sessionId])}
