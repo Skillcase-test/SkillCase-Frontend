@@ -151,6 +151,12 @@ export default function PaymentsAdmin() {
       : state.adminRole === "admin"
         ? "Admin"
         : state.adminRole;
+  const hasPaymentFullAccess = state.adminRole === "super_admin" ||
+    state.paymentActions.includes("manage") || state.paymentActions.includes("tab_payments");
+  const hasInvoiceFullAccess = state.adminRole === "super_admin" ||
+    state.paymentActions.includes("manage") || state.paymentActions.includes("tab_invoice");
+  const hasInvoiceDownloadAccess = hasInvoiceFullAccess ||
+    state.paymentActions.includes("tab_invoice_download");
 
   if (state.isImportingPayments) {
     return (
@@ -335,7 +341,7 @@ export default function PaymentsAdmin() {
                         </ControlButton>
                       </>
                     ) : null}
-                    {state.tab === "payments" ? (
+                    {state.tab === "payments" && hasPaymentFullAccess ? (
                       <>
                         <ControlButton
                           onClick={() => setCreatePaymentLinkModal({ open: true })}
@@ -392,27 +398,29 @@ export default function PaymentsAdmin() {
                           >
                             Transactions
                           </button>
-                          <button
-                            type="button"
-                            aria-pressed={state.paymentLinksOnly}
-                            onClick={() => {
-                              state.setCurrentPage(1);
-                              state.setPaymentLinksOnly(true);
-                              state.setPaymentBookedOnly(false);
-                              state.setPaymentNotBookedOnly(false);
-                              state.setPaymentRecruitmentOnly(false);
-                              state.setPaymentTrainingOnly(false);
-                              state.setPaymentIncludeRefunded(true);
-                              state.setPaymentAmountInr("");
-                            }}
-                            className={`rounded-md px-2.5 text-xs font-semibold transition ${
-                              state.paymentLinksOnly
-                                ? "bg-slate-900 text-white"
-                                : "text-slate-600 hover:bg-slate-100"
-                            }`}
-                          >
-                            Payment Links
-                          </button>
+                          {hasPaymentFullAccess ? (
+                            <button
+                              type="button"
+                              aria-pressed={state.paymentLinksOnly}
+                              onClick={() => {
+                                state.setCurrentPage(1);
+                                state.setPaymentLinksOnly(true);
+                                state.setPaymentBookedOnly(false);
+                                state.setPaymentNotBookedOnly(false);
+                                state.setPaymentRecruitmentOnly(false);
+                                state.setPaymentTrainingOnly(false);
+                                state.setPaymentIncludeRefunded(true);
+                                state.setPaymentAmountInr("");
+                              }}
+                              className={`rounded-md px-2.5 text-xs font-semibold transition ${
+                                state.paymentLinksOnly
+                                  ? "bg-slate-900 text-white"
+                                  : "text-slate-600 hover:bg-slate-100"
+                              }`}
+                            >
+                              Payment Links
+                            </button>
+                          ) : null}
                         </div>
 
                         <label className="inline-flex h-8 items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 cursor-pointer">
@@ -678,6 +686,7 @@ export default function PaymentsAdmin() {
                   paymentLinksOnly: state.paymentLinksOnly,
                   setCurrentPage: state.setCurrentPage,
                   totalAmountPaise: state.paymentTotalAmountPaise,
+                  canManagePayments: hasPaymentFullAccess,
                   monthSortBy: state.monthSortBy,
                   monthSortOrder: state.monthSortOrder,
                   setMonthSortBy: state.setMonthSortBy,
@@ -743,6 +752,8 @@ export default function PaymentsAdmin() {
                   monthSelectionModal: state.monthSelectionModal,
                   setMonthSelectionModal: state.setMonthSelectionModal,
                   handleViewSummaryMonthUnbooked: state.handleViewSummaryMonthUnbooked,
+                  canManageInvoices: hasInvoiceFullAccess,
+                  canDownloadInvoices: hasInvoiceDownloadAccess,
                 }}
               />
             )}
@@ -757,6 +768,7 @@ export default function PaymentsAdmin() {
                 <div>
                   {state.tab === "payments" ? (
                     <div className="flex gap-2">
+                      {hasPaymentFullAccess ? (
                       <button
                         onClick={actions.handleReconcile}
                         disabled={state.reconciling}
@@ -764,6 +776,8 @@ export default function PaymentsAdmin() {
                       >
                         {state.reconciling ? "Reconciling..." : "Reconcile"}
                       </button>
+                      ) : null}
+                      {(hasPaymentFullAccess || state.paymentActions.includes("tab_payments_download")) ? (
                       <ControlButton
                         onClick={actions.exportPaymentsExcel}
                         variant="primary"
@@ -771,6 +785,7 @@ export default function PaymentsAdmin() {
                       >
                         Download Excel
                       </ControlButton>
+                      ) : null}
                     </div>
                   ) : null}
                 </div>

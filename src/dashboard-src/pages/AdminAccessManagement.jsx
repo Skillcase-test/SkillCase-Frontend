@@ -36,11 +36,17 @@ const PAYMENTS_TAB_OPTIONS = [
   { key: "tab_fee",       label: "Total Fee View" },
   { key: "tab_discounts", label: "Discount Approval" },
   { key: "tab_discounts_view", label: "Discount Request Only" },
-  { key: "tab_payments",  label: "Payment View" },
+  { key: "tab_payments",  label: "Payment View: Full Access" },
+  { key: "tab_payments_view", label: "Payment View: View Only" },
+  { key: "tab_payments_download", label: "Payment View: Download Only" },
   { key: "tab_rawlogs",   label: "Raw Logs" },
-  { key: "tab_invoice",   label: "Invoice Send" },
+  { key: "tab_invoice",   label: "Invoice Send: Full Access" },
+  { key: "tab_invoice_view", label: "Invoice Send: View Only" },
+  { key: "tab_invoice_download", label: "Invoice Send: Download Only" },
 ];
-const PAYMENTS_ALL_TAB_KEYS = PAYMENTS_TAB_OPTIONS.map((t) => t.key);
+const PAYMENTS_ALL_TAB_KEYS = PAYMENTS_TAB_OPTIONS
+  .map((t) => t.key)
+  .filter((key) => !["tab_payments_view", "tab_payments_download", "tab_invoice_view", "tab_invoice_download"].includes(key));
 
 
 function normalizeBatch(batch) {
@@ -194,8 +200,25 @@ function PermissionPicker({ value, onChange }) {
                           onChange={(e) => {
                             const next = { ...normalized };
                             const list = new Set(next[moduleDef.key] || []);
-                            if (e.target.checked) list.add(tab.key);
-                            else list.delete(tab.key);
+                            const paymentViewKeys = new Set([
+                              "tab_payments",
+                              "tab_payments_view",
+                              "tab_payments_download",
+                            ]);
+                            const invoiceViewKeys = new Set([
+                              "tab_invoice",
+                              "tab_invoice_view",
+                              "tab_invoice_download",
+                            ]);
+                            if (e.target.checked) {
+                              if (paymentViewKeys.has(tab.key)) {
+                                paymentViewKeys.forEach((key) => list.delete(key));
+                              }
+                              if (invoiceViewKeys.has(tab.key)) {
+                                invoiceViewKeys.forEach((key) => list.delete(key));
+                              }
+                              list.add(tab.key);
+                            } else list.delete(tab.key);
                             next[moduleDef.key] = [...list];
                             if (!next[moduleDef.key].length)
                               delete next[moduleDef.key];

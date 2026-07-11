@@ -107,6 +107,8 @@ export const paymentsAdminApi = {
     api.delete(`/admin/payments/invoices/${invoiceId}`),
   getInvoicePdf: (invoiceId) =>
     api.get(`/admin/payments/invoices/${invoiceId}/pdf`),
+  downloadInvoicesBulk: (invoiceIds) =>
+    api.post("/admin/payments/invoices/bulk-download", { invoice_ids: invoiceIds }, { responseType: "blob" }),
   getBookedSummary: (params = {}) =>
     api.get("/admin/payments/invoices/booked-summary", { params }),
   getBookedSummaryCandidates: (year, month) =>

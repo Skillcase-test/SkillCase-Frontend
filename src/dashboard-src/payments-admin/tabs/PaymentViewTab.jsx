@@ -22,6 +22,7 @@ export function PaymentViewTab({
   handleTagRecruitment,
   savingEnrollmentId,
   totalAmountPaise,
+  canManagePayments = true,
 }) {
   const [selectedTxIds, setSelectedTxIds] = useState([]);
   const [amountFilterOpen, setAmountFilterOpen] = useState(false);
@@ -52,13 +53,13 @@ export function PaymentViewTab({
     return () => document.removeEventListener("mousedown", closeAmountFilter);
   }, []);
 
-  const bookableRows = rows.filter(
+  const bookableRows = canManagePayments ? rows.filter(
     (r) =>
       !r.is_payment_link &&
       !r.booked_amount_id &&
       ["captured", "authorized", "processed"].includes(r.payment_status) &&
       Number(r.signed_amount_paise ?? r.amount_paise) > 0,
-  );
+  ) : [];
 
   const handleToggleSelectAll = () => {
     if (selectedTxIds.length === bookableRows.length) {
@@ -192,6 +193,7 @@ export function PaymentViewTab({
               <th className="px-3 py-3 w-10 text-center">
                 <input
                   type="checkbox"
+                  disabled={!canManagePayments}
                   checked={
                     bookableRows.length > 0 &&
                     selectedTxIds.length === bookableRows.length
@@ -352,7 +354,7 @@ export function PaymentViewTab({
                 }`}
               >
                 <td className="px-3 py-3 text-center">
-                  {!r.is_payment_link &&
+                  {canManagePayments && !r.is_payment_link &&
                   !r.booked_amount_id &&
                   ["captured", "authorized", "processed"].includes(
                     r.payment_status,
@@ -376,7 +378,7 @@ export function PaymentViewTab({
                 <td className="px-2 py-2">
                   <div className="flex items-center gap-1.5">
                     <span>{r.student_phone || "-"}</span>
-                    {!r.is_payment_link &&
+                    {canManagePayments && !r.is_payment_link &&
                       (!r.metadata_json ||
                         r.metadata_json.source !== "admin_manual_actual") && (
                         <button
@@ -433,7 +435,7 @@ export function PaymentViewTab({
                             {MONTH_NAMES[r.booked_month] || r.booked_month}{" "}
                             {r.booked_year}
                           </span>
-                        ) : (
+                        ) : canManagePayments ? (
                           ["captured", "authorized", "processed"].includes(
                             r.payment_status,
                           ) &&
@@ -448,8 +450,8 @@ export function PaymentViewTab({
                               Book
                             </ActionChip>
                           )
-                        )}
-                        {r.enrollment_id &&
+                        ) : null}
+                        {canManagePayments && r.enrollment_id &&
                           (r.enrollment_notes?.candidate_type ===
                           "recruitment" ? (
                             <span
@@ -474,7 +476,7 @@ export function PaymentViewTab({
                                 : "Tag as Recruitment"}
                             </ActionChip>
                           ))}
-                        {r.metadata_json?.source === "admin_manual_actual" && (
+                        {canManagePayments && r.metadata_json?.source === "admin_manual_actual" && (
                           <ActionChip
                             onClick={() =>
                               handleDeleteManualTransaction(r.payment_id)

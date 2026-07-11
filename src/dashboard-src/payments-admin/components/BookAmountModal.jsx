@@ -13,6 +13,7 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState("");
+  const [showBookingConfirmation, setShowBookingConfirmation] = useState(false);
 
   useEffect(() => {
     if (modal && modal.open) {
@@ -20,6 +21,7 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
       setMonth(new Date().getUTCMonth() + 1);
       setNotes("");
       setError("");
+      setShowBookingConfirmation(false);
 
       if (modal.isBulk && Array.isArray(modal.payments)) {
         setPayments(modal.payments);
@@ -67,14 +69,20 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
     setSelectedIds([]);
     setError("");
     setLoading(false);
+    setShowBookingConfirmation(false);
     setModal({ open: false, payment: null });
   };
 
-  const handleConfirm = async () => {
+  const openBookingConfirmation = () => {
     if (selectedIds.length === 0) {
       setError("Please select at least one transaction to book");
       return;
     }
+    setError("");
+    setShowBookingConfirmation(true);
+  };
+
+  const handleConfirm = async () => {
     setLoading(true);
     setError("");
     try {
@@ -257,13 +265,45 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
           </ControlButton>
           <ControlButton
             variant="primary"
-            onClick={handleConfirm}
+            onClick={openBookingConfirmation}
             disabled={loading || selectedIds.length === 0}
           >
-            {loading ? "Booking..." : "Confirm Booking"}
+            Confirm Booking
           </ControlButton>
         </div>
       </div>
+
+      {showBookingConfirmation ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl">
+            <h4 className="text-base font-bold text-slate-900">Confirm Booking Month</h4>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Are you sure you want to book {formatInrFromPaise(totalPaise)} in {MONTH_NAMES[month]} {year}?
+            </p>
+            <p className="mt-2 text-xs text-slate-500">
+              {modal.isBulk
+                ? `${selectedIds.length} selected payments will be booked.`
+                : `${initialPayment?.student_name || "This candidate"}'s selected payments will be booked.`}
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <ControlButton
+                variant="secondary"
+                onClick={() => setShowBookingConfirmation(false)}
+                disabled={loading}
+              >
+                Go Back
+              </ControlButton>
+              <ControlButton
+                variant="primary"
+                onClick={handleConfirm}
+                disabled={loading}
+              >
+                {loading ? "Booking..." : "Yes, Book Amount"}
+              </ControlButton>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

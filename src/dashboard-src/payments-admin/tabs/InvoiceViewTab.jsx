@@ -83,6 +83,8 @@ export function InvoiceViewTab({
   monthSelectionModal = null,
   setMonthSelectionModal,
   handleViewSummaryMonthUnbooked,
+  canManageInvoices = true,
+  canDownloadInvoices = true,
 }) {
   const [step, setStep] = useState(1);
   const [verifiedState, setVerifiedState] = useState("");
@@ -92,6 +94,8 @@ export function InvoiceViewTab({
   const [isSending, setIsSending] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState([]);
+  const [isBulkDownloading, setIsBulkDownloading] = useState(false);
   const [localError, setLocalError] = useState("");
 
   const handleDownloadExcel = () => {
@@ -132,6 +136,14 @@ export function InvoiceViewTab({
       "Candidate Status",
       "Booked On",
       "Booked Amount (INR)",
+      "Candidate State",
+      "SAC Code",
+      "Invoice Number",
+      "Invoice Date",
+      "Taxable Amount (INR)",
+      "IGST (INR)",
+      "CGST (INR)",
+      "SGST (INR)",
     ];
 
     const data = filtered.map((r) => [
@@ -141,6 +153,14 @@ export function InvoiceViewTab({
       r.is_new ? "New Candidate" : "Old Candidate",
       r.booked_at ? formatIstDate(r.booked_at) : "",
       (Number(r.amount_paise || 0) / 100).toFixed(2),
+      escapeXml(r.candidate_state || ""),
+      r.sac_code || "999293",
+      escapeXml(r.invoice_number || ""),
+      r.invoice_date ? formatIstDate(r.invoice_date) : "",
+      (Number(r.taxable_value_paise || 0) / 100).toFixed(2),
+      (Number(r.igst_paise || 0) / 100).toFixed(2),
+      (Number(r.cgst_paise || 0) / 100).toFixed(2),
+      (Number(r.sgst_paise || 0) / 100).toFixed(2),
     ]);
 
     const totalAmountPaise = filtered.reduce(
@@ -196,7 +216,7 @@ export function InvoiceViewTab({
               <td></td>
               <td></td>
               <td></td>
-              <td>${totalAmountInr}</td>
+              <td>${totalAmountInr}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
             </tr>
           </tbody>
         </table>
@@ -508,6 +528,43 @@ export function InvoiceViewTab({
     );
   });
 
+  const toggleInvoiceSelection = (invoiceId) => {
+    setSelectedInvoiceIds((current) => current.includes(invoiceId)
+      ? current.filter((id) => id !== invoiceId)
+      : [...current, invoiceId]);
+  };
+
+  const handleBulkInvoiceDownload = async () => {
+    if (!selectedInvoiceIds.length || isBulkDownloading) return;
+    setIsBulkDownloading(true);
+    try {
+      const response = await paymentsAdminApi.downloadInvoicesBulk(selectedInvoiceIds);
+      const url = URL.createObjectURL(new Blob([response.data], { type: "application/zip" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "skillcase_invoices.zip";
+      link.click();
+      URL.revokeObjectURL(url);
+      setSelectedInvoiceIds([]);
+    } catch (err) {
+      let message = "Failed to download invoice ZIP";
+      const responseData = err?.response?.data;
+      if (responseData instanceof Blob) {
+        try {
+          const payload = JSON.parse(await responseData.text());
+          message = payload?.msg || message;
+        } catch {
+          // A non-JSON response should retain the generic download error.
+        }
+      } else {
+        message = responseData?.msg || message;
+      }
+      setLocalError(message);
+    } finally {
+      setIsBulkDownloading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-3">
@@ -591,36 +648,36 @@ export function InvoiceViewTab({
                           <span className="rounded-md bg-indigo-50 border border-indigo-100 px-3 py-1 text-[11px] font-bold text-indigo-700 shadow-sm mr-1">
                             Draft ({r.draft_invoice_number})
                           </span>
-                          <ControlButton
-                            onClick={() => handleStartFlowForRow(r)}
-                            disabled={isGenerating || isSending}
-                            variant="secondary"
-                            className="h-8 rounded-lg px-3 text-xs border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm active:scale-95 transition-all duration-150"
-                          >
-                            View
-                          </ControlButton>
-                          <ControlButton
-                            onClick={() =>
-                              handleStartFlowForRow(r, {
-                                forceRegenerate: true,
-                              })
-                            }
-                            disabled={isGenerating || isSending}
-                            variant="secondary"
-                            className="h-8 rounded-lg px-3 text-xs border-amber-200 text-amber-700 hover:bg-amber-50/60 shadow-sm active:scale-95 transition-all duration-150"
-                          >
-                            Regenerate
-                          </ControlButton>
-                          <ControlButton
-                            onClick={() => handleQuickSend(r)}
-                            disabled={isGenerating || isSending}
-                            variant="primary"
-                            className="h-8 rounded-lg px-3.5 text-xs bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border-none text-white shadow-sm active:scale-95 transition-all duration-150 font-semibold"
-                          >
-                            {isSending ? "Sending..." : "Send"}
-                          </ControlButton>
+                          {canManageInvoices ? (
+                            <>
+                              <ControlButton
+                                onClick={() => handleStartFlowForRow(r)}
+                                disabled={isGenerating || isSending}
+                                variant="secondary"
+                                className="h-8 rounded-lg px-3 text-xs border-slate-200 text-slate-600 hover:bg-slate-50 shadow-sm active:scale-95 transition-all duration-150"
+                              >
+                                View
+                              </ControlButton>
+                              <ControlButton
+                                onClick={() => handleStartFlowForRow(r, { forceRegenerate: true })}
+                                disabled={isGenerating || isSending}
+                                variant="secondary"
+                                className="h-8 rounded-lg px-3 text-xs border-amber-200 text-amber-700 hover:bg-amber-50/60 shadow-sm active:scale-95 transition-all duration-150"
+                              >
+                                Regenerate
+                              </ControlButton>
+                              <ControlButton
+                                onClick={() => handleQuickSend(r)}
+                                disabled={isGenerating || isSending}
+                                variant="primary"
+                                className="h-8 rounded-lg px-3.5 text-xs bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border-none text-white shadow-sm active:scale-95 transition-all duration-150 font-semibold"
+                              >
+                                {isSending ? "Sending..." : "Send"}
+                              </ControlButton>
+                            </>
+                          ) : null}
                         </div>
-                      ) : (
+                      ) : canManageInvoices ? (
                         <ControlButton
                           onClick={() => handleStartFlowForRow(r)}
                           disabled={isGenerating || isSending}
@@ -629,7 +686,7 @@ export function InvoiceViewTab({
                         >
                           {isGenerating ? "Loading..." : "Generate Draft"}
                         </ControlButton>
-                      )}
+                      ) : <span className="text-xs text-slate-500">Read only</span>}
                     </td>
                   </tr>
                 ))
@@ -642,17 +699,41 @@ export function InvoiceViewTab({
       <div className="space-y-3">
         <div className="flex items-center justify-between border-b pb-2 border-slate-200">
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
-            Sent Invoices
+            Generated & Sent Invoices
           </h3>
-          <span className="rounded-full bg-emerald-50 border border-emerald-200/50 px-3 py-1 text-xs font-bold text-emerald-800 shadow-sm">
-            {filteredSent.length} sent
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-emerald-50 border border-emerald-200/50 px-3 py-1 text-xs font-bold text-emerald-800 shadow-sm">
+              {filteredSent.length} invoices
+            </span>
+            {canDownloadInvoices ? (
+            <ControlButton
+              onClick={handleBulkInvoiceDownload}
+              disabled={!selectedInvoiceIds.length || isBulkDownloading}
+              variant="secondary"
+              className="h-8 rounded-lg px-3 text-xs border-slate-200"
+            >
+              {isBulkDownloading ? "Preparing ZIP..." : `Download Selected (${selectedInvoiceIds.length})`}
+            </ControlButton>
+            ) : null}
+          </div>
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b bg-slate-50 text-left text-xs uppercase text-slate-500 font-semibold">
+                {canDownloadInvoices ? <th className="px-3 py-3 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={filteredSent.length > 0 && selectedInvoiceIds.length === filteredSent.length}
+                    onChange={() => setSelectedInvoiceIds(
+                      selectedInvoiceIds.length === filteredSent.length
+                        ? []
+                        : filteredSent.map((invoice) => invoice.invoice_id),
+                    )}
+                    className="h-4 w-4 rounded border-slate-300"
+                  />
+                </th> : null}
                 <th className="px-3 py-3">Invoice Number</th>
                 <th className="px-2 py-3">Student details</th>
                 <th className="px-2 py-3">Date Sent</th>
@@ -664,7 +745,7 @@ export function InvoiceViewTab({
               {filteredSent.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={canDownloadInvoices ? 6 : 5}
                     className="px-3 py-8 text-center text-slate-500 text-xs"
                   >
                     No invoices generated yet for this month.
@@ -680,6 +761,14 @@ export function InvoiceViewTab({
                         : "bg-slate-50/60 hover:bg-slate-50/50"
                     }
                   >
+                    {canDownloadInvoices ? <td className="px-3 py-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedInvoiceIds.includes(r.invoice_id)}
+                        onChange={() => toggleInvoiceSelection(r.invoice_id)}
+                        className="h-4 w-4 rounded border-slate-300"
+                      />
+                    </td> : null}
                     <td className="px-3 py-3 font-mono text-xs font-bold text-slate-700">
                       {r.invoice_number}
                     </td>
@@ -698,7 +787,7 @@ export function InvoiceViewTab({
                       {formatInrFromPaise(r.amount_paise)}
                     </td>
                     <td className="px-2 py-3">
-                      <ControlButton
+                      {canDownloadInvoices ? <ControlButton
                         onClick={() => handleViewSentInvoice(r.invoice_id)}
                         variant="secondary"
                         disabled={isLoadingPdf}
@@ -706,6 +795,7 @@ export function InvoiceViewTab({
                       >
                         View PDF
                       </ControlButton>
+                      : <span className="text-xs text-slate-500">View only</span>}
                     </td>
                   </tr>
                 ))
@@ -899,7 +989,7 @@ export function InvoiceViewTab({
                 variant="primary"
                 onClick={handleConfirmStateAndGenerate}
                 disabled={isGenerating || !verifiedState}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 border-none text-white active:scale-95 transition-all duration-150 font-semibold"
+                className="bg-[#002856 hover:bg-[#002860] border-none text-white active:scale-95 transition-all duration-150 font-semibold"
               >
                 {isGenerating ? "Generating..." : "Confirm & Generate"}
               </ControlButton>
@@ -1026,13 +1116,15 @@ export function InvoiceViewTab({
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <ControlButton
-                  onClick={handleDownloadExcel}
-                  variant="secondary"
-                  className="h-9 rounded-xl px-4 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm active:scale-95 transition-all duration-150"
-                >
-                  Download Excel
-                </ControlButton>
+                {canDownloadInvoices ? (
+                  <ControlButton
+                    onClick={handleDownloadExcel}
+                    variant="secondary"
+                    className="h-9 rounded-xl px-4 text-xs font-semibold border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm active:scale-95 transition-all duration-150"
+                  >
+                    Download Excel
+                  </ControlButton>
+                ) : null}
                 <ControlButton
                   variant="secondary"
                   onClick={() => {

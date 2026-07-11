@@ -36,6 +36,24 @@ function derivePermittedTabs(role, paymentActions) {
       ) {
         permitted.add("discounts");
       }
+    } else if (tabKey === "payments") {
+      if (
+        paymentActions.includes("tab_payments") ||
+        paymentActions.includes("tab_payments_view") ||
+        paymentActions.includes("tab_payments_download") ||
+        paymentActions.includes("manage")
+      ) {
+        permitted.add("payments");
+      }
+    } else if (tabKey === "invoice") {
+      if (
+        paymentActions.includes("tab_invoice") ||
+        paymentActions.includes("tab_invoice_view") ||
+        paymentActions.includes("tab_invoice_download") ||
+        paymentActions.includes("manage")
+      ) {
+        permitted.add("invoice");
+      }
     } else {
       if (paymentActions.includes(actionKey) || paymentActions.includes("manage")) {
         permitted.add(tabKey);
