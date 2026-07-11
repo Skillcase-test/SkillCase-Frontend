@@ -15,6 +15,7 @@ import {
   Copy,
   Check,
   Phone,
+  ChevronDown,
 } from "lucide-react";
 import api from "../../api/axios";
 
@@ -51,7 +52,62 @@ function makeWiseApi() {
       const res = await api.post(path, body);
       return res.data;
     },
+    patch: async (path, body = {}) => {
+      const res = await api.patch(path, body);
+      return res.data;
+    },
   };
+}
+
+function HostPicker({ candidates = [], value, disabled, onChange }) {
+  const selected = candidates.find((host) => host.key === value);
+  const label = selected
+    ? `${selected.name}${selected.role === "primary_host" ? " (Primary)" : ""}`
+    : "Select a host";
+
+  return (
+    <details className="relative w-full text-left group" open={false}>
+      <summary
+        className={`flex w-full list-none items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition [&::-webkit-details-marker]:hidden ${
+          disabled
+            ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-500"
+            : "cursor-pointer border-slate-200 bg-white text-slate-700 hover:border-[#083262]"
+        }`}
+        aria-disabled={disabled}
+        onClick={(event) => {
+          if (disabled) event.preventDefault();
+        }}
+      >
+        <span className="truncate">{candidates.length ? label : "No assigned host found"}</span>
+        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400 transition group-open:rotate-180" />
+      </summary>
+      {!disabled && candidates.length > 0 && (
+        <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+          {candidates.map((host) => (
+            <button
+              key={host.key}
+              type="button"
+              onClick={() => {
+                onChange(host.key);
+                const details = document.activeElement?.closest("details");
+                if (details) details.removeAttribute("open");
+              }}
+              className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-semibold transition ${
+                host.key === value
+                  ? "bg-blue-50 text-[#083262]"
+                  : "text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              <span className="truncate">{host.name}</span>
+              <span className="ml-2 shrink-0 text-[10px] text-slate-400">
+                {host.role === "primary_host" ? "Primary" : "Co-host"}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+    </details>
+  );
 }
 
 function getStatusBadge(status) {
@@ -476,6 +532,7 @@ export default function WiseClassesDashboard() {
     setError("");
     setRowActionState((prev) => ({ ...prev, [session.sessionId]: nextAction }));
 
+
     setSessions((prev) =>
       prev.map((r) =>
         r.sessionId === session.sessionId
@@ -493,7 +550,7 @@ export default function WiseClassesDashboard() {
     );
 
     try {
-      await wiseApi.post(`/wise/sessions/${session.sessionId}/${verb}`, {
+      const response = await wiseApi.post(`/wise/sessions/${session.sessionId}/${verb}`, {
         batchId: session.batchId,
         meetingJoinUrl: session.joinUrl || "",
         ...(nextAction === "start" || nextAction === "restart"
@@ -515,6 +572,23 @@ export default function WiseClassesDashboard() {
         delete copy[session.sessionId];
         return copy;
       });
+    }
+  }
+
+  async function handleHostChange(session, hostKey) {
+    const previousHostKey = hostSelections[session.sessionId] || "";
+    if (!hostKey || hostKey === previousHostKey) return;
+    setHostSelections((previous) => ({ ...previous, [session.sessionId]: hostKey }));
+    setError("");
+    try {
+      await wiseApi.patch(`/wise/batches/${session.batchId}/host`, { hostKey });
+      await fetchSessionControl({ silent: true });
+    } catch (e) {
+      setHostSelections((previous) => ({
+        ...previous,
+        [session.sessionId]: previousHostKey,
+      }));
+      setError(e.response?.data?.error || e.message || "Failed to save host assignment");
     }
   }
 
@@ -641,9 +715,6 @@ export default function WiseClassesDashboard() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/80">
-                      <th className="text-left px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                        Session
-                      </th>
                       <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                         Batch
                       </th>
@@ -683,18 +754,6 @@ export default function WiseClassesDashboard() {
                           key={s.sessionId || idx}
                           className="hover:bg-slate-50/60 transition-colors"
                         >
-                          {/* Session */}
-                          <td className="px-5 py-4">
-                            <div>
-                              <span className="font-bold text-slate-900">
-                                {s.sessionTitle}
-                              </span>
-                              <div className="mt-0.5 text-xs text-slate-400 font-mono">
-                                {s.sessionId}
-                              </div>
-                            </div>
-                          </td>
-
                           {/* Batch */}
                           <td className="px-5 py-4 text-center">
                             <span className="text-sm text-slate-600 font-medium">
@@ -704,26 +763,12 @@ export default function WiseClassesDashboard() {
 
                           {/* Host */}
                           <td className="px-4 py-4 text-center min-w-[190px]">
-                            <select
+                            <HostPicker
+                              candidates={s.hostCandidates || []}
                               value={hostSelections[s.sessionId] || ""}
-                              onChange={(event) =>
-                                setHostSelections((previous) => ({
-                                  ...previous,
-                                  [s.sessionId]: event.target.value,
-                                }))
-                              }
+                              onChange={(hostKey) => handleHostChange(s, hostKey)}
                               disabled={s.status === "live" || s.status === "completed" || isActionLoading}
-                              className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-[#083262] disabled:bg-slate-50 disabled:text-slate-500"
-                            >
-                              {(s.hostCandidates || []).length === 0 && (
-                                <option value="">No assigned host found</option>
-                              )}
-                              {(s.hostCandidates || []).map((host) => (
-                                <option key={host.key} value={host.key}>
-                                  {host.name}{host.role === "primary_host" ? " (Primary)" : ""}
-                                </option>
-                              ))}
-                            </select>
+                            />
                             {s.hostConflictSessionId && (
                               <div className="mt-1 text-[10px] font-semibold text-rose-600">
                                 Host is already live
@@ -798,6 +843,17 @@ export default function WiseClassesDashboard() {
                           {/* Actions */}
                           <td className="px-5 py-4">
                             <div className="flex items-center justify-end gap-2">
+                            {s.hostStartUrl && (
+                              <>
+                                <a href={s.hostStartUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
+                                  <ExternalLink className="w-3 h-3" /> Join as host
+                                </a>
+                                <button onClick={() => copyJoinLink(`host-${s.sessionId}`, s.hostStartUrl)} className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
+                                  {copiedSessionId === `host-${s.sessionId}` ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                                  {copiedSessionId === `host-${s.sessionId}` ? "Copied" : "Copy host"}
+                                </button>
+                              </>
+                            )}
                             {/* Join Button */}
                             {s.actions?.canJoin && s.joinUrl ? (
                               <>
@@ -806,9 +862,10 @@ export default function WiseClassesDashboard() {
                                   target="_blank"
                                   rel="noreferrer"
                                   className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
+                                  title="Wise attendee link; it does not impersonate the selected host"
                                 >
                                   <ExternalLink className="w-3 h-3" />
-                                  Join
+                                  Join participant
                                 </a>
                                 <button
                                   onClick={(e) => {
@@ -830,15 +887,15 @@ export default function WiseClassesDashboard() {
                               <span className="text-xs text-slate-300">—</span>
                             )}
 
-                              {/* Primary Action Button */}
-                              <button
+                              {/* End is only shown for a real Wise-live session. */}
+                              {nextAction && <button
                                 onClick={() => runPrimaryAction(s)}
                                 disabled={actionDisabled}
                                 className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${getActionButtonStyle(nextAction, actionDisabled)}`}
                               >
                                 {getActionButtonIcon(nextAction)}
                                 {getActionButtonLabel(nextAction, rowActionState[s.sessionId])}
-                              </button>
+                              </button>}
 
                               {/* Verify Button */}
                               <button
@@ -856,7 +913,7 @@ export default function WiseClassesDashboard() {
 
                     {sessions.length === 0 && (
                       <tr>
-                        <td colSpan={8} className="text-center py-14">
+                        <td colSpan={7} className="text-center py-14">
                           <div className="flex flex-col items-center gap-3 text-slate-400">
                             <Calendar className="w-10 h-10 text-slate-300" />
                             <p className="text-sm font-medium">
@@ -921,26 +978,12 @@ export default function WiseClassesDashboard() {
                       </div>
                       <div className="col-span-2">
                         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Host</div>
-                        <select
+                        <HostPicker
+                          candidates={s.hostCandidates || []}
                           value={hostSelections[s.sessionId] || ""}
-                          onChange={(event) =>
-                            setHostSelections((previous) => ({
-                              ...previous,
-                              [s.sessionId]: event.target.value,
-                            }))
-                          }
+                          onChange={(hostKey) => handleHostChange(s, hostKey)}
                           disabled={s.status === "live" || s.status === "completed" || isActionLoading}
-                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-[#083262] disabled:bg-slate-50"
-                        >
-                          {(s.hostCandidates || []).length === 0 && (
-                            <option value="">No assigned host found</option>
-                          )}
-                          {(s.hostCandidates || []).map((host) => (
-                            <option key={host.key} value={host.key}>
-                              {host.name}{host.role === "primary_host" ? " (Primary)" : ""}
-                            </option>
-                          ))}
-                        </select>
+                        />
                         {s.hostConflictSessionId && (
                           <div className="mt-1 text-[10px] font-semibold text-rose-600">
                             Host is already running another class
@@ -989,6 +1032,17 @@ export default function WiseClassesDashboard() {
 
                     {/* Card Actions */}
                     <div className="px-4 py-3 bg-slate-50/50 border-t border-slate-100 flex flex-wrap gap-2">
+                      {s.hostStartUrl && (
+                        <>
+                          <a href={s.hostStartUrl} target="_blank" rel="noreferrer" className="flex-1 min-w-[100px] inline-flex items-center justify-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
+                            <ExternalLink className="w-3 h-3" /> Join as host
+                          </a>
+                          <button onClick={() => copyJoinLink(`host-${s.sessionId}`, s.hostStartUrl)} className="flex-1 min-w-[100px] inline-flex items-center justify-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
+                            {copiedSessionId === `host-${s.sessionId}` ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                            {copiedSessionId === `host-${s.sessionId}` ? "Copied" : "Copy host"}
+                          </button>
+                        </>
+                      )}
                       {s.actions?.canJoin && s.joinUrl && (
                         <>
                           <a
@@ -996,9 +1050,10 @@ export default function WiseClassesDashboard() {
                             target="_blank"
                             rel="noreferrer"
                             className="flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
+                            title="Wise attendee link; it does not impersonate the selected host"
                           >
                             <ExternalLink className="w-3 h-3" />
-                            Join
+                            Join participant
                           </a>
                           <button
                             onClick={(e) => {
@@ -1017,14 +1072,14 @@ export default function WiseClassesDashboard() {
                           </button>
                         </>
                       )}
-                      <button
+                      {nextAction && <button
                         onClick={() => runPrimaryAction(s)}
                         disabled={actionDisabled}
                         className={`flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition ${getActionButtonStyle(nextAction, actionDisabled)}`}
                       >
                         {getActionButtonIcon(nextAction)}
                         {getActionButtonLabel(nextAction, rowActionState[s.sessionId])}
-                      </button>
+                      </button>}
                       <button
                         onClick={() => setVerifyModalSession(s)}
                         className="flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
