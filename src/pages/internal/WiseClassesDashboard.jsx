@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Loader2,
   RefreshCw,
@@ -18,6 +18,11 @@ import {
   ChevronDown,
 } from "lucide-react";
 import api from "../../api/axios";
+import {
+  StatCard,
+  TableSkeleton,
+  EmptyState,
+} from "../../dashboard-src/payments-admin/components/common";
 
 function toDateString(date) {
   return date.toISOString().split("T")[0];
@@ -42,6 +47,14 @@ function isStartWindowOpen(scheduledStartAt) {
   return Date.now() >= scheduledMs - 5 * 60 * 1000;
 }
 
+function getRowStatusBorder(status) {
+  const s = (status || "").toLowerCase();
+  if (s === "live") return "border-l-emerald-500";
+  if (s === "completed") return "border-l-blue-500";
+  if (s === "scheduled" || s === "pending") return "border-l-amber-400";
+  return "border-l-slate-200";
+}
+
 function makeWiseApi() {
   return {
     get: async (path, params = {}) => {
@@ -64,9 +77,25 @@ function HostPicker({ candidates = [], value, disabled, onChange }) {
   const label = selected
     ? `${selected.name}${selected.role === "primary_host" ? " (Primary)" : ""}`
     : "Select a host";
+  const detailsRef = useRef(null);
+
+  useEffect(() => {
+    if (disabled) return;
+    function handleOutside(event) {
+      if (detailsRef.current && !detailsRef.current.contains(event.target)) {
+        detailsRef.current.removeAttribute("open");
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [disabled]);
 
   return (
-    <details className="relative w-full text-left group" open={false}>
+    <details
+      ref={detailsRef}
+      className="relative w-full text-left group"
+      open={false}
+    >
       <summary
         className={`flex w-full list-none items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition [&::-webkit-details-marker]:hidden ${
           disabled
@@ -78,7 +107,9 @@ function HostPicker({ candidates = [], value, disabled, onChange }) {
           if (disabled) event.preventDefault();
         }}
       >
-        <span className="truncate">{candidates.length ? label : "No assigned host found"}</span>
+        <span className="truncate">
+          {candidates.length ? label : "No assigned host found"}
+        </span>
         <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400 transition group-open:rotate-180" />
       </summary>
       {!disabled && candidates.length > 0 && (
@@ -89,8 +120,8 @@ function HostPicker({ candidates = [], value, disabled, onChange }) {
               type="button"
               onClick={() => {
                 onChange(host.key);
-                const details = document.activeElement?.closest("details");
-                if (details) details.removeAttribute("open");
+                if (detailsRef.current)
+                  detailsRef.current.removeAttribute("open");
               }}
               className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-semibold transition ${
                 host.key === value
@@ -185,7 +216,10 @@ function VerificationModal({ session, saving, onClose, onSubmit }) {
               checked={form.class_started_seen}
               disabled={!isEditMode || saving}
               onChange={(e) =>
-                setForm((prev) => ({ ...prev, class_started_seen: e.target.checked }))
+                setForm((prev) => ({
+                  ...prev,
+                  class_started_seen: e.target.checked,
+                }))
               }
               className="h-4 w-4 rounded border-slate-300 text-[#083262] focus:ring-[#083262]/20"
             />
@@ -199,7 +233,10 @@ function VerificationModal({ session, saving, onClose, onSubmit }) {
               checked={form.students_joined_seen}
               disabled={!isEditMode || saving}
               onChange={(e) =>
-                setForm((prev) => ({ ...prev, students_joined_seen: e.target.checked }))
+                setForm((prev) => ({
+                  ...prev,
+                  students_joined_seen: e.target.checked,
+                }))
               }
               className="h-4 w-4 rounded border-slate-300 text-[#083262] focus:ring-[#083262]/20"
             />
@@ -224,7 +261,9 @@ function VerificationModal({ session, saving, onClose, onSubmit }) {
           <textarea
             value={form.notes}
             disabled={!isEditMode || saving}
-            onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, notes: e.target.value }))
+            }
             placeholder="Add notes..."
             className="w-full min-h-[88px] rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-[#083262] focus:ring-4 focus:ring-[#083262]/5 transition resize-y placeholder:text-slate-400"
           />
@@ -278,7 +317,6 @@ function AttendanceDetailsModal({ session, onClose }) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/40 p-4 animate-fade-in">
       <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl border border-slate-200 flex flex-col max-h-[85vh] transition-all transform scale-100">
-        {/* Modal Header */}
         <div className="flex items-start justify-between border-b border-slate-100 pb-4 shrink-0">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -291,7 +329,10 @@ function AttendanceDetailsModal({ session, onClose }) {
               {session.sessionTitle}
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Batch: <span className="font-semibold text-slate-700">{session.batchName}</span>
+              Batch:{" "}
+              <span className="font-semibold text-slate-700">
+                {session.batchName}
+              </span>
             </p>
           </div>
           <button
@@ -302,12 +343,14 @@ function AttendanceDetailsModal({ session, onClose }) {
           </button>
         </div>
 
-        {/* Progress Bar & Summary */}
         <div className="my-4 p-4 rounded-xl bg-slate-50 border border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shrink-0">
           <div>
-            <span className="text-xs font-semibold text-slate-500 block">Attendance summary</span>
+            <span className="text-xs font-semibold text-slate-500 block">
+              Attendance summary
+            </span>
             <span className="text-lg font-bold text-slate-800">
-              {attendance.joinedStudents ?? 0} joined / {attendance.totalStudents ?? 0} total
+              {attendance.joinedStudents ?? 0} joined /{" "}
+              {attendance.totalStudents ?? 0} total
             </span>
           </div>
           <div className="w-full sm:w-48 bg-slate-200 rounded-full h-2.5 overflow-hidden shrink-0">
@@ -316,7 +359,8 @@ function AttendanceDetailsModal({ session, onClose }) {
               style={{
                 width: `${
                   attendance.totalStudents
-                    ? (attendance.joinedStudents / attendance.totalStudents) * 100
+                    ? (attendance.joinedStudents / attendance.totalStudents) *
+                      100
                     : 0
                 }%`,
               }}
@@ -324,9 +368,7 @@ function AttendanceDetailsModal({ session, onClose }) {
           </div>
         </div>
 
-        {/* Student Lists Container (Scrollable) */}
         <div className="flex-1 overflow-y-auto space-y-6 pr-1 my-2">
-          {/* Absent / Not Joined List */}
           <div>
             <div className="text-xs font-bold uppercase tracking-wider text-rose-600 mb-2 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-rose-500" />
@@ -368,7 +410,6 @@ function AttendanceDetailsModal({ session, onClose }) {
             )}
           </div>
 
-          {/* Present / Joined List */}
           <div>
             <div className="text-xs font-bold uppercase tracking-wider text-emerald-600 mb-2 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -388,10 +429,13 @@ function AttendanceDetailsModal({ session, onClose }) {
                       {student.joinedAt && (
                         <span className="text-[10px] text-emerald-600 block mt-0.5">
                           Joined at:{" "}
-                          {new Date(student.joinedAt).toLocaleTimeString("en-IN", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {new Date(student.joinedAt).toLocaleTimeString(
+                            "en-IN",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
                         </span>
                       )}
                     </div>
@@ -409,7 +453,6 @@ function AttendanceDetailsModal({ session, onClose }) {
           </div>
         </div>
 
-        {/* Modal Footer */}
         <div className="mt-4 border-t border-slate-100 pt-4 flex justify-end shrink-0">
           <button
             onClick={onClose}
@@ -443,7 +486,6 @@ export default function WiseClassesDashboard() {
       setCopiedSessionId(sessionId);
       setTimeout(() => setCopiedSessionId(null), 2000);
     } catch {
-      // Fallback for older browsers
       const textarea = document.createElement("textarea");
       textarea.value = joinUrl;
       document.body.appendChild(textarea);
@@ -461,7 +503,9 @@ export default function WiseClassesDashboard() {
       if (!silent) setLoading(true);
       setError("");
       try {
-        const res = await wiseApi.get("/wise/sessions/control", { date: sessionDate });
+        const res = await wiseApi.get("/wise/sessions/control", {
+          date: sessionDate,
+        });
         const nextSessions = res.sessions || [];
         setSessions(nextSessions);
         setHostSelections((previous) => {
@@ -516,22 +560,35 @@ export default function WiseClassesDashboard() {
     const routeByAction = { start: "start", end: "end", restart: "restart" };
     const verb = routeByAction[nextAction];
     if (!verb) return;
-    const hostKey = hostSelections[session.sessionId] || session.selectedHostKey || "";
+    const hostKey =
+      hostSelections[session.sessionId] || session.selectedHostKey || "";
     if ((nextAction === "start" || nextAction === "restart") && !hostKey) {
       setError("Select an assigned host before starting this class");
       return;
     }
-    if (nextAction === "start" && !isStartWindowOpen(session.scheduledStartAt)) {
-      setError("This class can be started only within 5 minutes of its scheduled time");
+    if (
+      nextAction === "start" &&
+      !isStartWindowOpen(session.scheduledStartAt)
+    ) {
+      setError(
+        "This class can be started only within 5 minutes of its scheduled time",
+      );
       return;
     }
 
-    const optimisticStatusByAction = { start: "live", end: "completed", restart: "live" };
-    const optimisticNextByAction = { start: "end", end: "restart", restart: "end" };
+    const optimisticStatusByAction = {
+      start: "live",
+      end: "completed",
+      restart: "live",
+    };
+    const optimisticNextByAction = {
+      start: "end",
+      end: "restart",
+      restart: "end",
+    };
 
     setError("");
     setRowActionState((prev) => ({ ...prev, [session.sessionId]: nextAction }));
-
 
     setSessions((prev) =>
       prev.map((r) =>
@@ -541,7 +598,8 @@ export default function WiseClassesDashboard() {
               status: optimisticStatusByAction[nextAction] || r.status,
               actions: {
                 ...(r.actions || {}),
-                nextAction: optimisticNextByAction[nextAction] || r.actions?.nextAction,
+                nextAction:
+                  optimisticNextByAction[nextAction] || r.actions?.nextAction,
                 canJoin: optimisticStatusByAction[nextAction] === "live",
               },
             }
@@ -550,13 +608,16 @@ export default function WiseClassesDashboard() {
     );
 
     try {
-      const response = await wiseApi.post(`/wise/sessions/${session.sessionId}/${verb}`, {
-        batchId: session.batchId,
-        meetingJoinUrl: session.joinUrl || "",
-        ...(nextAction === "start" || nextAction === "restart"
-          ? { hostKey }
-          : {}),
-      });
+      const response = await wiseApi.post(
+        `/wise/sessions/${session.sessionId}/${verb}`,
+        {
+          batchId: session.batchId,
+          meetingJoinUrl: session.joinUrl || "",
+          ...(nextAction === "start" || nextAction === "restart"
+            ? { hostKey }
+            : {}),
+        },
+      );
       await fetchSessionControl({ silent: true });
     } catch (e) {
       setError(
@@ -578,7 +639,10 @@ export default function WiseClassesDashboard() {
   async function handleHostChange(session, hostKey) {
     const previousHostKey = hostSelections[session.sessionId] || "";
     if (!hostKey || hostKey === previousHostKey) return;
-    setHostSelections((previous) => ({ ...previous, [session.sessionId]: hostKey }));
+    setHostSelections((previous) => ({
+      ...previous,
+      [session.sessionId]: hostKey,
+    }));
     setError("");
     try {
       await wiseApi.patch(`/wise/batches/${session.batchId}/host`, { hostKey });
@@ -588,7 +652,11 @@ export default function WiseClassesDashboard() {
         ...previous,
         [session.sessionId]: previousHostKey,
       }));
-      setError(e.response?.data?.error || e.message || "Failed to save host assignment");
+      setError(
+        e.response?.data?.error ||
+          e.message ||
+          "Failed to save host assignment",
+      );
     }
   }
 
@@ -597,30 +665,34 @@ export default function WiseClassesDashboard() {
     setVerifySaving(true);
     setError("");
     try {
-      await wiseApi.post(`/wise/sessions/${verifyModalSession.sessionId}/verify`, {
-        ...formData,
-        batchId: verifyModalSession.batchId,
-      });
+      await wiseApi.post(
+        `/wise/sessions/${verifyModalSession.sessionId}/verify`,
+        {
+          ...formData,
+          batchId: verifyModalSession.batchId,
+        },
+      );
       setVerifyModalSession(null);
       await fetchSessionControl({ silent: true });
     } catch (e) {
-      setError(e.response?.data?.error || e.message || "Failed to save verification");
+      setError(
+        e.response?.data?.error || e.message || "Failed to save verification",
+      );
     } finally {
       setVerifySaving(false);
     }
   }
 
-
   function getActionButtonStyle(nextAction, isDisabled) {
     if (isDisabled)
-      return "bg-slate-100 text-slate-400 cursor-not-allowed";
+      return "border border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed";
     if (nextAction === "start")
-      return "bg-emerald-600 text-white hover:bg-emerald-700";
+      return "border border-emerald-600 bg-emerald-600 text-white hover:bg-emerald-700 hover:border-emerald-700 shadow-sm";
     if (nextAction === "end")
-      return "bg-rose-600 text-white hover:bg-rose-700";
+      return "border border-rose-600 bg-rose-600 text-white hover:bg-rose-700 hover:border-rose-700 shadow-sm";
     if (nextAction === "restart")
-      return "bg-amber-500 text-white hover:bg-amber-600";
-    return "bg-slate-200 text-slate-500 cursor-not-allowed";
+      return "border border-amber-500 bg-amber-500 text-white hover:bg-amber-600 hover:border-amber-600 shadow-sm";
+    return "border border-slate-200 bg-slate-200 text-slate-500 cursor-not-allowed";
   }
 
   function getActionButtonIcon(nextAction) {
@@ -643,49 +715,85 @@ export default function WiseClassesDashboard() {
   return (
     <div className="min-h-screen bg-slate-50 p-6 lg:p-8 font-sans">
       <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#083262]">
-                Session Control
-              </span>
+        {/* Header & Filter Card */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#083262]">
+                  Session Control
+                </span>
+              </div>
+              <h1 className="text-xl font-bold text-slate-900">Wise Classes</h1>
+              <p className="mt-1 text-sm text-slate-500">
+                Auto-start control and manual admin verification
+              </p>
             </div>
-            <h1 className="text-2xl font-extrabold text-slate-900">
-              Wise Classes
-            </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Auto-start control and manual admin verification
-            </p>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+                  <Calendar className="w-3 h-3" />
+                  Session Date
+                </label>
+                <input
+                  type="date"
+                  value={sessionDate}
+                  onChange={(e) => setSessionDate(e.target.value)}
+                  className="rounded-xl border border-slate-200 px-4 py-2 text-sm outline-none focus:border-[#083262] focus:ring-4 focus:ring-[#083262]/5 transition shadow-sm bg-white h-9"
+                />
+              </div>
+
+              <button
+                onClick={() => fetchSessionControl()}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#083262] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#052243] disabled:opacity-60 shrink-0 h-9 mt-4"
+                disabled={loading}
+              >
+                <RefreshCw
+                  className="w-4 h-4"
+                  style={
+                    loading ? { animation: "spin 1s linear infinite" } : {}
+                  }
+                />
+                Refresh
+              </button>
+            </div>
           </div>
-          <button
-            onClick={() => fetchSessionControl()}
-            className="inline-flex items-center gap-2 rounded-full bg-[#083262] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#052243] disabled:opacity-60 shrink-0"
-            disabled={loading}
-          >
-            <RefreshCw
-              className="w-4 h-4"
-              style={loading ? { animation: "spin 1s linear infinite" } : {}}
-            />
-            Refresh
-          </button>
         </div>
 
-        {/* Filter Row */}
-        <div className="mb-6 flex flex-wrap items-end gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
-              <Calendar className="w-3 h-3" />
-              Session Date
-            </label>
-            <input
-              type="date"
-              value={sessionDate}
-              onChange={(e) => setSessionDate(e.target.value)}
-              className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-[#083262] focus:ring-4 focus:ring-[#083262]/5 transition shadow-sm bg-white"
+        {/* Stats Row */}
+        {!loading && sessions.length > 0 && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+            <StatCard
+              label="Total Sessions"
+              value={sessions.length}
+              tone="slate"
+              infoText="Total number of sessions loaded for this date."
+            />
+            <StatCard
+              label="Live Now"
+              value={sessions.filter((s) => s.status === "live").length}
+              tone="emerald"
+              infoText="Sessions currently running live."
+            />
+            <StatCard
+              label="Completed"
+              value={sessions.filter((s) => s.status === "completed").length}
+              tone="blue"
+              infoText="Sessions successfully finished today."
+            />
+            <StatCard
+              label="Upcoming"
+              value={
+                sessions.filter(
+                  (s) => s.status === "scheduled" || s.status === "pending",
+                ).length
+              }
+              tone="amber"
+              infoText="Sessions scheduled to start later today."
             />
           </div>
-        </div>
+        )}
 
         {/* Error Banner */}
         {error && (
@@ -697,40 +805,35 @@ export default function WiseClassesDashboard() {
 
         {/* Loading State */}
         {loading && (
-          <div className="flex items-center justify-center py-10">
-            <Loader2
-              className="w-5 h-5 text-[#083262]"
-              style={{ animation: "spin 1s linear infinite" }}
-            />
-            <span className="ml-3 text-sm text-slate-500">Loading sessions...</span>
+          <div className="py-4">
+            <TableSkeleton rows={5} />
           </div>
         )}
 
         {/* Table - Desktop only */}
         {!loading && (
           <>
-            {/* Desktop Table */}
-            <div className="hidden md:block rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
+            <div className="hidden md:block rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="overflow-x-auto md:overflow-visible">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/80">
-                      <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-left">
                         Batch
                       </th>
-                      <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-left">
                         Host
                       </th>
-                      <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-left">
                         Scheduled
                       </th>
-                      <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">
                         Status
                       </th>
-                      <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center">
                         Attendance
                       </th>
-                      <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-left">
                         Verification
                       </th>
                       <th className="px-5 py-3.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 text-right">
@@ -740,7 +843,9 @@ export default function WiseClassesDashboard() {
                   </thead>
                   <tbody className="divide-y divide-slate-50">
                     {sessions.map((s, idx) => {
-                      const isActionLoading = Boolean(rowActionState[s.sessionId]);
+                      const isActionLoading = Boolean(
+                        rowActionState[s.sessionId],
+                      );
                       const nextAction = s.actions?.nextAction;
                       const actionDisabled =
                         !nextAction ||
@@ -754,47 +859,52 @@ export default function WiseClassesDashboard() {
                           key={s.sessionId || idx}
                           className="hover:bg-slate-50/60 transition-colors"
                         >
-                          {/* Batch */}
-                          <td className="px-5 py-4 text-center">
-                            <span className="text-sm text-slate-600 font-medium">
+                          <td
+                            className={`px-5 py-4 text-left border-l-4 ${getRowStatusBorder(s.status)}`}
+                          >
+                            <span className="text-sm font-semibold text-slate-800">
                               {s.batchName}
                             </span>
                           </td>
 
-                          {/* Host */}
-                          <td className="px-4 py-4 text-center min-w-[190px]">
+                          <td className="px-4 py-4 text-left min-w-[210px]">
                             <HostPicker
                               candidates={s.hostCandidates || []}
                               value={hostSelections[s.sessionId] || ""}
-                              onChange={(hostKey) => handleHostChange(s, hostKey)}
-                              disabled={s.status === "live" || s.status === "completed" || isActionLoading}
+                              onChange={(hostKey) =>
+                                handleHostChange(s, hostKey)
+                              }
+                              disabled={
+                                s.status === "live" ||
+                                s.status === "completed" ||
+                                isActionLoading
+                              }
                             />
                             {s.hostConflictSessionId && (
-                              <div className="mt-1 text-[10px] font-semibold text-rose-600">
+                              <div className="mt-1 text-[10px] font-semibold text-rose-600 text-left pl-1">
                                 Host is already live
                               </div>
                             )}
                           </td>
 
-                          {/* Scheduled */}
-                          <td className="px-5 py-4 text-center">
-                            <div className="inline-flex items-center gap-1.5 text-sm text-slate-600">
+                          <td className="px-5 py-4 text-left">
+                            <div className="inline-flex items-center gap-1.5 text-sm text-slate-700 whitespace-nowrap">
                               <Clock className="w-3.5 h-3.5 text-slate-400" />
                               {formatDateTime(s.scheduledStartAt)}
                             </div>
                           </td>
 
-                          {/* Status */}
                           <td className="px-5 py-4 text-center">
                             <span
                               className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${getStatusBadge(s.status)}`}
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full ${getStatusDot(s.status)}`} />
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${getStatusDot(s.status)}`}
+                              />
                               {s.status}
                             </span>
                           </td>
 
-                          {/* Attendance */}
                           <td className="px-5 py-4 text-center">
                             <button
                               onClick={() => setAttendanceModalSession(s)}
@@ -806,16 +916,13 @@ export default function WiseClassesDashboard() {
                                 {s.attendance?.joinedStudents ?? 0}
                               </span>
                               <span className="text-slate-400">/</span>
-                              <span>
-                                {s.attendance?.totalStudents ?? 0}
-                              </span>
+                              <span>{s.attendance?.totalStudents ?? 0}</span>
                             </button>
                           </td>
 
-                          {/* Verification */}
-                          <td className="px-5 py-4 text-center">
+                          <td className="px-5 py-4 text-left">
                             {s.verification ? (
-                              <div className="inline-flex flex-col gap-0.5 text-xs">
+                              <div className="flex flex-col gap-0.5 text-xs">
                                 <div className="flex items-center gap-1.5 text-slate-600">
                                   {s.verification.classStartedSeen ? (
                                     <CheckCircle2 className="w-3 h-3 text-emerald-500" />
@@ -840,67 +947,93 @@ export default function WiseClassesDashboard() {
                             )}
                           </td>
 
-                          {/* Actions */}
                           <td className="px-5 py-4">
                             <div className="flex items-center justify-end gap-2">
-                            {s.hostStartUrl && (
-                              <>
-                                <a href={s.hostStartUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
-                                  <ExternalLink className="w-3 h-3" /> Join as host
-                                </a>
-                                <button onClick={() => copyJoinLink(`host-${s.sessionId}`, s.hostStartUrl)} className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
-                                  {copiedSessionId === `host-${s.sessionId}` ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                                  {copiedSessionId === `host-${s.sessionId}` ? "Copied" : "Copy host"}
-                                </button>
-                              </>
-                            )}
-                            {/* Join Button */}
-                            {s.actions?.canJoin && s.joinUrl ? (
-                              <>
-                                <a
-                                  href={s.joinUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
-                                  title="Wise attendee link; it does not impersonate the selected host"
-                                >
-                                  <ExternalLink className="w-3 h-3" />
-                                  Join participant
-                                </a>
+                              {s.hostStartUrl && (
+                                <div className="inline-flex rounded-lg border border-slate-300 bg-white overflow-hidden shadow-sm">
+                                  <a
+                                    href={s.hostStartUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-slate-50 whitespace-nowrap animate-pulse-subtle"
+                                    title="Join meeting as host"
+                                  >
+                                    <ExternalLink className="w-3 h-3 text-emerald-600" />{" "}
+                                    Join as host
+                                  </a>
+                                  <div className="w-px bg-slate-300 self-stretch" />
+                                  <button
+                                    onClick={() =>
+                                      copyJoinLink(
+                                        `host-${s.sessionId}`,
+                                        s.hostStartUrl,
+                                      )
+                                    }
+                                    className="inline-flex items-center justify-center px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:text-emerald-700 transition hover:bg-slate-50"
+                                    title="Copy host start link"
+                                  >
+                                    {copiedSessionId ===
+                                    `host-${s.sessionId}` ? (
+                                      <Check className="w-3 h-3 text-emerald-600 animate-scale-in" />
+                                    ) : (
+                                      <Copy className="w-3 h-3" />
+                                    )}
+                                  </button>
+                                </div>
+                              )}
+                              {s.actions?.canJoin && s.joinUrl ? (
+                                <div className="inline-flex rounded-lg border border-slate-300 bg-white overflow-hidden shadow-sm">
+                                  <a
+                                    href={s.joinUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-slate-50 whitespace-nowrap"
+                                    title="Wise attendee link; it does not impersonate the selected host"
+                                  >
+                                    <ExternalLink className="w-3 h-3 text-blue-600" />{" "}
+                                    Join participant
+                                  </a>
+                                  <div className="w-px bg-slate-300 self-stretch" />
+                                  <button
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      copyJoinLink(s.sessionId, s.joinUrl);
+                                    }}
+                                    className="inline-flex items-center justify-center px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:text-blue-700 transition hover:bg-slate-50"
+                                    title="Copy meeting link"
+                                  >
+                                    {copiedSessionId === s.sessionId ? (
+                                      <Check className="w-3 h-3 text-blue-600 animate-scale-in" />
+                                    ) : (
+                                      <Copy className="w-3 h-3" />
+                                    )}
+                                  </button>
+                                </div>
+                              ) : (
+                                !s.hostStartUrl && (
+                                  <span className="text-xs text-slate-300">
+                                    —
+                                  </span>
+                                )
+                              )}
+
+                              {nextAction && (
                                 <button
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    copyJoinLink(s.sessionId, s.joinUrl);
-                                  }}
-                                  className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
-                                  title="Copy meeting link"
+                                  onClick={() => runPrimaryAction(s)}
+                                  disabled={actionDisabled}
+                                  className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition whitespace-nowrap ${getActionButtonStyle(nextAction, actionDisabled)}`}
                                 >
-                                  {copiedSessionId === s.sessionId ? (
-                                    <Check className="w-3 h-3" />
-                                  ) : (
-                                    <Copy className="w-3 h-3" />
+                                  {getActionButtonIcon(nextAction)}
+                                  {getActionButtonLabel(
+                                    nextAction,
+                                    rowActionState[s.sessionId],
                                   )}
-                                  {copiedSessionId === s.sessionId ? "Copied" : "Copy"}
                                 </button>
-                              </>
-                            ) : (
-                              <span className="text-xs text-slate-300">—</span>
-                            )}
+                              )}
 
-                              {/* End is only shown for a real Wise-live session. */}
-                              {nextAction && <button
-                                onClick={() => runPrimaryAction(s)}
-                                disabled={actionDisabled}
-                                className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${getActionButtonStyle(nextAction, actionDisabled)}`}
-                              >
-                                {getActionButtonIcon(nextAction)}
-                                {getActionButtonLabel(nextAction, rowActionState[s.sessionId])}
-                              </button>}
-
-                              {/* Verify Button */}
                               <button
                                 onClick={() => setVerifyModalSession(s)}
-                                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 whitespace-nowrap shadow-sm"
                               >
                                 <ShieldCheck className="w-3 h-3" />
                                 {s.verificationExists ? "Details" : "Verify"}
@@ -910,16 +1043,10 @@ export default function WiseClassesDashboard() {
                         </tr>
                       );
                     })}
-
                     {sessions.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="text-center py-14">
-                          <div className="flex flex-col items-center gap-3 text-slate-400">
-                            <Calendar className="w-10 h-10 text-slate-300" />
-                            <p className="text-sm font-medium">
-                              No sessions found for selected date.
-                            </p>
-                          </div>
+                        <td colSpan={7} className="px-5 py-10">
+                          <EmptyState message="No sessions found for the selected date." />
                         </td>
                       </tr>
                     )}
@@ -943,9 +1070,8 @@ export default function WiseClassesDashboard() {
                 return (
                   <div
                     key={s.sessionId}
-                    className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden"
+                    className={`rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden border-l-4 ${getRowStatusBorder(s.status)}`}
                   >
-                    {/* Card Header */}
                     <div className="px-4 py-3 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
                       <div className="min-w-0 flex-1">
                         <span className="font-bold text-slate-900 text-sm truncate block">
@@ -958,31 +1084,44 @@ export default function WiseClassesDashboard() {
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ml-3 shrink-0 ${getStatusBadge(s.status)}`}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full ${getStatusDot(s.status)}`} />
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${getStatusDot(s.status)}`}
+                        />
                         {s.status}
                       </span>
                     </div>
 
-                    {/* Card Body */}
                     <div className="px-4 py-3 grid grid-cols-2 gap-3">
                       <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Batch</div>
-                        <div className="text-sm font-medium text-slate-700">{s.batchName}</div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
+                          Batch
+                        </div>
+                        <div className="text-sm font-medium text-slate-700">
+                          {s.batchName}
+                        </div>
                       </div>
                       <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Scheduled</div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
+                          Scheduled
+                        </div>
                         <div className="inline-flex items-center gap-1 text-sm font-medium text-slate-700">
                           <Clock className="w-3 h-3 text-slate-400" />
                           {formatDateTime(s.scheduledStartAt)}
                         </div>
                       </div>
                       <div className="col-span-2">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Host</div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                          Host
+                        </div>
                         <HostPicker
                           candidates={s.hostCandidates || []}
                           value={hostSelections[s.sessionId] || ""}
                           onChange={(hostKey) => handleHostChange(s, hostKey)}
-                          disabled={s.status === "live" || s.status === "completed" || isActionLoading}
+                          disabled={
+                            s.status === "live" ||
+                            s.status === "completed" ||
+                            isActionLoading
+                          }
                         />
                         {s.hostConflictSessionId && (
                           <div className="mt-1 text-[10px] font-semibold text-rose-600">
@@ -991,20 +1130,26 @@ export default function WiseClassesDashboard() {
                         )}
                       </div>
                       <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Attendance</div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
+                          Attendance
+                        </div>
                         <button
                           onClick={() => setAttendanceModalSession(s)}
                           className="inline-flex items-center gap-1 text-sm font-medium text-slate-700 hover:text-[#083262] transition cursor-pointer hover:underline decoration-dashed decoration-2 underline-offset-4 focus:outline-none"
                           title="Click to view student list"
                         >
                           <Users className="w-3 h-3 text-slate-400" />
-                          <span className="font-semibold">{s.attendance?.joinedStudents ?? 0}</span>
+                          <span className="font-semibold">
+                            {s.attendance?.joinedStudents ?? 0}
+                          </span>
                           <span className="text-slate-400">/</span>
                           <span>{s.attendance?.totalStudents ?? 0}</span>
                         </button>
                       </div>
                       <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">Verification</div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-0.5">
+                          Verification
+                        </div>
                         {s.verification ? (
                           <div className="flex flex-col gap-0.5 text-xs text-slate-600">
                             <div className="flex items-center gap-1">
@@ -1025,64 +1170,89 @@ export default function WiseClassesDashboard() {
                             </div>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-400 italic">Not verified</span>
+                          <span className="text-xs text-slate-400 italic">
+                            Not verified
+                          </span>
                         )}
                       </div>
                     </div>
 
-                    {/* Card Actions */}
                     <div className="px-4 py-3 bg-slate-50/50 border-t border-slate-100 flex flex-wrap gap-2">
                       {s.hostStartUrl && (
-                        <>
-                          <a href={s.hostStartUrl} target="_blank" rel="noreferrer" className="flex-1 min-w-[100px] inline-flex items-center justify-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
-                            <ExternalLink className="w-3 h-3" /> Join as host
+                        <div className="flex-1 min-w-[140px] inline-flex rounded-lg border border-slate-300 bg-white overflow-hidden shadow-sm">
+                          <a
+                            href={s.hostStartUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex-grow inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-slate-50"
+                          >
+                            <ExternalLink className="w-3 h-3 text-emerald-600" />{" "}
+                            Join as host
                           </a>
-                          <button onClick={() => copyJoinLink(`host-${s.sessionId}`, s.hostStartUrl)} className="flex-1 min-w-[100px] inline-flex items-center justify-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 transition hover:bg-emerald-100">
-                            {copiedSessionId === `host-${s.sessionId}` ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                            {copiedSessionId === `host-${s.sessionId}` ? "Copied" : "Copy host"}
+                          <div className="w-px bg-slate-300 self-stretch" />
+                          <button
+                            onClick={() =>
+                              copyJoinLink(
+                                `host-${s.sessionId}`,
+                                s.hostStartUrl,
+                              )
+                            }
+                            className="inline-flex items-center justify-center px-2.5 py-2 text-xs font-semibold text-slate-500 hover:text-emerald-700 transition hover:bg-slate-50"
+                            title="Copy host start link"
+                          >
+                            {copiedSessionId === `host-${s.sessionId}` ? (
+                              <Check className="w-3 h-3 text-emerald-600 animate-scale-in" />
+                            ) : (
+                              <Copy className="w-3 h-3" />
+                            )}
                           </button>
-                        </>
+                        </div>
                       )}
                       {s.actions?.canJoin && s.joinUrl && (
-                        <>
+                        <div className="flex-1 min-w-[140px] inline-flex rounded-lg border border-slate-300 bg-white overflow-hidden shadow-sm">
                           <a
                             href={s.joinUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
+                            className="flex-grow inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-slate-50"
                             title="Wise attendee link; it does not impersonate the selected host"
                           >
-                            <ExternalLink className="w-3 h-3" />
+                            <ExternalLink className="w-3 h-3 text-blue-600" />{" "}
                             Join participant
                           </a>
+                          <div className="w-px bg-slate-300 self-stretch" />
                           <button
                             onClick={(e) => {
                               e.preventDefault();
                               copyJoinLink(s.sessionId, s.joinUrl);
                             }}
-                            className="flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-100"
+                            className="inline-flex items-center justify-center px-2.5 py-2 text-xs font-semibold text-slate-500 hover:text-blue-700 transition hover:bg-slate-50"
                             title="Copy meeting link"
                           >
                             {copiedSessionId === s.sessionId ? (
-                              <Check className="w-3 h-3" />
+                              <Check className="w-3 h-3 text-blue-600 animate-scale-in" />
                             ) : (
                               <Copy className="w-3 h-3" />
                             )}
-                            {copiedSessionId === s.sessionId ? "Copied" : "Copy"}
                           </button>
-                        </>
+                        </div>
                       )}
-                      {nextAction && <button
-                        onClick={() => runPrimaryAction(s)}
-                        disabled={actionDisabled}
-                        className={`flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold transition ${getActionButtonStyle(nextAction, actionDisabled)}`}
-                      >
-                        {getActionButtonIcon(nextAction)}
-                        {getActionButtonLabel(nextAction, rowActionState[s.sessionId])}
-                      </button>}
+                      {nextAction && (
+                        <button
+                          onClick={() => runPrimaryAction(s)}
+                          disabled={actionDisabled}
+                          className={`flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition ${getActionButtonStyle(nextAction, actionDisabled)}`}
+                        >
+                          {getActionButtonIcon(nextAction)}
+                          {getActionButtonLabel(
+                            nextAction,
+                            rowActionState[s.sessionId],
+                          )}
+                        </button>
+                      )}
                       <button
                         onClick={() => setVerifyModalSession(s)}
-                        className="flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
+                        className="flex-1 min-w-[80px] inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 shadow-sm"
                       >
                         <ShieldCheck className="w-3 h-3" />
                         {s.verificationExists ? "Details" : "Verify"}
@@ -1093,13 +1263,8 @@ export default function WiseClassesDashboard() {
               })}
 
               {sessions.length === 0 && (
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm py-14">
-                  <div className="flex flex-col items-center gap-3 text-slate-400">
-                    <Calendar className="w-10 h-10 text-slate-300" />
-                    <p className="text-sm font-medium">
-                      No sessions found for selected date.
-                    </p>
-                  </div>
+                <div className="py-4">
+                  <EmptyState message="No sessions found for the selected date." />
                 </div>
               )}
             </div>
@@ -1123,6 +1288,20 @@ export default function WiseClassesDashboard() {
 
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes scale-in {
+          0% { transform: scale(0.6); opacity: 0; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes pulse-subtle {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.82; }
+        }
+        .animate-scale-in {
+          animation: scale-in 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .animate-pulse-subtle {
+          animation: pulse-subtle 2s infinite ease-in-out;
+        }
       `}</style>
     </div>
   );
