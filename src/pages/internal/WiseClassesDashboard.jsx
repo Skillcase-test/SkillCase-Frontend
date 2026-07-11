@@ -362,7 +362,7 @@ function AttendanceDetailsModal({ session, onClose }) {
 
 export default function WiseClassesDashboard() {
   const wiseApi = useMemo(() => makeWiseApi(), []);
-  const AUTO_SYNC_MS = 15000;
+  const AUTO_SYNC_MS = 30000;
   const [sessionDate, setSessionDate] = useState(toDateString(new Date()));
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -416,7 +416,9 @@ export default function WiseClassesDashboard() {
   useEffect(() => {
     if (!sessionDate) return;
     const id = setInterval(() => {
-      fetchSessionControl({ silent: true });
+      if (document.visibilityState === "visible") {
+        fetchSessionControl({ silent: true });
+      }
     }, AUTO_SYNC_MS);
     return () => clearInterval(id);
   }, [sessionDate, fetchSessionControl]);
