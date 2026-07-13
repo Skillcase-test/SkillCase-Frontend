@@ -77,51 +77,79 @@ function HostPicker({ candidates = [], value, disabled, onChange }) {
   const label = selected
     ? `${selected.name}${selected.role === "primary_host" ? " (Primary)" : ""}`
     : "Select a host";
-  const detailsRef = useRef(null);
+
+  const [open, setOpen] = useState(false);
+  const [menuRect, setMenuRect] = useState({ top: 0, left: 0, width: 0 });
+  const triggerRef = useRef(null);
 
   useEffect(() => {
-    if (disabled) return;
+    if (!open || disabled) return;
     function handleOutside(event) {
-      if (detailsRef.current && !detailsRef.current.contains(event.target)) {
-        detailsRef.current.removeAttribute("open");
+      if (triggerRef.current && !triggerRef.current.contains(event.target)) {
+        setOpen(false);
       }
     }
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
-  }, [disabled]);
+  }, [open, disabled]);
+
+  const updatePosition = useCallback(() => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setMenuRect({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      updatePosition();
+      window.addEventListener("scroll", updatePosition, { passive: true });
+      window.addEventListener("resize", updatePosition);
+    }
+    return () => {
+      window.removeEventListener("scroll", updatePosition);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [open, updatePosition]);
 
   return (
-    <details
-      ref={detailsRef}
-      className="relative w-full text-left group"
-      open={false}
-    >
-      <summary
-        className={`flex w-full list-none items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition [&::-webkit-details-marker]:hidden ${
+    <div ref={triggerRef} className="relative w-full text-left">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => {
+          setOpen((prev) => !prev);
+        }}
+        className={`flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
           disabled
             ? "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-500"
             : "cursor-pointer border-slate-200 bg-white text-slate-700 hover:border-[#083262]"
         }`}
-        aria-disabled={disabled}
-        onClick={(event) => {
-          if (disabled) event.preventDefault();
-        }}
       >
-        <span className="truncate">
-          {candidates.length ? label : "No assigned host found"}
-        </span>
-        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400 transition group-open:rotate-180" />
-      </summary>
-      {!disabled && candidates.length > 0 && (
-        <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+        <span className="truncate">{candidates.length ? label : "No assigned host found"}</span>
+        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && !disabled && candidates.length > 0 && (
+        <div
+          className="fixed z-50 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-lg"
+          style={{
+            top: `${menuRect.top}px`,
+            left: `${menuRect.left}px`,
+            width: `${menuRect.width}px`,
+          }}
+        >
           {candidates.map((host) => (
             <button
               key={host.key}
               type="button"
               onClick={() => {
                 onChange(host.key);
-                if (detailsRef.current)
-                  detailsRef.current.removeAttribute("open");
+                setOpen(false);
               }}
               className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-semibold transition ${
                 host.key === value
@@ -137,7 +165,7 @@ function HostPicker({ candidates = [], value, disabled, onChange }) {
           ))}
         </div>
       )}
-    </details>
+    </div>
   );
 }
 
@@ -813,8 +841,8 @@ export default function WiseClassesDashboard() {
         {/* Table - Desktop only */}
         {!loading && (
           <>
-            <div className="hidden md:block rounded-2xl border border-slate-200 bg-white shadow-sm">
-              <div className="overflow-x-auto md:overflow-visible">
+            <div className="hidden md:block rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/80">
