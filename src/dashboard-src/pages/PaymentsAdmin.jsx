@@ -32,12 +32,34 @@ import { MONTH_NAMES, TABS } from "../payments-admin/utils/constants";
 import { formatInrFromPaise } from "../payments-admin/utils/formatters";
 import { paymentsAdminApi } from "../../api/paymentsAdminApi";
 
+const PERMANENT_PAYMENT_BASE_URL = "https://learner.skillcase.in";
+
 export default function PaymentsAdmin() {
   const state = usePaymentsAdminState();
   const actions = usePaymentsAdminActions(state);
   const sel = usePaymentsAdminSelectors(state);
   const [createPaymentLinkModal, setCreatePaymentLinkModal] = useState({ open: false });
   const [downloadingType, setDownloadingType] = useState(null);
+
+  const permanentPaymentLinks = [
+    { value: "/pay/razorpay", label: "Copy Razorpay Standard" },
+    { value: "/pay/razorpay-upi", label: "Copy Razorpay UPI" },
+    { value: "/pay/zoho", label: "Copy Zoho Pay Standard" },
+    { value: "/pay/zoho-upi", label: "Copy Zoho Pay UPI" },
+  ];
+
+  async function copyPermanentPaymentLink(path) {
+    const option = permanentPaymentLinks.find((item) => item.value === path);
+    try {
+      await navigator.clipboard.writeText(`${PERMANENT_PAYMENT_BASE_URL}${path}`);
+      state.setError("");
+      state.setNotice(`${option?.label.replace(/^Copy /, "") || "Payment link"} link copied.`);
+    } catch (err) {
+      console.error("Permanent payment link copy failed:", err);
+      state.setNotice("");
+      state.setError("Could not copy the permanent payment link.");
+    }
+  }
 
   const now = new Date();
   const physYm = now.getFullYear() * 12 + (now.getMonth() + 1);
@@ -343,6 +365,14 @@ export default function PaymentsAdmin() {
                     ) : null}
                     {state.tab === "payments" && hasPaymentFullAccess ? (
                       <>
+                        <ControlDropdown
+                          value=""
+                          onChange={copyPermanentPaymentLink}
+                          options={permanentPaymentLinks}
+                          placeholder="Permanent INR 6,000 Links"
+                          className="w-56"
+                          fixedMenu={true}
+                        />
                         <ControlButton
                           onClick={() => setCreatePaymentLinkModal({ open: true })}
                           variant="secondary"

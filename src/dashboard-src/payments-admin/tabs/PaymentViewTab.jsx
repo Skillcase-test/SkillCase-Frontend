@@ -56,6 +56,7 @@ export function PaymentViewTab({
   const bookableRows = canManagePayments ? rows.filter(
     (r) =>
       !r.is_payment_link &&
+      r.enrollment_id &&
       !r.booked_amount_id &&
       ["captured", "authorized", "processed"].includes(r.payment_status) &&
       Number(r.signed_amount_paise ?? r.amount_paise) > 0,
@@ -355,6 +356,7 @@ export function PaymentViewTab({
               >
                 <td className="px-3 py-3 text-center">
                   {canManagePayments && !r.is_payment_link &&
+                  r.enrollment_id &&
                   !r.booked_amount_id &&
                   ["captured", "authorized", "processed"].includes(
                     r.payment_status,
@@ -374,7 +376,16 @@ export function PaymentViewTab({
                     />
                   )}
                 </td>
-                <td className="px-3 py-3">{r.student_name || "-"}</td>
+                <td className="px-3 py-3">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span>{r.student_name || "Unknown payer"}</span>
+                    {!r.enrollment_id && !r.is_payment_link ? (
+                      <span className="rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                        Unlinked
+                      </span>
+                    ) : null}
+                  </div>
+                </td>
                 <td className="px-2 py-2">
                   <div className="flex items-center gap-1.5">
                     <span>{r.student_phone || "-"}</span>
@@ -385,7 +396,7 @@ export function PaymentViewTab({
                           onClick={() =>
                             setRelinkModal({ open: true, payment: r })
                           }
-                          className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-slate-200 transition-all text-slate-500"
+                          className={`${r.enrollment_id ? "opacity-0 group-hover:opacity-100" : "opacity-100"} p-1 rounded hover:bg-slate-200 transition-all text-slate-500`}
                           title="Link or relink transaction by phone number"
                         >
                           <Edit2 className="h-3 w-3" />
@@ -435,7 +446,7 @@ export function PaymentViewTab({
                             {MONTH_NAMES[r.booked_month] || r.booked_month}{" "}
                             {r.booked_year}
                           </span>
-                        ) : canManagePayments ? (
+                        ) : canManagePayments && r.enrollment_id ? (
                           ["captured", "authorized", "processed"].includes(
                             r.payment_status,
                           ) &&

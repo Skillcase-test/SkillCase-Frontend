@@ -1,5 +1,21 @@
 {
   "rewrites": [
+    {
+      "source": "/pay/razorpay",
+      "destination": "https://learnerapi.skillcase.in/api/payments/public/razorpay/standard"
+    },
+    {
+      "source": "/pay/razorpay-upi",
+      "destination": "https://learnerapi.skillcase.in/api/payments/public/razorpay/upi"
+    },
+    {
+      "source": "/pay/zoho",
+      "destination": "https://learnerapi.skillcase.in/api/payments/public/zoho/standard"
+    },
+    {
+      "source": "/pay/zoho-upi",
+      "destination": "https://learnerapi.skillcase.in/api/payments/public/zoho/upi"
+    },
     { "source": "/(.*)", "destination": "/" }
   ]
 }
