@@ -853,6 +853,7 @@ export default function PaymentsAdmin() {
         modal={state.relinkModal}
         setModal={state.setRelinkModal}
         onConfirm={actions.handleRelinkTransactionByPhone}
+        candidateOptions={state.candidateOptions}
       />
       <CopyAgreementModal
         modal={state.copyLinkModal}

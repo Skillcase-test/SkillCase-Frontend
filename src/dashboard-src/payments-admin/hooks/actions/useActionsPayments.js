@@ -281,10 +281,13 @@ export function useActionsPayments(state) {
     }
   }
 
-  async function handleRelinkTransactionByPhone(paymentId, phone) {
+  async function handleRelinkTransactionByPhone(paymentId, targetCandidate) {
     setError("");
     try {
-      const res = await paymentsAdminApi.relinkTransactionByPhone(paymentId, phone);
+      const res = await paymentsAdminApi.relinkTransactionByPhone(
+        paymentId,
+        targetCandidate,
+      );
       setNotice(res.data?.msg || "Payment successfully relinked to the candidate");
       setRelinkModal({ open: false, payment: null });
       await loadTabData();

@@ -122,8 +122,11 @@ export const paymentsAdminApi = {
     api.patch(`/admin/payments/transactions/manual/${paymentId}`, payload),
   deleteManualTransaction: (paymentId) =>
     api.delete(`/admin/payments/transactions/manual/${paymentId}`),
-  relinkTransactionByPhone: (paymentId, phone) =>
-    api.patch(`/admin/payments/transactions/${paymentId}/link-by-phone`, { phone }),
+  relinkTransactionByPhone: (paymentId, targetCandidate) =>
+    api.patch(`/admin/payments/transactions/${paymentId}/link-by-phone`, {
+      enrollment_id: targetCandidate?.enrollmentId,
+      phone: targetCandidate?.phone,
+    }),
   checkDuplicateTransactions: (payload) =>
     api.post("/admin/payments/transactions/check-duplicates", payload),
   createBatchManualTransactions: (payload) =>

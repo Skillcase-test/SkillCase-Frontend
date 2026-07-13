@@ -3,7 +3,7 @@ import {
   X,
   RefreshCw,
   Phone,
-  DollarSign,
+  IndianRupee,
   Link,
   Copy,
   Check,
@@ -409,11 +409,17 @@ export function CreatePaymentLinkModal({
                   Billing Amount (INR) *
                 </label>
                 <ControlInput
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={amountInr}
-                  onChange={(e) => setAmountInr(e.target.value)}
+                  onChange={(e) => {
+                    const nextValue = e.target.value;
+                    if (/^\d*(?:\.\d{0,2})?$/.test(nextValue)) {
+                      setAmountInr(nextValue);
+                    }
+                  }}
                   placeholder="0.00"
-                  leftIcon={<DollarSign size={14} />}
+                  leftIcon={<IndianRupee size={14} />}
                   disabled={submitting}
                   className="w-full font-bold text-slate-800"
                 />
