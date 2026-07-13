@@ -50,6 +50,18 @@ const formatToLocalDateTimeString = (dateInput) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
+const formatScreeningTimestamp = (dateInput) => {
+  if (!dateInput) return "Not available";
+  const date = new Date(dateInput);
+  if (Number.isNaN(date.getTime())) return "Not available";
+
+  return `${new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Kolkata",
+  }).format(date)} IST`;
+};
+
 const CandidateDetail = ({
   candidate,
   loading,
@@ -1160,6 +1172,7 @@ const CandidateDetail = ({
                 step.status === "completed" || step.status === "skipped";
               const isActive = step.id === candidate.current_step_id;
               const isLocked = !isCompleted && !isActive;
+              const stepTimestamps = candidate.step_timestamps?.[step.id] || {};
 
               return (
                 <div key={step.id} className="relative group">
@@ -1210,6 +1223,25 @@ const CandidateDetail = ({
                             ? "Active"
                             : "Locked"}
                       </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-3 text-[10px]">
+                      <div className="rounded-lg bg-white/80 border border-slate-100 px-2 py-1.5">
+                        <span className="block uppercase tracking-wider text-[8px] font-bold text-slate-400">
+                          Started
+                        </span>
+                        <span className="font-semibold text-slate-600">
+                          {formatScreeningTimestamp(stepTimestamps.started_at)}
+                        </span>
+                      </div>
+                      <div className="rounded-lg bg-white/80 border border-slate-100 px-2 py-1.5">
+                        <span className="block uppercase tracking-wider text-[8px] font-bold text-slate-400">
+                          Completed
+                        </span>
+                        <span className="font-semibold text-slate-600">
+                          {formatScreeningTimestamp(stepTimestamps.completed_at)}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Stage Info and Inline Actions */}
@@ -1386,6 +1418,48 @@ const CandidateDetail = ({
                       {isInterview && (
                         <div className="space-y-3">
                           <p>AI-driven proficiency test and video attempt.</p>
+
+                          {(() => {
+                            const status =
+                              candidate.interview_status ||
+                              (candidate.interview_submitted
+                                ? "completed"
+                                : "not_started");
+                            const statusMeta = {
+                              not_started: {
+                                label: "Not started",
+                                className:
+                                  "bg-slate-50 text-slate-500 border-slate-200",
+                              },
+                              started: {
+                                label: "Started",
+                                className:
+                                  "bg-amber-50 text-amber-700 border-amber-100",
+                              },
+                              completed: {
+                                label: "Completed",
+                                className:
+                                  "bg-emerald-50 text-emerald-700 border-emerald-100",
+                              },
+                            }[status] || {
+                              label: "Not started",
+                              className:
+                                "bg-slate-50 text-slate-500 border-slate-200",
+                            };
+
+                            return (
+                              <div className="flex items-center justify-between rounded-lg border border-slate-150 bg-slate-50/60 px-2.5 py-2">
+                                <span className="text-[10px] font-semibold text-slate-600">
+                                  Interview Status
+                                </span>
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${statusMeta.className}`}
+                                >
+                                  {statusMeta.label}
+                                </span>
+                              </div>
+                            );
+                          })()}
 
                           {/* Selected / Completed details */}
                           {candidate.assigned_interview_title ? (
