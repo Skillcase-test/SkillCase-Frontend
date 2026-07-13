@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { ControlButton, ControlInput } from "./controls";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
+import { candidateMatchesSearch, candidatePhoneLabel } from "../utils/candidatePhones";
 
 export function CreatePaymentLinkModal({
   modal,
@@ -106,17 +107,7 @@ export function CreatePaymentLinkModal({
       setShowDropdown(true);
       setSearching(false);
     } else if (trimmed.length < 2) {
-      const cleanVal = trimmed.replace(/\D/g, "").toLowerCase();
-      const matches = candidateOptions.filter((c) => {
-        const candPhone = String(
-          c.student_phone || c.phone || c.label || "",
-        ).replace(/\D/g, "");
-        const candName = String(c.student_name || c.label || "").toLowerCase();
-        return (
-          (cleanVal ? candPhone.includes(cleanVal) : false) ||
-          candName.includes(trimmed.toLowerCase())
-        );
-      });
+      const matches = candidateOptions.filter((c) => candidateMatchesSearch(c, trimmed));
       setFilteredCandidates(matches.slice(0, 5));
       setShowDropdown(true);
       setSearching(false);
@@ -326,7 +317,7 @@ export function CreatePaymentLinkModal({
                                 {c.student_name || c.label}
                               </div>
                               <div className="text-slate-400 mt-0.5">
-                                {c.student_phone || c.phone || "No Phone"}{" "}
+                                {candidatePhoneLabel(c)}{" "}
                                 {c.batch_name ? `• ${c.batch_name}` : ""}
                               </div>
                             </button>

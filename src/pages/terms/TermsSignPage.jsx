@@ -688,7 +688,7 @@ export default function TermsSignPage() {
               }
               setWizardData((prev) => {
                 const next = { ...prev };
-                next.student_name = detailsRes.data?.student_name || candidateDetails.student_name || "";
+                next.student_name = "";
                 next.student_phone = detailsRes.data?.student_phone || candidateDetails.student_phone || "";
                 next.student_email = detailsRes.data?.student_email || candidateDetails.student_email || "";
                 for (const key of Object.keys(next)) {
@@ -1164,7 +1164,7 @@ export default function TermsSignPage() {
           }
           setWizardData((prev) => {
             const next = { ...prev };
-            next.student_name = detailsRes.data?.student_name || candidateDetails.student_name || "";
+            next.student_name = "";
             next.student_phone = detailsRes.data?.student_phone || candidateDetails.student_phone || "";
             next.student_email = detailsRes.data?.student_email || candidateDetails.student_email || "";
             for (const key of Object.keys(next)) {

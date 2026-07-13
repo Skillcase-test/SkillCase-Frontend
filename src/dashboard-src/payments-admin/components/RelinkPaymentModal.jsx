@@ -3,11 +3,11 @@ import { Search } from "lucide-react";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 import { ControlButton, ControlInput } from "./controls";
 import { formatInrFromPaise } from "../utils/formatters";
+import { candidateMatchesSearch, candidatePhoneLabel } from "../utils/candidatePhones";
 
 const candidateLabel = (candidate) => {
   const name = candidate?.student_name || "Unnamed candidate";
-  const phone = candidate?.student_phone || "No phone";
-  return `${name} (${phone})`;
+  return `${name} (${candidatePhoneLabel(candidate)})`;
 };
 
 export function RelinkPaymentModal({
@@ -63,14 +63,8 @@ export function RelinkPaymentModal({
     payment.razorpay_payment_id || payment.payment_id || "-";
 
   const findLocalCandidates = (value) => {
-    const normalized = value.toLowerCase();
-    const digits = value.replace(/\D/g, "");
     return candidateOptions
-      .filter((candidate) => {
-        const name = String(candidate.student_name || "").toLowerCase();
-        const phone = String(candidate.student_phone || "").replace(/\D/g, "");
-        return name.includes(normalized) || (digits && phone.includes(digits));
-      })
+      .filter((candidate) => candidateMatchesSearch(candidate, value))
       .slice(0, 8);
   };
 
@@ -203,7 +197,7 @@ export function RelinkPaymentModal({
                       {candidate.student_name || "Unnamed candidate"}
                     </span>
                     <span className="block text-xs text-slate-500">
-                      {candidate.student_phone || "No phone"}
+                      {candidatePhoneLabel(candidate)}
                       {candidate.student_email ? ` | ${candidate.student_email}` : ""}
                     </span>
                   </button>

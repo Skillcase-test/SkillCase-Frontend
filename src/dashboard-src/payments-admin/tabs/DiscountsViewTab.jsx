@@ -7,6 +7,7 @@ import {
 } from "../components/controls";
 import { MONTH_NAMES } from "../utils/constants";
 import { formatInrFromPaise } from "../utils/formatters";
+import { candidatePhoneLabel } from "../utils/candidatePhones";
 
 const MONTH_SHORT_NAMES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function getActiveMonthsRange(targetYear, targetMonth, durationMonths) {
@@ -31,7 +32,7 @@ export function DiscountsViewTab({
 }) {
   const candidateDropdownOptions = candidateOptions.map((c) => ({
     value: c.enrollment_id,
-    label: `${c.student_name || "Unknown"} - ${c.student_phone || "-"}`,
+    label: `${c.student_name || "Unknown"} - ${candidatePhoneLabel(c)}`,
   }));
 
   return (

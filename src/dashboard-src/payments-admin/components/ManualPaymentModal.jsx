@@ -2,6 +2,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { X, Save, Trash2, Calendar, DollarSign, Key, Phone, RefreshCw } from "lucide-react";
 import { ControlButton, ControlInput } from "./controls";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
+import {
+  candidateHasExactPhone,
+  candidateMatchesSearch,
+  candidatePhoneLabel,
+  findUniqueCandidateByPhone,
+} from "../utils/candidatePhones";
 
 export function ManualPaymentModal({
   modal,
@@ -115,15 +121,7 @@ export function ManualPaymentModal({
       setSearching(false);
     } else if (trimmed.length < 2) {
       // Small search string: match in locally preloaded options for speed
-      const cleanVal = trimmed.replace(/\D/g, "").toLowerCase();
-      const matches = candidateOptions.filter((c) => {
-        const candPhone = String(c.student_phone || c.phone || c.label || "").replace(/\D/g, "");
-        const candName = String(c.student_name || c.label || "").toLowerCase();
-        
-        const phoneMatches = cleanVal ? candPhone.includes(cleanVal) : false;
-        const nameMatches = candName.includes(trimmed.toLowerCase());
-        return phoneMatches || nameMatches;
-      });
+      const matches = candidateOptions.filter((c) => candidateMatchesSearch(c, trimmed));
       setFilteredCandidates(matches.slice(0, 5));
       setShowDropdown(true);
       setSearching(false);
@@ -157,14 +155,7 @@ export function ManualPaymentModal({
     if (trimmed.length >= 2) {
       setShowDropdown(true);
     } else if (trimmed.length > 0) {
-      const cleanVal = trimmed.replace(/\D/g, "").toLowerCase();
-      const matches = candidateOptions.filter((c) => {
-        const candPhone = String(c.student_phone || c.phone || c.label || "").replace(/\D/g, "");
-        const candName = String(c.student_name || c.label || "").toLowerCase();
-        const phoneMatches = cleanVal ? candPhone.includes(cleanVal) : false;
-        const nameMatches = candName.includes(trimmed.toLowerCase());
-        return phoneMatches || nameMatches;
-      });
+      const matches = candidateOptions.filter((c) => candidateMatchesSearch(c, trimmed));
       setFilteredCandidates(matches.slice(0, 5));
       setShowDropdown(true);
     } else {
@@ -211,30 +202,21 @@ export function ManualPaymentModal({
         resolvedEnrollmentId = modal.data.enrollment_id;
       } else {
         // Find existing candidate matching the entered phone (last 10 digits match)
-        const matched = candidateOptions.find((c) => {
-          const candPhone = extract10DigitPhone(c.student_phone || c.phone || c.label || "");
-          return candPhone === cleanPhone;
-        });
+        const res = await paymentsAdminApi.getEnrollmentOptions({ search: cleanPhone });
+        const serverOptions = res.data?.options || [];
+        const matchedServer = findUniqueCandidateByPhone(serverOptions, cleanPhone);
 
-        if (matched) {
-          resolvedEnrollmentId = matched.enrollment_id || matched.value;
+        if (matchedServer) {
+          resolvedEnrollmentId = matchedServer.enrollment_id || matchedServer.value;
         } else {
-          // Double-check with live server check if not found in preloaded list
-          const res = await paymentsAdminApi.getEnrollmentOptions({
-            search: cleanPhone
-          });
-          const matchedServer = (res.data?.options || []).find((c) => {
-            const candPhone = extract10DigitPhone(c.student_phone || c.phone || c.label || "");
-            return candPhone === cleanPhone;
-          });
-
-          if (matchedServer) {
-            resolvedEnrollmentId = matchedServer.enrollment_id || matchedServer.value;
-          } else {
-            alert("Candidate with this phone number does not exist. Please add the candidate first or select them from the dropdown autocomplete list.");
-            setSaving(false);
-            return;
-          }
+          const exactMatches = serverOptions.filter((candidate) =>
+            candidateHasExactPhone(candidate, cleanPhone),
+          );
+          alert(exactMatches.length > 1
+            ? "Multiple candidates use this phone number. Please select the correct candidate from the dropdown."
+            : "Candidate with this phone number does not exist. Please add the candidate first or select them from the dropdown autocomplete list.");
+          setSaving(false);
+          return;
         }
       }
 
@@ -324,7 +306,7 @@ export function ManualPaymentModal({
                           {c.student_name || c.label}
                         </div>
                         <div className="text-slate-400 mt-0.5">
-                          {c.student_phone || c.phone || "No Phone"} {c.batch_name ? `• ${c.batch_name}` : ""}
+                          {candidatePhoneLabel(c)} {c.batch_name ? ` | ${c.batch_name}` : ""}
                         </div>
                       </button>
                     ))

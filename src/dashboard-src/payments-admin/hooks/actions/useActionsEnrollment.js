@@ -1,4 +1,5 @@
 import { paymentsAdminApi } from "../../../../api/paymentsAdminApi";
+import { isValidCandidatePhone } from "../../utils/candidatePhones";
 
 export function useActionsEnrollment(state) {
   const {
@@ -229,8 +230,23 @@ export function useActionsEnrollment(state) {
   async function handleSendAgreement(row) {
     const enrollmentId = row?.enrollment_id;
     if (!enrollmentId) return;
+    const name = String(row?.student_name || "").trim();
+    const phone = row?.student_phone;
     const email = String(row?.student_email || "").trim();
-    if (!email) {
+    const leadOwner = String(row?.lead_owner || row?.notes?.lead_owner || "").trim();
+    if (!name || name === "-") {
+      setError("candidate name is required before sending agreement");
+      return;
+    }
+    if (name.startsWith("#")) {
+      setError("Cannot send agreements to candidates with placeholder names starting with '#'. Please update the candidate name first.");
+      return;
+    }
+    if (!isValidCandidatePhone(phone)) {
+      setError("candidate phone number is required before sending agreement");
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
       setError("candidate email is required before sending agreement");
       return;
     }
@@ -238,8 +254,8 @@ export function useActionsEnrollment(state) {
       setError("Cannot send agreements to razorpay email addresses. A valid candidate email is required.");
       return;
     }
-    if (String(row?.student_name || "").trim().startsWith("#")) {
-      setError("Cannot send agreements to candidates with placeholder names starting with '#'. Please update the candidate name first.");
+    if (!leadOwner || leadOwner === "-") {
+      setError("Lead Owner is required before sending agreement");
       return;
     }
     const confirmed = window.confirm(

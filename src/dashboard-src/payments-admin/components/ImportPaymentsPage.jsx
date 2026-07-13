@@ -3,6 +3,11 @@ import { ArrowLeft, Upload, Download, AlertCircle, CheckCircle2, FileSpreadsheet
 import { ControlButton } from "./controls";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 import { ImportHistorySection } from "./ImportHistorySection";
+import {
+  candidateMatchesSearch,
+  candidatePhoneLabel,
+  findUniqueCandidateByPhone,
+} from "../utils/candidatePhones";
 
 function CandidateSearchDropdown({ onSelect, candidateOptions }) {
   const [query, setQuery] = useState("");
@@ -48,14 +53,7 @@ function CandidateSearchDropdown({ onSelect, candidateOptions }) {
     }
 
     if (trimmed.length < 2) {
-      const cleanVal = trimmed.replace(/\D/g, "").toLowerCase();
-      const matches = candidateOptions.filter((c) => {
-        const candPhone = String(c.student_phone || c.phone || c.label || "").replace(/\D/g, "");
-        const candName = String(c.student_name || c.label || "").toLowerCase();
-        const phoneMatches = cleanVal ? candPhone.includes(cleanVal) : false;
-        const nameMatches = candName.includes(trimmed.toLowerCase());
-        return phoneMatches || nameMatches;
-      });
+      const matches = candidateOptions.filter((c) => candidateMatchesSearch(c, trimmed));
       setOptions(matches.slice(0, 5));
       setSearching(false);
     } else {
@@ -109,7 +107,7 @@ function CandidateSearchDropdown({ onSelect, candidateOptions }) {
                 className="block w-full text-left px-2 py-1.5 rounded hover:bg-slate-50 text-[11px] text-slate-700 transition"
               >
                 <div className="font-semibold text-slate-800">{c.student_name || c.label}</div>
-                <div className="text-slate-400 text-[10px]">{c.student_phone || c.phone || "No Phone"}</div>
+                <div className="text-slate-400 text-[10px]">{candidatePhoneLabel(c)}</div>
               </button>
             ))
           ) : (
@@ -455,18 +453,9 @@ export function ImportPaymentsPage({ onBack, onImportSuccess, candidateOptions =
       
       try {
         const checkPromises = uniquePhones.map(async (phone) => {
-          const localMatch = candidateOptions.find(
-            c => extract10DigitPhone(c.student_phone || c.phone || c.label || "") === phone
-          );
-          if (localMatch) {
-            return { phone, candidate: localMatch };
-          }
-          
           try {
             const res = await paymentsAdminApi.getEnrollmentOptions({ search: phone });
-            const serverMatch = (res.data?.options || []).find(
-              c => extract10DigitPhone(c.student_phone || c.phone || c.label || "") === phone
-            );
+            const serverMatch = findUniqueCandidateByPhone(res.data?.options || [], phone);
             return { phone, candidate: serverMatch || null };
           } catch (_) {
             return { phone, candidate: null };
