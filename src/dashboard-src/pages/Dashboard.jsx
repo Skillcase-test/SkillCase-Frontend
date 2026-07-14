@@ -1202,7 +1202,7 @@ export default function Dashboard() {
               <Route
                 path="trust-page"
                 element={
-                  <Guard allowed={hasPermission(me, "landing_page")}>
+                  <Guard allowed={hasPermission(me, "trust_page")}>
                     <TrustPageManagement />
                   </Guard>
                 }
