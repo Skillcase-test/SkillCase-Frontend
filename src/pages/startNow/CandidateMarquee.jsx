@@ -14,7 +14,7 @@ export default function CandidateMarquee({ candidates = [] }) {
   const loopedList = [...list, ...list, ...list, ...list];
 
   return (
-    <section className="mb-10 pb-2 pt-2 overflow-hidden w-full bg-slate-50/50">
+    <section className="pb-6 pt-2 overflow-hidden w-full bg-slate-50/50">
       {/* Infinite Marquee viewport */}
       <div className="relative w-full flex overflow-x-hidden group/marquee">
         {/* Marquee Row */}

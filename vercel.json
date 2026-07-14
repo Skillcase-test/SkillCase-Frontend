@@ -5,6 +5,10 @@
       "destination": "https://learnerapi.skillcase.in/api/payments/public/razorpay/standard"
     },
     {
+      "source": "/pay/razorpay-3000",
+      "destination": "https://learnerapi.skillcase.in/api/payments/public/razorpay/standard/start-now"
+    },
+    {
       "source": "/pay/razorpay-upi",
       "destination": "https://learnerapi.skillcase.in/api/payments/public/razorpay/upi"
     },

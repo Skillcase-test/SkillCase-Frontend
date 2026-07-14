@@ -91,6 +91,16 @@ export default function StartNowLanding() {
           {/* Section 3: Candidate Infinite Scroll Marquee */}
           <CandidateMarquee candidates={data.candidates} />
 
+          {/* Section 5: Student Apply Videos scroll */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ type: "spring", damping: 25, stiffness: 80 }}
+          >
+            <VideoShowcase videos={data.videos} />
+          </motion.div>
+
           {/* Section 4: Stacked Learning Components */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
@@ -101,19 +111,9 @@ export default function StartNowLanding() {
             <LearningStack components={data.learning_components} />
           </motion.div>
 
-          {/* Section 5: Student Apply Videos scroll */}
-          <motion.div
-            className="w-full overflow-hidden"
-            initial={{ opacity: 0, y: 40 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ type: "spring", damping: 25, stiffness: 80 }}
-          >
-            <VideoShowcase videos={data.videos} />
-          </motion.div>
-
           {/* Section 6: Notes in native languages */}
           <motion.div
+            className="w-full overflow-hidden"
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
@@ -124,7 +124,6 @@ export default function StartNowLanding() {
 
           {/* Section 7: Guest Lectures */}
           <motion.div
-            className="w-full overflow-hidden"
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}

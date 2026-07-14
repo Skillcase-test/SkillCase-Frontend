@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, ChevronLeft, ChevronRight } from "lucide-react";
 
-function VideoCard({ video, uniqueKey, isPlaying, onPlay, onStop }) {
+function VideoCard({ video, isPlaying, onPlay, onStop, style, onClick }) {
   const videoRef = useRef(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -27,16 +27,20 @@ function VideoCard({ video, uniqueKey, isPlaying, onPlay, onStop }) {
     if (isPlaying) {
       onStop();
     } else {
-      onPlay(uniqueKey);
+      onPlay();
     }
   };
 
   return (
     <div
-      className="flex-shrink-0 w-64 md:w-72 aspect-[9/16] bg-slate-950 rounded-3xl overflow-hidden shadow-md relative cursor-pointer select-none"
-      onClick={handleTap}
+      style={style}
+      className="absolute w-64 md:w-72 aspect-[9/16] bg-slate-950 rounded-3xl overflow-hidden shadow-xl  transition-all duration-500 ease-in-out cursor-pointer select-none"
+      onClick={(e) => {
+        onClick?.();
+        handleTap(e);
+      }}
     >
-      {/* Single video element — shows first frame as thumbnail when paused */}
+      {/* Video — preload=metadata shows first frame as thumbnail */}
       <video
         ref={videoRef}
         src={video.video_url}
@@ -52,17 +56,17 @@ function VideoCard({ video, uniqueKey, isPlaying, onPlay, onStop }) {
         }}
       />
 
-      {/* Loading Spinner */}
+      {/* Loading spinner */}
       {isLoading && (
         <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50">
           <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin" />
         </div>
       )}
 
-      {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent z-10 pointer-events-none" />
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/10 to-transparent z-10 pointer-events-none" />
 
-      {/* Center Play/Pause Icon */}
+      {/* Play/Pause icon */}
       {!isLoading && (
         <div className="absolute inset-0 z-20 flex items-center justify-center">
           {isPlaying ? (
@@ -77,7 +81,7 @@ function VideoCard({ video, uniqueKey, isPlaying, onPlay, onStop }) {
         </div>
       )}
 
-      {/* Title & Description Overlay */}
+      {/* Title & description */}
       <div className="absolute bottom-6 inset-x-0 px-5 z-20 text-white flex flex-col gap-1 text-left pointer-events-none">
         <h4 className="font-extrabold text-sm sm:text-base leading-tight">
           {video.title}
@@ -91,15 +95,92 @@ function VideoCard({ video, uniqueKey, isPlaying, onPlay, onStop }) {
 }
 
 export default function VideoShowcase({ videos = [] }) {
-  const [playingId, setPlayingId] = useState(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [playingIndex, setPlayingIndex] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const touchStartX = useRef(null);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 640);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const studentVideos = videos.filter((v) => v.type === "student_applying");
   if (studentVideos.length === 0) return null;
 
-  const loopedList = [...studentVideos, ...studentVideos];
+  const list = studentVideos;
+
+  const handlePrev = () => {
+    setPlayingIndex(null);
+    setActiveIndex((prev) => (prev - 1 + list.length) % list.length);
+  };
+
+  const handleNext = () => {
+    setPlayingIndex(null);
+    setActiveIndex((prev) => (prev + 1) % list.length);
+  };
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const delta = touchStartX.current - e.changedTouches[0].clientX;
+    if (delta > 50) handleNext();
+    else if (delta < -50) handlePrev();
+    touchStartX.current = null;
+  };
+
+  const getCardStyle = (index) => {
+    let offset = index - activeIndex;
+    const total = list.length;
+
+    if (total > 2) {
+      if (offset < -Math.floor(total / 2)) offset += total;
+      if (offset > Math.floor(total / 2)) offset -= total;
+    }
+
+    const translateAmount = isMobile ? "62%" : "72%";
+
+    if (offset === 0) {
+      return {
+        transform: "translateX(0) scale(1.05)",
+        zIndex: 30,
+        opacity: 1,
+        pointerEvents: "auto",
+      };
+    } else if (offset === -1) {
+      return {
+        transform: `translateX(-${translateAmount}) scale(0.82)`,
+        zIndex: 20,
+        opacity: 0.4,
+        pointerEvents: "auto",
+      };
+    } else if (offset === 1) {
+      return {
+        transform: `translateX(${translateAmount}) scale(0.82)`,
+        zIndex: 20,
+        opacity: 0.4,
+        pointerEvents: "auto",
+      };
+    } else {
+      return {
+        transform:
+          offset < 0
+            ? "translateX(-150%) scale(0.6)"
+            : "translateX(150%) scale(0.6)",
+        zIndex: 10,
+        opacity: 0,
+        pointerEvents: "none",
+      };
+    }
+  };
 
   return (
-    <section className="mb-16 py-6 overflow-hidden w-full bg-slate-50/30">
+    <section className="mb-16 py-6 w-full overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 mb-4 text-center md:text-left">
         <h2 className="text-2xl md:text-3xl font-extrabold text-[#002856]">
           100s of Students Are Applying
@@ -110,43 +191,69 @@ export default function VideoShowcase({ videos = [] }) {
         </p>
       </div>
 
-      {/* Marquee Viewport */}
-      <div className="relative w-full flex overflow-x-hidden py-8 group/vs">
-
-        <div
-          className="flex gap-6 animate-vs-marquee"
-          style={{
-            animationPlayState: playingId !== null ? "paused" : "running",
-          }}
-        >
-          {loopedList.map((video, index) => {
-            const uniqueKey = `${video.id}-${index}`;
-            return (
-              <VideoCard
-                key={uniqueKey}
-                video={video}
-                uniqueKey={uniqueKey}
-                isPlaying={playingId === uniqueKey}
-                onPlay={(id) => setPlayingId(id)}
-                onStop={() => setPlayingId(null)}
-              />
-            );
-          })}
+      <div
+        className="relative flex items-center justify-center min-h-[480px] sm:min-h-[560px] overflow-hidden w-full"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Card carousel container */}
+        <div className="relative w-64 md:w-72 h-[380px] sm:h-[450px] flex items-center justify-center scale-[0.85] sm:scale-95 md:scale-100 origin-center shrink-0">
+          {list.map((video, index) => (
+            <VideoCard
+              key={video.id}
+              video={video}
+              style={getCardStyle(index)}
+              isPlaying={playingIndex === index}
+              onPlay={() => {
+                setActiveIndex(index);
+                setPlayingIndex(index);
+              }}
+              onStop={() => setPlayingIndex(null)}
+              onClick={() => {
+                if (index !== activeIndex) {
+                  setPlayingIndex(null);
+                  setActiveIndex(index);
+                }
+              }}
+            />
+          ))}
         </div>
+
+        {/* Arrow Controls */}
+        <button
+          onClick={handlePrev}
+          className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white border border-slate-100 shadow-md hover:bg-slate-50 text-slate-600 active:scale-95 transition-all duration-150 z-40"
+          aria-label="Previous video"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <button
+          onClick={handleNext}
+          className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white border border-slate-100 shadow-md hover:bg-slate-50 text-slate-600 active:scale-95 transition-all duration-150 z-40"
+          aria-label="Next video"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
       </div>
 
-      <style>{`
-        @keyframes vs-marquee {
-          0%   { transform: translate3d(0, 0, 0); }
-          100% { transform: translate3d(-50%, 0, 0); }
-        }
-        .animate-vs-marquee {
-          animation: vs-marquee 30s linear infinite;
-        }
-        .group\/vs:hover .animate-vs-marquee {
-          animation-play-state: paused;
-        }
-      `}</style>
+      {/* Dot indicators */}
+      <div className="flex justify-center gap-2 mt-2">
+        {list.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => {
+              setPlayingIndex(null);
+              setActiveIndex(i);
+            }}
+            className={`rounded-full transition-all duration-300 ${
+              i === activeIndex
+                ? "w-6 h-2 bg-[#002856]"
+                : "w-2 h-2 bg-slate-300 hover:bg-slate-400"
+            }`}
+            aria-label={`Go to video ${i + 1}`}
+          />
+        ))}
+      </div>
     </section>
   );
 }

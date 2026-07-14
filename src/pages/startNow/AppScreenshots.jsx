@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function AppScreenshots({ screenshots = [] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
+  const touchStartX = useRef(null);
 
   // Resize listener to adapt translate values for mobile responsiveness
   useEffect(() => {
@@ -33,6 +34,18 @@ export default function AppScreenshots({ screenshots = [] }) {
 
   const handleNext = () => {
     setActiveIndex((prev) => (prev + 1) % list.length);
+  };
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartX.current === null) return;
+    const delta = touchStartX.current - e.changedTouches[0].clientX;
+    if (delta > 50) handleNext();
+    else if (delta < -50) handlePrev();
+    touchStartX.current = null;
   };
 
   // Helper to calculate translate offsets dynamically
@@ -98,7 +111,11 @@ export default function AppScreenshots({ screenshots = [] }) {
       </div>
 
       {/* Sliding Smartphone mockup wrapper */}
-      <div className="relative flex items-center justify-center min-h-[580px] sm:min-h-[820px] -mt-16 overflow-hidden w-full">
+      <div
+        className="relative flex items-center justify-center min-h-[580px] sm:min-h-[820px] -mt-16 overflow-hidden w-full"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
         {/* Background glow */}
         <div className="absolute inset-0 bg-[#002856]/5 blur-[100px] rounded-full scale-75 -z-10" />
 

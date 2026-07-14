@@ -24,7 +24,7 @@ export default function LanguageNotes({ notes = [] }) {
   const distinctLanguages = [...new Set(list.map((n) => n.language))];
 
   return (
-    <section className="bg-[#001836] py-16 px-4 mb-16 overflow-hidden w-full text-white">
+    <section className="bg-[#001836] py-16 px-4 mb-6 overflow-hidden w-full text-white">
       <div className="max-w-7xl mx-auto">
         
         <div className="flex justify-between items-end mb-6">

@@ -126,10 +126,15 @@ export default function HeroSection({ hero }) {
           variants={itemVariants}
           className="w-full flex justify-center mt-4"
         >
-          <button className="bg-[#F9C53D] hover:bg-[#e0b02f] text-[#002856] font-extrabold px-8 py-4 rounded-2xl w-fit shadow-lg transition-all active:scale-95 duration-150 flex items-center gap-2 text-sm sm:text-base">
+          <a
+            href="/pay/razorpay-3000"
+            target="_blank"
+            rel="noreferrer"
+            className="bg-[#F9C53D] hover:bg-[#e0b02f] text-[#002856] font-extrabold px-8 py-4 rounded-2xl w-fit shadow-lg transition-all active:scale-95 duration-150 flex items-center gap-2 text-sm sm:text-base"
+          >
             <span>{ctaText}</span>
             <ArrowRight className="w-5 h-5" />
-          </button>
+          </a>
         </motion.div>
       </motion.div>
     </section>
