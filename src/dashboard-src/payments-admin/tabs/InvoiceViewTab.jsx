@@ -87,6 +87,7 @@ export function InvoiceViewTab({
   canDownloadInvoices = true,
 }) {
   const [step, setStep] = useState(1);
+  const startingFlowRef = React.useRef(false);
   const [verifiedState, setVerifiedState] = useState("");
   const [candidatesSearch, setCandidatesSearch] = useState("");
   const [draftInvoice, setDraftInvoice] = useState(null);
@@ -362,6 +363,10 @@ export function InvoiceViewTab({
   };
 
   useEffect(() => {
+    if (startingFlowRef.current) {
+      startingFlowRef.current = false;
+      return;
+    }
     setStep(1);
     setDraftInvoice(null);
     setLocalError("");
@@ -376,6 +381,7 @@ export function InvoiceViewTab({
   }, [selectedEnrollment]);
 
   const handleStartFlowForRow = async (row, options = {}) => {
+    startingFlowRef.current = true;
     setSelectedEnrollmentId(row.enrollment_id);
     setSelectedInvoicePaymentId(row.booked_amount_id);
     setVerifiedState(row.enrollment_notes?.state || row.notes?.state || "");
@@ -670,7 +676,7 @@ export function InvoiceViewTab({
                                 onClick={() => handleQuickSend(r)}
                                 disabled={isGenerating || isSending}
                                 variant="primary"
-                                className="h-8 rounded-lg px-3.5 text-xs bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border-none text-white shadow-sm active:scale-95 transition-all duration-150 font-semibold"
+                                className="h-8 rounded-lg px-3.5 text-xs bg-[#002856] hover:bg-[#002860] border-none text-white shadow-sm active:scale-95 transition-all duration-150 font-semibold"
                               >
                                 {isSending ? "Sending..." : "Send"}
                               </ControlButton>
@@ -955,8 +961,7 @@ export function InvoiceViewTab({
                   id="candidate-state-select"
                   value={verifiedState}
                   onChange={(e) => setVerifiedState(e.target.value)}
-                  disabled
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500 cursor-not-allowed focus:outline-none focus:border-indigo-500 focus:ring focus:ring-indigo-200/50"
+                  className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring focus:ring-indigo-200/50"
                 >
                   <option value="">-- Select State --</option>
                   {INDIAN_STATES.map((s) => (
@@ -989,7 +994,7 @@ export function InvoiceViewTab({
                 variant="primary"
                 onClick={handleConfirmStateAndGenerate}
                 disabled={isGenerating || !verifiedState}
-                className="bg-[#002856 hover:bg-[#002860] border-none text-white active:scale-95 transition-all duration-150 font-semibold"
+                className="bg-[#002856] hover:bg-[#002860] border-none text-white active:scale-95 transition-all duration-150 font-semibold"
               >
                 {isGenerating ? "Generating..." : "Confirm & Generate"}
               </ControlButton>
@@ -1089,7 +1094,7 @@ export function InvoiceViewTab({
                       variant="primary"
                       onClick={handleConfirmAndSend}
                       disabled={isSending || isCancelling}
-                      className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border-none text-white active:scale-95 transition-all duration-150 font-semibold"
+                      className="bg-[#002856] hover:bg-[#002860] border-none text-white active:scale-95 transition-all duration-150 font-semibold"
                     >
                       {isSending ? "Sending..." : "Confirm & Send Email"}
                     </ControlButton>

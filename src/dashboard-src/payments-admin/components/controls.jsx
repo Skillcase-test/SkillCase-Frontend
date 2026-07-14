@@ -46,7 +46,7 @@ export function ControlButton({
   return (
     <button
       {...props}
-      className={`inline-flex h-10 items-center justify-center rounded-xl border px-3 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${className}`}
+      className={`inline-flex h-10 items-center justify-center rounded-xl border px-3 text-sm font-semibold transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 ${variants[variant]} ${className}`}
     >
       {children}
     </button>

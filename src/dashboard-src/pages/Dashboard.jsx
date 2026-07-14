@@ -13,6 +13,7 @@ const Analytics = lazy(() => import("./Analytics"));
 const AppAnalytics = lazy(() => import("./AppAnalytics"));
 const ManageEvents = lazy(() => import("./event/ManageEvents"));
 const LandingPageManagement = lazy(() => import("./LandingPageManagement"));
+const TrustPageManagement = lazy(() => import("./TrustPageManagement"));
 const SendNotification = lazy(() => import("./notification/send"));
 const TermsManager = lazy(() => import("./TermsManager"));
 const AdminExamManager = lazy(() => import("./exam/AdminExamManager"));
@@ -769,6 +770,12 @@ export default function Dashboard() {
         module: "landing_page",
       },
       {
+        key: "trust-page",
+        label: "Trust Page",
+        path: "/admin/trust-page",
+        module: "landing_page",
+      },
+      {
         key: "notifications",
         label: "Notifications",
         path: "/admin/notifications",
@@ -1189,6 +1196,14 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "landing_page")}>
                     <LandingPageManagement />
+                  </Guard>
+                }
+              />
+              <Route
+                path="trust-page"
+                element={
+                  <Guard allowed={hasPermission(me, "landing_page")}>
+                    <TrustPageManagement />
                   </Guard>
                 }
               />
