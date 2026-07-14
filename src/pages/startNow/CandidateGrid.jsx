@@ -96,7 +96,7 @@ export default function CandidateGrid({ candidates = [] }) {
               transition={{ type: "spring", damping: 30, stiffness: 200 }}
             >
               {/* Image Section */}
-              <div className="w-full md:w-1/2 h-48 md:h-full relative shrink-0">
+              <div className="w-full md:w-1/2 h-70 md:h-full relative shrink-0">
                 <img
                   src={activeCandidate.image_url}
                   alt={activeCandidate.name}
@@ -106,7 +106,7 @@ export default function CandidateGrid({ candidates = [] }) {
               </div>
 
               {/* Details Section */}
-              <div className="flex-1 p-6 md:p-8 flex flex-col justify-between relative bg-white">
+              <div className="flex-1 px-6 py-2 md:p-8 flex flex-col justify-between relative bg-white">
                 {/* Close button */}
                 <button
                   onClick={() => setActiveId(null)}
@@ -123,7 +123,7 @@ export default function CandidateGrid({ candidates = [] }) {
                     From {activeCandidate.state}
                   </p>
 
-                  <hr className="my-5 border-slate-100" />
+                  <hr className="my-3 border-slate-100" />
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -145,7 +145,7 @@ export default function CandidateGrid({ candidates = [] }) {
                   </div>
                 </div>
 
-                <div className="mt-6 md:mt-0 flex gap-3">
+                <div className="mt-2 md:mt-0 flex gap-3">
                   <button
                     onClick={() => setActiveId(null)}
                     className="w-full py-3 bg-[#002856] hover:bg-[#001c3d] text-white font-bold text-xs sm:text-sm rounded-2xl shadow-sm transition-all"
