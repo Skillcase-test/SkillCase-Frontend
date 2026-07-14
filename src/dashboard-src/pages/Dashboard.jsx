@@ -773,7 +773,7 @@ export default function Dashboard() {
         key: "trust-page",
         label: "Trust Page",
         path: "/admin/trust-page",
-        module: "landing_page",
+        module: "trust_page",
       },
       {
         key: "notifications",

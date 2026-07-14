@@ -18,6 +18,7 @@ const MODULE_OPTIONS = [
   { key: "exam", label: "Exam Manager" },
   { key: "batch", label: "Batch" },
   { key: "landing_page", label: "Landing Page" },
+  { key: "trust_page", label: "Trust Page" },
   { key: "notifications", label: "Notifications" },
   { key: "wise", label: "Wise Dashboard" },
   { key: "wise_classes", label: "Wise Classes" },
@@ -48,8 +49,6 @@ const PAYMENTS_TAB_OPTIONS = [
 const PAYMENTS_ALL_TAB_KEYS = PAYMENTS_TAB_OPTIONS
   .map((t) => t.key)
   .filter((key) => !["tab_payments_view", "tab_payments_download", "tab_invoice_view", "tab_invoice_download"].includes(key));
-
-
 function normalizeBatch(batch) {
   const id = batch.id ?? batch.batch_id ?? batch.value;
   const name =
