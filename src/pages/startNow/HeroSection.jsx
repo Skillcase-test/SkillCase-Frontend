@@ -46,7 +46,9 @@ function CountUpText({ text }) {
 export default function HeroSection({ hero }) {
   const title = hero?.title || "250+ nurses on board.";
   const subheading = hero?.subheading || "Every one with a story.";
-  const description = hero?.description || "Join the elite circle of healthcare professionals who successfully bridged the gap from India to Germany with Skillcase. Learn with custom guides, expert mockups, and regional support.";
+  const description =
+    hero?.description ||
+    "Join the elite circle of healthcare professionals who successfully bridged the gap from India to Germany with Skillcase. Learn with custom guides, expert mockups, and regional support.";
   const ctaText = hero?.cta_text || "Start your journey";
 
   // Stagger entry animations
@@ -77,6 +79,7 @@ export default function HeroSection({ hero }) {
         src="/hero.webp"
         alt="Nurses heading to Germany"
         className="absolute inset-0 w-full h-full object-cover z-0"
+        style={{ objectPosition: "27% center" }}
       />
 
       {/* Vignette Overlay: Dark from Bottom-Left and Bottom, fading to Top-Right */}

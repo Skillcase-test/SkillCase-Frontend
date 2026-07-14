@@ -623,7 +623,7 @@ export default function TrustPageManagement() {
             <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white shadow-xs w-full max-w-xs mx-auto">
               <div className="w-full px-4 py-3.5 flex items-center justify-between text-left font-bold text-slate-800 text-xs gap-4 border-b border-slate-50 bg-slate-50/10">
                 <span>{faqForm.question || "Accordion Question?"}</span>
-                <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 rotate-180 text-[#002856]" />
+                <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 rotate-180" />
               </div>
               <div className="px-4 py-3.5 text-slate-600 text-[10px] leading-relaxed bg-slate-50/20 whitespace-pre-line">
                 {faqForm.answer || "Accordion answer details description text..."}
