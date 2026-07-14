@@ -103,6 +103,7 @@ export default function StartNowLanding() {
 
           {/* Section 5: Student Apply Videos scroll */}
           <motion.div
+            className="w-full overflow-hidden"
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
@@ -123,6 +124,7 @@ export default function StartNowLanding() {
 
           {/* Section 7: Guest Lectures */}
           <motion.div
+            className="w-full overflow-hidden"
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}

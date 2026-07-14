@@ -1,93 +1,107 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Play, Pause } from "lucide-react";
 
+function LectureCard({ lecture, uniqueKey, isPlaying, onPlay, onStop }) {
+  const videoRef = useRef(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid) return;
+
+    if (isPlaying) {
+      setIsLoading(true);
+      vid.play().catch(() => {
+        setIsLoading(false);
+        onStop();
+      });
+    } else {
+      vid.pause();
+      vid.currentTime = 0;
+      setIsLoading(false);
+    }
+  }, [isPlaying]);
+
+  const handleTap = (e) => {
+    e.stopPropagation();
+    if (isPlaying) {
+      onStop();
+    } else {
+      onPlay(uniqueKey);
+    }
+  };
+
+  return (
+    <div
+      className="flex-shrink-0 w-80 sm:w-96 bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm relative cursor-pointer select-none"
+      onClick={handleTap}
+    >
+      {/* Video block */}
+      <div className="aspect-video bg-slate-950 relative w-full overflow-hidden">
+        {/* Single video element — shows first frame as thumbnail when paused at currentTime=0 */}
+        <video
+          ref={videoRef}
+          src={lecture.video_url}
+          preload="metadata"
+          playsInline
+          className="w-full h-full object-cover"
+          onPlaying={() => setIsLoading(false)}
+          onWaiting={() => isPlaying && setIsLoading(true)}
+          onEnded={onStop}
+          onError={() => {
+            setIsLoading(false);
+            onStop();
+          }}
+        />
+
+        {/* Loading Spinner */}
+        {isLoading && (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50">
+            <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+          </div>
+        )}
+
+        {/* Center Play/Pause overlay */}
+        {!isLoading && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center">
+            {isPlaying ? (
+              <div className="w-14 h-14 rounded-full bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
+                <Pause className="w-6 h-6 fill-current text-white" />
+              </div>
+            ) : (
+              <div className="w-16 h-16 bg-[#002856] hover:bg-[#001c3d] rounded-full flex items-center justify-center shadow-lg transition-transform duration-150 hover:scale-110 active:scale-90">
+                <Play className="w-5 h-5 fill-current text-[#F9C53D] translate-x-0.5" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Subtle dark overlay when showing thumbnail */}
+        {!isPlaying && (
+          <div className="absolute inset-0 bg-black/20 z-10 pointer-events-none" />
+        )}
+      </div>
+
+      {/* Title & Description */}
+      <div className="p-6 bg-white border-t border-slate-50 flex flex-col gap-2">
+        <h4 className="font-extrabold text-base text-[#002856] line-clamp-1">
+          {lecture.title}
+        </h4>
+        <p className="text-xs text-slate-500 line-clamp-3 leading-relaxed">
+          {lecture.description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function GuestLectures({ videos = [] }) {
-  const scrollRef = useRef(null);
   const [playingId, setPlayingId] = useState(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [focusedIndex, setFocusedIndex] = useState(0);
 
-  // Filter videos for guest lectures
   const lectures = videos.filter(v => v.type === "guest_lecture");
-
   if (lectures.length === 0) return null;
 
-  const list = lectures;
-
-  // Repeat list so one section has at least 6 cards to avoid visual jump on standard screens
-  let sectionList = [...list];
-  while (sectionList.length < 6) {
-    sectionList = [...sectionList, ...list];
-  }
-
-  // Triple the list to ensure seamless infinite scroll looping
-  const loopedList = [...sectionList, ...sectionList, ...sectionList];
-
-  // Dynamic Scroll Center Calculation (Responsive & Exact)
-  // Triggers via native React onScroll asynchronously
-  const handleScroll = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-
-    const containerCenter = el.scrollLeft + el.offsetWidth / 2;
-    const cards = el.children;
-    let minDistance = Infinity;
-    let closestIndex = 0;
-
-    for (let i = 0; i < cards.length; i++) {
-      const card = cards[i];
-      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-      const distance = Math.abs(containerCenter - cardCenter);
-      
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestIndex = i;
-      }
-    }
-
-    setFocusedIndex((prev) => (prev !== closestIndex ? closestIndex : prev));
-  };
-
-  // Auto scroll effect
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || playingId !== null || list.length === 0) return;
-
-    let animationFrameId;
-    const scrollSpeed = 1; // pixels per frame
-
-    // Pre-calculate loop widths
-    const isMobile = window.innerWidth < 640;
-    const cardWidth = isMobile ? 320 : 384;
-    const singleSectionWidth = sectionList.length * (cardWidth + 32);
-
-    // Start in the middle section so user can scroll left or right infinitely
-    if (el.scrollLeft === 0) {
-      el.scrollLeft = singleSectionWidth;
-    }
-
-    const scroll = () => {
-      el.scrollLeft += scrollSpeed;
-      
-      // Infinite loop wrap
-      if (el.scrollLeft >= singleSectionWidth * 2) {
-        el.scrollLeft = singleSectionWidth;
-      }
-      
-      animationFrameId = requestAnimationFrame(scroll);
-    };
-
-    animationFrameId = requestAnimationFrame(scroll);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [playingId, sectionList.length]);
-
-  const handlePlayToggle = (uniqueKey) => {
-    if (playingId === uniqueKey) {
-      setPlayingId(null);
-    } else {
-      setPlayingId(uniqueKey);
-    }
-  };
+  const loopedList = [...lectures, ...lectures];
 
   return (
     <section className="mb-16 py-8 overflow-hidden w-full bg-slate-50/50">
@@ -100,92 +114,41 @@ export default function GuestLectures({ videos = [] }) {
         </p>
       </div>
 
-      {/* Scrolling Container */}
-      <div 
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex gap-8 overflow-x-auto py-8 px-4 no-scrollbar scroll-smooth"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
-        {loopedList.map((lecture, index) => {
-          const uniqueKey = `${lecture.id}-${index}`;
-          const isPlaying = playingId === uniqueKey;
-          const isFocussed = focusedIndex === index;
+      {/* Marquee Viewport */}
+      <div className="relative w-full flex overflow-x-hidden py-8 group/gl">
 
-          return (
-            <div
-              key={uniqueKey}
-              className={`flex-shrink-0 w-80 sm:w-96 bg-white border border-slate-100 rounded-[2rem] overflow-hidden shadow-sm transition-all duration-300 relative ${
-                isFocussed 
-                  ? "scale-105 shadow-xl border-[#F9C53D]/30 opacity-100 z-10" 
-                  : "scale-95 opacity-65"
-              }`}
-            >
-              {/* Large Video Player Block */}
-              <div className="aspect-video bg-slate-950 relative w-full overflow-hidden">
-                {isPlaying ? (
-                  <video
-                    key={lecture.video_url}
-                    src={lecture.video_url}
-                    autoPlay
-                    controls
-                    className="w-full h-full object-cover"
-                    onPlay={() => setPlayingId(uniqueKey)}
-                    onPause={() => setPlayingId(null)}
-                    onEnded={() => setPlayingId(null)}
-                    preload="auto"
-                    playsInline
-                  />
-                ) : (
-                  <>
-                    <img
-                      src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&q=80&w=800"
-                      alt={lecture.title}
-                      className="w-full h-full object-cover opacity-50"
-                    />
-                    {/* Centered Play Button Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePlayToggle(uniqueKey);
-                        }}
-                        className="w-16 h-16 bg-[#002856] text-[#F9C53D] hover:bg-[#001c3d] rounded-full flex items-center justify-center shadow-lg transition-transform duration-150 active:scale-90"
-                      >
-                        <Play className="w-5 h-5 fill-current text-[#F9C53D] translate-x-0.5" />
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Title & Description Overlay */}
-              <div className="p-6 bg-white border-t border-slate-50 flex flex-col gap-2">
-                <h4 className="font-extrabold text-base text-[#002856] line-clamp-1">
-                  {lecture.title}
-                </h4>
-                <p className="text-xs text-slate-500 line-clamp-3 leading-relaxed">
-                  {lecture.description}
-                </p>
-              </div>
-
-              {isPlaying && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPlayingId(null);
-                  }}
-                  className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                >
-                  <Pause className="w-4 h-4 fill-current" />
-                </button>
-              )}
-            </div>
-          );
-        })}
+        <div
+          className="flex gap-8 animate-gl-marquee"
+          style={{ animationPlayState: playingId !== null ? "paused" : "running" }}
+        >
+          {loopedList.map((lecture, index) => {
+            const uniqueKey = `${lecture.id}-${index}`;
+            return (
+              <LectureCard
+                key={uniqueKey}
+                lecture={lecture}
+                uniqueKey={uniqueKey}
+                isPlaying={playingId === uniqueKey}
+                onPlay={(id) => setPlayingId(id)}
+                onStop={() => setPlayingId(null)}
+              />
+            );
+          })}
+        </div>
       </div>
+
+      <style>{`
+        @keyframes gl-marquee {
+          0%   { transform: translate3d(0, 0, 0); }
+          100% { transform: translate3d(-50%, 0, 0); }
+        }
+        .animate-gl-marquee {
+          animation: gl-marquee 35s linear infinite;
+        }
+        .group\/gl:hover .animate-gl-marquee {
+          animation-play-state: paused;
+        }
+      `}</style>
     </section>
   );
 }

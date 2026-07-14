@@ -1,93 +1,102 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Play, Pause } from "lucide-react";
 
+function VideoCard({ video, uniqueKey, isPlaying, onPlay, onStop }) {
+  const videoRef = useRef(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid) return;
+
+    if (isPlaying) {
+      setIsLoading(true);
+      vid.play().catch(() => {
+        setIsLoading(false);
+        onStop();
+      });
+    } else {
+      vid.pause();
+      vid.currentTime = 0;
+      setIsLoading(false);
+    }
+  }, [isPlaying]);
+
+  const handleTap = (e) => {
+    e.stopPropagation();
+    if (isPlaying) {
+      onStop();
+    } else {
+      onPlay(uniqueKey);
+    }
+  };
+
+  return (
+    <div
+      className="flex-shrink-0 w-64 md:w-72 aspect-[9/16] bg-slate-950 rounded-3xl overflow-hidden shadow-md relative cursor-pointer select-none"
+      onClick={handleTap}
+    >
+      {/* Single video element — shows first frame as thumbnail when paused */}
+      <video
+        ref={videoRef}
+        src={video.video_url}
+        preload="metadata"
+        playsInline
+        className="w-full h-full object-cover z-0"
+        onPlaying={() => setIsLoading(false)}
+        onWaiting={() => isPlaying && setIsLoading(true)}
+        onEnded={onStop}
+        onError={() => {
+          setIsLoading(false);
+          onStop();
+        }}
+      />
+
+      {/* Loading Spinner */}
+      {isLoading && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/50">
+          <div className="w-10 h-10 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+        </div>
+      )}
+
+      {/* Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent z-10 pointer-events-none" />
+
+      {/* Center Play/Pause Icon */}
+      {!isLoading && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center">
+          {isPlaying ? (
+            <div className="w-14 h-14 rounded-full bg-black/50 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
+              <Pause className="w-6 h-6 fill-current text-white" />
+            </div>
+          ) : (
+            <div className="w-14 h-14 bg-[#F9C53D] hover:bg-[#e0b02f] rounded-full flex items-center justify-center shadow-lg transition-transform duration-150 hover:scale-110 active:scale-90">
+              <Play className="w-5 h-5 fill-current text-[#002856] translate-x-0.5" />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Title & Description Overlay */}
+      <div className="absolute bottom-6 inset-x-0 px-5 z-20 text-white flex flex-col gap-1 text-left pointer-events-none">
+        <h4 className="font-extrabold text-sm sm:text-base leading-tight">
+          {video.title}
+        </h4>
+        <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+          {video.description}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function VideoShowcase({ videos = [] }) {
-  const scrollRef = useRef(null);
   const [playingId, setPlayingId] = useState(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [focusedIndex, setFocusedIndex] = useState(0);
 
-  // Filter videos for student applications
-  const studentVideos = videos.filter(v => v.type === "student_applying");
-
+  const studentVideos = videos.filter((v) => v.type === "student_applying");
   if (studentVideos.length === 0) return null;
 
-  const list = studentVideos;
-
-  // Repeat list so one section has at least 6 cards to avoid visual jump on standard screens
-  let sectionList = [...list];
-  while (sectionList.length < 6) {
-    sectionList = [...sectionList, ...list];
-  }
-
-  // Triple the list to ensure seamless infinite scroll looping
-  const loopedList = [...sectionList, ...sectionList, ...sectionList];
-
-  // Dynamic Scroll Center Calculation (Responsive & Exact)
-  // Triggers via native React onScroll asynchronously
-  const handleScroll = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-
-    const containerCenter = el.scrollLeft + el.offsetWidth / 2;
-    const cards = el.children;
-    let minDistance = Infinity;
-    let closestIndex = 0;
-
-    for (let i = 0; i < cards.length; i++) {
-      const card = cards[i];
-      const cardCenter = card.offsetLeft + card.offsetWidth / 2;
-      const distance = Math.abs(containerCenter - cardCenter);
-      
-      if (distance < minDistance) {
-        minDistance = distance;
-        closestIndex = i;
-      }
-    }
-
-    setFocusedIndex((prev) => (prev !== closestIndex ? closestIndex : prev));
-  };
-
-  // Auto scroll effect
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (!el || playingId !== null || list.length === 0) return;
-
-    let animationFrameId;
-    const scrollSpeed = 1; // pixels per frame
-
-    // Pre-calculate loop widths
-    const isMobile = window.innerWidth < 768;
-    const cardWidth = isMobile ? 256 : 288;
-    const singleSectionWidth = sectionList.length * (cardWidth + 24);
-
-    // Start in the middle section so user can scroll left or right infinitely
-    if (el.scrollLeft === 0) {
-      el.scrollLeft = singleSectionWidth;
-    }
-
-    const scroll = () => {
-      el.scrollLeft += scrollSpeed;
-      
-      // Infinite loop wrap
-      if (el.scrollLeft >= singleSectionWidth * 2) {
-        el.scrollLeft = singleSectionWidth;
-      }
-      
-      animationFrameId = requestAnimationFrame(scroll);
-    };
-
-    animationFrameId = requestAnimationFrame(scroll);
-    return () => cancelAnimationFrame(animationFrameId);
-  }, [playingId, sectionList.length]);
-
-  const handlePlayToggle = (uniqueKey) => {
-    if (playingId === uniqueKey) {
-      setPlayingId(null);
-    } else {
-      setPlayingId(uniqueKey);
-    }
-  };
+  const loopedList = [...studentVideos, ...studentVideos];
 
   return (
     <section className="mb-16 py-6 overflow-hidden w-full bg-slate-50/30">
@@ -96,99 +105,48 @@ export default function VideoShowcase({ videos = [] }) {
           100s of Students Are Applying
         </h2>
         <p className="text-slate-500 text-sm mt-1">
-          Listen to direct audio-visual reports from candidates who have made the transition.
+          Listen to direct audio-visual reports from candidates who have made
+          the transition.
         </p>
       </div>
 
-      {/* Scrolling Container */}
-      <div 
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex gap-6 overflow-x-auto py-8 px-4 no-scrollbar scroll-smooth"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-      >
-        {loopedList.map((video, index) => {
-          const uniqueKey = `${video.id}-${index}`;
-          const isPlaying = playingId === uniqueKey;
-          const isFocussed = focusedIndex === index;
+      {/* Marquee Viewport */}
+      <div className="relative w-full flex overflow-x-hidden py-8 group/vs">
 
-          return (
-            <div
-              key={uniqueKey}
-              className={`flex-shrink-0 w-64 md:w-72 aspect-[9/16] bg-slate-950 rounded-3xl overflow-hidden shadow-md transition-all duration-300 relative border border-slate-800/10 ${
-                isFocussed 
-                  ? "scale-105 shadow-lg border-[#F9C53D]/40 opacity-100" 
-                  : "scale-95 opacity-60"
-              }`}
-            >
-              {/* Video Player Block */}
-              <div className="w-full h-full bg-slate-950 relative overflow-hidden">
-                {isPlaying ? (
-                  <video
-                    key={video.video_url}
-                    src={video.video_url}
-                    autoPlay
-                    controls
-                    className="w-full h-full object-cover z-0"
-                    onPlay={() => setPlayingId(uniqueKey)}
-                    onPause={() => setPlayingId(null)}
-                    onEnded={() => setPlayingId(null)}
-                    preload="auto"
-                    playsInline
-                  />
-                ) : (
-                  <>
-                    <img
-                      src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=600"
-                      alt={video.title}
-                      className="w-full h-full object-cover opacity-50 z-0"
-                    />
-                    {/* Centered Play Button Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 z-20">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePlayToggle(uniqueKey);
-                        }}
-                        className="w-14 h-14 bg-[#F9C53D] hover:bg-[#e0b02f] rounded-full flex items-center justify-center shadow-lg transition-transform duration-150 active:scale-90"
-                      >
-                        <Play className="w-5 h-5 fill-current text-[#002856] translate-x-0.5" />
-                      </button>
-                    </div>
-                  </>
-                )}
-
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent z-10 pointer-events-none" />
-
-                {/* Title & Description Overlay */}
-                <div className="absolute bottom-6 inset-x-0 px-5 z-20 text-white flex flex-col gap-1 text-left pointer-events-none">
-                  <h4 className="font-extrabold text-sm sm:text-base leading-tight">
-                    {video.title}
-                  </h4>
-                  <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
-                    {video.description}
-                  </p>
-                </div>
-              </div>
-
-              {isPlaying && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setPlayingId(null);
-                  }}
-                  className="absolute top-4 right-4 z-30 w-9 h-9 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition-colors"
-                >
-                  <Pause className="w-4 h-4 fill-current" />
-                </button>
-              )}
-            </div>
-          );
-        })}
+        <div
+          className="flex gap-6 animate-vs-marquee"
+          style={{
+            animationPlayState: playingId !== null ? "paused" : "running",
+          }}
+        >
+          {loopedList.map((video, index) => {
+            const uniqueKey = `${video.id}-${index}`;
+            return (
+              <VideoCard
+                key={uniqueKey}
+                video={video}
+                uniqueKey={uniqueKey}
+                isPlaying={playingId === uniqueKey}
+                onPlay={(id) => setPlayingId(id)}
+                onStop={() => setPlayingId(null)}
+              />
+            );
+          })}
+        </div>
       </div>
+
+      <style>{`
+        @keyframes vs-marquee {
+          0%   { transform: translate3d(0, 0, 0); }
+          100% { transform: translate3d(-50%, 0, 0); }
+        }
+        .animate-vs-marquee {
+          animation: vs-marquee 30s linear infinite;
+        }
+        .group\/vs:hover .animate-vs-marquee {
+          animation-play-state: paused;
+        }
+      `}</style>
     </section>
   );
 }
