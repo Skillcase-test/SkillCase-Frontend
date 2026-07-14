@@ -95,7 +95,7 @@ export default function LearningStack({ components = [] }) {
   const list = components;
 
   return (
-    <section className="px-4 mb-16 mt-2 max-w-4xl mx-auto w-full">
+    <section className="px-4 mb-16 max-w-4xl mx-auto w-full">
       <div className="max-w-7xl mx-auto px-4 mb-10 text-center md:text-left">
         <h3 className="text-xl md:text-2xl font-extrabold text-[#002856]">
           Learning beyond the books
