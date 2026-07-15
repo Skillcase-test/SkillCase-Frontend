@@ -91,6 +91,11 @@ function isFieldLocked(field) {
   return Boolean(field?.config_json?.locked);
 }
 
+function isUnlinkedCandidateDetailsError(error) {
+  return error?.response?.status === 400 &&
+    error?.response?.data?.msg === "Invite not linked to any candidate profile";
+}
+
 function isFieldVisibleToCandidate(field) {
   if (!field || field.field_type === "signature") return false;
   if (isFieldLocked(field)) return false;
@@ -371,6 +376,7 @@ export default function TermsSignPage() {
   const [success, setSuccess] = useState("");
   const [alreadySigned, setAlreadySigned] = useState(false);
   const [justSubmitted, setJustSubmitted] = useState(false);
+  const [candidateDetailsLoadError, setCandidateDetailsLoadError] = useState("");
   const [hasStarted, setHasStarted] = useState(false);
 
   const [invite, setInvite] = useState(null);
@@ -662,6 +668,7 @@ export default function TermsSignPage() {
     async function fetchInvite() {
       setLoading(true);
       setError("");
+      setCandidateDetailsLoadError("");
       try {
         const response = await termsApi.resolveInvite(token);
         if (!mounted) return;
@@ -704,9 +711,16 @@ export default function TermsSignPage() {
             } else {
               setAlreadySigned(true);
             }
-          } catch {
-            // Not linked to any enrollment — treat as already signed
-            setAlreadySigned(true);
+          } catch (detailsError) {
+            if (isUnlinkedCandidateDetailsError(detailsError)) {
+              setAlreadySigned(true);
+            } else {
+              setAlreadySigned(false);
+              setCandidateDetailsLoadError(
+                detailsError?.response?.data?.msg ||
+                  "We could not load your candidate details. Please reload this page to try again.",
+              );
+            }
           }
         } else {
           setAlreadySigned(false);
@@ -1187,15 +1201,21 @@ export default function TermsSignPage() {
             window.open(signedUrl, "_blank", "noopener,noreferrer");
           }
         }
-      } catch {
-        // Not linked to any enrollment — normal success flow
-        setSuccess(
-          "Signature completed successfully. Thank you. You will be redirected to Skillcase.",
-        );
-        setJustSubmitted(true);
-        setAlreadySigned(true);
-        if (signedUrl) {
-          window.open(signedUrl, "_blank", "noopener,noreferrer");
+      } catch (detailsError) {
+        if (isUnlinkedCandidateDetailsError(detailsError)) {
+          setSuccess(
+            "Signature completed successfully. Thank you. You will be redirected to Skillcase.",
+          );
+          setJustSubmitted(true);
+          setAlreadySigned(true);
+          if (signedUrl) {
+            window.open(signedUrl, "_blank", "noopener,noreferrer");
+          }
+        } else {
+          setCandidateDetailsLoadError(
+            detailsError?.response?.data?.msg ||
+              "Your agreement was signed, but we could not load the next step. Please reload this page to continue.",
+          );
         }
       }
 
@@ -1979,6 +1999,24 @@ export default function TermsSignPage() {
       <div className="mx-auto max-w-3xl p-6">
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
           {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (candidateDetailsLoadError) {
+    return (
+      <div className="mx-auto flex min-h-screen max-w-2xl items-center p-6">
+        <div className="w-full rounded-lg border border-rose-200 bg-rose-50 p-5 text-center">
+          <h2 className="text-xl font-bold text-rose-900">Unable to load candidate details</h2>
+          <p className="mt-2 text-sm text-rose-800">{candidateDetailsLoadError}</p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="mt-6 rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-800"
+          >
+            Reload and try again
+          </button>
         </div>
       </div>
     );
