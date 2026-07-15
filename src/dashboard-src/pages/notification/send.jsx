@@ -798,33 +798,37 @@ export default function SendNotification() {
                       ))}
                     </div>
                     {versionFilterType === "exact" && (
-                      <div className="relative">
-                        <ControlInput
-                          list="notification-versions"
-                          value={exactVersion}
-                          onChange={(e) => setExactVersion(e.target.value)}
-                          placeholder="Select or type a version, e.g. 1.1.8"
-                          className="w-full max-w-sm"
-                        />
-                        <datalist id="notification-versions">
-                          {availableVersions.map((version) => (
-                            <option key={version} value={version} />
-                          ))}
-                        </datalist>
-                      </div>
+                      <ControlDropdown
+                        value={exactVersion}
+                        onChange={setExactVersion}
+                        placeholder="Select a tracked version"
+                        options={availableVersions.map((version) => ({
+                          value: version,
+                          label: `v${version}`,
+                        }))}
+                        className="w-full max-w-sm"
+                      />
                     )}
                     {versionFilterType === "range" && (
                       <div className="flex gap-3 max-w-md">
-                        <ControlInput
+                        <ControlDropdown
                           value={minVersion}
-                          onChange={(e) => setMinVersion(e.target.value)}
-                          placeholder="Min version"
+                          onChange={setMinVersion}
+                          placeholder="Minimum version"
+                          options={availableVersions.map((version) => ({
+                            value: version,
+                            label: `v${version}`,
+                          }))}
                           className="w-full"
                         />
-                        <ControlInput
+                        <ControlDropdown
                           value={maxVersion}
-                          onChange={(e) => setMaxVersion(e.target.value)}
-                          placeholder="Max version"
+                          onChange={setMaxVersion}
+                          placeholder="Maximum version"
+                          options={availableVersions.map((version) => ({
+                            value: version,
+                            label: `v${version}`,
+                          }))}
                           className="w-full"
                         />
                       </div>
