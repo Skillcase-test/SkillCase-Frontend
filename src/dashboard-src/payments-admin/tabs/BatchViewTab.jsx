@@ -20,6 +20,11 @@ export function BatchViewTab({
   batchSortOrder,
   setBatchSortOrder,
 }) {
+  const studentRows = (rows || []).filter((row) => row?.enrollment_id);
+  const batchRows = (rows || []).filter(
+    (row) => row?.batch_id && String(row.batch_name || "").trim(),
+  );
+
   const handleSort = (field) => {
     if (field === "created_at") {
       if (batchSortBy === "created_at") {
@@ -155,14 +160,14 @@ export function BatchViewTab({
               </tr>
             </thead>
             <tbody>
-              {rows.length === 0 ? (
+              {studentRows.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-3 py-8 text-center text-slate-400">
                     No candidates found in this batch.
                   </td>
                 </tr>
               ) : (
-                rows.map((r, idx) => (
+                studentRows.map((r, idx) => (
                   <tr
                     key={r.enrollment_id}
                     className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}
@@ -262,14 +267,14 @@ export function BatchViewTab({
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {batchRows.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-3 py-8 text-center text-slate-400">
                   No batches found.
                 </td>
               </tr>
             ) : (
-              rows.map((b, idx) => (
+              batchRows.map((b, idx) => (
                 <tr key={b.batch_id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
                   <td className="px-3 py-3">
                     <button
