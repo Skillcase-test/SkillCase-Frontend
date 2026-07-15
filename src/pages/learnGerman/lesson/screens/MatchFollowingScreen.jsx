@@ -166,7 +166,7 @@ export default function MatchFollowingScreen({
                     opacity: isRightMatched ? 0.4 : 1,
                   }}
                   transition={{ duration: 0.3 }}
-                  className={`flex-1 px-3 py-6 h-10 sm:h-12 rounded-lg outline-1 outline-offset-[-1px] flex justify-start items-center gap-2 sm:gap-4 transition-colors duration-300
+                  className={`flex-1 px-3 py-7 h-10 sm:h-12 rounded-lg outline-1 outline-offset-[-1px] flex justify-start items-center gap-2 sm:gap-4 transition-colors duration-300
                     ${
                       isRightRecentMatch
                         ? "bg-emerald-100/50 outline-[2px] outline-green-700 shadow-md z-10"
