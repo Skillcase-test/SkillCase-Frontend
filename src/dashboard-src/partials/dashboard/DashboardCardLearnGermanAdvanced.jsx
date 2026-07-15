@@ -8,7 +8,8 @@ import {
   UserCheck, 
   RotateCcw, 
   Grid, 
-  Eye
+  Eye,
+  Activity
 } from "lucide-react";
 import {
   Chart,
@@ -160,17 +161,27 @@ function DashboardCardLearnGermanAdvanced() {
 
   // Pagination states
   const [lessonsPage, setLessonsPage] = useState(1);
+  const [eventsPage, setEventsPage] = useState(1);
   const [visitsPage, setVisitsPage] = useState(1);
   const [milestonesPage, setMilestonesPage] = useState(1);
   const [returnsPage, setReturnsPage] = useState(1);
 
   const [lessonsPagination, setLessonsPagination] = useState({ currentPage: 1, totalPages: 1, totalRecords: 0 });
+  const [eventsPagination, setEventsPagination] = useState({ currentPage: 1, totalPages: 1, totalRecords: 0 });
   const [visitsPagination, setVisitsPagination] = useState({ currentPage: 1, totalPages: 1, totalRecords: 0 });
   const [milestonesPagination, setMilestonesPagination] = useState({ currentPage: 1, totalPages: 1, totalRecords: 0 });
   const [returnsPagination, setReturnsPagination] = useState({ currentPage: 1, totalPages: 1, totalRecords: 0 });
 
   // Data states
   const [lessonsData, setLessonsData] = useState([]);
+  const [eventsData, setEventsData] = useState([]);
+  const [eventsSummary, setEventsSummary] = useState({
+    module_started: 0,
+    module_completed: 0,
+    module_abandoned: 0,
+    quiz_answered: 0,
+    quiz_accuracy: 0,
+  });
   const [visitsData, setVisitsData] = useState([]);
   const [milestonesData, setMilestonesData] = useState([]);
   const [returnsData, setReturnsData] = useState([]);
@@ -189,6 +200,7 @@ function DashboardCardLearnGermanAdvanced() {
   // Reset page numbers on tab switch
   useEffect(() => {
     setLessonsPage(1);
+    setEventsPage(1);
     setVisitsPage(1);
     setMilestonesPage(1);
     setReturnsPage(1);
@@ -203,6 +215,11 @@ function DashboardCardLearnGermanAdvanced() {
         const res = await api.get(`/admin/analytics/german-lesson-analytics?startDate=${startDate}&endDate=${endDate}&page=${lessonsPage}&limit=10`);
         setLessonsData(res.data.data);
         setLessonsPagination(res.data.pagination);
+      } else if (activeTab === "events") {
+        const res = await api.get(`/admin/analytics/learn-german-module-events?startDate=${startDate}&endDate=${endDate}&page=${eventsPage}&limit=10`);
+        setEventsData(res.data.data || []);
+        setEventsSummary(res.data.summary || {});
+        setEventsPagination(res.data.pagination);
       } else if (activeTab === "visits") {
         const res = await api.get(`/admin/analytics/learn-german-visits?startDate=${startDate}&endDate=${endDate}&page=${visitsPage}&limit=10`);
         setVisitsData(res.data.data);
@@ -230,7 +247,7 @@ function DashboardCardLearnGermanAdvanced() {
 
   useEffect(() => {
     fetchData();
-  }, [activeTab, startDate, endDate, lookbackMonths, lessonsPage, visitsPage, milestonesPage, returnsPage]);
+  }, [activeTab, startDate, endDate, lookbackMonths, lessonsPage, eventsPage, visitsPage, milestonesPage, returnsPage]);
 
   const setPresetRange = (days) => {
     const today = new Date();
@@ -577,6 +594,17 @@ function DashboardCardLearnGermanAdvanced() {
             User Visits
           </button>
           <button
+            onClick={() => setActiveTab("events")}
+            className={`flex items-center gap-2 pb-3 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === "events"
+                ? "border-indigo-500 text-indigo-600 font-bold"
+                : "border-transparent text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            Module Events
+          </button>
+          <button
             onClick={() => setActiveTab("milestones")}
             className={`flex items-center gap-2 pb-3 text-xs font-semibold border-b-2 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === "milestones"
@@ -677,6 +705,67 @@ function DashboardCardLearnGermanAdvanced() {
                   </table>
                 </div>
                 {renderPaginationControls(lessonsPagination, setLessonsPage)}
+              </div>
+            )}
+
+            {activeTab === "events" && (
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                  {[
+                    ["Started", eventsSummary.module_started || 0],
+                    ["Completed", eventsSummary.module_completed || 0],
+                    ["Abandoned", eventsSummary.module_abandoned || 0],
+                    ["Quiz Answers", eventsSummary.quiz_answered || 0],
+                    ["Quiz Accuracy", `${eventsSummary.quiz_accuracy || 0}%`],
+                  ].map(([label, value]) => (
+                    <div key={label} className="rounded-xl border border-slate-100 bg-white p-4 shadow-xs">
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{label}</div>
+                      <div className="mt-1 text-xl font-black text-slate-800">{value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white shadow-xs">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-100">
+                      <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
+                        <tr>
+                          <th className="px-5 py-3 text-left">Module</th>
+                          <th className="px-5 py-3 text-center">Level</th>
+                          <th className="px-5 py-3 text-right">Started</th>
+                          <th className="px-5 py-3 text-right">Completed</th>
+                          <th className="px-5 py-3 text-right">Abandoned</th>
+                          <th className="px-5 py-3 text-right">Avg Last Screen</th>
+                          <th className="px-5 py-3 text-right">Quiz Answers</th>
+                          <th className="px-5 py-3 text-right">Accuracy</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-sm">
+                        {eventsData.length === 0 ? (
+                          <tr>
+                            <td colSpan="8" className="text-center py-8 text-slate-400 text-xs">
+                              No module events found in the selected range.
+                            </td>
+                          </tr>
+                        ) : (
+                          eventsData.map((module) => (
+                            <tr key={module.lesson_id} className="hover:bg-slate-50/50 transition-colors">
+                              <td className="px-5 py-3.5 font-bold text-slate-800">{module.lesson_title}</td>
+                              <td className="px-5 py-3.5 text-center text-slate-500">{module.proficiency_level || "-"}</td>
+                              <td className="px-5 py-3.5 text-right font-semibold text-slate-700">{module.module_started}</td>
+                              <td className="px-5 py-3.5 text-right font-semibold text-emerald-600">{module.module_completed}</td>
+                              <td className="px-5 py-3.5 text-right font-semibold text-amber-600">{module.module_abandoned}</td>
+                              <td className="px-5 py-3.5 text-right font-semibold text-slate-600">{module.avg_abandoned_screen_index ?? "-"}</td>
+                              <td className="px-5 py-3.5 text-right font-semibold text-slate-700">{module.quiz_answered}</td>
+                              <td className="px-5 py-3.5 text-right font-bold text-indigo-600">{module.quiz_accuracy}%</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  {renderPaginationControls(eventsPagination, setEventsPage)}
+                </div>
               </div>
             )}
 

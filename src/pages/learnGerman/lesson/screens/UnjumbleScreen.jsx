@@ -150,6 +150,7 @@ function SentenceZone({ children, className }) {
 export default function UnjumbleScreen({
   screen,
   onNext,
+  onAnswer,
   progressRatio,
   title,
   level,
@@ -318,7 +319,8 @@ export default function UnjumbleScreen({
     });
     setSlotStatuses(newStatuses);
     setDragQuizState(allCorrect ? "correct" : "incorrect");
-  }, [allPlaced, unjumbleSlots, sentenceItems]);
+    onAnswer?.(allCorrect);
+  }, [allPlaced, onAnswer, unjumbleSlots, sentenceItems]);
 
   return (
     <DndContext

@@ -10,6 +10,7 @@ import {
 import api from "../../../api/axios";
 import { getLessonById, getLessonsList } from "../../../api/learnGermanApi";
 import { hapticLight, hapticMedium, hapticHeavy } from "../../../utils/haptics";
+import { trackAppAnalyticsEvent } from "../../../utils/appAnalytics";
 import { setClarityTag, trackClarityEvent } from "../../../observability/clarity";
 import { preloadMayaTTSText } from "./screens/shared/useMayaTTS";
 import {
@@ -139,6 +140,16 @@ export default function NewLessonFlow() {
     streakUpdated: false,
     coinsAwarded: 20,
   });
+  const lessonAnalyticsRef = useRef({
+    lessonId: null,
+    title: "",
+    level: "",
+    totalScreens: 0,
+    lastScreenIndex: 0,
+  });
+  const moduleStartedTrackedRef = useRef(false);
+  const moduleCompletedTrackedRef = useRef(false);
+  const moduleAbandonedTrackedRef = useRef(false);
   const tapGuideDelayTimerRef = useRef(null);
 
   const [conversationSelections, setConversationSelections] = useState({});
@@ -179,8 +190,43 @@ export default function NewLessonFlow() {
     }),
   );
 
+  const emitLessonAnalyticsEvent = useCallback((eventName, metadata = {}) => {
+    const context = lessonAnalyticsRef.current;
+    if (!context.lessonId) return Promise.resolve();
+    return trackAppAnalyticsEvent({
+      event_name: eventName,
+      feature_key: "learn_german",
+      content_type: "module",
+      content_id: String(context.lessonId),
+      content_title: context.title || "Untitled lesson",
+      proficiency_level: context.level || null,
+      metadata,
+    });
+  }, []);
+
+  const trackModuleAbandoned = useCallback(
+    (reason = "navigation") => {
+      if (
+        !moduleStartedTrackedRef.current ||
+        moduleCompletedTrackedRef.current ||
+        moduleAbandonedTrackedRef.current
+      ) {
+        return Promise.resolve();
+      }
+      moduleAbandonedTrackedRef.current = true;
+      const context = lessonAnalyticsRef.current;
+      return emitLessonAnalyticsEvent("module_abandoned", {
+        last_screen_index: context.lastScreenIndex,
+        total_screens: context.totalScreens,
+        reason,
+      });
+    },
+    [emitLessonAnalyticsEvent],
+  );
+
   useEffect(() => {
     return () => {
+      trackModuleAbandoned("unmount");
       if (tapGuideDelayTimerRef.current) {
         window.clearTimeout(tapGuideDelayTimerRef.current);
       }
@@ -194,7 +240,11 @@ export default function NewLessonFlow() {
         currentSpeakObjectUrlRef.current = null;
       }
     };
-  }, []);
+  }, [trackModuleAbandoned]);
+
+  useEffect(() => {
+    lessonAnalyticsRef.current.lastScreenIndex = screenIndex;
+  }, [screenIndex]);
 
   const getCompletionDialogue = useCallback((lesson, outroScreen) => {
     const outroDialogues = Array.isArray(outroScreen?.dialogues)
@@ -213,6 +263,18 @@ export default function NewLessonFlow() {
   // Fetch lesson by its numeric ID (the chapterId route param)
   useEffect(() => {
     if (!chapterId) return;
+
+    trackModuleAbandoned("module_change");
+    lessonAnalyticsRef.current = {
+      lessonId: chapterId,
+      title: "",
+      level: "",
+      totalScreens: 0,
+      lastScreenIndex: 0,
+    };
+    moduleStartedTrackedRef.current = false;
+    moduleCompletedTrackedRef.current = false;
+    moduleAbandonedTrackedRef.current = false;
 
     // Reset lesson state on route change
     setScreenIndex(0);
@@ -255,6 +317,21 @@ export default function NewLessonFlow() {
       try {
         const { data } = await getLessonById(chapterId);
         setLessonData(data);
+        lessonAnalyticsRef.current = {
+          lessonId: chapterId,
+          title: data.title || "Untitled lesson",
+          level: data.proficiency_level || "",
+          totalScreens: data.screens?.length || 0,
+          lastScreenIndex: Number(data.user_screens_completed || 0),
+        };
+        if (!isReviewMode) {
+          moduleStartedTrackedRef.current = true;
+          emitLessonAnalyticsEvent("module_started", {
+            start_screen_index: Number(data.user_screens_completed || 0),
+            total_screens: data.screens?.length || 0,
+            is_resume: data.user_status === "in_progress",
+          });
+        }
         setClarityTag("lg_funnel", "lesson");
         setClarityTag("lg_lesson_id", chapterId);
         setClarityTag("lg_lesson_title", data.title || "unknown");
@@ -365,7 +442,13 @@ export default function NewLessonFlow() {
     };
 
     fetchLesson();
-  }, [chapterId, getCompletionDialogue, isReviewMode]);
+  }, [
+    chapterId,
+    emitLessonAnalyticsEvent,
+    getCompletionDialogue,
+    isReviewMode,
+    trackModuleAbandoned,
+  ]);
 
   // Preload audio for the next 2 screens whenever screenIndex changes.
   // This primes both the Maya TTS cache and the German TTS cache so playback
@@ -445,6 +528,15 @@ export default function NewLessonFlow() {
             : 0,
         };
         completionResultRef.current = result;
+        moduleCompletedTrackedRef.current = true;
+        if (!moduleAbandonedTrackedRef.current && !isReviewMode) {
+          emitLessonAnalyticsEvent("module_completed", {
+            last_screen_index: lessonData?.screens?.length
+              ? lessonData.screens.length - 1
+              : screenIndex,
+            total_screens: lessonData?.screens?.length || 0,
+          });
+        }
         setStreakUpdated(result.streakUpdated);
         setCoinsAwarded(result.coinsAwarded);
         trackClarityEvent("lg_lesson_completed", {
@@ -466,7 +558,15 @@ export default function NewLessonFlow() {
       });
 
     return completionPersistPromiseRef.current;
-  }, [chapterId, lessonData?.proficiency_level, lessonData?.title]);
+  }, [
+    chapterId,
+    emitLessonAnalyticsEvent,
+    isReviewMode,
+    lessonData?.proficiency_level,
+    lessonData?.screens,
+    lessonData?.title,
+    screenIndex,
+  ]);
 
   const navigateToLearnGermanHome = useCallback(async ({ autoStartNext = false } = {}) => {
     const completionResult = await persistComplete();
@@ -493,6 +593,16 @@ export default function NewLessonFlow() {
     [screens, lessonData?.vocab_words],
   );
   const currentScreen = screens[screenIndex] || null;
+
+  const trackQuizAnswer = useCallback(
+    (isCorrect, screenType) =>
+      emitLessonAnalyticsEvent("quiz_answered", {
+        screen_index: screenIndex,
+        screen_type: screenType || currentScreen?.type || "quiz",
+        is_correct: Boolean(isCorrect),
+      }),
+    [currentScreen?.type, emitLessonAnalyticsEvent, screenIndex],
+  );
 
   // Compute conversation history by looking backwards for contiguous conversation screens
   const conversationHistory = useMemo(() => {
@@ -1035,6 +1145,7 @@ export default function NewLessonFlow() {
       isCorrect = sel === currentScreen.correctOptionIndex;
     }
     setQuizState(isCorrect ? "correct" : "incorrect");
+    trackQuizAnswer(isCorrect, currentScreen.type);
     if (isCorrect) hapticMedium(); else hapticHeavy();
   };
 
@@ -1142,6 +1253,7 @@ export default function NewLessonFlow() {
 
     setSlotStatuses(newStatuses);
     setDragQuizState(allCorrect ? "correct" : "incorrect");
+    trackQuizAnswer(allCorrect, currentScreen.type);
   };
 
   const handleRemovePlacedItem = (slotId) => {
@@ -1364,6 +1476,9 @@ export default function NewLessonFlow() {
                     progressRatio={progressRatio}
                     title={lessonData.title}
                     level={lessonData.proficiency_level}
+                    onAnswer={(isCorrect) =>
+                      trackQuizAnswer(isCorrect, "unjumble")
+                    }
                     onBackClick={() => setShowLeaveModal(true)}
                   />
                 )}
@@ -1424,6 +1539,7 @@ export default function NewLessonFlow() {
             onLeave={async () => {
               // Optionally persist progress again here just in case
               await persistProgress(screenIndex);
+              trackModuleAbandoned("explicit_leave");
               navigate("/learn-german");
             }}
           />
