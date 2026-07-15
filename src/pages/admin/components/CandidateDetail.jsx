@@ -190,15 +190,8 @@ const CandidateDetail = ({
     });
   };
 
-  // Only reseed all local fields when switching to a different candidate.
-  // For the same candidate (e.g. after a save/refetch), we selectively update
-  // everything except steps, which are managed locally after a drag reorder.
-  const prevCandidateIdRef = React.useRef(null);
   useEffect(() => {
     if (!candidate) return;
-
-    const isNewCandidate = prevCandidateIdRef.current !== candidate.user_id;
-    prevCandidateIdRef.current = candidate.user_id;
 
     setFullname(candidate.fullname || "");
     setEmail(candidate.email || candidate.extracted_email || "");
@@ -224,12 +217,9 @@ const CandidateDetail = ({
     );
     setRecruiterMeet(candidate.recruiter_meet_link || "");
 
-    // Only reset step order when opening a brand new candidate.
-    // When updating the same candidate (refetch after save), keep the
-    // locally reordered steps so drag-and-drop changes are not lost.
-    if (isNewCandidate) {
-      setSteps(candidate.steps_config || []);
-    }
+    // The backend resolver is the source of truth for step status and order.
+    // Always sync this state after saves, resets, and background refreshes.
+    setSteps(candidate.steps_config || []);
 
     setPaywallEnabled(
       candidate.paywall_enabled === true
@@ -308,6 +298,27 @@ const CandidateDetail = ({
       </div>
     );
   }
+
+  const isCandidateActive = candidate.is_active !== false;
+  const inactiveByName =
+    typeof candidate.inactive_by === "string"
+      ? candidate.inactive_by
+      : candidate.inactive_by?.name;
+
+  const handleActivityToggle = () => {
+    const nextIsActive = !isCandidateActive;
+    openConfirmModal({
+      title: nextIsActive
+        ? "Mark Candidate Active?"
+        : "Mark Candidate Inactive?",
+      message: nextIsActive
+        ? "This will return the candidate to the active admin list. It does not change their screening progress."
+        : "Use inactive for a candidate who has stopped progressing. This is only an admin-side classification and will not block candidate access.",
+      onConfirm: () => {
+        onUpdate(candidate.user_id, { is_active: nextIsActive });
+      },
+    });
+  };
 
   const handleSaveProfileInfo = (e) => {
     e.preventDefault();
@@ -705,6 +716,54 @@ const CandidateDetail = ({
                 </span>
               )}
             </div>
+
+            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                  Candidate Activity
+                </span>
+                <span
+                  className={`text-[11px] font-bold ${
+                    isCandidateActive ? "text-emerald-700" : "text-rose-700"
+                  }`}
+                >
+                  {isCandidateActive ? "Active" : "Inactive"}
+                </span>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isCandidateActive}
+                aria-label={
+                  isCandidateActive
+                    ? "Mark candidate inactive"
+                    : "Mark candidate active"
+                }
+                onClick={handleActivityToggle}
+                disabled={updating}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 cursor-pointer ${
+                  isCandidateActive ? "bg-emerald-500" : "bg-slate-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                    isCandidateActive ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {!isCandidateActive && (
+              <div className="mt-2 rounded-lg border border-rose-100 bg-rose-50/70 px-2.5 py-2 text-[9px] text-rose-700">
+                <span className="font-bold">Inactive by:</span>{" "}
+                {inactiveByName || "Admin"}
+                {candidate.inactive_at && (
+                  <span className="block mt-0.5 text-rose-500">
+                    {formatScreeningTimestamp(candidate.inactive_at)}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Uploaded Documents List */}
@@ -1173,6 +1232,10 @@ const CandidateDetail = ({
               const isActive = step.id === candidate.current_step_id;
               const isLocked = !isCompleted && !isActive;
               const stepTimestamps = candidate.step_timestamps?.[step.id] || {};
+              const approvedByName =
+                typeof stepTimestamps.approved_by === "string"
+                  ? stepTimestamps.approved_by
+                  : stepTimestamps.approved_by?.name;
 
               return (
                 <div key={step.id} className="relative group">
@@ -1225,7 +1288,13 @@ const CandidateDetail = ({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 mb-3 text-[10px]">
+                    <div
+                      className={`grid grid-cols-1 gap-1.5 mb-3 text-[10px] ${
+                        isCompleted && approvedByName
+                          ? "sm:grid-cols-3"
+                          : "sm:grid-cols-2"
+                      }`}
+                    >
                       <div className="rounded-lg bg-white/80 border border-slate-100 px-2 py-1.5">
                         <span className="block uppercase tracking-wider text-[8px] font-bold text-slate-400">
                           Started
@@ -1242,6 +1311,16 @@ const CandidateDetail = ({
                           {formatScreeningTimestamp(stepTimestamps.completed_at)}
                         </span>
                       </div>
+                      {isCompleted && approvedByName && (
+                        <div className="rounded-lg bg-emerald-50/60 border border-emerald-100 px-2 py-1.5">
+                          <span className="block uppercase tracking-wider text-[8px] font-bold text-emerald-600">
+                            Approved by
+                          </span>
+                          <span className="font-semibold text-emerald-800 break-words">
+                            {approvedByName}
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Stage Info and Inline Actions */}

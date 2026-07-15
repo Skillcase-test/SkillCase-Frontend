@@ -68,7 +68,7 @@ export function useActionsPayments(state) {
             "Status",
             "Payment ID",
             "Paid At",
-            "Booked Month",
+            "Booked Month & Year",
             "Candidate Type",
           ];
 
@@ -92,7 +92,9 @@ export function useActionsPayments(state) {
               r.payment_status || "",
               r.razorpay_payment_id || "",
               r.paid_at ? formatIstDateTime(r.paid_at) : "",
-              r.booked_month ? (MONTH_NAMES[r.booked_month] || "null") : "null",
+              r.booked_month && r.booked_year
+                ? `${MONTH_NAMES[r.booked_month] || r.booked_month} ${r.booked_year}`
+                : "",
               r.enrollment_notes?.candidate_type === "recruitment" ? "Recruitment" : "Student",
             ]
       );

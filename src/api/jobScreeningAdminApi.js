@@ -1,8 +1,22 @@
 import api from "./axios";
 
-export const adminGetCandidates = (page = 1, limit = 10, search = "") =>
+export const adminGetCandidates = (
+  page = 1,
+  limit = 10,
+  search = "",
+  status = "total",
+  startDate = "",
+  endDate = "",
+) =>
   api.get("/admin/job-screening/candidates", {
-    params: { page, limit, search },
+    params: {
+      page,
+      limit,
+      search,
+      status,
+      start_date: startDate || undefined,
+      end_date: endDate || undefined,
+    },
   });
 
 export const adminGetCandidateDetail = (userId) =>
