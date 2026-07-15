@@ -465,24 +465,9 @@ export function CandidateDetailsForm({
     }
   }, [editDraft?.enrollment_id, batches, setEditDraft]);
 
-  if (!editDraft) return null;
-  const expectedRows = Array.isArray(editDraft.expected_payments)
-    ? editDraft.expected_payments
-    : [];
-
-  const generatedExpectedRows = expectedRows.filter((row) => row.row_kind !== "actual_only");
-  const currentExpectedTotal = generatedExpectedRows.reduce((sum, row) => sum + Number(row.expected_amount_inr || row.expected_payment_inr || 0), 0);
-  const firstExpectedRow = generatedExpectedRows[0];
-  const currentExpectedMonthly = firstExpectedRow ? Number(firstExpectedRow.expected_amount_inr || firstExpectedRow.expected_payment_inr || 0) : 0;
-
-  const isScheduleDisabled = generatedExpectedRows.length > 0 &&
-    currentExpectedTotal === Number(editDraft.total_fee_inr || 0) &&
-    currentExpectedMonthly === Number(editDraft.monthly_fee_inr || 0);
   const isCreateMode = Boolean(
-    editDraft.is_manual_create || !editDraft.enrollment_id,
+    editDraft?.is_manual_create || !editDraft?.enrollment_id,
   );
-  const saving =
-    savingEnrollmentId === (editDraft.enrollment_id || "manual-create");
 
   useEffect(() => {
     if (!editDraft?.enrollment_id || isCreateMode) {
@@ -518,6 +503,22 @@ export function CandidateDetailsForm({
       active = false;
     };
   }, [editDraft?.enrollment_id, isCreateMode, editDraft?.notes, editDraft?.status]);
+
+  if (!editDraft) return null;
+  const expectedRows = Array.isArray(editDraft.expected_payments)
+    ? editDraft.expected_payments
+    : [];
+
+  const generatedExpectedRows = expectedRows.filter((row) => row.row_kind !== "actual_only");
+  const currentExpectedTotal = generatedExpectedRows.reduce((sum, row) => sum + Number(row.expected_amount_inr || row.expected_payment_inr || 0), 0);
+  const firstExpectedRow = generatedExpectedRows[0];
+  const currentExpectedMonthly = firstExpectedRow ? Number(firstExpectedRow.expected_amount_inr || firstExpectedRow.expected_payment_inr || 0) : 0;
+
+  const isScheduleDisabled = generatedExpectedRows.length > 0 &&
+    currentExpectedTotal === Number(editDraft.total_fee_inr || 0) &&
+    currentExpectedMonthly === Number(editDraft.monthly_fee_inr || 0);
+  const saving =
+    savingEnrollmentId === (editDraft.enrollment_id || "manual-create");
 
   const textField = ([key, label]) => (
     <Field key={key} label={label} required={requiredFieldKeys.has(key)}>

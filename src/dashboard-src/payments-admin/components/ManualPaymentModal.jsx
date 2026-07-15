@@ -17,8 +17,6 @@ export function ManualPaymentModal({
   onDelete,
   candidateOptions = []
 }) {
-  if (!modal?.open) return null;
-
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState("");
   const [phone, setPhone] = useState("");
   const [tranId, setTranId] = useState("");
@@ -32,7 +30,7 @@ export function ManualPaymentModal({
   const searchTimeoutRef = useRef(null);
   const activeSearchRef = useRef("");
 
-  const isEdit = modal.mode === "edit";
+  const isEdit = modal?.mode === "edit";
 
   // Sync state on load/mode change
   useEffect(() => {
@@ -55,7 +53,7 @@ export function ManualPaymentModal({
           } else if (d.notes) {
             notesObj = JSON.parse(d.notes);
           }
-        } catch (_) {
+        } catch {
           notesObj = {};
         }
 
@@ -76,6 +74,8 @@ export function ManualPaymentModal({
 
   // Click outside to close dropdown
   useEffect(() => {
+    if (!modal?.open) return undefined;
+
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
         setShowDropdown(false);
@@ -83,7 +83,7 @@ export function ManualPaymentModal({
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [modal?.open]);
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -93,6 +93,8 @@ export function ManualPaymentModal({
       }
     };
   }, []);
+
+  if (!modal?.open) return null;
 
   // Extract last 10 digits
   const extract10DigitPhone = (rawPhone) => {

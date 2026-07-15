@@ -1,31 +1,51 @@
-// index.js
+const CHUNK_RELOAD_KEY = "chunk-load-error-timestamp";
+const CHUNK_RELOAD_COOLDOWN_MS = 60_000;
+const CHUNK_ERROR_PATTERNS = [
+  "failed to fetch dynamically imported module",
+  "error loading dynamically imported module",
+  "importing a module script failed",
+  "failed to load module script",
+  "chunkloaderror",
+  "loading chunk",
+];
 
-// Catch global dynamic import/chunk loading failures and reload the page to get the latest build assets.
-window.addEventListener('error', (event) => {
-  const msg = event.message || "";
-  if (msg.includes("Failed to fetch dynamically imported module")) {
-    const chunkErrorKey = 'chunk-load-error-timestamp';
-    const now = Date.now();
-    const lastErrorTime = sessionStorage.getItem(chunkErrorKey);
-    if (!lastErrorTime || now - Number(lastErrorTime) > 15000) {
-      sessionStorage.setItem(chunkErrorKey, String(now));
-      window.location.reload();
-    }
-  }
-}, true);
+function errorMessage(error) {
+  if (!error) return "";
+  if (typeof error === "string") return error;
+  return error.message || String(error);
+}
 
-window.addEventListener('unhandledrejection', (event) => {
-  const reason = event.reason;
-  const msg = (reason && (reason.message || String(reason))) || "";
-  if (msg.includes("Failed to fetch dynamically imported module")) {
-    const chunkErrorKey = 'chunk-load-error-timestamp';
-    const now = Date.now();
-    const lastErrorTime = sessionStorage.getItem(chunkErrorKey);
-    if (!lastErrorTime || now - Number(lastErrorTime) > 15000) {
-      sessionStorage.setItem(chunkErrorKey, String(now));
-      window.location.reload();
-    }
-  }
+function isChunkLoadError(error) {
+  const message = errorMessage(error).toLowerCase();
+  return CHUNK_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+}
+
+function reloadForChunkError(event, error, force = false) {
+  if (!force && !isChunkLoadError(error)) return false;
+
+  const now = Date.now();
+  const lastReloadAt = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || 0);
+  if (now - lastReloadAt < CHUNK_RELOAD_COOLDOWN_MS) return false;
+
+  event?.preventDefault?.();
+  sessionStorage.setItem(CHUNK_RELOAD_KEY, String(now));
+  window.location.reload();
+  return true;
+}
+
+// Vite emits this event when a lazy-loaded asset from an older deployment is unavailable.
+window.addEventListener("vite:preloadError", (event) => {
+  reloadForChunkError(event, event.payload, true);
+});
+
+window.addEventListener(
+  "error",
+  (event) => reloadForChunkError(event, event.error || event.message),
+  true,
+);
+
+window.addEventListener("unhandledrejection", (event) => {
+  reloadForChunkError(event, event.reason);
 });
 
 import React from 'react';
@@ -41,6 +61,7 @@ import { PostHogProvider, PostHogErrorBoundary } from '@posthog/react';
 import { Capacitor } from '@capacitor/core';
 import * as Sentry from "@sentry/react";
 import { initSentry } from "./observability/sentry";
+import AppErrorFallback from "./components/AppErrorFallback";
 
 initSentry();
 
@@ -58,7 +79,14 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <PostHogProvider client={posthog}>
     <PostHogErrorBoundary>
-      <Sentry.ErrorBoundary fallback={<div>Something went wrong.</div>}>
+      <Sentry.ErrorBoundary
+        fallback={({ error, resetError }) => (
+          <AppErrorFallback
+            staleChunk={isChunkLoadError(error)}
+            resetError={resetError}
+          />
+        )}
+      >
         <Provider store={store}>
           <PersistGate loading={null} persistor={persistor}>
               <App />
