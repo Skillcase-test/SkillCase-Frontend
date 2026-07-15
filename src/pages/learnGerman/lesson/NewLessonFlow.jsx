@@ -116,7 +116,7 @@ export default function NewLessonFlow() {
   // review mode: skip straight to the outro so the user replays the completion sequence
   const isReviewMode = searchParams.get("mode") === "review";
 
-  // ---- Core lesson state ----
+  //  Core lesson state 
   const [lessonData, setLessonData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -158,21 +158,21 @@ export default function NewLessonFlow() {
   const [solvedDragScreensMap, setSolvedDragScreensMap] = useState({});
   const [conversationResumeIndex, setConversationResumeIndex] = useState(null);
 
-  // ---- MCQ quiz state ----
+  //  MCQ quiz state 
   const [selectedOption, setSelectedOption] = useState(null);
   const [quizState, setQuizState] = useState("idle");
 
-  // ---- Match-the-following state ----
+  //  Match-the-following state 
   const [selectedLeft, setSelectedLeft] = useState(null);
   const [selectedRight, setSelectedRight] = useState(null);
   const [wrongPair, setWrongPair] = useState(null);
   const [matchedPairs, setMatchedPairs] = useState([]);
   const [recentMatch, setRecentMatch] = useState(null);
 
-  // ---- Leave Lesson Modal State ----
+  //  Leave Lesson Modal State 
   const [showLeaveModal, setShowLeaveModal] = useState(false);
 
-  // ---- Drag & Drop shared state ----
+  //  Drag & Drop shared state 
   const [placedItems, setPlacedItems] = useState({});
   const [activeDragItem, setActiveDragItem] = useState(null);
   const [dragQuizState, setDragQuizState] = useState("idle");
@@ -182,7 +182,7 @@ export default function NewLessonFlow() {
   const [tapGuideTargetRect, setTapGuideTargetRect] = useState(null);
   const [guidedScenarioTapNonce, setGuidedScenarioTapNonce] = useState(0);
 
-  // ---- DnD sensors ----
+  //  DnD sensors 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, {
@@ -479,9 +479,9 @@ export default function NewLessonFlow() {
     });
   }, [screenIndex, lessonData?.screens]);
 
-  // ---------------------------------------------------------------------------
+  
   // Progress persistence
-  // ---------------------------------------------------------------------------
+  
 
   // Save partial progress whenever the user advances a screen
   const persistProgress = useCallback(
@@ -858,9 +858,9 @@ export default function NewLessonFlow() {
     };
   }, [showTapGuide, screenIndex]);
 
-  // ---------------------------------------------------------------------------
+  
   // Navigation
-  // ---------------------------------------------------------------------------
+  
 
   const handleNext = (forcedSelectedOption = null) => {
     // Stop Maya TTS
@@ -1023,9 +1023,9 @@ export default function NewLessonFlow() {
     handleNext();
   };
 
-  // ---------------------------------------------------------------------------
+  
   // Match-the-following handlers
-  // ---------------------------------------------------------------------------
+  
 
   const handleLeftClick = (id) => {
     if (matchedPairs.includes(id)) return;
@@ -1077,9 +1077,9 @@ export default function NewLessonFlow() {
     }
   };
 
-  // ---------------------------------------------------------------------------
+  
   // AWS Polly TTS
-  // ---------------------------------------------------------------------------
+  
 
   const speakWord = async (text) => {
     hapticMedium();
@@ -1131,9 +1131,9 @@ export default function NewLessonFlow() {
     }
   };
 
-  // ---------------------------------------------------------------------------
+  
   // MCQ quiz check
-  // ---------------------------------------------------------------------------
+  
 
   const handleCheckQuiz = (e, explicitSelection = null) => {
     if (e) e.stopPropagation();
@@ -1149,9 +1149,9 @@ export default function NewLessonFlow() {
     if (isCorrect) hapticMedium(); else hapticHeavy();
   };
 
-  // ---------------------------------------------------------------------------
+  
   // Drag & Drop handlers
-  // ---------------------------------------------------------------------------
+  
 
   const handleDragStart = (event) => {
     const { active } = event;
@@ -1178,7 +1178,7 @@ export default function NewLessonFlow() {
     const newPlacedItems = { ...placedItems };
     const newStatuses = { ...slotStatuses };
 
-    // ---- Case 1: dropped onto a droppable slot --------------------------------
+    //  Case 1: dropped onto a droppable slot 
     if (over) {
       const toSlotId = over.id;
 
@@ -1189,7 +1189,7 @@ export default function NewLessonFlow() {
       const itemAtTarget = newPlacedItems[toSlotId];
 
       if (fromSlotId) {
-        // ---- Slot-to-slot drag -----------------------------------------------
+        //  Slot-to-slot drag ---
         // Always swap: place dragged item at target, put displaced item (if any)
         // back into the source slot.
         newPlacedItems[fromSlotId] = itemAtTarget || null;
@@ -1197,7 +1197,7 @@ export default function NewLessonFlow() {
         newPlacedItems[toSlotId] = itemData;
         newStatuses[toSlotId] = null;
       } else {
-        // ---- Bank-to-slot drag -----------------------------------------------
+        //  Bank-to-slot drag ---
         if (currentScreen.type === "match_image") {
           // Place the item in the hovered/dropped slot specifically
           newPlacedItems[toSlotId] = itemData;
@@ -1218,7 +1218,7 @@ export default function NewLessonFlow() {
       return;
     }
 
-    // ---- Case 2: dropped outside any slot (over is null) ----------------------
+    //  Case 2: dropped outside any slot (over is null) --
     if (fromSlotId) {
       // Placed pill dragged back to bank area ? remove it from its slot
       newPlacedItems[fromSlotId] = null;
@@ -1285,9 +1285,9 @@ export default function NewLessonFlow() {
     }
   };
 
-  // ---------------------------------------------------------------------------
+  
   // Quiz modal handlers
-  // ---------------------------------------------------------------------------
+  
 
   const handleQuizModalClose = () => setQuizState("idle");
 
@@ -1296,9 +1296,9 @@ export default function NewLessonFlow() {
     handleNext();
   };
 
-  // ---------------------------------------------------------------------------
+  
   // Render
-  // ---------------------------------------------------------------------------
+  
 
   if (loading) {
     return (

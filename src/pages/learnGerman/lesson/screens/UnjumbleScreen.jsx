@@ -24,10 +24,10 @@ import DragResultModal from "./shared/DragResultModal";
 import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 
-// ---------------------------------------------------------------------------
+
 // Placed pill inside the sentence — useSortable for real-time swap animation
 // Visually identical to original DraggablePill (isPlaced=true)
-// ---------------------------------------------------------------------------
+
 function SentenceChip({ item, status, onTap }) {
   const {
     attributes,
@@ -85,10 +85,10 @@ function SentenceChip({ item, status, onTap }) {
   );
 }
 
-// ---------------------------------------------------------------------------
+
 // Bank pill — useDraggable so it can be dragged into sentence
 // Visually identical to original DraggablePill (isPlaced=false)
-// ---------------------------------------------------------------------------
+
 function BankChip({ item, onTap }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: item.id,
@@ -112,9 +112,9 @@ function BankChip({ item, onTap }) {
   );
 }
 
-// ---------------------------------------------------------------------------
+
 // Bank droppable zone — dropping a placed pill here returns it to bank
-// ---------------------------------------------------------------------------
+
 function BankZone({ children }) {
   const { setNodeRef, isOver } = useDroppable({ id: "bank-drop-zone" });
   return (
@@ -129,9 +129,9 @@ function BankZone({ children }) {
   );
 }
 
-// ---------------------------------------------------------------------------
+
 // Sentence droppable zone — dropping here places the word
-// ---------------------------------------------------------------------------
+
 function SentenceZone({ children, className }) {
   const { setNodeRef, isOver } = useDroppable({ id: "sentence-drop-zone" });
   return (
@@ -144,9 +144,9 @@ function SentenceZone({ children, className }) {
   );
 }
 
-// ---------------------------------------------------------------------------
+
 // Main UnjumbleScreen
-// ---------------------------------------------------------------------------
+
 export default function UnjumbleScreen({
   screen,
   onNext,
