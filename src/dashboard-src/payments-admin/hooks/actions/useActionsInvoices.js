@@ -13,7 +13,7 @@ export function useActionsInvoices(state) {
     invoicePaymentRows,
   } = state;
 
-  async function handleGenerateInvoice(stateOverride) {
+  async function handleGenerateInvoice() {
     if (!selectedEnrollmentId || !selectedInvoicePaymentId) return null;
     try {
       const bookedAmount = invoicePaymentRows.find(
@@ -26,7 +26,6 @@ export function useActionsInvoices(state) {
         year: invoiceYear,
         month: invoiceMonth,
         booked_amount_id: selectedInvoicePaymentId,
-        state: stateOverride,
       });
       await loadTabData();
       return gen.data.invoice;

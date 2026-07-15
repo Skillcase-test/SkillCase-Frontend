@@ -7,45 +7,6 @@ import {
 } from "../utils/formatters";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 
-const INDIAN_STATES = [
-  "Andhra Pradesh",
-  "Arunachal Pradesh",
-  "Assam",
-  "Bihar",
-  "Chhattisgarh",
-  "Goa",
-  "Gujarat",
-  "Haryana",
-  "Himachal Pradesh",
-  "Jharkhand",
-  "Karnataka",
-  "Kerala",
-  "Madhya Pradesh",
-  "Maharashtra",
-  "Manipur",
-  "Meghalaya",
-  "Mizoram",
-  "Nagaland",
-  "Odisha",
-  "Punjab",
-  "Rajasthan",
-  "Sikkim",
-  "Tamil Nadu",
-  "Telangana",
-  "Tripura",
-  "Uttar Pradesh",
-  "Uttarakhand",
-  "West Bengal",
-  "Andaman and Nicobar Islands",
-  "Chandigarh",
-  "Dadra and Nagar Haveli and Daman and Diu",
-  "Delhi",
-  "Jammu and Kashmir",
-  "Ladakh",
-  "Lakshadweep",
-  "Puducherry",
-];
-
 const formatMonthYearName = (year, month) => {
   const date = new Date(Date.UTC(year, month - 1, 1));
   return date.toLocaleString("en-US", {
@@ -373,12 +334,15 @@ export function InvoiceViewTab({
   }, [selectedEnrollmentId, selectedInvoicePaymentId]);
 
   useEffect(() => {
-    if (selectedEnrollment?.notes?.state) {
-      setVerifiedState(selectedEnrollment.notes.state);
-    } else {
-      setVerifiedState("");
-    }
-  }, [selectedEnrollment]);
+    const selectedBookedAmount = (invoicePaymentRows || []).find(
+      (row) => String(row.booked_amount_id) === String(selectedInvoicePaymentId),
+    );
+    const savedState =
+      selectedBookedAmount?.enrollment_notes?.state ||
+      selectedEnrollment?.notes?.state ||
+      "";
+    setVerifiedState(String(savedState).trim());
+  }, [invoicePaymentRows, selectedEnrollment, selectedInvoicePaymentId]);
 
   const handleStartFlowForRow = async (row, options = {}) => {
     startingFlowRef.current = true;
@@ -434,13 +398,13 @@ export function InvoiceViewTab({
 
   const handleConfirmStateAndGenerate = async () => {
     if (!verifiedState) {
-      setLocalError("Please select a state to proceed");
+      setLocalError("Please fill the candidate's state in their details before generating an invoice");
       return;
     }
     setIsGenerating(true);
     setLocalError("");
     try {
-      const inv = await handleGenerateInvoice(verifiedState);
+      const inv = await handleGenerateInvoice();
       if (inv) {
         setDraftInvoice({
           ...inv,
@@ -944,11 +908,10 @@ export function InvoiceViewTab({
           <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-950/20 flex flex-col transform transition-transform duration-300 scale-100">
             <div className="border-b border-slate-100 pb-3">
               <h3 className="text-lg font-bold text-slate-900">
-                Verify Candidate State
+                Candidate State
               </h3>
               <p className="mt-1 text-xs text-slate-500">
-                Verify the candidate's state for GST calculation. This will
-                update their profile notes.
+                The candidate's saved state will be used for GST calculation.
               </p>
             </div>
 
@@ -957,19 +920,20 @@ export function InvoiceViewTab({
                 <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   State / Union Territory
                 </label>
-                <select
+                <input
                   id="candidate-state-select"
-                  value={verifiedState}
-                  onChange={(e) => setVerifiedState(e.target.value)}
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring focus:ring-indigo-200/50"
-                >
-                  <option value="">-- Select State --</option>
-                  {INDIAN_STATES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
+                  value={verifiedState || "State not available"}
+                  readOnly
+                  aria-readonly="true"
+                  className={`mt-1.5 w-full rounded-lg border px-3 py-2 text-sm outline-none ${
+                    verifiedState
+                      ? "border-slate-200 bg-slate-50 text-slate-700"
+                      : "border-rose-200 bg-rose-50 text-rose-700"
+                  }`}
+                />
+                <p className="mt-1.5 text-xs text-slate-500">
+                  Update the candidate's details if this state needs to be changed.
+                </p>
               </div>
 
               {localError && (
@@ -996,7 +960,7 @@ export function InvoiceViewTab({
                 disabled={isGenerating || !verifiedState}
                 className="bg-[#002856] hover:bg-[#002860] border-none text-white active:scale-95 transition-all duration-150 font-semibold"
               >
-                {isGenerating ? "Generating..." : "Confirm & Generate"}
+                {isGenerating ? "Generating..." : "Generate Draft"}
               </ControlButton>
             </div>
           </div>
