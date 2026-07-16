@@ -92,7 +92,13 @@ export const paymentsAdminApi = {
     api.post("/admin/payments/import/candidates/confirm", payload),
 
   getRawLogs: (params = {}) =>
-    api.get("/admin/payments/razorpay-raw-logs", { params }),
+    api.get("/admin/payments/raw-logs", { params }),
+  getJodoProjection: (enrollmentId) =>
+    api.get(`/admin/payments/enrollments/${enrollmentId}/jodo`),
+  linkJodoStudent: (payload) =>
+    api.post("/admin/payments/jodo/mappings", payload),
+  reprocessJodoEvent: (rawLogId) =>
+    api.post(`/admin/payments/jodo/raw-logs/${rawLogId}/reprocess`),
   getInvoices: (year, month, params = {}) =>
     api.get("/admin/payments/invoices", { params: { year, month, ...params } }),
   getInvoicePaymentOptions: (enrollment_id, params = {}) => {

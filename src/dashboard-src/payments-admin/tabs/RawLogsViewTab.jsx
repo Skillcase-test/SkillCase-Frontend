@@ -1,6 +1,37 @@
+import { useState } from "react";
+import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 import { formatIstDateTime } from "../utils/formatters";
 
-export function RawLogsViewTab({ rows }) {
+export function RawLogsViewTab({ rows, loadTabData, setNotice, setError }) {
+  const [reprocessingId, setReprocessingId] = useState(null);
+
+  const wait = (milliseconds) => new Promise((resolve) => window.setTimeout(resolve, milliseconds));
+
+  async function handleReprocess(row) {
+    if (!row?.raw_log_id || row?.gateway !== "jodo") return;
+    const confirmed = window.confirm(
+      `Reprocess Jodo event ${row.event_type || row.event_id || row.raw_log_id}?`,
+    );
+    if (!confirmed) return;
+    setReprocessingId(row.raw_log_id);
+    setError?.("");
+    try {
+      await paymentsAdminApi.reprocessJodoEvent(row.raw_log_id);
+      setNotice?.(`Jodo event ${row.raw_log_id} queued. Watching for completion...`);
+      // Refresh immediately to show "pending", then keep polling long enough to
+      // surface either the processed or failed terminal state.
+      for (const delay of [0, 400, 800, 1200, 2000, 3000]) {
+        if (delay) await wait(delay);
+        await loadTabData?.();
+      }
+      setNotice?.(`Jodo event ${row.raw_log_id} reprocessing status refreshed.`);
+    } catch (err) {
+      setError?.(err?.response?.data?.msg || "Failed to reprocess Jodo event");
+    } finally {
+      setReprocessingId(null);
+    }
+  }
+
   if (!rows || rows.length === 0) {
     return (
       <div className="p-6 text-center text-slate-500 bg-white rounded-xl border border-slate-200">
@@ -37,6 +68,7 @@ export function RawLogsViewTab({ rows }) {
                 {k.replace(/_/g, " ")}
               </th>
             ))}
+            <th className="px-4 py-3 font-semibold">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -62,6 +94,20 @@ export function RawLogsViewTab({ rows }) {
                   )}
                 </td>
               ))}
+              <td className="px-4 py-3">
+                {r.gateway === "jodo" && r.processing_status === "failed" ? (
+                  <button
+                    type="button"
+                    onClick={() => handleReprocess(r)}
+                    disabled={reprocessingId === r.raw_log_id}
+                    className="inline-flex items-center rounded-lg border border-violet-200 bg-violet-50 px-3 py-1.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-100 disabled:cursor-wait disabled:opacity-60"
+                  >
+                    {reprocessingId === r.raw_log_id ? "Reprocessing…" : "Reprocess"}
+                  </button>
+                ) : (
+                  <span className="text-slate-300">—</span>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>

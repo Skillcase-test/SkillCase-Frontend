@@ -157,7 +157,8 @@ export function useActionsEnrollment(state) {
       terms_ack_status: editDraft.terms_ack_status || "",
       lead_owner: editDraft.lead_owner || "",
       internal_remark: editDraft.internal_remark || "",
-      expected_payments: expectedRows.map((row) => ({
+      collection_provider: editDraft.collection_provider || "legacy",
+      ...(editDraft.collection_provider === "jodo" ? {} : { expected_payments: expectedRows.map((row) => ({
         schedule_id: row.schedule_id || undefined,
         payment_id: row.payment_id || undefined,
         manual_payment_id: row.manual_payment_id || undefined,
@@ -172,7 +173,7 @@ export function useActionsEnrollment(state) {
         row_kind: row.row_kind || undefined,
         notes: row.notes || "",
         source_type: row.source_type || "admin",
-      })),
+      })) }),
     };
     try {
       if (editDraft.is_manual_create || !editDraft.enrollment_id) {
@@ -197,6 +198,7 @@ export function useActionsEnrollment(state) {
     setEditDraft({
       is_manual_create: true,
       status: "pending",
+      collection_provider: "legacy",
       student_name: "",
       student_phone: "",
       student_email: "",

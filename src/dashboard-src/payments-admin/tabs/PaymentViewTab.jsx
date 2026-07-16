@@ -337,13 +337,14 @@ export function PaymentViewTab({
                   </span>
                 </div>
               </th>
+              <th className="px-2 py-2">Settlement</th>
               <th className="px-2 py-2 text-center w-40">Actions</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm font-medium text-slate-500">
+                <td colSpan={9} className="px-4 py-10 text-center text-sm font-medium text-slate-500">
                   No payments found for the current filters.
                 </td>
               </tr>
@@ -355,7 +356,7 @@ export function PaymentViewTab({
                 }`}
               >
                 <td className="px-3 py-3 text-center">
-                  {canManagePayments && !r.is_payment_link &&
+                  {canManagePayments && !r.is_payment_link && r.gateway !== "jodo" &&
                   r.enrollment_id &&
                   !r.booked_amount_id &&
                   ["captured", "authorized", "processed"].includes(
@@ -389,7 +390,7 @@ export function PaymentViewTab({
                 <td className="px-2 py-2">
                   <div className="flex items-center gap-1.5">
                     <span>{r.student_phone || "-"}</span>
-                    {canManagePayments && !r.is_payment_link &&
+                    {canManagePayments && !r.is_payment_link && r.gateway !== "jodo" &&
                       (!r.metadata_json ||
                         r.metadata_json.source !== "admin_manual_actual") && (
                         <button
@@ -416,6 +417,20 @@ export function PaymentViewTab({
                   </span>
                 </td>
                 <td className="px-2 py-2">{r.razorpay_payment_id || r.gateway_payment_id || "-"}</td>
+                <td className="px-2 py-2">
+                  {r.gateway === "jodo" ? (
+                    <div className="flex flex-col gap-0.5">
+                      <span className={`text-xs font-semibold ${r.payment_status === "cancelled" ? "text-rose-700" : r.settlement_status === "settled" ? "text-emerald-700" : "text-amber-700"}`}>
+                        {r.payment_status === "cancelled" ? "Cancelled" : r.settlement_status === "settled" ? "Settled" : "Debited"}
+                      </span>
+                      {r.settlement_reference ? (
+                        <span className="max-w-[150px] truncate font-mono text-[10px] text-slate-500" title={r.settlement_reference}>
+                          {r.settlement_reference}
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : "-"}
+                </td>
                 <td className="px-2 py-2 text-center">
                   <div className="flex items-center justify-center gap-2">
                     {r.is_payment_link ? (

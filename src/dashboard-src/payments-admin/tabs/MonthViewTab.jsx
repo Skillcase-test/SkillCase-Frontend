@@ -236,8 +236,8 @@ export function MonthViewTab({
                       onClick={() =>
                         setEditDraft({
                           ...r,
-                          total_fee_inr: r?.notes?.total_fee_inr || 60000,
-                          monthly_fee_inr: r?.notes?.monthly_fee_inr || 6000,
+                          total_fee_inr: r.collection_provider === "jodo" ? (r?.notes?.total_fee_inr ?? "") : (r?.notes?.total_fee_inr || 60000),
+                          monthly_fee_inr: r.collection_provider === "jodo" ? (r?.notes?.monthly_fee_inr ?? "") : (r?.notes?.monthly_fee_inr || 6000),
                           ...(r.notes || {}),
                         })
                       }
