@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { usePostHog } from "@posthog/react";
+import { useFirstPartyAnalytics } from "../../telemetry/legacyAnalytics";
 
 import { Calendar, Clock, CheckCircle } from "lucide-react";
 
@@ -46,7 +46,7 @@ export default function EventDetailPage() {
   const [registered, setRegistered] = useState(false);
 
   const location = useLocation();
-  const posthog = usePostHog();
+  const analytics = useFirstPartyAnalytics();
   const instanceDate = location.state?.instanceDate;
   const customStartTimeFromNav = location.state?.custom_start_time;
   const customEndTimeFromNav = location.state?.custom_end_time;
@@ -70,7 +70,7 @@ export default function EventDetailPage() {
         : `/events/${slug}`;
       const res = await api.get(url);
       setEvent(res.data.event);
-      posthog?.capture('event_viewed', { 
+      analytics?.capture('event_viewed', {
         event_slug: slug, 
         event_title: res.data.event.title, 
         is_featured: res.data.event.is_featured 
@@ -363,7 +363,7 @@ export default function EventDetailPage() {
           <div className="max-w-7xl mx-auto">
             <button
               onClick={() => {
-                posthog?.capture('event_registration_started', {
+                analytics?.capture('event_registration_started', {
                   event_slug: slug,
                   event_title: event?.title,
                   is_featured: event?.is_featured,

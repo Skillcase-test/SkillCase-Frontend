@@ -8,6 +8,7 @@ import { setA1OnboardingComplete } from "../redux/auth/authSlice";
 import api from "../api/axios";
 import { getA1MigrationStatus } from "../api/a1Api";
 import { A1TourContext } from "./A1TourContext";
+import { trackFlowAction, useTourJourney } from "../telemetry/flow";
 import {
   getA1LandingSteps,
   getA1FlashcardSelectSteps,
@@ -153,6 +154,7 @@ export default function A1ProductTour({ children }) {
     ["revamp_opted_in", "revamp_forced_after_deadline"].includes(
       a1MigrationStatus,
     );
+  useTourJourney({ enabled: Boolean(canRunA1Tour && !isDone && activeFeature), tourId: "a1_product_tour", phase: activePhase || activeFeature, tourVersion: "1" });
 
   useEffect(() => {
     if (!user?.user_id || !isA1) {
@@ -236,6 +238,7 @@ export default function A1ProductTour({ children }) {
   }, []);
 
   const skipEntireTour = useCallback(() => {
+    trackFlowAction("tour", "a1_product_tour", "tour_skipped", { phase: activePhase || activeFeature, tourVersion: "1" });
     destroyDriver();
     const allDone = Object.fromEntries(ALL_PHASES.map((p) => [p, true]));
     localStorage.setItem(A1_TOUR_STATE_KEY, JSON.stringify(allDone));
@@ -245,7 +248,7 @@ export default function A1ProductTour({ children }) {
     phaseLabelRef.current = null;
     setActiveFeature(null);
     setActivePhase(null);
-  }, [destroyDriver, dispatch]);
+  }, [destroyDriver, dispatch, activePhase, activeFeature]);
 
   const closeCurrentPhase = useCallback(() => {
     cleanupTapOverlays();

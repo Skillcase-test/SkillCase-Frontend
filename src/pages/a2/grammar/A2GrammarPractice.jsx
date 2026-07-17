@@ -16,17 +16,19 @@ import {
 } from "../../../api/a2Api";
 import QuestionRenderer from "../../../components/a2/QuestionRenderer";
 import A2GrammarExplanation from "./A2GrammarExplanation";
-import { usePostHog } from "@posthog/react";
+import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
 
 import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
+import { useLearningQuestionJourney } from "../../../telemetry/learning";
+import { trackLearningEvent } from "../../../telemetry/events";
 
 export default function A2GrammarPractice() {
   const { topicId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const posthog = usePostHog();
+  const analytics = useFirstPartyAnalytics();
 
   const isReviewMode = searchParams.get("mode") === "review";
 
@@ -56,6 +58,8 @@ export default function A2GrammarPractice() {
 
   const [localStreakCount, setLocalStreakCount] = useState(0);
   const streakLoggedRef = useRef(new Set());
+  const attemptRef = useRef({});
+  useLearningQuestionJourney({ level: "A2", module: "grammar", feature: "a2.grammar", topicId, question: questions[currentIndex], index: currentIndex, total: questions.length, loading });
 
   useEffect(() => {
     api
@@ -90,7 +94,7 @@ export default function A2GrammarPractice() {
         setTopic(topicRes.data);
         setQuestions(questionsRes.data.questions);
 
-        posthog?.capture("learning_module_started", {
+        analytics?.capture("learning_module_started", {
           module: "A2 Grammar",
           level: "A2",
           topic_id: topicId,
@@ -136,6 +140,7 @@ export default function A2GrammarPractice() {
   }, [showExplanation]);
 
   const handleAnswer = (answer) => {
+    trackLearningEvent("answer.selected", { level: "A2", module: "grammar", topicId, questionId: questions[currentIndex]?.id, questionType: questions[currentIndex]?.type, index: currentIndex, total: questions.length });
     setUserAnswer(answer);
     if (isReviewMode) {
       const newAnswers = [...allAnswers];
@@ -151,7 +156,9 @@ export default function A2GrammarPractice() {
         questionId: questions[currentIndex].id,
         answer: userAnswer,
       });
-      posthog?.capture("learning_module_submitted", {
+      attemptRef.current[currentIndex] = (attemptRef.current[currentIndex] || 0) + 1;
+      trackLearningEvent("answer.checked", { level: "A2", module: "grammar", topicId, questionId: questions[currentIndex]?.id, questionType: questions[currentIndex]?.type, index: currentIndex, total: questions.length, attempt: attemptRef.current[currentIndex], isCorrect: Boolean(res.data?.isCorrect), outcome: res.data?.isCorrect ? "correct" : "incorrect" });
+      analytics?.capture("learning_module_submitted", {
         module: "A2 Grammar",
         level: "A2",
         topic_id: topicId,
@@ -199,12 +206,14 @@ export default function A2GrammarPractice() {
       }
 
       if (currentIndex < questions.length - 1) {
+        trackLearningEvent("question.navigation", { level: "A2", module: "grammar", topicId, index: currentIndex, total: questions.length, direction: "next", inputMethod: "button" });
         setCurrentIndex(currentIndex + 1);
         setUserAnswer(null);
         setShowResult(false);
         setIsCorrect(null);
       } else {
-        posthog?.capture("learning_module_completed", {
+        trackLearningEvent("module.completed", { level: "A2", module: "grammar", topicId, total: questions.length, lifecycle: "succeeded" });
+        analytics?.capture("learning_module_completed", {
           module: "A2 Grammar",
           level: "A2",
           topic_id: topicId,
@@ -219,6 +228,7 @@ export default function A2GrammarPractice() {
   };
 
   const handleTryAgain = () => {
+    trackLearningEvent("module.retry", { level: "A2", module: "grammar", topicId, retryCount: 1, outcome: "retry" });
     setCurrentIndex(0);
     setUserAnswer(null);
     setShowResult(false);

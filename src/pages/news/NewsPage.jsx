@@ -3,6 +3,7 @@ import { ArrowLeft, Rabbit, Volume2, Square } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getNewsById } from "../../api/newsApi";
 import useNewsTextToSpeech from "./hooks/useNewsTextToSpeech";
+import { trackFeatureEvent } from "../../telemetry/events";
 
 export default function NewsPage() {
   const { newsId } = useParams();
@@ -37,6 +38,38 @@ export default function NewsPage() {
   const readText = `${current?.title || ""}. ${
     current?.content || current?.summary || ""
   }`;
+
+  useEffect(() => {
+    if (!article?.id) return undefined;
+    const startedAt = performance.now();
+    trackFeatureEvent("news", "detail_presented", {
+      entityType: "article", entityId: article.id, attributes: { language },
+    });
+    return () => trackFeatureEvent("news", "detail_left", {
+      entityType: "article", entityId: article.id,
+      activeMs: Math.round(performance.now() - startedAt), attributes: { language },
+    });
+  }, [article?.id, language]);
+
+  const selectLanguage = (nextLanguage) => {
+    setLanguage(nextLanguage);
+    trackFeatureEvent("news", "language_selected", {
+      entityType: "article", entityId: article?.id, attributes: { language: nextLanguage },
+    });
+  };
+
+  const handleAudio = (speed) => {
+    const stopping = isSpeaking && activeSpeed === speed;
+    trackFeatureEvent("news", stopping ? "audio_stopped" : "audio_started", {
+      entityType: "article", entityId: article?.id,
+      attributes: { language, speed, media_state: stopping ? "stopped" : "playing" },
+    });
+    if (stopping) return cancelSpeech();
+    return speakText(readText, language === "de" ? "de-DE" : "en-US", {
+      structured: true, title: current?.title || "",
+      newsText: current?.content || current?.summary || "", speed,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-[#f5f7fb] py-4">
@@ -74,7 +107,7 @@ export default function NewsPage() {
               <div className="flex gap-2 mb-4">
                 <button
                   type="button"
-                  onClick={() => setLanguage("de")}
+                  onClick={() => selectLanguage("de")}
                   className={`px-3 py-1.5 text-xs rounded-full font-semibold transition-all duration-200 active:scale-95 hover:shadow-sm ${
                     language === "de"
                       ? "bg-[#002856] text-white"
@@ -85,7 +118,7 @@ export default function NewsPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setLanguage("en")}
+                  onClick={() => selectLanguage("en")}
                   className={`px-3 py-1.5 text-xs rounded-full font-semibold transition-all duration-200 active:scale-95 hover:shadow-sm ${
                     language === "en"
                       ? "bg-[#002856] text-white"
@@ -113,21 +146,7 @@ export default function NewsPage() {
                   type="button"
                   id="A1-news-normal-btn"
                   disabled={isLoadingAudio}
-                  onClick={() =>
-                    isSpeaking && activeSpeed === "normal"
-                      ? cancelSpeech()
-                      : speakText(
-                          readText,
-                          language === "de" ? "de-DE" : "en-US",
-                          {
-                            structured: true,
-                            title: current?.title || "",
-                            newsText:
-                              current?.content || current?.summary || "",
-                            speed: "normal",
-                          },
-                        )
-                  }
+                  onClick={() => handleAudio("normal")}
                   className={`inline-flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#002856] text-white text-sm font-medium disabled:opacity-60 transition-all duration-200 active:scale-95 shadow-md ${isSpeaking && activeSpeed === "normal" ? "bg-[#002856] text-white" : "bg-[#bbd4f0] text-[#002856]"}`}
                 >
                   {isSpeaking && activeSpeed === "normal" ? (
@@ -144,21 +163,7 @@ export default function NewsPage() {
                   type="button"
                   id="A1-news-slow-btn"
                   disabled={isLoadingAudio}
-                  onClick={() =>
-                    isSpeaking && activeSpeed === "slow"
-                      ? cancelSpeech()
-                      : speakText(
-                          readText,
-                          language === "de" ? "de-DE" : "en-US",
-                          {
-                            structured: true,
-                            title: current?.title || "",
-                            newsText:
-                              current?.content || current?.summary || "",
-                            speed: "slow",
-                          },
-                        )
-                  }
+                  onClick={() => handleAudio("slow")}
                   className={`inline-flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#edb843] text-[#002856] text-sm font-semibold disabled:opacity-60 transition-all duration-200 active:scale-95 shadow-md ${isSpeaking && activeSpeed === "slow" ? "bg-[#002856] text-white" : "bg-[#bbd4f0] text-[#002856]"}`}
                 >
                   {isSpeaking && activeSpeed === "slow" ? (

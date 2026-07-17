@@ -43,7 +43,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
-import { usePostHog } from "@posthog/react";
+import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
+import { useFlashcardTelemetry } from "../../../telemetry/learning";
 
 // DnD Word Component
 const WordItem = memo(function WordItem({ word, isDragging, isOverlay }) {
@@ -424,7 +425,7 @@ export default function A2Flashcard() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  const posthog = usePostHog();
+  const analytics = useFirstPartyAnalytics();
 
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -493,6 +494,17 @@ export default function A2Flashcard() {
     useTextToSpeech();
   const totalCards = flashcardSet.length;
   const chapterName = searchParams.get("name") || "Chapter";
+  const recordFlashcardNavigation = useFlashcardTelemetry({
+    level: "A2",
+    chapterId,
+    setId,
+    currentCard,
+    totalCards,
+    cardId:
+      flashcardSet[currentCard]?.id || flashcardSet[currentCard]?.card_id || null,
+    isFlipped,
+    loading,
+  });
 
   // Track card flips for streak - count when card is flipped for the first time
   useEffect(() => {
@@ -550,7 +562,7 @@ export default function A2Flashcard() {
         const cardArray = data?.cards || data || [];
         setFlashcardSet(cardArray);
         setSetId(data?.setId);
-        posthog?.capture("learning_module_started", {
+        analytics?.capture("learning_module_started", {
           module: "A2 Flashcard",
           level: "A2",
           chapter_id: chapterId,
@@ -619,6 +631,12 @@ export default function A2Flashcard() {
     if (Math.abs(dragOffset) > 80) {
       if (dragOffset > 0 && currentCard > 0) {
         // Swipe right = previous
+        recordFlashcardNavigation({
+          fromIndex: currentCard,
+          toIndex: currentCard - 1,
+          inputMethod: "swipe",
+          direction: "previous",
+        });
         setSwipeDirection("right");
         setTimeout(() => {
           setCurrentCard(currentCard - 1);
@@ -634,6 +652,12 @@ export default function A2Flashcard() {
           setShowTestPrompt(true);
           setDragOffset(0);
         } else if (currentCard < totalCards - 1) {
+          recordFlashcardNavigation({
+            fromIndex: currentCard,
+            toIndex: nextIndex,
+            inputMethod: "swipe",
+            direction: "next",
+          });
           setSwipeDirection("left");
           setTimeout(() => {
             setCurrentCard(nextIndex);
@@ -667,6 +691,12 @@ export default function A2Flashcard() {
     if (shouldShowTest(nextIndex)) {
       setShowTestPrompt(true);
     } else if (currentCard < totalCards - 1) {
+      recordFlashcardNavigation({
+        fromIndex: currentCard,
+        toIndex: nextIndex,
+        inputMethod: "button",
+        direction: "next",
+      });
       setSwipeDirection("left");
       setTimeout(() => {
         setCurrentCard(nextIndex);
@@ -685,6 +715,12 @@ export default function A2Flashcard() {
       setShowTestPrompt(false);
       setIsFlipped(false);
     } else if (currentCard > 0) {
+      recordFlashcardNavigation({
+        fromIndex: currentCard,
+        toIndex: currentCard - 1,
+        inputMethod: "button",
+        direction: "previous",
+      });
       setSwipeDirection("right");
       setTimeout(() => {
         setCurrentCard(currentCard - 1);
@@ -959,7 +995,7 @@ export default function A2Flashcard() {
       const total = originalTestTotal || testQuestions.length;
       const correct = newLocked.size;
       const p = correct >= Math.ceil(total * 0.6);
-      posthog?.capture("learning_module_submitted", {
+      analytics?.capture("learning_module_submitted", {
         module: "A2 Flashcard",
         level: "A2",
         chapter_id: chapterId,
@@ -967,7 +1003,7 @@ export default function A2Flashcard() {
         score_percent: total > 0 ? (correct / total) * 100 : 0,
         passed: p,
       });
-      posthog?.capture("flashcard_quiz_submitted", {
+      analytics?.capture("flashcard_quiz_submitted", {
         module: "A2 Flashcard",
         level: "A2",
         chapter_id: chapterId,
@@ -996,7 +1032,7 @@ export default function A2Flashcard() {
   const continueAfterTest = () => {
     setShowTest(false);
     if (isFinalTest) {
-      posthog?.capture("learning_module_completed", {
+      analytics?.capture("learning_module_completed", {
         module: "A2 Flashcard",
         level: "A2",
         chapter_id: chapterId,

@@ -19,13 +19,15 @@ import {
 } from "../../../api/a2Api";
 import api from "../../../api/axios";
 import QuestionRenderer from "../../../components/a2/QuestionRenderer";
-import { usePostHog } from "@posthog/react";
+import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
+import { useLearningQuestionJourney } from "../../../telemetry/learning";
+import { trackLearningEvent } from "../../../telemetry/events";
 
 export default function A2TestQuestions() {
   const { topicId, level } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const posthog = usePostHog();
+  const analytics = useFirstPartyAnalytics();
 
   const isReviewMode = searchParams.get("mode") === "review";
 
@@ -40,6 +42,7 @@ export default function A2TestQuestions() {
   const [correctAnswers, setCorrectAnswers] = useState([]);
   const [questionsBySet, setQuestionsBySet] = useState([]);
   const [currentSet, setCurrentSet] = useState(1);
+  useLearningQuestionJourney({ level: "A2", module: "test", feature: "a2.test", topicId, question: questions[currentIndex], index: currentIndex, total: questions.length, loading });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -72,7 +75,7 @@ export default function A2TestQuestions() {
           const res = await getTestSet(topicId, level, set);
           setQuestions(res.data.questions);
           setAnswers(new Array(res.data.questions.length).fill(null));
-          posthog?.capture("learning_module_started", {
+          analytics?.capture("learning_module_started", {
             module: "A2 Test",
             level: "A2",
             topic_id: Number(topicId),
@@ -103,6 +106,7 @@ export default function A2TestQuestions() {
     const newAnswers = [...answers];
     newAnswers[currentIndex] = answer;
     setAnswers(newAnswers);
+    trackLearningEvent("answer.selected", { level: "A2", module: "test", topicId, questionId: questions[currentIndex]?.id, questionType: questions[currentIndex]?.type, index: currentIndex, total: questions.length });
   };
 
   const handleSubmit = async () => {
@@ -116,8 +120,9 @@ export default function A2TestQuestions() {
         questions, // Send questions so backend scores against same shuffled data
       });
       setResult(res.data);
+      trackLearningEvent("module.submitted", { level: "A2", module: "test", topicId, total: questions.length, lifecycle: "succeeded", outcome: res.data?.passed ? "passed" : "failed", isCorrect: res.data?.passed });
       api.clearGetCache?.();
-      posthog?.capture("learning_module_submitted", {
+      analytics?.capture("learning_module_submitted", {
         module: "A2 Test",
         level: "A2",
         topic_id: Number(topicId),
@@ -128,7 +133,7 @@ export default function A2TestQuestions() {
       });
 
       if (res.data?.passed) {
-        posthog?.capture("learning_module_completed", {
+        analytics?.capture("learning_module_completed", {
           module: "A2 Test",
           level: "A2",
           topic_id: Number(topicId),

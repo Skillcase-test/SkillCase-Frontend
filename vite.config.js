@@ -71,8 +71,8 @@ export default defineConfig(({ mode }) => {
           ) {
             return "charts";
           }
-          if (id.includes("@sentry") || id.includes("posthog")) {
-            return "sentry-posthog";
+          if (id.includes("@sentry")) {
+            return "sentry";
           }
           if (id.includes("@capacitor") || id.includes("@capawesome")) {
             return "capacitor";

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { submitCandidateDetails } from "../../../api/jobScreeningApi";
+import { trackFlowAction } from "../../../telemetry/flow";
 
 const FillDetailsStep = ({ progress, onComplete, onBack }) => {
   const [fullname, setFullname] = useState(progress?.candidate_name || "");
@@ -13,21 +14,25 @@ const FillDetailsStep = ({ progress, onComplete, onBack }) => {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!fullname.trim()) {
+      trackFlowAction("job_screening", "candidate_details", "validation", "blocked", { validation_code: "name_required" });
       setError("Full name is required");
       return;
     }
     if (!email.trim()) {
+      trackFlowAction("job_screening", "candidate_details", "validation", "blocked", { validation_code: "email_required" });
       setError("Email address is required");
       return;
     }
     // Simple email validation regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
+      trackFlowAction("job_screening", "candidate_details", "validation", "blocked", { validation_code: "email_invalid" });
       setError("Please enter a valid email address");
       return;
     }
 
     try {
+      trackFlowAction("job_screening", "candidate_details", "submit", "started");
       setLoading(true);
       setError("");
       const { data } = await submitCandidateDetails({
@@ -35,11 +40,14 @@ const FillDetailsStep = ({ progress, onComplete, onBack }) => {
         email: email.trim(),
       });
       if (data?.success) {
+        trackFlowAction("job_screening", "candidate_details", "submit", "success");
         onComplete(data.data);
       } else {
+        trackFlowAction("job_screening", "candidate_details", "submit", "failed");
         setError("Failed to save details");
       }
     } catch (err) {
+      trackFlowAction("job_screening", "candidate_details", "submit", "failed");
       console.error(err);
       setError(err.response?.data?.message || "Failed to submit details");
     } finally {

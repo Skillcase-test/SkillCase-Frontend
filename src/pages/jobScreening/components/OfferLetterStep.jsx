@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { FileDown, CheckCircle2, Award, ShieldCheck, AlertCircle, RefreshCw } from "lucide-react";
 import { downloadOfferLetter, getProgress } from "../../../api/jobScreeningApi";
+import { trackFlowAction } from "../../../telemetry/flow";
 
 const OfferLetterStep = ({ progress, onComplete }) => {
   const [downloading, setDownloading] = useState(false);
@@ -8,16 +9,20 @@ const OfferLetterStep = ({ progress, onComplete }) => {
   const [error, setError] = useState("");
 
   const handleRefresh = async () => {
+    trackFlowAction("job_screening", "offer_letter", "refresh", "started");
     try {
       setRefreshing(true);
       setError("");
       const { data } = await getProgress();
       if (data?.success && onComplete) {
+        trackFlowAction("job_screening", "offer_letter", "refresh", "success", { state: data?.data?.offer_letter_url ? "available" : "pending" });
         onComplete(data.data);
       } else {
+        trackFlowAction("job_screening", "offer_letter", "refresh", "failed");
         setError("Failed to retrieve the download link for your offer letter.");
       }
     } catch (err) {
+      trackFlowAction("job_screening", "offer_letter", "refresh", "failed");
       console.error("Error refreshing progress:", err);
       setError(
         err.response?.data?.message || "An error occurred while syncing progress."
@@ -28,16 +33,20 @@ const OfferLetterStep = ({ progress, onComplete }) => {
   };
 
   const handleDownload = async () => {
+    trackFlowAction("job_screening", "offer_letter", "download", "started");
     try {
       setDownloading(true);
       setError("");
       const { data } = await downloadOfferLetter();
       if (data?.success && data?.downloadUrl) {
+        trackFlowAction("job_screening", "offer_letter", "download", "success");
         window.open(data.downloadUrl, "_blank");
       } else {
+        trackFlowAction("job_screening", "offer_letter", "download", "failed");
         setError("Failed to retrieve the download link for your offer letter.");
       }
     } catch (err) {
+      trackFlowAction("job_screening", "offer_letter", "download", "failed");
       console.error("Error downloading offer letter:", err);
       setError(
         err.response?.data?.message || "An error occurred while downloading your offer letter."

@@ -9,6 +9,7 @@ import {
 import { getProgress } from "../../../api/jobScreeningApi";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { motion } from "framer-motion";
+import { trackFlowAction } from "../../../telemetry/flow";
 
 const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
   const [refreshing, setRefreshing] = useState(false);
@@ -32,28 +33,39 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
         if (!active) return;
         if (data?.success) {
           const hasStepChanged = data.data?.current_step_id !== "review_pending";
+          trackFlowAction("job_screening", "review_pending", "poll", "success", {
+            poll_type: "automatic",
+            state: hasStepChanged ? "changed" : "pending",
+          });
           if (hasStepChanged) {
             onComplete(data.data, false);
           }
         }
       })
-      .catch((err) => console.error("Silent sync failed:", err));
+      .catch((err) => {
+        trackFlowAction("job_screening", "review_pending", "poll", "failed", { poll_type: "automatic" });
+        console.error("Silent sync failed:", err);
+      });
     return () => {
       active = false;
     };
   }, []);
 
   const handleRefresh = async () => {
+    trackFlowAction("job_screening", "review_pending", "refresh", "started", { poll_type: "manual" });
     try {
       setRefreshing(true);
       setError("");
       const { data } = await getProgress();
       if (data?.success && onComplete) {
+        trackFlowAction("job_screening", "review_pending", "refresh", "success", { poll_type: "manual", state: data.data?.current_step_id === "review_pending" ? "pending" : "changed" });
         onComplete(data.data, false);
       } else {
+        trackFlowAction("job_screening", "review_pending", "refresh", "failed", { poll_type: "manual" });
         setError("Failed to sync progress.");
       }
     } catch (err) {
+      trackFlowAction("job_screening", "review_pending", "refresh", "failed", { poll_type: "manual" });
       console.error("Error refreshing progress:", err);
       setError(
         err.response?.data?.message ||

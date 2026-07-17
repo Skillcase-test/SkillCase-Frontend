@@ -24,6 +24,7 @@ import {
 } from "../../../api/jobScreeningApi";
 import shocked from "../../../assets/onboarding/mayaShocked.webp";
 import { toast } from "react-hot-toast";
+import { trackFlowAction } from "../../../telemetry/flow";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -54,6 +55,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
   const isStep3Completed = hasOffer;
 
   const handleRefresh = async () => {
+    trackFlowAction("job_screening", "recruiter_status", "refresh", "started");
     try {
       setRefreshing(true);
       setError("");
@@ -61,11 +63,14 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
       if (data?.success && onComplete) {
         const nextStep = data.data?.current_step_id;
         const shouldExit = nextStep !== "recruiter_status";
+        trackFlowAction("job_screening", "recruiter_status", "refresh", "success", { state: shouldExit ? "changed" : "pending" });
         onComplete(data.data, shouldExit);
       } else {
+        trackFlowAction("job_screening", "recruiter_status", "refresh", "failed");
         setError("Failed to sync progress.");
       }
     } catch (err) {
+      trackFlowAction("job_screening", "recruiter_status", "refresh", "failed");
       console.error("Error refreshing progress:", err);
       setError(
         err.response?.data?.message ||
@@ -77,16 +82,20 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
   };
 
   const handleSkip = async () => {
+    trackFlowAction("job_screening", "recruiter_status", "skip", "started");
     try {
       setSkipping(true);
       setError("");
       const { data } = await skipRecruiterStatus();
       if (data?.success && onComplete) {
+        trackFlowAction("job_screening", "recruiter_status", "skip", "success");
         onComplete(data.data);
       } else {
+        trackFlowAction("job_screening", "recruiter_status", "skip", "failed");
         setError("Failed to proceed to the next stage.");
       }
     } catch (err) {
+      trackFlowAction("job_screening", "recruiter_status", "skip", "failed");
       console.error("Error skipping step:", err);
       setError(
         err.response?.data?.message ||
@@ -98,15 +107,19 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
   };
 
   const handleDownloadOffer = async (accountId) => {
+    trackFlowAction("job_screening", "recruiter_status", "offer_download", "started", { entity_id: accountId });
     try {
       setDownloadingId(accountId);
       const { data } = await downloadOfferLetter(accountId);
       if (data?.success && data.downloadUrl) {
+        trackFlowAction("job_screening", "recruiter_status", "offer_download", "success", { entity_id: accountId });
         window.location.href = data.downloadUrl;
       } else {
+        trackFlowAction("job_screening", "recruiter_status", "offer_download", "failed", { entity_id: accountId });
         toast.error("Failed to generate download link.");
       }
     } catch (err) {
+      trackFlowAction("job_screening", "recruiter_status", "offer_download", "failed", { entity_id: accountId });
       console.error("Error downloading offer letter:", err);
       toast.error("Error downloading offer letter.");
     } finally {
@@ -147,6 +160,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
 
   const handleAddToCalendar = (slotTime, meetLink) => {
     if (!slotTime) return;
+    trackFlowAction("job_screening", "recruiter_status", "calendar_add", "success");
     const start = new Date(slotTime);
     const end = new Date(start.getTime() + 60 * 60 * 1000);
     const title = "Skillcase Recruiter Interview";
@@ -172,6 +186,14 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
     } else if (onBack) {
       onBack();
     }
+  };
+
+  const selectRecruiter = (accountId, state) => {
+    trackFlowAction("job_screening", "recruiter_status", "recruiter_selected", "success", {
+      entity_id: accountId,
+      state,
+    });
+    setActiveRecruiterId(accountId);
   };
 
   // RENDER RECRUITER SPECIFIC SCREEN (INTERVIEW CALL OR PDF OFFER PREVIEW)
@@ -548,7 +570,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
                   {hasOffer ? (
                     <button
                       type="button"
-                      onClick={() => setActiveRecruiterId(rec.account_id)}
+                      onClick={() => selectRecruiter(rec.account_id, "offer_available")}
                       className="self-stretch px-4 py-3 bg-gradient-to-r from-amber-200 to-amber-300 rounded-xl justify-center items-center gap-1.5 flex border border-amber-300 cursor-pointer shadow-sm active:scale-[0.99] transition-all font-bold text-blue-950 text-base"
                     >
                       Read & Download offer letter
@@ -560,7 +582,7 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
                   ) : hasSlot ? (
                     <button
                       type="button"
-                      onClick={() => setActiveRecruiterId(rec.account_id)}
+                      onClick={() => selectRecruiter(rec.account_id, "interview_scheduled")}
                       className="self-stretch px-4 py-3 bg-[#002856] rounded-xl border border-blue-950/40 justify-center items-center gap-1.5 flex cursor-pointer disabled:opacity-50 active:scale-[0.99] transition-all font-medium text-white text-base"
                     >
                       Check interview schedule

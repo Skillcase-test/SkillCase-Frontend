@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import NewsReelCard from "./NewsReelCard";
 import { hapticLight } from "../../../utils/haptics";
 import { getNewsHintStatus, markNewsHintSeen } from "../../../api/newsApi";
+import { trackFeatureEvent } from "../../../telemetry/events";
 
 export default function NewsReel({
   articles,
@@ -24,6 +25,19 @@ export default function NewsReel({
     setCurrentIndex(0);
     if (onIndexChange) onIndexChange(0);
   }, [articles.length, onIndexChange]);
+
+  useEffect(() => {
+    const article = articles[currentIndex];
+    if (!article) return undefined;
+    const startedAt = performance.now();
+    trackFeatureEvent("news", "article_presented", {
+      entityType: "article", entityId: article.id, index: currentIndex, total: articles.length,
+    });
+    return () => trackFeatureEvent("news", "article_left", {
+      entityType: "article", entityId: article.id, index: currentIndex, total: articles.length,
+      activeMs: Math.round(performance.now() - startedAt),
+    });
+  }, [articles, currentIndex]);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,11 +78,15 @@ export default function NewsReel({
     }
   };
 
-  const goNext = () => {
+  const goNext = (inputMethod = "unknown") => {
     onStop?.();
     setCurrentIndex((prev) => {
       const next = Math.min(prev + 1, Math.max(articles.length - 1, 0));
       if (prev !== next) {
+        trackFeatureEvent("news", "article_navigated", {
+          entityType: "article", entityId: articles[next]?.id, index: next,
+          total: articles.length, inputMethod, attributes: { direction: "next" },
+        });
         if (onIndexChange) onIndexChange(next);
         hapticLight();
       }
@@ -76,11 +94,15 @@ export default function NewsReel({
     });
   };
 
-  const goPrev = () => {
+  const goPrev = (inputMethod = "unknown") => {
     onStop?.();
     setCurrentIndex((prev) => {
       const next = Math.max(prev - 1, 0);
       if (prev !== next) {
+        trackFeatureEvent("news", "article_navigated", {
+          entityType: "article", entityId: articles[next]?.id, index: next,
+          total: articles.length, inputMethod, attributes: { direction: "previous" },
+        });
         if (onIndexChange) onIndexChange(next);
         hapticLight();
       }
@@ -95,8 +117,8 @@ export default function NewsReel({
 
     hideHint();
     lastWheelAt.current = now;
-    if (e.deltaY > 0) goNext();
-    else goPrev();
+    if (e.deltaY > 0) goNext("wheel");
+    else goPrev("wheel");
   };
 
   const onTouchStart = (e) => {
@@ -109,8 +131,8 @@ export default function NewsReel({
     if (Math.abs(delta) < 40) return;
 
     hideHint();
-    if (delta > 0) goNext();
-    else goPrev();
+    if (delta > 0) goNext("swipe");
+    else goPrev("swipe");
   };
 
   const layers = useMemo(

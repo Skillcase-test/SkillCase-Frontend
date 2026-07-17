@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileSignature, ArrowRight, RefreshCw } from "lucide-react";
 import { checkAgreement, startAgreement, getProgress } from "../../../api/jobScreeningApi";
+import { trackFlowAction } from "../../../telemetry/flow";
 
 const RegistrationStep = ({ progress, onComplete }) => {
   const navigate = useNavigate();
@@ -10,16 +11,19 @@ const RegistrationStep = ({ progress, onComplete }) => {
   const [error, setError] = useState("");
 
   const handleRefreshStatus = async () => {
+    trackFlowAction("job_screening", "job_screening_funnel", "agreement_status_refresh", { step: "registration_form", pollType: "manual", lifecycle: "started" });
     try {
       setRefreshing(true);
       setError("");
       const { data } = await getProgress();
       if (data?.success) {
+        trackFlowAction("job_screening", "job_screening_funnel", "agreement_status_refreshed", { step: "registration_form", pollType: "manual", lifecycle: "succeeded" });
         onComplete(data.data);
       } else {
         setError("Failed to refresh status");
       }
     } catch (err) {
+      trackFlowAction("job_screening", "job_screening_funnel", "agreement_status_failed", { step: "registration_form", pollType: "manual", lifecycle: "failed" });
       console.error(err);
       setError(err.response?.data?.message || "Failed to sync status");
     } finally {
@@ -28,12 +32,14 @@ const RegistrationStep = ({ progress, onComplete }) => {
   };
 
   const handleStartSigning = async () => {
+    trackFlowAction("job_screening", "job_screening_funnel", "agreement_signing_started", { step: "registration_form", lifecycle: "started" });
     try {
       setLoading(true);
       setError("");
       const { data } = await startAgreement();
       if (data?.success) {
         if (data.alreadySigned) {
+          trackFlowAction("job_screening", "job_screening_funnel", "agreement_already_signed", { step: "registration_form", lifecycle: "succeeded" });
           const progressRes = await checkAgreement();
           if (progressRes.data?.success) {
             onComplete(progressRes.data.data);
@@ -41,10 +47,12 @@ const RegistrationStep = ({ progress, onComplete }) => {
           return;
         }
         navigate(`/job-screening/terms/sign/${data.token}`);
+        trackFlowAction("job_screening", "job_screening_funnel", "agreement_signing_opened", { step: "registration_form", lifecycle: "succeeded" });
       } else {
         setError("Failed to initialize signing process. Please try again.");
       }
     } catch (err) {
+      trackFlowAction("job_screening", "job_screening_funnel", "agreement_signing_failed", { step: "registration_form", lifecycle: "failed", reasonCode: "api_failed" });
       console.error(err);
       setError(err.response?.data?.message || "An error occurred while starting the signing process.");
     } finally {

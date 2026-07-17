@@ -32,7 +32,9 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { usePostHog } from "@posthog/react";
+import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
+import { useLearningQuestionJourney } from "../../../telemetry/learning";
+import { trackLearningEvent } from "../../../telemetry/events";
 
 import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
@@ -200,7 +202,7 @@ export default function A2Reading() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  const posthog = usePostHog();
+  const analytics = useFirstPartyAnalytics();
   const { isSpeaking, speakText } = useTextToSpeech();
   const [contentList, setContentList] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -252,6 +254,7 @@ export default function A2Reading() {
   }, []);
 
   const currentContent = contentList[currentIndex];
+  useLearningQuestionJourney({ level: "A2", module: "reading", feature: "a2.reading", topicId: chapterId, question: currentContent, index: currentIndex, total: contentList.length, loading });
   useEffect(() => {
     if (!user) {
       navigate("/login");
@@ -263,7 +266,7 @@ export default function A2Reading() {
         const res = await getReadingContent(chapterId);
         const data = Array.isArray(res.data) ? res.data : [res.data];
         setContentList(data.filter(Boolean));
-        posthog?.capture("learning_module_started", {
+        analytics?.capture("learning_module_started", {
           module: "A2 Reading",
           level: "A2",
           chapter_id: chapterId,
@@ -279,6 +282,7 @@ export default function A2Reading() {
   }, [user, chapterId, navigate]);
 
   const handleVocabClick = (word) => {
+    trackLearningEvent("vocabulary.opened", { level: "A2", module: "reading", chapterId, contentId: currentContent?.id, index: currentIndex, total: contentList.length });
     const vocab = currentContent?.vocabulary?.find(
       (v) => v.word.toLowerCase() === word.toLowerCase(),
     );
@@ -309,11 +313,14 @@ export default function A2Reading() {
     });
   };
 
-  const handleAnswer = (qIdx, answer) =>
+  const handleAnswer = (qIdx, answer) => {
+    trackLearningEvent("answer.selected", { level: "A2", module: "reading", chapterId, contentId: currentContent?.id, questionId: currentContent?.questions?.[qIdx]?.id, index: qIdx, total: currentContent?.questions?.length });
     setAnswers({ ...answers, [qIdx]: answer });
+  };
 
   const handleSubmitQuiz = () => {
-    posthog?.capture("learning_module_submitted", {
+    trackLearningEvent("module.submitted", { level: "A2", module: "reading", chapterId, contentId: currentContent?.id, index: currentIndex, total: contentList.length, lifecycle: "succeeded" });
+    analytics?.capture("learning_module_submitted", {
       module: "A2 Reading",
       level: "A2",
       chapter_id: chapterId,
@@ -345,6 +352,7 @@ export default function A2Reading() {
   };
 
   const handleTryAgain = () => {
+    trackLearningEvent("module.retry", { level: "A2", module: "reading", chapterId, contentId: currentContent?.id, index: currentIndex, retryCount: 1 });
     setAnswers({});
     setShowAnswers(false);
   };
@@ -370,7 +378,7 @@ export default function A2Reading() {
 
   const handleFinish = async () => {
     setIsFinishing(true);
-    posthog?.capture("learning_module_completed", {
+    analytics?.capture("learning_module_completed", {
       module: "A2 Reading",
       level: "A2",
       chapter_id: chapterId,

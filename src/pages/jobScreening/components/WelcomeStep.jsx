@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { completeWelcome } from "../../../api/jobScreeningApi";
 import { Plane, Database, RefreshCw } from "lucide-react";
 import mayaThumbsup from "../../../assets/onboarding/mayaThumbsup.webp";
+import { trackFlowAction } from "../../../telemetry/flow";
 
 const WelcomeStep = ({ onComplete }) => {
   const [loading, setLoading] = useState(false);
@@ -10,16 +11,19 @@ const WelcomeStep = ({ onComplete }) => {
   const navigate = useNavigate();
 
   const handleStart = async () => {
+    trackFlowAction("job_screening", "job_screening_funnel", "welcome_started", { step: "welcome", lifecycle: "started" });
     try {
       setLoading(true);
       setError("");
       const { data } = await completeWelcome();
       if (data?.success) {
+        trackFlowAction("job_screening", "job_screening_funnel", "welcome_completed", { step: "welcome", lifecycle: "succeeded" });
         onComplete(data.data);
       } else {
         setError("Failed to continue to the next step");
       }
     } catch (err) {
+      trackFlowAction("job_screening", "job_screening_funnel", "welcome_failed", { step: "welcome", lifecycle: "failed", reasonCode: "api_failed" });
       console.error(err);
       setError(err.response?.data?.message || "Failed to submit welcome check");
     } finally {
@@ -28,6 +32,7 @@ const WelcomeStep = ({ onComplete }) => {
   };
 
   const handleBack = () => {
+    trackFlowAction("job_screening", "job_screening_funnel", "step_navigated", { step: "welcome", direction: "back" });
     navigate(-1);
   };
 

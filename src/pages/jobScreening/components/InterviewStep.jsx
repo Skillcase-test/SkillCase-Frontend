@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { getProgress } from "../../../api/jobScreeningApi";
 import FillDetailsStep from "./FillDetailsStep";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
+import { trackFlowAction } from "../../../telemetry/flow";
 
 const InterviewStep = ({ progress, onComplete, onBack }) => {
   const navigate = useNavigate();
@@ -29,6 +30,9 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
           email: progress.candidate_email,
           phone: progress.candidate_phone,
         },
+      });
+      trackFlowAction("job_screening", "interview_attempt", "redirected", "success", {
+        state: "assigned",
       });
     }
   }, [progress, navigate, isInterviewCompleted]);
@@ -146,16 +150,22 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
   }
 
   const handleRefreshStatus = async () => {
+    trackFlowAction("job_screening", "interview_attempt", "refresh", "started");
     try {
       setRefreshing(true);
       setError("");
       const { data } = await getProgress();
       if (data?.success) {
+        trackFlowAction("job_screening", "interview_attempt", "refresh", "success", {
+          state: data?.data?.assigned_interview_slug ? "assigned" : "pending",
+        });
         onComplete(data.data);
       } else {
+        trackFlowAction("job_screening", "interview_attempt", "refresh", "failed");
         setError("Failed to refresh status");
       }
     } catch (err) {
+      trackFlowAction("job_screening", "interview_attempt", "refresh", "failed");
       console.error(err);
       setError(
         err.response?.data?.message || "Failed to sync status",

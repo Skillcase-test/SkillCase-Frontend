@@ -3,6 +3,11 @@ import { store } from "../redux/store";
 import { setUser } from "../redux/auth/authSlice";
 import { setMaintenanceStatus } from "../utils/maintenanceSignal";
 import { addSentryBreadcrumb, captureApiError } from "../observability/sentry";
+import {
+  getTelemetryHeaders,
+  getTelemetryRequestContext,
+  recordEvent,
+} from "../telemetry";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL,
@@ -82,19 +87,62 @@ api.cachedGet = async (url, config = {}, cacheProfile = "NO_CACHE") => {
 api.clearGetCache = clearGetCaches;
 
 api.interceptors.request.use((config) => {
+  window.dispatchEvent(new CustomEvent("skillcase:telemetry:activity", { detail: { type: "api" } }));
   ensureAuthScopeFresh();
-  config.meta = { ...(config.meta || {}), startedAt: Date.now() };
+  const telemetryContext = getTelemetryRequestContext();
+  config.meta = {
+    ...(config.meta || {}),
+    startedAt: Date.now(),
+    telemetryContext,
+  };
+  config.headers = {
+    ...(config.headers || {}),
+    ...getTelemetryHeaders(telemetryContext),
+  };
 
   const token = store.getState().auth.token;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  recordEvent("api.request", {
+    domain: "api",
+    feature: config.url,
+    entity_type: "http_request",
+    entity_id: telemetryContext.interactionId,
+    lifecycle: "started",
+    attributes: {
+      method: (config.method || "get").toUpperCase(),
+      route: config.url,
+      cache_profile: config.meta?.cacheProfile || "NO_CACHE",
+      network_state: navigator.onLine ? "online" : "offline",
+    },
+  });
   return config;
 });
 
 api.interceptors.response.use(
   (response) => {
     setMaintenanceStatus(false);
+    const durationMs = response?.config?.meta?.startedAt
+      ? Date.now() - response.config.meta.startedAt
+      : null;
+    recordEvent("api.request", {
+      domain: "api",
+      feature: response?.config?.url,
+      entity_type: "http_request",
+      entity_id: response?.config?.meta?.telemetryContext?.interactionId,
+      trace_id: response?.headers?.["x-request-id"] || null,
+      lifecycle: "succeeded",
+      elapsed_ms: Number.isFinite(durationMs) ? durationMs : null,
+      outcome: String(response?.status || 200),
+      attributes: {
+        method: (response?.config?.method || "get").toUpperCase(),
+        route: response?.config?.url,
+        status_code: response?.status || 200,
+        request_id: response?.headers?.["x-request-id"] || null,
+        cache_profile: response?.config?.meta?.cacheProfile || "NO_CACHE",
+      },
+    });
     return response;
   },
   (error) => {
@@ -105,6 +153,38 @@ api.interceptors.response.use(
     const durationMs = error?.config?.meta?.startedAt
       ? Date.now() - error.config.meta.startedAt
       : null;
+
+    recordEvent("api.request", {
+      domain: "api",
+      feature: requestUrl,
+      entity_type: "http_request",
+      entity_id: error?.config?.meta?.telemetryContext?.interactionId,
+      trace_id:
+        error?.response?.headers?.["x-request-id"] ||
+        error?.response?.headers?.["x-amzn-requestid"] ||
+        null,
+      lifecycle:
+        error?.code === "ERR_CANCELED" ? "cancelled" : "failed",
+      elapsed_ms: Number.isFinite(durationMs) ? durationMs : null,
+      outcome: String(statusCode || "network_error"),
+      reason_code:
+        error?.code === "ERR_CANCELED"
+          ? "request_cancelled"
+          : statusCode
+            ? `http_${statusCode}`
+            : "network_error",
+      attributes: {
+        method,
+        route: requestUrl,
+        status_code: statusCode || 0,
+        request_id:
+          error?.response?.headers?.["x-request-id"] ||
+          error?.response?.headers?.["x-amzn-requestid"] ||
+          null,
+        cache_profile: cacheProfile,
+        network_state: navigator.onLine ? "online" : "offline",
+      },
+    });
 
     if (statusCode === 503) {
       setMaintenanceStatus(true);

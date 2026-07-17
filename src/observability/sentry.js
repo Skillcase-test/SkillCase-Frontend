@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/react";
 import { Capacitor } from "@capacitor/core";
 import { APP_VERSION } from "../config/appVersion";
+import { captureTelemetryError } from "../telemetry";
 
 const SENSITIVE_KEY_PATTERN =
   /token|authorization|cookie|password|otp|phone|email|secret|session|bearer/i;
@@ -122,11 +123,23 @@ export function addSentryBreadcrumb({ category, message, data, level = "info" })
 }
 
 export function captureApiError(error, context = {}) {
-  if (!shouldEnableSentry()) return;
   const status = error?.response?.status ?? 0;
   const method = (error?.config?.method || "get").toUpperCase();
   const urlPath = sanitizeUrlPath(error?.config?.url || "unknown");
   const endpointGroup = urlPath.split("/").filter(Boolean).slice(0, 2).join("/") || "unknown";
+
+  captureTelemetryError(error, {
+    domain: "api",
+    feature: urlPath,
+    handled: true,
+    reason_code: status ? `http_${status}` : error?.code || "network_error",
+    request_id:
+      error?.response?.headers?.["x-request-id"] ||
+      error?.response?.headers?.["x-amzn-requestid"] ||
+      null,
+  });
+
+  if (!shouldEnableSentry()) return;
 
   Sentry.withScope((scope) => {
     scope.setTag("feature_area", context.featureArea || "api");
@@ -158,6 +171,12 @@ export function captureApiError(error, context = {}) {
 }
 
 export function captureFeatureError(error, context = {}) {
+  captureTelemetryError(error, {
+    domain: context.featureArea || "app",
+    feature: window.location?.pathname,
+    handled: true,
+    reason_code: context.tags?.action || error?.code || "feature_error",
+  });
   if (!shouldEnableSentry()) return;
   Sentry.withScope((scope) => {
     scope.setTag("feature_area", context.featureArea || "app");

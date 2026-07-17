@@ -23,6 +23,7 @@ import InterviewVideoPlayer from "./shared/InterviewVideoPlayer";
 import useInterviewRecorder from "./shared/useInterviewRecorder";
 import { uploadFileToSignedUrl } from "./shared/uploadFileToSignedUrl";
 import mayaShocked from "../../assets/onboarding/mayaShocked.webp";
+import { captureTelemetryError, recordEvent } from "../../telemetry";
 
 function getStorageKey(slug) {
   return `interview-tool-session:${slug}`;
@@ -206,7 +207,20 @@ export default function JobScreeningInterviewPage() {
   // can always read the current values without being a dependency.
   useEffect(() => {
     stageRef.current = stage;
-  }, [stage]);
+    recordEvent("job_screening.interview.stage_changed", {
+      domain: "job_screening",
+      feature: "interview",
+      entity_type: "interview_stage",
+      entity_id: stage,
+      lifecycle: "observed",
+      attributes: {
+        position_id: position?.position_id,
+        submission_id: submission?.submission_id,
+        question_index: activeQuestionIndex,
+        step_id: "interview_attempt",
+      },
+    });
+  }, [activeQuestionIndex, position?.position_id, stage, submission?.submission_id]);
   useEffect(() => {
     submissionRef.current = submission;
   }, [submission]);
@@ -220,6 +234,12 @@ export default function JobScreeningInterviewPage() {
       setStatusMessage("");
     } catch (error) {
       console.error(error);
+      captureTelemetryError(error, {
+        domain: "job_screening",
+        feature: "interview.permission",
+        handled: true,
+        reason_code: "media_permission_failed",
+      });
       setStatusMessage(
         "Microphone is not capturing audio. Please allow camera and mic access, then try again.",
       );
@@ -424,6 +444,41 @@ export default function JobScreeningInterviewPage() {
 
   const questions = position?.questions || [];
   const activeQuestion = questions[activeQuestionIndex];
+
+  useEffect(() => {
+    if (!activeQuestion) return;
+    recordEvent("job_screening.interview.question_presented", {
+      domain: "job_screening",
+      feature: "interview.question",
+      entity_type: "interview_question",
+      entity_id: activeQuestion.question_id,
+      item_index: activeQuestionIndex,
+      display_position: activeQuestionIndex + 1,
+      total_items: questions.length,
+      lifecycle: "observed",
+      attributes: {
+        position_id: position?.position_id,
+        submission_id: submission?.submission_id,
+        question_id: activeQuestion.question_id,
+        question_index: activeQuestionIndex,
+        total_questions: questions.length,
+        step_id: "interview_attempt",
+      },
+    });
+  }, [activeQuestion, activeQuestionIndex, position?.position_id, questions.length, submission?.submission_id]);
+
+  useEffect(() => {
+    if (!recorderError) return;
+    captureTelemetryError(
+      recorderError instanceof Error ? recorderError : new Error(String(recorderError)),
+      {
+        domain: "job_screening",
+        feature: "interview.recording",
+        handled: true,
+        reason_code: "recorder_error",
+      },
+    );
+  }, [recorderError]);
   const farewellExists = Boolean(position?.farewell_video_url);
   const canRetake =
     retakesUsed < Number(position?.allowed_retakes || 0) && !!recordedBlob;

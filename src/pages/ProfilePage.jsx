@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { setUser } from "../redux/auth/authSlice";
 import api from "../api/axios";
 import JobScreeningProfilePage from "./jobScreening/JobScreeningProfilePage";
+import { trackFeatureEvent } from "../telemetry/events";
 import { Send, Eye, BookmarkCheck, CalendarCheck2, Clock, Check, X } from "lucide-react";
 import mayaSad from "../assets/onboarding/mayaSad.webp";
 
@@ -84,12 +85,15 @@ export default function ProfilePage() {
   const aliveRef = useRef(true);
 
   const handleDisableAutopay = async () => {
+    trackFeatureEvent("profile", "autopay_disable_started", { lifecycle: "started" });
     setCancelling(true);
     try {
       const res = await api.post("/user/disable-autopay");
       dispatch(setUser(res.data.user));
       showToast("Subscription cancelled successfully", "success");
+      trackFeatureEvent("profile", "autopay_disabled", { lifecycle: "succeeded" });
     } catch (err) {
+      trackFeatureEvent("profile", "autopay_disable_failed", { lifecycle: "failed", reasonCode: "api_failed" });
       console.error(err);
       showToast(
         err.response?.data?.msg || "Failed to cancel subscription",
@@ -132,7 +136,9 @@ export default function ProfilePage() {
       setPhoneNumber(p.number || "");
       setCountryCode(p.countrycode || "+91");
       setProfileStatus(p.status || 0);
+      trackFeatureEvent("profile", "loaded", { lifecycle: "succeeded", attributes: { status: String(p.status || 0) } });
     } catch (err) {
+      trackFeatureEvent("profile", "load_failed", { lifecycle: "failed", reasonCode: "api_failed" });
       if (aliveRef.current) {
         console.error("Error fetching profile:", err);
         showToast("Failed to load profile", "error");
@@ -149,7 +155,9 @@ export default function ProfilePage() {
       const res = await api.get("/user/recruitment-status");
       if (!aliveRef.current) return;
       setRecruitmentStatus(res?.data?.data || null);
+      trackFeatureEvent("profile", "recruitment_status_loaded", { lifecycle: "succeeded" });
     } catch (err) {
+      trackFeatureEvent("profile", "recruitment_status_failed", { lifecycle: "failed", reasonCode: "api_failed" });
       if (!aliveRef.current) return;
       setRecruitmentError(
         err?.response?.data?.msg || "Could not load recruitment status",
@@ -177,17 +185,20 @@ export default function ProfilePage() {
     e.preventDefault();
 
     if (!form.fullname.trim()) {
+      trackFeatureEvent("profile", "validation_blocked", { reasonCode: "fullname_required", attributes: { validation_code: "fullname_required" } });
       showToast("Full name is required", "error");
       return;
     }
 
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      trackFeatureEvent("profile", "validation_blocked", { reasonCode: "email_invalid", attributes: { validation_code: "email_invalid" } });
       showToast("Please enter a valid email address", "error");
       return;
     }
 
     try {
       setSaving(true);
+      trackFeatureEvent("profile", "save_started", { lifecycle: "started" });
       const res = await api.put("/user/profile", form);
       const updatedProfile = res.data.profile;
       setProfileStatus(updatedProfile.status || 0);
@@ -202,7 +213,9 @@ export default function ProfilePage() {
       );
 
       showToast("Profile updated successfully", "success");
+      trackFeatureEvent("profile", "saved", { lifecycle: "succeeded" });
     } catch (err) {
+      trackFeatureEvent("profile", "save_failed", { lifecycle: "failed", reasonCode: "api_failed" });
       const errMsg = err.response?.data?.msg || "Failed to update profile";
       showToast(errMsg, "error");
     } finally {
@@ -216,6 +229,7 @@ export default function ProfilePage() {
 
     // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
+      trackFeatureEvent("profile", "photo_validation_blocked", { reasonCode: "size_limit", attributes: { validation_code: "size_limit", asset_type: "profile_photo" } });
       showToast("Image must be less than 5MB", "error");
       return;
     }
@@ -225,6 +239,7 @@ export default function ProfilePage() {
 
     try {
       setUploading(true);
+      trackFeatureEvent("profile", "photo_upload_started", { lifecycle: "started", attributes: { asset_type: "profile_photo" } });
       const res = await api.post("/upload/user-profile-photo", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -234,8 +249,10 @@ export default function ProfilePage() {
         // Update Redux so navbar updates immediately
         dispatch(setUser({ ...user, profile_pic_url: res.data.url }));
         showToast("Profile photo updated", "success");
+        trackFeatureEvent("profile", "photo_uploaded", { lifecycle: "succeeded", attributes: { asset_type: "profile_photo" } });
       }
     } catch (err) {
+      trackFeatureEvent("profile", "photo_upload_failed", { lifecycle: "failed", reasonCode: "api_failed", attributes: { asset_type: "profile_photo" } });
       showToast("Failed to upload photo", "error");
     } finally {
       setUploading(false);

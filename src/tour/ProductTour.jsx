@@ -8,6 +8,7 @@ import { setOnboardingComplete } from "../redux/auth/authSlice";
 import api from "../api/axios";
 import { getA1MigrationStatus } from "../api/a1Api";
 import { TourContext } from "./TourContext";
+import { trackFlowAction, useTourJourney } from "../telemetry/flow";
 import {
   TOUR_PAGES,
   getLandingSteps,
@@ -41,6 +42,8 @@ export default function ProductTour({ children }) {
   const [migrationLoading, setMigrationLoading] = useState(false);
   const isA1 = user?.user_prof_level?.toLowerCase() === "a1";
   const canRunLegacyTour = !isA1 || a1MigrationStatus === "legacy_acknowledged";
+  const legacyTourEnabled = Boolean(user && user.onboarding_completed === false && tourPage && canRunLegacyTour);
+  useTourJourney({ enabled: legacyTourEnabled, tourId: "legacy_product_tour", phase: tourPage, tourVersion: "1" });
 
   useEffect(() => {
     if (!user?.user_id || !isA1) {
@@ -126,16 +129,19 @@ export default function ProductTour({ children }) {
     setShowContinueBtn(false);
     try {
       await api.post("/user/complete-onboarding");
+      trackFlowAction("tour", "legacy_product_tour", "tour_completed", { lifecycle: "succeeded", phase: tourPage, tourVersion: "1" });
       dispatch(setOnboardingComplete());
     } catch (err) {
+      trackFlowAction("tour", "legacy_product_tour", "tour_completion_failed", { lifecycle: "failed", phase: tourPage, tourVersion: "1" });
       console.error("Error completing tour:", err);
       dispatch(setOnboardingComplete());
     }
-  }, [dispatch]);
+  }, [dispatch, tourPage]);
 
   const skipTour = useCallback(() => {
+    trackFlowAction("tour", "legacy_product_tour", "tour_skipped", { phase: tourPage, tourVersion: "1" });
     completeTour();
-  }, [completeTour]);
+  }, [completeTour, tourPage]);
 
   // Start tour based on current page
   useEffect(() => {
@@ -312,6 +318,7 @@ export default function ProductTour({ children }) {
             }
           },
           onCloseClick: () => {
+            trackFlowAction("tour", "legacy_product_tour", "tour_closed", { phase: tourPage, tourVersion: "1" });
             isSkippingRef.current = true;
             completeTour();
           },
@@ -326,6 +333,7 @@ export default function ProductTour({ children }) {
             }
           },
           onNextClick: () => {
+            trackFlowAction("tour", "legacy_product_tour", "step_advanced", { phase: tourPage, tourVersion: "1" });
             if (driverRef.current && driverRef.current.hasNextStep()) {
               driverRef.current.moveNext();
             } else if (driverRef.current) {

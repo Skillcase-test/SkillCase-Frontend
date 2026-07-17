@@ -5,6 +5,7 @@ import { ChevronLeft, Loader2, Volume2 } from "lucide-react";
 import { getB1ReadingContent, submitB1ReadingQuiz } from "../../../api/b1Api";
 import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
 import toast, { Toaster } from "react-hot-toast";
+import { trackLearningEvent } from "../../../telemetry/events";
 
 export default function NewsArticleReader() {
   const { contentId } = useParams();
@@ -92,6 +93,19 @@ export default function NewsArticleReader() {
     }
   }, [content, reviewMode, reviewAnswers]);
 
+  useEffect(() => {
+    if (!content) return undefined;
+    const startedAt = performance.now();
+    trackLearningEvent("content_presented", {
+      level: "B1", module: "reading", contentId, entityId: contentId,
+      chapterId: content.chapter_id, total: content.questions?.length,
+    });
+    return () => trackLearningEvent("content_left", {
+      level: "B1", module: "reading", contentId, entityId: contentId,
+      chapterId: content.chapter_id, activeMs: Math.round(performance.now() - startedAt),
+    });
+  }, [content, contentId]);
+
   const handleVocabClick = (word) => {
     const cleanWord = word.replace(/[.,!?;:]/g, "").toLowerCase();
     const vocab = content?.vocabulary?.find(
@@ -99,6 +113,9 @@ export default function NewsArticleReader() {
     );
     if (vocab) {
       setSelectedVocab(vocab);
+      trackLearningEvent("vocabulary_opened", {
+        level: "B1", module: "reading", contentId, entityId: contentId,
+      });
     }
   };
 
@@ -131,6 +148,10 @@ export default function NewsArticleReader() {
     if (reviewMode) return; // Cannot modify answers in review mode
     const q = content?.questions?.[qIdx];
     const qType = q?.type || "mcq_single";
+    trackLearningEvent("answer_selected", {
+      level: "B1", module: "reading", contentId, questionId: q?.id,
+      index: qIdx, total: content?.questions?.length, questionType: qType,
+    });
 
     if (qType === "mcq_multi") {
       const currentSelection = Array.isArray(answers[qIdx])
@@ -152,6 +173,10 @@ export default function NewsArticleReader() {
   };
 
   const handleListen = () => {
+    trackLearningEvent(isSpeaking ? "audio_stopped" : "audio_started", {
+      level: "B1", module: "reading", contentId, entityId: contentId,
+      mediaState: isSpeaking ? "stopped" : "playing",
+    });
     if (isSpeaking) {
       cancelSpeech();
     } else if (content?.content) {
@@ -275,6 +300,10 @@ export default function NewsArticleReader() {
   };
 
   const handleSubmit = async () => {
+    trackLearningEvent("quiz_submitted", {
+      level: "B1", module: "reading", contentId, entityId: contentId,
+      total: content?.questions?.length, lifecycle: "started",
+    });
     if (reviewMode) {
       navigate(`/b1/read-listen/list/${content?.module}/${content?.chapter_id || "unassigned"}`);
       return;

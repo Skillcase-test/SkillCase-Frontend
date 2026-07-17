@@ -3,6 +3,8 @@ import { MicVAD, utils as vadUtils } from "@ricky0123/vad-web";
 import ortWasmMjsUrl from "../assets/vad/ort-wasm-simd-threaded.mjs?url";
 import ortWasmUrl from "../assets/vad/ort-wasm-simd-threaded.wasm?url";
 import api from "../api/axios";
+import { captureTelemetryError } from "../telemetry";
+import { trackFeatureEvent } from "../telemetry/events";
 
 const VAD_ASSET_PATH = "/vad/";
 const MAX_MANUAL_RECORDING_MS = 30000;
@@ -514,6 +516,10 @@ export default function useB1MayaVAD() {
     setCallState("thinking");
     setVadStatus("processing");
     await pauseVad();
+    trackFeatureEvent("maya", "turn_processing", {
+      entityType: "maya_session", entityId: sessionIdRef.current, lifecycle: "started",
+      attributes: { mode: isManualModeRef.current ? "push_to_talk" : "vad" },
+    });
 
     try {
       mayaDebug("upload starting", {
@@ -542,6 +548,10 @@ export default function useB1MayaVAD() {
       });
 
       if (data.success) {
+        trackFeatureEvent("maya", "turn_processed", {
+          entityType: "maya_session", entityId: sessionIdRef.current, lifecycle: "succeeded",
+          attributes: { mode: isManualModeRef.current ? "push_to_talk" : "vad" },
+        });
         const heard = data.heard?.display || data.userTranscript || "";
         setHeardTranscript(heard);
         setPendingUserTranscript("");
@@ -573,6 +583,10 @@ export default function useB1MayaVAD() {
 
         await playBase64Audio(data.maya?.audioBase64 || data.audioBase64);
       } else {
+        trackFeatureEvent("maya", "turn_processed", {
+          entityType: "maya_session", entityId: sessionIdRef.current, lifecycle: "failed",
+          reasonCode: data.needsRetry ? "retry_required" : "response_unsuccessful",
+        });
         if (callStateRef.current !== "ending" && callStateRef.current !== "ended") {
           setCallState("active");
           setVadStatus("listening");
@@ -581,6 +595,7 @@ export default function useB1MayaVAD() {
       }
     } catch (err) {
       console.error("[B1Maya] respond error:", err);
+      captureTelemetryError(err, { feature: "b1.maya.turn", handled: true });
       if (callStateRef.current !== "ending" && callStateRef.current !== "ended") {
         setError("Maya konnte diese Antwort nicht verarbeiten. Bitte versuche es noch einmal.");
         setCallState("active");
@@ -605,6 +620,9 @@ export default function useB1MayaVAD() {
     setCallState("thinking");
     setVadStatus("processing");
     await pauseVad();
+    trackFeatureEvent("maya", "topic_selected", {
+      entityType: "maya_session", entityId: sessionIdRef.current, lifecycle: "started",
+    });
 
     setChatHistory((prev) => {
       const next = [...prev];
@@ -630,6 +648,9 @@ export default function useB1MayaVAD() {
       });
 
       if (data.success) {
+        trackFeatureEvent("maya", "topic_started", {
+          entityType: "maya_session", entityId: sessionIdRef.current, lifecycle: "succeeded",
+        });
         setHeardTranscript(topicName);
         setPendingUserTranscript("");
         setLiveTranscript("");
@@ -658,6 +679,7 @@ export default function useB1MayaVAD() {
       }
     } catch (err) {
       console.error("[B1Maya] selectTopic error:", err);
+      captureTelemetryError(err, { feature: "b1.maya.topic", handled: true });
       if (callStateRef.current !== "ending" && callStateRef.current !== "ended") {
         setError("Maya konnte das Thema nicht laden. Bitte versuche es noch einmal.");
         setCallState("active");
@@ -759,6 +781,7 @@ export default function useB1MayaVAD() {
   }, [armVad, discardVadTurnRecording, startLiveTranscription, startVadTurnRecording, stopLiveTranscription, stopVadTurnRecording, uploadAndRespond]);
 
   const startCall = useCallback(async () => {
+    trackFeatureEvent("maya", "call_started", { lifecycle: "started" });
     // 1. Synchronously trigger getUserMedia inside user click gesture tick to prevent Webkit/iOS/Safari blocks
     let permissionStream = null;
     try {
@@ -778,6 +801,10 @@ export default function useB1MayaVAD() {
         console.error("[B1Maya] microphone permission request failed:", innerErr);
         setError("Microphone permission denied. Please allow access in settings.");
         setCallState("idle");
+        trackFeatureEvent("maya", "microphone_permission", {
+          lifecycle: "failed", reasonCode: "permission_denied", attributes: { permission: "denied" },
+        });
+        captureTelemetryError(innerErr, { feature: "b1.maya.microphone", handled: true });
         return;
       }
     }
@@ -815,6 +842,10 @@ export default function useB1MayaVAD() {
       if (!res.data?.success) throw new Error("Maya session did not start");
 
       sessionIdRef.current = res.data.sessionId;
+      trackFeatureEvent("maya", "call_connected", {
+        entityType: "maya_session", entityId: sessionIdRef.current, lifecycle: "succeeded",
+        attributes: { permission: "granted" },
+      });
       callDurationIntervalRef.current = setInterval(() => {
         setCallDuration((prev) => prev + 1);
       }, 1000);
@@ -833,10 +864,16 @@ export default function useB1MayaVAD() {
       }
       await cleanup();
       setCallState("idle");
+      trackFeatureEvent("maya", "call_failed", { lifecycle: "failed", reasonCode: "startup_failed" });
+      captureTelemetryError(err, { feature: "b1.maya.start", handled: true });
     }
   }, [cleanup, createVad, playBase64Audio]);
 
   const endCall = useCallback(async () => {
+    trackFeatureEvent("maya", "call_ended", {
+      entityType: "maya_session", entityId: sessionIdRef.current,
+      elapsedMs: callDuration * 1000, lifecycle: "started",
+    });
     setCallState("ending");
     stopLiveTranscription();
     await pauseVad();
@@ -847,8 +884,13 @@ export default function useB1MayaVAD() {
           durationSeconds: callDuration,
         });
         if (res.data?.success) setSessionReport(res.data);
+        if (res.data?.success) trackFeatureEvent("maya", "call_reported", {
+          entityType: "maya_session", entityId: sessionIdRef.current,
+          elapsedMs: callDuration * 1000, lifecycle: "succeeded",
+        });
       } catch (err) {
         console.error("[B1Maya] end failed:", err);
+        captureTelemetryError(err, { feature: "b1.maya.end", handled: true });
       }
     }
     await cleanup();
@@ -859,6 +901,10 @@ export default function useB1MayaVAD() {
     const nextMuted = !isMutedRef.current;
     isMutedRef.current = nextMuted;
     setIsMuted(nextMuted);
+    trackFeatureEvent("maya", "mute_changed", {
+      entityType: "maya_session", entityId: sessionIdRef.current,
+      attributes: { media_state: nextMuted ? "muted" : "unmuted" },
+    });
 
     if (nextMuted) {
       await pauseVad();
@@ -876,6 +922,10 @@ export default function useB1MayaVAD() {
     const next = typeof value === "function" ? value(isManualModeRef.current) : value;
     isManualModeRef.current = Boolean(next);
     setIsManualModeState(Boolean(next));
+    trackFeatureEvent("maya", "input_mode_changed", {
+      entityType: "maya_session", entityId: sessionIdRef.current,
+      attributes: { mode: next ? "push_to_talk" : "vad" },
+    });
     cleanupManualRecorder(true);
     if (next) {
       await pauseVad();

@@ -45,6 +45,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import { useFlashcardTelemetry } from "../../../telemetry/learning";
 
 // DnD Word Component
 function WordItem({ word, isDragging, isOverlay }) {
@@ -481,6 +482,17 @@ export default function B1Flashcard() {
     useTextToSpeech();
   const totalCards = flashcardSet.length;
   const chapterName = searchParams.get("name") || "Chapter";
+  const recordFlashcardNavigation = useFlashcardTelemetry({
+    level: "B1",
+    chapterId,
+    setId,
+    currentCard,
+    totalCards,
+    cardId:
+      flashcardSet[currentCard]?.id || flashcardSet[currentCard]?.card_id || null,
+    isFlipped,
+    loading,
+  });
 
   useEffect(() => {
     const justFlipped = isFlipped && !prevIsFlipped.current;
@@ -585,6 +597,12 @@ export default function B1Flashcard() {
     if (!dragStart) return;
     if (Math.abs(dragOffset) > 80) {
       if (dragOffset > 0 && currentCard > 0) {
+        recordFlashcardNavigation({
+          fromIndex: currentCard,
+          toIndex: currentCard - 1,
+          inputMethod: "swipe",
+          direction: "previous",
+        });
         setSwipeDirection("right");
         setTimeout(() => {
           setCurrentCard(currentCard - 1);
@@ -599,6 +617,12 @@ export default function B1Flashcard() {
           setShowTestPrompt(true);
           setDragOffset(0);
         } else if (currentCard < totalCards - 1) {
+          recordFlashcardNavigation({
+            fromIndex: currentCard,
+            toIndex: nextIndex,
+            inputMethod: "swipe",
+            direction: "next",
+          });
           setSwipeDirection("left");
           setTimeout(() => {
             setCurrentCard(nextIndex);
@@ -637,6 +661,12 @@ export default function B1Flashcard() {
     if (shouldShowTest(nextIndex)) {
       setShowTestPrompt(true);
     } else if (currentCard < totalCards - 1) {
+      recordFlashcardNavigation({
+        fromIndex: currentCard,
+        toIndex: nextIndex,
+        inputMethod: "button",
+        direction: "next",
+      });
       setSwipeDirection("left");
       setTimeout(() => {
         setCurrentCard(nextIndex);
@@ -655,6 +685,12 @@ export default function B1Flashcard() {
       setShowTestPrompt(false);
       setIsFlipped(false);
     } else if (currentCard > 0) {
+      recordFlashcardNavigation({
+        fromIndex: currentCard,
+        toIndex: currentCard - 1,
+        inputMethod: "button",
+        direction: "previous",
+      });
       setSwipeDirection("right");
       setTimeout(() => {
         setCurrentCard(currentCard - 1);

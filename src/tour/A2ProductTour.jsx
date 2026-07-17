@@ -7,6 +7,7 @@ import { useLocation } from "react-router-dom";
 import { setA2OnboardingComplete } from "../redux/auth/authSlice";
 import api from "../api/axios";
 import { A2TourContext } from "./A2TourContext";
+import { trackFlowAction, useTourJourney } from "../telemetry/flow";
 import {
   getA2LandingSteps,
   getA2FlashcardSelectSteps,
@@ -126,6 +127,7 @@ export default function A2ProductTour({ children }) {
 
   const isA2 = user?.user_prof_level?.toLowerCase() === "a2";
   const isDone = user?.a2_onboarding_completed === true;
+  useTourJourney({ enabled: Boolean(isA2 && !isDone && activeFeature), tourId: "a2_product_tour", phase: activePhase || activeFeature, tourVersion: "1" });
 
   // Keep ref in sync for event handlers
   useEffect(() => {
@@ -164,6 +166,7 @@ export default function A2ProductTour({ children }) {
   }, []);
 
   const skipEntireTour = useCallback(() => {
+    trackFlowAction("tour", "a2_product_tour", "tour_skipped", { phase: activePhase || activeFeature, tourVersion: "1" });
     destroyDriver();
     const allDone = Object.fromEntries(ALL_PHASES.map((p) => [p, true]));
     localStorage.setItem(A2_TOUR_STATE_KEY, JSON.stringify(allDone));
@@ -173,7 +176,7 @@ export default function A2ProductTour({ children }) {
     phaseLabelRef.current = null;
     setActiveFeature(null);
     setActivePhase(null);
-  }, [destroyDriver, dispatch]);
+  }, [destroyDriver, dispatch, activePhase, activeFeature]);
 
   /** Start a driver.js tour with given steps */
   const startDriver = useCallback(

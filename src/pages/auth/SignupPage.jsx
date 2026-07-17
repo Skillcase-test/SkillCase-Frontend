@@ -13,7 +13,7 @@ import { hapticMedium } from "../../utils/haptics";
 import { Capacitor } from "@capacitor/core";
 import { FirebaseAnalytics } from "@capacitor-firebase/analytics";
 
-import { usePostHog } from "@posthog/react";
+import { useFirstPartyAnalytics } from "../../telemetry/legacyAnalytics";
 
 import OtpInput from "./components/OtpInput";
 import CustomDropdown from "./components/CustomDropdown";
@@ -33,7 +33,7 @@ const SignupPage = () => {
   const phoneInputRef = useRef(null);
   const itiRef = useRef(null);
   const location = useLocation();
-  const posthog = usePostHog();
+  const analytics = useFirstPartyAnalytics();
 
   // If already logged in, redirect to home
   useEffect(() => {
@@ -177,7 +177,7 @@ const SignupPage = () => {
       });
 
       if (response.data.status === "sendotp") {
-        posthog?.capture('otp_requested', { type: 'signup' });
+        analytics?.capture('otp_requested', { type: 'signup' });
         setShowOtp(true);
         setTimer(90);
         setCanResend(false);
@@ -216,7 +216,7 @@ const SignupPage = () => {
       });
 
       if (response.data.status === "success") {
-        posthog?.capture('otp_verified', { type: 'signup' });
+        analytics?.capture('otp_verified', { type: 'signup' });
         setCurrentStep(2);
         setError("");
       } else if (response.data.status === "expired") {
@@ -323,7 +323,7 @@ const SignupPage = () => {
             user: response.data.user,
           }),
         );
-        posthog?.identify(String(response.data.user.user_id), {
+        analytics?.identify(String(response.data.user.user_id), {
           name: formData.fullname,
           email: formData.email,
           phone: savedPhone,
@@ -332,7 +332,7 @@ const SignupPage = () => {
           experience: formData.experience,
           signup_source: Capacitor.isNativePlatform() ? "app" : "web",
         });
-        posthog?.capture('user_signed_up', {
+        analytics?.capture('user_signed_up', {
           qualification: formData.qualification,
           language_level: formData.language_level,
           experience: formData.experience,

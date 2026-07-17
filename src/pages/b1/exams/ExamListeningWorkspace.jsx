@@ -16,6 +16,7 @@ import {
   startB1ExamSubmission,
 } from "../../../api/b1Api";
 import { images } from "../../../assets/images";
+import { useQuestionPositionTelemetry } from "../../../telemetry/learning";
 
 export default function ExamListeningWorkspace() {
   const navigate = useNavigate();
@@ -39,6 +40,16 @@ export default function ExamListeningWorkspace() {
 
   const currentBlock = questions[currentBlockIndex] || null;
   const blockQuestions = currentBlock ? currentBlock.questions || [] : [];
+  useQuestionPositionTelemetry({
+    feature: "b1.exam.listening",
+    sectionType: "listening",
+    paperId,
+    submissionId: submission?.submission_id || submission?.id,
+    question: currentBlock,
+    currentIndex: currentBlockIndex,
+    totalQuestions: questions.length,
+    loading,
+  });
 
   // Section Timer state (seconds remaining)
   const [timeLeft, setTimeLeft] = useState(30 * 60); // Default 30 mins

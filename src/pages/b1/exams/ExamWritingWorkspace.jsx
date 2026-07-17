@@ -11,6 +11,7 @@ import {
 import OcrModal from "../describe-speak/components/OcrModal";
 import UmlautKeyboard from "../../../components/b1/UmlautKeyboard";
 import toast, { Toaster } from "react-hot-toast";
+import { useQuestionPositionTelemetry } from "../../../telemetry/learning";
 
 export default function ExamWritingWorkspace() {
   const navigate = useNavigate();
@@ -248,6 +249,18 @@ export default function ExamWritingWorkspace() {
     return "bg-red-100 border-red-500/20 text-red-500";
   };
 
+  const currentBlock = questions[currentBlockIndex];
+  useQuestionPositionTelemetry({
+    feature: "b1.exam.writing",
+    sectionType: "writing",
+    paperId,
+    submissionId: submission?.submission_id || submission?.id,
+    question: currentBlock,
+    currentIndex: currentBlockIndex,
+    totalQuestions: questions.length,
+    loading,
+  });
+
   if (loading) {
     return (
       <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen flex items-center justify-center bg-white">
@@ -273,7 +286,6 @@ export default function ExamWritingWorkspace() {
     );
   }
 
-  const currentBlock = questions[currentBlockIndex];
   const isLastBlock = currentBlockIndex === questions.length - 1;
   const currentText = answers[currentBlock.id] || "";
   const wordLimit = currentBlock.questions?.[0]?.word_limit || 80;

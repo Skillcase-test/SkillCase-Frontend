@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { getProgress } from "../../../api/jobScreeningApi";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
+import { trackFlowAction } from "../../../telemetry/flow";
 
 const MeetingStep = ({ type, progress, onComplete, onBack }) => {
   const [loading, setLoading] = useState(false);
@@ -30,6 +31,8 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
   const isScheduled = !!slotTime || !!scheduleImage;
 
   const handleRefresh = async () => {
+    const step = isTraining ? "interview_training" : "recruiter_interview";
+    trackFlowAction("job_screening", step, "refresh", "started");
     try {
       setLoading(true);
       const { data } = await getProgress();
@@ -38,9 +41,13 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
           ? "interview_training"
           : "recruiter_interview";
         const hasStepChanged = data.data?.current_step_id !== currentStepId;
+        trackFlowAction("job_screening", step, "refresh", "success", { state: hasStepChanged ? "changed" : isScheduled ? "scheduled" : "pending" });
         onComplete(data.data, hasStepChanged);
+      } else {
+        trackFlowAction("job_screening", step, "refresh", "failed");
       }
     } catch (err) {
+      trackFlowAction("job_screening", step, "refresh", "failed");
       console.error(err);
     } finally {
       setLoading(false);
@@ -84,6 +91,7 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
 
   const handleAddToCalendar = () => {
     if (!slotTime) return;
+    trackFlowAction("job_screening", isTraining ? "interview_training" : "recruiter_interview", "calendar_add", "success");
     const start = new Date(slotTime);
     const end = new Date(start.getTime() + 60 * 60 * 1000);
     const title = isTraining

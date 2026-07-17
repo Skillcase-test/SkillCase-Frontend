@@ -21,11 +21,11 @@ import {
 } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { toast } from "react-hot-toast";
-import { usePostHog } from "@posthog/react";
+import { useFirstPartyAnalytics } from "../telemetry/legacyAnalytics";
 
 const FlashcardStudyPage = () => {
   const { user } = useSelector((state) => state.auth);
-  const posthog = usePostHog();
+  const analytics = useFirstPartyAnalytics();
 
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -175,7 +175,7 @@ const FlashcardStudyPage = () => {
         }
         
         // Track started event
-        posthog?.capture('learning_module_started', {
+        analytics?.capture('learning_module_started', {
           module: 'Flashcards',
           set_id: set_id,
           set_name: set_name,
@@ -628,7 +628,7 @@ const FlashcardStudyPage = () => {
     });
 
     if (isFinalTest && passed) {
-      posthog?.capture('learning_module_completed', {
+      analytics?.capture('learning_module_completed', {
         module: 'Flashcards',
         set_id: set_id,
         set_name: set_name,

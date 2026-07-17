@@ -11,6 +11,7 @@ import api from "../../../api/axios";
 import { getLessonById, getLessonsList } from "../../../api/learnGermanApi";
 import { hapticLight, hapticMedium, hapticHeavy } from "../../../utils/haptics";
 import { trackAppAnalyticsEvent } from "../../../utils/appAnalytics";
+import { recordEvent } from "../../../telemetry";
 import { setClarityTag, trackClarityEvent } from "../../../observability/clarity";
 import { preloadMayaTTSText } from "./screens/shared/useMayaTTS";
 import {
@@ -593,6 +594,52 @@ export default function NewLessonFlow() {
     [screens, lessonData?.vocab_words],
   );
   const currentScreen = screens[screenIndex] || null;
+
+  useEffect(() => {
+    if (!chapterId || !currentScreen) return undefined;
+    const shownAt = performance.now();
+    recordEvent("learning.lesson.screen_presented", {
+      domain: "learning",
+      feature: "learn_german.lesson",
+      entity_type: "lesson_screen",
+      entity_id: currentScreen.id || `${chapterId}:${screenIndex}`,
+      item_index: screenIndex,
+      display_position: screenIndex + 1,
+      total_items: screens.length,
+      lifecycle: "observed",
+      attributes: {
+        level: lessonData?.proficiency_level,
+        module: "learn_german",
+        lesson_id: chapterId,
+        screen_id: currentScreen.id,
+        screen_index: screenIndex,
+        screen_type: currentScreen.type,
+        total_screens: screens.length,
+      },
+    });
+    return () => {
+      recordEvent("learning.lesson.screen_left", {
+        domain: "learning",
+        feature: "learn_german.lesson",
+        entity_type: "lesson_screen",
+        entity_id: currentScreen.id || `${chapterId}:${screenIndex}`,
+        item_index: screenIndex,
+        display_position: screenIndex + 1,
+        total_items: screens.length,
+        lifecycle: "observed",
+        active_ms: Math.max(0, Math.round(performance.now() - shownAt)),
+        attributes: {
+          level: lessonData?.proficiency_level,
+          module: "learn_german",
+          lesson_id: chapterId,
+          screen_id: currentScreen.id,
+          screen_index: screenIndex,
+          screen_type: currentScreen.type,
+          total_screens: screens.length,
+        },
+      });
+    };
+  }, [chapterId, currentScreen, lessonData?.proficiency_level, screenIndex, screens.length]);
 
   const trackQuizAnswer = useCallback(
     (isCorrect, screenType) =>

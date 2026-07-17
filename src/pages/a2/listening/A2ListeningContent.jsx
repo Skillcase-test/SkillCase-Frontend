@@ -44,7 +44,9 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import KaraokeSubtitles from "../../../components/a2/KaraokeSubtitles";
 import A2AudioPlayer from "../../../components/a2/A2AudioPlayer";
-import { usePostHog } from "@posthog/react";
+import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
+import { useLearningQuestionJourney } from "../../../telemetry/learning";
+import { trackLearningEvent } from "../../../telemetry/events";
 
 import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
@@ -355,7 +357,7 @@ function SentenceOrderingInline({
 export default function A2ListeningContent() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
-  const posthog = usePostHog();
+  const analytics = useFirstPartyAnalytics();
 
   const [content, setContent] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -412,6 +414,7 @@ export default function A2ListeningContent() {
   }, []);
 
   const currentItem = content[currentIndex];
+  useLearningQuestionJourney({ level: "A2", module: "listening", feature: "a2.listening", topicId: chapterId, question: currentItem, index: currentIndex, total: content.length, loading });
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -420,7 +423,7 @@ export default function A2ListeningContent() {
         const res = await getListeningContent(chapterId);
         const data = res?.data || res || [];
         setContent(Array.isArray(data) ? data : []);
-        posthog?.capture("learning_module_started", {
+        analytics?.capture("learning_module_started", {
           module: "A2 Listening",
           level: "A2",
           chapter_id: chapterId,
@@ -466,6 +469,7 @@ export default function A2ListeningContent() {
   }, [currentItem]);
 
   const togglePlay = () => {
+    trackLearningEvent("media.interacted", { level: "A2", module: "listening", chapterId, contentId: currentItem?.id, index: currentIndex, total: content.length, mediaState: isPlaying ? "paused" : "played", progressBucket: Math.floor((currentTime || 0) / 10) * 10 });
     if (audioRef.current) {
       isPlaying ? audioRef.current.pause() : audioRef.current.play();
       setIsPlaying(!isPlaying);
@@ -511,24 +515,26 @@ export default function A2ListeningContent() {
   };
 
   const handleAnswer = (qIndex, answer) => {
+    trackLearningEvent("answer.selected", { level: "A2", module: "listening", chapterId, contentId: currentItem?.id, questionId: currentItem?.questions?.[qIndex]?.id, index: qIndex, total: currentItem?.questions?.length });
     setAnswers({ ...answers, [qIndex]: answer });
   };
 
   const handleSubmit = async () => {
+    trackLearningEvent("module.submitted", { level: "A2", module: "listening", chapterId, contentId: currentItem?.id, index: currentIndex, total: content.length, lifecycle: "started" });
     setIsSubmitting(true);
     try {
       const res = await checkListeningAnswers({
         contentId: currentItem.id,
         answers: Object.values(answers),
       });
-      posthog?.capture("learning_module_submitted", {
+      analytics?.capture("learning_module_submitted", {
         module: "A2 Listening",
         level: "A2",
         chapter_id: chapterId,
         content_id: currentItem.id,
         question_count: currentItem.questions?.length || 0,
       });
-      posthog?.capture("listening_quiz_submitted", {
+      analytics?.capture("listening_quiz_submitted", {
         module: "A2 Listening",
         level: "A2",
         chapter_id: chapterId,
@@ -544,7 +550,7 @@ export default function A2ListeningContent() {
         isCompleted: true,
         score: res.data.score,
       });
-      posthog?.capture("learning_module_completed", {
+      analytics?.capture("learning_module_completed", {
         module: "A2 Listening",
         level: "A2",
         chapter_id: chapterId,
@@ -581,11 +587,13 @@ export default function A2ListeningContent() {
     }
   };
   const handleTryAgain = () => {
+    trackLearningEvent("module.retry", { level: "A2", module: "listening", chapterId, contentId: currentItem?.id, index: currentIndex, retryCount: 1 });
     setAnswers({});
     setShowAnswers(false);
     setResults(null);
   };
   const handleContinue = () => {
+    trackLearningEvent("content.navigation", { level: "A2", module: "listening", chapterId, contentId: currentItem?.id, index: currentIndex, total: content.length, direction: currentIndex < content.length - 1 ? "next" : "complete" });
     if (currentIndex < content.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setPhase("listen");

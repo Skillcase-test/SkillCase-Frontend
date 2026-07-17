@@ -57,6 +57,12 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="border-t border-[#7f56d9] pt-8">
+          <p className="text-xs text-[#d6bbfb] mb-4">
+            We use limited operational journey and error data to run, secure, and improve Skillcase. The system is designed to exclude lesson answers, typed content, recordings, documents, and contact details. See our{" "}
+            <a href="https://skillcase.in/privacy-policy" className="underline">
+              Privacy Policy
+            </a>.
+          </p>
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex flex-row items-center gap-2">
               <img src="/s.webp" alt="Skillcase" className="h-8" />

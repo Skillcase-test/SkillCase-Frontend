@@ -10,6 +10,7 @@ import {
   FileSearch,
 } from "lucide-react";
 import { uploadProfileDocs, getProgress } from "../../../api/jobScreeningApi";
+import { trackFlowAction } from "../../../telemetry/flow";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { motion } from "framer-motion";
 
@@ -35,11 +36,13 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
       file.type === "application/pdf" ||
       file.name.toLowerCase().endsWith(".pdf");
     if (!isPDF) {
+      trackFlowAction("job_screening", "job_screening_funnel", "credential_rejected", { step: "profile_completion", assetType: type, validationCode: "pdf_required" });
       setError("Only PDF files are supported");
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
+      trackFlowAction("job_screening", "job_screening_funnel", "credential_rejected", { step: "profile_completion", assetType: type, validationCode: "size_limit" });
       setError("File size must be under 10MB");
       return;
     }
@@ -50,9 +53,11 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
     } else {
       setSelectedCert(file);
     }
+    trackFlowAction("job_screening", "job_screening_funnel", "credential_selected", { step: "profile_completion", assetType: type });
   };
 
   const handleRemoveFile = (type) => {
+    trackFlowAction("job_screening", "job_screening_funnel", "credential_removed", { step: "profile_completion", assetType: type });
     if (type === "resume") {
       setSelectedResume(null);
       if (resumeInputRef.current) resumeInputRef.current.value = "";
@@ -64,11 +69,15 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
-    if (!selectedResume && !selectedCert) return;
+    if (!selectedResume && !selectedCert) {
+      trackFlowAction("job_screening", "job_screening_funnel", "validation_blocked", { step: "profile_completion", validationCode: "credential_required" });
+      return;
+    }
 
     try {
       setLoading(true);
       setError("");
+      trackFlowAction("job_screening", "job_screening_funnel", "credentials_upload_started", { step: "profile_completion", lifecycle: "started" });
 
       const formData = new FormData();
       if (selectedResume) {
@@ -80,11 +89,13 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
 
       const { data } = await uploadProfileDocs(formData);
       if (data?.success) {
+        trackFlowAction("job_screening", "job_screening_funnel", "credentials_uploaded", { step: "profile_completion", lifecycle: "succeeded" });
         onComplete(data.data, false);
       } else {
         setError("Failed to upload documents");
       }
     } catch (err) {
+      trackFlowAction("job_screening", "job_screening_funnel", "credentials_upload_failed", { step: "profile_completion", lifecycle: "failed", reasonCode: "api_failed" });
       console.error(err);
       setError(err.response?.data?.message || "Failed to upload files");
     } finally {
@@ -93,16 +104,19 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
   };
 
   const handleRefresh = async () => {
+    trackFlowAction("job_screening", "job_screening_funnel", "status_refresh_started", { step: "profile_completion", pollType: "manual", lifecycle: "started" });
     try {
       setRefreshing(true);
       setError("");
       const { data } = await getProgress();
       if (data?.success) {
+        trackFlowAction("job_screening", "job_screening_funnel", "status_refreshed", { step: "profile_completion", pollType: "manual", lifecycle: "succeeded" });
         onComplete(data.data, false);
       } else {
         setError("Failed to refresh status");
       }
     } catch (err) {
+      trackFlowAction("job_screening", "job_screening_funnel", "status_refresh_failed", { step: "profile_completion", pollType: "manual", lifecycle: "failed" });
       console.error(err);
       setError(err.response?.data?.message || "Failed to sync status");
     } finally {

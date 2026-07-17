@@ -1,4 +1,5 @@
 import { Capacitor } from "@capacitor/core";
+import { recordEvent } from "../telemetry";
 
 const CLARITY_READY_TIMEOUT_MS = 20_000;
 const CLARITY_READY_POLL_MS = 250;
@@ -65,9 +66,8 @@ function withClarityReady(call) {
 }
 
 /**
- * Identify the logged-in user so Clarity sessions are linked to a real user.
- * Also sets all custom tags used for filtering in the Clarity dashboard.
- * Call this any time the user object changes (login, logout, profile update).
+ * Configure coarse Clarity filters without sending an internal user ID, username,
+ * or friendly name. Named journeys belong only in the first-party telemetry store.
  */
 export function identifyUserInClarity(user) {
   if (!shouldEnableClarity()) return;
@@ -78,17 +78,7 @@ export function identifyUserInClarity(user) {
   }
 
   withClarityReady(() => {
-    // clarity("identify", userId, sessionId, pageId, friendlyName)
-    // sessionId and pageId left as null - Clarity auto-generates them.
-    window.clarity(
-      "identify",
-      String(user.user_id),
-      null,
-      null,
-      user.fullname || user.username || null,
-    );
-
-    // Custom tags - visible as filters in Recordings, Heatmaps, and Funnels.
+    // Coarse tags are visible as filters in Recordings, Heatmaps, and Funnels.
     window.clarity("set", "user_role", user.role || "user");
     window.clarity("set", "is_paid", String(Boolean(user.is_paid)));
     window.clarity("set", "prof_level", user.user_prof_level || "unknown");
@@ -130,6 +120,33 @@ export function setClarityTag(key, value) {
  * Keep payloads non-PII: use mode, level, step, lesson id/title, etc.
  */
 export function trackClarityEvent(eventName, tags = {}, upgradeReason = null) {
+  const normalizedName = String(eventName || "event").replace(/[^a-zA-Z0-9_.-]/g, "_");
+  const domain = normalizedName.includes("onboarding")
+    ? "onboarding"
+    : normalizedName.includes("lesson")
+      ? "learning"
+      : normalizedName.includes("mode")
+        ? "navigation"
+        : "clarity_mirror";
+  recordEvent(`first_party.${normalizedName}`, {
+    domain,
+    feature: window.location.pathname,
+    entity_type: domain === "onboarding" ? "flow_step" : "feature_event",
+    entity_id: tags.lg_onboarding_step || tags.lesson_id || tags.chapter_id || null,
+    attributes: {
+      flow_id: domain === "onboarding" ? "learner_onboarding" : undefined,
+      step: tags.lg_onboarding_step,
+      step_index: Number.isInteger(tags.lg_onboarding_step) ? tags.lg_onboarding_step - 1 : undefined,
+      level: tags.level || tags.prof_level,
+      module: tags.module,
+      chapter_id: tags.chapter_id,
+      lesson_id: tags.lesson_id,
+      mode: tags.mode || tags.lg_mode,
+      selection_code: tags.selection_code || tags.value,
+      branch: tags.branch,
+      legacy_event_name: normalizedName,
+    },
+  });
   withClarityReady(() => {
     Object.entries(tags || {}).forEach(([key, value]) => {
       if (value === undefined || value === null) return;

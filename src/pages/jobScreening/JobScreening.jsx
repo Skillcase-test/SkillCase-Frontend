@@ -30,6 +30,9 @@ import {
 import { toast } from "react-hot-toast";
 import mayaSmiling from "../../assets/onboarding/mayaSmiling.webp";
 import { setUser } from "../../redux/auth/authSlice";
+import { trackFeatureEvent } from "../../telemetry/events";
+import { captureTelemetryError } from "../../telemetry";
+import { trackFlowAction } from "../../telemetry/flow";
 
 const STEP_DESCRIPTIONS = {
   welcome: {
@@ -113,6 +116,17 @@ const JobScreening = () => {
   const activeStepContainerRef = useRef(null);
 
   useEffect(() => {
+    const stepId = progress?.current_step_id;
+    if (!stepId) return undefined;
+    const startedAt = performance.now();
+    trackFeatureEvent("job_screening", "step_presented", { entityType: "funnel_step", entityId: stepId, attributes: { stage: stepId } });
+    return () => trackFeatureEvent("job_screening", "step_left", {
+      entityType: "funnel_step", entityId: stepId,
+      activeMs: Math.round(performance.now() - startedAt), attributes: { stage: stepId },
+    });
+  }, [progress?.current_step_id]);
+
+  useEffect(() => {
     if (isExecutingStep && activeStepContainerRef.current) {
       activeStepContainerRef.current.scrollTo(0, 0);
     }
@@ -141,6 +155,7 @@ const JobScreening = () => {
       }
     } catch (err) {
       console.error("Error loading progress:", err);
+      captureTelemetryError(err, { feature: "job_screening.progress", handled: true });
       if (
         err.response?.status === 403 &&
         String(err.response?.data?.message || "")
@@ -227,6 +242,10 @@ const JobScreening = () => {
   const currentStepId = progress?.current_step_id || "welcome";
 
   const handleStepComplete = (updatedData, shouldExitStep = true) => {
+    trackFeatureEvent("job_screening", "step_completed", {
+      entityType: "funnel_step", entityId: executingStepId || progress?.current_step_id,
+      lifecycle: "succeeded", attributes: { stage: executingStepId || progress?.current_step_id },
+    });
     setProgress(updatedData);
     if (shouldExitStep) {
       setIsExecutingStep(false);
@@ -248,6 +267,10 @@ const JobScreening = () => {
     }
 
     const targetStepId = stepId || displayCurrentStepId;
+    trackFeatureEvent("job_screening", "step_started", {
+      entityType: "funnel_step", entityId: targetStepId,
+      lifecycle: "started", attributes: { stage: targetStepId },
+    });
     const clickedStep = steps.find((s) => s.id === targetStepId);
 
     if (clickedStep && clickedStep.status === "review") {
@@ -326,10 +349,12 @@ const JobScreening = () => {
   };
 
   const handlePaywallPayment = async () => {
+    trackFlowAction("job_screening", "paywall", "checkout", "started");
     try {
       setPaymentLoading(true);
       const scriptLoaded = await loadRazorpayScript();
       if (!scriptLoaded) {
+        trackFlowAction("job_screening", "paywall", "sdk_load", "failed");
         toast.error("Razorpay SDK failed to load. Are you online?");
         setPaymentLoading(false);
         return;
@@ -337,10 +362,12 @@ const JobScreening = () => {
 
       const { data } = await createPaywallOrder();
       if (!data || !data.success) {
+        trackFlowAction("job_screening", "paywall", "order_create", "failed");
         toast.error(data?.message || "Failed to initiate payment");
         setPaymentLoading(false);
         return;
       }
+      trackFlowAction("job_screening", "paywall", "order_create", "success");
 
       const options = {
         key: data.key_id,
@@ -359,15 +386,18 @@ const JobScreening = () => {
               razorpay_signature: response.razorpay_signature,
             });
             if (verifyRes.data?.success) {
+              trackFlowAction("job_screening", "paywall", "payment_verify", "success");
               toast.success("Payment successful!");
               const { data: progressRes } = await getProgress();
               if (progressRes?.success) {
                 setProgress(progressRes.data);
               }
             } else {
+              trackFlowAction("job_screening", "paywall", "payment_verify", "failed");
               toast.error("Payment verification failed");
             }
           } catch (err) {
+            trackFlowAction("job_screening", "paywall", "payment_verify", "failed");
             console.error("Verification error:", err);
             toast.error("Failed to verify payment");
           } finally {
@@ -384,14 +414,17 @@ const JobScreening = () => {
         },
         modal: {
           ondismiss: function () {
+            trackFlowAction("job_screening", "paywall", "checkout", "cancelled");
             setPaymentLoading(false);
           },
         },
       };
 
       const paymentObject = new window.Razorpay(options);
+      trackFlowAction("job_screening", "paywall", "checkout", "presented");
       paymentObject.open();
     } catch (err) {
+      trackFlowAction("job_screening", "paywall", "checkout", "failed");
       console.error("Payment initiation error:", err);
       toast.error(
         err.response?.data?.message || "An error occurred during checkout",

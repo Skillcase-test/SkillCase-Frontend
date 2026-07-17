@@ -27,7 +27,8 @@ import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
-import { usePostHog } from "@posthog/react";
+import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
+import { useFlashcardTelemetry } from "../../../telemetry/learning";
 
 const CustomDropdown = ({
   options,
@@ -141,7 +142,7 @@ export default function A1Flashcard() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  const posthog = usePostHog();
+  const analytics = useFirstPartyAnalytics();
 
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -185,6 +186,17 @@ export default function A1Flashcard() {
   const totalCards = flashcardSet.length;
   const chapterName = searchParams.get("name") || "Chapter";
   const isAtFinalCard = currentCard >= totalCards - 1;
+  const recordFlashcardNavigation = useFlashcardTelemetry({
+    level: "A1",
+    chapterId,
+    setId,
+    currentCard,
+    totalCards,
+    cardId:
+      flashcardSet[currentCard]?.id || flashcardSet[currentCard]?.card_id || null,
+    isFlipped,
+    loading,
+  });
 
   useEffect(() => {
     if (!user) {
@@ -200,7 +212,7 @@ export default function A1Flashcard() {
         const cards = data.cards || [];
         setFlashcardSet(cards);
         setSetId(data.setId || null);
-        posthog?.capture("learning_module_started", {
+        analytics?.capture("learning_module_started", {
           module: "A1 Flashcard",
           level: "A1",
           chapter_id: chapterId,
@@ -319,8 +331,15 @@ export default function A1Flashcard() {
     return false;
   };
 
-  const moveToNextCard = () => {
+  const moveToNextCard = (inputMethod = "swipe") => {
     if (currentCard >= totalCards - 1 || swipeDirection) return;
+
+    recordFlashcardNavigation({
+      fromIndex: currentCard,
+      toIndex: currentCard + 1,
+      inputMethod: typeof inputMethod === "string" ? inputMethod : "swipe",
+      direction: "next",
+    });
 
     setSwipeDirection("left");
     setTimeout(() => {
@@ -331,8 +350,15 @@ export default function A1Flashcard() {
     }, 250);
   };
 
-  const moveToPreviousCard = () => {
+  const moveToPreviousCard = (inputMethod = "swipe") => {
     if (currentCard <= 0 || swipeDirection) return;
+
+    recordFlashcardNavigation({
+      fromIndex: currentCard,
+      toIndex: currentCard - 1,
+      inputMethod: typeof inputMethod === "string" ? inputMethod : "swipe",
+      direction: "previous",
+    });
 
     setSwipeDirection("right");
     setTimeout(() => {
@@ -354,7 +380,7 @@ export default function A1Flashcard() {
       return;
     }
 
-    moveToNextCard();
+    moveToNextCard("button");
   };
 
   const handlePreviousButton = () => {
@@ -365,7 +391,7 @@ export default function A1Flashcard() {
       setIsFlipped(false);
       return;
     }
-    moveToPreviousCard();
+    moveToPreviousCard("button");
   };
 
   const handleShuffle = () => {
@@ -555,7 +581,7 @@ export default function A1Flashcard() {
       const total = originalTestTotal || testQuestions.length;
       const correct = newLocked.size;
       const p = correct >= Math.ceil(total * 0.6);
-      posthog?.capture("learning_module_submitted", {
+      analytics?.capture("learning_module_submitted", {
         module: "A1 Flashcard",
         level: "A1",
         chapter_id: chapterId,
@@ -563,7 +589,7 @@ export default function A1Flashcard() {
         score_percent: total > 0 ? (correct / total) * 100 : 0,
         passed: p,
       });
-      posthog?.capture("flashcard_quiz_submitted", {
+      analytics?.capture("flashcard_quiz_submitted", {
         module: "A1 Flashcard",
         level: "A1",
         chapter_id: chapterId,
@@ -596,7 +622,7 @@ export default function A1Flashcard() {
   const continueAfterTest = () => {
     setShowTest(false);
     if (isFinalTest) {
-      posthog?.capture("learning_module_completed", {
+      analytics?.capture("learning_module_completed", {
         module: "A1 Flashcard",
         level: "A1",
         chapter_id: chapterId,

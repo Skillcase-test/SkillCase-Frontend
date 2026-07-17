@@ -59,6 +59,12 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-blue-900 pt-8">
+        <p className="text-xs text-blue-100 mb-3">
+          We use limited operational journey and error data to run, secure, and improve Skillcase. The system is designed to exclude lesson answers, typed content, recordings, documents, and contact details. See our{" "}
+          <a href="https://skillcase.in/privacy-policy" className="underline">
+            Privacy Policy
+          </a>.
+        </p>
         <p className="text-base text-white">© 2025 Skillcase All Rights Reserved.</p>
       </div>
     </div>

@@ -14,7 +14,7 @@ import { hapticMedium } from "../../utils/haptics";
 import OtpInput from "./components/OtpInput";
 import customI18n from "./constants/countryNames";
 
-import { usePostHog } from "@posthog/react";
+import { useFirstPartyAnalytics } from "../../telemetry/legacyAnalytics";
 
 import "./auth.css";
 
@@ -24,7 +24,7 @@ const LoginPage = () => {
   const { isAuthenticated } = useSelector((state) => state.auth);
   const phoneInputRef = useRef(null);
   const itiRef = useRef(null);
-  const posthog = usePostHog();
+  const analytics = useFirstPartyAnalytics();
 
   // If already logged in, redirect to home
   useEffect(() => {
@@ -134,7 +134,7 @@ const LoginPage = () => {
       });
 
       if (response.data.status === "sendotp") {
-        posthog?.capture('otp_requested', { type: 'login' });
+        analytics?.capture('otp_requested', { type: 'login' });
         setShowOtp(true);
         setTimer(90);
         setCanResend(false);
@@ -189,17 +189,17 @@ const LoginPage = () => {
         timer,
       });
       if (response.data.status === "success") {
-        posthog?.capture('otp_verified', { type: 'login' });
+        analytics?.capture('otp_verified', { type: 'login' });
         dispatch(
           loginSuccess({
             token: response.data.token,
             user: response.data.user,
           }),
         );
-        posthog?.identify(String(response.data.user.user_id), {
+        analytics?.identify(String(response.data.user.user_id), {
           phone: savedPhone,
         });
-        posthog?.capture('user_logged_in', {
+        analytics?.capture('user_logged_in', {
           country_code: countryCode,
         });
         toast.success("Login successful!");

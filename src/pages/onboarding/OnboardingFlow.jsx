@@ -7,6 +7,7 @@ import api from "../../api/axios";
 import { loginSuccess } from "../../redux/auth/authSlice";
 import { hapticLight } from "../../utils/haptics";
 import { setClarityTag, trackClarityEvent } from "../../observability/clarity";
+import { trackFlowAction, useFlowJourney } from "../../telemetry/flow";
 
 // Extracts first 6-digit sequence from SMS text
 function extractOtp(smsText) {
@@ -159,16 +160,16 @@ const OnboardingFlow = () => {
 
   const phoneInputRef = useRef(null);
   const lastNameRef = useRef(null);
+  useFlowJourney({ domain: "onboarding", flowId: "learner_onboarding", step, stepIndex: step - 1, totalSteps: 9 });
 
   // Back navigation map: each step knows its previous step
   const BACK_MAP = { 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 7 };
   const handleBack = () => {
     setError("");
     setStep((s) => {
-      if (s === 8 && germanStatus === "Yet to start (no knowledge)") {
-        return 6;
-      }
-      return BACK_MAP[s] ?? s;
+      const next = s === 8 && germanStatus === "Yet to start (no knowledge)" ? 6 : (BACK_MAP[s] ?? s);
+      trackFlowAction("onboarding", "learner_onboarding", "step_navigated", { step: s, direction: "back", attributes: { step_index: next - 1 } });
+      return next;
     });
   };
 
@@ -267,7 +268,10 @@ const OnboardingFlow = () => {
 
   // Screen 2 → 3: Send OTP
   const handleSendOTP = async () => {
-    if (phoneNumber.length !== 10) return;
+    if (phoneNumber.length !== 10) {
+      trackFlowAction("onboarding", "learner_onboarding", "validation_blocked", { step: 2, validationCode: "phone_length" });
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -283,7 +287,9 @@ const OnboardingFlow = () => {
       setOtp("");
       setResendSeconds(OTP_RESEND_SECONDS);
       setStep(3);
+      trackFlowAction("onboarding", "learner_onboarding", "otp_sent", { step: 2, lifecycle: "succeeded" });
     } catch (err) {
+      trackFlowAction("onboarding", "learner_onboarding", "otp_send_failed", { step: 2, lifecycle: "failed", reasonCode: "api_failed" });
       setError(
         err.response?.data?.msg || "Failed to send OTP. Please try again.",
       );
@@ -294,6 +300,7 @@ const OnboardingFlow = () => {
 
   const handleResendOTP = () => {
     if (resendSeconds > 0 || loading) return;
+    trackFlowAction("onboarding", "learner_onboarding", "otp_resent", { step: 3, trigger: "manual" });
     hapticLight();
     handleSendOTP();
   };
@@ -301,7 +308,10 @@ const OnboardingFlow = () => {
   // Screen 3 → 4 (new user) or Home (returning user)
   const handleVerifyOTP = async (otpOverride) => {
     const code = otpOverride ?? otp;
-    if (code.length !== 6) return;
+    if (code.length !== 6) {
+      trackFlowAction("onboarding", "learner_onboarding", "validation_blocked", { step: 3, validationCode: "otp_length" });
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -318,8 +328,10 @@ const OnboardingFlow = () => {
         "lg_onboarding_otp_verified",
       );
       if (data.isNewUser) {
+        trackFlowAction("onboarding", "learner_onboarding", "otp_verified", { step: 3, lifecycle: "succeeded", branch: "new_user" });
         setStep(4);
       } else {
+        trackFlowAction("onboarding", "learner_onboarding", "otp_verified", { step: 3, lifecycle: "succeeded", branch: "returning_user" });
         dispatch(loginSuccess({ token: data.token, user: data.user }));
         if (data.user?.lg_preferred_mode) {
           localStorage.setItem(
@@ -332,6 +344,7 @@ const OnboardingFlow = () => {
         });
       }
     } catch (err) {
+      trackFlowAction("onboarding", "learner_onboarding", "otp_verify_failed", { step: 3, lifecycle: "failed", reasonCode: "invalid_or_expired" });
       setError(err.response?.data?.msg || "Invalid OTP. Please try again.");
     } finally {
       setLoading(false);
@@ -342,6 +355,9 @@ const OnboardingFlow = () => {
     if (firstName && lastName) {
       setError("");
       setStep(5);
+      trackFlowAction("onboarding", "learner_onboarding", "step_completed", { step: 4, lifecycle: "succeeded" });
+    } else {
+      trackFlowAction("onboarding", "learner_onboarding", "validation_blocked", { step: 4, validationCode: "name_incomplete" });
     }
   };
 
@@ -349,10 +365,17 @@ const OnboardingFlow = () => {
     if (occupation) {
       setError("");
       setStep(6);
+      trackFlowAction("onboarding", "learner_onboarding", "step_completed", { step: 5, lifecycle: "succeeded" });
+    } else {
+      trackFlowAction("onboarding", "learner_onboarding", "validation_blocked", { step: 5, validationCode: "occupation_required" });
     }
   };
 
   const handleGermanStatusSubmit = () => {
+    if (!germanStatus) {
+      trackFlowAction("onboarding", "learner_onboarding", "validation_blocked", { step: 6, validationCode: "german_status_required" });
+      return;
+    }
     setError("");
     if (germanStatus === "Yet to start (no knowledge)") {
       setGermanLevel("");
@@ -393,7 +416,9 @@ const OnboardingFlow = () => {
         "lg_onboarding_completed",
       );
       navigate("/job-screening", { replace: true });
+      trackFlowAction("onboarding", "learner_onboarding", "flow_completed", { step: 7, lifecycle: "succeeded", branch: "job_screening" });
     } catch (err) {
+      trackFlowAction("onboarding", "learner_onboarding", "flow_completion_failed", { step: 7, lifecycle: "failed", reasonCode: "api_failed" });
       setError(
         err.response?.data?.msg || "Something went wrong. Please try again.",
       );
@@ -418,12 +443,17 @@ const OnboardingFlow = () => {
           setStep(8);
         }
       }
+    } else {
+      trackFlowAction("onboarding", "learner_onboarding", "validation_blocked", { step: 7, validationCode: "german_level_required" });
     }
   };
 
   // Screen 8 → Complete onboarding
   const handlePreferenceSubmit = async () => {
-    if (!preference && germanStatus !== "Yet to start (no knowledge)") return;
+    if (!preference && germanStatus !== "Yet to start (no knowledge)") {
+      trackFlowAction("onboarding", "learner_onboarding", "validation_blocked", { step: 8, validationCode: "preference_required" });
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -458,8 +488,10 @@ const OnboardingFlow = () => {
 
       // Navigate based on preference
       if (germanPrefCode === "2") {
+        trackFlowAction("onboarding", "learner_onboarding", "flow_completed", { step: 8, lifecycle: "succeeded", branch: "practice" });
         navigate("/", { replace: true, state: { justOnboarded: true } });
       } else {
+        trackFlowAction("onboarding", "learner_onboarding", "flow_completed", { step: 8, lifecycle: "succeeded", branch: "learn" });
         // "Continue learning German" or "Yet to start"
         setLgFirstLandingMarker();
         navigate("/learn-german", {
@@ -468,6 +500,7 @@ const OnboardingFlow = () => {
         });
       }
     } catch (err) {
+      trackFlowAction("onboarding", "learner_onboarding", "flow_completion_failed", { step: 8, lifecycle: "failed", reasonCode: "api_failed" });
       setError(
         err.response?.data?.msg || "Something went wrong. Please try again.",
       );
@@ -477,7 +510,10 @@ const OnboardingFlow = () => {
   };
 
   const handleB1B2PreferenceSubmit = async () => {
-    if (!preference) return;
+    if (!preference) {
+      trackFlowAction("onboarding", "learner_onboarding", "validation_blocked", { step: 9, validationCode: "preference_required" });
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -508,11 +544,14 @@ const OnboardingFlow = () => {
       );
 
       if (preference === "3") {
+        trackFlowAction("onboarding", "learner_onboarding", "flow_completed", { step: 9, lifecycle: "succeeded", branch: "job_screening" });
         navigate("/job-screening", { replace: true });
       } else {
+        trackFlowAction("onboarding", "learner_onboarding", "flow_completed", { step: 9, lifecycle: "succeeded", branch: "practice" });
         navigate("/", { replace: true, state: { justOnboarded: true } });
       }
     } catch (err) {
+      trackFlowAction("onboarding", "learner_onboarding", "flow_completion_failed", { step: 9, lifecycle: "failed", reasonCode: "api_failed" });
       setError(
         err.response?.data?.msg || "Something went wrong. Please try again.",
       );
@@ -531,6 +570,7 @@ const OnboardingFlow = () => {
 
   const selectOccupation = (value) => {
     setOccupation(value);
+    trackFlowAction("onboarding", "learner_onboarding", "selection_changed", { step: 5, selectionCode: normalizeOnboardingValue(value) });
     trackClarityEvent("lg_onboarding_occupation_selected", {
       lg_funnel: "onboarding",
       lg_occupation: normalizeOnboardingValue(value),
@@ -540,6 +580,7 @@ const OnboardingFlow = () => {
 
   const selectGermanStatus = (value) => {
     setGermanStatus(value);
+    trackFlowAction("onboarding", "learner_onboarding", "selection_changed", { step: 6, selectionCode: normalizeOnboardingValue(value) });
     trackClarityEvent("lg_onboarding_status_selected", {
       lg_funnel: "onboarding",
       lg_german_status: normalizeOnboardingValue(value),
@@ -549,6 +590,7 @@ const OnboardingFlow = () => {
 
   const selectGermanLevel = (value) => {
     setGermanLevel(value);
+    trackFlowAction("onboarding", "learner_onboarding", "selection_changed", { step: 7, selectionCode: normalizeOnboardingValue(value.split("\n")[0]) });
     trackClarityEvent("lg_onboarding_level_selected", {
       lg_funnel: "onboarding",
       lg_selected_level: normalizeOnboardingValue(value.split("\n")[0]),
@@ -558,6 +600,7 @@ const OnboardingFlow = () => {
 
   const selectPreference = (value) => {
     setPreference(value);
+    trackFlowAction("onboarding", "learner_onboarding", "selection_changed", { step: 8, selectionCode: value });
     trackClarityEvent("lg_onboarding_preference_selected", {
       lg_funnel: "onboarding",
       lg_selected_mode: value === "2" ? "practice" : "learn",

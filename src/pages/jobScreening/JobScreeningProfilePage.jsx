@@ -22,6 +22,7 @@ import {
   deleteAdditionalDoc,
 } from "../../api/jobScreeningApi";
 import { toast } from "react-hot-toast";
+import { trackFeatureEvent } from "../../telemetry/events";
 
 export default function JobScreeningProfilePage() {
   const [progress, setProgress] = useState(null);
@@ -50,10 +51,12 @@ export default function JobScreeningProfilePage() {
         setFullname(data.data.candidate_name || "");
         setEmail(data.data.candidate_email || "");
         setLevel(data.data.language_level || data.data.current_profeciency_level || "");
+        trackFeatureEvent("profile", "job_screening_profile_loaded", { lifecycle: "succeeded" });
       } else {
         setError("Failed to load profile details");
       }
     } catch (err) {
+      trackFeatureEvent("profile", "job_screening_profile_failed", { lifecycle: "failed", reasonCode: "api_failed" });
       console.error(err);
       setError("Failed to fetch profile settings");
     } finally {
@@ -87,6 +90,7 @@ export default function JobScreeningProfilePage() {
       if (data?.success) {
         setProgress(data.data);
         toast.success("Profile details updated successfully");
+        trackFeatureEvent("profile", "job_screening_profile_saved", { lifecycle: "succeeded" });
       } else {
         toast.error("Failed to update profile");
       }
@@ -109,6 +113,7 @@ export default function JobScreeningProfilePage() {
         setProgress(data.data);
         setResumeFile(null);
         toast.success("Resume updated successfully");
+        trackFeatureEvent("profile", "credential_uploaded", { lifecycle: "succeeded", attributes: { asset_type: "resume" } });
       } else {
         toast.error("Failed to upload resume");
       }
@@ -131,6 +136,7 @@ export default function JobScreeningProfilePage() {
         setProgress(data.data);
         setCertFile(null);
         toast.success("Language certificate updated successfully");
+        trackFeatureEvent("profile", "credential_uploaded", { lifecycle: "succeeded", attributes: { asset_type: "language_certificate" } });
       } else {
         toast.error("Failed to upload language certificate");
       }
@@ -152,6 +158,7 @@ export default function JobScreeningProfilePage() {
       if (data?.success) {
         setProgress(data.data);
         toast.success("Supporting document uploaded");
+        trackFeatureEvent("profile", "credential_uploaded", { lifecycle: "succeeded", entityId: docId, attributes: { asset_type: "additional_credential" } });
       } else {
         toast.error("Failed to upload document");
       }
@@ -170,6 +177,7 @@ export default function JobScreeningProfilePage() {
       if (data?.success) {
         setProgress(data.data);
         toast.success("Supporting document removed");
+        trackFeatureEvent("profile", "credential_removed", { lifecycle: "succeeded", entityId: docId, attributes: { asset_type: "additional_credential" } });
       } else {
         toast.error("Failed to delete document");
       }

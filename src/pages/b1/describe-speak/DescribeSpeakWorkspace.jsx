@@ -19,6 +19,8 @@ import SpeakingStage from "./components/SpeakingStage";
 import SpeakingFeedbackStage from "./components/SpeakingFeedbackStage";
 import OcrModal from "./components/OcrModal";
 import { formatSeconds, parseTimeToSeconds } from "./utils/timeUtils";
+import { trackLearningEvent } from "../../../telemetry/events";
+import { captureTelemetryError } from "../../../telemetry";
 
 export default function DescribeSpeakWorkspace() {
   const { topicId } = useParams();
@@ -68,6 +70,23 @@ export default function DescribeSpeakWorkspace() {
     if (!user?.user_id || !topicId) return;
     fetchTopicDetails();
   }, [user?.user_id, topicId]);
+
+  useEffect(() => {
+    if (!topic) return undefined;
+    const startedAt = performance.now();
+    trackLearningEvent("topic_presented", { level: "B1", module: "describe_speak", topicId, entityId: topicId });
+    return () => trackLearningEvent("topic_left", {
+      level: "B1", module: "describe_speak", topicId, entityId: topicId,
+      activeMs: Math.round(performance.now() - startedAt),
+    });
+  }, [topic, topicId]);
+
+  useEffect(() => {
+    trackLearningEvent("stage_presented", {
+      level: "B1", module: "describe_speak", topicId, entityId: topicId,
+      mode: stage,
+    });
+  }, [stage, topicId]);
 
   // Keep the ref in sync with the state so timer callbacks always see current value
   useEffect(() => {
@@ -217,6 +236,7 @@ export default function DescribeSpeakWorkspace() {
 
   const handleHelpfulWordClick = (wordObj) => {
     setSelectedVocab(wordObj);
+    trackLearningEvent("vocabulary_opened", { level: "B1", module: "describe_speak", topicId, entityId: topicId });
   };
 
   const handleAppendWord = (wordText) => {
@@ -255,6 +275,7 @@ export default function DescribeSpeakWorkspace() {
     setShowOcrModal(false);
     setIsOcrParsing(true);
     setIsOcrLoading(true);
+    trackLearningEvent("ocr_started", { level: "B1", module: "describe_speak", topicId, entityId: topicId, lifecycle: "started" });
 
     const formData = new FormData();
     formData.append("image", file);
@@ -262,6 +283,7 @@ export default function DescribeSpeakWorkspace() {
     try {
       const res = await uploadB1DescribeSpeakOcr(formData);
       if (res.data?.text) {
+        trackLearningEvent("ocr_completed", { level: "B1", module: "describe_speak", topicId, entityId: topicId, lifecycle: "succeeded" });
         setWritingText((prev) => {
           const clean = prev.trim();
           return clean ? `${clean}\n${res.data.text}` : res.data.text;
@@ -275,6 +297,8 @@ export default function DescribeSpeakWorkspace() {
       toast.error(
         err.response?.data?.error || "Failed to parse text from image.",
       );
+      trackLearningEvent("ocr_completed", { level: "B1", module: "describe_speak", topicId, entityId: topicId, lifecycle: "failed" });
+      captureTelemetryError(err, { feature: "b1.describe_speak.ocr", handled: true });
     } finally {
       setIsOcrLoading(false);
       setIsOcrParsing(false);
@@ -304,6 +328,7 @@ export default function DescribeSpeakWorkspace() {
 
     setIsOcrParsing(false);
     setIsSubmittingWriting(true);
+    trackLearningEvent("writing_submitted", { level: "B1", module: "describe_speak", topicId, entityId: topicId, lifecycle: "started" });
     try {
       const res = await submitB1DescribeSpeakWriting({
         topicId: parseInt(topicId),
@@ -311,6 +336,7 @@ export default function DescribeSpeakWorkspace() {
       });
 
       if (res.data?.success && res.data?.feedback) {
+        trackLearningEvent("writing_analyzed", { level: "B1", module: "describe_speak", topicId, entityId: topicId, lifecycle: "succeeded" });
         setWritingFeedback(res.data.feedback);
         setStage("feedback");
         toast.success("Writing submitted successfully!");
@@ -320,6 +346,7 @@ export default function DescribeSpeakWorkspace() {
     } catch (err) {
       console.error("Submit writing error:", err);
       toast.error("Failed to analyze writing. Please try again.");
+      captureTelemetryError(err, { feature: "b1.describe_speak.writing", handled: true });
     } finally {
       setIsSubmittingWriting(false);
     }
@@ -373,6 +400,7 @@ export default function DescribeSpeakWorkspace() {
 
       recorder.start(100);
       setIsRecording(true);
+      trackLearningEvent("recording_started", { level: "B1", module: "describe_speak", topicId, entityId: topicId, mediaState: "recording" });
     } catch (err) {
       console.error("Failed to start recorder:", err);
       if (
@@ -385,6 +413,8 @@ export default function DescribeSpeakWorkspace() {
       } else {
         toast.error("Could not start recording. Please try again.");
       }
+      trackLearningEvent("recording_failed", { level: "B1", module: "describe_speak", topicId, entityId: topicId, lifecycle: "failed", reasonCode: err.name === "NotAllowedError" ? "permission_denied" : "start_failed", permission: err.name === "NotAllowedError" ? "denied" : undefined });
+      captureTelemetryError(err, { feature: "b1.describe_speak.microphone", handled: true });
     }
   };
 
@@ -395,6 +425,7 @@ export default function DescribeSpeakWorkspace() {
     ) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      trackLearningEvent("recording_stopped", { level: "B1", module: "describe_speak", topicId, entityId: topicId, recordingDurationMs: recordDurationRef.current * 1000, mediaState: "stopped" });
     }
   };
 
@@ -424,6 +455,7 @@ export default function DescribeSpeakWorkspace() {
     }
 
     setSubmittingSpeech(true);
+    trackLearningEvent("speaking_submitted", { level: "B1", module: "describe_speak", topicId, entityId: topicId, lifecycle: "started", recordingDurationMs: recordDurationRef.current * 1000 });
     const formData = new FormData();
     formData.append("topicId", String(parseInt(topicId, 10)));
     formData.append("recordDuration", String(recordDurationRef.current || 0));
@@ -441,6 +473,7 @@ export default function DescribeSpeakWorkspace() {
     try {
       const res = await submitB1DescribeSpeakSpeaking(formData);
       if (res.data?.success && res.data?.feedback) {
+        trackLearningEvent("speaking_analyzed", { level: "B1", module: "describe_speak", topicId, entityId: topicId, lifecycle: "succeeded", recordingDurationMs: recordDurationRef.current * 1000 });
         toast.success("Speaking submitted successfully!");
 
         // Log Streak Points
@@ -458,6 +491,7 @@ export default function DescribeSpeakWorkspace() {
     } catch (err) {
       console.error("Submit speaking error:", err);
       toast.error("Speech analysis failed. Please try again.");
+      captureTelemetryError(err, { feature: "b1.describe_speak.speaking", handled: true });
     } finally {
       setSubmittingSpeech(false);
     }

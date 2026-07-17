@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageSquare, X, Send, Image as ImageIcon, Loader2, Plus, Clock, History, CheckCircle2, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { raiseTicket, getUserTickets, uploadScreenshot } from "../api/supportApi";
 import toast from "react-hot-toast";
+import { trackFeatureEvent } from "../telemetry/events";
 
 export default function SupportWidget() {
   const location = useLocation();
@@ -38,8 +39,10 @@ export default function SupportWidget() {
       const res = await getUserTickets();
       if (res.data?.success) {
         setTickets(res.data.tickets || []);
+        trackFeatureEvent("support", "history_loaded", { lifecycle: "succeeded", attributes: { poll_type: silent ? "automatic" : "manual" } });
       }
     } catch (err) {
+      trackFeatureEvent("support", "history_failed", { lifecycle: "failed", reasonCode: "api_failed", attributes: { poll_type: silent ? "automatic" : "manual" } });
       console.error("Failed to load tickets:", err);
     } finally {
       if (!silent) setLoadingTickets(false);
@@ -60,14 +63,17 @@ export default function SupportWidget() {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
       if (!selectedFile.type.startsWith("image/")) {
+        trackFeatureEvent("support", "attachment_rejected", { reasonCode: "type_invalid", attributes: { validation_code: "type_invalid", asset_type: "screenshot" } });
         toast.error("Only image files are allowed");
         return;
       }
       if (selectedFile.size > 5 * 1024 * 1024) {
+        trackFeatureEvent("support", "attachment_rejected", { reasonCode: "size_limit", attributes: { validation_code: "size_limit", asset_type: "screenshot" } });
         toast.error("Maximum file size is 5MB");
         return;
       }
       setFile(selectedFile);
+      trackFeatureEvent("support", "attachment_selected", { attributes: { asset_type: "screenshot" } });
       const reader = new FileReader();
       reader.onloadend = () => {
         setFilePreview(reader.result);
@@ -87,6 +93,7 @@ export default function SupportWidget() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) {
+      trackFeatureEvent("support", "validation_blocked", { reasonCode: "required_fields", attributes: { validation_code: "required_fields" } });
       toast.error("Title and description are required");
       return;
     }
@@ -95,6 +102,7 @@ export default function SupportWidget() {
     let screenshotUrl = null;
 
     try {
+      trackFeatureEvent("support", "ticket_submit_started", { lifecycle: "started", attributes: { source_route: location.pathname } });
       // 1. Upload screenshot if selected
       if (file) {
         const uploadRes = await uploadScreenshot(file);
@@ -108,6 +116,7 @@ export default function SupportWidget() {
       // 2. Submit ticket
       const ticketRes = await raiseTicket(title, description, screenshotUrl);
       if (ticketRes.data?.success) {
+        trackFeatureEvent("support", "ticket_submitted", { lifecycle: "succeeded", entityType: "support_ticket", entityId: ticketRes.data.ticket?.ticket_id, attributes: { source_route: location.pathname, asset_type: file ? "screenshot" : "none" } });
         toast.success("Support ticket raised successfully");
         setTitle("");
         setDescription("");
@@ -117,6 +126,7 @@ export default function SupportWidget() {
         setExpandedTicketId(ticketRes.data.ticket?.ticket_id || null);
       }
     } catch (err) {
+      trackFeatureEvent("support", "ticket_submit_failed", { lifecycle: "failed", reasonCode: "api_failed", attributes: { source_route: location.pathname } });
       console.error("Error raising ticket:", err);
       toast.error(err.response?.data?.error || "Failed to raise support ticket");
     } finally {
@@ -152,6 +162,7 @@ export default function SupportWidget() {
   };
 
   const toggleExpandTicket = (ticketId) => {
+    trackFeatureEvent("support", "ticket_toggled", { entityType: "support_ticket", entityId: ticketId, attributes: { state: expandedTicketId === ticketId ? "collapsed" : "expanded" } });
     setExpandedTicketId(expandedTicketId === ticketId ? null : ticketId);
   };
 
@@ -163,7 +174,10 @@ export default function SupportWidget() {
       <div className={`fixed right-5 ${widgetBottomStyle} z-[99] transition-all duration-300`}>
         <motion.button
           id="support-widget-trigger"
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            setIsOpen(true);
+            trackFeatureEvent("support", "widget_opened", { attributes: { source_route: location.pathname } });
+          }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           className="flex items-center justify-center w-14 h-14 bg-[#002856] text-white rounded-full shadow-[0_8px_30px_rgba(0,40,86,0.3)] hover:brightness-110 focus:outline-none cursor-pointer"
@@ -181,7 +195,10 @@ export default function SupportWidget() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.4 }}
               exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
+              onClick={() => {
+                setIsOpen(false);
+                trackFeatureEvent("support", "widget_closed", { attributes: { source_route: location.pathname, trigger: "backdrop" } });
+              }}
               className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm cursor-pointer"
             />
 

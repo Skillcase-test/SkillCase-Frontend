@@ -8,6 +8,7 @@ import { useLocation } from "react-router-dom";
 import { setB1OnboardingComplete } from "../redux/auth/authSlice";
 import api from "../api/axios";
 import { B1TourContext } from "./B1TourContext";
+import { trackFlowAction, useTourJourney } from "../telemetry/flow";
 import {
   getB1LandingSteps,
   getB1FlashcardSelectSteps,
@@ -142,6 +143,7 @@ export default function B1ProductTour({ children }) {
 
   const isB1 = user?.user_prof_level?.toLowerCase() === "b1";
   const isDone = user?.b1_onboarding_completed === true;
+  useTourJourney({ enabled: Boolean(isB1 && !isDone && activeFeature), tourId: "b1_product_tour", phase: activePhase || activeFeature, tourVersion: "1" });
 
   useEffect(() => {
     activeFeatureRef.current = activeFeature;
@@ -185,6 +187,7 @@ export default function B1ProductTour({ children }) {
   }, []);
 
   const skipEntireTour = useCallback(() => {
+    trackFlowAction("tour", "b1_product_tour", "tour_skipped", { phase: activePhase || activeFeature, tourVersion: "1" });
     destroyDriver();
     const allDone = Object.fromEntries(ALL_PHASES.map((p) => [p, true]));
     localStorage.setItem(B1_TOUR_STATE_KEY, JSON.stringify(allDone));
@@ -197,7 +200,7 @@ export default function B1ProductTour({ children }) {
     phaseLabelRef.current = null;
     setActiveFeature(null);
     setActivePhase(null);
-  }, [destroyDriver, dispatch]);
+  }, [destroyDriver, dispatch, activePhase, activeFeature]);
 
   const closeCurrentPhase = useCallback(() => {
     cleanupTapOverlays();

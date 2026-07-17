@@ -11,13 +11,15 @@ import useVoiceRecorder from "../../a2/speaking/hooks/useVoiceRecorder";
 import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
 import SpeakingCardDeck from "../../../components/a2/SpeakingCardDeck";
 import { useA1Tour } from "../../../tour/A1TourContext";
-import { usePostHog } from "@posthog/react";
+import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
+import { useLearningQuestionJourney } from "../../../telemetry/learning";
+import { trackLearningEvent } from "../../../telemetry/events";
 
 export default function A1Speaking() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  const posthog = usePostHog();
+  const analytics = useFirstPartyAnalytics();
 
   const [content, setContent] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -62,6 +64,7 @@ export default function A1Speaking() {
 
   const totalCards = content.length;
   const currentCard = content[currentIndex];
+  useLearningQuestionJourney({ level: "A1", module: "speaking", feature: "a1.speaking", topicId: chapterId, question: currentCard, index: currentIndex, total: content.length, loading });
   const {
     isRecording,
     isUploading,
@@ -82,6 +85,7 @@ export default function A1Speaking() {
 
   // Tour-aware recording handlers
   const handleTourStartRecording = () => {
+    trackLearningEvent("recording.started", { level: "A1", module: "speaking", chapterId, contentId: currentCard?.id, index: currentIndex, total: content.length, permission: "requested", lifecycle: "started" });
     startRecording();
     if (isTourMode && speakingStep === 1) {
       window.dispatchEvent(
@@ -91,8 +95,9 @@ export default function A1Speaking() {
   };
 
   const handleTourStopRecording = () => {
+    trackLearningEvent("recording.stopped", { level: "A1", module: "speaking", chapterId, contentId: currentCard?.id, index: currentIndex, total: content.length, lifecycle: "succeeded" });
     stopRecording(currentCard?.text_de);
-    posthog?.capture("learning_module_submitted", {
+    analytics?.capture("learning_module_submitted", {
       module: "A1 Speaking",
       level: "A1",
       chapter_id: chapterId,
@@ -100,7 +105,7 @@ export default function A1Speaking() {
       total_cards: totalCards,
       submission_type: "recording",
     });
-    posthog?.capture("speaking_recording_submitted", {
+    analytics?.capture("speaking_recording_submitted", {
       module: "A1 Speaking",
       level: "A1",
       chapter_id: chapterId,
@@ -197,11 +202,13 @@ export default function A1Speaking() {
     disabled: isRecording || isUploading,
   });
   const handleSpeak = (e) => {
+    trackLearningEvent("media.interacted", { level: "A1", module: "speaking", chapterId, contentId: currentCard?.id, index: currentIndex, total: content.length, mediaState: "tts_started" });
     e.stopPropagation();
     if (currentCard?.text_de) speakText(currentCard.text_de, "de-DE");
   };
   const handleFinish = async () => {
-    posthog?.capture("learning_module_completed", {
+    trackLearningEvent("module.completed", { level: "A1", module: "speaking", chapterId, total: content.length, lifecycle: "succeeded" });
+    analytics?.capture("learning_module_completed", {
       module: "A1 Speaking",
       level: "A1",
       chapter_id: chapterId,
@@ -228,7 +235,7 @@ export default function A1Speaking() {
         const res = await getSpeakingContent(chapterId);
         setContent(res.data.content || []);
         setCurrentIndex(res.data.progress?.current_content_index || 0);
-        posthog?.capture("learning_module_started", {
+        analytics?.capture("learning_module_started", {
           module: "A1 Speaking",
           level: "A1",
           chapter_id: chapterId,

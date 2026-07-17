@@ -10,7 +10,7 @@ import {
   Loader2,
   Play,
 } from "lucide-react";
-import { usePostHog } from "@posthog/react";
+import { useFirstPartyAnalytics } from "../../telemetry/legacyAnalytics";
 
 export default function ExamLobby() {
   const { testId } = useParams();
@@ -19,7 +19,7 @@ export default function ExamLobby() {
   const [submission, setSubmission] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const posthog = usePostHog();
+  const analytics = useFirstPartyAnalytics();
 
   useEffect(() => {
     const fetchInfo = async () => {
@@ -27,7 +27,7 @@ export default function ExamLobby() {
         const res = await getExamInfo(testId);
         setExam(res.data?.exam);
         setSubmission(res.data?.submission);
-        posthog?.capture('exam_lobby_viewed', { exam_id: testId, exam_title: res.data?.exam?.title });
+        analytics?.capture('exam_lobby_viewed', { exam_id: testId, exam_title: res.data?.exam?.title });
       } catch (err) {
         setError(err.response?.data?.msg || "Failed to load exam info");
       } finally {
@@ -164,7 +164,7 @@ export default function ExamLobby() {
         {canStart && (
           <button
             onClick={() => {
-              posthog?.capture('exam_started', {
+              analytics?.capture('exam_started', {
                 exam_id: testId,
                 exam_title: exam?.title,
                 duration_minutes: exam?.duration_minutes,

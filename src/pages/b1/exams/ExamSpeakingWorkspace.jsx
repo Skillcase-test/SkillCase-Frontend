@@ -21,6 +21,7 @@ import {
 import AudioPlayer from "../describe-speak/components/AudioPlayer";
 import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
 import toast, { Toaster } from "react-hot-toast";
+import { useQuestionPositionTelemetry } from "../../../telemetry/learning";
 
 export default function ExamSpeakingWorkspace() {
   const navigate = useNavigate();
@@ -330,6 +331,18 @@ export default function ExamSpeakingWorkspace() {
     };
   }, []);
 
+  const currentBlock = questions[currentBlockIndex];
+  useQuestionPositionTelemetry({
+    feature: "b1.exam.speaking",
+    sectionType: "speaking",
+    paperId,
+    submissionId: submission?.submission_id || submission?.id,
+    question: currentBlock,
+    currentIndex: currentBlockIndex,
+    totalQuestions: questions.length,
+    loading,
+  });
+
   if (loading) {
     return (
       <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen flex items-center justify-center bg-white">
@@ -355,7 +368,6 @@ export default function ExamSpeakingWorkspace() {
     );
   }
 
-  const currentBlock = questions[currentBlockIndex];
   const qObj = currentBlock.questions?.[0] || {};
   const promptType =
     qObj.prompt_type ||

@@ -16,6 +16,7 @@ import {
 } from "../../../api/b1Api";
 import toast, { Toaster } from "react-hot-toast";
 import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import { useQuestionPositionTelemetry } from "../../../telemetry/learning";
 
 export default function ExamReadingWorkspace() {
   const navigate = useNavigate();
@@ -191,6 +192,18 @@ export default function ExamReadingWorkspace() {
     return "bg-red-100 border-red-500/20 text-red-500";
   };
 
+  const currentBlock = questions[currentBlockIndex];
+  useQuestionPositionTelemetry({
+    feature: "b1.exam.reading",
+    sectionType: "reading",
+    paperId,
+    submissionId: submission?.submission_id || submission?.id,
+    question: currentBlock,
+    currentIndex: currentBlockIndex,
+    totalQuestions: questions.length,
+    loading,
+  });
+
   if (loading) {
     return (
       <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen flex items-center justify-center bg-white">
@@ -216,7 +229,6 @@ export default function ExamReadingWorkspace() {
     );
   }
 
-  const currentBlock = questions[currentBlockIndex];
   const blockQuestions = currentBlock.questions || [];
   const isLastBlock = currentBlockIndex === questions.length - 1;
   const alphabet = [

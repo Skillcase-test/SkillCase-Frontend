@@ -17,6 +17,7 @@ import {
   updateB1VideoProgress,
 } from "../../../api/b1Api";
 import toast, { Toaster } from "react-hot-toast";
+import { trackLearningEvent } from "../../../telemetry/events";
 
 export default function VideoReader() {
   const { videoId } = useParams();
@@ -111,6 +112,19 @@ export default function VideoReader() {
     }
   }, [data, reviewMode, reviewAnswers]);
 
+  useEffect(() => {
+    if (!data?.video) return undefined;
+    const startedAt = performance.now();
+    trackLearningEvent("content_presented", {
+      level: "B1", module: "listening", contentId: videoId, entityId: videoId,
+      total: data.video.questions?.length,
+    });
+    return () => trackLearningEvent("content_left", {
+      level: "B1", module: "listening", contentId: videoId, entityId: videoId,
+      activeMs: Math.round(performance.now() - startedAt),
+    });
+  }, [data?.video, videoId]);
+
   // 3. Heartbeat progress updates (every 10 seconds)
   useEffect(() => {
     if (reviewMode || !videoId || !user?.user_id) return;
@@ -138,9 +152,11 @@ export default function VideoReader() {
     const video = videoRef.current;
     if (!video) return;
     if (video.paused) {
+      trackLearningEvent("media_played", { level: "B1", module: "listening", contentId: videoId, entityId: videoId, mediaState: "playing", progressBucket: Math.floor((video.currentTime / (video.duration || 1)) * 10) * 10 });
       video.play().catch(() => {});
       setIsPlaying(true);
     } else {
+      trackLearningEvent("media_paused", { level: "B1", module: "listening", contentId: videoId, entityId: videoId, mediaState: "paused", progressBucket: Math.floor((video.currentTime / (video.duration || 1)) * 10) * 10 });
       video.pause();
       setIsPlaying(false);
     }
@@ -150,6 +166,7 @@ export default function VideoReader() {
     e.stopPropagation();
     const video = videoRef.current;
     if (video) {
+      trackLearningEvent("media_seeked", { level: "B1", module: "listening", contentId: videoId, entityId: videoId, direction: "backward" });
       video.currentTime = Math.max(0, video.currentTime - 10);
     }
   };
@@ -158,6 +175,7 @@ export default function VideoReader() {
     e.stopPropagation();
     const video = videoRef.current;
     if (video) {
+      trackLearningEvent("media_seeked", { level: "B1", module: "listening", contentId: videoId, entityId: videoId, direction: "forward" });
       video.currentTime = Math.min(duration, video.currentTime + 10);
     }
   };
@@ -178,6 +196,7 @@ export default function VideoReader() {
 
   const handleVideoEnded = () => {
     setIsPlaying(false);
+    trackLearningEvent("media_completed", { level: "B1", module: "listening", contentId: videoId, entityId: videoId, mediaState: "ended", progressBucket: 100 });
   };
 
   const toggleSpeed = (e) => {
@@ -191,6 +210,7 @@ export default function VideoReader() {
 
     video.playbackRate = nextRate;
     setPlaybackRate(nextRate);
+    trackLearningEvent("media_speed_changed", { level: "B1", module: "listening", contentId: videoId, entityId: videoId, speed: nextRate });
   };
 
   const toggleFullscreen = (e) => {
@@ -281,6 +301,7 @@ export default function VideoReader() {
   };
 
   const handleOptionClick = (qIdx, optIdx) => {
+    trackLearningEvent("answer_selected", { level: "B1", module: "listening", contentId: videoId, questionId: data?.video?.questions?.[qIdx]?.id, index: qIdx, total: data?.video?.questions?.length, questionType: data?.video?.questions?.[qIdx]?.type });
     if (reviewMode) return; // Cannot modify answers in review mode
     const q = data?.video?.questions?.[qIdx];
     const qType = q?.type || "mcq_single";
@@ -415,6 +436,7 @@ export default function VideoReader() {
   };
 
   const handleSubmit = async () => {
+    trackLearningEvent("quiz_submitted", { level: "B1", module: "listening", contentId: videoId, entityId: videoId, total: data?.video?.questions?.length, lifecycle: "started" });
     if (reviewMode) {
       navigate(`/b1/read-listen/list/video/${data?.video?.course_id || "unassigned"}`);
       return;

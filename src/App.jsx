@@ -106,6 +106,12 @@ import {
   setSentryUserFromAuth,
 } from "./observability/sentry";
 import { identifyUserInClarity } from "./observability/clarity";
+import {
+  flushTelemetry,
+  recordEvent,
+  sanitizePath,
+  setTelemetryIdentity,
+} from "./telemetry";
 
 //Hard Core Test
 const FlashcardStudyPage = lazy(() => import("./pages/flashcard/FlashCard"));
@@ -284,10 +290,10 @@ function GoogleAnalyticsTracker() {
     // Send pageview to Google Analytics on route change
     if (typeof window.gtag === "function") {
       window.gtag("config", "G-CB8X1XP8FL", {
-        page_path: location.pathname + location.search,
+        page_path: sanitizePath(location.pathname),
       });
     }
-  }, [location]);
+  }, [location.pathname]);
   return null;
 }
 
@@ -455,9 +461,19 @@ function AppContent() {
         search: location.search,
       },
     });
+    recordEvent("navigation.route_changed", {
+      domain: "navigation",
+      feature: location.pathname,
+      entity_type: "route",
+      entity_id: location.pathname,
+      lifecycle: "observed",
+      attributes: { route: location.pathname },
+    });
+    window.dispatchEvent(new CustomEvent("skillcase:route-changed"));
   }, [location.pathname, location.search]);
 
   useEffect(() => {
+    setTelemetryIdentity(user, token);
     setSentryUserFromAuth(user);
     identifyUserInClarity(user);
     if (user) {
@@ -474,7 +490,23 @@ function AppContent() {
       stopHeartbeat();
       endAppAnalyticsSession();
     };
-  }, [user]);
+  }, [user, token]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return undefined;
+    let listener;
+    CapApp.addListener("appStateChange", ({ isActive }) => {
+      recordEvent(isActive ? "app.foregrounded" : "app.backgrounded", {
+        domain: "app",
+        entity_type: "lifecycle",
+        lifecycle: "observed",
+      });
+      if (!isActive) void flushTelemetry({ keepalive: true });
+    }).then((handle) => {
+      listener = handle;
+    });
+    return () => listener?.remove?.();
+  }, []);
 
   // Helper function to open Play Store
   const openPlayStore = async () => {

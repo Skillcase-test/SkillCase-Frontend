@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getExamResult } from "../../api/examApi";
-import { usePostHog } from "@posthog/react";
+import { useFirstPartyAnalytics } from "../../telemetry/legacyAnalytics";
 import {
   ChevronLeft,
   Loader2,
@@ -207,7 +207,7 @@ export default function ExamResult() {
   const [examData, setExamData] = useState(null);
   const [submission, setSubmission] = useState(null);
   const [questions, setQuestions] = useState([]);
-  const posthog = usePostHog();
+  const analytics = useFirstPartyAnalytics();
 
   useEffect(() => {
     const fetch = async () => {
@@ -219,7 +219,7 @@ export default function ExamResult() {
         const sub = res.data?.submission;
         if (sub) {
           const score = parseFloat(sub.score || 0);
-          posthog?.capture('exam_result_viewed', {
+          analytics?.capture('exam_result_viewed', {
             exam_id: testId,
             exam_title: res.data?.exam?.title,
             score: score,
@@ -235,7 +235,7 @@ export default function ExamResult() {
       }
     };
     fetch();
-  }, [testId, posthog]);
+  }, [testId, analytics]);
 
   if (loading) {
     return (
