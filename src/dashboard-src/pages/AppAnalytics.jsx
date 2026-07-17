@@ -251,7 +251,13 @@ function AppTrendChart({ data = [] }) {
 
   useEffect(() => {
     const ctx = canvasRef.current;
-    if (!ctx || data.length === 0) return;
+    if (!ctx?.isConnected || !ctx.parentElement || data.length === 0) return;
+
+    const existingChart = Chart.getChart(ctx);
+    if (existingChart) {
+      existingChart.stop();
+      existingChart.destroy();
+    }
 
     const labels = data.map((d) => (d.activity_date ? d.activity_date.slice(5, 10) : ""));
     const dauData = data.map((d) => Number(d.dau || 0));
@@ -379,6 +385,7 @@ function AppTrendChart({ data = [] }) {
     });
 
     return () => {
+      chartInstance.stop();
       chartInstance.destroy();
     };
   }, [data]);
@@ -397,7 +404,13 @@ function NewUserTrendChart({ data = [] }) {
 
   useEffect(() => {
     const ctx = canvasRef.current;
-    if (!ctx || data.length === 0) return;
+    if (!ctx?.isConnected || !ctx.parentElement || data.length === 0) return;
+
+    const existingChart = Chart.getChart(ctx);
+    if (existingChart) {
+      existingChart.stop();
+      existingChart.destroy();
+    }
 
     const labels = data.map((d) => (d.signup_date ? d.signup_date.slice(5, 10) : ""));
     const usersData = data.map((d) => Number(d.users || 0));
@@ -479,6 +492,7 @@ function NewUserTrendChart({ data = [] }) {
     });
 
     return () => {
+      chartInstance.stop();
       chartInstance.destroy();
     };
   }, [data]);
@@ -497,7 +511,13 @@ function RetentionCurveChart({ rows = [], granularity }) {
 
   useEffect(() => {
     const ctx = canvasRef.current;
-    if (!ctx || visibleRows.length === 0) return;
+    if (!ctx?.isConnected || !ctx.parentElement || visibleRows.length === 0) return;
+
+    const existingChart = Chart.getChart(ctx);
+    if (existingChart) {
+      existingChart.stop();
+      existingChart.destroy();
+    }
 
     const {
       textColor,
@@ -599,6 +619,7 @@ function RetentionCurveChart({ rows = [], granularity }) {
     });
 
     return () => {
+      chartInstance.stop();
       chartInstance.destroy();
     };
   }, [rows, granularity, visibleRows, matrix.columns, prefix]);

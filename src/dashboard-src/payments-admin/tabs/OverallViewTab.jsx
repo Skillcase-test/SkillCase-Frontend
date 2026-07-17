@@ -113,8 +113,15 @@ function ComparativeBarChart({
     : (currentData ? currentData.reduce((s, val) => s + Number(val || 0), 0) : 0);
 
   useEffect(() => {
-    if (!canvasRef.current || !currentData || currentData.length === 0) return undefined;
-    if (chartRef.current) chartRef.current.destroy();
+    const canvas = canvasRef.current;
+    if (!canvas?.isConnected || !canvas.parentElement || !currentData || currentData.length === 0) {
+      return undefined;
+    }
+    if (chartRef.current) {
+      chartRef.current.stop();
+      chartRef.current.destroy();
+      chartRef.current = null;
+    }
 
     const formattedLabels = labels.map((l) => l);
     const datasetColor = color;
@@ -122,7 +129,7 @@ function ComparativeBarChart({
 
     const chartType = "bar";
 
-    const newChart = new Chart(canvasRef.current, {
+    const newChart = new Chart(canvas, {
       type: chartType,
       data: {
         labels: formattedLabels,
@@ -176,7 +183,6 @@ function ComparativeBarChart({
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        resizeDelay: 200,
         layout: { padding: 20 },
         interaction: { intersect: false, mode: "index" },
         animation: {
@@ -250,7 +256,11 @@ function ComparativeBarChart({
     });
 
     chartRef.current = newChart;
-    return () => newChart.destroy();
+    return () => {
+      if (chartRef.current === newChart) chartRef.current = null;
+      newChart.stop();
+      newChart.destroy();
+    };
   }, [currentData, previousData, labels, prevLabels, color, isRevenue, interval]);
 
   return (

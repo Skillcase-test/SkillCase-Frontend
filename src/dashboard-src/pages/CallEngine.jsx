@@ -254,6 +254,7 @@ function Button({
 
 function TableAudioPlayer({ url }) {
   const audioRef = useRef(null);
+  const mountedRef = useRef(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
@@ -261,17 +262,21 @@ function TableAudioPlayer({ url }) {
 
   const togglePlay = () => {
     if (!audioRef.current) {
-      audioRef.current = new Audio(url);
-      audioRef.current.addEventListener("timeupdate", () => {
-        setCurrentTime(audioRef.current.currentTime);
-        if (audioRef.current.duration) {
-          setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.addEventListener("timeupdate", () => {
+        if (!mountedRef.current || audioRef.current !== audio) return;
+        setCurrentTime(audio.currentTime);
+        if (audio.duration) {
+          setProgress((audio.currentTime / audio.duration) * 100);
         }
       });
-      audioRef.current.addEventListener("loadedmetadata", () => {
-        setDuration(audioRef.current.duration);
+      audio.addEventListener("loadedmetadata", () => {
+        if (!mountedRef.current || audioRef.current !== audio) return;
+        setDuration(audio.duration);
       });
-      audioRef.current.addEventListener("ended", () => {
+      audio.addEventListener("ended", () => {
+        if (!mountedRef.current || audioRef.current !== audio) return;
         setIsPlaying(false);
         setProgress(0);
         setCurrentTime(0);
@@ -307,11 +312,13 @@ function TableAudioPlayer({ url }) {
   };
 
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      mountedRef.current = false;
+      const audio = audioRef.current;
+      audioRef.current = null;
+      audio?.pause();
+      if (audio) audio.src = "";
     };
   }, []);
 

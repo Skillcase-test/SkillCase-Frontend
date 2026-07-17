@@ -24,7 +24,7 @@ function DoughnutChart({
 
   useEffect(() => {
     const ctx = canvas.current;
-    if (!ctx) return;
+    if (!ctx?.isConnected || !ctx.parentElement) return;
 
     // Destroy any existing chart on this canvas first
     const existingChart = Chart.getChart(ctx);
@@ -81,7 +81,6 @@ function DoughnutChart({
           duration: 500,
         },
         maintainAspectRatio: false,
-        resizeDelay: 200,
       },
       plugins: [
         {
@@ -158,6 +157,7 @@ function DoughnutChart({
     
     return () => {
       if (newChart) {
+        newChart.stop();
         newChart.destroy();
       }
     };
