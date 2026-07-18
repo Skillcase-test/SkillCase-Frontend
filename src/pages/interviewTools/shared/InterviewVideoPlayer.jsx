@@ -41,6 +41,8 @@ export default function InterviewVideoPlayer({
 }) {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
+  const completionReportedRef = useRef(false);
+  const onEndedRef = useRef(onEnded);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -57,6 +59,11 @@ export default function InterviewVideoPlayer({
   const isMinimal = variant === "minimal";
 
   useEffect(() => {
+    onEndedRef.current = onEnded;
+  }, [onEnded]);
+
+  useEffect(() => {
+    completionReportedRef.current = false;
     setPlaying(false);
     setLoadError("");
     setForceNativeControls(false);
@@ -69,6 +76,12 @@ export default function InterviewVideoPlayer({
         : 0,
     );
   }, [src]);
+
+  const reportCompletion = () => {
+    if (completionReportedRef.current) return;
+    completionReportedRef.current = true;
+    onEndedRef.current?.();
+  };
 
   useEffect(() => {
     if (!src) return undefined;
@@ -149,6 +162,17 @@ export default function InterviewVideoPlayer({
     setDuration(nextDuration);
     setCurrentTime(nextTime);
     setProgress(nextDuration > 0 ? (nextTime / nextDuration) * 100 : 0);
+
+    // A few mobile browsers do not reliably dispatch `ended` for remotely
+    // streamed/WebM media. Treat playback within 250 ms of a finite duration
+    // as complete so an interview candidate can never remain blocked.
+    if (
+      nextDuration > 0 &&
+      nextTime > 0 &&
+      nextDuration - nextTime <= 0.25
+    ) {
+      reportCompletion();
+    }
   };
 
   const togglePlay = async (event) => {
@@ -228,7 +252,7 @@ export default function InterviewVideoPlayer({
     if (finalDuration > 0) setKnownDuration(finalDuration);
     setProgress(100);
     setPlaying(false);
-    onEnded?.();
+    reportCompletion();
   };
 
   return (
