@@ -1023,14 +1023,18 @@ export default function ProfilePage() {
                           ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                           : resumeStatus === "rejected"
                             ? "bg-rose-50 text-rose-600 border-rose-200"
-                            : "bg-amber-50 text-amber-600 border-amber-200"
+                            : docProgress?.resume_url
+                              ? "bg-amber-50 text-amber-600 border-amber-200"
+                              : "bg-slate-50 text-slate-400 border-slate-200"
                       }`}
                     >
                       {resumeStatus === "approved"
                         ? "Approved"
                         : resumeStatus === "rejected"
                           ? "Revision Required"
-                          : "Under Review"}
+                          : docProgress?.resume_url
+                            ? "Under Review"
+                            : "Pending"}
                     </span>
                   )}
                 </div>
@@ -1107,14 +1111,18 @@ export default function ProfilePage() {
                             ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                             : certStatus === "rejected"
                               ? "bg-rose-50 text-rose-600 border-rose-200"
-                              : "bg-amber-50 text-amber-600 border-amber-200"
+                              : docProgress?.lang_cert_url
+                                ? "bg-amber-50 text-amber-600 border-amber-200"
+                                : "bg-slate-50 text-slate-400 border-slate-200"
                         }`}
                       >
                         {certStatus === "approved"
                           ? "Approved"
                           : certStatus === "rejected"
                             ? "Revision Required"
-                            : "Under Review"}
+                            : docProgress?.lang_cert_url
+                              ? "Under Review"
+                              : "Pending"}
                       </span>
                     )}
                   </div>

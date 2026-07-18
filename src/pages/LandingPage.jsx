@@ -23,8 +23,15 @@ export default function LandingPage() {
   useEffect(() => {
     if (!user) {
       navigate("/Login");
+      return;
     }
-  });
+    const isJobCandidate =
+      user?.german_preference === "3" ||
+      user?.lg_preferred_mode === "job_screening";
+    if (isJobCandidate) {
+      navigate("/job-screening", { replace: true });
+    }
+  }, [user, navigate]);
   const services = [
     {
       icon: <BookOpen className="w-12 h-12" />,

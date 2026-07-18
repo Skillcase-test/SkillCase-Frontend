@@ -42,12 +42,14 @@ export default function Navbar({
 
   const queryParams = new URLSearchParams(location.search);
   const isJobScreeningParam = queryParams.get("source") === "job_screening";
+  const cachedMode = localStorage.getItem("lg_preferred_mode");
   const isJobScreening =
-    (isAuthenticated && (
-      user?.german_preference === "3" ||
-      user?.lg_preferred_mode === "job_screening" ||
-      location.pathname.startsWith("/job-screening")
-    )) ||
+    (isAuthenticated &&
+      (location.pathname.startsWith("/job-screening") ||
+        ((user?.german_preference === "3" ||
+          user?.lg_preferred_mode === "job_screening") &&
+          cachedMode !== "practice" &&
+          cachedMode !== "learn"))) ||
     isJobScreeningParam;
 
   const [streak, setStreak] = useState(0);
@@ -409,9 +411,12 @@ export default function Navbar({
               navigate("/");
               return;
             }
+            const currentMode = localStorage.getItem("lg_preferred_mode");
             if (
-              user?.german_preference === "3" ||
-              user?.lg_preferred_mode === "job_screening"
+              (user?.german_preference === "3" ||
+                user?.lg_preferred_mode === "job_screening") &&
+              currentMode !== "practice" &&
+              currentMode !== "learn"
             ) {
               navigate("/job-screening");
               return;
