@@ -562,6 +562,13 @@ export function getTelemetryRequestContext() {
   return { sessionId, journeyId, interactionId: randomId() };
 }
 
+export function isOpaqueScriptErrorEvent(event) {
+  return (
+    !event?.error &&
+    String(event?.message || "").trim().toLowerCase() === "script error."
+  );
+}
+
 async function reconcileIdentityScope(generation) {
   if (state.restorePromise) await state.restorePromise;
   if (generation !== state.identityGeneration) return;
@@ -649,10 +656,12 @@ export function initializeTelemetry() {
         });
         return;
       }
+      const opaqueScriptError = isOpaqueScriptErrorEvent(event);
       captureTelemetryError(event.error || new Error(event.message || "Window error"), {
         domain: "runtime",
+        reason_code: opaqueScriptError ? "opaque_cross_origin_script_error" : undefined,
         handled: false,
-        severity: "fatal",
+        severity: opaqueScriptError ? "warning" : "fatal",
       });
     },
     true,

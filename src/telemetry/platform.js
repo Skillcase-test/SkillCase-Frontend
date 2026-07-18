@@ -1,16 +1,14 @@
 import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
 import { APP_VERSION } from "../config/appVersion";
+import { APP_BUILD_ID, APP_RELEASE } from "../config/release";
 
 const context = {
   platform: "web",
   runtime: "browser",
   app_version: APP_VERSION,
-  app_build: null,
-  release:
-    import.meta.env.VITE_APP_RELEASE ||
-    import.meta.env.VITE_GIT_SHA ||
-    `${import.meta.env.MODE}@${APP_VERSION}`,
+  app_build: APP_BUILD_ID,
+  release: APP_RELEASE,
 };
 
 function detectWebSurface() {

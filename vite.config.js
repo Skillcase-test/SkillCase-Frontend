@@ -30,8 +30,18 @@ function deleteSourcemapsPlugin() {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const isProd = mode === "production";
+  const buildId = String(
+    env.VITE_APP_BUILD ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.GITHUB_SHA ||
+    process.env.CODEBUILD_RESOLVED_SOURCE_VERSION ||
+    new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14)
+  ).slice(0, 40);
 
   return {
+    define: {
+      "import.meta.env.VITE_BUILD_ID": JSON.stringify(buildId),
+    },
     plugins: [
       react(),
       tailwindcss(),

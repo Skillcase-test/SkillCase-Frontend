@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/react";
 import { Capacitor } from "@capacitor/core";
 import { APP_VERSION } from "../config/appVersion";
+import { APP_BUILD_ID, APP_RELEASE } from "../config/release";
 import { captureTelemetryError } from "../telemetry";
 
 const SENSITIVE_KEY_PATTERN =
@@ -45,10 +46,8 @@ export function initSentry() {
   Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
     environment: import.meta.env.VITE_SENTRY_ENVIRONMENT || import.meta.env.MODE,
-    release:
-      import.meta.env.VITE_SENTRY_RELEASE ||
-      `${import.meta.env.MODE}@${APP_VERSION}`,
-    dist: APP_VERSION,
+    release: import.meta.env.VITE_SENTRY_RELEASE || APP_RELEASE,
+    dist: APP_BUILD_ID,
     sendDefaultPii: false,
     tracesSampleRate: 0.1,
     replaysSessionSampleRate: 0.03,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   acknowledgedEventIds,
+  isOpaqueScriptErrorEvent,
   resolvePersistedEventScope,
   sanitizeIdentifier,
   sanitizePath,
@@ -83,5 +84,11 @@ describe("first-party telemetry privacy and compatibility", () => {
     const otherUser = { event_id: "two", identity_scope: "user:user-2" };
     expect(resolvePersistedEventScope(otherUser, "session-a", "user:user-1"))
       .toBe(otherUser);
+  });
+
+  it("recognizes only opaque cross-origin script errors for non-paging storage", () => {
+    expect(isOpaqueScriptErrorEvent({ message: "Script error.", error: null })).toBe(true);
+    expect(isOpaqueScriptErrorEvent({ message: "Script error.", error: new Error("known") })).toBe(false);
+    expect(isOpaqueScriptErrorEvent({ message: "Application failed", error: null })).toBe(false);
   });
 });
