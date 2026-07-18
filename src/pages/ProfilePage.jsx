@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { setUser } from "../redux/auth/authSlice";
+import { setUser, logout } from "../redux/auth/authSlice";
+import { resetArticleEducation } from "../utils/articleUtils";
 import api from "../api/axios";
 import { trackFeatureEvent } from "../telemetry/events";
 import {
@@ -19,9 +20,7 @@ pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
 // Icon fallbacks for requested Figma design icons
 const FileCheckCornerIcon =
-  LucideIcons.FileCheck ||
-  LucideIcons.FileText ||
-  LucideIcons.File;
+  LucideIcons.FileCheck || LucideIcons.FileText || LucideIcons.File;
 
 const MessageCircleQuestionMarkIcon =
   LucideIcons.MessageCircleQuestionMark ||
@@ -599,6 +598,12 @@ export default function ProfilePage() {
     window.dispatchEvent(new CustomEvent("skillcase:open-support"));
   };
 
+  const handleLogout = () => {
+    resetArticleEducation(user?.user_id);
+    dispatch(logout());
+    navigate("/");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -967,6 +972,15 @@ export default function ProfilePage() {
                 </button>
               </div>
             )}
+
+            {/* Logout Button */}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full h-[48px] rounded-lg text-[16px] font-semibold transition-all bg-gradient-to-r from-amber-200 to-amber-300 text-black shadow-md active:scale-[0.98] border border-[#eec139] cursor-pointer"
+            >
+              <span>Logout</span>
+            </button>
           </div>
         </>
       ) : (
@@ -1131,8 +1145,8 @@ export default function ProfilePage() {
                       </>
                     ) : (
                       <>
-                              <span className="text-sm font-normal text-slate-400 truncate">
-                                Upload PDF
+                        <span className="text-sm font-normal text-slate-400 truncate">
+                          Upload PDF
                         </span>
                         <button
                           type="button"
@@ -1238,10 +1252,14 @@ export default function ProfilePage() {
                                   <button
                                     type="button"
                                     disabled={deletingDocId === doc.id}
-                                    onClick={() => handleDeleteAdditional(doc.id)}
+                                    onClick={() =>
+                                      handleDeleteAdditional(doc.id)
+                                    }
                                     className="text-sm font-semibold text-rose-600 hover:text-rose-800 underline cursor-pointer disabled:opacity-50"
                                   >
-                                    {deletingDocId === doc.id ? "Removing..." : "Remove"}
+                                    {deletingDocId === doc.id
+                                      ? "Removing..."
+                                      : "Remove"}
                                   </button>
                                 </>
                               )}
