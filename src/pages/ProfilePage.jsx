@@ -1,12 +1,66 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setUser } from "../redux/auth/authSlice";
 import api from "../api/axios";
-import JobScreeningProfilePage from "./jobScreening/JobScreeningProfilePage";
 import { trackFeatureEvent } from "../telemetry/events";
-import { Send, Eye, BookmarkCheck, CalendarCheck2, Clock, Check, X } from "lucide-react";
+import {
+  getProgress,
+  uploadProfileDocs,
+  uploadAdditionalDoc,
+  deleteAdditionalDoc,
+} from "../api/jobScreeningApi";
+import { Document, Page, pdfjs } from "react-pdf";
+import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import * as LucideIcons from "lucide-react";
 import mayaSad from "../assets/onboarding/mayaSad.webp";
+
+pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+
+// Icon fallbacks for requested Figma design icons
+const FileCheckCornerIcon =
+  LucideIcons.FileCheck ||
+  LucideIcons.FileText ||
+  LucideIcons.File;
+
+const MessageCircleQuestionMarkIcon =
+  LucideIcons.MessageCircleQuestionMark ||
+  LucideIcons.HelpCircle ||
+  LucideIcons.MessageSquare;
+
+const ArrowLeftIcon = LucideIcons.ArrowLeft || LucideIcons.ChevronLeft;
+const CheckIcon = LucideIcons.Check;
+const XIcon = LucideIcons.X;
+const UploadIcon = LucideIcons.Upload;
+const ExternalLinkIcon = LucideIcons.ExternalLink;
+const RefreshCwIcon = LucideIcons.RefreshCw;
+const CameraIcon = LucideIcons.Camera;
+const ChevronDownIcon = LucideIcons.ChevronDown;
+const InfoIcon = LucideIcons.Info || LucideIcons.HelpCircle;
+const FileTextIcon = LucideIcons.FileText || LucideIcons.File;
+const Maximize2Icon = LucideIcons.Maximize2 || LucideIcons.Expand;
+
+const CORE_DOCUMENT_TYPES = new Set(["resume", "certificate"]);
+const CORE_DOCUMENT_ACCEPT = ".pdf,application/pdf";
+const ADDITIONAL_DOCUMENT_ACCEPT =
+  ".pdf,.doc,.docx,.png,.jpg,.jpeg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/png,image/jpeg";
+
+function isAllowedDocumentFile(file, docType) {
+  if (!file) return false;
+  const fileName = file.name?.toLowerCase() || "";
+  if (CORE_DOCUMENT_TYPES.has(docType)) {
+    return file.type === "application/pdf" || fileName.endsWith(".pdf");
+  }
+  return (
+    file.type === "application/pdf" ||
+    file.type === "application/msword" ||
+    file.type ===
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+    [".pdf", ".doc", ".docx", ".png", ".jpg", ".jpeg"].some((ext) =>
+      fileName.endsWith(ext),
+    )
+  );
+}
 
 const DEFAULT_AVATAR = (
   <svg viewBox="0 0 100 100" className="w-full h-full" fill="none">
@@ -17,7 +71,6 @@ const DEFAULT_AVATAR = (
 );
 
 const QUALIFICATION_OPTIONS = [
-  { value: "", label: "Select your Qualification" },
   { value: "GNM Nursing", label: "GNM Nursing" },
   { value: "BSc Nursing", label: "BSc Nursing" },
   { value: "Post Basic BSc Nursing", label: "Post Basic BSc Nursing" },
@@ -30,19 +83,7 @@ const QUALIFICATION_OPTIONS = [
   { value: "Others", label: "Others" },
 ];
 
-const LANGUAGE_LEVEL_OPTIONS = [
-  { value: "", label: "Select your Language" },
-  { value: "Yet to Start Learning", label: "Yet to Start Learning" },
-  { value: "A1 Completed", label: "A1 Completed" },
-  { value: "A2 Completed", label: "A2 Completed" },
-  { value: "B1 – in progress", label: "B1 – in progress" },
-  { value: "B1 Completed", label: "B1 Completed" },
-  { value: "B2 – in progress", label: "B2 – in progress" },
-  { value: "B2 Completed", label: "B2 Completed" },
-];
-
 const EXPERIENCE_OPTIONS = [
-  { value: "", label: "Select your Experience" },
   { value: "Fresher", label: "Fresher" },
   { value: "Less than 1 year", label: "Less than 1 year" },
   { value: "1-2 years", label: "1-2 years" },
@@ -52,12 +93,152 @@ const EXPERIENCE_OPTIONS = [
   { value: "10+ years", label: "10+ years" },
 ];
 
+const GENDER_OPTIONS = [
+  { value: "Male", label: "Male" },
+  { value: "Female", label: "Female" },
+  { value: "Other", label: "Other" },
+];
+
+// Custom Select Component (No OS native blue menus)
+function CustomSelect({
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled = false,
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  const selectedOption = options.find((opt) => opt.value === value);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  if (disabled) {
+    return (
+      <div className="w-full h-11 px-3.5 bg-white border border-slate-300 rounded-lg text-sm font-normal text-slate-900 flex items-center justify-between shadow-2xs select-none cursor-not-allowed">
+        <span>{selectedOption?.label || value || placeholder}</span>
+        <ChevronDownIcon className="w-4 h-4 text-slate-500" />
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="relative w-full select-none">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full h-11 px-3.5 bg-white border border-slate-300 rounded-lg text-sm font-normal text-slate-900 flex items-center justify-between shadow-2xs hover:border-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all cursor-pointer text-left"
+      >
+        <span
+          className={
+            selectedOption?.value ? "text-slate-900" : "text-slate-400"
+          }
+        >
+          {selectedOption?.label || placeholder}
+        </span>
+        <ChevronDownIcon
+          className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
+            isOpen ? "rotate-180 text-blue-[#002856]" : ""
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white border border-slate-200 rounded-xl shadow-xl max-h-56 overflow-y-auto py-1 animate-in fade-in zoom-in-95 duration-100">
+          {options.map((opt) => (
+            <div
+              key={opt.value}
+              onClick={() => {
+                onChange(opt.value);
+                setIsOpen(false);
+              }}
+              className={`px-3.5 py-2.5 text-sm cursor-pointer transition-colors flex items-center justify-between ${
+                opt.value === value
+                  ? "bg-blue-50 text-[#002856] font-semibold"
+                  : "text-slate-700 hover:bg-slate-50 font-normal"
+              }`}
+            >
+              <span>{opt.label}</span>
+              {opt.value === value && (
+                <CheckIcon className="w-4 h-4 text-[#002856]" />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PdfCanvasPreview({ fileUrl }) {
+  return (
+    <div className="w-full h-full flex items-center justify-center overflow-hidden rounded-xl">
+      <Document
+        file={fileUrl}
+        loading={
+          <div className="flex flex-col items-center gap-2 text-[#002856]">
+            <RefreshCwIcon className="w-6 h-6 animate-spin text-[#002856]" />
+            <span className="text-xs font-medium">Loading Document...</span>
+          </div>
+        }
+        error={
+          <div className="flex flex-col items-center gap-2 text-slate-400">
+            <FileTextIcon className="w-8 h-8 text-slate-400" />
+            <span className="text-xs font-medium">
+              Unable to load PDF preview
+            </span>
+          </div>
+        }
+      >
+        <Page
+          pageNumber={1}
+          renderTextLayer={false}
+          renderAnnotationLayer={false}
+          height={290}
+          className="rounded-xl overflow-hidden shadow-sm flex items-center justify-center"
+        />
+      </Document>
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const modalFileInputRef = useRef(null);
+  const aliveRef = useRef(true);
 
+  // Active view tab inside ProfilePage ("profile" | "documents")
+  const [activeTab, setActiveTab] = useState("profile");
+
+  // Upload Modal & Preview Modal States
+  const [uploadModal, setUploadModal] = useState({
+    open: false,
+    docType: null, // 'resume' | 'certificate' | docId
+    docTitle: "",
+  });
+  const [selectedFileForUpload, setSelectedFileForUpload] = useState(null);
+
+  const [previewModal, setPreviewModal] = useState({
+    open: false,
+    docType: null,
+    docTitle: "",
+    url: "",
+    fileName: "",
+  });
+
+  // Form state
   const [form, setForm] = useState({
     fullname: "",
     email: "",
@@ -70,40 +251,21 @@ export default function ProfilePage() {
 
   const [profilePicUrl, setProfilePicUrl] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [countryCode, setCountryCode] = useState("+91");
-  const [isProfileOpen, setIsProfileOpen] = useState(true);
+
+  // Documents State
+  const [docProgress, setDocProgress] = useState(null);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const [uploadingCert, setUploadingCert] = useState(false);
+  const [uploadingDocId, setUploadingDocId] = useState(null);
+  const [deletingDocId, setDeletingDocId] = useState(null);
+
+  // Loading & Action UI States
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [profileStatus, setProfileStatus] = useState(0);
-  const [recruitmentStatus, setRecruitmentStatus] = useState(null);
-  const [recruitmentLoading, setRecruitmentLoading] = useState(false);
-  const [recruitmentError, setRecruitmentError] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [toast, setToast] = useState({ show: false, msg: "", type: "" });
   const [cancelling, setCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const aliveRef = useRef(true);
-
-  const handleDisableAutopay = async () => {
-    trackFeatureEvent("profile", "autopay_disable_started", { lifecycle: "started" });
-    setCancelling(true);
-    try {
-      const res = await api.post("/user/disable-autopay");
-      dispatch(setUser(res.data.user));
-      showToast("Subscription cancelled successfully", "success");
-      trackFeatureEvent("profile", "autopay_disabled", { lifecycle: "succeeded" });
-    } catch (err) {
-      trackFeatureEvent("profile", "autopay_disable_failed", { lifecycle: "failed", reasonCode: "api_failed" });
-      console.error(err);
-      showToast(
-        err.response?.data?.msg || "Failed to cancel subscription",
-        "error",
-      );
-    } finally {
-      setCancelling(false);
-      setShowCancelModal(false);
-    }
-  };
 
   useEffect(() => {
     aliveRef.current = true;
@@ -112,58 +274,60 @@ export default function ProfilePage() {
     };
   }, []);
 
-  function showToast(msg, type) {
+  function showToast(msg, type = "success") {
     setToast({ show: true, msg, type });
-    setTimeout(() => setToast({ show: false, msg: "", type: "" }), 3000);
+    setTimeout(() => {
+      if (aliveRef.current) {
+        setToast({ show: false, msg: "", type: "" });
+      }
+    }, 3500);
   }
 
-  const fetchProfile = useCallback(async () => {
+  const fetchProfileData = useCallback(async () => {
     try {
       setLoading(true);
       const res = await api.get("/user/profile");
       if (!aliveRef.current) return;
       const p = res.data.profile;
+      const germanLevel = p.current_profeciency_level || p.language_level || "";
       setForm({
         fullname: p.fullname || "",
         email: p.email || "",
         dob: p.dob ? p.dob.split("T")[0] : "",
         gender: p.gender || "",
         qualification: p.qualification || "",
-        language_level: p.language_level || "",
+        language_level: p.language_level || germanLevel,
         experience: p.experience || "",
       });
       setProfilePicUrl(p.profile_pic_url || "");
       setPhoneNumber(p.number || "");
-      setCountryCode(p.countrycode || "+91");
-      setProfileStatus(p.status || 0);
-      trackFeatureEvent("profile", "loaded", { lifecycle: "succeeded", attributes: { status: String(p.status || 0) } });
+
+      trackFeatureEvent("profile", "loaded", {
+        lifecycle: "succeeded",
+        attributes: { status: String(p.status || 0) },
+      });
     } catch (err) {
-      trackFeatureEvent("profile", "load_failed", { lifecycle: "failed", reasonCode: "api_failed" });
-      if (aliveRef.current) {
-        console.error("Error fetching profile:", err);
-        showToast("Failed to load profile", "error");
-      }
+      console.error("Error fetching profile:", err);
+      trackFeatureEvent("profile", "load_failed", {
+        lifecycle: "failed",
+        reasonCode: "api_failed",
+      });
+      if (aliveRef.current)
+        showToast("Failed to load profile details", "error");
     } finally {
       if (aliveRef.current) setLoading(false);
     }
   }, []);
 
-  const fetchRecruitmentStatus = useCallback(async () => {
+  const fetchDocProgressData = useCallback(async () => {
     try {
-      setRecruitmentLoading(true);
-      setRecruitmentError("");
-      const res = await api.get("/user/recruitment-status");
+      const { data } = await getProgress();
       if (!aliveRef.current) return;
-      setRecruitmentStatus(res?.data?.data || null);
-      trackFeatureEvent("profile", "recruitment_status_loaded", { lifecycle: "succeeded" });
+      if (data?.success) {
+        setDocProgress(data.data);
+      }
     } catch (err) {
-      trackFeatureEvent("profile", "recruitment_status_failed", { lifecycle: "failed", reasonCode: "api_failed" });
-      if (!aliveRef.current) return;
-      setRecruitmentError(
-        err?.response?.data?.msg || "Could not load recruitment status",
-      );
-    } finally {
-      if (aliveRef.current) setRecruitmentLoading(false);
+      console.error("Error fetching document progress:", err);
     }
   }, []);
 
@@ -172,11 +336,15 @@ export default function ProfilePage() {
       navigate("/login");
       return;
     }
-    fetchProfile();
-    fetchRecruitmentStatus();
-  }, [fetchProfile, fetchRecruitmentStatus, isAuthenticated, navigate]);
+    fetchProfileData();
+    fetchDocProgressData();
+  }, [isAuthenticated, navigate, fetchProfileData, fetchDocProgressData]);
 
-  const handleChange = (e) => {
+  const handleSelectChange = (fieldName, val) => {
+    setForm((prev) => ({ ...prev, [fieldName]: val }));
+  };
+
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
@@ -185,13 +353,11 @@ export default function ProfilePage() {
     e.preventDefault();
 
     if (!form.fullname.trim()) {
-      trackFeatureEvent("profile", "validation_blocked", { reasonCode: "fullname_required", attributes: { validation_code: "fullname_required" } });
       showToast("Full name is required", "error");
       return;
     }
 
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      trackFeatureEvent("profile", "validation_blocked", { reasonCode: "email_invalid", attributes: { validation_code: "email_invalid" } });
       showToast("Please enter a valid email address", "error");
       return;
     }
@@ -201,9 +367,7 @@ export default function ProfilePage() {
       trackFeatureEvent("profile", "save_started", { lifecycle: "started" });
       const res = await api.put("/user/profile", form);
       const updatedProfile = res.data.profile;
-      setProfileStatus(updatedProfile.status || 0);
 
-      // Update Redux user state so navbar reflects changes
       dispatch(
         setUser({
           ...user,
@@ -215,11 +379,11 @@ export default function ProfilePage() {
       showToast("Profile updated successfully", "success");
       trackFeatureEvent("profile", "saved", { lifecycle: "succeeded" });
     } catch (err) {
-      trackFeatureEvent("profile", "save_failed", { lifecycle: "failed", reasonCode: "api_failed" });
+      console.error("Profile save error:", err);
       const errMsg = err.response?.data?.msg || "Failed to update profile";
       showToast(errMsg, "error");
     } finally {
-      setSaving(false);
+      if (aliveRef.current) setSaving(false);
     }
   };
 
@@ -227,9 +391,7 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      trackFeatureEvent("profile", "photo_validation_blocked", { reasonCode: "size_limit", attributes: { validation_code: "size_limit", asset_type: "profile_photo" } });
       showToast("Image must be less than 5MB", "error");
       return;
     }
@@ -238,64 +400,204 @@ export default function ProfilePage() {
     formData.append("photo", file);
 
     try {
-      setUploading(true);
-      trackFeatureEvent("profile", "photo_upload_started", { lifecycle: "started", attributes: { asset_type: "profile_photo" } });
+      setUploadingPhoto(true);
       const res = await api.post("/upload/user-profile-photo", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
       if (res.data.success) {
         setProfilePicUrl(res.data.url);
-        // Update Redux so navbar updates immediately
         dispatch(setUser({ ...user, profile_pic_url: res.data.url }));
         showToast("Profile photo updated", "success");
-        trackFeatureEvent("profile", "photo_uploaded", { lifecycle: "succeeded", attributes: { asset_type: "profile_photo" } });
       }
     } catch (err) {
-      trackFeatureEvent("profile", "photo_upload_failed", { lifecycle: "failed", reasonCode: "api_failed", attributes: { asset_type: "profile_photo" } });
+      console.error("Photo upload error:", err);
       showToast("Failed to upload photo", "error");
     } finally {
-      setUploading(false);
+      if (aliveRef.current) setUploadingPhoto(false);
     }
   };
 
-  const displayName = form.fullname || user?.username || "User";
-  const displayEmail = form.email || "";
+  // Document Upload Handlers
+  const handleUploadResume = async (file) => {
+    if (!file) return;
 
-  const stats = [
-    {
-      key: "shown_to_recruiters",
-      label: "Shown",
-      icon: <Send className="w-4 h-4" />,
-      color: "from-blue-700 to-blue-800",
-      bgTint: "bg-blue-100",
-      textTint: "text-blue-700",
-    },
-    {
-      key: "viewed",
-      label: "Viewed",
-      icon: <Eye className="w-4 h-4" />,
-      color: "from-sky-900 to-sky-950",
-      bgTint: "bg-sky-100",
-      textTint: "text-sky-700",
-    },
-    {
-      key: "shortlisted",
-      label: "Shortlisted",
-      icon: <BookmarkCheck className="w-4 h-4" />,
-      color: "from-amber-500 to-amber-600",
-      bgTint: "bg-amber-100",
-      textTint: "text-amber-700",
-    },
-    {
-      key: "scheduled_interview",
-      label: "Interview",
-      icon: <CalendarCheck2 className="w-4 h-4" />,
-      color: "from-emerald-500 to-emerald-600",
-      bgTint: "bg-emerald-100",
-      textTint: "text-emerald-700",
-    },
-  ];
+    try {
+      setUploadingResume(true);
+      const formData = new FormData();
+      formData.append("resume", file);
+      const { data } = await uploadProfileDocs(formData);
+      if (data?.success) {
+        setDocProgress(data.data);
+        showToast("Resume uploaded successfully", "success");
+        setUploadModal({ open: false, docType: null, docTitle: "" });
+        setSelectedFileForUpload(null);
+      } else {
+        showToast("Failed to upload resume", "error");
+      }
+    } catch (err) {
+      console.error("Resume upload error:", err);
+      showToast(
+        err.response?.data?.message || "Error uploading resume",
+        "error",
+      );
+    } finally {
+      if (aliveRef.current) setUploadingResume(false);
+    }
+  };
+
+  const handleUploadCert = async (file) => {
+    if (!file) return;
+
+    try {
+      setUploadingCert(true);
+      const formData = new FormData();
+      formData.append("certificate", file);
+      const { data } = await uploadProfileDocs(formData);
+      if (data?.success) {
+        setDocProgress(data.data);
+        showToast("Language certificate uploaded successfully", "success");
+        setUploadModal({ open: false, docType: null, docTitle: "" });
+        setSelectedFileForUpload(null);
+      } else {
+        showToast("Failed to upload language certificate", "error");
+      }
+    } catch (err) {
+      console.error("Cert upload error:", err);
+      showToast(
+        err.response?.data?.message || "Error uploading certificate",
+        "error",
+      );
+    } finally {
+      if (aliveRef.current) setUploadingCert(false);
+    }
+  };
+
+  const handleUploadAdditional = async (docId, file) => {
+    if (!file) return;
+
+    setUploadingDocId(docId);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const { data } = await uploadAdditionalDoc(docId, formData);
+      if (data?.success) {
+        setDocProgress(data.data);
+        showToast("Supporting document uploaded", "success");
+        setUploadModal({ open: false, docType: null, docTitle: "" });
+        setSelectedFileForUpload(null);
+      } else {
+        showToast("Failed to upload document", "error");
+      }
+    } catch (err) {
+      console.error("Additional doc upload error:", err);
+      showToast(
+        err.response?.data?.message || "Error uploading document",
+        "error",
+      );
+    } finally {
+      if (aliveRef.current) setUploadingDocId(null);
+    }
+  };
+
+  const handleDeleteAdditional = async (docId) => {
+    setDeletingDocId(docId);
+    try {
+      const { data } = await deleteAdditionalDoc(docId);
+      if (data?.success) {
+        setDocProgress(data.data);
+        showToast("Supporting document removed", "success");
+      } else {
+        showToast("Failed to delete document", "error");
+      }
+    } catch (err) {
+      console.error("Delete doc error:", err);
+      showToast(
+        err.response?.data?.message || "Error removing document",
+        "error",
+      );
+    } finally {
+      if (aliveRef.current) setDeletingDocId(null);
+    }
+  };
+
+  const openUploadModalFor = (docType, docTitle) => {
+    setSelectedFileForUpload(null);
+    setUploadModal({ open: true, docType, docTitle });
+  };
+
+  const handleModalFileSelect = (e) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      setSelectedFileForUpload(null);
+      showToast("Maximum file size is 10MB", "error");
+      return;
+    }
+
+    if (!isAllowedDocumentFile(selectedFile, uploadModal.docType)) {
+      setSelectedFileForUpload(null);
+      showToast(
+        CORE_DOCUMENT_TYPES.has(uploadModal.docType)
+          ? "Only PDF files are allowed"
+          : "Supported files are PDF, DOC, DOCX, JPG, and PNG",
+        "error",
+      );
+      return;
+    }
+
+    setSelectedFileForUpload(selectedFile);
+  };
+
+  const handleModalSubmit = () => {
+    if (!selectedFileForUpload) {
+      showToast("Please select a file to upload", "error");
+      return;
+    }
+
+    if (uploadModal.docType === "resume") {
+      handleUploadResume(selectedFileForUpload);
+    } else if (uploadModal.docType === "certificate") {
+      handleUploadCert(selectedFileForUpload);
+    } else if (uploadModal.docType) {
+      handleUploadAdditional(uploadModal.docType, selectedFileForUpload);
+    }
+  };
+
+  const openPreviewModalFor = (docType, docTitle, url, fileName = "") => {
+    setPreviewModal({
+      open: true,
+      docType,
+      docTitle,
+      url,
+      fileName,
+    });
+  };
+
+  const handleDisableAutopay = async () => {
+    setCancelling(true);
+    try {
+      const res = await api.post("/user/disable-autopay");
+      dispatch(setUser(res.data.user));
+      showToast("Subscription cancelled successfully", "success");
+    } catch (err) {
+      console.error("Cancel subscription error:", err);
+      showToast(
+        err.response?.data?.msg || "Failed to cancel subscription",
+        "error",
+      );
+    } finally {
+      if (aliveRef.current) {
+        setCancelling(false);
+        setShowCancelModal(false);
+      }
+    }
+  };
+
+  const openSupportDrawer = () => {
+    window.dispatchEvent(new CustomEvent("skillcase:open-support"));
+  };
 
   if (loading) {
     return (
@@ -305,557 +607,887 @@ export default function ProfilePage() {
     );
   }
 
+  const displayName = form.fullname || user?.username || "Amélie Laurent";
+  const displayPhone = phoneNumber || user?.number || "8240951870";
+  const isAutopayActive = user && user.autopay_enabled === true;
+
+  // Check if candidate is a job screening candidate (for displaying review status pills)
   const isJobScreeningCandidate =
     user?.lg_preferred_mode === "job_screening" ||
-    String(user?.german_preference) === "3";
+    user?.german_preference === "3" ||
+    Boolean(docProgress?.candidate_profile_id);
 
-  if (isJobScreeningCandidate) {
-    return <JobScreeningProfilePage />;
-  }
+  const resumeStatus = docProgress?.resume_status || "pending";
+  const certStatus = docProgress?.lang_cert_status || "pending";
+
+  const requiredDocs =
+    isJobScreeningCandidate && Array.isArray(docProgress?.resolvedRequiredDocs)
+      ? docProgress.resolvedRequiredDocs
+      : [];
+  const candidateDocs = docProgress?.additional_documents || {};
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-black/5 font-sans pb-12">
       {/* Toast Notification */}
       {toast.show && (
         <div
-          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-white text-sm font-medium transition-all duration-300 ${
-            toast.type === "success" ? "bg-[#019035]" : "bg-red-500"
+          className={`fixed top-5 right-5 z-[999] px-4 py-3 rounded-xl shadow-lg text-white text-xs font-semibold flex items-center gap-2 transition-all ${
+            toast.type === "success" ? "bg-emerald-600" : "bg-rose-600"
           }`}
         >
-          {toast.msg}
+          <span>{toast.msg}</span>
         </div>
       )}
 
-      {/* Profile Header */}
-      <div className="bg-white border-b border-[#efefef]">
-        <div className="max-w-lg mx-auto px-4 py-8">
-          <div className="flex items-center gap-5">
-            {/* Avatar */}
-            <div className="relative w-24 h-24 flex-shrink-0">
+      {/* Main Profile View vs Your Documents View */}
+      {activeTab === "profile" ? (
+        <>
+          {/* Top Bar Sub-Header for Profile */}
+          <div className="bg-white border-b border-slate-200 sticky top-0 z-30">
+            <div className="max-w-xl mx-auto px-4 h-12 flex items-center justify-start gap-3">
               <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full h-full rounded-full overflow-hidden border-2 border-[#e9eaeb] hover:border-[#002856] transition-colors cursor-pointer"
-                disabled={uploading}
+                onClick={() => navigate(-1)}
+                className="w-7 h-7 flex items-center justify-center rounded-md border-2 border-slate-400 text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                title="Go Back"
               >
-                {profilePicUrl ? (
-                  <img
-                    src={profilePicUrl}
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  DEFAULT_AVATAR
-                )}
-                {uploading && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full">
-                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  </div>
-                )}
+                <ArrowLeftIcon className="w-4 h-4 text-slate-500" />
               </button>
-              {!uploading && (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 w-7 h-7 bg-white rounded-full border border-[#d5d7da] flex items-center justify-center shadow-sm cursor-pointer hover:bg-gray-50 transition-colors"
-                >
-                  <svg
-                    className="w-3.5 h-3.5 text-[#535862]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                </button>
-              )}
-            </div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhotoUpload}
-            />
-
-            {/* Name, Email, Phone */}
-            <div className="min-w-0">
-              <h1 className="text-xl font-bold text-[#181d27] truncate">
-                {displayName}
+              <h1 className="text-base font-semibold text-[#002856] font-['Poppins']">
+                Profile
               </h1>
-              {displayEmail && (
-                <p className="text-base text-[#535862] truncate">
-                  {displayEmail}
-                </p>
-              )}
-              <p className="text-base text-[#535862]">
-                {countryCode} {phoneNumber}
-              </p>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Profile Form Card */}
-      <div className="max-w-lg mx-auto px-4 py-6">
-        {/* Recruitment Status Card */}
-        {recruitmentStatus?.visible && (
-          <div className="rounded-xl border border-[#e9eaeb] shadow-sm mb-4 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-[#181d27]">
-                Recruitment Status
-              </h2>
-            </div>
-
-            <div>
-              {/* Pipeline Progress Bar */}
-              <div className="flex items-center gap-0.5 mb-3">
-                {stats.map((stat, idx) => {
-                  const isActive =
-                    recruitmentStatus?.summary_counts?.[stat.key] > 0;
-                  return (
-                    <div key={stat.key} className="flex-1 flex items-center">
-                      <div
-                        className={`flex-1 h-1 rounded-full transition-colors ${isActive ? `bg-gradient-to-r ${stat.color}` : "bg-gray-200"}`}
+          <div className="max-w-xl mx-auto px-4 pt-5 flex flex-col gap-6">
+            {/* User Avatar Header & Quick Action Buttons */}
+            <div className="flex flex-col gap-5">
+              <div className="flex items-center gap-4">
+                {/* Original Avatar with Camera Overlay */}
+                <div className="relative w-20 h-20 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingPhoto}
+                    className="w-full h-full rounded-full overflow-hidden border-2 border-slate-200 hover:border-[#002856] transition-colors cursor-pointer relative group bg-white shadow-2xs"
+                  >
+                    {profilePicUrl ? (
+                      <img
+                        src={profilePicUrl}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
                       />
-                      {idx < stats.length - 1 && (
-                        <div className="w-0.5 h-1 bg-gray-200 flex-shrink-0" />
-                      )}
-                    </div>
-                  );
-                })}
+                    ) : (
+                      DEFAULT_AVATAR
+                    )}
+                    {uploadingPhoto && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full">
+                        <RefreshCwIcon className="w-5 h-5 text-white animate-spin" />
+                      </div>
+                    )}
+                  </button>
+                  {!uploadingPhoto && (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute bottom-0 right-0 w-6.5 h-6.5 bg-white rounded-full border border-slate-300 flex items-center justify-center shadow-xs cursor-pointer hover:bg-slate-50 transition-colors"
+                    >
+                      <CameraIcon className="w-3.5 h-3.5 text-slate-600" />
+                    </button>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoUpload}
+                  />
+                </div>
+
+                {/* Name & Phone */}
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-lg font-semibold text-[#101828] truncate leading-7">
+                    {displayName}
+                  </h2>
+                  <p className="text-base font-normal text-slate-600 truncate leading-6">
+                    {displayPhone}
+                  </p>
+                </div>
               </div>
 
-              {/* Stats Grid */}
-              <div className="grid grid-cols-4 gap-2">
-                {stats.map((stat) => {
-                  const count =
-                    recruitmentStatus?.summary_counts?.[stat.key] || 0;
-                  const isActive = count > 0;
-                  return (
-                    <div
-                      key={stat.key}
-                      className={`relative rounded-lg p-2 text-center transition-all ${
-                        isActive
-                          ? `${stat.bgTint} border border-transparent`
-                          : "bg-white border border-[#e9eaeb]"
-                      }`}
-                    >
+              {/* Quick Action Row: Your Documents & Help & Support */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => setActiveTab("documents")}
+                  className="px-3 py-3.5 bg-white rounded-lg inline-flex justify-center items-center gap-2 border border-transparent shadow-xs hover:bg-slate-50 cursor-pointer transition-colors"
+                >
+                  <FileCheckCornerIcon className="w-5 h-5 text-black shrink-0" />
+                  <span className="text-center text-black text-xs font-medium font-['Poppins']">
+                    Your Documents
+                  </span>
+                </button>
+
+                <button
+                  onClick={openSupportDrawer}
+                  className="px-3 py-3.5 bg-white rounded-lg inline-flex justify-center items-center gap-2 border border-transparent shadow-xs hover:bg-slate-50 cursor-pointer transition-colors"
+                >
+                  <MessageCircleQuestionMarkIcon className="w-5 h-5 text-black shrink-0" />
+                  <span className="text-center text-black text-xs font-medium font-['Poppins']">
+                    Help & Support
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Your Information Card */}
+            <div className="flex flex-col gap-3">
+              <h3 className="text-base font-semibold text-[#101828] leading-6">
+                Your information
+              </h3>
+
+              <div className="p-4 sm:p-5 bg-white rounded-xl border border-slate-300/80 shadow-2xs flex flex-col gap-6">
+                <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+                  {/* Full Name */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="inline-flex items-center gap-0.5">
+                      <span className="text-sm font-medium text-slate-700">
+                        Full name
+                      </span>
+                      <span className="text-purple-600 text-sm font-medium">
+                        *
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      name="fullname"
+                      value={form.fullname}
+                      onChange={handleInputChange}
+                      placeholder="Avinash Rai"
+                      className="w-full h-11 px-3.5 bg-white border border-slate-300 rounded-lg text-sm font-normal text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 shadow-2xs transition-all"
+                    />
+                  </div>
+
+                  {/* Phone Number with IN Flag Badge */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="inline-flex items-center gap-0.5">
+                      <span className="text-sm font-medium text-slate-700">
+                        Phone Number
+                      </span>
+                      <span className="text-purple-600 text-sm font-medium">
+                        *
+                      </span>
+                    </div>
+                    <div className="flex items-center w-full h-11 bg-white border border-slate-300 rounded-lg shadow-2xs overflow-hidden focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 transition-all">
+                      <div className="pl-3.5 pr-2.5 h-full bg-slate-50/70 border-r border-slate-200 text-sm font-medium text-slate-600 flex items-center gap-1 shrink-0 select-none">
+                        <span>IN</span>
+                        <ChevronDownIcon className="w-3.5 h-3.5 text-slate-400" />
+                      </div>
+                      <input
+                        type="text"
+                        value={displayPhone}
+                        readOnly
+                        disabled
+                        className="flex-1 h-full px-3 text-sm font-normal text-slate-700 bg-transparent outline-none focus:outline-none cursor-not-allowed select-none border-none ring-0"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="inline-flex items-center gap-0.5">
+                      <span className="text-sm font-medium text-slate-700">
+                        Email
+                      </span>
+                      <span className="text-purple-600 text-sm font-medium">
+                        *
+                      </span>
+                    </div>
+                    <input
+                      type="email"
+                      name="email"
+                      value={form.email}
+                      onChange={handleInputChange}
+                      placeholder="you@company.com"
+                      className="w-full h-11 px-3.5 bg-white border border-slate-300 rounded-lg text-sm font-normal text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 shadow-2xs transition-all"
+                    />
+                  </div>
+
+                  {/* Educational Qualification Custom Select */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="inline-flex items-center gap-0.5">
+                      <span className="text-sm font-medium text-slate-700">
+                        Educational Qualification
+                      </span>
+                      <span className="text-purple-600 text-sm font-medium">
+                        *
+                      </span>
+                    </div>
+                    <CustomSelect
+                      value={form.qualification}
+                      onChange={(val) =>
+                        handleSelectChange("qualification", val)
+                      }
+                      options={QUALIFICATION_OPTIONS}
+                      placeholder="Select your qualification"
+                    />
+                  </div>
+
+                  {/* German Language Proficiency (Disabled & Read-Only) */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="inline-flex items-center gap-0.5">
+                      <span className="text-sm font-medium text-slate-700">
+                        German Language Proficiency
+                      </span>
+                      <span className="text-purple-600 text-sm font-medium">
+                        *
+                      </span>
+                    </div>
+                    <CustomSelect
+                      value={form.language_level}
+                      onChange={() => {}}
+                      options={[]}
+                      placeholder="Not Set"
+                      disabled={true}
+                    />
+                    <div className="flex items-center gap-1.5 mt-1 text-xs font-medium text-slate-600">
+                      <InfoIcon className="w-4 h-4 text-emerald-700 shrink-0" />
+                      <span>
+                        Raise a support ticket to change your German level
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Work Experience Custom Select */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="inline-flex items-center gap-0.5">
+                      <span className="text-sm font-medium text-slate-700">
+                        Work Experience
+                      </span>
+                      <span className="text-purple-600 text-sm font-medium">
+                        *
+                      </span>
+                    </div>
+                    <CustomSelect
+                      value={form.experience}
+                      onChange={(val) => handleSelectChange("experience", val)}
+                      options={EXPERIENCE_OPTIONS}
+                      placeholder="Select your qualification"
+                    />
+                  </div>
+
+                  {/* Gender Custom Select */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="inline-flex items-center gap-0.5">
+                      <span className="text-sm font-medium text-slate-700">
+                        Gender
+                      </span>
+                      <span className="text-purple-600 text-sm font-medium">
+                        *
+                      </span>
+                    </div>
+                    <CustomSelect
+                      value={form.gender}
+                      onChange={(val) => handleSelectChange("gender", val)}
+                      options={GENDER_OPTIONS}
+                      placeholder="Select your gender"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="w-full h-11 bg-[#002856] hover:bg-[#001e40] text-white text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer disabled:opacity-50 mt-2"
+                  >
+                    {saving ? "Updating..." : "Update Details"}
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* Subscription Card - Only rendered when user has an active subscription */}
+            {isAutopayActive && (
+              <div className="p-4 sm:p-5 bg-white rounded-xl border border-slate-300/80 shadow-2xs flex flex-col gap-5">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-base font-semibold text-slate-900">
+                    Subscription
+                  </h3>
+                  <div className="px-2.5 py-0.5 bg-emerald-50 rounded-full border border-emerald-200 flex justify-center items-center">
+                    <span className="text-center text-emerald-700 text-xs font-medium">
+                      active
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-black/5 rounded-xl flex flex-col gap-4">
+                  <div className="text-center">
+                    <span className="text-[#002856] text-4xl font-bold">
+                      ₹99{" "}
+                    </span>
+                    <span className="text-[#002856] text-base font-normal">
+                      / month
+                    </span>
+                  </div>
+
+                  <div className="w-full border-t border-stone-300" />
+
+                  <div className="flex flex-col gap-2">
+                    {[
+                      "Streak Challenges",
+                      "German Lessons",
+                      "Flashcards",
+                      "Pronunciation practice",
+                      "Chapter tests",
+                    ].map((feature, idx) => (
                       <div
-                        className={`inline-flex p-1.5 rounded-md ${isActive ? stat.bgTint : "bg-gray-100"}`}
+                        key={idx}
+                        className="flex justify-between items-center text-xs"
                       >
-                        <div
-                          className={isActive ? stat.textTint : "text-gray-400"}
-                        >
-                          {stat.icon}
+                        <span className="text-[#002856] font-normal">
+                          {feature}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#002856] font-medium">
+                            Unlimited
+                          </span>
+                          <div className="w-3.5 h-3.5 bg-green-600 rounded-full flex items-center justify-center text-white shrink-0">
+                            <CheckIcon className="w-2.5 h-2.5 stroke-[3]" />
+                          </div>
                         </div>
                       </div>
-                      <p
-                        className={`mt-1.5 text-lg font-bold tracking-tight ${isActive ? "text-[#181d27]" : "text-gray-300"}`}
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowCancelModal(true)}
+                  disabled={cancelling}
+                  className="w-full h-11 bg-white border border-red-500 text-red-500 hover:bg-red-50 text-sm font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {cancelling ? "Processing..." : "Cancel subscription"}
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        /* Your Documents View */
+        <>
+          {/* Sub-Header for Your Documents with Back Arrow */}
+          <div className="bg-white border-b border-slate-200 sticky top-0 z-30">
+            <div className="max-w-xl mx-auto px-4 h-12 flex items-center justify-start gap-3">
+              <button
+                onClick={() => setActiveTab("profile")}
+                className="w-7 h-7 flex items-center justify-center rounded-md border-2 border-slate-400 text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                title="Back to Profile"
+              >
+                <ArrowLeftIcon className="w-4 h-4 text-slate-500" />
+              </button>
+              <h1 className="text-base font-semibold text-[#002856]">
+                Your Documents
+              </h1>
+            </div>
+          </div>
+
+          <div className="max-w-xl mx-auto px-4 pt-5 flex flex-col gap-6">
+            {/* Resume Section */}
+            <div className="flex flex-col gap-2">
+              <h3 className="text-base font-semibold text-[#101828] leading-6">
+                Resume
+              </h3>
+              <div className="p-4 sm:p-5 bg-white rounded-xl border border-slate-300/80 shadow-2xs flex flex-col gap-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-slate-700">
+                    {docProgress?.resume_url
+                      ? "Uploaded Resume"
+                      : "Upload Resume"}
+                  </span>
+                  {/* Status pill rendered ONLY for Job Screening candidates */}
+                  {isJobScreeningCandidate && (
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                        resumeStatus === "approved"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : resumeStatus === "rejected"
+                            ? "bg-rose-50 text-rose-600 border-rose-200"
+                            : "bg-amber-50 text-amber-600 border-amber-200"
+                      }`}
+                    >
+                      {resumeStatus === "approved"
+                        ? "Approved"
+                        : resumeStatus === "rejected"
+                          ? "Revision Required"
+                          : "Under Review"}
+                    </span>
+                  )}
+                </div>
+
+                {/* Document Box: If uploaded (Screenshot 2), show icon + filename + View link. If not, show Upload trigger */}
+                <div className="relative w-full h-11 px-3.5 bg-white border border-slate-300 rounded-lg flex items-center justify-between shadow-2xs focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 transition-all">
+                  {docProgress?.resume_url ? (
+                    <>
+                      <div className="flex items-center gap-2 truncate pr-2">
+                        <FileTextIcon className="w-5 h-5 text-slate-900 shrink-0" />
+                        <span className="text-sm font-normal text-slate-800 truncate">
+                          Resume.pdf
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openPreviewModalFor(
+                            "resume",
+                            "Uploaded Resume",
+                            docProgress.resumeDownloadUrl,
+                            "Resume.pdf",
+                          )
+                        }
+                        className="text-sm font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer shrink-0"
                       >
-                        {count}
-                      </p>
-                      <p
-                        className={`text-[8px] font-semibold uppercase tracking-wider ${isActive ? "text-gray-500" : "text-gray-400"}`}
+                        View
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm font-normal text-slate-400 truncate">
+                        Upload PDF
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openUploadModalFor("resume", "Upload Resume")
+                        }
+                        className="cursor-pointer text-slate-700 hover:text-[#002856] transition-colors p-1 shrink-0"
                       >
-                        {stat.label}
-                      </p>
+                        {uploadingResume ? (
+                          <RefreshCwIcon className="w-5 h-5 animate-spin text-[#002856]" />
+                        ) : (
+                          <UploadIcon className="w-5 h-5" />
+                        )}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Certificates Section */}
+            <div className="flex flex-col gap-2">
+              <h3 className="text-base font-semibold text-[#101828] leading-6">
+                Certificates
+              </h3>
+
+              <div className="p-4 sm:p-5 bg-white rounded-xl border border-slate-300/80 shadow-2xs flex flex-col gap-5">
+                {/* Language Certificate */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-slate-700">
+                      {docProgress?.lang_cert_url
+                        ? "Uploaded Language Certificate"
+                        : "Language Certificate"}
+                    </span>
+                    {/* Status pill rendered ONLY for Job Screening candidates */}
+                    {isJobScreeningCandidate && (
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                          certStatus === "approved"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : certStatus === "rejected"
+                              ? "bg-rose-50 text-rose-600 border-rose-200"
+                              : "bg-amber-50 text-amber-600 border-amber-200"
+                        }`}
+                      >
+                        {certStatus === "approved"
+                          ? "Approved"
+                          : certStatus === "rejected"
+                            ? "Revision Required"
+                            : "Under Review"}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="relative w-full h-11 px-3.5 bg-white border border-slate-300 rounded-lg flex items-center justify-between shadow-2xs focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 transition-all">
+                    {docProgress?.lang_cert_url ? (
+                      <>
+                        <div className="flex items-center gap-2 truncate pr-2">
+                          <FileTextIcon className="w-5 h-5 text-slate-900 shrink-0" />
+                          <span className="text-sm font-normal text-slate-800 truncate">
+                            Language_Certificate.pdf
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openPreviewModalFor(
+                              "certificate",
+                              "Uploaded Language Certificate",
+                              docProgress.certDownloadUrl,
+                              "Language_Certificate.pdf",
+                            )
+                          }
+                          className="text-sm font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer shrink-0"
+                        >
+                          View
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                              <span className="text-sm font-normal text-slate-400 truncate">
+                                Upload PDF
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            openUploadModalFor(
+                              "certificate",
+                              "Upload Language Certificate",
+                            )
+                          }
+                          className="cursor-pointer text-slate-700 hover:text-[#002856] transition-colors p-1 shrink-0"
+                        >
+                          {uploadingCert ? (
+                            <RefreshCwIcon className="w-5 h-5 animate-spin text-[#002856]" />
+                          ) : (
+                            <UploadIcon className="w-5 h-5" />
+                          )}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Additional Dynamic Assigned Certificates (Job Screening candidates) */}
+                {requiredDocs.map((doc) => {
+                  const fileObj = candidateDocs[doc.id];
+                  const isUploaded = !!fileObj?.key;
+                  const docStatus = fileObj?.status || "pending";
+                  const canModify = isUploaded && docStatus !== "approved";
+
+                  return (
+                    <div key={doc.id} className="flex flex-col gap-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-slate-700">
+                          {isUploaded ? `Uploaded ${doc.title}` : doc.title}
+                        </span>
+                        {isJobScreeningCandidate && (
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                              docStatus === "approved"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : docStatus === "rejected"
+                                  ? "bg-rose-50 text-rose-600 border-rose-200"
+                                  : isUploaded
+                                    ? "bg-amber-50 text-amber-600 border-amber-200"
+                                    : "bg-slate-50 text-slate-400 border-slate-200"
+                            }`}
+                          >
+                            {docStatus === "approved"
+                              ? "Approved"
+                              : docStatus === "rejected"
+                                ? "Revision Required"
+                                : isUploaded
+                                  ? "Under Review"
+                                  : "Pending"}
+                          </span>
+                        )}
+                      </div>
+
+                      {docStatus === "rejected" && (
+                        <p className="text-xs font-medium text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-3 py-2">
+                          Please re-upload this document in an accepted format.
+                        </p>
+                      )}
+
+                      <div className="relative w-full min-h-11 px-3.5 py-2 bg-white border border-slate-300 rounded-lg flex items-center justify-between gap-2 shadow-2xs focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 transition-all">
+                        {isUploaded ? (
+                          <>
+                            <div className="flex items-center gap-2 truncate pr-2">
+                              <FileTextIcon className="w-5 h-5 text-slate-900 shrink-0" />
+                              <span className="text-sm font-normal text-slate-800 truncate">
+                                {fileObj.fileName || doc.title}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openPreviewModalFor(
+                                    doc.id,
+                                    `Uploaded ${doc.title}`,
+                                    fileObj.downloadUrl,
+                                    fileObj.fileName,
+                                  )
+                                }
+                                className="text-sm font-semibold text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                              >
+                                View
+                              </button>
+                              {canModify && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      openUploadModalFor(
+                                        doc.id,
+                                        `Replace ${doc.title}`,
+                                      )
+                                    }
+                                    className="text-sm font-semibold text-[#002856] hover:text-blue-800 underline cursor-pointer"
+                                  >
+                                    Replace
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={deletingDocId === doc.id}
+                                    onClick={() => handleDeleteAdditional(doc.id)}
+                                    className="text-sm font-semibold text-rose-600 hover:text-rose-800 underline cursor-pointer disabled:opacity-50"
+                                  >
+                                    {deletingDocId === doc.id ? "Removing..." : "Remove"}
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-sm font-normal text-slate-400 truncate">
+                              Upload PDF/DOC/DOCX/JPG/PNG
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openUploadModalFor(
+                                  doc.id,
+                                  `Upload ${doc.title}`,
+                                )
+                              }
+                              className="cursor-pointer text-slate-700 hover:text-[#002856] transition-colors p-1 shrink-0"
+                            >
+                              {uploadingDocId === doc.id ? (
+                                <RefreshCwIcon className="w-5 h-5 animate-spin text-[#002856]" />
+                              ) : (
+                                <UploadIcon className="w-5 h-5" />
+                              )}
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
             </div>
           </div>
-        )}
+        </>
+      )}
 
-        <div className="bg-white rounded-xl border border-[#e9eaeb] shadow-sm">
-          {/* Card Header */}
-          <button
-            type="button"
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="w-full flex items-center justify-between px-5 py-4 text-left"
-          >
-            <div className="flex items-center gap-3">
-              <span className="text-base font-semibold text-[#181d27]">
-                Profile
-              </span>
-
-              <span
-                className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
-                  profileStatus === 1
-                    ? "bg-[#cdf5db] text-[#019035]"
-                    : "bg-[#ffebbe] text-[#c48b0e]"
-                }`}
-              >
-                {profileStatus === 1 ? "Complete" : "Incomplete"}
-              </span>
-            </div>
-            <svg
-              className={`w-5 h-5 text-[#535862] transition-transform duration-200 ${
-                isProfileOpen ? "rotate-180" : ""
-              }`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
+      {/* Upload Modal (Matching Screenshot 1) */}
+      {uploadModal.open && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 select-none font-sans">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 flex flex-col items-center gap-5 relative animate-in fade-in zoom-in-95 duration-150">
+            <button
+              onClick={() => {
+                setUploadModal({ open: false, docType: null, docTitle: "" });
+                setSelectedFileForUpload(null);
+              }}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/5 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors cursor-pointer"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19 9l-7 7-7-7"
+              <XIcon className="w-4 h-4" />
+            </button>
+
+            <h3 className="text-lg font-semibold text-[#002856] text-center font-['Poppins']">
+              {uploadModal.docTitle}
+            </h3>
+
+            {/* Dropzone Box */}
+            <div
+              onClick={() => modalFileInputRef.current?.click()}
+              className="w-full border-2 border-dashed border-slate-200 hover:border-[#002856] rounded-2xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors bg-black/5"
+            >
+              <div className="w-12 h-12 bg-[#002856] rounded-xl flex items-center justify-center text-white shrink-0 shadow-md">
+                <UploadIcon className="w-6 h-6" />
+              </div>
+              <span className="text-[#002856] text-sm font-semibold">
+                {selectedFileForUpload
+                  ? selectedFileForUpload.name
+                  : "Tap to upload"}
+              </span>
+              <span className="text-slate-400 text-xs font-normal">
+                {CORE_DOCUMENT_TYPES.has(uploadModal.docType)
+                  ? "Supported files: PDF"
+                  : "Supported files: PDF, DOC, DOCX, JPG, PNG"}
+              </span>
+              <input
+                ref={modalFileInputRef}
+                type="file"
+                accept={
+                  CORE_DOCUMENT_TYPES.has(uploadModal.docType)
+                    ? CORE_DOCUMENT_ACCEPT
+                    : ADDITIONAL_DOCUMENT_ACCEPT
+                }
+                onChange={handleModalFileSelect}
+                className="hidden"
               />
-            </svg>
-          </button>
+            </div>
 
-          {/* Form Fields */}
-          {isProfileOpen && (
-            <form onSubmit={handleSubmit} className="px-5 pb-6 space-y-6">
-              {/* Full Name */}
-              <div>
-                <label className="block text-base font-medium text-[#181d27] mb-1.5">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="fullname"
-                  value={form.fullname}
-                  onChange={handleChange}
-                  placeholder="Enter your full name"
-                  className="w-full px-4 py-3.5 rounded-lg border border-[#d5d7da] text-[#181d27] text-base focus:outline-none focus:border-[#002856] focus:ring-1 focus:ring-[#002856] transition-colors"
-                />
-              </div>
-
-              {/* Date of Birth */}
-              <div>
-                <label className="block text-base font-medium text-[#181d27] mb-1.5">
-                  Date of Birth <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  name="dob"
-                  value={form.dob}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3.5 rounded-lg border border-[#d5d7da] text-[#181d27] text-base focus:outline-none focus:border-[#002856] focus:ring-1 focus:ring-[#002856] transition-colors"
-                />
-              </div>
-
-              {/* Phone Number (read-only) */}
-              <div>
-                <label className="block text-base font-medium text-[#181d27] mb-1.5">
-                  Phone Number <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center px-4 py-3.5 rounded-lg border border-[#e9eaeb] bg-[#f5f5f5] text-base text-[#717680]">
-                  <span className="flex items-center gap-2 border-r border-[#d5d7da] pr-3 mr-3">
-                    <svg
-                      viewBox="0 0 36 24"
-                      className="w-6 h-4 flex-shrink-0 rounded-sm overflow-hidden"
-                    >
-                      <rect width="36" height="8" fill="#FF9933" />
-                      <rect y="8" width="36" height="8" fill="#FFFFFF" />
-                      <rect y="16" width="36" height="8" fill="#138808" />
-                      <circle cx="18" cy="12" r="2.5" fill="#000080" />
-                    </svg>
-                    <span className="text-[#414651] font-medium">
-                      {countryCode}
-                    </span>
-                    <svg
-                      className="w-3 h-3 text-[#717680]"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </span>
-                  <span className="text-[#414651]">{phoneNumber}</span>
-                </div>
-              </div>
-
-              {/* Email Address */}
-              <div>
-                <label className="block text-base font-medium text-[#181d27] mb-1.5">
-                  Email Address <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={form.email}
-                  onChange={handleChange}
-                  placeholder="Enter your email"
-                  className="w-full px-4 py-3.5 rounded-lg border border-[#d5d7da] text-[#181d27] text-base focus:outline-none focus:border-[#002856] focus:ring-1 focus:ring-[#002856] transition-colors"
-                />
-              </div>
-
-              {/* Educational Qualification */}
-              <div>
-                <label className="block text-base font-medium text-[#181d27] mb-1.5">
-                  Educational Qualification{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <select
-                    name="qualification"
-                    value={form.qualification}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3.5 rounded-lg border border-[#d5d7da] text-[#181d27] text-base focus:outline-none focus:border-[#002856] focus:ring-1 focus:ring-[#002856] transition-colors bg-white cursor-pointer appearance-none"
-                  >
-                    {QUALIFICATION_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                  <svg
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#535862] pointer-events-none"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
-
-              {/* German Language Proficiency */}
-              <div>
-                <label className="block text-base font-medium text-[#181d27] mb-1.5">
-                  German Language Proficiency{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <select
-                    name="language_level"
-                    value={form.language_level}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3.5 rounded-lg border border-[#d5d7da] text-[#181d27] text-base focus:outline-none focus:border-[#002856] focus:ring-1 focus:ring-[#002856] transition-colors bg-white cursor-pointer appearance-none"
-                  >
-                    {LANGUAGE_LEVEL_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                  <svg
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#535862] pointer-events-none"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Work Experience */}
-              <div>
-                <label className="block text-base font-medium text-[#181d27] mb-1.5">
-                  Work Experience <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <select
-                    name="experience"
-                    value={form.experience}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3.5 rounded-lg border border-[#d5d7da] text-[#181d27] text-base focus:outline-none focus:border-[#002856] focus:ring-1 focus:ring-[#002856] transition-colors bg-white cursor-pointer appearance-none"
-                  >
-                    {EXPERIENCE_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                  <svg
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#535862] pointer-events-none"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Gender */}
-              <div>
-                <label className="block text-base font-medium text-[#181d27] mb-2">
-                  Gender <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center gap-6">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="Male"
-                      checked={form.gender === "Male"}
-                      onChange={handleChange}
-                      className="w-4 h-4 accent-[#c4320a]"
-                    />
-                    <span className="text-base text-[#181d27]">Male</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="gender"
-                      value="Female"
-                      checked={form.gender === "Female"}
-                      onChange={handleChange}
-                      className="w-4 h-4 accent-[#c4320a]"
-                    />
-                    <span className="text-base text-[#181d27]">Female</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Submit Button */}
+            <div className="flex flex-col gap-2.5 w-full">
               <button
-                type="submit"
-                disabled={saving}
-                className="w-full py-3.5 rounded-lg bg-[#002856] text-white font-bold text-base hover:bg-[#003d83] transition-colors disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+                type="button"
+                onClick={handleModalSubmit}
+                disabled={
+                  !selectedFileForUpload ||
+                  uploadingResume ||
+                  uploadingCert ||
+                  Boolean(uploadingDocId)
+                }
+                className="w-full py-3 bg-[#002856] hover:bg-[#001e40] text-white rounded-xl font-semibold text-sm transition-colors cursor-pointer disabled:opacity-40"
               >
-                {saving ? "Updating..." : "Update Details"}
+                {uploadingResume || uploadingCert || uploadingDocId
+                  ? "Uploading..."
+                  : uploadModal.docTitle}
               </button>
-            </form>
-          )}
+              <button
+                type="button"
+                onClick={() => {
+                  setUploadModal({ open: false, docType: null, docTitle: "" });
+                  setSelectedFileForUpload(null);
+                }}
+                className="w-full py-3 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-xl font-semibold text-sm transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
         </div>
+      )}
 
-        {/* Autopay Subscription Card */}
-        {user && user.razorpay_subscription_id && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm mt-4 p-5 flex flex-col gap-4">
-            {/* Header */}
-            <div className="flex justify-between items-center w-full">
-              <h3 className="text-[#002856] text-lg font-bold">Paid Subscription</h3>
-              {user.autopay_enabled ? (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100">
-                  active
-                </span>
+      {/* Uploaded Document Preview Modal (Matching Screenshot 3) */}
+      {previewModal.open && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 select-none font-sans">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 flex flex-col items-center gap-5 relative animate-in fade-in zoom-in-95 duration-150">
+            <button
+              onClick={() =>
+                setPreviewModal({
+                  open: false,
+                  docType: null,
+                  docTitle: "",
+                  url: "",
+                  fileName: "",
+                })
+              }
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors cursor-pointer"
+            >
+              <XIcon className="w-4 h-4" />
+            </button>
+
+            <h3 className="text-lg font-semibold text-[#002856] text-center font-['Poppins']">
+              {previewModal.docTitle}
+            </h3>
+
+            {/* Document Preview Container */}
+            <div className="w-full h-80 rounded-2xl bg-black/5 overflow-hidden relative border border-slate-200 flex items-center justify-center p-2">
+              {previewModal.url ? (
+                previewModal.fileName.toLowerCase().endsWith(".pdf") ? (
+                  <PdfCanvasPreview fileUrl={previewModal.url} />
+                ) : (
+                  <img
+                    src={previewModal.url}
+                    alt={previewModal.docTitle}
+                    className="w-full h-full object-contain rounded-xl"
+                  />
+                )
               ) : (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-600 border border-amber-100 capitalize">
-                  {user.autopay_status || "Cancelled"}
-                </span>
+                <div className="flex flex-col items-center gap-2 text-slate-400">
+                  <FileTextIcon className="w-10 h-10" />
+                  <span className="text-xs font-medium">
+                    Document Preview Unavailable
+                  </span>
+                </div>
               )}
             </div>
 
-            {/* Features card inset */}
-            <div className="w-full bg-[#f8f9fa] rounded-3xl p-5 flex flex-col gap-4">
-              <div className="text-center py-1 flex items-baseline justify-center gap-1.5">
-                <span className="text-3xl font-extrabold text-[#002856]">₹99</span>
-                <span className="text-sm font-bold text-slate-400">/ month</span>
-              </div>
-              <div className="border-t border-slate-200/60 w-full" />
-              <div className="flex flex-col gap-3">
-                {[
-                  "Streak Challenges",
-                  "German Lessons",
-                  "Flashcards",
-                  "Pronunciation practice",
-                  "Chapter tests",
-                ].map((feature, idx) => (
-                  <div
-                    key={idx}
-                    className="flex justify-between items-center text-xs"
-                  >
-                    <span className="font-semibold text-slate-600">{feature}</span>
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-[#22c55e]">Active</span>
-                      <div className="w-4 h-4 bg-[#22c55e] rounded-full flex items-center justify-center">
-                        <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Action */}
-            {user.autopay_enabled && (
+            {/* Action Buttons */}
+            <div className="flex flex-col gap-2.5 w-full">
               <button
                 type="button"
-                onClick={() => setShowCancelModal(true)}
-                disabled={cancelling}
-                className="w-full h-12 bg-white border border-[#ef4444] hover:bg-red-50 text-[#ef4444] font-bold rounded-2xl transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                onClick={() =>
+                  setPreviewModal({
+                    open: false,
+                    docType: null,
+                    docTitle: "",
+                    url: "",
+                    fileName: "",
+                  })
+                }
+                className="w-full py-3 bg-[#002856] hover:bg-[#001e40] text-white rounded-xl font-semibold text-sm transition-colors cursor-pointer"
               >
-                {cancelling ? "Processing..." : "Cancel subscription"}
+                Okay
               </button>
-            )}
+              <button
+                type="button"
+                onClick={() => {
+                  const type = previewModal.docType;
+                  const title = previewModal.docTitle.replace(
+                    "Uploaded ",
+                    "Upload ",
+                  );
+                  setPreviewModal({
+                    open: false,
+                    docType: null,
+                    docTitle: "",
+                    url: "",
+                    fileName: "",
+                  });
+                  openUploadModalFor(type, title);
+                }}
+                className="w-full py-3 bg-white border border-slate-300 text-[#002856] hover:bg-slate-50 rounded-xl font-semibold text-sm transition-colors cursor-pointer"
+              >
+                Re-upload {previewModal.docTitle.replace("Uploaded ", "")}
+              </button>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Cancel Autopay Confirmation Modal */}
+      {/* Cancel Subscription Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4 select-none font-sans">
-          <div className="bg-white w-full max-w-[390px] rounded-[32px] shadow-2xl py-6 sm:py-8 px-4 sm:px-6 flex flex-col items-center gap-5 sm:gap-6 relative">
-            {/* Close Button */}
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 select-none font-sans">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 flex flex-col items-center gap-5 relative">
             <button
               onClick={() => setShowCancelModal(false)}
               className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors cursor-pointer"
             >
-              <X className="w-4 h-4" />
+              <XIcon className="w-4 h-4" />
             </button>
 
-            {/* Mascot Image positioned inside the card */}
-            <div className="w-20 h-20 rounded-full shadow-sm bg-[#a2c5f2] overflow-hidden flex items-center justify-center shrink-0">
+            <div className="w-20 h-20 rounded-full bg-blue-100 overflow-hidden flex items-center justify-center shrink-0">
               <img
                 src={mayaSad}
-                alt="Maya sad mascot"
+                alt="Maya mascot"
                 className="w-full h-full object-cover"
               />
             </div>
 
-            {/* Title */}
-            <h3 className="text-2xl sm:text-[26px] font-bold text-[#002856] text-center leading-tight tracking-tight px-1">
+            <h3 className="text-xl font-bold text-[#002856] text-center">
               Please don't leave us
             </h3>
 
-            {/* Description */}
-            <p className="text-[#002856] text-center text-xs sm:text-sm leading-relaxed font-semibold px-2">
+            <p className="text-slate-600 text-center text-xs font-semibold leading-relaxed px-2">
               You have covered a long way in your German journey.
-              <br className="hidden sm:inline" /> Once cancelled, your monthly plan will not renew.
+              <br /> Once cancelled, your monthly plan will not renew.
             </p>
 
-            {/* Actions Button Stack */}
-            <div className="flex flex-col gap-3 w-full">
+            <div className="flex flex-col gap-2.5 w-full">
               <button
                 onClick={() => setShowCancelModal(false)}
                 disabled={cancelling}
-                className="w-full h-12 sm:h-13 bg-[#002856] hover:bg-[#001f42] active:bg-[#001f42] text-white rounded-2xl transition-all cursor-pointer font-bold text-xs sm:text-sm flex items-center justify-center"
+                className="w-full py-3 bg-[#002856] hover:bg-[#001e40] text-white rounded-xl font-bold text-xs transition-colors cursor-pointer"
               >
                 Continue subscription
               </button>
               <button
                 onClick={handleDisableAutopay}
                 disabled={cancelling}
-                className="w-full text-center text-red-500 hover:text-red-700 font-bold text-xs sm:text-sm cursor-pointer hover:underline py-1 transition-colors disabled:opacity-50"
+                className="w-full text-center text-rose-600 hover:text-rose-800 font-bold text-xs cursor-pointer py-1.5 disabled:opacity-50"
               >
                 {cancelling ? "Processing..." : "Cancel Subscription"}
               </button>

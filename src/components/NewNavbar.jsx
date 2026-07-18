@@ -6,7 +6,7 @@ import { logout, setUser } from "../redux/auth/authSlice";
 import { images } from "../assets/images.js";
 import { resetArticleEducation } from "../utils/articleUtils";
 import { getStreakData } from "../api/streakApi";
-import { getLGMode, getLessonsList, getVocabProgress } from "../api/learnGermanApi";
+import { getLGMode, getVocabProgress } from "../api/learnGermanApi";
 import {
   getA1MigrationStatus,
   getFlashcardChapters as getA1Flashcards,
@@ -950,7 +950,7 @@ function PracticeNavbar({ minimal = false, disableNavigation = false, streak = 0
 
   return (
     <header
-      className={`bg-white border-b border-[#efefef] sticky top-0 shadow-sm ${isMenuOpen ? "z-[150]" : "z-50"} ${
+      className={`bg-white border-b border-[#efefef] sticky top-0 ${isMenuOpen ? "z-[150]" : "z-50"} ${
         disableNavigation ? "pointer-events-none" : ""
       }`}
       style={{ paddingTop: "env(safe-area-inset-top)" }}
@@ -1433,7 +1433,7 @@ function JobScreeningNavbar({ minimal = false, disableNavigation = false }) {
 
   return (
     <header
-      className={`bg-white border-b border-[#efefef] sticky top-0 shadow-sm ${isMenuOpen ? "z-[150]" : "z-50"} ${
+      className={`bg-white border-b border-[#efefef] sticky top-0 ${isMenuOpen ? "z-[150]" : "z-50"} ${
         disableNavigation ? "pointer-events-none" : ""
       }`}
       style={{ paddingTop: "env(safe-area-inset-top)" }}
