@@ -324,9 +324,18 @@ export default function ProfilePage() {
       if (!aliveRef.current) return;
       if (data?.success) {
         setDocProgress(data.data);
+        trackFeatureEvent("profile", "documents_loaded", {
+          feature: "profile.documents",
+          lifecycle: "succeeded",
+        });
       }
     } catch (err) {
       console.error("Error fetching document progress:", err);
+      trackFeatureEvent("profile", "documents_load_failed", {
+        feature: "profile.documents",
+        lifecycle: "failed",
+        reasonCode: "api_failed",
+      });
     }
   }, []);
 
@@ -423,6 +432,13 @@ export default function ProfilePage() {
 
     try {
       setUploadingResume(true);
+      trackFeatureEvent("profile", "document_upload_started", {
+        feature: "profile.documents",
+        entityType: "profile_document",
+        entityId: "resume",
+        lifecycle: "started",
+        attributes: { asset_type: "resume", mime_family: "pdf" },
+      });
       const formData = new FormData();
       formData.append("resume", file);
       const { data } = await uploadProfileDocs(formData);
@@ -431,11 +447,28 @@ export default function ProfilePage() {
         showToast("Resume uploaded successfully", "success");
         setUploadModal({ open: false, docType: null, docTitle: "" });
         setSelectedFileForUpload(null);
+        trackFeatureEvent("profile", "document_uploaded", {
+          feature: "profile.documents",
+          entityType: "profile_document",
+          entityId: "resume",
+          lifecycle: "succeeded",
+          outcome: "uploaded",
+          attributes: { asset_type: "resume", mime_family: "pdf" },
+        });
       } else {
         showToast("Failed to upload resume", "error");
       }
     } catch (err) {
       console.error("Resume upload error:", err);
+      trackFeatureEvent("profile", "document_upload_failed", {
+        feature: "profile.documents",
+        entityType: "profile_document",
+        entityId: "resume",
+        lifecycle: "failed",
+        outcome: "failed",
+        reasonCode: "api_failed",
+        attributes: { asset_type: "resume", mime_family: "pdf" },
+      });
       showToast(
         err.response?.data?.message || "Error uploading resume",
         "error",
@@ -450,6 +483,13 @@ export default function ProfilePage() {
 
     try {
       setUploadingCert(true);
+      trackFeatureEvent("profile", "document_upload_started", {
+        feature: "profile.documents",
+        entityType: "profile_document",
+        entityId: "language_certificate",
+        lifecycle: "started",
+        attributes: { asset_type: "language_certificate", mime_family: "pdf" },
+      });
       const formData = new FormData();
       formData.append("certificate", file);
       const { data } = await uploadProfileDocs(formData);
@@ -458,11 +498,28 @@ export default function ProfilePage() {
         showToast("Language certificate uploaded successfully", "success");
         setUploadModal({ open: false, docType: null, docTitle: "" });
         setSelectedFileForUpload(null);
+        trackFeatureEvent("profile", "document_uploaded", {
+          feature: "profile.documents",
+          entityType: "profile_document",
+          entityId: "language_certificate",
+          lifecycle: "succeeded",
+          outcome: "uploaded",
+          attributes: { asset_type: "language_certificate", mime_family: "pdf" },
+        });
       } else {
         showToast("Failed to upload language certificate", "error");
       }
     } catch (err) {
       console.error("Cert upload error:", err);
+      trackFeatureEvent("profile", "document_upload_failed", {
+        feature: "profile.documents",
+        entityType: "profile_document",
+        entityId: "language_certificate",
+        lifecycle: "failed",
+        outcome: "failed",
+        reasonCode: "api_failed",
+        attributes: { asset_type: "language_certificate", mime_family: "pdf" },
+      });
       showToast(
         err.response?.data?.message || "Error uploading certificate",
         "error",
@@ -476,6 +533,13 @@ export default function ProfilePage() {
     if (!file) return;
 
     setUploadingDocId(docId);
+    trackFeatureEvent("profile", "document_upload_started", {
+      feature: "profile.documents",
+      entityType: "profile_document",
+      entityId: docId,
+      lifecycle: "started",
+      attributes: { asset_type: "supporting_document" },
+    });
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -485,11 +549,28 @@ export default function ProfilePage() {
         showToast("Supporting document uploaded", "success");
         setUploadModal({ open: false, docType: null, docTitle: "" });
         setSelectedFileForUpload(null);
+        trackFeatureEvent("profile", "document_uploaded", {
+          feature: "profile.documents",
+          entityType: "profile_document",
+          entityId: docId,
+          lifecycle: "succeeded",
+          outcome: "uploaded",
+          attributes: { asset_type: "supporting_document" },
+        });
       } else {
         showToast("Failed to upload document", "error");
       }
     } catch (err) {
       console.error("Additional doc upload error:", err);
+      trackFeatureEvent("profile", "document_upload_failed", {
+        feature: "profile.documents",
+        entityType: "profile_document",
+        entityId: docId,
+        lifecycle: "failed",
+        outcome: "failed",
+        reasonCode: "api_failed",
+        attributes: { asset_type: "supporting_document" },
+      });
       showToast(
         err.response?.data?.message || "Error uploading document",
         "error",
@@ -501,16 +582,40 @@ export default function ProfilePage() {
 
   const handleDeleteAdditional = async (docId) => {
     setDeletingDocId(docId);
+    trackFeatureEvent("profile", "document_delete_started", {
+      feature: "profile.documents",
+      entityType: "profile_document",
+      entityId: docId,
+      lifecycle: "started",
+      attributes: { asset_type: "supporting_document" },
+    });
     try {
       const { data } = await deleteAdditionalDoc(docId);
       if (data?.success) {
         setDocProgress(data.data);
         showToast("Supporting document removed", "success");
+        trackFeatureEvent("profile", "document_deleted", {
+          feature: "profile.documents",
+          entityType: "profile_document",
+          entityId: docId,
+          lifecycle: "succeeded",
+          outcome: "deleted",
+          attributes: { asset_type: "supporting_document" },
+        });
       } else {
         showToast("Failed to delete document", "error");
       }
     } catch (err) {
       console.error("Delete doc error:", err);
+      trackFeatureEvent("profile", "document_delete_failed", {
+        feature: "profile.documents",
+        entityType: "profile_document",
+        entityId: docId,
+        lifecycle: "failed",
+        outcome: "failed",
+        reasonCode: "api_failed",
+        attributes: { asset_type: "supporting_document" },
+      });
       showToast(
         err.response?.data?.message || "Error removing document",
         "error",
@@ -599,6 +704,13 @@ export default function ProfilePage() {
   };
 
   const handleLogout = () => {
+    trackFeatureEvent("auth", "logout", {
+      feature: "profile",
+      lifecycle: "succeeded",
+      outcome: "logged_out",
+      reasonCode: "user_initiated",
+      attributes: { source_route: "/profile", trigger: "profile_button" },
+    });
     resetArticleEducation(user?.user_id);
     dispatch(logout());
     navigate("/");

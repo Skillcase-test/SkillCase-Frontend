@@ -157,6 +157,16 @@ const JobScreening = () => {
       user?.lg_preferred_mode === "job_screening";
     if (!isJobCandidate) {
       const redirectTo = getEligibleHomeRoute(user);
+      trackFeatureEvent("job_screening", "eligibility_redirected", {
+        feature: "job_screening.eligibility",
+        outcome: "redirected",
+        reasonCode: "not_eligible",
+        attributes: {
+          source_route: "/job-screening",
+          target_route: redirectTo,
+          mode: user?.lg_preferred_mode || "unknown",
+        },
+      });
       navigate(redirectTo, { replace: true });
       return;
     }
@@ -200,6 +210,16 @@ const JobScreening = () => {
         }
 
         const redirectTo = getEligibleHomeRoute(refreshedUser);
+        trackFeatureEvent("job_screening", "eligibility_redirected", {
+          feature: "job_screening.eligibility",
+          outcome: "redirected",
+          reasonCode: "server_rejected_eligibility",
+          attributes: {
+            source_route: "/job-screening",
+            target_route: redirectTo,
+            mode: refreshedUser?.lg_preferred_mode || "unknown",
+          },
+        });
         navigate(redirectTo, { replace: true });
         return;
       }

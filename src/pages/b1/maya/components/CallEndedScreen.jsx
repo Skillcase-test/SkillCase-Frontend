@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Award, PhoneCall, Star } from "lucide-react";
 import api from "../../../../api/axios";
+import { trackFeatureEvent } from "../../../../telemetry/events";
 
 function formatDuration(seconds) {
   const m = Math.floor(seconds / 60)
@@ -42,6 +43,11 @@ export default function CallEndedScreen({
 
   const sendDiscordWebhook = async (val, text = "") => {
     setSubmitting(true);
+    trackFeatureEvent("maya", "feedback_submit_started", {
+      feature: "b1.maya.feedback",
+      lifecycle: "started",
+      attributes: { rating: val },
+    });
     try {
       await api.post("/b1-maya/feedback", {
         rating: val,
@@ -49,9 +55,22 @@ export default function CallEndedScreen({
         callDuration,
       });
       setSubmitted(true);
+      trackFeatureEvent("maya", "feedback_submitted", {
+        feature: "b1.maya.feedback",
+        lifecycle: "succeeded",
+        outcome: "submitted",
+        attributes: { rating: val },
+      });
     } catch (err) {
       console.error("Failed to send feedback to backend:", err);
       setSubmitted(false);
+      trackFeatureEvent("maya", "feedback_submit_failed", {
+        feature: "b1.maya.feedback",
+        lifecycle: "failed",
+        outcome: "failed",
+        reasonCode: "api_failed",
+        attributes: { rating: val },
+      });
     } finally {
       setSubmitting(false);
     }
@@ -60,6 +79,10 @@ export default function CallEndedScreen({
   const handleStarClick = (starVal) => {
     if (submitted) return;
     setRating(starVal);
+    trackFeatureEvent("maya", "feedback_rating_selected", {
+      feature: "b1.maya.feedback",
+      attributes: { rating: starVal },
+    });
   };
 
   const handleFeedbackSubmit = (e) => {

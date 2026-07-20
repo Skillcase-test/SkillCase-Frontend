@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { getExamInfo } from "../../api/examApi";
 import {
   ChevronLeft,
@@ -37,6 +37,11 @@ export default function ExamLobby() {
     fetchInfo();
   }, [testId]);
 
+  const isCompleted = submission?.status === "completed";
+  const isWarnedOut = submission?.status === "warned_out";
+  const isAutoClosed = submission?.status === "auto_closed";
+  const isInProgress = submission?.status === "in_progress";
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -60,14 +65,8 @@ export default function ExamLobby() {
     );
   }
 
-  const isCompleted = submission?.status === "completed";
-  const isWarnedOut = submission?.status === "warned_out";
-  const isAutoClosed = submission?.status === "auto_closed";
-  const isInProgress = submission?.status === "in_progress";
-
   if (isCompleted && exam?.results_visible) {
-    navigate(`/exam/${testId}/result`, { replace: true });
-    return null;
+    return <Navigate to={`/exam/${testId}/result`} replace />;
   }
 
   const canStart = !isCompleted && !isWarnedOut && !isAutoClosed;
