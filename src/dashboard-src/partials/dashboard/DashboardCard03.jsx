@@ -233,6 +233,7 @@ function DashboardCard03() {
     const headers = [
       "Username",
       "Full Name",
+      "Role",
       "Phone",
       "Track",
       "Source",
@@ -243,8 +244,9 @@ function DashboardCard03() {
     const rows = filteredUsers.map((u) => [
       u.username,
       u.fullname || "",
+      u.role || "user",
       u.phone || "",
-      getUserTrackLabel(u),
+      u.role === "user" ? getUserTrackLabel(u) : "N/A",
       u.signup_source || "",
       u.is_paid ? "Paid" : "Not Paid",
       formatDate(u.created_at),
@@ -407,6 +409,7 @@ function DashboardCard03() {
                     <tr className="text-left text-xs font-semibold text-gray-500 uppercase border-b border-gray-200">
                       <th className="py-3 pr-4">#</th>
                       <th className="py-3 pr-4">User Name</th>
+                      <th className="py-3 pr-4">Role</th>
                       <th className="py-3 pr-4">Phone</th>
                       <th className="py-3 pr-4">Track</th>
                       <th className="py-3 pr-4">Payment</th>
@@ -445,13 +448,25 @@ function DashboardCard03() {
                               </div>
                             )}
                           </td>
+                          <td className="py-2.5 pr-4">
+                            <span
+                              className={
+                                user.role === "user"
+                                  ? "inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-600"
+                                  : "inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-violet-100 text-violet-700"
+                              }
+                            >
+                              {user.role || "user"}
+                            </span>
+                          </td>
                           <td className="py-2.5 pr-4 text-gray-600">
                             {user.phone || "—"}
                           </td>
 
                           {/* Track inline dropdown */}
                           <td className="py-2.5 pr-4">
-                            <select
+                            {user.role === "user" ? (
+                              <select
                               value={trackValue}
                               onChange={(e) =>
                                 handleTrackChange(user.user_id, e.target.value)
@@ -466,12 +481,16 @@ function DashboardCard03() {
                                   {option.label}
                                 </option>
                               ))}
-                            </select>
+                              </select>
+                            ) : (
+                              <span className="text-xs text-gray-400">N/A</span>
+                            )}
                           </td>
 
                           {/* Payment — toggle button */}
                           <td className="py-2.5 pr-4">
-                            <button
+                            {user.role === "user" ? (
+                              <button
                               onClick={() =>
                                 handlePaidToggle(user.user_id, user.is_paid)
                               }
@@ -487,7 +506,10 @@ function DashboardCard03() {
                                 : user.is_paid
                                   ? "Paid"
                                   : "Not Paid"}
-                            </button>
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-400">N/A</span>
+                            )}
                           </td>
 
                           <td className="py-2.5 pr-4 text-gray-600">
@@ -502,7 +524,7 @@ function DashboardCard03() {
                     {filteredUsers.length === 0 && (
                       <tr>
                         <td
-                          colSpan="7"
+                          colSpan="8"
                           className="py-8 text-center text-gray-400"
                         >
                           No users match your search.
