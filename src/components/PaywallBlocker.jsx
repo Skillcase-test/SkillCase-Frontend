@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { motion } from "framer-motion";
 import { Loader2, Phone, Lock, Check } from "lucide-react";
 import { setUser } from "../redux/auth/authSlice";
@@ -91,6 +92,8 @@ export default function PaywallBlocker({ user, dispatch, onSuccess }) {
       const options = {
         key,
         subscription_id,
+        // Razorpay needs this to expose UPI Intent inside the Capacitor Android WebView.
+        webview_intent: Capacitor.getPlatform() === "android",
         name: "SkillCase Journey",
         description: "Autopay Subscription - INR 99/month",
         image: "https://skillcase.co/images/logo.png",
