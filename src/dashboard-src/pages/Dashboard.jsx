@@ -677,6 +677,8 @@ export default function Dashboard() {
       "tab_rawlogs",
       "tab_invoice",
       "tab_import",
+      "tab_recruitment",
+      "tab_recruiter",
     ],
     [],
   );

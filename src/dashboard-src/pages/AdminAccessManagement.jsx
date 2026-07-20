@@ -45,6 +45,7 @@ const PAYMENTS_TAB_OPTIONS = [
   { key: "tab_invoice",   label: "Invoice Send: Full Access" },
   { key: "tab_invoice_view", label: "Invoice Send: View Only" },
   { key: "tab_invoice_download", label: "Invoice Send: Download Only" },
+  { key: "tab_recruitment", label: "Recruitment View" },
 ];
 const PAYMENTS_ALL_TAB_KEYS = PAYMENTS_TAB_OPTIONS
   .map((t) => t.key)
