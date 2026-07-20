@@ -1177,6 +1177,7 @@ function ProfileFormPage({ mode }) {
   const [createVideos, setCreateVideos] = useState([]);
   const [createDocs, setCreateDocs] = useState([]);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [videoUploadState, setVideoUploadState] = useState({});
   const [docInputKey, setDocInputKey] = useState(0);
   const [videoInputKey, setVideoInputKey] = useState(0);
   const isMainPhpReadOnly =
@@ -1636,18 +1637,35 @@ function ProfileFormPage({ mode }) {
                     </div>
                     <div className="flex-[2] space-y-1">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex justify-between">
-                        File {video.video_file && <span className="text-[#083262] truncate ml-2 max-w-[150px]" title={video.video_file}>{getStoredAssetLabel(video.video_file, `${video.title || "Video"}`)}</span>}
+                        <span>File</span>
+                        {videoUploadState[video.id] ? (
+                          <span className="text-[#083262] ml-2">Uploading...</span>
+                        ) : video.video_file ? (
+                          <span className="text-[#083262] truncate ml-2 max-w-[150px]" title={video.video_file}>
+                            {getStoredAssetLabel(video.video_file, `${video.title || "Video"}`)}
+                          </span>
+                        ) : null}
                       </label>
                       <input
                         className="w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-200 file:px-3 file:py-1.5 file:text-xs file:font-semibold hover:file:bg-slate-300 transition cursor-pointer"
                         type="file"
                         accept="video/*"
+                        disabled={Boolean(videoUploadState[video.id])}
                         onChange={async (e) => {
                           const f = e.target.files?.[0];
                           if (!f) return;
-                          await exploreCandidatesAdminApi.updateProfileVideo(video.id, {
-                            video_file_upload: f,
-                          });
+                          setVideoUploadState((state) => ({ ...state, [video.id]: true }));
+                          try {
+                            await exploreCandidatesAdminApi.updateProfileVideo(video.id, {
+                              video_file_upload: f,
+                            });
+                            await refreshProfileDetails();
+                          } catch (error) {
+                            window.alert(error?.response?.data?.message || "Could not upload video");
+                          } finally {
+                            setVideoUploadState((state) => ({ ...state, [video.id]: false }));
+                            e.target.value = "";
+                          }
                         }}
                       />
                     </div>
@@ -1741,15 +1759,26 @@ function ProfileFormPage({ mode }) {
                 />
               </div>
               <SecondaryButton
-                disabled={!newVideo.title || !newVideo.file}
+                disabled={!newVideo.title || !newVideo.file || Boolean(videoUploadState.new)}
                 onClick={async () => {
                   if (!newVideo.title || !newVideo.file) return;
                   if (mode === "edit") {
-                    await exploreCandidatesAdminApi.addProfileVideo(profileId, {
-                      title: newVideo.title,
-                      display_order: newVideo.display_order,
-                      video_file_upload: newVideo.file,
-                    });
+                    setVideoUploadState((state) => ({ ...state, new: true }));
+                    try {
+                      await exploreCandidatesAdminApi.addProfileVideo(profileId, {
+                        title: newVideo.title,
+                        display_order: newVideo.display_order,
+                        video_file_upload: newVideo.file,
+                      });
+                      setNewVideo({ title: "", display_order: 0, file: null });
+                      setVideoInputKey((v) => v + 1);
+                      await refreshProfileDetails();
+                    } catch (error) {
+                      window.alert(error?.response?.data?.message || "Could not upload video");
+                    } finally {
+                      setVideoUploadState((state) => ({ ...state, new: false }));
+                    }
+                    return;
                   } else {
                     setCreateVideos((prev) => [...prev, { ...newVideo }]);
                   }
@@ -1758,7 +1787,7 @@ function ProfileFormPage({ mode }) {
                   if (mode === "edit") await refreshProfileDetails();
                 }}
               >
-                Add Video
+                {videoUploadState.new ? "Uploading..." : "Add Video"}
               </SecondaryButton>
             </div>
           </div>
