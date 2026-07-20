@@ -311,7 +311,7 @@ export default function Navbar({
   }
 
   const renderProfileAvatar = () => {
-    const SIZE = 44;
+    const SIZE = 36;
     const STROKE = 3;
     const RADIUS = (SIZE - STROKE) / 2;
     const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
@@ -580,7 +580,7 @@ function PracticeNavbar({
 }
 
 function PracticeAvatar({ user, progressRatio = 0 }) {
-  const SIZE = 44;
+  const SIZE = 36;
   const STROKE = 3;
   const RADIUS = (SIZE - STROKE) / 2;
   const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
