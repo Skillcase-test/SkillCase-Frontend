@@ -557,6 +557,20 @@ export function OverallViewTab() {
             subLabel="total revenue"
           />
 
+          {interval === "month" ? (
+            <ComparativeBarChart
+              title="Booked Amount Comparative Graph"
+              currentData={currentTrend.map(d => d.bookedAmount)}
+              previousData={previousTrend.map(d => d.bookedAmount)}
+              labels={labels}
+              prevLabels={prevLabels}
+              color="#f59e0b"
+              isRevenue={true}
+              interval={interval}
+              subLabel="total booked amount"
+            />
+          ) : null}
+
           <ComparativeBarChart
             title="Active Students Comparative Graph"
             currentData={currentTrend.map(d => d.activeStudents)}
