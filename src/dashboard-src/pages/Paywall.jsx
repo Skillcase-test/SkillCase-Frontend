@@ -2,6 +2,29 @@ import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
 import { Search, RefreshCw, History, Ban, X, ShieldAlert, CheckCircle, HelpCircle, Activity } from "lucide-react";
 
+function getInitials(name) {
+  return String(name || "?")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString("en-IN");
+}
+
+function formatIst(value) {
+  if (!value) return "No recent activity";
+  return new Date(value).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 function Paywall() {
   const [students, setStudents] = useState([]);
   const [prospects, setProspects] = useState([]);
@@ -358,58 +381,51 @@ function Paywall() {
           )}
         </div>
 
-        {/* High Valued Prospects - Right Card */}
-        <div className="col-span-full xl:col-span-4 bg-white shadow-sm rounded-xl border border-slate-200 p-5">
+        {/* High Value Prospects - mirrors App Analytics prospect details */}
+        <div className="col-span-full self-start xl:col-span-4 bg-white shadow-sm rounded-xl border border-slate-200 p-5">
           <header className="mb-4">
             <h2 className="font-bold text-slate-800 text-lg flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
               High Value Prospects
             </h2>
-            <p className="text-xs text-slate-400 mt-0.5">Most active unregistered students</p>
+            <p className="text-xs text-slate-400 mt-0.5">Most active students from App Analytics</p>
           </header>
 
-          <div className="overflow-y-auto max-h-[480px]">
-            <table className="table-auto w-full">
-              <thead className="text-xs font-bold uppercase text-slate-400 bg-slate-50">
-                <tr>
-                  <th className="px-3 py-2 text-left">Prospect</th>
-                  <th className="px-3 py-2 text-center">Level</th>
-                  <th className="px-3 py-2 text-center">Score</th>
-                </tr>
-              </thead>
-              <tbody className="text-xs divide-y divide-slate-100">
-                {loadingProspects ? (
-                  <tr>
-                    <td colSpan="3" className="text-center py-6 text-slate-400">
-                      Loading prospects...
-                    </td>
-                  </tr>
-                ) : prospects.length === 0 ? (
-                  <tr>
-                    <td colSpan="3" className="text-center py-6 text-slate-400">
-                      No prospects identified.
-                    </td>
-                  </tr>
-                ) : (
-                  prospects.slice(0, 10).map((prospect) => (
-                    <tr key={prospect.user_id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-3 py-2.5">
-                        <div className="font-bold text-slate-700">{prospect.name}</div>
-                        <div className="text-[10px] text-slate-400 font-medium">{prospect.phone || "No Phone"}</div>
-                      </td>
-                      <td className="px-3 py-2.5 text-center">
-                        <span className="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 font-bold text-[10px]">
-                          {prospect.level || "A1"}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-center font-bold text-indigo-600">
+          <div className="max-h-[600px] space-y-2.5 overflow-y-auto pr-1">
+            {loadingProspects ? (
+              <div className="py-6 text-center text-xs text-slate-400">Loading prospects...</div>
+            ) : prospects.length ? (
+              prospects.map((prospect) => (
+                <div
+                  key={prospect.user_id}
+                  className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/20 p-3 transition-colors hover:bg-slate-50/40"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
+                    {getInitials(prospect.name)}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="truncate text-xs font-semibold text-slate-700">
+                        {prospect.name}{" "}
+                        {prospect.phone && (
+                          <span className="ml-1 text-[10px] font-normal text-slate-500">({prospect.phone})</span>
+                        )}
+                      </p>
+                      <span className="inline-flex rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
                         {prospect.prospect_score}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[10px] font-medium text-slate-400">
+                      {prospect.level || "N/A"} - {formatNumber(prospect.activity_count)} events - {formatIst(prospect.last_activity)}
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="grid min-h-32 place-items-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-xs font-medium text-slate-400">
+                No data for this range
+              </div>
+            )}
           </div>
         </div>
 
