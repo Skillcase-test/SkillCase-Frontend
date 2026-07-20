@@ -20,6 +20,8 @@ const CandidateList = ({
   loading,
   startDate,
   endDate,
+  proficiencyLevel,
+  onProficiencyLevelChange,
   onStartDateChange,
   onEndDateChange,
   onClearDates,
@@ -43,6 +45,23 @@ const CandidateList = ({
           </div>
 
           <div className="flex flex-wrap items-end gap-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                Proficiency
+              </span>
+              <select
+                value={proficiencyLevel}
+                onChange={(e) => onProficiencyLevelChange(e.target.value)}
+                className="h-8 min-w-24 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600 outline-none transition focus:border-[#083262] focus:ring-2 focus:ring-[#083262]/10"
+              >
+                <option value="">All Levels</option>
+                <option value="A1">A1</option>
+                <option value="A2">A2</option>
+                <option value="B1">B1</option>
+                <option value="B2">B2</option>
+              </select>
+            </label>
+
             <label className="flex flex-col gap-1">
               <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
                 Created From

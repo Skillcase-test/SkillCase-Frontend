@@ -7,6 +7,7 @@ export const adminGetCandidates = (
   status = "total",
   startDate = "",
   endDate = "",
+  proficiencyLevel = "",
 ) =>
   api.get("/admin/job-screening/candidates", {
     params: {
@@ -16,6 +17,7 @@ export const adminGetCandidates = (
       status,
       start_date: startDate || undefined,
       end_date: endDate || undefined,
+      proficiency_level: proficiencyLevel || undefined,
     },
   });
 

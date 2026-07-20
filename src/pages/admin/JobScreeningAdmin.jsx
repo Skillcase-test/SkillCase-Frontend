@@ -68,6 +68,7 @@ const JobScreeningAdmin = () => {
   const [statusFilter, setStatusFilter] = useState("total");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [proficiencyLevel, setProficiencyLevel] = useState("");
   const [summary, setSummary] = useState({
     total_users: 0,
     initiated: 0,
@@ -157,6 +158,7 @@ const JobScreeningAdmin = () => {
         statusFilter,
         startDate,
         endDate,
+        proficiencyLevel,
       );
       if (res.data?.success) {
         setCandidates(res.data.data || []);
@@ -175,7 +177,14 @@ const JobScreeningAdmin = () => {
 
   useEffect(() => {
     fetchList();
-  }, [page, appliedSearch, statusFilter, startDate, endDate]);
+  }, [
+    page,
+    appliedSearch,
+    statusFilter,
+    startDate,
+    endDate,
+    proficiencyLevel,
+  ]);
 
   const handleSummaryFilter = (filter) => {
     setStatusFilter(filter);
@@ -719,6 +728,11 @@ const JobScreeningAdmin = () => {
                 loading={listLoading}
                 startDate={startDate}
                 endDate={endDate}
+                proficiencyLevel={proficiencyLevel}
+                onProficiencyLevelChange={(value) => {
+                  setProficiencyLevel(value);
+                  setPage(1);
+                }}
                 onStartDateChange={(value) => {
                   setStartDate(value);
                   setPage(1);

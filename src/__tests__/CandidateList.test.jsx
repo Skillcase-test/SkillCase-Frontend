@@ -16,6 +16,8 @@ const defaultProps = {
   loading: false,
   startDate: "",
   endDate: "",
+  proficiencyLevel: "",
+  onProficiencyLevelChange: vi.fn(),
   onStartDateChange: vi.fn(),
   onEndDateChange: vi.fn(),
   onClearDates: vi.fn(),
@@ -75,5 +77,23 @@ describe("CandidateList", () => {
     expect(screen.getByText("Inactive")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Jane Candidate/i }));
     expect(onSelectCandidate).toHaveBeenCalledWith("candidate-1");
+  });
+
+  test("offers proficiency levels only through B2", () => {
+    const onProficiencyLevelChange = vi.fn();
+    render(
+      <CandidateList
+        {...defaultProps}
+        onProficiencyLevelChange={onProficiencyLevelChange}
+      />,
+    );
+
+    const select = screen.getByLabelText("Proficiency");
+    expect(
+      Array.from(select.options).map((option) => option.textContent),
+    ).toEqual(["All Levels", "A1", "A2", "B1", "B2"]);
+
+    fireEvent.change(select, { target: { value: "B2" } });
+    expect(onProficiencyLevelChange).toHaveBeenCalledWith("B2");
   });
 });
