@@ -1503,6 +1503,11 @@ export default function NewLessonFlow() {
                   <ListenAndChooseScreen
                     screen={currentScreen}
                     onPrev={handlePrevScreen}
+                    onNext={handleNext}
+                    onSkip={() => {
+                      trackQuizAnswer(false, "listen_choose_skipped");
+                      handleNext();
+                    }}
                     canGoPrev={resolvePrevIndex(screenIndex) >= 0}
                     selectedOption={selectedOption}
                     setSelectedOption={setSelectedOption}
