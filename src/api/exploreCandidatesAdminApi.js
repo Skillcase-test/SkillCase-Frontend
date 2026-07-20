@@ -14,6 +14,29 @@ function profileToFormData(payload = {}) {
 }
 
 export const exploreCandidatesAdminApi = {
+  getCloudinaryVideoUploadSignature: () =>
+    api.post("/admin/explore-candidates/cloudinary/video-upload-signature"),
+
+  uploadVideoDirect: async (file) => {
+    if (!(file instanceof File)) return "";
+    const signatureResponse = await api.post(
+      "/admin/explore-candidates/cloudinary/video-upload-signature",
+    );
+    const uploadConfig = signatureResponse.data || {};
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+    uploadData.append("api_key", uploadConfig.api_key);
+    uploadData.append("timestamp", String(uploadConfig.timestamp));
+    uploadData.append("folder", uploadConfig.folder);
+    uploadData.append("signature", uploadConfig.signature);
+
+    const uploadResponse = await axios.post(
+      `https://api.cloudinary.com/v1_1/${encodeURIComponent(uploadConfig.cloud_name)}/video/upload`,
+      uploadData,
+    );
+    return uploadResponse.data?.secure_url || "";
+  },
+
   listLibraryProfilesV2: (params = {}) =>
     api.get("/admin/explore-candidates/library-profiles", { params }),
   getLibraryProfileRecruitmentStatus: (profileUid) =>
@@ -126,45 +149,39 @@ export const exploreCandidatesAdminApi = {
       display_order: displayOrder,
     }),
 
-  addProfileVideo: (profileId, payload) => {
-    const formData = new FormData();
-    formData.append("title", payload.title || "");
-    formData.append("display_order", String(payload.display_order ?? 0));
-    if (payload.video_file_upload instanceof File) {
-      formData.append("video_file_upload", payload.video_file_upload);
+  addProfileVideo: async (profileId, payload) => {
+    const nextPayload = { ...(payload || {}) };
+    if (nextPayload.video_file_upload instanceof File) {
+      nextPayload.video_file = await exploreCandidatesAdminApi.uploadVideoDirect(
+        nextPayload.video_file_upload,
+      );
     }
-    if (payload.video_file) {
-      formData.append("video_file", payload.video_file);
-    }
+    delete nextPayload.video_file_upload;
     const val = String(profileId || "");
     if (val.includes(":")) {
       return api.post(
         `/admin/explore-candidates/library-profiles/${encodeURIComponent(val)}/videos`,
-        formData,
+        nextPayload,
       );
     }
-    return api.post(`/admin/explore-candidates/profiles/${profileId}/videos`, formData);
+    return api.post(`/admin/explore-candidates/profiles/${profileId}/videos`, nextPayload);
   },
-  updateProfileVideo: (videoId, payload) => {
-    const formData = new FormData();
-    if (payload.title !== undefined) formData.append("title", payload.title);
-    if (payload.display_order !== undefined) {
-      formData.append("display_order", String(payload.display_order));
+  updateProfileVideo: async (videoId, payload) => {
+    const nextPayload = { ...(payload || {}) };
+    if (nextPayload.video_file_upload instanceof File) {
+      nextPayload.video_file = await exploreCandidatesAdminApi.uploadVideoDirect(
+        nextPayload.video_file_upload,
+      );
     }
-    if (payload.video_file_upload instanceof File) {
-      formData.append("video_file_upload", payload.video_file_upload);
-    }
-    if (payload.video_file) {
-      formData.append("video_file", payload.video_file);
-    }
+    delete nextPayload.video_file_upload;
     const val = String(videoId || "");
     if (val.includes(":")) {
       return api.patch(
         `/admin/explore-candidates/library-videos/${encodeURIComponent(val)}`,
-        formData,
+        nextPayload,
       );
     }
-    return api.patch(`/admin/explore-candidates/videos/${videoId}`, formData);
+    return api.patch(`/admin/explore-candidates/videos/${videoId}`, nextPayload);
   },
   deleteProfileVideo: (videoId) => {
     const val = String(videoId || "");
