@@ -1503,6 +1503,33 @@ export default function NewLessonFlow() {
                   <ListenAndChooseScreen
                     screen={currentScreen}
                     onPrev={handlePrevScreen}
+                    onNext={handleNext}
+                    onSkip={() => {
+                      trackQuizAnswer(false, "listen_choose_skipped");
+                      recordEvent("learning.lesson.question_skipped", {
+                        domain: "learning",
+                        feature: "learn_german.lesson",
+                        entity_type: "lesson_screen",
+                        entity_id:
+                          currentScreen.id || `${chapterId}:${screenIndex}`,
+                        item_index: screenIndex,
+                        display_position: screenIndex + 1,
+                        total_items: screens.length,
+                        lifecycle: "observed",
+                        outcome: "skipped",
+                        reason_code: "cannot_listen_now",
+                        attributes: {
+                          level: lessonData?.proficiency_level,
+                          module: "learn_german",
+                          lesson_id: chapterId,
+                          screen_id: currentScreen.id,
+                          screen_index: screenIndex,
+                          screen_type: "listen_choose",
+                          total_screens: screens.length,
+                        },
+                      });
+                      handleNext();
+                    }}
                     canGoPrev={resolvePrevIndex(screenIndex) >= 0}
                     selectedOption={selectedOption}
                     setSelectedOption={setSelectedOption}

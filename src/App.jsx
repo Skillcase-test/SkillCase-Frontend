@@ -351,6 +351,8 @@ function AppContent() {
 
   const [otaState, setOtaState] = useState(null); // null | 'play_store' | 'ota_downloading' | 'ota_ready'
   const [otaProgress, setOtaProgress] = useState(0);
+  const [showPlayStoreSkipForLater, setShowPlayStoreSkipForLater] =
+    useState(true);
   const [maintenanceOpen, setMaintenanceOpen] = useState(
     getMaintenanceStatus(),
   );
@@ -510,6 +512,15 @@ function AppContent() {
 
   // Helper function to open Play Store
   const openPlayStore = async () => {
+    recordEvent("ota.play_store_opened", {
+      domain: "app_update",
+      feature: "ota_update",
+      entity_type: "app_release",
+      entity_id: APP_VERSION,
+      lifecycle: "started",
+      outcome: "redirected",
+      attributes: { state: "play_store", trigger: "update_now" },
+    });
     try {
       // Try to open Play Store app directly
       await CapApp.openUrl({ url: PLAY_STORE_URL });
@@ -549,6 +560,18 @@ function AppContent() {
             return;
 
           case "play_store":
+            setShowPlayStoreSkipForLater(data.showSkipForLater !== false);
+            recordEvent("ota.update_prompt_presented", {
+              domain: "app_update",
+              feature: "ota_update",
+              entity_type: "app_release",
+              entity_id: data.currentVersion,
+              lifecycle: "observed",
+              attributes: {
+                state: "play_store",
+                status: data.status,
+              },
+            });
             addSentryBreadcrumb({
               category: "ota",
               message: "play-store-update-required",
@@ -582,6 +605,14 @@ function AppContent() {
 
             setOtaState("ota_downloading");
             setOtaProgress(0);
+            recordEvent("ota.download_started", {
+              domain: "app_update",
+              feature: "ota_update",
+              entity_type: "app_release",
+              entity_id: data.version,
+              lifecycle: "started",
+              attributes: { state: "ota_downloading" },
+            });
             addSentryBreadcrumb({
               category: "ota",
               message: "download-started",
@@ -623,6 +654,15 @@ function AppContent() {
 
             console.log(`OTA update downloaded: ${data.version}`);
             setOtaState("ota_ready");
+            recordEvent("ota.download_completed", {
+              domain: "app_update",
+              feature: "ota_update",
+              entity_type: "app_release",
+              entity_id: data.version,
+              lifecycle: "succeeded",
+              outcome: "ready",
+              attributes: { state: "ota_ready" },
+            });
             addSentryBreadcrumb({
               category: "ota",
               message: "download-ready",
@@ -667,6 +707,16 @@ function AppContent() {
           .catch(() => {});
 
         console.error("OTA update failed after all retry attempts");
+        recordEvent("ota.download_failed", {
+          domain: "app_update",
+          feature: "ota_update",
+          entity_type: "app_release",
+          entity_id: APP_VERSION,
+          lifecycle: "failed",
+          outcome: "failed",
+          reason_code: "retry_limit_reached",
+          attributes: { retry_count: retryCount, state: "failed" },
+        });
         captureFeatureError(err, {
           featureArea: "ota_update",
           tags: { action: "all_attempts_failed" },
@@ -841,8 +891,30 @@ function AppContent() {
         <OtaUpdateModal
           otaState={maintenanceOpen ? null : otaState}
           otaProgress={otaProgress}
-          onSkip={() => setOtaState(null)}
+          showSkipForLater={showPlayStoreSkipForLater}
+          onSkip={() => {
+            recordEvent("ota.update_deferred", {
+              domain: "app_update",
+              feature: "ota_update",
+              entity_type: "app_release",
+              entity_id: APP_VERSION,
+              lifecycle: "observed",
+              outcome: "deferred",
+              reason_code:
+                otaState === "play_store" ? "skip_for_later" : "restart_later",
+              attributes: { state: otaState, trigger: "user_action" },
+            });
+            setOtaState(null);
+          }}
           onRestart={async () => {
+            recordEvent("ota.restart_requested", {
+              domain: "app_update",
+              feature: "ota_update",
+              entity_type: "app_release",
+              entity_id: APP_VERSION,
+              lifecycle: "started",
+              attributes: { state: "ota_ready", trigger: "restart_now" },
+            });
             try {
               await LiveUpdate.reload();
             } catch (e) {

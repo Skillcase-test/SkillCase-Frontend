@@ -6,6 +6,7 @@ const OtaUpdateModal = ({
   onSkip,
   onRestart,
   onOpenPlayStore,
+  showSkipForLater = true,
 }) => {
   if (!otaState) return null;
 
@@ -50,12 +51,14 @@ const OtaUpdateModal = ({
             >
               Update Now
             </button>
-            <button
-              onClick={onSkip}
-              className="w-full py-2.5 rounded-full font-medium text-slate-500 text-sm border border-slate-200 active:scale-95 transition-all duration-200"
-            >
-              Skip for Later
-            </button>
+            {showSkipForLater && (
+              <button
+                onClick={onSkip}
+                className="w-full py-2.5 rounded-full font-medium text-slate-500 text-sm border border-slate-200 active:scale-95 transition-all duration-200"
+              >
+                Skip for Later
+              </button>
+            )}
           </>
         )}
 

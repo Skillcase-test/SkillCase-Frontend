@@ -15,6 +15,7 @@ import {
   useParams,
   useSearchParams,
 } from "react-router-dom";
+import { trackFeatureEvent } from "../telemetry/events";
 
 export default function LandingPage() {
   const { user } = useSelector((state) => state.auth);
@@ -23,8 +24,25 @@ export default function LandingPage() {
   useEffect(() => {
     if (!user) {
       navigate("/Login");
+      return;
     }
-  });
+    const isJobCandidate =
+      user?.german_preference === "3" ||
+      user?.lg_preferred_mode === "job_screening";
+    if (isJobCandidate) {
+      trackFeatureEvent("navigation", "eligibility_redirected", {
+        feature: "landing",
+        outcome: "redirected",
+        reasonCode: "job_screening_candidate",
+        attributes: {
+          source_route: "/",
+          target_route: "/job-screening",
+          mode: "job_screening",
+        },
+      });
+      navigate("/job-screening", { replace: true });
+    }
+  }, [user, navigate]);
   const services = [
     {
       icon: <BookOpen className="w-12 h-12" />,

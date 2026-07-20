@@ -81,13 +81,11 @@ describe('ExamCards', () => {
 
     const { container } = renderExamCards();
 
-    // Wait for loading to complete
+    // Wait for both the request and the resulting loading-state update.
     await waitFor(() => {
       expect(getVisibleExams).toHaveBeenCalledOnce();
+      expect(container.firstChild).toBeNull();
     });
-
-    // ExamCards returns null when no exams
-    expect(container.firstChild).toBeNull();
   });
 
   test('shows exam title and meta when exam is available', async () => {

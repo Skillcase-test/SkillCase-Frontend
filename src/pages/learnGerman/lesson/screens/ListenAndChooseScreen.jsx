@@ -17,6 +17,8 @@ const LETTERS = ["A", "B", "C", "D"];
 export default function ListenAndChooseScreen({
   screen,
   onPrev,
+  onNext,
+  onSkip,
   canGoPrev = false,
   selectedOption,
   setSelectedOption,
@@ -151,33 +153,50 @@ export default function ListenAndChooseScreen({
             </div>
           </div>
 
-          <div className="w-full shrink-0 mt-3 flex items-center gap-3">
-            {canGoPrev && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPrev?.();
-                }}
-                className="w-2/5 px-4 py-3.5 rounded-xl border border-zinc-300 shadow-sm bg-white text-blue-950 font-semibold text-[15px] active:scale-[0.98] transition-transform flex justify-center items-center gap-1"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Prev
-              </button>
-            )}
+          <div className="w-full shrink-0 mt-3 flex flex-col items-center gap-2">
             <button
-              onClick={onCheck}
-              disabled={selectedOption === null}
-              className={`${
-                canGoPrev ? "w-6/5" : "w-full"
-              } px-4 py-3.5 rounded-xl shadow-sm outline-2 outline-offset-[-2px] outline-white/10 flex justify-center items-center gap-1.5 transition-all duration-300 ${
-                selectedOption !== null
-                  ? "bg-gradient-to-r from-amber-200 to-amber-300 text-blue-950 hover:opacity-90 active:scale-[0.98] cursor-pointer border border-[#eec139]"
-                  : "bg-neutral-200 text-neutral-400 cursor-not-allowed"
-              }`}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onSkip) {
+                  onSkip();
+                } else {
+                  onNext?.();
+                }
+              }}
+              className="text-md font-medium text-slate-300 hover:text-slate-700 transition-colors cursor-pointer py-1 "
             >
-              <span className="text-[16px] font-semibold">Check</span>
-              <ArrowRight className="w-4 h-4" />
+              Can&apos;t listen now
             </button>
+
+            <div className="w-full flex items-center gap-3">
+              {canGoPrev && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPrev?.();
+                  }}
+                  className="w-2/5 px-4 py-3.5 rounded-xl border border-zinc-300 shadow-sm bg-white text-blue-950 font-semibold text-[15px] active:scale-[0.98] transition-transform flex justify-center items-center gap-1"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Prev
+                </button>
+              )}
+              <button
+                onClick={onCheck}
+                disabled={selectedOption === null}
+                className={`${
+                  canGoPrev ? "w-6/5" : "w-full"
+                } px-4 py-3.5 rounded-xl shadow-sm outline-2 outline-offset-[-2px] outline-white/10 flex justify-center items-center gap-1.5 transition-all duration-300 ${
+                  selectedOption !== null
+                    ? "bg-gradient-to-r from-amber-200 to-amber-300 text-blue-950 hover:opacity-90 active:scale-[0.98] cursor-pointer border border-[#eec139]"
+                    : "bg-neutral-200 text-neutral-400 cursor-not-allowed"
+                }`}
+              >
+                <span className="text-[16px] font-semibold">Check</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

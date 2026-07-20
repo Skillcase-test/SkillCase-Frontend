@@ -826,6 +826,28 @@ function ClozeTestLayout({ block, answers, onSelect }) {
   const questions = block.questions || [];
   const passageText = block.passage_text || "";
   const [activeGapIdx, setActiveGapIdx] = useState(null);
+  const [showFirstTimeHint, setShowFirstTimeHint] = useState(() => {
+    try {
+      return !localStorage.getItem("b1_reading_cloze_guide_shown");
+    } catch {
+      return false;
+    }
+  });
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setActiveGapIdx(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, []);
 
   const parsePassage = () => {
     const parts = [];
@@ -851,6 +873,7 @@ function ClozeTestLayout({ block, answers, onSelect }) {
   };
 
   const parsedParts = parsePassage();
+  const firstGapNumber = parsedParts.find((p) => p.type === "gap")?.number;
 
   const getQuestionIndexByGapNumber = (num) => {
     return questions.findIndex((q) => {
@@ -865,8 +888,8 @@ function ClozeTestLayout({ block, answers, onSelect }) {
     activeQIdx !== -1 && activeQIdx !== null ? questions[activeQIdx] : null;
 
   return (
-    <div className="w-full flex flex-col gap-6 px-4 pt-4 pb-36">
-      <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm text-left leading-7 text-xs text-slate-800 whitespace-pre-line">
+    <div ref={containerRef} className="w-full flex flex-col gap-6 px-4 pt-4 pb-36">
+      <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm text-left leading-8 text-xs text-slate-800 whitespace-pre-line relative">
         {parsedParts.map((part, idx) => {
           if (part.type === "text") {
             return <span key={idx}>{part.content}</span>;
@@ -886,81 +909,130 @@ function ClozeTestLayout({ block, answers, onSelect }) {
           }
 
           const isActive = activeGapIdx === part.number;
+          const isFirstGap = part.number === firstGapNumber;
 
           return (
-            <button
-              onClick={() => setActiveGapIdx(part.number)}
-              className={`mx-1 px-2 py-0.5 rounded font-bold border transition-all cursor-pointer inline-block ${
-                isActive
-                  ? "bg-amber-300 border-amber-400 text-sky-950 scale-105"
-                  : selectedLetter
-                  ? "bg-blue-50 border-blue-200 text-blue-700"
-                  : "bg-zinc-100 border-zinc-300 text-zinc-500"
-              }`}
-            >
-              {displayWord}
-            </button>
+            <span key={idx} className="relative inline-block align-baseline">
+              {isFirstGap && showFirstTimeHint && (
+                <span className="absolute top-full mt-1.5 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center pointer-events-none animate-bounce">
+                  <span className="w-1.5 h-1.5 bg-white rotate-45 -mb-1 border-t border-l border-slate-200 z-10" />
+                  <span className="bg-white text-[#002856] text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-md whitespace-nowrap border border-slate-200/80 tracking-tight">
+                    Tap here
+                  </span>
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (showFirstTimeHint) {
+                    try {
+                      localStorage.setItem("b1_reading_cloze_guide_shown", "1");
+                    } catch {}
+                    setShowFirstTimeHint(false);
+                  }
+                  setActiveGapIdx(isActive ? null : part.number);
+                }}
+                className={`mx-1 px-2.5 py-1 rounded-md font-bold text-xs border transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs ${
+                  isActive
+                    ? "bg-amber-300 border-amber-500 text-sky-950 scale-105 ring-2 ring-amber-300/40"
+                    : selectedLetter
+                    ? "bg-blue-50 border-blue-300 text-blue-700 font-semibold"
+                    : "bg-zinc-100 border-zinc-300 text-zinc-600 hover:bg-zinc-200"
+                }`}
+              >
+                <span>{displayWord}</span>
+              </button>
+            </span>
           );
         })}
       </div>
 
-      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 min-h-[140px] flex flex-col justify-center">
-        {activeQuestion ? (
-          <div className="flex flex-col gap-3">
-            <div className="flex justify-between items-center border-b border-zinc-200/60 pb-1.5">
-              <span className="text-sky-950 text-xs font-bold uppercase tracking-wider">
-                Select word for Gap {activeGapIdx}
-              </span>
+      {/* Floating Bottom Window Sheet at screen end when a gap is active */}
+      {activeGapIdx !== null && activeQuestion && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-15px_40px_rgba(0,40,86,0.2)] rounded-t-3xl p-4 pb-8 z-[150] flex flex-col gap-3 animate-in slide-in-from-bottom duration-200"
+        >
+          {/* Grab Handle */}
+          <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-1" />
+
+          {/* Sheet Header */}
+          <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+            <span className="text-sky-950 font-bold text-xs uppercase tracking-wider">
+              Select word for Gap [{activeGapIdx}]
+            </span>
+            <div className="flex items-center gap-2">
+              {answers[`${block.id}_${activeQIdx}`] && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelect(block.id, activeQIdx, "");
+                  }}
+                  className="text-xs font-semibold text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg transition-colors"
+                >
+                  Clear
+                </button>
+              )}
               <button
+                type="button"
                 onClick={() => setActiveGapIdx(null)}
-                className="text-[10px] font-bold text-slate-500 bg-transparent border-0 cursor-pointer"
+                className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors font-bold text-xs"
               >
-                Clear
+                ✕
               </button>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-              {(activeQuestion.options || []).map((opt, optIdx) => {
-                const letter = String.fromCharCode(65 + optIdx);
-                const ansKey = `${block.id}_${activeQIdx}`;
-                const isSelected = answers[ansKey] === letter;
+          {/* Options Grid / List */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[240px] overflow-y-auto pr-0.5">
+            {(activeQuestion.options || []).map((opt, optIdx) => {
+              const letter = String.fromCharCode(65 + optIdx);
+              const ansKey = `${block.id}_${activeQIdx}`;
+              const isSelected = answers[ansKey] === letter;
 
-                return (
-                  <button
-                    key={optIdx}
-                    onClick={() => {
-                      onSelect(block.id, activeQIdx, letter);
-                      const currentGapIndex = parsedParts.findIndex(
-                        (p) => p.type === "gap" && p.number === activeGapIdx,
-                      );
-                      const nextGapPart = parsedParts
-                        .slice(currentGapIndex + 1)
-                        .find((p) => p.type === "gap");
-                      if (nextGapPart) {
-                        setActiveGapIdx(nextGapPart.number);
-                      } else {
-                        setActiveGapIdx(null);
-                      }
-                    }}
-                    className={`p-2.5 border rounded-lg text-xs font-medium cursor-pointer text-left transition-all ${
+              return (
+                <button
+                  key={optIdx}
+                  type="button"
+                  onClick={() => {
+                    onSelect(block.id, activeQIdx, letter);
+                    const currentGapIndex = parsedParts.findIndex(
+                      (p) => p.type === "gap" && p.number === activeGapIdx,
+                    );
+                    const nextGapPart = parsedParts
+                      .slice(currentGapIndex + 1)
+                      .find((p) => p.type === "gap");
+                    if (nextGapPart) {
+                      setActiveGapIdx(nextGapPart.number);
+                    } else {
+                      setActiveGapIdx(null);
+                    }
+                  }}
+                  className={`p-3 rounded-xl border text-xs font-medium cursor-pointer text-left transition-all flex items-center gap-3 ${
+                    isSelected
+                      ? "bg-blue-950 border-blue-950 text-white font-semibold shadow-md"
+                      : "bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100 active:scale-[0.99]"
+                  }`}
+                >
+                  <span
+                    className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
                       isSelected
-                        ? "bg-blue-600 border-blue-600 text-white font-bold"
-                        : "bg-white border-zinc-200 text-slate-800 hover:bg-zinc-50"
+                        ? "bg-amber-300 text-blue-950"
+                        : "bg-white text-slate-600 border border-slate-200"
                     }`}
                   >
-                    <span className="font-bold mr-1.5">{letter})</span>
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
+                    {letter}
+                  </span>
+                  <span className="flex-1 break-words leading-tight">
+                    {opt.replace(/^[a-z]\)\s*/i, "")}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-        ) : (
-          <div className="text-center text-slate-400 py-6 text-xs font-semibold">
-            Tap a gap button `[21]` inside the letter above to see options.
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

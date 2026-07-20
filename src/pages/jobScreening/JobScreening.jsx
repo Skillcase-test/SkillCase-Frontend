@@ -119,11 +119,18 @@ const JobScreening = () => {
     const stepId = progress?.current_step_id;
     if (!stepId) return undefined;
     const startedAt = performance.now();
-    trackFeatureEvent("job_screening", "step_presented", { entityType: "funnel_step", entityId: stepId, attributes: { stage: stepId } });
-    return () => trackFeatureEvent("job_screening", "step_left", {
-      entityType: "funnel_step", entityId: stepId,
-      activeMs: Math.round(performance.now() - startedAt), attributes: { stage: stepId },
+    trackFeatureEvent("job_screening", "step_presented", {
+      entityType: "funnel_step",
+      entityId: stepId,
+      attributes: { stage: stepId },
     });
+    return () =>
+      trackFeatureEvent("job_screening", "step_left", {
+        entityType: "funnel_step",
+        entityId: stepId,
+        activeMs: Math.round(performance.now() - startedAt),
+        attributes: { stage: stepId },
+      });
   }, [progress?.current_step_id]);
 
   useEffect(() => {
@@ -144,6 +151,25 @@ const JobScreening = () => {
   }, [progress, isExecutingStep]);
 
   const fetchProgress = async () => {
+    // If user is no longer a job screening candidate, redirect to home
+    const isJobCandidate =
+      user?.german_preference === "3" ||
+      user?.lg_preferred_mode === "job_screening";
+    if (!isJobCandidate) {
+      const redirectTo = getEligibleHomeRoute(user);
+      trackFeatureEvent("job_screening", "eligibility_redirected", {
+        feature: "job_screening.eligibility",
+        outcome: "redirected",
+        reasonCode: "not_eligible",
+        attributes: {
+          source_route: "/job-screening",
+          target_route: redirectTo,
+          mode: user?.lg_preferred_mode || "unknown",
+        },
+      });
+      navigate(redirectTo, { replace: true });
+      return;
+    }
     try {
       setLoading(true);
       setError("");
@@ -155,7 +181,10 @@ const JobScreening = () => {
       }
     } catch (err) {
       console.error("Error loading progress:", err);
-      captureTelemetryError(err, { feature: "job_screening.progress", handled: true });
+      captureTelemetryError(err, {
+        feature: "job_screening.progress",
+        handled: true,
+      });
       if (
         err.response?.status === 403 &&
         String(err.response?.data?.message || "")
@@ -174,10 +203,23 @@ const JobScreening = () => {
             syncPreferredModeCache(refreshedUser);
           }
         } catch (refreshErr) {
-          console.error("Error refreshing user after eligibility change:", refreshErr);
+          console.error(
+            "Error refreshing user after eligibility change:",
+            refreshErr,
+          );
         }
 
         const redirectTo = getEligibleHomeRoute(refreshedUser);
+        trackFeatureEvent("job_screening", "eligibility_redirected", {
+          feature: "job_screening.eligibility",
+          outcome: "redirected",
+          reasonCode: "server_rejected_eligibility",
+          attributes: {
+            source_route: "/job-screening",
+            target_route: redirectTo,
+            mode: refreshedUser?.lg_preferred_mode || "unknown",
+          },
+        });
         navigate(redirectTo, { replace: true });
         return;
       }
@@ -216,7 +258,9 @@ const JobScreening = () => {
       <div className="w-full min-h-screen bg-[#f6f8fc] flex items-center justify-center flex-col gap-3 font-sans">
         <div className="w-10 h-10 border-[3.5px] border-[#002856] border-t-transparent rounded-full animate-spin" />
         <span className="text-slate-550 text-xs font-semibold">
-          {redirecting ? "Taking you to your dashboard..." : "Loading dashboard..."}
+          {redirecting
+            ? "Taking you to your dashboard..."
+            : "Loading dashboard..."}
         </span>
       </div>
     );
@@ -243,8 +287,10 @@ const JobScreening = () => {
 
   const handleStepComplete = (updatedData, shouldExitStep = true) => {
     trackFeatureEvent("job_screening", "step_completed", {
-      entityType: "funnel_step", entityId: executingStepId || progress?.current_step_id,
-      lifecycle: "succeeded", attributes: { stage: executingStepId || progress?.current_step_id },
+      entityType: "funnel_step",
+      entityId: executingStepId || progress?.current_step_id,
+      lifecycle: "succeeded",
+      attributes: { stage: executingStepId || progress?.current_step_id },
     });
     setProgress(updatedData);
     if (shouldExitStep) {
@@ -268,8 +314,10 @@ const JobScreening = () => {
 
     const targetStepId = stepId || displayCurrentStepId;
     trackFeatureEvent("job_screening", "step_started", {
-      entityType: "funnel_step", entityId: targetStepId,
-      lifecycle: "started", attributes: { stage: targetStepId },
+      entityType: "funnel_step",
+      entityId: targetStepId,
+      lifecycle: "started",
+      attributes: { stage: targetStepId },
     });
     const clickedStep = steps.find((s) => s.id === targetStepId);
 
@@ -386,18 +434,33 @@ const JobScreening = () => {
               razorpay_signature: response.razorpay_signature,
             });
             if (verifyRes.data?.success) {
-              trackFlowAction("job_screening", "paywall", "payment_verify", "success");
+              trackFlowAction(
+                "job_screening",
+                "paywall",
+                "payment_verify",
+                "success",
+              );
               toast.success("Payment successful!");
               const { data: progressRes } = await getProgress();
               if (progressRes?.success) {
                 setProgress(progressRes.data);
               }
             } else {
-              trackFlowAction("job_screening", "paywall", "payment_verify", "failed");
+              trackFlowAction(
+                "job_screening",
+                "paywall",
+                "payment_verify",
+                "failed",
+              );
               toast.error("Payment verification failed");
             }
           } catch (err) {
-            trackFlowAction("job_screening", "paywall", "payment_verify", "failed");
+            trackFlowAction(
+              "job_screening",
+              "paywall",
+              "payment_verify",
+              "failed",
+            );
             console.error("Verification error:", err);
             toast.error("Failed to verify payment");
           } finally {
@@ -414,7 +477,12 @@ const JobScreening = () => {
         },
         modal: {
           ondismiss: function () {
-            trackFlowAction("job_screening", "paywall", "checkout", "cancelled");
+            trackFlowAction(
+              "job_screening",
+              "paywall",
+              "checkout",
+              "cancelled",
+            );
             setPaymentLoading(false);
           },
         },
