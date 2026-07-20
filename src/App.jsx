@@ -351,6 +351,8 @@ function AppContent() {
 
   const [otaState, setOtaState] = useState(null); // null | 'play_store' | 'ota_downloading' | 'ota_ready'
   const [otaProgress, setOtaProgress] = useState(0);
+  const [showPlayStoreSkipForLater, setShowPlayStoreSkipForLater] =
+    useState(true);
   const [maintenanceOpen, setMaintenanceOpen] = useState(
     getMaintenanceStatus(),
   );
@@ -549,6 +551,7 @@ function AppContent() {
             return;
 
           case "play_store":
+            setShowPlayStoreSkipForLater(data.showSkipForLater !== false);
             addSentryBreadcrumb({
               category: "ota",
               message: "play-store-update-required",
@@ -841,6 +844,7 @@ function AppContent() {
         <OtaUpdateModal
           otaState={maintenanceOpen ? null : otaState}
           otaProgress={otaProgress}
+          showSkipForLater={showPlayStoreSkipForLater}
           onSkip={() => setOtaState(null)}
           onRestart={async () => {
             try {
