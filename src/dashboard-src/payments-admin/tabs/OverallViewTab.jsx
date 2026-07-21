@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useLayoutEffect, useState, useRef } from "react";
 import {
   Chart,
   CategoryScale,
@@ -112,7 +112,7 @@ function ComparativeBarChart({
     ? valueOverride
     : (currentData ? currentData.reduce((s, val) => s + Number(val || 0), 0) : 0);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas?.isConnected || !canvas.parentElement || !currentData || currentData.length === 0) {
       return undefined;

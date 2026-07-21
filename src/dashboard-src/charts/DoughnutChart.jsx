@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useState } from 'react';
 import { useThemeProvider } from '../utils/ThemeContext';
 
 import { chartColors } from './ChartjsConfig';
@@ -22,7 +22,7 @@ function DoughnutChart({
   const darkMode = currentTheme === 'dark';
   const { tooltipTitleColor, tooltipBodyColor, tooltipBgColor, tooltipBorderColor } = chartColors; 
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const ctx = canvas.current;
     if (!ctx?.isConnected || !ctx.parentElement) return;
 

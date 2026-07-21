@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import api from "../../../api/axios";
 import { 
   Calendar, 
@@ -43,8 +43,8 @@ function RetentionLineChart({ data }) {
   const chartRef = useRef(null);
   const { tooltipBodyColor, tooltipBgColor, tooltipBorderColor, tooltipTitleColor, gridColor, textColor } = chartColors;
 
-  useEffect(() => {
-    if (!canvasRef.current || !data) return;
+  useLayoutEffect(() => {
+    if (!canvasRef.current?.isConnected || !canvasRef.current.parentElement || !data) return undefined;
     
     // Destroy previous chart if it exists
     if (chartRef.current) {
@@ -52,7 +52,7 @@ function RetentionLineChart({ data }) {
     }
 
     const ctx = canvasRef.current.getContext("2d");
-    chartRef.current = new Chart(ctx, {
+    const newChart = new Chart(ctx, {
       type: "line",
       data: data,
       options: {
@@ -138,10 +138,11 @@ function RetentionLineChart({ data }) {
       }
     });
 
+    chartRef.current = newChart;
     return () => {
-      if (chartRef.current) {
-        chartRef.current.destroy();
-      }
+      if (chartRef.current === newChart) chartRef.current = null;
+      newChart.stop();
+      newChart.destroy();
     };
   }, [data]);
 

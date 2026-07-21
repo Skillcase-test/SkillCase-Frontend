@@ -78,7 +78,13 @@ function observePerformance(recordEvent) {
   const observers = [];
   const create = (type, callback) => {
     try {
-      const observer = new PerformanceObserver((list) => callback(list.getEntries()));
+      const observer = new PerformanceObserver((list) => {
+        try {
+          callback(list.getEntries());
+        } catch {
+          // Metrics are best-effort and must never affect the application.
+        }
+      });
       observer.observe({ type, buffered: true });
       observers.push(observer);
     } catch {
@@ -86,7 +92,7 @@ function observePerformance(recordEvent) {
     }
   };
   create("largest-contentful-paint", (entries) => {
-    const value = entries.at(-1)?.startTime;
+    const value = entries[entries.length - 1]?.startTime;
     if (Number.isFinite(value)) emit("lcp", value, value <= 2500 ? "good" : value <= 4000 ? "needs_improvement" : "poor");
   });
   let cls = 0;

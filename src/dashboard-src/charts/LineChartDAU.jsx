@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useLayoutEffect, useState } from "react";
 import { useThemeProvider } from "../utils/ThemeContext";
 import { chartColors } from "./ChartjsConfig";
 import {
@@ -36,8 +36,9 @@ function LineChartDAU({ data, width, height }) {
     tooltipTitleColor,
   } = chartColors;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const ctx = canvas.current;
+    if (!ctx?.isConnected || !ctx.parentElement) return undefined;
      
     const newChart = new Chart(ctx, {
       type: "line",
@@ -94,7 +95,10 @@ function LineChartDAU({ data, width, height }) {
       },
     });
     setChart(newChart);
-    return () => newChart.destroy();
+    return () => {
+      newChart.stop();
+      newChart.destroy();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]); // Re-render if data changes
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   Chart,
   CategoryScale,
@@ -546,11 +546,16 @@ function OverviewChart({ rows, loading }) {
     };
   }, [rows]);
 
-  useEffect(() => {
-    if (!canvasRef.current || !chartData) return undefined;
-    if (chartRef.current) chartRef.current.destroy();
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas?.isConnected || !canvas.parentElement || !chartData) return undefined;
+    if (chartRef.current) {
+      chartRef.current.stop();
+      chartRef.current.destroy();
+      chartRef.current = null;
+    }
 
-    const newChart = new Chart(canvasRef.current, {
+    const newChart = new Chart(canvas, {
       type: rows.length === 1 ? "bar" : "line",
       data: chartData,
       options: {
@@ -601,7 +606,11 @@ function OverviewChart({ rows, loading }) {
     });
 
     chartRef.current = newChart;
-    return () => newChart.destroy();
+    return () => {
+      if (chartRef.current === newChart) chartRef.current = null;
+      newChart.stop();
+      newChart.destroy();
+    };
   }, [chartData]);
 
   const totalDialed = rows ? rows.reduce((s, r) => s + Number(r.dialed || 0), 0) : 0;

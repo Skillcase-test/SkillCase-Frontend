@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useState } from 'react';
 import { useThemeProvider } from '../utils/ThemeContext';
 
 import { chartColors } from './ChartjsConfig';
@@ -24,8 +24,9 @@ function LineChart02({
   const darkMode = false;
   const { textColor, gridColor, tooltipBodyColor, tooltipBgColor, tooltipBorderColor } = chartColors;  
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const ctx = canvas.current;
+    if (!ctx?.isConnected || !ctx.parentElement) return undefined;
      
     const newChart = new Chart(ctx, {
       type: 'line',
@@ -142,7 +143,10 @@ function LineChart02({
       ],
     });
     setChart(newChart);
-    return () => newChart.destroy();
+    return () => {
+      newChart.stop();
+      newChart.destroy();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

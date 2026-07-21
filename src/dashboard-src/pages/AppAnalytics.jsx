@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState, useRef } from "react";
 import toast from "react-hot-toast";
 import {
   Activity,
@@ -249,7 +249,7 @@ function MultiSelectDropdown({ options, selected, onChange }) {
 function AppTrendChart({ data = [] }) {
   const canvasRef = useRef(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const ctx = canvasRef.current;
     if (!ctx?.isConnected || !ctx.parentElement || data.length === 0) return;
 
@@ -402,7 +402,7 @@ function AppTrendChart({ data = [] }) {
 function NewUserTrendChart({ data = [] }) {
   const canvasRef = useRef(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const ctx = canvasRef.current;
     if (!ctx?.isConnected || !ctx.parentElement || data.length === 0) return;
 
@@ -509,7 +509,7 @@ function RetentionCurveChart({ rows = [], granularity }) {
   const colors = ["#4f46e5", "#0f766e", "#2563eb", "#9333ea", "#16a34a"];
   const prefix = granularity === "month" ? "M" : "W";
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const ctx = canvasRef.current;
     if (!ctx?.isConnected || !ctx.parentElement || visibleRows.length === 0) return;
 
