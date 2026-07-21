@@ -139,8 +139,8 @@ describe("NewAnalytics", () => {
       </MemoryRouter>,
     );
     expect(await screen.findByText("40%")).toBeInTheDocument();
-    expect(screen.getByText("Funnel view")).toBeInTheDocument();
-    expect(screen.getByLabelText("Feature")).toHaveValue("flashcards");
+    expect(screen.getByText("Conversion Funnel")).toBeInTheDocument();
+    expect(screen.getByLabelText("Feature")).toHaveTextContent("Flashcards");
     expect(newAnalyticsApi.metrics).toHaveBeenCalledWith(
       expect.objectContaining({
         date: "2026-07-20",
@@ -153,8 +153,8 @@ describe("NewAnalytics", () => {
   it("repairs stale journey filter values instead of rendering blank selects", async () => {
     render(<MemoryRouter initialEntries={["/?tab=features&feature=all&level=all"]}><NewAnalytics me={{ role: "admin" }} /></MemoryRouter>);
     expect(await screen.findByText("40%")).toBeInTheDocument();
-    expect(screen.getByLabelText("Feature")).toHaveValue("flashcards");
-    expect(screen.getByLabelText("Level")).toHaveValue("ALL");
+    expect(screen.getByLabelText("Feature")).toHaveTextContent("Flashcards");
+    expect(screen.getByLabelText("Level")).toHaveTextContent("All levels");
     expect(newAnalyticsApi.metrics).toHaveBeenLastCalledWith(expect.objectContaining({ feature: "flashcards", level: "ALL" }));
   });
 
@@ -165,14 +165,14 @@ describe("NewAnalytics", () => {
       </MemoryRouter>,
     );
     await screen.findByText("40%");
-    fireEvent.change(screen.getByLabelText("Level"), {
-      target: { value: "A1" },
-    });
+    fireEvent.click(screen.getByLabelText("Level"));
+    fireEvent.click(screen.getByRole("option", { name: "A1" }));
     await waitFor(() =>
-      expect(screen.getByLabelText("Level")).toHaveValue("A1"),
+      expect(screen.getByLabelText("Level")).toHaveTextContent("A1"),
     );
     const feature = screen.getByLabelText("Feature");
-    expect(feature).toHaveValue("flashcards");
+    expect(feature).toHaveTextContent("Flashcards");
+    fireEvent.click(feature);
     expect(screen.getByRole("option", { name: "Grammar" })).toBeInTheDocument();
     expect(
       screen.getByRole("option", { name: "Hardcore Exams" }),
@@ -189,13 +189,12 @@ describe("NewAnalytics", () => {
       </MemoryRouter>,
     );
     await screen.findByText("40%");
-    fireEvent.change(screen.getByLabelText("Level"), {
-      target: { value: "LEARN_GERMAN" },
-    });
+    fireEvent.click(screen.getByLabelText("Level"));
+    fireEvent.click(screen.getByRole("option", { name: "Learn German" }));
     await waitFor(() =>
-      expect(screen.getByLabelText("Feature")).toHaveValue("learn_german"),
+      expect(screen.getByLabelText("Feature")).toHaveTextContent("Guided Lessons"),
     );
-    expect(screen.getByRole("option", { name: "Learn German" })).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Feature"));
     expect(screen.getByRole("option", { name: "Guided Lessons" })).toBeInTheDocument();
     expect(
       screen.queryByRole("option", { name: "Flashcards" }),
@@ -225,6 +224,7 @@ describe("NewAnalytics", () => {
     expect(
       await screen.findByText("Flipped a flashcard to reveal the answer"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Card 5 of 20 · Flashcards")).toBeInTheDocument();
+    expect(screen.getByText("Card 5 of 20")).toBeInTheDocument();
+    expect(screen.getAllByText("Flashcards").length).toBeGreaterThan(0);
   });
 });

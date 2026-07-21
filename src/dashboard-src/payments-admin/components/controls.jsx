@@ -78,6 +78,8 @@ export function ActionChip({
 }
 
 export function ControlDropdown({
+  id,
+  "aria-label": ariaLabel,
   value,
   onChange,
   options,
@@ -89,7 +91,7 @@ export function ControlDropdown({
   fixedMenu = false,
 }) {
   const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
+  const [, setQuery] = useState("");
   const [typeahead, setTypeahead] = useState("");
   const [menuRect, setMenuRect] = useState(null);
   const wrapRef = useRef(null);
@@ -124,7 +126,12 @@ export function ControlDropdown({
   return (
     <div ref={wrapRef} className={`relative ${className}`}>
       <button
+        id={id}
         type="button"
+        role="combobox"
+        aria-label={ariaLabel}
+        aria-expanded={open}
+        aria-haspopup="listbox"
         disabled={disabled}
         onClick={() => {
           if (fixedMenu && wrapRef.current) {
@@ -161,6 +168,8 @@ export function ControlDropdown({
       </button>
       {open ? (
         <div
+          role="listbox"
+          aria-label={ariaLabel}
           className={`${fixedMenu ? "fixed" : "absolute mt-2 w-full"} z-50 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg`}
           style={fixedMenu && menuRect ? { top: menuRect.top, left: menuRect.left, width: menuRect.width } : undefined}
         >
@@ -169,6 +178,8 @@ export function ControlDropdown({
               <button
                 key={String(o.value)}
                 type="button"
+                role="option"
+                aria-selected={String(value) === String(o.value)}
                 onClick={() => {
                   onChange(String(o.value));
                   setOpen(false);
