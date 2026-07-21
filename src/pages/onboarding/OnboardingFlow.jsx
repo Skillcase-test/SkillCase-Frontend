@@ -42,6 +42,7 @@ const LEVEL_ROUTE_MAP = {
 };
 
 const OTP_RESEND_SECONDS = 90;
+const INDIAN_MOBILE_PHONE_REGEX = /^[6-9]\d{9}$/;
 
 const ONBOARDING_STEP_EVENTS = {
   1: "lg_onboarding_splash_viewed",
@@ -268,8 +269,8 @@ const OnboardingFlow = () => {
 
   // Screen 2 → 3: Send OTP
   const handleSendOTP = async () => {
-    if (phoneNumber.length !== 10) {
-      trackFlowAction("onboarding", "learner_onboarding", "validation_blocked", { step: 2, validationCode: "phone_length" });
+    if (!INDIAN_MOBILE_PHONE_REGEX.test(phoneNumber)) {
+      trackFlowAction("onboarding", "learner_onboarding", "validation_blocked", { step: 2, validationCode: "phone_format" });
       return;
     }
     setLoading(true);
@@ -560,7 +561,7 @@ const OnboardingFlow = () => {
     }
   };
 
-  const isPhoneValid = phoneNumber.length === 10;
+  const isPhoneValid = INDIAN_MOBILE_PHONE_REGEX.test(phoneNumber);
   const isOtpValid = otp.length === 6;
   const isNameValid = firstName.length > 0 && lastName.length > 0;
   const isOccupationValid = occupation !== "";
