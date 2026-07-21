@@ -11,6 +11,7 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api/axios";
 import { hapticLight } from "../utils/haptics";
+import { trackFlowAction, useFlowJourney } from "../telemetry/flow";
 export default function ConversationPlayer() {
   const { prof_level, conversation_id } = useParams();
   const navigate = useNavigate();
@@ -28,6 +29,15 @@ export default function ConversationPlayer() {
 
   const audioRef = useRef(null);
   const sentenceRefs = useRef([]);
+  useFlowJourney({
+    domain: "conversation",
+    flowId: "conversation_player",
+    step: currentSentenceIndex,
+    stepIndex: currentSentenceIndex,
+    totalSteps: sentences.length,
+    entityId: conversation_id,
+    attributes: { level: prof_level },
+  });
   // Fetch conversation data
   useEffect(() => {
     const fetchConversation = async () => {
@@ -62,7 +72,7 @@ export default function ConversationPlayer() {
       // Find current sentence based on time
       const currentIndex = sentences.findIndex(
         (s) =>
-          audio.currentTime >= s.start_time && audio.currentTime < s.end_time
+          audio.currentTime >= s.start_time && audio.currentTime < s.end_time,
       );
 
       if (currentIndex !== -1 && currentIndex !== currentSentenceIndex) {
@@ -80,6 +90,17 @@ export default function ConversationPlayer() {
     };
     const handleEnded = () => {
       setIsPlaying(false);
+      trackFlowAction(
+        "conversation",
+        "conversation_player",
+        "conversation_completed",
+        {
+          lifecycle: "succeeded",
+          entityId: conversation_id,
+          stepIndex: sentences.length - 1,
+          totalSteps: sentences.length,
+        },
+      );
       updateProgress(sentences.length - 1, true);
     };
     audio.addEventListener("timeupdate", handleTimeUpdate);
@@ -99,7 +120,30 @@ export default function ConversationPlayer() {
         last_sentence_completed: sentenceIndex,
         completed: completed,
       });
+      trackFlowAction(
+        "conversation",
+        "conversation_player",
+        completed ? "progress_completed" : "progress_saved",
+        {
+          lifecycle: "succeeded",
+          entityId: conversation_id,
+          stepIndex: sentenceIndex,
+          totalSteps: sentences.length,
+        },
+      );
     } catch (err) {
+      trackFlowAction(
+        "conversation",
+        "conversation_player",
+        "progress_save_failed",
+        {
+          lifecycle: "failed",
+          entityId: conversation_id,
+          stepIndex: sentenceIndex,
+          totalSteps: sentences.length,
+          reasonCode: err?.response?.status || err?.name || "save_failed",
+        },
+      );
       console.error("Error updating progress:", err);
     }
   };
@@ -112,6 +156,16 @@ export default function ConversationPlayer() {
     } else {
       audio.play();
     }
+    trackFlowAction(
+      "conversation",
+      "conversation_player",
+      isPlaying ? "audio_paused" : "audio_played",
+      {
+        entityId: conversation_id,
+        stepIndex: currentSentenceIndex,
+        totalSteps: sentences.length,
+      },
+    );
     setIsPlaying(!isPlaying);
   };
 
@@ -140,6 +194,16 @@ export default function ConversationPlayer() {
       setIsPlaying(true);
     }
     updateProgress(index);
+    trackFlowAction(
+      "conversation",
+      "conversation_player",
+      "sentence_selected",
+      {
+        entityId: sentences[index].sentence_id,
+        stepIndex: index,
+        totalSteps: sentences.length,
+      },
+    );
     // Dispatch tour interaction event
     window.dispatchEvent(new Event("tour:listenerInteraction"));
   };
@@ -182,7 +246,10 @@ export default function ConversationPlayer() {
       <div className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <button
-            onClick={() => { hapticLight(); navigate(`/conversation/${prof_level}`); }}
+            onClick={() => {
+              hapticLight();
+              navigate(`/conversation/${prof_level}`);
+            }}
             className="flex items-center gap-2 text-gray-700 hover:text-gray-900 transition cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -224,8 +291,8 @@ export default function ConversationPlayer() {
                     isActive
                       ? "bg-slate-100 border-2 border-slate-900 shadow-md"
                       : isCompleted
-                      ? "bg-gray-50 text-gray-500"
-                      : "bg-white hover:bg-gray-50 border border-gray-200"
+                        ? "bg-gray-50 text-gray-500"
+                        : "bg-white hover:bg-gray-50 border border-gray-200"
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -234,8 +301,8 @@ export default function ConversationPlayer() {
                         isActive
                           ? "bg-slate-900 text-white"
                           : isCompleted
-                          ? "bg-green-500 text-white"
-                          : "bg-gray-300 text-gray-600"
+                            ? "bg-green-500 text-white"
+                            : "bg-gray-300 text-gray-600"
                       }`}
                     >
                       {index + 1}

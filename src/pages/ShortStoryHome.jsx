@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Check, RefreshCw } from "lucide-react";
 import api from "../api/axios";
 import { images } from "../assets/images.js";
+import { trackFeatureEvent } from "../telemetry/events";
 const ShortStoryHome = () => {
   const [stories, setStories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +38,11 @@ const ShortStoryHome = () => {
     return { bg: "bg-[rgba(255,235,192,0.65)]", text: "text-[#ac8121]" };
   };
   const handleStoryClick = (story) => {
+    trackFeatureEvent("story", "story_selected", {
+      feature: "stories",
+      entityId: story.story_id || story.slug,
+      attributes: { level: "A1" },
+    });
     navigate(`/story/${story.slug}`);
     window.scrollTo(0, 0);
   };

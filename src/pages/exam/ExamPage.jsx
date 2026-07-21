@@ -638,6 +638,14 @@ export default function ExamPage() {
         setRemainingSeconds(data.submission.remaining_seconds);
         setWarningCount(data.submission.warning_count);
         warningCountRef.current = data.submission.warning_count;
+        analytics?.capture("exam_started", {
+          feature_key: "hardcore_exam",
+          proficiency_level: data.exam?.proficiency_level,
+          exam_id: testId,
+          exam_title: data.exam?.title,
+          total_questions: data.questions?.length || 0,
+          status: data.submission?.status,
+        });
 
         // If student already has warnings (e.g. from a reload), show modal immediately
         if (data.submission.warning_count > 0) {
@@ -679,7 +687,7 @@ export default function ExamPage() {
       }
     };
     init();
-  }, [testId]);
+  }, [analytics, testId]);
 
   // ---- TIMER ----
   useEffect(() => {
@@ -811,6 +819,15 @@ export default function ExamPage() {
 
     try {
       await submitExam(testId);
+      analytics?.capture("exam_submitted", {
+        feature_key: "hardcore_exam",
+        proficiency_level: exam?.proficiency_level,
+        exam_id: testId,
+        exam_title: exam?.title,
+        answers_count: Object.keys(answers).length,
+        total_questions: questions.length,
+        status: reason === "time" ? "auto_time" : "auto_warnings",
+      });
     } catch (err) {
       console.error("Auto-submit error:", err);
     }
@@ -831,11 +848,14 @@ export default function ExamPage() {
 
     try {
       await submitExam(testId);
-      analytics?.capture('exam_submitted', {
+      analytics?.capture("exam_submitted", {
+        feature_key: "hardcore_exam",
+        proficiency_level: exam?.proficiency_level,
         exam_id: testId,
         exam_title: exam?.title,
         answers_count: Object.keys(answers).length,
         total_questions: questions.length,
+        status: "manual",
       });
       setExamClosed(true);
       setClosedReason("submitted");
@@ -866,9 +886,17 @@ export default function ExamPage() {
           question_id: questionId,
           answer,
         });
-        analytics?.capture('exam_progress_saved', {
+        const questionIndex = questions.findIndex(
+          (question) => question.question_id === questionId,
+        );
+        analytics?.capture("exam_progress_saved", {
+          feature_key: "hardcore_exam",
+          proficiency_level: exam?.proficiency_level,
           exam_id: testId,
           question_id: questionId,
+          current_index: questionIndex >= 0 ? questionIndex : undefined,
+          question_index: questionIndex >= 0 ? questionIndex : undefined,
+          total_questions: questions.length,
         });
         if (res.data?.expired) {
           handleAutoSubmit("time");

@@ -27,7 +27,12 @@ export default function ExamLobby() {
         const res = await getExamInfo(testId);
         setExam(res.data?.exam);
         setSubmission(res.data?.submission);
-        analytics?.capture('exam_lobby_viewed', { exam_id: testId, exam_title: res.data?.exam?.title });
+        analytics?.capture("exam_lobby_viewed", {
+          feature_key: "hardcore_exam",
+          proficiency_level: res.data?.exam?.proficiency_level,
+          exam_id: testId,
+          exam_title: res.data?.exam?.title,
+        });
       } catch (err) {
         setError(err.response?.data?.msg || "Failed to load exam info");
       } finally {
@@ -35,7 +40,7 @@ export default function ExamLobby() {
       }
     };
     fetchInfo();
-  }, [testId]);
+  }, [analytics, testId]);
 
   const isCompleted = submission?.status === "completed";
   const isWarnedOut = submission?.status === "warned_out";
@@ -163,7 +168,9 @@ export default function ExamLobby() {
         {canStart && (
           <button
             onClick={() => {
-              analytics?.capture('exam_started', {
+              analytics?.capture("exam_start_requested", {
+                feature_key: "hardcore_exam",
+                proficiency_level: exam?.proficiency_level,
                 exam_id: testId,
                 exam_title: exam?.title,
                 duration_minutes: exam?.duration_minutes,

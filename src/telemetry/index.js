@@ -532,7 +532,12 @@ export function mirrorLegacyEvent(name, properties = {}) {
     feature: moduleName || "legacy",
     entity_type: properties.content_type || "legacy_event",
     entity_id:
-      properties.chapter_id || properties.content_id || properties.lesson_id || null,
+      properties.exam_id ||
+      properties.test_id ||
+      properties.chapter_id ||
+      properties.content_id ||
+      properties.lesson_id ||
+      null,
     item_index:
       Number.isInteger(properties.current_index) ? properties.current_index : null,
     display_position:
@@ -547,6 +552,7 @@ export function mirrorLegacyEvent(name, properties = {}) {
       chapter_id: properties.chapter_id,
       content_id: properties.content_id,
       lesson_id: properties.lesson_id,
+      question_id: properties.question_id,
       question_index: properties.question_index,
       screen_index: properties.screen_index,
       total_cards: properties.total_cards,

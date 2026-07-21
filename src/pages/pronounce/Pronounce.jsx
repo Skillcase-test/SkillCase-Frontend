@@ -14,11 +14,14 @@ import useTextToSpeech from "./hooks/useTextToSpeech";
 import useCardSwipe from "./hooks/useCardSwipe";
 import { useTour } from "../../tour/TourContext";
 import { TOUR_PAGES } from "../../tour/tourSteps";
+import { trackFlowAction, useFlowJourney } from "../../telemetry/flow";
 
 const Pronounce = () => {
   const { user } = useSelector((state) => state.auth);
   const { isTourActive, tourPage, pronounceStep } = useTour();
-  const [localPronounceStep, setLocalPronounceStep] = useState(pronounceStep || 0);
+  const [localPronounceStep, setLocalPronounceStep] = useState(
+    pronounceStep || 0,
+  );
   const navigate = useNavigate();
   const { prof_level, pronounce_id } = useParams();
   const [searchParams] = useSearchParams();
@@ -35,7 +38,7 @@ const Pronounce = () => {
   const [flashcardSet, setFlashcardSet] = useState([]);
   const [currentCard, setCurrentCard] = useState(0);
   const [deckRotation, setDeckRotation] = useState(0);
-  const [isCompleted, setIsCompleted] = useState(false);
+  const [, setIsCompleted] = useState(false);
   const [buttonSwipeDirection, setButtonSwipeDirection] = useState(null);
 
   // --- Streak tracking ---
@@ -77,6 +80,15 @@ const Pronounce = () => {
   const [loading, setLoading] = useState(true);
 
   const totalCards = flashcardSet.length;
+  useFlowJourney({
+    domain: "pronunciation",
+    flowId: "pronunciation_set",
+    step: currentCard,
+    stepIndex: currentCard,
+    totalSteps: totalCards,
+    entityId: pronounce_id,
+    attributes: { level: prof_level },
+  });
   const chapterNumber = pronounce_name?.match(/\d+/)?.[0] || "01";
   // Custom hooks
   const {
@@ -150,8 +162,24 @@ const Pronounce = () => {
         completed: true,
       });
       setIsCompleted(true);
+      trackFlowAction("pronunciation", "pronunciation_set", "set_completed", {
+        lifecycle: "succeeded",
+        entityId: pronounce_id,
+        stepIndex: totalCards - 1,
+        totalSteps: totalCards,
+      });
       navigate(`/pronounce/${prof_level}`);
     } catch (err) {
+      trackFlowAction(
+        "pronunciation",
+        "pronunciation_set",
+        "set_complete_failed",
+        {
+          lifecycle: "failed",
+          entityId: pronounce_id,
+          reasonCode: err?.response?.status || err?.name || "complete_failed",
+        },
+      );
       console.error("Error marking as complete:", err);
     }
   };
@@ -171,6 +199,13 @@ const Pronounce = () => {
 
   const handleStartRecording = () => {
     startRecording();
+    trackFlowAction("pronunciation", "pronunciation_set", "attempt_started", {
+      lifecycle: "started",
+      entityId:
+        flashcardSet[currentCard]?.card_id || `${pronounce_id}:${currentCard}`,
+      stepIndex: currentCard,
+      totalSteps: totalCards,
+    });
 
     // Dispatch tour event when user starts recording (step 1 -> step 2)
     if (isTourMode) {
@@ -182,6 +217,14 @@ const Pronounce = () => {
 
   const handleStopRecording = () => {
     stopRecording(flashcardSet[currentCard]?.back_content);
+    trackFlowAction("pronunciation", "pronunciation_set", "attempt_submitted", {
+      lifecycle: "succeeded",
+      entityId:
+        flashcardSet[currentCard]?.card_id || `${pronounce_id}:${currentCard}`,
+      stepIndex: currentCard,
+      totalSteps: totalCards,
+      attributes: { recording_duration_ms: recordingTime * 1000 },
+    });
     if (isTourMode && localPronounceStep === 2) {
       setLocalPronounceStep(3);
       window.dispatchEvent(
@@ -249,12 +292,34 @@ const Pronounce = () => {
 
   // Dispatch tour event when assessment result is shown (step 3 -> step 4)
   useEffect(() => {
+    if (assesmentResult) {
+      trackFlowAction(
+        "pronunciation",
+        "pronunciation_set",
+        "attempt_analyzed",
+        {
+          lifecycle: "succeeded",
+          entityId:
+            flashcardSet[currentCard]?.card_id ||
+            `${pronounce_id}:${currentCard}`,
+          stepIndex: currentCard,
+          totalSteps: totalCards,
+        },
+      );
+    }
     if (isTourMode && assesmentResult) {
       window.dispatchEvent(
         new CustomEvent("tour:pronounceStep", { detail: { step: 4 } }),
       );
     }
-  }, [isTourMode, assesmentResult]);
+  }, [
+    isTourMode,
+    assesmentResult,
+    currentCard,
+    flashcardSet,
+    pronounce_id,
+    totalCards,
+  ]);
 
   const handleNextButton = async () => {
     if (currentCard < totalCards - 1 && !isRecording && !isUploading) {

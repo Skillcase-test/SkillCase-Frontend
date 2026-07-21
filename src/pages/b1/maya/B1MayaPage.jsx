@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import useB1MayaVAD from "../../../hooks/useB1MayaVAD";
 import LobbyScreen from "./components/LobbyScreen";
 import CallScreen from "./components/CallScreen";
 import CallEndedScreen from "./components/CallEndedScreen";
+import { trackFlowAction, useFlowJourney } from "../../../telemetry/flow";
 
 export default function B1MayaPage() {
   const {
@@ -29,6 +30,59 @@ export default function B1MayaPage() {
     toggleManualRecording,
     selectTopic,
   } = useB1MayaVAD();
+  const previousTurnsRef = useRef(0);
+  useFlowJourney({
+    domain: "maya",
+    flowId: "maya_call",
+    step: callState,
+    entityId: "maya_call",
+    attributes: { level: "B1" },
+  });
+
+  useEffect(() => {
+    if (chatHistory.length <= previousTurnsRef.current) return;
+    const latest = chatHistory[chatHistory.length - 1];
+    previousTurnsRef.current = chatHistory.length;
+    trackFlowAction("maya", "maya_call", "turn_completed", {
+      entityId: String(chatHistory.length),
+      stepIndex: chatHistory.length - 1,
+      attributes: {
+        turn_index: chatHistory.length - 1,
+        state: latest?.role === "assistant" ? "maya" : "learner",
+      },
+    });
+  }, [chatHistory]);
+
+  const startTrackedCall = async (...args) => {
+    trackFlowAction("maya", "maya_call", "call_start_started", {
+      lifecycle: "started",
+    });
+    try {
+      const result = await startCall(...args);
+      trackFlowAction("maya", "maya_call", "call_connected", {
+        lifecycle: "succeeded",
+      });
+      return result;
+    } catch (callError) {
+      trackFlowAction("maya", "maya_call", "call_start_failed", {
+        lifecycle: "failed",
+        reasonCode: callError?.name || "start_failed",
+      });
+      throw callError;
+    }
+  };
+
+  const endTrackedCall = async (...args) => {
+    const result = await endCall(...args);
+    trackFlowAction("maya", "maya_call", "call_ended", {
+      lifecycle: "succeeded",
+      attributes: {
+        recording_duration_ms: callDuration * 1000,
+        total_turns: chatHistory.length,
+      },
+    });
+    return result;
+  };
 
   const isLobby = callState === "idle" || callState === "connecting";
   const isCallActive =
@@ -42,7 +96,7 @@ export default function B1MayaPage() {
     <>
       {isLobby && (
         <LobbyScreen
-          onStartCall={startCall}
+          onStartCall={startTrackedCall}
           isConnecting={callState === "connecting"}
           error={error}
         />
@@ -65,7 +119,7 @@ export default function B1MayaPage() {
           activeTurn={activeTurn}
           vadStatus={vadStatus}
           setIsManualMode={setIsManualMode}
-          onEndCall={endCall}
+          onEndCall={endTrackedCall}
           onToggleMute={toggleMute}
           onToggleManualRecording={toggleManualRecording}
           onSelectTopic={selectTopic}

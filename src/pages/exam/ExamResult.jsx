@@ -219,7 +219,9 @@ export default function ExamResult() {
         const sub = res.data?.submission;
         if (sub) {
           const score = parseFloat(sub.score || 0);
-          analytics?.capture('exam_result_viewed', {
+          analytics?.capture("exam_result_viewed", {
+            feature_key: "hardcore_exam",
+            proficiency_level: res.data?.exam?.proficiency_level,
             exam_id: testId,
             exam_title: res.data?.exam?.title,
             score: score,

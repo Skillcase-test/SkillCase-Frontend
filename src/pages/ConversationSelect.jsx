@@ -10,6 +10,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import api from "../api/axios";
 import { images } from "../assets/images.js";
+import { trackFeatureEvent } from "../telemetry/events";
 export default function ConversationSelect() {
   const { prof_level } = useParams();
   const navigate = useNavigate();
@@ -54,6 +55,11 @@ export default function ConversationSelect() {
     };
   };
   const handleConversationClick = (conv) => {
+    trackFeatureEvent("conversation", "conversation_selected", {
+      feature: "conversations",
+      entityId: conv.conversation_id,
+      attributes: { level: prof_level, total_steps: conv.total_sentences },
+    });
     navigate(`/conversation/${prof_level}/${conv.conversation_id}`);
   };
   return (

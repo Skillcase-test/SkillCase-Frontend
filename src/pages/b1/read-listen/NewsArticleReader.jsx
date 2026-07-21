@@ -7,6 +7,12 @@ import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
 import toast, { Toaster } from "react-hot-toast";
 import { trackLearningEvent } from "../../../telemetry/events";
 
+function readingTelemetryModule(module) {
+  return module === "news"
+    ? "read_listen_news"
+    : "read_listen_articles";
+}
+
 export default function NewsArticleReader() {
   const { contentId } = useParams();
   const navigate = useNavigate();
@@ -97,11 +103,11 @@ export default function NewsArticleReader() {
     if (!content) return undefined;
     const startedAt = performance.now();
     trackLearningEvent("content_presented", {
-      level: "B1", module: "reading", contentId, entityId: contentId,
+      level: "B1", module: readingTelemetryModule(content.module), contentId, entityId: contentId,
       chapterId: content.chapter_id, total: content.questions?.length,
     });
     return () => trackLearningEvent("content_left", {
-      level: "B1", module: "reading", contentId, entityId: contentId,
+      level: "B1", module: readingTelemetryModule(content.module), contentId, entityId: contentId,
       chapterId: content.chapter_id, activeMs: Math.round(performance.now() - startedAt),
     });
   }, [content, contentId]);
@@ -114,7 +120,7 @@ export default function NewsArticleReader() {
     if (vocab) {
       setSelectedVocab(vocab);
       trackLearningEvent("vocabulary_opened", {
-        level: "B1", module: "reading", contentId, entityId: contentId,
+        level: "B1", module: readingTelemetryModule(content?.module), contentId, entityId: contentId,
       });
     }
   };
@@ -149,7 +155,7 @@ export default function NewsArticleReader() {
     const q = content?.questions?.[qIdx];
     const qType = q?.type || "mcq_single";
     trackLearningEvent("answer_selected", {
-      level: "B1", module: "reading", contentId, questionId: q?.id,
+      level: "B1", module: readingTelemetryModule(content?.module), contentId, questionId: q?.id,
       index: qIdx, total: content?.questions?.length, questionType: qType,
     });
 
@@ -174,7 +180,7 @@ export default function NewsArticleReader() {
 
   const handleListen = () => {
     trackLearningEvent(isSpeaking ? "audio_stopped" : "audio_started", {
-      level: "B1", module: "reading", contentId, entityId: contentId,
+      level: "B1", module: readingTelemetryModule(content?.module), contentId, entityId: contentId,
       mediaState: isSpeaking ? "stopped" : "playing",
     });
     if (isSpeaking) {
@@ -301,7 +307,7 @@ export default function NewsArticleReader() {
 
   const handleSubmit = async () => {
     trackLearningEvent("quiz_submitted", {
-      level: "B1", module: "reading", contentId, entityId: contentId,
+      level: "B1", module: readingTelemetryModule(content?.module), contentId, entityId: contentId,
       total: content?.questions?.length, lifecycle: "started",
     });
     if (reviewMode) {
@@ -478,7 +484,6 @@ export default function NewsArticleReader() {
           {questions.map((q, qIdx) => {
             const userSelectedIdx = answers[qIdx];
             const result = quizResults.find((r) => r.questionIndex === qIdx);
-            const isQuestionSkipped = result?.status === "skipped";
             const qType = q.type || "mcq_single";
 
             if (qType === "fill_blanks") {

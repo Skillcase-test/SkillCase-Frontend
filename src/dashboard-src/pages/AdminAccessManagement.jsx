@@ -6,6 +6,7 @@ import api from "../../api/axios";
 const MODULE_OPTIONS = [
   { key: "analytics", label: "Analytics" },
   { key: "app_analytics", label: "App Analytics" },
+  { key: "new_analytics", label: "New Analytics" },
   { key: "content", label: "A1" },
   { key: "a2_content", label: "A2" },
   { key: "b1_content", label: "B1" },
@@ -31,25 +32,31 @@ const ACTION_OPTIONS = ["view", "create", "edit", "delete", "manage"];
 const SKILLCASE_INTERVIEW_MODULE = "skillcase_interviews";
 
 const PAYMENTS_TAB_OPTIONS = [
-  { key: "tab_overall",   label: "Overall View" },
-  { key: "tab_month",     label: "Month View" },
-  { key: "tab_all",       label: "All View" },
-  { key: "tab_batch",     label: "Batch View" },
-  { key: "tab_fee",       label: "Total Fee View" },
+  { key: "tab_overall", label: "Overall View" },
+  { key: "tab_month", label: "Month View" },
+  { key: "tab_all", label: "All View" },
+  { key: "tab_batch", label: "Batch View" },
+  { key: "tab_fee", label: "Total Fee View" },
   { key: "tab_discounts", label: "Discount Approval" },
   { key: "tab_discounts_view", label: "Discount Request Only" },
-  { key: "tab_payments",  label: "Payment View: Full Access" },
+  { key: "tab_payments", label: "Payment View: Full Access" },
   { key: "tab_payments_view", label: "Payment View: View Only" },
   { key: "tab_payments_download", label: "Payment View: Download Only" },
-  { key: "tab_rawlogs",   label: "Raw Logs" },
-  { key: "tab_invoice",   label: "Invoice Send: Full Access" },
+  { key: "tab_rawlogs", label: "Raw Logs" },
+  { key: "tab_invoice", label: "Invoice Send: Full Access" },
   { key: "tab_invoice_view", label: "Invoice Send: View Only" },
   { key: "tab_invoice_download", label: "Invoice Send: Download Only" },
   { key: "tab_recruitment", label: "Recruitment View" },
 ];
-const PAYMENTS_ALL_TAB_KEYS = PAYMENTS_TAB_OPTIONS
-  .map((t) => t.key)
-  .filter((key) => !["tab_payments_view", "tab_payments_download", "tab_invoice_view", "tab_invoice_download"].includes(key));
+const PAYMENTS_ALL_TAB_KEYS = PAYMENTS_TAB_OPTIONS.map((t) => t.key).filter(
+  (key) =>
+    ![
+      "tab_payments_view",
+      "tab_payments_download",
+      "tab_invoice_view",
+      "tab_invoice_download",
+    ].includes(key),
+);
 function normalizeBatch(batch) {
   const id = batch.id ?? batch.batch_id ?? batch.value;
   const name =
@@ -69,9 +76,8 @@ function PermissionPicker({ value, onChange }) {
       const next = {};
       MODULE_OPTIONS.forEach((moduleDef) => {
         // For payments, grant the two basic view tabs instead of a generic "view" action
-        next[moduleDef.key] = moduleDef.key === "payments"
-          ? ["tab_month", "tab_all"]
-          : ["view"];
+        next[moduleDef.key] =
+          moduleDef.key === "payments" ? ["tab_month", "tab_all"] : ["view"];
       });
       onChange(next);
       return;
@@ -79,9 +85,10 @@ function PermissionPicker({ value, onChange }) {
     if (mode === "all") {
       const next = {};
       MODULE_OPTIONS.forEach((moduleDef) => {
-        next[moduleDef.key] = moduleDef.key === "payments"
-          ? [...PAYMENTS_ALL_TAB_KEYS]
-          : [...ACTION_OPTIONS];
+        next[moduleDef.key] =
+          moduleDef.key === "payments"
+            ? [...PAYMENTS_ALL_TAB_KEYS]
+            : [...ACTION_OPTIONS];
       });
       onChange(next);
       return;
@@ -151,7 +158,7 @@ function PermissionPicker({ value, onChange }) {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-      {MODULE_OPTIONS.map((moduleDef) => {
+        {MODULE_OPTIONS.map((moduleDef) => {
           const selected = normalized[moduleDef.key] || [];
 
           // Payments module gets tab-level toggle pills instead of generic action checkboxes
@@ -168,7 +175,11 @@ function PermissionPicker({ value, onChange }) {
                   <div className="flex gap-1">
                     <button
                       type="button"
-                      onClick={() => setModuleActions(moduleDef.key, [...PAYMENTS_ALL_TAB_KEYS])}
+                      onClick={() =>
+                        setModuleActions(moduleDef.key, [
+                          ...PAYMENTS_ALL_TAB_KEYS,
+                        ])
+                      }
                       className="rounded border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700"
                     >
                       all tabs
@@ -213,10 +224,14 @@ function PermissionPicker({ value, onChange }) {
                             ]);
                             if (e.target.checked) {
                               if (paymentViewKeys.has(tab.key)) {
-                                paymentViewKeys.forEach((key) => list.delete(key));
+                                paymentViewKeys.forEach((key) =>
+                                  list.delete(key),
+                                );
                               }
                               if (invoiceViewKeys.has(tab.key)) {
-                                invoiceViewKeys.forEach((key) => list.delete(key));
+                                invoiceViewKeys.forEach((key) =>
+                                  list.delete(key),
+                                );
                               }
                               list.add(tab.key);
                             } else list.delete(tab.key);
@@ -336,7 +351,6 @@ function PermissionPicker({ value, onChange }) {
             </div>
           );
         })}
-
       </div>
     </div>
   );
@@ -404,7 +418,7 @@ export default function AdminAccessManagement() {
         .map(normalizeBatch)
         .filter((batch) => batch.id);
       setWiseBatches(normalized);
-    } catch (_err) {
+    } catch {
       setWiseBatches([]);
     } finally {
       setBatchesLoading(false);
@@ -419,7 +433,7 @@ export default function AdminAccessManagement() {
         (t) => t.template_id,
       );
       setTermsTemplates(normalized);
-    } catch (_err) {
+    } catch {
       setTermsTemplates([]);
     } finally {
       setTemplatesLoading(false);

@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { ChevronLeft } from "lucide-react";
 import { hapticLight } from "../utils/haptics";
+import { trackFlowAction, useFlowJourney } from "../telemetry/flow";
 // Component to highlight German words with English translations
 const HighlightGerman = ({ text }) => {
   const regex = /(\b[A-Za-zÄÖÜäöüß]+)\s*\(([^)]+)\)/g;
@@ -10,13 +11,14 @@ const HighlightGerman = ({ text }) => {
   let lastIndex = 0;
   let match;
   while ((match = regex.exec(text)) !== null) {
-    const [fullMatch, germanWord, meaning] = match;
+    const germanWord = match[1];
+    const meaning = match[2];
     parts.push(text.slice(lastIndex, match.index));
     parts.push(
       <span key={match.index} className="font-medium text-blue-700">
         {germanWord}
         <span className="text-blue-500"> ({meaning})</span>
-      </span>
+      </span>,
     );
     lastIndex = regex.lastIndex;
   }
@@ -36,11 +38,30 @@ const StoryPage = () => {
   const [story, setStory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  useFlowJourney({
+    domain: "story",
+    flowId: "story_reader",
+    step: loading ? "loading" : "reading",
+    stepIndex: loading ? 0 : 1,
+    totalSteps: 2,
+    entityId: slug,
+    attributes: { level: "A1" },
+  });
 
   const markAsComplete = async (storyId) => {
     try {
       await api.put(`/stories/complete/${storyId}`);
+      trackFlowAction("story", "story_reader", "story_completed", {
+        lifecycle: "succeeded",
+        entityId: storyId,
+        step: "reading",
+      });
     } catch (err) {
+      trackFlowAction("story", "story_reader", "story_complete_failed", {
+        lifecycle: "failed",
+        entityId: storyId,
+        reasonCode: err?.response?.status || err?.name || "complete_failed",
+      });
       console.error("Error marking story as complete:", err);
     }
   };
@@ -107,7 +128,10 @@ const StoryPage = () => {
         )}
       </div>
       {/* Story Content */}
-      <article id="story-article" className="max-w-xl mx-auto px-6 -mt-32 relative z-10 pb-12">
+      <article
+        id="story-article"
+        className="max-w-xl mx-auto px-6 -mt-32 relative z-10 pb-12"
+      >
         {/* Story Header Card */}
         <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-6 mb-8 border border-slate-50">
           <div className="flex justify-between items-start mb-4">

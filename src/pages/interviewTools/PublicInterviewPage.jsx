@@ -19,6 +19,7 @@ import { checkInterview } from "../../api/jobScreeningApi";
 import InterviewVideoPlayer from "./shared/InterviewVideoPlayer";
 import useInterviewRecorder from "./shared/useInterviewRecorder";
 import { uploadFileToSignedUrl } from "./shared/uploadFileToSignedUrl";
+import { trackFlowAction, useFlowJourney } from "../../telemetry/flow";
 
 function getStorageKey(slug) {
   return `interview-tool-session:${slug}`;
@@ -80,7 +81,7 @@ export default function PublicInterviewPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated } = useSelector((state) => state.auth);
   const [position, setPosition] = useState(null);
   const [submission, setSubmission] = useState(null);
   const [answers, setAnswers] = useState([]);
@@ -91,7 +92,9 @@ export default function PublicInterviewPage() {
   });
 
   const query = useMemo(() => new URLSearchParams(window.location.search), []);
-  const isJobScreeningFlow = query.get("source") === "job_screening" || position?.interview_scope === "skillcase_interviews";
+  const isJobScreeningFlow =
+    query.get("source") === "job_screening" ||
+    position?.interview_scope === "skillcase_interviews";
   const isJobScreeningCandidate = isAuthenticated && isJobScreeningFlow;
 
   useEffect(() => {
@@ -130,6 +133,27 @@ export default function PublicInterviewPage() {
   const handleAutoSubmitRef = useRef(null);
   const recordedBlobRef = useRef(null);
   const timerExpireSubmitRef = useRef(null);
+  const interviewStages = [
+    "loading",
+    "permission",
+    "instructions",
+    "intro",
+    "question",
+    "thinking",
+    "recording",
+    "reviewless-stop",
+    "farewell",
+    "done",
+  ];
+  useFlowJourney({
+    domain: isJobScreeningFlow ? "job_screening" : "interview",
+    flowId: isJobScreeningFlow ? "candidate_interview" : "public_interview",
+    step: stage,
+    stepIndex: Math.max(0, interviewStages.indexOf(stage)),
+    totalSteps: interviewStages.length,
+    entityId: slug,
+    attributes: { position_id: position?.position_id },
+  });
 
   const {
     stream,
@@ -147,15 +171,37 @@ export default function PublicInterviewPage() {
 
   // Keep refs in sync with latest state so the timer interval
   // can always read the current values without being a dependency.
-  useEffect(() => { stageRef.current = stage; }, [stage]);
-  useEffect(() => { submissionRef.current = submission; }, [submission]);
-  useEffect(() => { recordedBlobRef.current = recordedBlob; }, [recordedBlob]);
+  useEffect(() => {
+    stageRef.current = stage;
+  }, [stage]);
+  useEffect(() => {
+    submissionRef.current = submission;
+  }, [submission]);
+  useEffect(() => {
+    recordedBlobRef.current = recordedBlob;
+  }, [recordedBlob]);
 
   const handleRequestStream = async () => {
     try {
       await requestStream();
+      trackFlowAction(
+        isJobScreeningFlow ? "job_screening" : "interview",
+        "public_interview",
+        "media_permission_succeeded",
+        { lifecycle: "succeeded", step: stage },
+      );
       setStatusMessage("");
     } catch (error) {
+      trackFlowAction(
+        isJobScreeningFlow ? "job_screening" : "interview",
+        "public_interview",
+        "media_permission_failed",
+        {
+          lifecycle: "failed",
+          step: stage,
+          reasonCode: error?.name || "permission_failed",
+        },
+      );
       console.error(error);
       setStatusMessage(
         "Microphone is not capturing audio. Please allow camera and mic access, then try again.",
@@ -191,7 +237,9 @@ export default function PublicInterviewPage() {
       e.preventDefault();
       e.stopPropagation();
       const href = anchor.getAttribute("href");
-      pendingNavigationRef.current = () => { window.location.href = href; };
+      pendingNavigationRef.current = () => {
+        window.location.href = href;
+      };
       setShowLeaveModal(true);
     };
     document.addEventListener("click", handleClick, true);
@@ -344,14 +392,15 @@ export default function PublicInterviewPage() {
   const farewellExists = Boolean(position?.farewell_video_url);
   const canRetake =
     retakesUsed < Number(position?.allowed_retakes || 0) && !!recordedBlob;
-  const questionProgress = useMemo(() => {
-    if (!questions.length) return 0;
-    return ((activeQuestionIndex + 1) / questions.length) * 100;
-  }, [activeQuestionIndex, questions.length]);
-
   const startSubmissionFlow = async () => {
     try {
       setIsStarting(true);
+      trackFlowAction(
+        isJobScreeningFlow ? "job_screening" : "interview",
+        "public_interview",
+        "interview_start_started",
+        { lifecycle: "started" },
+      );
 
       // Force media permission check here as well, so candidates who skip
       // the separate enable button still get a browser prompt/error.
@@ -369,18 +418,40 @@ export default function PublicInterviewPage() {
         getStorageKey(slug),
         res.data.data.submission.session_token,
       );
-      
+
       if (!localStorage.getItem(`interview_started_${slug}`)) {
-         localStorage.setItem(`interview_started_${slug}`, Date.now().toString());
+        localStorage.setItem(
+          `interview_started_${slug}`,
+          Date.now().toString(),
+        );
       }
-      
+
       const nextStage = res.data.data.position?.intro_video_url
         ? "intro"
         : "question";
       setPostInstructionsStage(nextStage);
       setStage("instructions");
+      trackFlowAction(
+        isJobScreeningFlow ? "job_screening" : "interview",
+        "public_interview",
+        "interview_started",
+        {
+          lifecycle: "succeeded",
+          entityId: res.data.data.submission?.submission_id,
+        },
+      );
       setStatusMessage("");
     } catch (error) {
+      trackFlowAction(
+        isJobScreeningFlow ? "job_screening" : "interview",
+        "public_interview",
+        "interview_start_failed",
+        {
+          lifecycle: "failed",
+          reasonCode:
+            error?.response?.data?.code || error?.name || "start_failed",
+        },
+      );
       console.error(error);
       setStatusMessage(
         error?.response?.data?.message ||
@@ -398,6 +469,16 @@ export default function PublicInterviewPage() {
     try {
       await requestStream();
     } catch (error) {
+      trackFlowAction(
+        isJobScreeningFlow ? "job_screening" : "interview",
+        "public_interview",
+        "media_permission_failed",
+        {
+          lifecycle: "failed",
+          step: "question",
+          reasonCode: error?.name || "permission_failed",
+        },
+      );
       setStatusMessage(
         "Microphone is not capturing audio. Please allow camera and mic access, then try again.",
       );
@@ -406,6 +487,17 @@ export default function PublicInterviewPage() {
 
     const thinkingTime = Number(position?.thinking_time_seconds || 3);
     setThinkingRemaining(thinkingTime > 0 ? thinkingTime : 3);
+    trackFlowAction(
+      isJobScreeningFlow ? "job_screening" : "interview",
+      "public_interview",
+      "question_started",
+      {
+        step: "question",
+        stepIndex: activeQuestionIndex,
+        totalSteps: questions.length,
+        entityId: activeQuestion?.question_id,
+      },
+    );
     setStage("thinking");
   };
 
@@ -413,6 +505,17 @@ export default function PublicInterviewPage() {
     setThinkingRemaining(0);
     try {
       await startRecording();
+      trackFlowAction(
+        isJobScreeningFlow ? "job_screening" : "interview",
+        "public_interview",
+        "recording_started",
+        {
+          lifecycle: "started",
+          stepIndex: activeQuestionIndex,
+          totalSteps: questions.length,
+          entityId: activeQuestion?.question_id,
+        },
+      );
       setStage("recording");
     } catch (error) {
       console.error(error);
@@ -424,6 +527,18 @@ export default function PublicInterviewPage() {
 
   const handleStopManual = async () => {
     await stopRecording();
+    trackFlowAction(
+      isJobScreeningFlow ? "job_screening" : "interview",
+      "public_interview",
+      "recording_completed",
+      {
+        lifecycle: "succeeded",
+        stepIndex: activeQuestionIndex,
+        totalSteps: questions.length,
+        entityId: activeQuestion?.question_id,
+        attributes: { recording_duration_ms: recordingSeconds * 1000 },
+      },
+    );
     setStage("reviewless-stop");
   };
 
@@ -474,7 +589,11 @@ export default function PublicInterviewPage() {
           },
         );
         const { uploadUrl, key } = uploadUrlRes.data.data;
-        await uploadFileToSignedUrl({ file: blobToSave, uploadUrl, contentType: answerMimeType });
+        await uploadFileToSignedUrl({
+          file: blobToSave,
+          uploadUrl,
+          contentType: answerMimeType,
+        });
         await interviewToolsApi.saveAnswer(currentSubmission.submission_id, {
           session_token: currentSubmission.session_token,
           question_id: activeQuestion.question_id,
@@ -493,17 +612,25 @@ export default function PublicInterviewPage() {
 
     // Force-finish regardless of remaining questions.
     try {
-      await interviewToolsApi.finishSubmission(currentSubmission.submission_id, {
-        session_token: currentSubmission.session_token,
-      });
+      await interviewToolsApi.finishSubmission(
+        currentSubmission.submission_id,
+        {
+          session_token: currentSubmission.session_token,
+        },
+      );
       if (isJobScreeningCandidate) {
         try {
           await checkInterview();
         } catch (checkErr) {
-          console.error("Failed to auto-verify job screening interview status", checkErr);
+          console.error(
+            "Failed to auto-verify job screening interview status",
+            checkErr,
+          );
         }
       }
-    } catch (_) {}
+    } catch {
+      // Timer expiry is best-effort; the candidate must still reach a terminal state.
+    }
     localStorage.removeItem(getStorageKey(slug));
     localStorage.removeItem(`interview_started_${slug}`);
     setStage("done");
@@ -532,8 +659,13 @@ export default function PublicInterviewPage() {
           if (currentStage === "recording") {
             // Still actively recording — stop mic, upload, force finish.
             const blob = await stopRecording();
-            await timerExpireSubmitRef.current?.(blob || recordedBlobRef.current);
-          } else if (currentStage === "reviewless-stop" && recordedBlobRef.current) {
+            await timerExpireSubmitRef.current?.(
+              blob || recordedBlobRef.current,
+            );
+          } else if (
+            currentStage === "reviewless-stop" &&
+            recordedBlobRef.current
+          ) {
             // Stopped recording manually but hasn't submitted yet — save blob then finish.
             await timerExpireSubmitRef.current?.(recordedBlobRef.current);
           } else {
@@ -547,9 +679,9 @@ export default function PublicInterviewPage() {
     }, 1000);
 
     return () => clearInterval(interval);
-  // Only start/restart the timer when position or slug changes.
-  // Stage changes must NOT restart the interval.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Only start/restart the timer when position or slug changes.
+    // Stage changes must NOT restart the interval.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [position, slug]);
 
   const submitCurrentAnswer = async (finalBlob = recordedBlob) => {
@@ -595,6 +727,21 @@ export default function PublicInterviewPage() {
         retake_count: retakesUsed,
         next_question_index: activeQuestionIndex + 1,
       });
+      trackFlowAction(
+        isJobScreeningFlow ? "job_screening" : "interview",
+        "public_interview",
+        "answer_submitted",
+        {
+          lifecycle: "succeeded",
+          stepIndex: activeQuestionIndex,
+          totalSteps: questions.length,
+          entityId: activeQuestion.question_id,
+          attributes: {
+            recording_duration_ms: recordingSeconds * 1000,
+            is_retry: retakesUsed > 0,
+          },
+        },
+      );
 
       const nextAnswers = [
         ...answers.filter(
@@ -622,6 +769,19 @@ export default function PublicInterviewPage() {
       setRetakesUsed(0);
       setStatusMessage("");
     } catch (error) {
+      trackFlowAction(
+        isJobScreeningFlow ? "job_screening" : "interview",
+        "public_interview",
+        "answer_submit_failed",
+        {
+          lifecycle: "failed",
+          stepIndex: activeQuestionIndex,
+          totalSteps: questions.length,
+          entityId: activeQuestion?.question_id,
+          reasonCode:
+            error?.response?.data?.code || error?.name || "submit_failed",
+        },
+      );
       console.error(error);
       setStatusMessage("Could not save your answer. Please try again.");
     } finally {
@@ -642,11 +802,31 @@ export default function PublicInterviewPage() {
         try {
           await checkInterview();
         } catch (checkErr) {
-          console.error("Failed to auto-verify job screening interview status", checkErr);
+          console.error(
+            "Failed to auto-verify job screening interview status",
+            checkErr,
+          );
         }
       }
       setStage("done");
+      trackFlowAction(
+        isJobScreeningFlow ? "job_screening" : "interview",
+        "public_interview",
+        "interview_completed",
+        { lifecycle: "succeeded", entityId: submission.submission_id },
+      );
     } catch (error) {
+      trackFlowAction(
+        isJobScreeningFlow ? "job_screening" : "interview",
+        "public_interview",
+        "interview_complete_failed",
+        {
+          lifecycle: "failed",
+          entityId: submission?.submission_id,
+          reasonCode:
+            error?.response?.data?.code || error?.name || "finish_failed",
+        },
+      );
       console.error(error);
       setStatusMessage("Could not finish interview");
     } finally {
@@ -700,7 +880,8 @@ export default function PublicInterviewPage() {
         {globalTimeLeft !== null && (
           <div className="fixed top-4 right-4 z-50 bg-rose-600 text-white px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 tabular-nums">
             <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-            {Math.floor(globalTimeLeft / 60)}:{(globalTimeLeft % 60).toString().padStart(2, "0")} left
+            {Math.floor(globalTimeLeft / 60)}:
+            {(globalTimeLeft % 60).toString().padStart(2, "0")} left
           </div>
         )}
 
@@ -710,9 +891,12 @@ export default function PublicInterviewPage() {
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-rose-100 mx-auto mb-5">
                 <AlertCircle className="h-7 w-7 text-rose-600" />
               </div>
-              <h2 className="text-xl font-extrabold text-slate-900">Leave Interview?</h2>
+              <h2 className="text-xl font-extrabold text-slate-900">
+                Leave Interview?
+              </h2>
               <p className="mt-3 text-sm font-medium leading-relaxed text-slate-500">
-                Your progress may not be saved if you leave now. Recorded answers that have not been submitted will be lost.
+                Your progress may not be saved if you leave now. Recorded
+                answers that have not been submitted will be lost.
               </p>
               <div className="mt-7 flex flex-col gap-3">
                 <button
@@ -730,7 +914,11 @@ export default function PublicInterviewPage() {
                   onClick={async () => {
                     setShowLeaveModal(false);
                     if (isRecording) {
-                      try { await stopRecording(); } catch (_) {}
+                      try {
+                        await stopRecording();
+                      } catch {
+                        // Leaving must not be trapped if recorder cleanup has already happened.
+                      }
                     }
                     pendingNavigationRef.current?.();
                     pendingNavigationRef.current = null;
@@ -743,7 +931,7 @@ export default function PublicInterviewPage() {
             </div>
           </div>
         )}
-        
+
         {statusMessage ? (
           <div className="mb-6 flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -844,7 +1032,9 @@ export default function PublicInterviewPage() {
                     </label>
                     <input
                       value={form.candidate_name}
-                      disabled={isJobScreeningCandidate && !!form.candidate_name}
+                      disabled={
+                        isJobScreeningCandidate && !!form.candidate_name
+                      }
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
@@ -861,7 +1051,9 @@ export default function PublicInterviewPage() {
                     </label>
                     <input
                       value={form.candidate_email}
-                      disabled={isJobScreeningCandidate && !!form.candidate_email}
+                      disabled={
+                        isJobScreeningCandidate && !!form.candidate_email
+                      }
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
@@ -878,7 +1070,9 @@ export default function PublicInterviewPage() {
                     </label>
                     <input
                       value={form.candidate_phone}
-                      disabled={isJobScreeningCandidate && !!form.candidate_phone}
+                      disabled={
+                        isJobScreeningCandidate && !!form.candidate_phone
+                      }
                       onChange={(e) => {
                         const val = e.target.value
                           .replace(/\D/g, "")
