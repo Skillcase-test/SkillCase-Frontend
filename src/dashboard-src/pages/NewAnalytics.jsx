@@ -550,6 +550,7 @@ export default function NewAnalytics({ me }) {
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [rebuildConfirmOpen, setRebuildConfirmOpen] = useState(false);
   const [error, setError] = useState("");
   const [reloadToken, setReloadToken] = useState(0);
 
@@ -776,7 +777,7 @@ export default function NewAnalytics({ me }) {
             )}
             {me?.role === "super_admin" && (
               <ControlButton
-                onClick={refresh}
+                onClick={() => setRebuildConfirmOpen(true)}
                 disabled={!filters.date || refreshing}
                 variant="secondary"
                 className="h-8 text-[11px] gap-1.5 px-3"
@@ -1183,6 +1184,65 @@ export default function NewAnalytics({ me }) {
           <EmptyState message="No meaningful candidate activity recorded for this day." />
         )}
       </div>
+
+      {rebuildConfirmOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="Cancel rebuild"
+            className="absolute inset-0 cursor-default bg-slate-950/60"
+            onClick={() => setRebuildConfirmOpen(false)}
+          />
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="rebuild-analytics-title"
+            aria-describedby="rebuild-analytics-description"
+            className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl"
+          >
+            <div className="flex items-start gap-4">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                <AlertTriangle className="h-5 w-5" />
+              </span>
+              <div>
+                <h2
+                  id="rebuild-analytics-title"
+                  className="text-base font-bold text-slate-900"
+                >
+                  Rebuild this analytics day?
+                </h2>
+                <p
+                  id="rebuild-analytics-description"
+                  className="mt-2 text-sm leading-6 text-slate-600"
+                >
+                  This will recalculate analytics for {filters.date} and may
+                  temporarily place a heavy load on the database. Run it only
+                  when this day&apos;s data is missing or outdated.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <ControlButton
+                type="button"
+                variant="secondary"
+                onClick={() => setRebuildConfirmOpen(false)}
+              >
+                Cancel
+              </ControlButton>
+              <ControlButton
+                type="button"
+                variant="primary"
+                onClick={() => {
+                  setRebuildConfirmOpen(false);
+                  refresh();
+                }}
+              >
+                Rebuild analytics
+              </ControlButton>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Dialog */}
       {detail && (

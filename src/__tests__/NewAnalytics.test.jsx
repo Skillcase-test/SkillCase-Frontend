@@ -227,4 +227,31 @@ describe("NewAnalytics", () => {
     expect(screen.getByText("Card 5 of 20")).toBeInTheDocument();
     expect(screen.getAllByText("Flashcards").length).toBeGreaterThan(0);
   });
+
+  it("requires confirmation before rebuilding an analytics day", async () => {
+    newAnalyticsApi.refresh.mockResolvedValue({ data: { ok: true } });
+    render(
+      <MemoryRouter>
+        <NewAnalytics me={{ role: "super_admin" }} />
+      </MemoryRouter>,
+    );
+
+    await screen.findByText("40%");
+    fireEvent.click(screen.getByRole("button", { name: "Rebuild day" }));
+
+    expect(newAnalyticsApi.refresh).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("alertdialog", {
+        name: "Rebuild this analytics day?",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/heavy load on the database/i)).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Rebuild analytics" }),
+    );
+    await waitFor(() =>
+      expect(newAnalyticsApi.refresh).toHaveBeenCalledWith("2026-07-20"),
+    );
+  });
 });
