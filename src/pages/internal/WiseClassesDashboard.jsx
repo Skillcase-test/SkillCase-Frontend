@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Copy,
   Check,
+  FileText,
   Phone,
   ChevronDown,
 } from "lucide-react";
@@ -130,8 +131,12 @@ function HostPicker({ candidates = [], value, disabled, onChange }) {
             : "cursor-pointer border-slate-200 bg-white text-slate-700 hover:border-[#083262]"
         }`}
       >
-        <span className="truncate">{candidates.length ? label : "No assigned host found"}</span>
-        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        <span className="truncate">
+          {candidates.length ? label : "No assigned host found"}
+        </span>
+        <ChevronDown
+          className={`h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open && !disabled && candidates.length > 0 && (
@@ -507,6 +512,8 @@ export default function WiseClassesDashboard() {
   const [verifyModalSession, setVerifyModalSession] = useState(null);
   const [verifySaving, setVerifySaving] = useState(false);
   const [attendanceModalSession, setAttendanceModalSession] = useState(null);
+  const [notesJobRunning, setNotesJobRunning] = useState(false);
+  const [notesJobSummary, setNotesJobSummary] = useState(null);
 
   const copyJoinLink = async (sessionId, joinUrl) => {
     try {
@@ -711,6 +718,24 @@ export default function WiseClassesDashboard() {
     }
   }
 
+  async function handleRunWiseNotesJob() {
+    setNotesJobRunning(true);
+    setError("");
+    try {
+      const summary = await wiseApi.post("/wise/daily-notes/run");
+      setNotesJobSummary(summary);
+    } catch (e) {
+      setError(
+        e.response?.data?.detail ||
+          e.response?.data?.error ||
+          e.message ||
+          "Failed to run Wise daily notes job",
+      );
+    } finally {
+      setNotesJobRunning(false);
+    }
+  }
+
   function getActionButtonStyle(nextAction, isDisabled) {
     if (isDisabled)
       return "border border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed";
@@ -785,6 +810,22 @@ export default function WiseClassesDashboard() {
                 />
                 Refresh
               </button>
+
+              <button
+                onClick={handleRunWiseNotesJob}
+                className="inline-flex items-center gap-2 rounded-xl border border-[#083262] bg-white px-4 py-2 text-sm font-bold text-[#083262] transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 shrink-0 h-9 mt-4 cursor-pointer"
+                disabled={notesJobRunning}
+              >
+                <FileText
+                  className="w-4 h-4"
+                  style={
+                    notesJobRunning
+                      ? { animation: "spin 1s linear infinite" }
+                      : {}
+                  }
+                />
+                {notesJobRunning ? "Running Notes..." : "Run Notes Job"}
+              </button>
             </div>
           </div>
         </div>
@@ -828,6 +869,118 @@ export default function WiseClassesDashboard() {
           <div className="mb-6 flex items-center gap-3 rounded-2xl bg-rose-50 border border-rose-100 px-5 py-3.5 text-sm font-semibold text-rose-700">
             <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
             {error}
+          </div>
+        )}
+
+        {notesJobSummary && (
+          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#083262]">
+                  Wise Daily Notes Summary
+                </p>
+                <h2 className="mt-1 text-base font-bold text-slate-900">
+                  Previous-day run completed
+                </h2>
+              </div>
+              <span className="text-xs font-semibold text-slate-500">
+                Date (IST): {notesJobSummary.date || "-"}
+              </span>
+            </div>
+
+            <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {[
+                ["Yesterday sessions", notesJobSummary.sessionsFound ?? 0],
+                ["Missing-note candidates", notesJobSummary.discovered ?? 0],
+                ["Skipped", notesJobSummary.skipped ?? 0],
+                ["Uploaded", notesJobSummary.uploaded?.length ?? 0],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-xl bg-slate-50 px-3 py-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    {label}
+                  </p>
+                  <p className="mt-1 text-lg font-bold text-slate-900">
+                    {value}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-3">
+              <div>
+                <p className="text-xs font-bold text-emerald-700">
+                  Notes uploaded
+                </p>
+                {notesJobSummary.uploaded?.length ? (
+                  <ul className="mt-2 space-y-1 text-xs text-slate-600">
+                    {notesJobSummary.uploaded.map((item, index) => (
+                      <li
+                        key={`${item.sectionName}-${item.recordingName}-${index}`}
+                      >
+                        • {item.sectionName} — {item.recordingName}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-xs text-slate-400">None</p>
+                )}
+              </div>
+
+              <div>
+                <p className="text-xs font-bold text-slate-700">
+                  Skipped details
+                </p>
+                {notesJobSummary.skippedItems?.length ? (
+                  <ul className="mt-2 space-y-1 text-xs text-slate-600">
+                    {notesJobSummary.skippedItems.map((item, index) => (
+                      <li
+                        key={`${item.sectionName}-${item.recordingName}-${index}`}
+                      >
+                        • {item.sectionName} — {item.recordingName} —{" "}
+                        {item.reason}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-xs text-slate-400">None</p>
+                )}
+              </div>
+
+              <div>
+                <p className="text-xs font-bold text-rose-700">Failed</p>
+                {notesJobSummary.failed?.length ? (
+                  <ul className="mt-2 space-y-1 text-xs text-rose-700">
+                    {notesJobSummary.failed.map((item, index) => (
+                      <li
+                        key={`${item.sectionName}-${item.recordingName}-${index}`}
+                      >
+                        • {item.sectionName} — {item.recordingName} —{" "}
+                        {item.reason}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-xs text-slate-400">None</p>
+                )}
+              </div>
+            </div>
+
+            {notesJobSummary.sessionAudit?.length > 0 && (
+              <details className="mt-4 border-t border-slate-100 pt-3">
+                <summary className="cursor-pointer text-xs font-bold text-slate-600">
+                  Session audit ({notesJobSummary.sessionAudit.length})
+                </summary>
+                <ul className="mt-2 space-y-1 text-xs text-slate-600">
+                  {notesJobSummary.sessionAudit.map((item, index) => (
+                    <li key={`${item.classId}-${item.sessionId}-${index}`}>
+                      • {item.recordingName || item.sessionName || "Session"} —{" "}
+                      {item.status}
+                      {item.reason ? ` — ${item.reason}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
           </div>
         )}
 
