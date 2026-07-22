@@ -137,7 +137,7 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
         </div>
 
         {/* Red Rejected Card block */}
-        <div className="w-full px-5 pt-10 pb-5 bg-gradient-to-b from-red-50 to-red-100/50 rounded-2xl border border-red-200/30 flex flex-col items-center gap-6">
+        <div className="w-full px-5 pt-10 pb-5 bg-gradient-to-b from-red-50 to-red-100/50 rounded-2xl border border-red-200/30 flex flex-col items-center gap-4">
           {/* Rejected Icon */}
           <div className="w-12 h-12 bg-red-600 rounded-xl flex items-center justify-center text-white shrink-0">
             <AlertCircle className="w-6 h-6" />
@@ -166,7 +166,7 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
           {/* Call Support Action */}
           <a
             href="tel:+919731462667"
-            className="w-full h-12 bg-[#002856] text-white hover:bg-[#003975] rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 active:scale-[0.99] transition-all shadow-sm cursor-pointer"
+            className="w-full h-12 bg-[#002856] hover:bg-[#07192f] text-white rounded-xl font-bold text-sm sm:text-base transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer border-none"
           >
             Call Skillcase Support
           </a>

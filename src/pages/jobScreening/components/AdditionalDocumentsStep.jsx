@@ -542,6 +542,28 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
         </p>
       </div>
 
+      {/* Header Rejection Note Banner */}
+      {requiredDocs.map((doc) => {
+        const fileDetails = getDocDetails(doc);
+        if (
+          fileDetails &&
+          !fileDetails.isLocal &&
+          fileDetails.status === "rejected" &&
+          fileDetails.rejectionReason
+        ) {
+          return (
+            <div key={doc.id} className="w-full mb-4">
+              <RejectionNote
+                message={`${doc.title}: ${fileDetails.rejectionReason}`}
+                viewedAt={fileDetails.viewedAt}
+                onView={() => handleMarkDocViewed(doc.id)}
+              />
+            </div>
+          );
+        }
+        return null;
+      })}
+
       {/* Checklist cards */}
       <div className="w-full flex flex-col gap-4 mb-6">
         {requiredDocs.map((doc) => {
@@ -716,15 +738,7 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
                 </div>
               )}
 
-              {fileDetails &&
-                !fileDetails.isLocal &&
-                fileDetails.status === "rejected" && (
-                  <RejectionNote
-                    message={fileDetails.rejectionReason}
-                    viewedAt={fileDetails.viewedAt}
-                    onView={() => handleMarkDocViewed(doc.id)}
-                  />
-                )}
+
             </div>
           );
         })}
