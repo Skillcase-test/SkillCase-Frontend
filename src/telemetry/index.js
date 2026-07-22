@@ -19,6 +19,14 @@ const LIFECYCLE_VALUES = new Set([
 ]);
 const SENSITIVE_KEY =
   /token|authorization|cookie|password|otp|secret|email|phone|(^|_)(first_?name|last_?name|full_?name|name)($|_)|answer|text|transcript|audio|video|document|file|signature|body|url|(^|_)ip($|_)|user.?agent/i;
+
+// Contact- and credential-shaped patterns used by sanitizeCode. Declared
+const EMAIL_PATTERN = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
+const PHONE_PATTERN = /\+?\d[\d\s().-]{8,}\d/;
+const BEARER_PATTERN = /\bBearer\s+[A-Za-z0-9._~+/=-]{16,}\b/i;
+
+// An unbroken alphanumeric run of this length is an opaque credential rather
+const OPAQUE_TOKEN_RUN = /[a-z0-9]{24,}/;
 const SAFE_ATTRIBUTE_KEYS = new Set([
   "method",
   "route",
@@ -135,24 +143,34 @@ function safeDiagnostic(value, max = 500) {
     ?.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[email]")
     .replace(/https?:\/\/([^/\s?#]+)[^\s]*/gi, "https://$1/[redacted]")
     .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]{16,}\b/gi, "[secret]")
+    // `/` is excluded from the run so stack frames and module specifiers stay readable
     .replace(
-      /\b(?![0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b)[A-Za-z0-9._~+/=-]{24,}\b/gi,
+      /\b(?![0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b)[A-Za-z0-9._~+=-]{24,}\b/gi,
       "[secret]",
     )
     .replace(/\+?\d[\d\s().-]{8,}\d/g, "[phone]")
     .slice(0, max);
 }
 
-function sanitizeCode(value, max = 80, fallback = null) {
+// Codes are enum-like identifiers produced by our own source (event names, domains, entity types, outcomes, reason codes).
+export function sanitizeCode(value, max = 80, fallback = null) {
   if (value == null || value === "") return fallback;
-  const safe = safeDiagnostic(value, max * 2);
-  if (!safe || /\[(?:email|phone|secret)\]/.test(safe)) return fallback;
-  const normalized = safe
+  const raw = safeString(value, max * 2);
+  if (
+    !raw ||
+    EMAIL_PATTERN.test(raw) ||
+    PHONE_PATTERN.test(raw) ||
+    BEARER_PATTERN.test(raw)
+  ) {
+    return fallback;
+  }
+  const normalized = raw
     .toLowerCase()
     .replace(/[^a-z0-9_.-]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .slice(0, max);
-  return normalized || fallback;
+  if (!normalized || OPAQUE_TOKEN_RUN.test(normalized)) return fallback;
+  return normalized;
 }
 
 export function sanitizePath(value) {

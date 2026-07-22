@@ -95,6 +95,10 @@ export default function SupportWidget() {
     }, 350);
 
     const timer = setInterval(() => {
+      // A hidden tab or an offline device cannot act on an update, and the request would only fail.
+      if (document.visibilityState === "hidden" || navigator.onLine === false) {
+        return;
+      }
       fetchTickets(true);
     }, 10000);
 
@@ -701,7 +705,7 @@ export default function SupportWidget() {
               <span className="text-[#002856] text-sm font-semibold text-center">
                 {tempSelectedFile ? tempSelectedFile.name : "Tap to upload"}
               </span>
-               <span className="text-slate-400 text-xs font-normal">
+              <span className="text-slate-400 text-xs font-normal">
                 Supported files: JPG, PNG
               </span>
               <input

@@ -25,6 +25,25 @@ const inFlightGet = new Map();
 let activeAuthScope = "";
 let paywallRefreshPromise = null;
 
+// Statuses that describe an expected business or auth state rather than a
+// defect: the paywall (402), auth challenges (401/403), absent optional content
+// (404), conflicts, validation and rate limits. These were being reported as
+// captured errors on every occurrence, which meant one locked account looping
+// its gated endpoints produced roughly 1,400 error records. The failure is
+// still recorded by the `api.request` telemetry event above, which carries the
+// status code, reason code and route -- only the error report is suppressed.
+const EXPECTED_API_STATUSES = new Set([401, 402, 403, 404, 409, 422, 429]);
+
+function isExpectedApiOutcome(error) {
+  const status = error?.response?.status;
+  if (status && EXPECTED_API_STATUSES.has(status)) return true;
+  // A transport failure while the device is offline is connectivity, not a bug.
+  if (!status && typeof navigator !== "undefined" && navigator.onLine === false) {
+    return true;
+  }
+  return false;
+}
+
 function getAuthScope() {
   const state = store.getState().auth;
   const uid = state?.user?.user_id || "anon";
@@ -212,7 +231,11 @@ api.interceptors.response.use(
       }
     }
 
-    if (!axios.isCancel(error) && error?.code !== "ERR_CANCELED") {
+    if (
+      !axios.isCancel(error) &&
+      error?.code !== "ERR_CANCELED" &&
+      !isExpectedApiOutcome(error)
+    ) {
       addSentryBreadcrumb({
         category: "api",
         message: "api-failure",

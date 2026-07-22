@@ -3,6 +3,7 @@ import {
   acknowledgedEventIds,
   isOpaqueScriptErrorEvent,
   resolvePersistedEventScope,
+  sanitizeCode,
   sanitizeIdentifier,
   sanitizePath,
   sanitizeTelemetryAttributes,
@@ -10,6 +11,25 @@ import {
 import { normalizeFlowContext } from "../telemetry/flow";
 
 describe("first-party telemetry privacy and compatibility", () => {
+  it("preserves event names of any length while rejecting credentials", () => {
+    // These were collapsed to "unknown.event" on the device, before the batch
+    for (const name of [
+      "learning.flashcard.presented",
+      "learning.lesson.screen_presented",
+      "job_screening.additional_credentials_uploaded",
+      "interaction.unresponsive_candidate",
+    ]) {
+      expect(sanitizeCode(name, 160, "unknown.event")).toBe(name);
+    }
+
+    expect(sanitizeCode("learner@example.com", 160, "unknown.event")).toBe(
+      "unknown.event",
+    );
+    expect(
+      sanitizeCode("a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6", 160, "unknown.event"),
+    ).toBe("unknown.event");
+  });
+
   it("redacts opaque signing tokens in routes and route attributes", () => {
     const token = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghi_1234567";
     const route = `/job-screening/terms/sign/${token}?source=email`;
