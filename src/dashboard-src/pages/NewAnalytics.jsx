@@ -16,6 +16,7 @@ import {
   MonitorSmartphone,
   RefreshCw,
   TrendingDown,
+  Users,
   X,
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -901,6 +902,16 @@ export default function NewAnalytics({ me }) {
               <MonitorSmartphone className="h-3 w-3" />
               App = Android/iOS &middot; Web = browser/PWA
             </span>
+            {catalog?.min_app_version && (
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] text-slate-400"
+                title={catalog.eligibility_note || undefined}
+              >
+                <Users className="h-3 w-3" />
+                Eligible = last seen on v{catalog.min_app_version}+ (older builds
+                cannot report)
+              </span>
+            )}
           </div>
         </div>
 
@@ -932,7 +943,11 @@ export default function NewAnalytics({ me }) {
                 <StatCard
                   label="Eligible users"
                   value={number(metrics.eligible_users)}
-                  subText="Platform-neutral denominator"
+                  subText={
+                    catalog?.min_app_version
+                      ? `On app v${catalog.min_app_version}+`
+                      : "Platform-neutral denominator"
+                  }
                   tone="slate"
                 />
                 <StatCard
