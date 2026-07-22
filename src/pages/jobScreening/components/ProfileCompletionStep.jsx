@@ -241,8 +241,7 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
     progress?.resume_status === "rejected" ||
     progress?.lang_cert_status === "rejected";
   const isUnderReview =
-    progress?.resume_url &&
-    progress?.lang_cert_url &&
+    (progress?.resume_url || progress?.lang_cert_url) &&
     !isProfileCompleted &&
     !isProfileRejected;
 
