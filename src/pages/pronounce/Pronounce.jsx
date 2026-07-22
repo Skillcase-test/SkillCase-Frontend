@@ -371,7 +371,7 @@ const Pronounce = () => {
   };
 
   return (
-    <div className="min-h-100dvh bg-white flex flex-col">
+    <div className="min-h-[calc(100vh-65px)] bg-white flex flex-col">
       {/* Back Navigation */}
       <div className="px-4 py-2.5">
         <div className="flex items-center justify-between">

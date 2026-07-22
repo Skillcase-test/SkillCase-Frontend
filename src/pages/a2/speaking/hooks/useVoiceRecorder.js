@@ -1,5 +1,11 @@
 import { useState, useRef } from "react";
 import api from "../../../../api/axios";
+import {
+  clearRecordingTimer,
+  closeAudioContext,
+  disconnectAudioNode,
+  stopMediaStream,
+} from "../../../../utils/audioRecording";
 const useVoiceRecorder = (referenceText) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -75,6 +81,8 @@ const useVoiceRecorder = (referenceText) => {
   };
   const startRecording = async () => {
     try {
+      // Tear down anything still live from a previous take. Without this a second start orphaned the running interval, which then kept firing its auto-stop callback every second for the rest of the session.
+      clearRecordingTimer(timerRef);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       const audioContext = new AudioContext();
@@ -107,43 +115,44 @@ const useVoiceRecorder = (referenceText) => {
     }
   };
   const stopRecording = async (refText) => {
+    const audioContext = audioContextRef.current;
+    const scriptNode = scriptNodeRef.current;
+    if (!audioContext || !scriptNode) return;
+    audioContextRef.current = null;
+    scriptNodeRef.current = null;
+
+    const stream = mediaStreamRef.current;
+    mediaStreamRef.current = null;
+    const chunks = audioDataRef.current;
+    audioDataRef.current = [];
+    clearRecordingTimer(timerRef);
+
     try {
-      if (!audioContextRef.current || !scriptNodeRef.current) return;
-      mediaStreamRef.current.getTracks().forEach((t) => t.stop());
-      scriptNodeRef.current.disconnect();
-      const wavBlob = encodeWAV(
-        audioDataRef.current,
-        audioContextRef.current.sampleRate,
-      );
-      audioContextRef.current.close();
+      stopMediaStream(stream);
+      disconnectAudioNode(scriptNode);
+      // sampleRate must be read before the context closes.
+      const wavBlob = encodeWAV(chunks, audioContext.sampleRate);
+      closeAudioContext(audioContext);
       setIsRecording(false);
-      clearInterval(timerRef.current);
       await sendToBackend(wavBlob, refText || referenceText);
     } catch (err) {
       console.error(err);
+      setIsRecording(false);
     }
   };
   const formatTime = (s) =>
     `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
   
   const resetRecording = () => {
-    // Release mic and audio context so next startRecording works cleanly
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((t) => t.stop());
-      mediaStreamRef.current = null;
-    }
-    if (scriptNodeRef.current) {
-      try {
-        scriptNodeRef.current.disconnect();
-      } catch {}
-      scriptNodeRef.current = null;
-    }
-    if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-      audioContextRef.current.close().catch(() => {});
-      audioContextRef.current = null;
-    }
+    // Release mic and audio context so next startRecording works cleanly.
+    stopMediaStream(mediaStreamRef.current);
+    mediaStreamRef.current = null;
+    disconnectAudioNode(scriptNodeRef.current);
+    scriptNodeRef.current = null;
+    closeAudioContext(audioContextRef.current);
+    audioContextRef.current = null;
     audioDataRef.current = [];
-    clearInterval(timerRef.current);
+    clearRecordingTimer(timerRef);
     setIsRecording(false);
     setIsUploading(false);
     setAssessmentResult(null);

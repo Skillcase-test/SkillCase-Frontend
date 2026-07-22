@@ -13,6 +13,12 @@ import {
 import api from "../api/axios";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
+import {
+  clearRecordingTimer,
+  closeAudioContext,
+  disconnectAudioNode,
+  stopMediaStream,
+} from "../utils/audioRecording";
 
 const Pronounce = () => {
   const { user } = useSelector((state) => state.auth);
@@ -52,6 +58,7 @@ const Pronounce = () => {
   // Voice Recording Functions
   const startRecording = async () => {
     try {
+      clearRecordingTimer(timerRef);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       const audioContext = new AudioContext();
@@ -93,26 +100,33 @@ const Pronounce = () => {
   };
 
   const stopRecording = async () => {
+    const audioContext = audioContextRef.current;
+    const scriptNode = scriptNodeRef.current;
+    if (!audioContext || !scriptNode) return;
+    audioContextRef.current = null;
+    scriptNodeRef.current = null;
+
+    const stream = mediaStreamRef.current;
+    mediaStreamRef.current = null;
+    const chunks = audioDataRef.current;
+    audioDataRef.current = [];
+    clearRecordingTimer(timerRef);
+
     try {
-      if (!audioContextRef.current || !scriptNodeRef.current) return;
-
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      scriptNodeRef.current.disconnect();
-      audioContextRef.current.close();
-
-      const wavBlob = encodeWAV(
-        audioDataRef.current,
-        audioContextRef.current.sampleRate
-      );
+      stopMediaStream(stream);
+      disconnectAudioNode(scriptNode);
+      // sampleRate must be read before the context closes.
+      const wavBlob = encodeWAV(chunks, audioContext.sampleRate);
+      closeAudioContext(audioContext);
 
       setIsRecording(false);
-      clearInterval(timerRef.current);
 
       // Automatically send to backend after stopping
       await sendToBackend(wavBlob);
     } catch (err) {
       console.error("Error stopping recording:", err);
       setUploadStatus("Error stopping recording");
+      setIsRecording(false);
     }
   };
 

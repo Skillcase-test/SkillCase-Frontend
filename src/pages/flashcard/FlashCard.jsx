@@ -542,7 +542,7 @@ const FlashcardStudyPage = () => {
 
   // Main View
   return (
-    <div className="min-h-100dvh bg-white flex flex-col">
+    <div className="min-h-[calc(100vh-65px)] bg-white flex flex-col">
       {/* Streak Celebration Modal */}
       <StreakCelebrationModal
         showStreakCelebration={showStreakCelebration}

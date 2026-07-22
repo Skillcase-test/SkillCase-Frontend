@@ -1,6 +1,12 @@
 import React, { useState, useRef } from "react";
 import api from "../api/axios";
 import { Mic, Square, Loader2 } from "lucide-react";
+import {
+  clearRecordingTimer,
+  closeAudioContext,
+  disconnectAudioNode,
+  stopMediaStream,
+} from "../utils/audioRecording";
 
 export default function VoiceRecorder({ card, closeOverlay,setAssesmentResult }) {
   const [isRecording, setIsRecording] = useState(false);
@@ -41,6 +47,7 @@ export default function VoiceRecorder({ card, closeOverlay,setAssesmentResult })
       setRecordingTime(0);
       setUploadStatus("");
 
+      clearRecordingTimer(timerRef);
       timerRef.current = setInterval(() => {
         setRecordingTime((prev) => prev + 1);
       }, 1000);
@@ -51,25 +58,30 @@ export default function VoiceRecorder({ card, closeOverlay,setAssesmentResult })
   };
 
   const stopRecording = async () => {
+    const audioContext = audioContextRef.current;
+    const scriptNode = scriptNodeRef.current;
+    if (!audioContext || !scriptNode) return;
+    audioContextRef.current = null;
+    scriptNodeRef.current = null;
+
+    const stream = mediaStreamRef.current;
+    mediaStreamRef.current = null;
+    const chunks = audioDataRef.current;
+    audioDataRef.current = [];
+    clearRecordingTimer(timerRef);
+
     try {
-      if (!audioContextRef.current || !scriptNodeRef.current) return;
-
-      // Stop all tracks
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-
-      // Disconnect nodes
-      scriptNodeRef.current.disconnect();
-      audioContextRef.current.close();
-
-      // Convert Float32Array chunks to WAV
-      const wavBlob = encodeWAV(audioDataRef.current, audioContextRef.current.sampleRate);
+      stopMediaStream(stream);
+      disconnectAudioNode(scriptNode);
+      // sampleRate must be read before the context closes.
+      const wavBlob = encodeWAV(chunks, audioContext.sampleRate);
+      closeAudioContext(audioContext);
       setAudioBlob(wavBlob);
-
       setIsRecording(false);
-      clearInterval(timerRef.current);
     } catch (err) {
       console.error("Error stopping recording:", err);
       setUploadStatus("Error stopping recording");
+      setIsRecording(false);
     }
   };
 

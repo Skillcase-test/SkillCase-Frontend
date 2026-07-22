@@ -1,5 +1,11 @@
 import { useState, useRef } from "react";
 import api from "../../../api/axios";
+import {
+  clearRecordingTimer,
+  closeAudioContext,
+  disconnectAudioNode,
+  stopMediaStream,
+} from "../../../utils/audioRecording";
 const useVoiceRecorder = (referenceText) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -78,6 +84,7 @@ const useVoiceRecorder = (referenceText) => {
   };
   const startRecording = async () => {
     try {
+      clearRecordingTimer(timerRef);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       const audioContext = new AudioContext();
@@ -112,21 +119,31 @@ const useVoiceRecorder = (referenceText) => {
     }
   };
   const stopRecording = async (refText) => {
+    // Emptying the refs first makes the guard a re-entry lock, so a duplicate stop returns here rather than closing a closed context and re-uploading the same audio.
+    const audioContext = audioContextRef.current;
+    const scriptNode = scriptNodeRef.current;
+    if (!audioContext || !scriptNode) return;
+    audioContextRef.current = null;
+    scriptNodeRef.current = null;
+
+    const stream = mediaStreamRef.current;
+    mediaStreamRef.current = null;
+    const chunks = audioDataRef.current;
+    audioDataRef.current = [];
+    clearRecordingTimer(timerRef);
+
     try {
-      if (!audioContextRef.current || !scriptNodeRef.current) return;
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      scriptNodeRef.current.disconnect();
-      audioContextRef.current.close();
-      const wavBlob = encodeWAV(
-        audioDataRef.current,
-        audioContextRef.current.sampleRate
-      );
+      stopMediaStream(stream);
+      disconnectAudioNode(scriptNode);
+      // sampleRate must be read before the context closes.
+      const wavBlob = encodeWAV(chunks, audioContext.sampleRate);
+      closeAudioContext(audioContext);
       setIsRecording(false);
-      clearInterval(timerRef.current);
       await sendToBackend(wavBlob, refText || referenceText);
     } catch (err) {
       console.error("Error stopping recording:", err);
       setUploadStatus("Error stopping recording");
+      setIsRecording(false);
     }
   };
   const formatTime = (seconds) => {
