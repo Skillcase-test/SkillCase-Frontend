@@ -2,7 +2,8 @@ import api from "./axios";
 
 export const getProgress = () => api.get("/job-screening/progress");
 
-export const completeWelcome = () => api.post("/job-screening/welcome-complete");
+export const completeWelcome = () =>
+  api.post("/job-screening/welcome-complete");
 
 export const uploadProfileDocs = (formData) =>
   api.post("/job-screening/profile", formData, {
@@ -19,7 +20,7 @@ export const startAgreement = () => api.post("/job-screening/start-agreement");
 
 export const downloadOfferLetter = (recruiterAccountId) =>
   api.get("/job-screening/offer-letter/download", {
-    params: recruiterAccountId ? { recruiterAccountId } : {}
+    params: recruiterAccountId ? { recruiterAccountId } : {},
   });
 
 export const uploadAdditionalDoc = (docId, formData) =>
@@ -35,14 +36,26 @@ export const deleteAdditionalDoc = (docId) =>
 export const refreshAdditionalDocs = () =>
   api.post("/job-screening/check-additional-docs");
 
+export const markAdditionalDocViewed = (docId) =>
+  api.post(`/job-screening/additional-documents/${docId}/view`);
+
+export const markProfileRejectionViewed = () =>
+  api.post("/job-screening/profile/view-rejection");
+
+export const markInterviewRejectionViewed = () =>
+  api.post("/job-screening/interview-review/view-rejection");
+
+export const markRecruiterRejectionViewed = (accountId) =>
+  api.post(`/job-screening/recruiter-interviews/${accountId}/view-rejection`);
+
 export const skipRecruiterStatus = () =>
   api.post("/job-screening/skip-recruiter-status");
 
 export const submitCandidateDetails = (payload) =>
   api.post("/job-screening/fill-details", payload);
 
-export const createPaywallOrder = () => api.post("/job-screening/payment/order");
+export const createPaywallOrder = () =>
+  api.post("/job-screening/payment/order");
 
-export const verifyPaywallPayment = (payload) => api.post("/job-screening/payment/verify", payload);
-
-
+export const verifyPaywallPayment = (payload) =>
+  api.post("/job-screening/payment/verify", payload);

@@ -27,6 +27,12 @@ export const adminGetCandidateDetail = (userId) =>
 export const adminUpdateCandidate = (userId, payload) =>
   api.put(`/admin/job-screening/candidates/${userId}`, payload);
 
+export const adminReviewAdditionalDoc = (userId, docId, payload) =>
+  api.patch(
+    `/admin/job-screening/candidates/${userId}/additional-documents/${docId}`,
+    payload,
+  );
+
 export const adminUploadOfferLetter = (userId, formData, recruiterAccountId) =>
   api.post(`/admin/job-screening/candidates/${userId}/offer-letter`, formData, {
     params: recruiterAccountId ? { recruiterAccountId } : {},
@@ -36,24 +42,36 @@ export const adminUploadOfferLetter = (userId, formData, recruiterAccountId) =>
   });
 
 export const adminUploadTrainingScheduleImage = (userId, formData) =>
-  api.post(`/admin/job-screening/candidates/${userId}/training-schedule-image`, formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
+  api.post(
+    `/admin/job-screening/candidates/${userId}/training-schedule-image`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
     },
-  });
+  );
 
-export const adminUploadRecruiterScheduleImage = (userId, formData, recruiterAccountId) =>
-  api.post(`/admin/job-screening/candidates/${userId}/recruiter-schedule-image`, formData, {
-    params: recruiterAccountId ? { recruiterAccountId } : {},
-    headers: {
-      "Content-Type": "multipart/form-data",
+export const adminUploadRecruiterScheduleImage = (
+  userId,
+  formData,
+  recruiterAccountId,
+) =>
+  api.post(
+    `/admin/job-screening/candidates/${userId}/recruiter-schedule-image`,
+    formData,
+    {
+      params: recruiterAccountId ? { recruiterAccountId } : {},
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
     },
-  });
+  );
 
-export const getAdminDropdownOptions = () => api.get("/admin/job-screening/options");
+export const getAdminDropdownOptions = () =>
+  api.get("/admin/job-screening/options");
 
-export const adminGetSettings = () =>
-  api.get("/admin/job-screening/settings");
+export const adminGetSettings = () => api.get("/admin/job-screening/settings");
 
 export const adminUpdateSettings = (payload) =>
   api.post("/admin/job-screening/settings", payload);

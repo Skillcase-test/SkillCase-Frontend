@@ -21,10 +21,12 @@ import {
   getProgress,
   skipRecruiterStatus,
   downloadOfferLetter,
+  markRecruiterRejectionViewed,
 } from "../../../api/jobScreeningApi";
 import shocked from "../../../assets/onboarding/mayaShocked.webp";
 import { toast } from "react-hot-toast";
 import { trackFlowAction } from "../../../telemetry/flow";
+import RejectionNote from "../../../components/RejectionNote";
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   "pdfjs-dist/build/pdf.worker.min.mjs",
@@ -178,6 +180,12 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
       meetLink || "",
     )}`;
     window.open(googleCalendarUrl, "_blank");
+  };
+
+  const handleMarkRecruiterRejectionViewed = (accountId) => {
+    markRecruiterRejectionViewed(accountId).catch((err) =>
+      console.error("Failed to mark recruiter rejection viewed:", err),
+    );
   };
 
   const onBackClick = () => {
@@ -576,9 +584,19 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
                       Read & Download offer letter
                     </button>
                   ) : isRejected ? (
-                    <div className="self-stretch py-3 text-center text-rose-600 text-xs font-normal italic bg-rose-50 border border-rose-100 rounded-lg">
-                      Position has been closed.
-                    </div>
+                    recData.rejectionReason ? (
+                      <RejectionNote
+                        message={recData.rejectionReason}
+                        viewedAt={recData.viewedAt}
+                        onView={() =>
+                          handleMarkRecruiterRejectionViewed(rec.account_id)
+                        }
+                      />
+                    ) : (
+                      <div className="self-stretch py-3 text-center text-rose-600 text-xs font-normal italic bg-rose-50 border border-rose-100 rounded-lg">
+                        Position has been closed.
+                      </div>
+                    )
                   ) : hasSlot ? (
                     <button
                       type="button"

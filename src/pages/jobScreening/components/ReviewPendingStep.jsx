@@ -6,10 +6,14 @@ import {
   RefreshCw,
   AlertCircle,
 } from "lucide-react";
-import { getProgress } from "../../../api/jobScreeningApi";
+import {
+  getProgress,
+  markInterviewRejectionViewed,
+} from "../../../api/jobScreeningApi";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { motion } from "framer-motion";
 import { trackFlowAction } from "../../../telemetry/flow";
+import RejectionNote from "../../../components/RejectionNote";
 
 const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
   const [refreshing, setRefreshing] = useState(false);
@@ -32,18 +36,27 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
       .then(({ data }) => {
         if (!active) return;
         if (data?.success) {
-          const hasStepChanged = data.data?.current_step_id !== "review_pending";
-          trackFlowAction("job_screening", "review_pending", "poll", "success", {
-            poll_type: "automatic",
-            state: hasStepChanged ? "changed" : "pending",
-          });
+          const hasStepChanged =
+            data.data?.current_step_id !== "review_pending";
+          trackFlowAction(
+            "job_screening",
+            "review_pending",
+            "poll",
+            "success",
+            {
+              poll_type: "automatic",
+              state: hasStepChanged ? "changed" : "pending",
+            },
+          );
           if (hasStepChanged) {
             onComplete(data.data, false);
           }
         }
       })
       .catch((err) => {
-        trackFlowAction("job_screening", "review_pending", "poll", "failed", { poll_type: "automatic" });
+        trackFlowAction("job_screening", "review_pending", "poll", "failed", {
+          poll_type: "automatic",
+        });
         console.error("Silent sync failed:", err);
       });
     return () => {
@@ -52,20 +65,42 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
   }, []);
 
   const handleRefresh = async () => {
-    trackFlowAction("job_screening", "review_pending", "refresh", "started", { poll_type: "manual" });
+    trackFlowAction("job_screening", "review_pending", "refresh", "started", {
+      poll_type: "manual",
+    });
     try {
       setRefreshing(true);
       setError("");
       const { data } = await getProgress();
       if (data?.success && onComplete) {
-        trackFlowAction("job_screening", "review_pending", "refresh", "success", { poll_type: "manual", state: data.data?.current_step_id === "review_pending" ? "pending" : "changed" });
+        trackFlowAction(
+          "job_screening",
+          "review_pending",
+          "refresh",
+          "success",
+          {
+            poll_type: "manual",
+            state:
+              data.data?.current_step_id === "review_pending"
+                ? "pending"
+                : "changed",
+          },
+        );
         onComplete(data.data, false);
       } else {
-        trackFlowAction("job_screening", "review_pending", "refresh", "failed", { poll_type: "manual" });
+        trackFlowAction(
+          "job_screening",
+          "review_pending",
+          "refresh",
+          "failed",
+          { poll_type: "manual" },
+        );
         setError("Failed to sync progress.");
       }
     } catch (err) {
-      trackFlowAction("job_screening", "review_pending", "refresh", "failed", { poll_type: "manual" });
+      trackFlowAction("job_screening", "review_pending", "refresh", "failed", {
+        poll_type: "manual",
+      });
       console.error("Error refreshing progress:", err);
       setError(
         err.response?.data?.message ||
@@ -77,6 +112,12 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
   };
 
   const isRejected = progress?.interview_review_status === "rejected";
+
+  const handleMarkInterviewRejectionViewed = () => {
+    markInterviewRejectionViewed().catch((err) =>
+      console.error("Failed to mark interview rejection viewed:", err),
+    );
+  };
 
   if (isRejected) {
     return (
@@ -113,6 +154,14 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
               support to receive detailed feedback and guidance on next steps.
             </p>
           </div>
+
+          {progress?.interview_rejection_message && (
+            <RejectionNote
+              message={progress.interview_rejection_message}
+              viewedAt={progress.interview_candidate_viewed_at}
+              onView={handleMarkInterviewRejectionViewed}
+            />
+          )}
 
           {/* Call Support Action */}
           <a
@@ -246,7 +295,9 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
                   <div className="w-2.5 h-2.5 bg-white rounded-full" />
                 </div>
               )}
-              <div className={`w-[1.5px] ${isCompleted ? "bg-[#15803d]" : "bg-slate-200"} flex-1 my-1`} />
+              <div
+                className={`w-[1.5px] ${isCompleted ? "bg-[#15803d]" : "bg-slate-200"} flex-1 my-1`}
+              />
             </div>
             <div className="pb-5 text-left flex-1 min-w-0 pr-2">
               <h4 className="text-[#002856] text-sm font-semibold leading-tight">
@@ -272,10 +323,14 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
               )}
             </div>
             <div className="pb-5 text-left flex-1 min-w-0 pr-2">
-              <h4 className={`text-sm font-semibold leading-tight ${isCompleted ? "text-[#002856]" : "text-slate-400"}`}>
+              <h4
+                className={`text-sm font-semibold leading-tight ${isCompleted ? "text-[#002856]" : "text-slate-400"}`}
+              >
                 Interview verified
               </h4>
-              <p className={`text-[11px] sm:text-xs mt-1 leading-normal ${isCompleted ? "text-slate-500" : "text-slate-400"}`}>
+              <p
+                className={`text-[11px] sm:text-xs mt-1 leading-normal ${isCompleted ? "text-slate-500" : "text-slate-400"}`}
+              >
                 {isCompleted
                   ? "Your fluency score is finalized and visible to recruiter partners."
                   : "Your fluency score will be finalized and sent to recruiters."}

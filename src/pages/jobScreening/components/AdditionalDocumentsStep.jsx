@@ -14,10 +14,12 @@ import {
   uploadAdditionalDoc,
   deleteAdditionalDoc,
   refreshAdditionalDocs,
+  markAdditionalDocViewed,
 } from "../../../api/jobScreeningApi";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { motion } from "framer-motion";
 import { trackFlowAction } from "../../../telemetry/flow";
+import RejectionNote from "../../../components/RejectionNote";
 
 const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
   const requiredDocs = progress?.resolvedRequiredDocs || [];
@@ -89,7 +91,17 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
       "jpeg",
     ];
     if (!hasAllowedExts.includes(fileExt)) {
-      trackFlowAction("job_screening", "job_screening_funnel", "additional_credential_rejected", { step: "additional_documents", entityId: docId, validationCode: "type_invalid", assetType: "additional_credential" });
+      trackFlowAction(
+        "job_screening",
+        "job_screening_funnel",
+        "additional_credential_rejected",
+        {
+          step: "additional_documents",
+          entityId: docId,
+          validationCode: "type_invalid",
+          assetType: "additional_credential",
+        },
+      );
       setError(
         `Only ${hasAllowedExts.map((e) => e.toUpperCase()).join(", ")} files are supported`,
       );
@@ -97,7 +109,17 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      trackFlowAction("job_screening", "job_screening_funnel", "additional_credential_rejected", { step: "additional_documents", entityId: docId, validationCode: "size_limit", assetType: "additional_credential" });
+      trackFlowAction(
+        "job_screening",
+        "job_screening_funnel",
+        "additional_credential_rejected",
+        {
+          step: "additional_documents",
+          entityId: docId,
+          validationCode: "size_limit",
+          assetType: "additional_credential",
+        },
+      );
       setError("File size must be under 10MB");
       return;
     }
@@ -107,7 +129,16 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
       ...prev,
       [docId]: file,
     }));
-    trackFlowAction("job_screening", "job_screening_funnel", "additional_credential_selected", { step: "additional_documents", entityId: docId, assetType: "additional_credential" });
+    trackFlowAction(
+      "job_screening",
+      "job_screening_funnel",
+      "additional_credential_selected",
+      {
+        step: "additional_documents",
+        entityId: docId,
+        assetType: "additional_credential",
+      },
+    );
   };
 
   const handleRemoveLocalFile = (docId) => {
@@ -126,14 +157,24 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
 
     const selectedKeys = Object.keys(selectedFiles);
     if (selectedKeys.length === 0) {
-      trackFlowAction("job_screening", "job_screening_funnel", "validation_blocked", { step: "additional_documents", validationCode: "credential_required" });
+      trackFlowAction(
+        "job_screening",
+        "job_screening_funnel",
+        "validation_blocked",
+        { step: "additional_documents", validationCode: "credential_required" },
+      );
       return;
     }
 
     try {
       setLoading(true);
       setError("");
-      trackFlowAction("job_screening", "job_screening_funnel", "additional_credentials_upload_started", { step: "additional_documents", lifecycle: "started" });
+      trackFlowAction(
+        "job_screening",
+        "job_screening_funnel",
+        "additional_credentials_upload_started",
+        { step: "additional_documents", lifecycle: "started" },
+      );
 
       let lastResponseData = null;
 
@@ -162,7 +203,12 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
       });
 
       if (lastResponseData) {
-        trackFlowAction("job_screening", "job_screening_funnel", "additional_credentials_uploaded", { step: "additional_documents", lifecycle: "succeeded" });
+        trackFlowAction(
+          "job_screening",
+          "job_screening_funnel",
+          "additional_credentials_uploaded",
+          { step: "additional_documents", lifecycle: "succeeded" },
+        );
         const updatedStep = lastResponseData.steps_config?.find(
           (s) => s.id === "additional_documents",
         );
@@ -170,7 +216,16 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
         onComplete(lastResponseData, isNowCompleted);
       }
     } catch (err) {
-      trackFlowAction("job_screening", "job_screening_funnel", "additional_credentials_upload_failed", { step: "additional_documents", lifecycle: "failed", reasonCode: "api_failed" });
+      trackFlowAction(
+        "job_screening",
+        "job_screening_funnel",
+        "additional_credentials_upload_failed",
+        {
+          step: "additional_documents",
+          lifecycle: "failed",
+          reasonCode: "api_failed",
+        },
+      );
       console.error(err);
       setError(
         err.response?.data?.message ||
@@ -183,14 +238,28 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
   };
 
   const handleDelete = async (docId) => {
-    trackFlowAction("job_screening", "job_screening_funnel", "additional_credential_delete_started", { step: "additional_documents", entityId: docId, lifecycle: "started" });
+    trackFlowAction(
+      "job_screening",
+      "job_screening_funnel",
+      "additional_credential_delete_started",
+      { step: "additional_documents", entityId: docId, lifecycle: "started" },
+    );
     setError("");
     setDeletingDocId(docId);
 
     try {
       const { data } = await deleteAdditionalDoc(docId);
       if (data?.success) {
-        trackFlowAction("job_screening", "job_screening_funnel", "additional_credential_deleted", { step: "additional_documents", entityId: docId, lifecycle: "succeeded" });
+        trackFlowAction(
+          "job_screening",
+          "job_screening_funnel",
+          "additional_credential_deleted",
+          {
+            step: "additional_documents",
+            entityId: docId,
+            lifecycle: "succeeded",
+          },
+        );
         onComplete(data.data, false);
       } else {
         setError("Failed to delete document");
@@ -203,14 +272,38 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
     }
   };
 
+  const handleMarkDocViewed = (docId) => {
+    markAdditionalDocViewed(docId).catch((err) =>
+      console.error("Failed to mark document rejection viewed:", err),
+    );
+  };
+
   const handleRefresh = async () => {
-    trackFlowAction("job_screening", "job_screening_funnel", "status_refresh_started", { step: "additional_documents", pollType: "manual", lifecycle: "started" });
+    trackFlowAction(
+      "job_screening",
+      "job_screening_funnel",
+      "status_refresh_started",
+      {
+        step: "additional_documents",
+        pollType: "manual",
+        lifecycle: "started",
+      },
+    );
     try {
       setRefreshing(true);
       setError("");
       const { data } = await refreshAdditionalDocs();
       if (data?.success) {
-        trackFlowAction("job_screening", "job_screening_funnel", "status_refreshed", { step: "additional_documents", pollType: "manual", lifecycle: "succeeded" });
+        trackFlowAction(
+          "job_screening",
+          "job_screening_funnel",
+          "status_refreshed",
+          {
+            step: "additional_documents",
+            pollType: "manual",
+            lifecycle: "succeeded",
+          },
+        );
         onComplete(data.data, false);
       } else {
         setError("Failed to refresh document status");
@@ -243,6 +336,8 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
         isLocal: false,
         status: serverFile.status,
         downloadUrl: serverFile.downloadUrl,
+        rejectionReason: serverFile.rejectionReason,
+        viewedAt: serverFile.viewedAt,
       };
     }
     return null;
@@ -322,7 +417,9 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
                 <div className="w-6 h-6 bg-[#15803d] rounded-full flex items-center justify-center text-white shadow-sm">
                   <Check className="w-3.5 h-3.5 stroke-[3]" />
                 </div>
-                <div className={`w-[1.5px] ${isCompleted ? "bg-[#15803d]" : "bg-[#002856]/20"} flex-1 my-1`} />
+                <div
+                  className={`w-[1.5px] ${isCompleted ? "bg-[#15803d]" : "bg-[#002856]/20"} flex-1 my-1`}
+                />
               </div>
               <div className="pb-5 text-left flex-1 min-w-0 pr-2">
                 <h4 className="text-[#002856] text-sm font-semibold leading-tight">
@@ -618,6 +715,16 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
                   </span>
                 </div>
               )}
+
+              {fileDetails &&
+                !fileDetails.isLocal &&
+                fileDetails.status === "rejected" && (
+                  <RejectionNote
+                    message={fileDetails.rejectionReason}
+                    viewedAt={fileDetails.viewedAt}
+                    onView={() => handleMarkDocViewed(doc.id)}
+                  />
+                )}
             </div>
           );
         })}

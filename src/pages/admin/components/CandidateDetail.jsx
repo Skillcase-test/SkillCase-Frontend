@@ -67,6 +67,7 @@ const CandidateDetail = ({
   loading,
   options,
   onUpdate,
+  onReviewDoc,
   onUploadOfferLetter,
   onUploadTrainingScheduleImage,
   onUploadRecruiterScheduleImage,
@@ -170,14 +171,23 @@ const CandidateDetail = ({
     title: "",
     message: "",
     onConfirm: null,
+    requireReason: false,
+    reasonValue: "",
   });
 
-  const openConfirmModal = ({ title, message, onConfirm }) => {
+  const openConfirmModal = ({
+    title,
+    message,
+    onConfirm,
+    requireReason = false,
+  }) => {
     setConfirmModal({
       isOpen: true,
       title,
       message,
       onConfirm,
+      requireReason,
+      reasonValue: "",
     });
   };
 
@@ -187,6 +197,8 @@ const CandidateDetail = ({
       title: "",
       message: "",
       onConfirm: null,
+      requireReason: false,
+      reasonValue: "",
     });
   };
 
@@ -226,7 +238,7 @@ const CandidateDetail = ({
         ? "true"
         : candidate.paywall_enabled === false
           ? "false"
-          : ""
+          : "",
     );
     setPaywallPaid(!!candidate.paywall_paid);
   }, [candidate]);
@@ -347,7 +359,12 @@ const CandidateDetail = ({
   const handleSavePaywallSettings = (e) => {
     e.preventDefault();
     onUpdate(candidate.user_id, {
-      paywall_enabled: paywallEnabled === "true" ? true : paywallEnabled === "false" ? false : null,
+      paywall_enabled:
+        paywallEnabled === "true"
+          ? true
+          : paywallEnabled === "false"
+            ? false
+            : null,
       paywall_paid: paywallPaid,
     });
   };
@@ -424,7 +441,8 @@ const CandidateDetail = ({
         "This will permanently delete the candidate's assigned interview and their submitted video/audio attempt. This action cannot be undone.",
       onConfirm: () => {
         const updatedSteps = steps.map((s) => {
-          if (s.id === "interview_attempt") return { ...s, status: "pending", is_skippable: false };
+          if (s.id === "interview_attempt")
+            return { ...s, status: "pending", is_skippable: false };
           return s;
         });
         onUpdate(candidate.user_id, {
@@ -442,7 +460,8 @@ const CandidateDetail = ({
         "This will delete the candidate's signed agreement envelope and signature log history. They will be required to sign the terms registration again.",
       onConfirm: () => {
         const updatedSteps = steps.map((s) => {
-          if (s.id === "registration_form") return { ...s, status: "pending", is_skippable: false };
+          if (s.id === "registration_form")
+            return { ...s, status: "pending", is_skippable: false };
           return s;
         });
         onUpdate(candidate.user_id, {
@@ -458,7 +477,18 @@ const CandidateDetail = ({
   };
 
   const handleFailReview = () => {
-    onUpdate(candidate.user_id, { overall_review_status: "rejected" });
+    openConfirmModal({
+      title: "Fail Interview Review?",
+      message:
+        "This will mark the candidate's interview as rejected. The message below will be shown to the candidate as the reason for rejection.",
+      requireReason: true,
+      onConfirm: (reason) => {
+        onUpdate(candidate.user_id, {
+          overall_review_status: "rejected",
+          interview_rejection_message: reason,
+        });
+      },
+    });
   };
 
   const handlePassTraining = () => {
@@ -488,7 +518,8 @@ const CandidateDetail = ({
           (s) => s.id === "interview_training",
         );
         const updatedSteps = steps.map((s, idx) => {
-          if (s.id === "interview_training") return { ...s, status: "pending", is_skippable: false };
+          if (s.id === "interview_training")
+            return { ...s, status: "pending", is_skippable: false };
           if (trainingIdx !== -1 && idx > trainingIdx)
             return { ...s, status: "locked" };
           return s;
@@ -557,30 +588,23 @@ const CandidateDetail = ({
     });
   };
 
-  const handleApproveAllDocs = () => {
-    const updatedDocs = { ...(candidate.additional_documents || {}) };
-    (candidate.resolvedRequiredDocs || []).forEach((doc) => {
-      if (updatedDocs[doc.id]) {
-        updatedDocs[doc.id] = {
-          ...updatedDocs[doc.id],
-          status: "approved",
-        };
-      }
-    });
-    onUpdate(candidate.user_id, { additional_documents: updatedDocs });
+  const handleApproveDoc = (docId) => {
+    onReviewDoc(candidate.user_id, docId, { action: "approve" });
   };
 
-  const handleRejectAllDocs = () => {
-    const updatedDocs = { ...(candidate.additional_documents || {}) };
-    (candidate.resolvedRequiredDocs || []).forEach((doc) => {
-      if (updatedDocs[doc.id]) {
-        updatedDocs[doc.id] = {
-          ...updatedDocs[doc.id],
-          status: "rejected",
-        };
-      }
+  const handleRejectDoc = (docId, docTitle) => {
+    openConfirmModal({
+      title: `Reject "${docTitle}"?`,
+      message:
+        "This will mark the document as rejected. The message below will be shown to the candidate as the reason for rejection.",
+      requireReason: true,
+      onConfirm: (reason) => {
+        onReviewDoc(candidate.user_id, docId, {
+          action: "reject",
+          rejectionReason: reason,
+        });
+      },
     });
-    onUpdate(candidate.user_id, { additional_documents: updatedDocs });
   };
 
   const handleDeleteOfferLetter = () => {
@@ -870,7 +894,13 @@ const CandidateDetail = ({
                       onChange={(e) => setPaywallEnabled(e.target.value)}
                       className="w-full border border-slate-200 rounded-xl p-2.5 pr-8 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all appearance-none"
                     >
-                      <option value="">Inherit Global Default ({candidate.globalSettings?.paywall_enabled ? "Enabled" : "Disabled"})</option>
+                      <option value="">
+                        Inherit Global Default (
+                        {candidate.globalSettings?.paywall_enabled
+                          ? "Enabled"
+                          : "Disabled"}
+                        )
+                      </option>
                       <option value="true">Force Enabled</option>
                       <option value="false">Force Disabled</option>
                     </select>
@@ -1308,7 +1338,9 @@ const CandidateDetail = ({
                           Completed
                         </span>
                         <span className="font-semibold text-slate-600">
-                          {formatScreeningTimestamp(stepTimestamps.completed_at)}
+                          {formatScreeningTimestamp(
+                            stepTimestamps.completed_at,
+                          )}
                         </span>
                       </div>
                       {isCompleted && approvedByName && (
@@ -1412,22 +1444,46 @@ const CandidateDetail = ({
                                         "rejected" && (
                                         <button
                                           type="button"
-                                          onClick={() => {
-                                            const reason = prompt(
-                                              "Enter rejection reason for resume (optional):",
-                                            );
-                                            onUpdate(candidate.user_id, {
-                                              reject_resume: true,
-                                              profile_rejection_reason:
-                                                reason || "",
-                                            });
-                                          }}
+                                          onClick={() =>
+                                            openConfirmModal({
+                                              title: "Reject Resume?",
+                                              message:
+                                                "This will mark the resume as rejected. The message below will be shown to the candidate as the reason for rejection.",
+                                              requireReason: true,
+                                              onConfirm: (reason) => {
+                                                onUpdate(candidate.user_id, {
+                                                  reject_resume: true,
+                                                  profile_rejection_reason:
+                                                    reason,
+                                                });
+                                              },
+                                            })
+                                          }
                                           className="px-2.5 py-1 bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 font-bold text-[9px] rounded"
                                         >
                                           Reject Resume
                                         </button>
                                       )}
                                     </div>
+                                    {candidate.resume_status === "rejected" &&
+                                      candidate.profile_rejection_reason && (
+                                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[10px] text-amber-800 flex items-start justify-between gap-2">
+                                          <span className="leading-relaxed">
+                                            {candidate.profile_rejection_reason}
+                                          </span>
+                                          <span
+                                            className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase shrink-0 ${
+                                              candidate.profile_rejection_viewed_at
+                                                ? "bg-slate-100 text-slate-500"
+                                                : "bg-red-100 text-red-600"
+                                            }`}
+                                          >
+                                            {candidate.profile_rejection_viewed_at
+                                              ? "Seen"
+                                              : "Unseen"}
+                                          </span>
+                                        </div>
+                                      )}
                                   </div>
                                 )}
 
@@ -1471,22 +1527,47 @@ const CandidateDetail = ({
                                         "rejected" && (
                                         <button
                                           type="button"
-                                          onClick={() => {
-                                            const reason = prompt(
-                                              "Enter rejection reason for certificate (optional):",
-                                            );
-                                            onUpdate(candidate.user_id, {
-                                              reject_lang_cert: true,
-                                              profile_rejection_reason:
-                                                reason || "",
-                                            });
-                                          }}
+                                          onClick={() =>
+                                            openConfirmModal({
+                                              title: "Reject Certificate?",
+                                              message:
+                                                "This will mark the language certificate as rejected. The message below will be shown to the candidate as the reason for rejection.",
+                                              requireReason: true,
+                                              onConfirm: (reason) => {
+                                                onUpdate(candidate.user_id, {
+                                                  reject_lang_cert: true,
+                                                  profile_rejection_reason:
+                                                    reason,
+                                                });
+                                              },
+                                            })
+                                          }
                                           className="px-2.5 py-1 bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 font-bold text-[9px] rounded"
                                         >
                                           Reject Certificate
                                         </button>
                                       )}
                                     </div>
+                                    {candidate.lang_cert_status ===
+                                      "rejected" &&
+                                      candidate.profile_rejection_reason && (
+                                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[10px] text-amber-800 flex items-start justify-between gap-2">
+                                          <span className="leading-relaxed">
+                                            {candidate.profile_rejection_reason}
+                                          </span>
+                                          <span
+                                            className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase shrink-0 ${
+                                              candidate.profile_rejection_viewed_at
+                                                ? "bg-slate-100 text-slate-500"
+                                                : "bg-red-100 text-red-600"
+                                            }`}
+                                          >
+                                            {candidate.profile_rejection_viewed_at
+                                              ? "Seen"
+                                              : "Unseen"}
+                                          </span>
+                                        </div>
+                                      )}
                                   </div>
                                 )}
                               </div>
@@ -1741,6 +1822,27 @@ const CandidateDetail = ({
                                   </span>
                                 </div>
                               )}
+
+                              {candidate.interview_review_status ===
+                                "rejected" &&
+                                candidate.interview_rejection_message && (
+                                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[10px] text-amber-800 flex items-start justify-between gap-2">
+                                    <span className="leading-relaxed">
+                                      {candidate.interview_rejection_message}
+                                    </span>
+                                    <span
+                                      className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase shrink-0 ${
+                                        candidate.interview_candidate_viewed_at
+                                          ? "bg-slate-100 text-slate-500"
+                                          : "bg-red-100 text-red-600"
+                                      }`}
+                                    >
+                                      {candidate.interview_candidate_viewed_at
+                                        ? "Seen"
+                                        : "Unseen"}
+                                    </span>
+                                  </div>
+                                )}
                             </div>
                           ) : (
                             <p className="text-[10px] text-zinc-400 font-semibold">
@@ -1852,6 +1954,53 @@ const CandidateDetail = ({
                                               </a>
                                             )}
                                           </div>
+
+                                          {fileObj.status === "rejected" &&
+                                            fileObj.rejectionReason && (
+                                              <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[10px] text-amber-800 text-left flex items-start justify-between gap-2">
+                                                <span className="leading-relaxed">
+                                                  {fileObj.rejectionReason}
+                                                </span>
+                                                <span
+                                                  className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase shrink-0 ${
+                                                    fileObj.viewedAt
+                                                      ? "bg-slate-100 text-slate-500"
+                                                      : "bg-red-100 text-red-600"
+                                                  }`}
+                                                >
+                                                  {fileObj.viewedAt
+                                                    ? "Seen"
+                                                    : "Unseen"}
+                                                </span>
+                                              </div>
+                                            )}
+
+                                          {isActive &&
+                                            fileObj.status !== "approved" && (
+                                              <div className="flex gap-2 justify-start">
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    handleApproveDoc(doc.id)
+                                                  }
+                                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded-lg transition-all cursor-pointer"
+                                                >
+                                                  Approve
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    handleRejectDoc(
+                                                      doc.id,
+                                                      doc.title,
+                                                    )
+                                                  }
+                                                  className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 font-bold text-[10px] rounded-lg transition-all cursor-pointer"
+                                                >
+                                                  Reject
+                                                </button>
+                                              </div>
+                                            )}
                                         </div>
                                       ) : null}
                                     </div>
@@ -1860,34 +2009,6 @@ const CandidateDetail = ({
                               )
                             )}
                           </div>
-
-                          {isActive &&
-                            (candidate.resolvedRequiredDocs || []).some(
-                              (doc) =>
-                                candidate.additional_documents?.[doc.id]?.key,
-                            ) && (
-                              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2">
-                                <span className="font-bold text-[#083262] text-[11px] text-left block">
-                                  Supporting Documents Decision
-                                </span>
-                                <div className="flex gap-2.5 justify-start">
-                                  <button
-                                    type="button"
-                                    onClick={handleApproveAllDocs}
-                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded-lg transition-all cursor-pointer"
-                                  >
-                                    Approve All Documents
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={handleRejectAllDocs}
-                                    className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 font-bold text-[10px] rounded-lg transition-all cursor-pointer"
-                                  >
-                                    Reject All Documents
-                                  </button>
-                                </div>
-                              </div>
-                            )}
 
                           {isCompleted && (
                             <button
@@ -2764,13 +2885,16 @@ const CandidateDetail = ({
                                                             title:
                                                               "Mark Recruiter Interview Failed?",
                                                             message:
-                                                              "This candidate will be recorded as failed for this partner's interview.",
-                                                            onConfirm: () => {
+                                                              "This candidate will be recorded as failed for this partner's interview. The message below will be shown to the candidate as the reason.",
+                                                            requireReason: true,
+                                                            onConfirm: (reason) => {
                                                               onUpdate(
                                                                 candidate.user_id,
                                                                 {
                                                                   fail_recruiter_id:
                                                                     rec.account_id,
+                                                                  recruiter_rejection_reason:
+                                                                    reason,
                                                                 },
                                                               );
                                                             },
@@ -2782,44 +2906,63 @@ const CandidateDetail = ({
                                                       </button>
                                                     </div>
                                                   ) : (
-                                                    <div className="flex items-center gap-2">
-                                                      <span className="text-[10px] font-semibold text-slate-650">
-                                                        Outcome:{" "}
-                                                        <strong
-                                                          className={
-                                                            recData.interview_passed
-                                                              ? "text-emerald-600 font-extrabold"
-                                                              : "text-rose-600 font-extrabold"
-                                                          }
+                                                    <div className="flex flex-col gap-1.5">
+                                                      <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] font-semibold text-slate-650">
+                                                          Outcome:{" "}
+                                                          <strong
+                                                            className={
+                                                              recData.interview_passed
+                                                                ? "text-emerald-600 font-extrabold"
+                                                                : "text-rose-600 font-extrabold"
+                                                            }
+                                                          >
+                                                            {recData.interview_passed
+                                                              ? "PASSED"
+                                                              : "FAILED"}
+                                                          </strong>
+                                                        </span>
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => {
+                                                            openConfirmModal({
+                                                              title:
+                                                                "Reset Recruiter Decision?",
+                                                              message:
+                                                                "This will clear scheduling and pass/fail states for this recruiter.",
+                                                              onConfirm: () => {
+                                                                onUpdate(
+                                                                  candidate.user_id,
+                                                                  {
+                                                                    reset_recruiter_id:
+                                                                      rec.account_id,
+                                                                  },
+                                                                );
+                                                              },
+                                                            });
+                                                          }}
+                                                          className="text-[9px] font-bold text-red-650 bg-red-50 hover:bg-red-100 border border-red-100 px-2 py-0.5 rounded"
                                                         >
-                                                          {recData.interview_passed
-                                                            ? "PASSED"
-                                                            : "FAILED"}
-                                                        </strong>
-                                                      </span>
-                                                      <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                          openConfirmModal({
-                                                            title:
-                                                              "Reset Recruiter Decision?",
-                                                            message:
-                                                              "This will clear scheduling and pass/fail states for this recruiter.",
-                                                            onConfirm: () => {
-                                                              onUpdate(
-                                                                candidate.user_id,
-                                                                {
-                                                                  reset_recruiter_id:
-                                                                    rec.account_id,
-                                                                },
-                                                              );
-                                                            },
-                                                          });
-                                                        }}
-                                                        className="text-[9px] font-bold text-red-650 bg-red-50 hover:bg-red-100 border border-red-100 px-2 py-0.5 rounded"
-                                                      >
-                                                        Reset
-                                                      </button>
+                                                          Reset
+                                                        </button>
+                                                      </div>
+                                                      {recData.interview_passed === false &&
+                                                        recData.rejectionReason && (
+                                                          <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[10px] text-amber-800 flex items-start justify-between gap-2">
+                                                            <span className="leading-relaxed">
+                                                              {recData.rejectionReason}
+                                                            </span>
+                                                            <span
+                                                              className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase shrink-0 ${
+                                                                recData.viewedAt
+                                                                  ? "bg-slate-100 text-slate-500"
+                                                                  : "bg-red-100 text-red-600"
+                                                              }`}
+                                                            >
+                                                              {recData.viewedAt ? "Seen" : "Unseen"}
+                                                            </span>
+                                                          </div>
+                                                        )}
                                                     </div>
                                                   )}
                                                 </div>
@@ -3131,13 +3274,16 @@ const CandidateDetail = ({
                                                     title:
                                                       "Mark Recruiter Interview Failed?",
                                                     message:
-                                                      "This candidate will be recorded as failed for this partner's interview.",
-                                                    onConfirm: () => {
+                                                      "This candidate will be recorded as failed for this partner's interview. The message below will be shown to the candidate as the reason.",
+                                                    requireReason: true,
+                                                    onConfirm: (reason) => {
                                                       onUpdate(
                                                         candidate.user_id,
                                                         {
                                                           fail_recruiter_id:
                                                             rec.account_id,
+                                                          recruiter_rejection_reason:
+                                                            reason,
                                                         },
                                                       );
                                                     },
@@ -3149,38 +3295,57 @@ const CandidateDetail = ({
                                               </button>
                                             </div>
                                           ) : (
-                                            <div className="flex items-center gap-3">
-                                              <span className="text-xs font-semibold text-slate-500">
-                                                Interview outcome set to:{" "}
-                                                <strong>
-                                                  {recData.interview_passed
-                                                    ? "PASSED"
-                                                    : "FAILED"}
-                                                </strong>
-                                              </span>
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  openConfirmModal({
-                                                    title:
-                                                      "Reset Recruiter Decision?",
-                                                    message:
-                                                      "This will clear scheduling and pass/fail states for this recruiter.",
-                                                    onConfirm: () => {
-                                                      onUpdate(
-                                                        candidate.user_id,
-                                                        {
-                                                          reset_recruiter_id:
-                                                            rec.account_id,
-                                                        },
-                                                      );
-                                                    },
-                                                  });
-                                                }}
-                                                className="text-[10px] font-bold text-red-650 bg-red-50 hover:bg-red-100 border border-red-100 px-2 py-1 rounded-lg"
-                                              >
-                                                Reset Decision
-                                              </button>
+                                            <div className="flex flex-col gap-2">
+                                              <div className="flex items-center gap-3">
+                                                <span className="text-xs font-semibold text-slate-500">
+                                                  Interview outcome set to:{" "}
+                                                  <strong>
+                                                    {recData.interview_passed
+                                                      ? "PASSED"
+                                                      : "FAILED"}
+                                                  </strong>
+                                                </span>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    openConfirmModal({
+                                                      title:
+                                                        "Reset Recruiter Decision?",
+                                                      message:
+                                                        "This will clear scheduling and pass/fail states for this recruiter.",
+                                                      onConfirm: () => {
+                                                        onUpdate(
+                                                          candidate.user_id,
+                                                          {
+                                                            reset_recruiter_id:
+                                                              rec.account_id,
+                                                          },
+                                                        );
+                                                      },
+                                                    });
+                                                  }}
+                                                  className="text-[10px] font-bold text-red-650 bg-red-50 hover:bg-red-100 border border-red-100 px-2 py-1 rounded-lg"
+                                                >
+                                                  Reset Decision
+                                                </button>
+                                              </div>
+                                              {recData.interview_passed === false &&
+                                                recData.rejectionReason && (
+                                                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[10px] text-amber-800 flex items-start justify-between gap-2">
+                                                    <span className="leading-relaxed">
+                                                      {recData.rejectionReason}
+                                                    </span>
+                                                    <span
+                                                      className={`px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase shrink-0 ${
+                                                        recData.viewedAt
+                                                          ? "bg-slate-100 text-slate-500"
+                                                          : "bg-red-100 text-red-600"
+                                                      }`}
+                                                    >
+                                                      {recData.viewedAt ? "Seen" : "Unseen"}
+                                                    </span>
+                                                  </div>
+                                                )}
                                             </div>
                                           )}
                                         </div>
@@ -3374,9 +3539,23 @@ const CandidateDetail = ({
             <h3 className="text-sm font-bold text-slate-800 mb-2">
               {confirmModal.title}
             </h3>
-            <p className="text-[11px] text-zinc-500 leading-relaxed mb-6">
+            <p className="text-[11px] text-zinc-500 leading-relaxed mb-4">
               {confirmModal.message}
             </p>
+            {confirmModal.requireReason && (
+              <textarea
+                value={confirmModal.reasonValue}
+                onChange={(e) =>
+                  setConfirmModal((prev) => ({
+                    ...prev,
+                    reasonValue: e.target.value,
+                  }))
+                }
+                placeholder="Type the message the candidate will see..."
+                rows={3}
+                className="w-full mb-4 p-3 text-[11px] text-slate-700 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-100 focus:border-red-300 resize-none"
+              />
+            )}
             <div className="flex gap-3 justify-center">
               <button
                 type="button"
@@ -3387,11 +3566,15 @@ const CandidateDetail = ({
               </button>
               <button
                 type="button"
+                disabled={
+                  confirmModal.requireReason && !confirmModal.reasonValue.trim()
+                }
                 onClick={() => {
-                  if (confirmModal.onConfirm) confirmModal.onConfirm();
+                  if (confirmModal.onConfirm)
+                    confirmModal.onConfirm(confirmModal.reasonValue.trim());
                   closeConfirmModal();
                 }}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-[11px] transition-all"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-[11px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Confirm
               </button>

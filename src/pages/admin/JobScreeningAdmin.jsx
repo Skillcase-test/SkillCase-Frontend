@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
-import {
-  Settings,
-  RefreshCw,
-  X,
-  GripVertical,
-} from "lucide-react";
+import { Settings, RefreshCw, X, GripVertical } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -26,6 +21,7 @@ import {
   adminGetCandidates,
   adminGetCandidateDetail,
   adminUpdateCandidate,
+  adminReviewAdditionalDoc,
   adminUploadOfferLetter,
   getAdminDropdownOptions,
   adminGetSettings,
@@ -177,14 +173,7 @@ const JobScreeningAdmin = () => {
 
   useEffect(() => {
     fetchList();
-  }, [
-    page,
-    appliedSearch,
-    statusFilter,
-    startDate,
-    endDate,
-    proficiencyLevel,
-  ]);
+  }, [page, appliedSearch, statusFilter, startDate, endDate, proficiencyLevel]);
 
   const handleSummaryFilter = (filter) => {
     setStatusFilter(filter);
@@ -363,6 +352,29 @@ const JobScreeningAdmin = () => {
       toast.error(
         err.response?.data?.message || "Error updating candidate configuration",
       );
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleReviewAdditionalDoc = async (userId, docId, payload) => {
+    try {
+      setUpdating(true);
+      const { data } = await adminReviewAdditionalDoc(userId, docId, payload);
+      if (data?.success) {
+        toast.success(
+          payload.action === "approve"
+            ? "Document approved"
+            : "Document rejected",
+        );
+        applyUpdatedCandidate(data.data);
+        fetchList();
+      } else {
+        toast.error("Failed to review document");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Error reviewing document");
     } finally {
       setUpdating(false);
     }
@@ -611,6 +623,7 @@ const JobScreeningAdmin = () => {
             loading={detailLoading}
             options={options}
             onUpdate={handleUpdateCandidate}
+            onReviewDoc={handleReviewAdditionalDoc}
             onUploadOfferLetter={handleUploadOfferLetter}
             onUploadTrainingScheduleImage={handleUploadTrainingScheduleImage}
             onUploadRecruiterScheduleImage={handleUploadRecruiterScheduleImage}
@@ -632,50 +645,43 @@ const JobScreeningAdmin = () => {
                   key: "total",
                   label: "Total Users",
                   value: summary.total_users,
-                  tone:
-                    "border-slate-200 bg-white text-slate-900 hover:border-slate-300",
+                  tone: "border-slate-200 bg-white text-slate-900 hover:border-slate-300",
                 },
                 {
                   key: "initiated",
                   label: "Initiated",
                   value: summary.initiated,
-                  tone:
-                    "border-purple-200 bg-purple-50 text-purple-900 hover:border-purple-300",
+                  tone: "border-purple-200 bg-purple-50 text-purple-900 hover:border-purple-300",
                 },
                 {
                   key: "profile_updated",
                   label: "Profile Updated",
                   value: summary.profile_updated,
-                  tone:
-                    "border-cyan-200 bg-cyan-50 text-cyan-900 hover:border-cyan-300",
+                  tone: "border-cyan-200 bg-cyan-50 text-cyan-900 hover:border-cyan-300",
                 },
                 {
                   key: "interview_completed",
                   label: "Interview Completed",
                   value: summary.interview_completed,
-                  tone:
-                    "border-blue-200 bg-blue-50 text-blue-900 hover:border-blue-300",
+                  tone: "border-blue-200 bg-blue-50 text-blue-900 hover:border-blue-300",
                 },
                 {
                   key: "actions_pending",
                   label: "Actions Pending",
                   value: summary.actions_pending,
-                  tone:
-                    "border-amber-200 bg-amber-50 text-amber-900 hover:border-amber-300",
+                  tone: "border-amber-200 bg-amber-50 text-amber-900 hover:border-amber-300",
                 },
                 {
                   key: "active_candidates",
                   label: "Active Candidates",
                   value: summary.active_candidates,
-                  tone:
-                    "border-emerald-200 bg-emerald-50 text-emerald-900 hover:border-emerald-300",
+                  tone: "border-emerald-200 bg-emerald-50 text-emerald-900 hover:border-emerald-300",
                 },
                 {
                   key: "inactive_candidates",
                   label: "Inactive Candidates",
                   value: summary.inactive_candidates,
-                  tone:
-                    "border-rose-200 bg-rose-50 text-rose-900 hover:border-rose-300",
+                  tone: "border-rose-200 bg-rose-50 text-rose-900 hover:border-rose-300",
                 },
               ].map((item) => {
                 const isActive = statusFilter === item.key;
@@ -687,9 +693,7 @@ const JobScreeningAdmin = () => {
                     aria-pressed={isActive}
                     title={`Filter by ${item.label}`}
                     className={`relative flex min-w-0 flex-col justify-between rounded-xl border px-3 py-2.5 text-left shadow-sm transition-all cursor-pointer hover:-translate-y-0.5 hover:shadow-md ${item.tone} ${
-                      isActive
-                        ? "ring-2 ring-[#083262]/25 ring-offset-1"
-                        : ""
+                      isActive ? "ring-2 ring-[#083262]/25 ring-offset-1" : ""
                     }`}
                   >
                     <div className="flex w-full items-start justify-between gap-2">

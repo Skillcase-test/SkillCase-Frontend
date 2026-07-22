@@ -9,10 +9,15 @@ import {
   RefreshCw,
   FileSearch,
 } from "lucide-react";
-import { uploadProfileDocs, getProgress } from "../../../api/jobScreeningApi";
+import {
+  uploadProfileDocs,
+  getProgress,
+  markProfileRejectionViewed,
+} from "../../../api/jobScreeningApi";
 import { trackFlowAction } from "../../../telemetry/flow";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { motion } from "framer-motion";
+import RejectionNote from "../../../components/RejectionNote";
 
 const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
   const [selectedResume, setSelectedResume] = useState(null);
@@ -36,13 +41,31 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
       file.type === "application/pdf" ||
       file.name.toLowerCase().endsWith(".pdf");
     if (!isPDF) {
-      trackFlowAction("job_screening", "job_screening_funnel", "credential_rejected", { step: "profile_completion", assetType: type, validationCode: "pdf_required" });
+      trackFlowAction(
+        "job_screening",
+        "job_screening_funnel",
+        "credential_rejected",
+        {
+          step: "profile_completion",
+          assetType: type,
+          validationCode: "pdf_required",
+        },
+      );
       setError("Only PDF files are supported");
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      trackFlowAction("job_screening", "job_screening_funnel", "credential_rejected", { step: "profile_completion", assetType: type, validationCode: "size_limit" });
+      trackFlowAction(
+        "job_screening",
+        "job_screening_funnel",
+        "credential_rejected",
+        {
+          step: "profile_completion",
+          assetType: type,
+          validationCode: "size_limit",
+        },
+      );
       setError("File size must be under 10MB");
       return;
     }
@@ -53,11 +76,21 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
     } else {
       setSelectedCert(file);
     }
-    trackFlowAction("job_screening", "job_screening_funnel", "credential_selected", { step: "profile_completion", assetType: type });
+    trackFlowAction(
+      "job_screening",
+      "job_screening_funnel",
+      "credential_selected",
+      { step: "profile_completion", assetType: type },
+    );
   };
 
   const handleRemoveFile = (type) => {
-    trackFlowAction("job_screening", "job_screening_funnel", "credential_removed", { step: "profile_completion", assetType: type });
+    trackFlowAction(
+      "job_screening",
+      "job_screening_funnel",
+      "credential_removed",
+      { step: "profile_completion", assetType: type },
+    );
     if (type === "resume") {
       setSelectedResume(null);
       if (resumeInputRef.current) resumeInputRef.current.value = "";
@@ -70,14 +103,24 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!selectedResume && !selectedCert) {
-      trackFlowAction("job_screening", "job_screening_funnel", "validation_blocked", { step: "profile_completion", validationCode: "credential_required" });
+      trackFlowAction(
+        "job_screening",
+        "job_screening_funnel",
+        "validation_blocked",
+        { step: "profile_completion", validationCode: "credential_required" },
+      );
       return;
     }
 
     try {
       setLoading(true);
       setError("");
-      trackFlowAction("job_screening", "job_screening_funnel", "credentials_upload_started", { step: "profile_completion", lifecycle: "started" });
+      trackFlowAction(
+        "job_screening",
+        "job_screening_funnel",
+        "credentials_upload_started",
+        { step: "profile_completion", lifecycle: "started" },
+      );
 
       const formData = new FormData();
       if (selectedResume) {
@@ -89,13 +132,27 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
 
       const { data } = await uploadProfileDocs(formData);
       if (data?.success) {
-        trackFlowAction("job_screening", "job_screening_funnel", "credentials_uploaded", { step: "profile_completion", lifecycle: "succeeded" });
+        trackFlowAction(
+          "job_screening",
+          "job_screening_funnel",
+          "credentials_uploaded",
+          { step: "profile_completion", lifecycle: "succeeded" },
+        );
         onComplete(data.data, false);
       } else {
         setError("Failed to upload documents");
       }
     } catch (err) {
-      trackFlowAction("job_screening", "job_screening_funnel", "credentials_upload_failed", { step: "profile_completion", lifecycle: "failed", reasonCode: "api_failed" });
+      trackFlowAction(
+        "job_screening",
+        "job_screening_funnel",
+        "credentials_upload_failed",
+        {
+          step: "profile_completion",
+          lifecycle: "failed",
+          reasonCode: "api_failed",
+        },
+      );
       console.error(err);
       setError(err.response?.data?.message || "Failed to upload files");
     } finally {
@@ -104,19 +161,38 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
   };
 
   const handleRefresh = async () => {
-    trackFlowAction("job_screening", "job_screening_funnel", "status_refresh_started", { step: "profile_completion", pollType: "manual", lifecycle: "started" });
+    trackFlowAction(
+      "job_screening",
+      "job_screening_funnel",
+      "status_refresh_started",
+      { step: "profile_completion", pollType: "manual", lifecycle: "started" },
+    );
     try {
       setRefreshing(true);
       setError("");
       const { data } = await getProgress();
       if (data?.success) {
-        trackFlowAction("job_screening", "job_screening_funnel", "status_refreshed", { step: "profile_completion", pollType: "manual", lifecycle: "succeeded" });
+        trackFlowAction(
+          "job_screening",
+          "job_screening_funnel",
+          "status_refreshed",
+          {
+            step: "profile_completion",
+            pollType: "manual",
+            lifecycle: "succeeded",
+          },
+        );
         onComplete(data.data, false);
       } else {
         setError("Failed to refresh status");
       }
     } catch (err) {
-      trackFlowAction("job_screening", "job_screening_funnel", "status_refresh_failed", { step: "profile_completion", pollType: "manual", lifecycle: "failed" });
+      trackFlowAction(
+        "job_screening",
+        "job_screening_funnel",
+        "status_refresh_failed",
+        { step: "profile_completion", pollType: "manual", lifecycle: "failed" },
+      );
       console.error(err);
       setError(err.response?.data?.message || "Failed to sync status");
     } finally {
@@ -161,10 +237,22 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
   );
   const isProfileCompleted =
     profileStep?.status === "completed" || !!progress?.email_verified;
+  const isProfileRejected =
+    progress?.resume_status === "rejected" ||
+    progress?.lang_cert_status === "rejected";
   const isUnderReview =
-    progress?.resume_url && progress?.lang_cert_url && !isProfileCompleted;
+    progress?.resume_url &&
+    progress?.lang_cert_url &&
+    !isProfileCompleted &&
+    !isProfileRejected;
 
   const isShowReviewScreen = isUnderReview || isProfileCompleted;
+
+  const handleMarkProfileRejectionViewed = () => {
+    markProfileRejectionViewed().catch((err) =>
+      console.error("Failed to mark profile rejection viewed:", err),
+    );
+  };
 
   useEffect(() => {
     if (isProfileCompleted) {
@@ -403,6 +491,16 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
         </p>
       </div>
 
+      {isProfileRejected && (
+        <div className="w-full mb-6">
+          <RejectionNote
+            message={progress?.profile_rejection_reason}
+            viewedAt={progress?.profile_rejection_viewed_at}
+            onView={handleMarkProfileRejectionViewed}
+          />
+        </div>
+      )}
+
       {/* Hidden File Inputs */}
       <input
         type="file"
@@ -429,12 +527,18 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
             </h3>
             <span
               className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
-                isResumeUploaded
-                  ? "bg-green-50 text-[#15803d] border-green-100"
-                  : "bg-amber-50 text-[#d97706] border-amber-100"
+                progress?.resume_status === "rejected"
+                  ? "bg-red-50 text-red-650 border-red-100"
+                  : isResumeUploaded
+                    ? "bg-green-50 text-[#15803d] border-green-100"
+                    : "bg-amber-50 text-[#d97706] border-amber-100"
               }`}
             >
-              {isResumeUploaded ? "uploaded" : "pending"}
+              {progress?.resume_status === "rejected"
+                ? "rejected"
+                : isResumeUploaded
+                  ? "uploaded"
+                  : "pending"}
             </span>
           </div>
 
@@ -506,12 +610,18 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
             </h3>
             <span
               className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
-                isCertUploaded
-                  ? "bg-green-50 text-[#15803d] border-green-100"
-                  : "bg-amber-50 text-[#d97706] border-amber-100"
+                progress?.lang_cert_status === "rejected"
+                  ? "bg-red-50 text-red-650 border-red-100"
+                  : isCertUploaded
+                    ? "bg-green-50 text-[#15803d] border-green-100"
+                    : "bg-amber-50 text-[#d97706] border-amber-100"
               }`}
             >
-              {isCertUploaded ? "uploaded" : "pending"}
+              {progress?.lang_cert_status === "rejected"
+                ? "rejected"
+                : isCertUploaded
+                  ? "uploaded"
+                  : "pending"}
             </span>
           </div>
 
