@@ -73,13 +73,12 @@ export default function HeroSection({ hero }) {
   };
 
   return (
-    <section className="relative w-full min-h-[calc(100vh-64px)] flex flex-col justify-end overflow-hidden mb-10 pb-8 lg:pb-12">
-      {/* Background Image */}
+    <section className="relative w-full min-h-[calc(100dvh-64px)] flex flex-col justify-end overflow-hidden mb-10 pb-8 lg:pb-12">
       <img
         src="/hero.webp"
         alt="Nurses heading to Germany"
         className="absolute inset-0 w-full h-full object-cover z-0"
-        style={{ objectPosition: "27% center" }}
+        style={{ objectPosition: "18% 42%" }}
       />
 
       {/* Vignette Overlay: Dark from Bottom-Left and Bottom, fading to Top-Right */}
@@ -127,9 +126,7 @@ export default function HeroSection({ hero }) {
           className="w-full flex justify-center mt-4"
         >
           <a
-            href="/pay/razorpay-3000"
-            target="_blank"
-            rel="noreferrer"
+            href="/start-now/cart"
             className="bg-[#F9C53D] hover:bg-[#e0b02f] text-[#002856] font-extrabold px-8 py-4 rounded-2xl w-fit shadow-lg transition-all active:scale-95 duration-150 flex items-center gap-2 text-sm sm:text-base"
           >
             <span>{ctaText}</span>

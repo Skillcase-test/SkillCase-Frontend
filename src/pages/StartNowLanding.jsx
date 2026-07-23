@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Phone, Loader2 } from "lucide-react";
+import { Phone, Loader2, BaggageClaim } from "lucide-react";
 import { motion } from "framer-motion";
 import { fetchTrustPageContent } from "../api/trustPageApi";
+import { getCartIds, onCartChanged } from "../utils/startNowCart";
 
 // Modular sub-component imports
 import HeroSection from "./startNow/HeroSection";
@@ -26,8 +27,15 @@ export default function StartNowLanding() {
     reviews: [],
     screenshots: [],
     faqs: [],
+    cart_blocks: [],
   });
   const [loading, setLoading] = useState(true);
+  const [cartCount, setCartCount] = useState(() => getCartIds().length);
+
+  useEffect(() => {
+    const unsubscribe = onCartChanged(() => setCartCount(getCartIds().length));
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -63,13 +71,27 @@ export default function StartNowLanding() {
                 className="w-28 sm:w-32 h-auto"
               />
             </a>
-            <a
-              href="tel:+919972266767"
-              className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-800 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all border border-slate-200"
-            >
-              <Phone className="w-3.5 h-3.5" />
-              Call Us
-            </a>
+            <div className="flex items-center gap-2">
+              <a
+                href="/start-now/cart"
+                aria-label="View selected services"
+                className="relative flex items-center justify-center bg-white hover:bg-slate-50 text-slate-800 w-9 h-9 rounded-full border border-slate-200 transition-all"
+              >
+                <BaggageClaim className="w-4 h-4" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-[#F9C53D] text-[#002856] text-[10px] font-extrabold w-4.5 h-4.5 min-w-[18px] rounded-full flex items-center justify-center px-1">
+                    {cartCount}
+                  </span>
+                )}
+              </a>
+              <a
+                href="tel:+919972266767"
+                className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-800 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all border border-slate-200"
+              >
+                <Phone className="w-3.5 h-3.5" />
+                Call Us
+              </a>
+            </div>
           </div>
         </div>
       </nav>

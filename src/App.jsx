@@ -129,6 +129,7 @@ const NursingGermanyLanding = lazy(
   () => import("./pages/NursingGermanyLanding"),
 );
 const StartNowLanding = lazy(() => import("./pages/StartNowLanding"));
+const StartNowCart = lazy(() => import("./pages/StartNowCart"));
 const AllEventsPage = lazy(() => import("./pages/event/AllEventsPage"));
 const EventDetailPage = lazy(() => import("./pages/event/EventDetailPage"));
 const FeaturedEventPage = lazy(() => import("./pages/event/FeaturedEventPage"));
@@ -1138,6 +1139,13 @@ function AppContent() {
                     )}
                   />
                   <Route
+                    path="/start-now/cart"
+                    element={lazyScreen(
+                      <StartNowCart />,
+                      "Loading...",
+                    )}
+                  />
+                  <Route
                     path="/thank-you"
                     element={lazyScreen(<ThankYouPage />, "Loading...")}
                   />
@@ -1758,7 +1766,7 @@ function ConditionalFooter() {
   // Hide footer only on register and internal lead form pages
   const hideFooter =
     location.pathname === "/register" ||
-    location.pathname === "/start-now" ||
+    location.pathname.startsWith("/start-now") ||
     location.pathname === "/thank-you" ||
     location.pathname === "/internal/lead-form" ||
     location.pathname.startsWith("/terms/sign") ||
@@ -1781,7 +1789,7 @@ function ConditionalNav() {
   // Hide navbar completely on register and internal lead form
   const hideNav =
     location.pathname === "/register" ||
-    location.pathname === "/start-now" ||
+    location.pathname.startsWith("/start-now") ||
     location.pathname === "/thank-you" ||
     location.pathname === "/internal/lead-form" ||
     (location.pathname.startsWith("/terms/sign") && !isJobScreening) ||

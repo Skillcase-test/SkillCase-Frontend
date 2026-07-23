@@ -112,7 +112,7 @@ export default function AppScreenshots({ screenshots = [] }) {
 
       {/* Sliding Smartphone mockup wrapper */}
       <div
-        className="relative flex items-center justify-center min-h-[580px] sm:min-h-[820px] -mt-16 overflow-hidden w-full"
+        className="relative flex items-center justify-center min-h-[580px] sm:min-h-[820px] md:min-h-[920px] -mt-16 md:mt-4 overflow-hidden w-full"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >

@@ -86,3 +86,17 @@ export const saveFaq = (data, id = null) => {
 
 export const deleteFaq = (id) =>
   api.delete(`/admin/trust-page/faqs/${id}`);
+
+// Admin: Service Cart Blocks CRUD
+export const saveCartBlock = (data, id = null) => {
+  if (id) {
+    return api.put(`/admin/trust-page/cart-blocks/${id}`, data);
+  }
+  return api.post("/admin/trust-page/cart-blocks", data);
+};
+
+export const deleteCartBlock = (id) =>
+  api.delete(`/admin/trust-page/cart-blocks/${id}`);
+
+export const reorderCartBlocks = (orderedIds) =>
+  api.put("/admin/trust-page/cart-blocks/reorder", { orderedIds });
