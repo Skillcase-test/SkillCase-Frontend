@@ -729,7 +729,7 @@ export default function AppAnalytics({ me }) {
     platform: "both",
     appVersions: [],
   });
-  const [retentionGranularity, setRetentionGranularity] = useState("week");
+  const [retentionGranularity, setRetentionGranularity] = useState("month");
   const [retentionWeeks, setRetentionWeeks] = useState(6);
   const [retentionMonths, setRetentionMonths] = useState(6);
   const [options, setOptions] = useState({ appVersions: [] });

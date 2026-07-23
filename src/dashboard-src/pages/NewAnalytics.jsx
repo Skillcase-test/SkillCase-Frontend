@@ -148,6 +148,28 @@ function istTime(val) {
     : "—";
 }
 
+function shiftDate(date, days) {
+  if (!date) return "";
+  const parsed = new Date(`${date}T12:00:00.000Z`);
+  parsed.setUTCDate(parsed.getUTCDate() + days);
+  return parsed.toISOString().slice(0, 10);
+}
+
+// Presets are expressed as a day count ending on the latest completed IST day,
+// which is what the catalog reports as default_date.
+const RANGE_PRESETS = [
+  ["Day", 1],
+  ["7 days", 7],
+  ["30 days", 30],
+];
+
+function formatRangeLabel(from, to) {
+  if (!from || !to) return "";
+  return from === to
+    ? formatDateLabel(from)
+    : `${formatDateLabel(from)} — ${formatDateLabel(to)}`;
+}
+
 function formatDateLabel(str) {
   if (!str) return "";
   try {
@@ -576,8 +598,27 @@ export default function NewAnalytics({ me }) {
       const val = params.get(key) || fallback;
       return FILTERS[key].some(([o]) => o === val) ? val : fallback;
     };
+    // The journeys tab stays on a single day because a journey timeline is
+    // stored per day. The features tab reads an inclusive window, defaulting
+    // to that same single day so existing links keep working.
+    const date = params.get("date") || catalog?.default_date || "";
+    const latest = catalog?.default_date || "";
+    const earliest = catalog?.available_from || "";
+    // Clamp to the window the API will actually accept, so a stale bookmark or
+    // a hand-edited URL renders the nearest valid range instead of erroring.
+    const clamp = (value) => {
+      if (!value) return value;
+      if (earliest && value < earliest) return earliest;
+      if (latest && value > latest) return latest;
+      return value;
+    };
+    const dateTo = clamp(params.get("date_to") || date);
+    const rawFrom = clamp(params.get("date_from") || dateTo);
+    const dateFrom = rawFrom > dateTo ? dateTo : rawFrom;
     return {
-      date: params.get("date") || catalog?.default_date || "",
+      date,
+      date_from: dateFrom,
+      date_to: dateTo,
       feature,
       level,
       user_type: allowed("user_type", "all"),
@@ -607,6 +648,53 @@ export default function NewAnalytics({ me }) {
     },
     [params, setParams],
   );
+
+  // Both endpoints move together so the window can never invert, and `date`
+  // is kept in sync for the journeys tab and the rebuild action.
+  const updateRange = useCallback(
+    (from, to) => {
+      const end = to || from;
+      const start = from && from <= end ? from : end;
+      const next = new URLSearchParams(params);
+      next.set("date_from", start);
+      next.set("date_to", end);
+      next.set("date", end);
+      next.set("page", "1");
+      setParams(next, { replace: true });
+    },
+    [params, setParams],
+  );
+
+  // A preset is only offered when its whole window exists. Telemetry began on
+  // catalog.available_from, so on a short history "7 days" would silently ask
+  // for days that predate the data and the API would reject the range.
+  const presetRanges = useMemo(() => {
+    const end = catalog?.default_date || "";
+    const earliest = catalog?.available_from || "";
+    return RANGE_PRESETS.map(([label, days]) => {
+      const start = end ? shiftDate(end, -(days - 1)) : "";
+      const available =
+        Boolean(end) && (!earliest || (Boolean(start) && start >= earliest));
+      return { label, days, start, end, available };
+    });
+  }, [catalog]);
+
+  const applyPreset = useCallback(
+    (preset) => {
+      if (!preset?.available) return;
+      updateRange(preset.start, preset.end);
+    },
+    [updateRange],
+  );
+
+  const activePresetDays = useMemo(() => {
+    const end = catalog?.default_date;
+    if (!end || filters.date_to !== end) return null;
+    const match = RANGE_PRESETS.find(
+      ([, days]) => shiftDate(end, -(days - 1)) === filters.date_from,
+    );
+    return match ? match[1] : null;
+  }, [catalog, filters.date_from, filters.date_to]);
 
   const switchTab = useCallback(
     (nextTab) => {
@@ -648,7 +736,7 @@ export default function NewAnalytics({ me }) {
       tab === "features"
         ? newAnalyticsApi.metrics(filters)
         : newAnalyticsApi.journeys({
-            date: filters.date,
+            date: filters.date_to,
             page: filters.page,
             limit: filters.limit,
           });
@@ -674,7 +762,7 @@ export default function NewAnalytics({ me }) {
     setDetail(null);
     setDetailLoading(true);
     try {
-      const { data } = await newAnalyticsApi.journey(subjectId, filters.date);
+      const { data } = await newAnalyticsApi.journey(subjectId, filters.date_to);
       setDetail(data);
     } catch (err) {
       toast.error(err.response?.data?.msg || "Journey could not be loaded");
@@ -687,7 +775,7 @@ export default function NewAnalytics({ me }) {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      await newAnalyticsApi.refresh(filters.date);
+      await newAnalyticsApi.refresh(filters.date_to);
       toast.success("Analytics day rebuilt");
       setReloadToken((v) => v + 1);
     } catch (err) {
@@ -779,7 +867,7 @@ export default function NewAnalytics({ me }) {
             {me?.role === "super_admin" && (
               <ControlButton
                 onClick={() => setRebuildConfirmOpen(true)}
-                disabled={!filters.date || refreshing}
+                disabled={!filters.date_to || refreshing}
                 variant="secondary"
                 className="h-8 text-[11px] gap-1.5 px-3"
               >
@@ -801,21 +889,62 @@ export default function NewAnalytics({ me }) {
                 : "max-w-sm grid-cols-1"
             }`}
           >
-            {/* Calendar Day Control */}
-            <div className="flex flex-col">
-              <label className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                IST calendar day
-              </label>
-              <ControlInput
-                type="date"
-                aria-label="Calendar day select"
-                max={catalog?.default_date}
-                min={catalog?.available_from || undefined}
-                value={filters.date}
-                onChange={(e) => update("date", e.target.value)}
-                className="w-full text-sm font-semibold text-slate-700"
-              />
-            </div>
+            {/* Calendar Day Control — a window on features, one day on journeys */}
+            {tab === "features" ? (
+              <>
+                <div className="flex flex-col">
+                  <label
+                    htmlFor="analytics-date-from"
+                    className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400"
+                  >
+                    From (IST)
+                  </label>
+                  <ControlInput
+                    id="analytics-date-from"
+                    type="date"
+                    aria-label="Range start date"
+                    max={filters.date_to || catalog?.default_date}
+                    min={catalog?.available_from || undefined}
+                    value={filters.date_from}
+                    onChange={(e) => updateRange(e.target.value, filters.date_to)}
+                    className="w-full text-sm font-semibold text-slate-700"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <label
+                    htmlFor="analytics-date-to"
+                    className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400"
+                  >
+                    To (IST)
+                  </label>
+                  <ControlInput
+                    id="analytics-date-to"
+                    type="date"
+                    aria-label="Range end date"
+                    max={catalog?.default_date}
+                    min={filters.date_from || catalog?.available_from || undefined}
+                    value={filters.date_to}
+                    onChange={(e) => updateRange(filters.date_from, e.target.value)}
+                    className="w-full text-sm font-semibold text-slate-700"
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="flex flex-col">
+                <label className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  IST calendar day
+                </label>
+                <ControlInput
+                  type="date"
+                  aria-label="Calendar day select"
+                  max={catalog?.default_date}
+                  min={catalog?.available_from || undefined}
+                  value={filters.date_to}
+                  onChange={(e) => updateRange(e.target.value, e.target.value)}
+                  className="w-full text-sm font-semibold text-slate-700"
+                />
+              </div>
+            )}
 
             {tab === "features" && (
               <>
@@ -894,6 +1023,29 @@ export default function NewAnalytics({ me }) {
 
           {/* Footer details info */}
           <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-slate-100 px-7 py-3">
+            {tab === "features" && (
+              <span className="inline-flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  Quick range
+                </span>
+                {presetRanges.map((preset) => (
+                  <ActionChip
+                    key={preset.label}
+                    active={activePresetDays === preset.days}
+                    disabled={!preset.available}
+                    onClick={() => applyPreset(preset)}
+                    title={
+                      preset.available
+                        ? `${formatRangeLabel(preset.start, preset.end)}`
+                        : `Needs data from ${formatDateLabel(preset.start)}; analytics begin ${formatDateLabel(catalog?.available_from)}`
+                    }
+                    className="h-6 px-2 text-[10px]"
+                  >
+                    {preset.label}
+                  </ActionChip>
+                ))}
+              </span>
+            )}
             <span className="inline-flex items-center gap-1.5 text-[10px] text-slate-400">
               <Clock3 className="h-3 w-3" />
               Refreshed through {catalog?.refreshed_through || "not yet"}
@@ -953,7 +1105,9 @@ export default function NewAnalytics({ me }) {
                 <StatCard
                   label="Adoption"
                   value={`${number(metrics.adoption_percentage, 1)}%`}
-                  subText={`${number(metrics.users)} started`}
+                  subText={`${number(metrics.users)} started${
+                    (metrics.days || 1) > 1 ? ` over ${metrics.days} days` : ""
+                  }`}
                   tone="emerald"
                 />
                 <StatCard
@@ -996,7 +1150,8 @@ export default function NewAnalytics({ me }) {
                       Conversion Funnel
                     </h2>
                     <p className="mt-0.5 text-xs text-slate-400">
-                      Unique candidates reaching each semantic stage
+                      Unique candidates reaching each semantic stage &middot;{" "}
+                      {formatRangeLabel(filters.date_from, filters.date_to)}
                     </p>
                   </div>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-500">
@@ -1019,7 +1174,7 @@ export default function NewAnalytics({ me }) {
                 </h2>
                 <p className="mt-0.5 text-xs text-slate-400">
                   {number(journeys.total)} candidates with activity on{" "}
-                  {formatDateLabel(filters.date)}
+                  {formatDateLabel(filters.date_to)}
                 </p>
               </div>
 
@@ -1230,7 +1385,7 @@ export default function NewAnalytics({ me }) {
                   id="rebuild-analytics-description"
                   className="mt-2 text-sm leading-6 text-slate-600"
                 >
-                  This will recalculate analytics for {filters.date} and may
+                  This will recalculate analytics for {filters.date_to} and may
                   temporarily place a heavy load on the database. Run it only
                   when this day&apos;s data is missing or outdated.
                 </p>

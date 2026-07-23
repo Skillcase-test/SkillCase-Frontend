@@ -150,6 +150,81 @@ describe("NewAnalytics", () => {
     );
   });
 
+  it("disables quick ranges that reach past the start of analytics", async () => {
+    // Mirrors production: telemetry began 17 Jul, latest complete day 22 Jul,
+    // so a 7-day window would need 16 Jul and cannot be offered.
+    newAnalyticsApi.catalog.mockResolvedValue({
+      data: { ...catalog, available_from: "2026-07-17", default_date: "2026-07-22" },
+    });
+    render(
+      <MemoryRouter>
+        <NewAnalytics me={{ role: "admin" }} />
+      </MemoryRouter>,
+    );
+    await screen.findByText("40%");
+
+    expect(screen.getByRole("button", { name: "Day" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "7 days" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "30 days" })).toBeDisabled();
+
+    // A disabled chip must not be able to request an out-of-bounds window.
+    newAnalyticsApi.metrics.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "7 days" }));
+    await waitFor(() =>
+      expect(newAnalyticsApi.metrics).not.toHaveBeenCalledWith(
+        expect.objectContaining({ date_from: "2026-07-16" }),
+      ),
+    );
+  });
+
+  it("enables a quick range once enough history exists and sends the window", async () => {
+    newAnalyticsApi.catalog.mockResolvedValue({
+      data: { ...catalog, available_from: "2026-06-01", default_date: "2026-07-22" },
+    });
+    render(
+      <MemoryRouter>
+        <NewAnalytics me={{ role: "admin" }} />
+      </MemoryRouter>,
+    );
+    await screen.findByText("40%");
+
+    const sevenDays = screen.getByRole("button", { name: "7 days" });
+    expect(sevenDays).toBeEnabled();
+    fireEvent.click(sevenDays);
+
+    await waitFor(() =>
+      expect(newAnalyticsApi.metrics).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          date_from: "2026-07-16",
+          date_to: "2026-07-22",
+        }),
+      ),
+    );
+  });
+
+  it("clamps an out-of-bounds bookmarked range to the available window", async () => {
+    newAnalyticsApi.catalog.mockResolvedValue({
+      data: { ...catalog, available_from: "2026-07-17", default_date: "2026-07-22" },
+    });
+    render(
+      <MemoryRouter
+        initialEntries={["/?tab=features&date_from=2026-01-01&date_to=2026-12-31"]}
+      >
+        <NewAnalytics me={{ role: "admin" }} />
+      </MemoryRouter>,
+    );
+    await screen.findByText("40%");
+
+    await waitFor(() =>
+      expect(newAnalyticsApi.metrics).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          date_from: "2026-07-17",
+          date_to: "2026-07-22",
+        }),
+      ),
+    );
+  });
+
   it("repairs stale journey filter values instead of rendering blank selects", async () => {
     render(<MemoryRouter initialEntries={["/?tab=features&feature=all&level=all"]}><NewAnalytics me={{ role: "admin" }} /></MemoryRouter>);
     expect(await screen.findByText("40%")).toBeInTheDocument();
