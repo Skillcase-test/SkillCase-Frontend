@@ -18,7 +18,11 @@ import { interviewToolsApi } from "../../api/interviewToolsApi";
 import { checkInterview } from "../../api/jobScreeningApi";
 import InterviewVideoPlayer from "./shared/InterviewVideoPlayer";
 import useInterviewRecorder from "./shared/useInterviewRecorder";
-import { uploadFileToSignedUrl } from "./shared/uploadFileToSignedUrl";
+import {
+  uploadFileToSignedUrl,
+  UploadNetworkError,
+  isAbortError,
+} from "./shared/uploadFileToSignedUrl";
 import { trackFlowAction, useFlowJourney } from "../../telemetry/flow";
 
 function getStorageKey(slug) {
@@ -97,18 +101,39 @@ export default function PublicInterviewPage() {
     position?.interview_scope === "skillcase_interviews";
   const isJobScreeningCandidate = isAuthenticated && isJobScreeningFlow;
 
-  useEffect(() => {
-    if (isJobScreeningCandidate) {
-      const stateName = location.state?.name;
-      const stateEmail = location.state?.email;
-      const statePhone = location.state?.phone;
+  // Which fields arrived from a trusted source (job-screening profile or an
+  // invite), as opposed to being typed. Locking must key off this and not off
+  // the live input value — the latter disables a field the instant the
+  // candidate types their first character into it.
+  const [prefilledFields, setPrefilledFields] = useState({
+    candidate_name: false,
+    candidate_email: false,
+    candidate_phone: false,
+  });
 
-      setForm({
-        candidate_name: stateName || "",
-        candidate_email: stateEmail || "",
-        candidate_phone: statePhone || "",
-      });
-    }
+  // Applies a prefill without ever blanking out something already entered.
+  const applyPrefill = (values) => {
+    const supplied = Object.fromEntries(
+      Object.entries(values).filter(([, value]) => Boolean(value)),
+    );
+    if (!Object.keys(supplied).length) return;
+
+    setForm((prev) => ({ ...prev, ...supplied }));
+    setPrefilledFields((prev) => ({
+      ...prev,
+      ...Object.fromEntries(Object.keys(supplied).map((field) => [field, true])),
+    }));
+  };
+
+  useEffect(() => {
+    if (!isJobScreeningCandidate) return;
+    // isJobScreeningCandidate flips once the position loads, so this can run
+    // after the candidate has already started typing.
+    applyPrefill({
+      candidate_name: location.state?.name,
+      candidate_email: location.state?.email,
+      candidate_phone: location.state?.phone,
+    });
   }, [isJobScreeningCandidate, location.state]);
   const [globalTimeLeft, setGlobalTimeLeft] = useState(null);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
@@ -127,12 +152,17 @@ export default function PublicInterviewPage() {
   const [questionEnded, setQuestionEnded] = useState(false);
   const [retakesUsed, setRetakesUsed] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
+  // Non-alarming progress notice, shown while an upload is being retried.
+  const [uploadNotice, setUploadNotice] = useState("");
   const streamVideoRef = useRef(null);
   const stageRef = useRef(stage);
   const submissionRef = useRef(submission);
   const handleAutoSubmitRef = useRef(null);
   const recordedBlobRef = useRef(null);
   const timerExpireSubmitRef = useRef(null);
+  // Lets the overall-time-limit timer cancel an upload that is still retrying,
+  // so it cannot race the forced finish and save against a completed session.
+  const uploadAbortRef = useRef(null);
   const interviewStages = [
     "loading",
     "permission",
@@ -284,10 +314,7 @@ export default function PublicInterviewPage() {
               inviteFromQuery,
             );
             meta = inviteRes.data.data.position;
-            setForm((prev) => ({
-              ...prev,
-              ...(inviteRes.data.data.prefill || {}),
-            }));
+            applyPrefill(inviteRes.data.data.prefill || {});
           } catch (inviteErr) {
             console.error("Invite resolve failed", inviteErr);
           }
@@ -392,6 +419,59 @@ export default function PublicInterviewPage() {
   const farewellExists = Boolean(position?.farewell_video_url);
   const canRetake =
     retakesUsed < Number(position?.allowed_retakes || 0) && !!recordedBlob;
+
+  // Uploads one recorded answer, transparently retrying dropped connections.
+  const uploadAnswerBlob = async ({
+    blob,
+    answerMimeType,
+    targetSubmission,
+    maxAttempts,
+    signal,
+  }) => {
+    const answerExtension = getMediaExtensionFromMime(answerMimeType);
+
+    try {
+      return await uploadFileToSignedUrl({
+        file: blob,
+        contentType: answerMimeType,
+        maxAttempts,
+        signal,
+        getUploadUrl: async () => {
+          const res = await interviewToolsApi.getPublicUploadUrl(
+            targetSubmission.submission_id,
+            {
+              session_token: targetSubmission.session_token,
+              question_id: activeQuestion.question_id,
+              fileName: `answer.${answerExtension}`,
+              contentType: answerMimeType,
+            },
+            { signal },
+          );
+          return res.data.data;
+        },
+        onRetry: ({ attempt, maxAttempts: total }) => {
+          setUploadNotice(
+            `Connection interrupted while uploading. Retrying (${attempt + 1} of ${total})…`,
+          );
+          trackFlowAction(
+            isJobScreeningFlow ? "job_screening" : "interview",
+            "public_interview",
+            "answer_upload_retried",
+            {
+              lifecycle: "pending",
+              stepIndex: activeQuestionIndex,
+              totalSteps: questions.length,
+              entityId: activeQuestion?.question_id,
+              attributes: { attempt },
+            },
+          );
+        },
+      });
+    } finally {
+      setUploadNotice("");
+    }
+  };
+
   const startSubmissionFlow = async () => {
     try {
       setIsStarting(true);
@@ -578,21 +658,13 @@ export default function PublicInterviewPage() {
     try {
       if (blobToSave) {
         const answerMimeType = blobToSave.type || "video/webm";
-        const answerExtension = getMediaExtensionFromMime(answerMimeType);
-        const uploadUrlRes = await interviewToolsApi.getPublicUploadUrl(
-          currentSubmission.submission_id,
-          {
-            session_token: currentSubmission.session_token,
-            question_id: activeQuestion.question_id,
-            fileName: `answer.${answerExtension}`,
-            contentType: answerMimeType,
-          },
-        );
-        const { uploadUrl, key } = uploadUrlRes.data.data;
-        await uploadFileToSignedUrl({
-          file: blobToSave,
-          uploadUrl,
-          contentType: answerMimeType,
+        const { key } = await uploadAnswerBlob({
+          blob: blobToSave,
+          answerMimeType,
+          targetSubmission: currentSubmission,
+          // Not cancellable: this call *is* the timeout path's own work.
+          // The clock has already run out try twice, then let the candidate reach a terminal state instead of stalling.
+          maxAttempts: 2,
         });
         await interviewToolsApi.saveAnswer(currentSubmission.submission_id, {
           session_token: currentSubmission.session_token,
@@ -653,6 +725,10 @@ export default function PublicInterviewPage() {
         clearInterval(interval);
         setGlobalTimeLeft(0);
 
+        // Stop any upload still retrying, so the manual submit path bows out
+        // instead of finishing after timerExpireSubmit has closed the session.
+        uploadAbortRef.current?.abort();
+
         const currentStage = stageRef.current;
 
         (async () => {
@@ -696,37 +772,35 @@ export default function PublicInterviewPage() {
 
     setSubmittingAnswer(true);
 
+    // One controller for the whole submission — upload *and* save. The overall
+    // time limit aborts it so a late save cannot land on a session that
+    // timerExpireSubmit has already completed.
+    const controller = new AbortController();
+    uploadAbortRef.current = controller;
+
     try {
       const answerMimeType = finalBlob.type || "video/webm";
-      const answerExtension = getMediaExtensionFromMime(answerMimeType);
 
-      const uploadUrlRes = await interviewToolsApi.getPublicUploadUrl(
+      const { key } = await uploadAnswerBlob({
+        blob: finalBlob,
+        answerMimeType,
+        targetSubmission: submission,
+        signal: controller.signal,
+      });
+
+      await interviewToolsApi.saveAnswer(
         submission.submission_id,
         {
           session_token: submission.session_token,
           question_id: activeQuestion.question_id,
-          fileName: `answer.${answerExtension}`,
-          contentType: answerMimeType,
+          answer_order: activeQuestionIndex + 1,
+          answer_video_key: key,
+          answer_duration_seconds: recordingSeconds,
+          retake_count: retakesUsed,
+          next_question_index: activeQuestionIndex + 1,
         },
+        { signal: controller.signal },
       );
-
-      const { uploadUrl, key } = uploadUrlRes.data.data;
-
-      await uploadFileToSignedUrl({
-        file: finalBlob,
-        uploadUrl,
-        contentType: answerMimeType,
-      });
-
-      await interviewToolsApi.saveAnswer(submission.submission_id, {
-        session_token: submission.session_token,
-        question_id: activeQuestion.question_id,
-        answer_order: activeQuestionIndex + 1,
-        answer_video_key: key,
-        answer_duration_seconds: recordingSeconds,
-        retake_count: retakesUsed,
-        next_question_index: activeQuestionIndex + 1,
-      });
       trackFlowAction(
         isJobScreeningFlow ? "job_screening" : "interview",
         "public_interview",
@@ -769,6 +843,10 @@ export default function PublicInterviewPage() {
       setRetakesUsed(0);
       setStatusMessage("");
     } catch (error) {
+      // The overall-time-limit timer aborted us and owns the outcome now —
+      // reporting a failure here would just fight its forced finish.
+      if (isAbortError(error)) return;
+
       trackFlowAction(
         isJobScreeningFlow ? "job_screening" : "interview",
         "public_interview",
@@ -779,13 +857,23 @@ export default function PublicInterviewPage() {
           totalSteps: questions.length,
           entityId: activeQuestion?.question_id,
           reasonCode:
-            error?.response?.data?.code || error?.name || "submit_failed",
+            error?.response?.data?.code ||
+            error?.code ||
+            error?.name ||
+            "submit_failed",
         },
       );
       console.error(error);
-      setStatusMessage("Could not save your answer. Please try again.");
+      setStatusMessage(
+        error instanceof UploadNetworkError
+          ? "Your answer could not be uploaded — the connection kept dropping. Your recording is safe; check your internet and press Next question again."
+          : "Could not save your answer. Please try again.",
+      );
     } finally {
       setSubmittingAnswer(false);
+      if (uploadAbortRef.current === controller) {
+        uploadAbortRef.current = null;
+      }
     }
   };
 
@@ -932,6 +1020,13 @@ export default function PublicInterviewPage() {
           </div>
         )}
 
+        {uploadNotice ? (
+          <div className="mb-6 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+            <div className="mt-0.5 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-amber-300 border-t-amber-700" />
+            <span>{uploadNotice}</span>
+          </div>
+        ) : null}
+
         {statusMessage ? (
           <div className="mb-6 flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -1032,9 +1127,7 @@ export default function PublicInterviewPage() {
                     </label>
                     <input
                       value={form.candidate_name}
-                      disabled={
-                        isJobScreeningCandidate && !!form.candidate_name
-                      }
+                      disabled={isJobScreeningCandidate && prefilledFields.candidate_name}
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
@@ -1051,9 +1144,7 @@ export default function PublicInterviewPage() {
                     </label>
                     <input
                       value={form.candidate_email}
-                      disabled={
-                        isJobScreeningCandidate && !!form.candidate_email
-                      }
+                      disabled={isJobScreeningCandidate && prefilledFields.candidate_email}
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
@@ -1070,9 +1161,7 @@ export default function PublicInterviewPage() {
                     </label>
                     <input
                       value={form.candidate_phone}
-                      disabled={
-                        isJobScreeningCandidate && !!form.candidate_phone
-                      }
+                      disabled={isJobScreeningCandidate && prefilledFields.candidate_phone}
                       onChange={(e) => {
                         const val = e.target.value
                           .replace(/\D/g, "")

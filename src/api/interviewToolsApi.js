@@ -52,11 +52,22 @@ export const interviewToolsApi = {
   restoreSubmission: (slug, sessionToken) =>
     api.get(`/interview-tools/public/${slug}/session/${sessionToken}`),
 
-  getPublicUploadUrl: (submissionId, payload) =>
-    api.post(`/interview-tools/submissions/${submissionId}/upload-url`, payload),
+  // The trailing config carries an AbortSignal: the candidate-facing pages
+  // cancel an in-flight answer submission when the overall time limit expires,
+  // so a late save cannot land against an already-completed session.
+  getPublicUploadUrl: (submissionId, payload, config) =>
+    api.post(
+      `/interview-tools/submissions/${submissionId}/upload-url`,
+      payload,
+      config,
+    ),
 
-  saveAnswer: (submissionId, payload) =>
-    api.post(`/interview-tools/submissions/${submissionId}/answers`, payload),
+  saveAnswer: (submissionId, payload, config) =>
+    api.post(
+      `/interview-tools/submissions/${submissionId}/answers`,
+      payload,
+      config,
+    ),
 
   finishSubmission: (submissionId, payload) =>
     api.post(`/interview-tools/submissions/${submissionId}/finish`, payload),
