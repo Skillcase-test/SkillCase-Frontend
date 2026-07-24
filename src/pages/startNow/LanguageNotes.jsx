@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FileText, ChevronRight, ArrowLeft, ArrowRight } from "lucide-react";
+import { Document, Page, pdfjs } from "react-pdf";
+
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url,
+).toString();
 
 const AUTO_ADVANCE_MS = 5000;
 
@@ -150,17 +156,31 @@ export default function LanguageNotes({ notes = [] }) {
                 </p>
               </div>
 
-              {/* Action Button */}
+              {/* Action Row: Preview link + first-page PDF thumbnail on the right */}
               {note.pdf_url && (
-                <a
-                  href={note.pdf_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-[#F9C53D] font-bold text-xs hover:text-[#e0b02f] transition-colors w-fit"
-                >
-                  <span>Preview PDF</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </a>
+                <div className="flex items-center justify-between gap-3">
+                  <a
+                    href={note.pdf_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[#F9C53D] font-bold text-xs hover:text-[#e0b02f] transition-colors w-fit"
+                  >
+                    <span>Preview PDF</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </a>
+                  <div className="w-20 h-28 shrink-0 bg-white/5 rounded-lg overflow-hidden relative border border-white/10 flex justify-center items-center pointer-events-none select-none">
+                    <div className="scale-[0.23] origin-center absolute">
+                      <Document file={note.pdf_url} loading={null}>
+                        <Page
+                          pageNumber={1}
+                          width={343}
+                          renderTextLayer={false}
+                          renderAnnotationLayer={false}
+                        />
+                      </Document>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           ))}

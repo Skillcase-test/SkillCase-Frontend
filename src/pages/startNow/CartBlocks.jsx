@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Star, ShieldAlert, CheckCircle } from "lucide-react";
+import { Star, ShieldAlert, CheckCircle, GraduationCap } from "lucide-react";
 import {
   getCartIds,
   toggleCartItem,
@@ -13,10 +13,10 @@ const FLAG_GRADIENT =
 function CartBlockCard({ block, selected, onToggle, featured }) {
   return (
     <label
-      className={`cursor-pointer relative flex flex-col rounded-2xl border overflow-hidden bg-white shadow-xs transition-all hover:shadow-md ${
+      className={`cursor-pointer relative flex flex-col rounded-2xl border-2 overflow-hidden bg-white shadow-sm transition-all hover:shadow-lg ${
         featured
-          ? "col-span-1 md:col-span-2 lg:col-span-3 border-2 border-[#002856]"
-          : "border-slate-100 hover:border-[#002856]/30"
+          ? "col-span-1 md:col-span-2 lg:col-span-3 border-[#002856]"
+          : "border-slate-200 hover:border-[#002856]/40"
       } ${selected ? "ring-2 ring-[#F9C53D]" : ""}`}
     >
       <input
@@ -29,9 +29,7 @@ function CartBlockCard({ block, selected, onToggle, featured }) {
       {featured ? (
         <div className={`h-2 w-full ${FLAG_GRADIENT}`} />
       ) : (
-        <div
-          className={`absolute top-0 left-0 w-1 h-full ${FLAG_GRADIENT} opacity-70`}
-        />
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#002856] to-[#1a4a85]" />
       )}
 
       {featured && (
@@ -44,13 +42,17 @@ function CartBlockCard({ block, selected, onToggle, featured }) {
         className={`p-6 md:p-8 flex flex-col ${
           featured
             ? "md:flex-row gap-6 items-start md:items-center"
-            : "gap-4 h-full pl-7"
+            : "gap-4 h-full"
         }`}
       >
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            {featured && (
+          <div className="flex items-center gap-2 mb-2">
+            {featured ? (
               <Star className="w-5 h-5 text-[#F9C53D] fill-current" />
+            ) : (
+              <div className="w-7 h-7 rounded-lg bg-[#002856]/10 text-[#002856] flex items-center justify-center shrink-0">
+                <GraduationCap className="w-4 h-4" />
+              </div>
             )}
             <h3
               className={`font-extrabold text-[#002856] ${
@@ -90,11 +92,7 @@ function CartBlockCard({ block, selected, onToggle, featured }) {
 
         <div className={featured ? "w-full md:w-auto" : "mt-auto"}>
           <div
-            className={`w-full ${featured ? "md:w-48" : ""} border-2 rounded-xl py-2.5 px-4 text-center font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-              selected
-                ? "bg-[#002856] text-white border-[#002856]"
-                : "bg-white text-[#002856] border-[#002856] hover:shadow-sm"
-            }`}
+            className={`w-full ${featured ? "md:w-48" : ""} border-2 rounded-xl py-2.5 px-4 text-center font-bold text-sm transition-all flex items-center justify-center gap-2 bg-[#002856] text-white`}
           >
             {selected ? (
               <>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check } from "lucide-react";
+import { X, Check, Maximize2 } from "lucide-react";
 
 export default function CandidateGrid({ candidates = [] }) {
   const [activeId, setActiveId] = useState(null);
@@ -68,6 +68,7 @@ export default function CandidateGrid({ candidates = [] }) {
               onClick={() => setActiveId(candidate.id)}
               className="relative aspect-[3/4] bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-md cursor-pointer group max-w-[180px] sm:max-w-[220px] md:max-w-[260px] mx-auto w-full"
               whileHover={{ y: -6 }}
+              whileTap={{ scale: 0.97 }}
             >
               <img
                 src={candidate.image_url}
@@ -75,6 +76,10 @@ export default function CandidateGrid({ candidates = [] }) {
                 className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-300"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent z-10" />
+
+              <div className="absolute top-3 right-3 z-20 w-7 h-7 rounded-full bg-white/25 backdrop-blur-sm border border-white/40 flex items-center justify-center text-white group-hover:bg-[#F9C53D] group-hover:text-[#002856] group-hover:border-[#F9C53D] transition-colors duration-200">
+                <Maximize2 className="w-3.5 h-3.5" />
+              </div>
 
               <div className="absolute bottom-4 left-4 right-4 z-20 text-white">
                 <h4 className="font-bold text-sm md:text-base">
