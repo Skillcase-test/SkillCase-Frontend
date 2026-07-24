@@ -95,7 +95,7 @@ export default function HeroSection({ hero }) {
         <div className="flex-1" />
 
         {/* Text Block (Bottom-Left) */}
-        <div className="flex flex-col gap-4 text-left text-white max-w-2xl mb-4">
+        <div className="flex flex-col gap-2 text-left text-white max-w-2xl mb-4">
           <motion.h1
             variants={itemVariants}
             className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold leading-tight tracking-tight whitespace-pre-line"
