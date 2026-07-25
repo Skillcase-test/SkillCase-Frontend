@@ -12,6 +12,7 @@ import { adminAccessApi } from "../../api/adminAccessApi";
 const Analytics = lazy(() => import("./Analytics"));
 const AppAnalytics = lazy(() => import("./AppAnalytics"));
 const NewAnalytics = lazy(() => import("./NewAnalytics"));
+const BiginDashboard = lazy(() => import("./BiginDashboard"));
 const ManageEvents = lazy(() => import("./event/ManageEvents"));
 const LandingPageManagement = lazy(() => import("./LandingPageManagement"));
 const TrustPageManagement = lazy(() => import("./TrustPageManagement"));
@@ -725,6 +726,12 @@ export default function Dashboard() {
         module: "new_analytics",
       },
       {
+        key: "bigin-dashboard",
+        label: "Bigin Dashboard",
+        path: "/admin/bigin-dashboard",
+        module: "bigin_dashboard",
+      },
+      {
         key: "events",
         label: "Events",
         path: "/admin/events",
@@ -1131,6 +1138,14 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "new_analytics")}>
                     <NewAnalytics me={me} />
+                  </Guard>
+                }
+              />
+              <Route
+                path="bigin-dashboard"
+                element={
+                  <Guard allowed={hasPermission(me, "bigin_dashboard")}>
+                    <BiginDashboard />
                   </Guard>
                 }
               />
