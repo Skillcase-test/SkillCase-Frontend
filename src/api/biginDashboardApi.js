@@ -12,4 +12,5 @@ export const biginDashboardApi = {
     api.get("/admin/bigin-dashboard/conversion-by-source", { params }),
   dailyTrend: (params) => api.get("/admin/bigin-dashboard/daily-trend", { params }),
   syncStatus: () => api.get("/admin/bigin-dashboard/sync-status"),
+  owners: () => api.get("/admin/bigin-dashboard/owners"),
 };
