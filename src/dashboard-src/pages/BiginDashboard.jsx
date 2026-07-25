@@ -36,8 +36,14 @@ function number(val, digits = 0) {
   });
 }
 
+// Formats the local calendar date (not the UTC one - going through
+// toISOString() here would roll back to the previous day for any timezone
+// ahead of UTC, e.g. IST, whenever `date` is local midnight).
 function toIso(date) {
-  return date.toISOString().slice(0, 10);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function formatSyncedAt(iso) {
@@ -54,8 +60,7 @@ function formatSyncedAt(iso) {
 
 function defaultDateRange() {
   const to = new Date();
-  const from = new Date(to);
-  from.setDate(from.getDate() - 29);
+  const from = new Date(to.getFullYear(), to.getMonth(), 1);
   return { from: toIso(from), to: toIso(to) };
 }
 
@@ -195,8 +200,25 @@ function TrendBadge({ current, previous, invert = false }) {
   );
 }
 
+// Small per-pipeline breakdown row shown under a total, when "Both pipelines"
+// is selected - e.g. 482 total -> B2C Sales 380 / B1/B2 Sales 102.
+function BreakdownNotch({ b2c, b1b2, format = (v) => number(v) }) {
+  return (
+    <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5">
+      <span className="text-[10px] font-semibold text-slate-500">
+        B2C <span className="font-bold text-slate-700">{format(b2c)}</span>
+      </span>
+      <span className="h-3 w-px bg-slate-200" />
+      <span className="text-[10px] font-semibold text-slate-500">
+        B1/B2 <span className="font-bold text-slate-700">{format(b1b2)}</span>
+      </span>
+    </div>
+  );
+}
+
 // Stat tile matching OverallViewTab: uppercase label, big value + trend
-// badge, footer showing the raw previous-period value for context.
+// badge, previous-period footer - plus the per-pipeline breakdown notch
+// underneath it (not instead of it) when both pipelines are selected.
 function KpiTile({
   label,
   value,
@@ -205,6 +227,8 @@ function KpiTile({
   previous,
   invert,
   footNote,
+  breakdown,
+  breakdownFormat,
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
@@ -215,14 +239,23 @@ function KpiTile({
         <h3 className="text-2xl font-bold text-slate-900">{value}</h3>
         <TrendBadge current={current} previous={previous} invert={invert} />
       </div>
-      <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2">
-        <span className="text-[10px] font-semibold text-slate-400">
-          {footNote || "Previous period"}
-        </span>
-        <span className="text-xs font-bold text-slate-600">
-          {previousValue}
-        </span>
-      </div>
+      {previous != null && (
+        <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2">
+          <span className="text-[10px] font-semibold text-slate-400">
+            {footNote || "Previous period"}
+          </span>
+          <span className="text-xs font-bold text-slate-600">
+            {previousValue}
+          </span>
+        </div>
+      )}
+      {breakdown && (
+        <BreakdownNotch
+          b2c={breakdown.b2c}
+          b1b2={breakdown.b1b2}
+          format={breakdownFormat}
+        />
+      )}
     </div>
   );
 }
@@ -256,6 +289,7 @@ export default function BiginDashboard() {
   const [error, setError] = useState("");
   const [perfPage, setPerfPage] = useState(1);
   const [syncStatus, setSyncStatus] = useState(null);
+  const [breakdown, setBreakdown] = useState(null);
   const perfPageSize = 8;
 
   const defaults = useMemo(() => defaultDateRange(), []);
@@ -264,10 +298,12 @@ export default function BiginDashboard() {
     const pipeline = ["b2c", "b1b2", "all"].includes(params.get("pipeline"))
       ? params.get("pipeline")
       : "all";
+    const allTime = params.get("all_time") === "true";
     return {
       date_from: params.get("date_from") || defaults.from,
       date_to: params.get("date_to") || defaults.to,
       pipeline,
+      allTime,
     };
   }, [params, defaults]);
 
@@ -277,28 +313,58 @@ export default function BiginDashboard() {
     setParams(next, { replace: true });
   };
 
+  // Params actually sent to the API - all_time replaces date_from/date_to
+  // rather than sitting alongside them. Lead ageing is always scoped to
+  // active leads only.
+  const apiFilters = useMemo(() => {
+    const base = { pipeline: filters.pipeline, scope: "active" };
+    if (filters.allTime) return { ...base, all_time: "true" };
+    return { ...base, date_from: filters.date_from, date_to: filters.date_to };
+  }, [filters]);
+
   useEffect(() => {
     let live = true;
     setLoading(true);
     setError("");
-    const prevFilters = {
-      ...previousPeriod(filters.date_from, filters.date_to),
-      pipeline: filters.pipeline,
-    };
+
+    const prevSummaryPromise = filters.allTime
+      ? Promise.resolve(null)
+      : biginDashboardApi.summary({
+          ...previousPeriod(filters.date_from, filters.date_to),
+          pipeline: filters.pipeline,
+        });
+
+    // Per-pipeline breakdown for the "both pipelines" notches - only needed
+    // when both are actually selected, otherwise there's nothing to split.
+    const bothSelected = filters.pipeline === "all";
+    const breakdownPromise = bothSelected
+      ? Promise.all([
+          biginDashboardApi.summary({ ...apiFilters, pipeline: "b2c" }),
+          biginDashboardApi.summary({ ...apiFilters, pipeline: "b1b2" }),
+          biginDashboardApi.leadAgeing({ ...apiFilters, pipeline: "b2c" }),
+          biginDashboardApi.leadAgeing({ ...apiFilters, pipeline: "b1b2" }),
+          biginDashboardApi.leadsBySource({ ...apiFilters, pipeline: "b2c" }),
+          biginDashboardApi.leadsBySource({ ...apiFilters, pipeline: "b1b2" }),
+          biginDashboardApi.dailyTrend({ ...apiFilters, pipeline: "b2c" }),
+          biginDashboardApi.dailyTrend({ ...apiFilters, pipeline: "b1b2" }),
+        ])
+      : Promise.resolve(null);
+
     Promise.all([
-      biginDashboardApi.summary(filters),
-      biginDashboardApi.summary(prevFilters),
-      biginDashboardApi.funnel(filters),
-      biginDashboardApi.leadAgeing(filters),
-      biginDashboardApi.salesPerformance(filters),
-      biginDashboardApi.leadsBySource(filters),
-      biginDashboardApi.conversionBySource(filters),
-      biginDashboardApi.dailyTrend(filters),
+      biginDashboardApi.summary(apiFilters),
+      prevSummaryPromise,
+      biginDashboardApi.funnel(apiFilters),
+      biginDashboardApi.leadAgeing(apiFilters),
+      biginDashboardApi.salesPerformance(apiFilters),
+      biginDashboardApi.leadsBySource(apiFilters),
+      biginDashboardApi.conversionBySource(apiFilters),
+      biginDashboardApi.dailyTrend(apiFilters),
+      breakdownPromise,
     ])
-      .then(([s, prevS, f, a, p, src, convSrc, tr]) => {
+      .then(([s, prevS, f, a, p, src, convSrc, tr, bd]) => {
         if (!live) return;
         setSummary(s.data);
-        setPrevSummary(prevS.data);
+        setPrevSummary(prevS?.data || null);
         setFunnel(f.data);
         setAgeing(a.data);
         setPerformance(p.data);
@@ -306,6 +372,27 @@ export default function BiginDashboard() {
         setConversionBySource(convSrc.data);
         setTrend(tr.data);
         setPerfPage(1);
+
+        if (bd) {
+          const [sB2C, sB1B2, aB2C, aB1B2, srcB2C, srcB1B2, trB2C, trB1B2] = bd;
+          setBreakdown({
+            summary: { b2c: sB2C.data, b1b2: sB1B2.data },
+            ageingTotal: {
+              b2c: sumBy(aB2C.data, "leads"),
+              b1b2: sumBy(aB1B2.data, "leads"),
+            },
+            bySourceTotal: {
+              b2c: sumBy(srcB2C.data, "leads"),
+              b1b2: sumBy(srcB1B2.data, "leads"),
+            },
+            trendTotal: {
+              b2c: sumBy(trB2C.data, "new_leads"),
+              b1b2: sumBy(trB1B2.data, "new_leads"),
+            },
+          });
+        } else {
+          setBreakdown(null);
+        }
       })
       .catch((err) => {
         if (live)
@@ -319,7 +406,7 @@ export default function BiginDashboard() {
     return () => {
       live = false;
     };
-  }, [filters]);
+  }, [filters, apiFilters]);
 
   useEffect(() => {
     let live = true;
@@ -379,6 +466,7 @@ export default function BiginDashboard() {
               aria-label="From date"
               max={filters.date_to}
               value={filters.date_from}
+              disabled={filters.allTime}
               onChange={(e) => update("date_from", e.target.value)}
               className="h-9 text-sm"
             />
@@ -388,9 +476,19 @@ export default function BiginDashboard() {
               aria-label="To date"
               min={filters.date_from}
               value={filters.date_to}
+              disabled={filters.allTime}
               onChange={(e) => update("date_to", e.target.value)}
               className="h-9 text-sm"
             />
+            <label className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700">
+              <input
+                type="checkbox"
+                checked={filters.allTime}
+                onChange={(e) => update("all_time", e.target.checked ? "true" : "false")}
+                className="h-3.5 w-3.5 accent-slate-900"
+              />
+              All Time
+            </label>
             <ControlDropdown
               value={filters.pipeline}
               options={PIPELINE_OPTIONS}
@@ -420,6 +518,12 @@ export default function BiginDashboard() {
                 current={summary.new_leads}
                 previous={prevSummary?.new_leads}
                 previousValue={number(prevSummary?.new_leads)}
+                breakdown={
+                  breakdown && {
+                    b2c: breakdown.summary.b2c.new_leads,
+                    b1b2: breakdown.summary.b1b2.new_leads,
+                  }
+                }
               />
               <KpiTile
                 label="Active Leads"
@@ -427,6 +531,12 @@ export default function BiginDashboard() {
                 current={summary.active_leads}
                 previous={prevSummary?.active_leads}
                 previousValue={number(prevSummary?.active_leads)}
+                breakdown={
+                  breakdown && {
+                    b2c: breakdown.summary.b2c.active_leads,
+                    b1b2: breakdown.summary.b1b2.active_leads,
+                  }
+                }
               />
               <KpiTile
                 label="Qualified Leads"
@@ -434,6 +544,12 @@ export default function BiginDashboard() {
                 current={summary.qualified_leads}
                 previous={prevSummary?.qualified_leads}
                 previousValue={number(prevSummary?.qualified_leads)}
+                breakdown={
+                  breakdown && {
+                    b2c: breakdown.summary.b2c.qualified_leads,
+                    b1b2: breakdown.summary.b1b2.qualified_leads,
+                  }
+                }
               />
               <KpiTile
                 label="Won"
@@ -441,6 +557,12 @@ export default function BiginDashboard() {
                 current={summary.won}
                 previous={prevSummary?.won}
                 previousValue={number(prevSummary?.won)}
+                breakdown={
+                  breakdown && {
+                    b2c: breakdown.summary.b2c.won,
+                    b1b2: breakdown.summary.b1b2.won,
+                  }
+                }
               />
               <KpiTile
                 label="Lost"
@@ -449,6 +571,12 @@ export default function BiginDashboard() {
                 previous={prevSummary?.lost}
                 previousValue={number(prevSummary?.lost)}
                 invert
+                breakdown={
+                  breakdown && {
+                    b2c: breakdown.summary.b2c.lost,
+                    b1b2: breakdown.summary.b1b2.lost,
+                  }
+                }
               />
               <KpiTile
                 label="Conversion Rate"
@@ -456,6 +584,13 @@ export default function BiginDashboard() {
                 current={summary.conversion_rate_pct}
                 previous={prevSummary?.conversion_rate_pct}
                 previousValue={`${number(prevSummary?.conversion_rate_pct, 1)}%`}
+                breakdown={
+                  breakdown && {
+                    b2c: breakdown.summary.b2c.conversion_rate_pct,
+                    b1b2: breakdown.summary.b1b2.conversion_rate_pct,
+                  }
+                }
+                breakdownFormat={(v) => `${number(v, 1)}%`}
               />
               <KpiTile
                 label="Avg. Days to Close"
@@ -473,6 +608,13 @@ export default function BiginDashboard() {
                 }
                 invert
                 footNote="Won leads only · Previous"
+                breakdown={
+                  breakdown && {
+                    b2c: breakdown.summary.b2c.avg_days_to_close,
+                    b1b2: breakdown.summary.b1b2.avg_days_to_close,
+                  }
+                }
+                breakdownFormat={(v) => (v != null ? number(v, 1) : "—")}
               />
             </div>
 
@@ -572,7 +714,7 @@ export default function BiginDashboard() {
             {/* Three comparably-sized panels grouped together so their
                 heights stay close. */}
             <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
-              <SectionCard title="Lead Ageing" subtitle="From created date">
+              <SectionCard title="Lead Ageing" subtitle="From created date · active leads only">
                 {ageing.length ? (
                   <>
                     <div className="relative">
@@ -582,7 +724,7 @@ export default function BiginDashboard() {
                       />
                       <DonutCenterLabel
                         total={sumBy(ageing, "leads")}
-                        label="Total Leads"
+                        label="Active Leads"
                         height={200}
                       />
                     </div>
@@ -591,6 +733,12 @@ export default function BiginDashboard() {
                       labelKey="label"
                       valueKey="leads"
                     />
+                    {breakdown && (
+                      <BreakdownNotch
+                        b2c={breakdown.ageingTotal.b2c}
+                        b1b2={breakdown.ageingTotal.b1b2}
+                      />
+                    )}
                   </>
                 ) : (
                   <EmptyState message="No leads in this window." />
@@ -616,6 +764,12 @@ export default function BiginDashboard() {
                       labelKey="source"
                       valueKey="leads"
                     />
+                    {breakdown && (
+                      <BreakdownNotch
+                        b2c={breakdown.bySourceTotal.b2c}
+                        b1b2={breakdown.bySourceTotal.b1b2}
+                      />
+                    )}
                   </>
                 ) : (
                   <EmptyState message="No source data for this window." />
@@ -632,7 +786,10 @@ export default function BiginDashboard() {
             </div>
 
             {trend.length ? (
-              <DailyTrendChart rows={trend} />
+              <DailyTrendChart
+                rows={trend}
+                breakdown={breakdown?.trendTotal}
+              />
             ) : (
               <SectionCard title="Daily Trend">
                 <EmptyState message="No activity in this window." />

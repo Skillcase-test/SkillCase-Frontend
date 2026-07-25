@@ -42,7 +42,7 @@ function number(val) {
 
 // Card chrome matches DashboardCard*/ComparativeBarChart: bg-white shadow-xs
 // rounded-xl, legend in the header, big total number, chart below.
-export function DailyTrendChart({ rows = [] }) {
+export function DailyTrendChart({ rows = [], breakdown }) {
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
 
@@ -168,6 +168,17 @@ export function DailyTrendChart({ rows = [] }) {
           </div>
           <div className="text-sm text-gray-500">leads created in period</div>
         </div>
+        {breakdown && (
+          <div className="mt-2 flex max-w-xs items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5">
+            <span className="text-[10px] font-semibold text-slate-500">
+              B2C <span className="font-bold text-slate-700">{number(breakdown.b2c)}</span>
+            </span>
+            <span className="h-3 w-px bg-slate-200" />
+            <span className="text-[10px] font-semibold text-slate-500">
+              B1/B2 <span className="font-bold text-slate-700">{number(breakdown.b1b2)}</span>
+            </span>
+          </div>
+        )}
       </div>
       <div className="relative h-[260px] w-full pb-2 pt-2">
         <canvas ref={canvasRef}></canvas>
