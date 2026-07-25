@@ -540,7 +540,7 @@ function useBiginData(apiFilters, { enabled = true, fetchPrev = false } = {}) {
         setState((s) => ({
           ...s,
           loading: false,
-          error: err.response?.data?.msg || "Could not load the sales dashboard.",
+          error: err.response?.data?.msg || "Could not load the bigin dashboard.",
         }));
       });
     return () => {

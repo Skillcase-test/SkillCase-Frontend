@@ -7,7 +7,7 @@ const MODULE_OPTIONS = [
   { key: "analytics", label: "Analytics" },
   { key: "app_analytics", label: "App Analytics" },
   { key: "new_analytics", label: "New Analytics" },
-  { key: "bigin_dashboard", label: "Sales Dashboard" },
+  { key: "bigin_dashboard", label: "Bigin Dashboard" },
   { key: "content", label: "A1" },
   { key: "a2_content", label: "A2" },
   { key: "b1_content", label: "B1" },
