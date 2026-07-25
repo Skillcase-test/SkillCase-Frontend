@@ -13,79 +13,70 @@ function barGradient(color) {
   return `linear-gradient(90deg, ${color} 0%, ${adjustColorOpacity(color, 0.55)} 100%)`;
 }
 
-// Funnel bars (gradient-filled, same treatment as the line/bar charts) with
-// a stage table underneath. Bars are centered and shrink with the leads
-// count - kept as separate rows (not a single tapered shape) so long stage
-// names never fight for space against the bar width.
+// Funnel bars (squeezed gradient bars) combined directly into a single
+// row layout with Stage, Funnel bar, and tight right-aligned metrics
+// (Leads, Conv %, Drop-off) that never overflow or clip.
 export function FunnelChart({ stages = [] }) {
   if (!stages.length) return null;
   const maxLeads = Math.max(1, ...stages.map((s) => s.leads));
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-2">
-        {stages.map((s, i) => {
-          const widthPct = Math.max(12, (s.leads / maxLeads) * 100);
-          const color = COLORS[i % COLORS.length];
-          return (
-            <div key={s.stage} className="flex flex-col items-start">
-              <div
-                className="flex h-11 items-center rounded-lg text-xs font-bold text-white shadow-sm transition-all"
-                style={{ width: `${widthPct}%`, background: barGradient(color) }}
-              >
-                <span className="truncate px-3">
-                  {s.stage} &middot; {number(s.leads)}
-                </span>
-              </div>
-            </div>
-          );
-        })}
+    <div className="w-full space-y-1">
+      {/* Header Row */}
+      <div className="flex items-center gap-3 border-b border-slate-100 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+        <span className="w-32 shrink-0">Stage</span>
+        <span className="flex-1 min-w-0">Funnel</span>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="w-14 text-right">Leads</span>
+          <span className="w-14 text-right">Conv %</span>
+          <span className="w-16 text-right">Drop-off</span>
+        </div>
       </div>
 
-      <div className="border-t border-slate-100 pt-4">
-        <table className="w-full table-fixed border-collapse text-left text-sm">
-          <colgroup>
-            <col className="w-[40%]" />
-            <col className="w-[18%]" />
-            <col className="w-[22%]" />
-            <col className="w-[20%]" />
-          </colgroup>
-          <thead>
-            <tr className="border-b border-slate-100">
-              <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Stage
-              </th>
-              <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Leads
-              </th>
-              <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Conv %
-              </th>
-              <th className="py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Drop-off
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {stages.map((s) => (
-              <tr key={s.stage} className="border-b border-slate-50">
-                <td className="truncate py-2 pr-2 font-medium text-slate-700" title={s.stage}>
-                  {s.stage}
-                </td>
-                <td className="py-2 pr-2 tabular-nums text-slate-600">{number(s.leads)}</td>
-                <td className="py-2 pr-2 tabular-nums text-slate-600">{s.conversion_pct}%</td>
-                <td
-                  className={`py-2 tabular-nums ${s.drop_off_pct > 30 ? "font-semibold text-rose-600" : "text-slate-600"}`}
-                >
-                  {s.drop_off_pct ? `-${s.drop_off_pct}%` : "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {/* Stage Rows */}
+      {stages.map((s, i) => {
+        const widthPct = Math.max(8, (s.leads / maxLeads) * 100);
+        const color = COLORS[i % COLORS.length];
+        return (
+          <div
+            key={s.stage}
+            className="flex items-center gap-3 border-b border-slate-50 py-2 last:border-0 text-sm"
+          >
+            <span
+              className="w-32 shrink-0 truncate font-medium text-slate-700"
+              title={s.stage}
+            >
+              {s.stage}
+            </span>
+            <div className="flex-1 min-w-0 flex items-center">
+              <div
+                className="h-6 rounded-md transition-all"
+                style={{ width: `${widthPct}%`, background: barGradient(color) }}
+                title={`${s.stage}: ${number(s.leads)} leads`}
+              />
+            </div>
+            <div className="flex items-center gap-3 shrink-0 text-xs tabular-nums">
+              <span className="w-14 text-right font-semibold text-slate-700">
+                {number(s.leads)}
+              </span>
+              <span className="w-14 text-right text-slate-600">
+                {s.conversion_pct}%
+              </span>
+              <span
+                className={`w-16 text-right ${
+                  s.drop_off_pct > 30 ? "font-semibold text-rose-600" : "text-slate-600"
+                }`}
+              >
+                {s.drop_off_pct ? `-${s.drop_off_pct}%` : "—"}
+              </span>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 export default FunnelChart;
+
+
