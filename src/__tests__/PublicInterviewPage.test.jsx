@@ -51,12 +51,19 @@ vi.mock("../pages/interviewTools/shared/InterviewVideoPlayer", () => ({
   ),
 }));
 
+// Mirrors the hook's ref-based accessor: `reliable` is false whenever the
+// audio monitor could not actually listen (e.g. a suspended AudioContext).
+let audioSignal = { detected: true, reliable: true };
+
 const recorder = {
   stream: null,
   recordedBlob: null,
   isRecording: false,
   recordingSeconds: 12,
+  // Render-visible pair, used by the UI to decide what to offer.
   recordingHasAudioSignal: true,
+  audioMonitorReliable: true,
+  getAudioSignalState: () => audioSignal,
   error: null,
   requestStream: vi.fn(),
   startRecording: vi.fn(),
@@ -114,6 +121,7 @@ beforeEach(() => {
   localStorage.clear();
   authState.isAuthenticated = true;
   locationState = null;
+  audioSignal = { detected: true, reliable: true };
 
   Object.assign(recorder, {
     stream: null,
@@ -121,6 +129,7 @@ beforeEach(() => {
     isRecording: false,
     recordingSeconds: 12,
     recordingHasAudioSignal: true,
+    audioMonitorReliable: true,
     error: null,
   });
   recorder.requestStream.mockResolvedValue(undefined);
@@ -256,7 +265,9 @@ describe("answer submission", () => {
     fireEvent.click(screen.getByText("Proceed to Answer"));
     fireEvent.click(await screen.findByText("Start Answer Now"));
     fireEvent.click(await screen.findByText("Stop Recording"));
-    await screen.findByText("Next question");
+    // The "Recorded" badge marks the review step regardless of which action
+    // is offered there — a silent take replaces submit with re-record.
+    await screen.findByText("Recorded");
   }
 
   beforeEach(() => {
@@ -331,6 +342,64 @@ describe("answer submission", () => {
     expect(recorder.resetRecording).not.toHaveBeenCalledWith(
       expect.anything(),
     );
+  });
+
+  // The reported production bug: the prepare countdown auto-starts recording
+  // outside a user gesture, so on iOS the AudioContext stays suspended and the
+  // analyser reports silence for a working microphone. An unmeasurable signal
+  // must never be read as "no voice".
+  test("submits when the audio monitor could not listen", async () => {
+    audioSignal = { detected: false, reliable: false };
+
+    await reachReviewlessStop({ allowed_retakes: 1 });
+    fireEvent.click(screen.getByText("Next question"));
+
+    await waitFor(() =>
+      expect(interviewToolsApi.saveAnswer).toHaveBeenCalledTimes(1),
+    );
+    expect(screen.queryByText(/No voice was detected/)).toBeNull();
+  });
+
+  // Silent answers are exactly what the check exists to stop reaching
+  // reviewers, so the block must hold no matter how many retakes remain.
+  test("never lets a silent recording through, even with no retakes left", async () => {
+    recorder.recordingHasAudioSignal = false;
+    recorder.audioMonitorReliable = true;
+    audioSignal = { detected: false, reliable: true };
+
+    await reachReviewlessStop({ allowed_retakes: 0 });
+
+    // Submit is not even offered; the recovery action replaces it.
+    expect(screen.queryByText("Next question")).toBeNull();
+    expect(screen.getByText(/No sound was captured/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Record this answer again"));
+
+    await waitFor(() => expect(recorder.startRecording).toHaveBeenCalled());
+    expect(interviewToolsApi.saveAnswer).not.toHaveBeenCalled();
+  });
+
+  // Re-recording a failed capture is a recovery, not a retake the candidate
+  // chose to spend, so it must not consume the allowed_retakes budget.
+  test("re-recording a silent answer does not spend a retake", async () => {
+    recorder.recordingHasAudioSignal = false;
+    recorder.audioMonitorReliable = true;
+    audioSignal = { detected: false, reliable: true };
+
+    await reachReviewlessStop({ allowed_retakes: 1 });
+    fireEvent.click(screen.getByText("Record this answer again"));
+    await waitFor(() => expect(recorder.startRecording).toHaveBeenCalled());
+
+    // Audio works on the second take, and the full retake budget survived.
+    recorder.recordingHasAudioSignal = true;
+    audioSignal = { detected: true, reliable: true };
+    fireEvent.click(await screen.findByText("Stop Recording"));
+
+    fireEvent.click(await screen.findByText("Next question"));
+    await waitFor(() =>
+      expect(interviewToolsApi.saveAnswer).toHaveBeenCalledTimes(1),
+    );
+    expect(interviewToolsApi.saveAnswer.mock.calls[0][1].retake_count).toBe(0);
   });
 
   // The race this closes: the overall time limit expiring while a submission is

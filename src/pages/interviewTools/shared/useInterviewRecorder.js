@@ -7,6 +7,12 @@ const RECORDER_MIME_CANDIDATES = [
   "video/webm",
 ];
 
+// Sampled on a timer rather than requestAnimationFrame: rAF stops entirely
+// while the tab is hidden or the phone screen is off, which would make a real
+// answer look silent.
+const AUDIO_SAMPLE_INTERVAL_MS = 100;
+const SILENCE_THRESHOLD = 0.02;
+
 function canPlaybackMimeType(mimeType) {
   if (typeof document === "undefined" || !mimeType) {
     return true;
@@ -16,8 +22,7 @@ function canPlaybackMimeType(mimeType) {
   const normalized = String(mimeType).split(";")[0];
 
   return (
-    video.canPlayType(mimeType) !== "" ||
-    video.canPlayType(normalized) !== ""
+    video.canPlayType(mimeType) !== "" || video.canPlayType(normalized) !== ""
   );
 }
 
@@ -38,16 +43,17 @@ function getSupportedRecorderMimeType() {
   return "";
 }
 
+// Deliberately does not consider track.muted. That flag is browser-controlled
+// and flips on transiently — right after getUserMedia on iOS, and during any
+// interruption such as an incoming call — so gating on it rejects a working
+// microphone. Whether audio actually arrived is the audio monitor's job.
 function hasUsableAudioTrack(mediaStream) {
   if (!mediaStream) return false;
   const audioTracks = mediaStream.getAudioTracks?.() || [];
   if (!audioTracks.length) return false;
 
   return audioTracks.some(
-    (track) =>
-      track.readyState === "live" &&
-      track.enabled !== false &&
-      track.muted !== true,
+    (track) => track.readyState === "live" && track.enabled !== false,
   );
 }
 
@@ -57,6 +63,9 @@ export default function useInterviewRecorder() {
   const [recordedBlob, setRecordedBlob] = useState(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [recordingHasAudioSignal, setRecordingHasAudioSignal] = useState(false);
+  // Render-visible twin of audioMonitorReliableRef, so the UI can tell
+  // "we heard nothing" apart from "we could not listen".
+  const [audioMonitorReliable, setAudioMonitorReliable] = useState(false);
   const [error, setError] = useState("");
 
   const streamRef = useRef(null);
@@ -67,13 +76,17 @@ export default function useInterviewRecorder() {
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const sourceNodeRef = useRef(null);
-  const monitorRafRef = useRef(null);
+  const monitorIntervalRef = useRef(null);
   const audioSignalDetectedRef = useRef(false);
+  // False whenever the monitor could not actually listen (no AudioContext, or
+  // one that refused to leave the suspended state). Callers must not read
+  // "no signal" as "silent" when this is false.
+  const audioMonitorReliableRef = useRef(false);
 
   const stopAudioMonitor = useCallback(() => {
-    if (monitorRafRef.current) {
-      cancelAnimationFrame(monitorRafRef.current);
-      monitorRafRef.current = null;
+    if (monitorIntervalRef.current) {
+      clearInterval(monitorIntervalRef.current);
+      monitorIntervalRef.current = null;
     }
 
     try {
@@ -98,51 +111,95 @@ export default function useInterviewRecorder() {
   }, []);
 
   const startAudioMonitor = useCallback(
-    (mediaStream) => {
+    async (mediaStream) => {
       stopAudioMonitor();
       audioSignalDetectedRef.current = false;
+      audioMonitorReliableRef.current = false;
       setRecordingHasAudioSignal(false);
+      setAudioMonitorReliable(false);
 
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtx || !mediaStream) {
         return;
       }
 
-      const audioContext = new AudioCtx();
-      const source = audioContext.createMediaStreamSource(mediaStream);
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 2048;
-      analyser.smoothingTimeConstant = 0.8;
+      let audioContext = null;
 
-      source.connect(analyser);
+      try {
+        audioContext = new AudioCtx();
 
-      audioContextRef.current = audioContext;
-      sourceNodeRef.current = source;
-      analyserRef.current = analyser;
-
-      const data = new Uint8Array(analyser.fftSize);
-      const SILENCE_THRESHOLD = 0.02;
-
-      const tick = () => {
-        if (!analyserRef.current) return;
-
-        analyserRef.current.getByteTimeDomainData(data);
-        let peak = 0;
-        for (let i = 0; i < data.length; i += 1) {
-          const normalized = Math.abs((data[i] - 128) / 128);
-          if (normalized > peak) peak = normalized;
+        // A context created outside a user gesture starts suspended, and a
+        // suspended analyser reports nothing but silence. That is what made
+        // the microphone look dead for candidates who let the prepare
+        // countdown run out instead of tapping through it.
+        if (audioContext.state === "suspended") {
+          await audioContext.resume();
         }
 
-        if (peak > SILENCE_THRESHOLD) {
-          audioSignalDetectedRef.current = true;
+        if (audioContext.state !== "running") {
+          await audioContext.close().catch(() => {});
+          return;
         }
 
-        monitorRafRef.current = requestAnimationFrame(tick);
-      };
+        const source = audioContext.createMediaStreamSource(mediaStream);
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = 2048;
+        analyser.smoothingTimeConstant = 0.8;
 
-      monitorRafRef.current = requestAnimationFrame(tick);
+        source.connect(analyser);
+
+        audioContextRef.current = audioContext;
+        sourceNodeRef.current = source;
+        analyserRef.current = analyser;
+
+        const data = new Uint8Array(analyser.fftSize);
+
+        monitorIntervalRef.current = setInterval(() => {
+          if (!analyserRef.current) return;
+
+          analyserRef.current.getByteTimeDomainData(data);
+          let peak = 0;
+          for (let i = 0; i < data.length; i += 1) {
+            const normalized = Math.abs((data[i] - 128) / 128);
+            if (normalized > peak) peak = normalized;
+          }
+
+          if (peak > SILENCE_THRESHOLD && !audioSignalDetectedRef.current) {
+            audioSignalDetectedRef.current = true;
+            setRecordingHasAudioSignal(true);
+          }
+        }, AUDIO_SAMPLE_INTERVAL_MS);
+
+        audioMonitorReliableRef.current = true;
+        setAudioMonitorReliable(true);
+      } catch (err) {
+        // Monitoring is best-effort. Recording must never be blocked because
+        // we failed to set up the listener.
+        console.error("Audio monitor unavailable", err);
+        try {
+          await audioContext?.close();
+        } catch {
+          // noop
+        }
+        audioContextRef.current = null;
+        sourceNodeRef.current = null;
+        analyserRef.current = null;
+        audioMonitorReliableRef.current = false;
+        setAudioMonitorReliable(false);
+      }
     },
     [stopAudioMonitor],
+  );
+
+  // Read through refs so callers never see a stale render's value — the audio
+  // verdict is only known inside recorder.onstop, one render too late for a
+  // submit handler that awaited stopRecording().
+  const getAudioSignalState = useCallback(
+    () => ({
+      detected: audioSignalDetectedRef.current,
+      reliable: audioMonitorReliableRef.current,
+    }),
+    [],
   );
 
   const clearTimer = useCallback(() => {
@@ -154,7 +211,14 @@ export default function useInterviewRecorder() {
 
   const requestStream = useCallback(async () => {
     if (streamRef.current) {
-      return streamRef.current;
+      if (hasUsableAudioTrack(streamRef.current)) {
+        return streamRef.current;
+      }
+      // The audio track died — an unplugged headset, or a device change.
+      // Release it before asking for a replacement so the old camera and mic
+      // are not left open alongside the new ones.
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
     }
 
     try {
@@ -223,7 +287,10 @@ export default function useInterviewRecorder() {
     setRecordingSeconds(0);
     setRecordingHasAudioSignal(false);
     audioSignalDetectedRef.current = false;
-    startAudioMonitor(activeStream);
+
+    // Awaited before the recorder starts so the resume() round-trip cannot
+    // swallow the opening moments of the answer.
+    await startAudioMonitor(activeStream);
 
     recorder.ondataavailable = (event) => {
       if (event.data && event.data.size > 0) {
@@ -280,7 +347,9 @@ export default function useInterviewRecorder() {
     setRecordedBlob(null);
     setRecordingSeconds(0);
     setRecordingHasAudioSignal(false);
+    setAudioMonitorReliable(false);
     audioSignalDetectedRef.current = false;
+    audioMonitorReliableRef.current = false;
     chunksRef.current = [];
   }, []);
 
@@ -290,6 +359,8 @@ export default function useInterviewRecorder() {
     recordedBlob,
     recordingSeconds,
     recordingHasAudioSignal,
+    audioMonitorReliable,
+    getAudioSignalState,
     error,
     requestStream,
     startRecording,

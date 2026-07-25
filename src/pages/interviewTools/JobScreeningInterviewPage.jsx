@@ -197,6 +197,8 @@ export default function JobScreeningInterviewPage() {
   // Lets the overall-time-limit timer cancel an upload that is still retrying,
   // so it cannot race the forced finish and save against a completed session.
   const uploadAbortRef = useRef(null);
+  // Guards the prepare-countdown auto-start against double-firing.
+  const autoStartAttemptedRef = useRef(false);
 
   const {
     stream,
@@ -204,6 +206,8 @@ export default function JobScreeningInterviewPage() {
     isRecording,
     recordingSeconds,
     recordingHasAudioSignal,
+    audioMonitorReliable,
+    getAudioSignalState,
     error: recorderError,
     requestStream,
     startRecording,
@@ -409,26 +413,43 @@ export default function JobScreeningInterviewPage() {
     };
   }, [slug, stopTracks]);
 
+  // The countdown only counts. Starting the recorder moved to its own effect
+  // below so a failure is surfaced instead of being swallowed inside a state
+  // updater, which also left the candidate stranded at "Prepare 0".
   useEffect(() => {
-    let interval = null;
+    if (stage !== "thinking" || thinkingRemaining <= 0) return undefined;
 
-    if (stage === "thinking" && thinkingRemaining > 0) {
-      interval = setInterval(() => {
-        setThinkingRemaining((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            startRecording()
-              .then(() => setStage("recording"))
-              .catch(() => {});
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
+    const interval = setInterval(() => {
+      setThinkingRemaining((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [stage, thinkingRemaining]);
+
+  // Auto-start once the prepare countdown reaches zero. The ref guard stops
+  // this racing the Start Answer Now button, which starts the recorder itself.
+  useEffect(() => {
+    if (stage !== "thinking" || thinkingRemaining > 0) return undefined;
+    if (autoStartAttemptedRef.current) return undefined;
+    autoStartAttemptedRef.current = true;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        await startRecording();
+        if (!cancelled) setStage("recording");
+      } catch (error) {
+        if (cancelled) return;
+        console.error(error);
+        setStatusMessage(
+          "We could not start recording. Use the Start Answer Now button to try again.",
+        );
+      }
+    })();
 
     return () => {
-      if (interval) clearInterval(interval);
+      cancelled = true;
     };
   }, [stage, thinkingRemaining, startRecording]);
 
@@ -491,6 +512,9 @@ export default function JobScreeningInterviewPage() {
   const farewellExists = Boolean(position?.farewell_video_url);
   const canRetake =
     retakesUsed < Number(position?.allowed_retakes || 0) && !!recordedBlob;
+  // The monitor listened and heard nothing — a genuinely unusable answer,
+  // as opposed to a monitor that could not run at all.
+  const recordingSoundedSilent = audioMonitorReliable && !recordingHasAudioSignal;
 
   // Uploads one recorded answer, transparently retrying dropped connections.
   const uploadAnswerBlob = async ({
@@ -689,11 +713,13 @@ export default function JobScreeningInterviewPage() {
 
     const thinkingTime = Number(position?.thinking_time_seconds || 3);
     setThinkingRemaining(thinkingTime > 0 ? thinkingTime : 3);
+    autoStartAttemptedRef.current = false;
     setStage("thinking");
   };
 
   const skipThinkingTime = async () => {
     hapticMedium();
+    autoStartAttemptedRef.current = true;
     setThinkingRemaining(0);
     try {
       await startRecording();
@@ -724,6 +750,24 @@ export default function JobScreeningInterviewPage() {
       console.error(error);
       setStatusMessage(
         "Microphone is not capturing audio. Please check mic permissions and try again.",
+      );
+    }
+  };
+
+  // A take with no audio is a capture failure, not a retake the candidate
+  // chose to spend. Charging it to allowed_retakes would strand anyone whose
+  // budget is zero on an answer that can never be submitted.
+  const handleSilentRetake = async () => {
+    hapticMedium();
+    resetRecording();
+    setStatusMessage("");
+    try {
+      await startRecording();
+      setStage("recording");
+    } catch (error) {
+      console.error(error);
+      setStatusMessage(
+        "We still cannot reach your microphone. Check your browser's microphone permission for this site, then try again.",
       );
     }
   };
@@ -842,9 +886,25 @@ export default function JobScreeningInterviewPage() {
   const submitCurrentAnswer = async (finalBlob = recordedBlob) => {
     if (!finalBlob || !submission || !activeQuestion) return;
 
-    if (!recordingHasAudioSignal) {
+    const audioSignal = getAudioSignalState();
+
+    // "No signal" only means silence when the monitor could actually listen;
+    // a suspended AudioContext reports silence for a perfectly good mic. And
+    // even real silence must not block a candidate with no retake left, or
+    // they are stranded on this screen with no way forward.
+    if (audioSignal.reliable && !audioSignal.detected) {
+      recordEvent("job_screening.interview.answer_silence_blocked", {
+        domain: "job_screening",
+        feature: "interview.answer",
+        entity_type: "interview_question",
+        entity_id: activeQuestion.question_id,
+        item_index: activeQuestionIndex,
+        total_items: questions.length,
+        lifecycle: "failed",
+        reason_code: "no_audio_signal",
+      });
       setStatusMessage(
-        "No voice was detected in this recording. Please retake after verifying your microphone input.",
+        "We could not hear anything in that recording. Check that your microphone is not muted or being used by another app, then record this answer again.",
       );
       return;
     }
@@ -1066,6 +1126,18 @@ export default function JobScreeningInterviewPage() {
           <div className="mb-6 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
             <div className="mt-0.5 h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-amber-300 border-t-amber-700" />
             <span>{uploadNotice}</span>
+          </div>
+        ) : null}
+
+        {stage === "recording" &&
+        recordingSoundedSilent &&
+        recordingSeconds >= 5 ? (
+          <div className="mb-6 flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              We are not picking up any sound from your microphone. Check that
+              it is not muted — you can fix this and keep answering.
+            </span>
           </div>
         ) : null}
 
@@ -1538,7 +1610,28 @@ export default function JobScreeningInterviewPage() {
                   </button>
                 )}
 
-                {stage === "reviewless-stop" && (
+                {stage === "reviewless-stop" && recordingSoundedSilent ? (
+                  <div className="w-full flex flex-col gap-3">
+                    <p className="text-sm font-semibold text-rose-700 flex items-start gap-2.5 border border-rose-200 bg-rose-50 px-5 py-3 rounded-2xl">
+                      <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                      <span>
+                        No sound was captured in that answer. Check that your
+                        microphone is not muted or in use by another app, then
+                        record it again.
+                      </span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleSilentRetake}
+                      className="flex w-full items-center justify-center gap-2 rounded-full bg-[#083262] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#062446] shadow-md"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Record this answer again
+                    </button>
+                  </div>
+                ) : null}
+
+                {stage === "reviewless-stop" && !recordingSoundedSilent && (
                   <>
                     <button
                       onClick={() => submitCurrentAnswer()}
