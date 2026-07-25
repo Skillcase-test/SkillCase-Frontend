@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowDownRight, ArrowUpRight, BarChart3, Clock3 } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, BarChart3, ChevronRight, Clock3, Search } from "lucide-react";
 
 import { biginDashboardApi } from "../../api/biginDashboardApi";
 import {
@@ -14,6 +14,166 @@ import FunnelChart from "../charts/FunnelChart";
 import SourceBarList from "../charts/SourceBarList";
 import DailyTrendChart from "../charts/DailyTrendChart";
 import { adjustColorOpacity } from "../utils/Utils";
+
+function cx(...classes) {
+  return classes.filter(Boolean).join(" ");
+}
+
+function MultiSelectOwner({ owners = [], selectedOwners = [], onChange, loading = false }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredOwners = useMemo(() => {
+    return owners.filter((o) => {
+      const name = (o.owner_name || "").toLowerCase();
+      const id = (o.owner_zoho_id || "").toLowerCase();
+      return name.includes(searchQuery.toLowerCase()) || id.includes(searchQuery.toLowerCase());
+    });
+  }, [owners, searchQuery]);
+
+  const handleToggle = (value) => {
+    if (selectedOwners.includes(value)) {
+      onChange(selectedOwners.filter((v) => v !== value));
+    } else {
+      onChange([...selectedOwners, value]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    onChange([]);
+    setSearchQuery("");
+  };
+
+  const handleClearAll = () => {
+    onChange([]);
+  };
+
+  const selectedLabels = useMemo(() => {
+    if (selectedOwners.length === 0) return "All Owners";
+    if (selectedOwners.length === 1) {
+      const match = owners.find((o) => o.owner_zoho_id === selectedOwners[0]);
+      return match ? match.owner_name : selectedOwners[0];
+    }
+    return `${selectedOwners.length} owners selected`;
+  }, [selectedOwners, owners]);
+
+  return (
+    <div className="relative w-44" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={loading}
+        className={cx(
+          "flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xs outline-none transition duration-200 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer",
+          isOpen && "border-slate-400 ring-2 ring-slate-100"
+        )}
+      >
+        <span className="truncate text-left">{selectedLabels}</span>
+        <ChevronRight
+          className={cx(
+            "h-3.5 w-3.5 text-slate-400 transition-transform duration-200 shrink-0 ml-1",
+            isOpen ? "-rotate-90" : "rotate-90"
+          )}
+        />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-2 z-50 w-56 rounded-xl border border-slate-200 bg-white p-2.5 shadow-lg max-h-72 flex flex-col">
+          <div className="relative mb-2 flex-none">
+            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search reps..."
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 pl-8 pr-2.5 py-1.5 text-xs text-slate-800 outline-none transition focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-100"
+            />
+          </div>
+
+          <div className="flex justify-between items-center px-1 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex-none">
+            <button
+              type="button"
+              onClick={handleSelectAll}
+              className="hover:text-slate-800 transition cursor-pointer"
+            >
+              All Owners
+            </button>
+            {selectedOwners.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="hover:text-rose-600 transition cursor-pointer text-rose-500"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          <div className="overflow-y-auto flex-1 space-y-1 pr-0.5">
+            <div className="border-b border-slate-100 pb-1 mb-1">
+              <div
+                onClick={handleSelectAll}
+                className={cx(
+                  "flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-semibold cursor-pointer select-none transition",
+                  selectedOwners.length === 0 ? "bg-slate-50 text-slate-900" : "text-slate-600 hover:bg-slate-50"
+                )}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedOwners.length === 0}
+                  readOnly
+                  className="rounded border-slate-300 text-slate-900 focus:ring-slate-500 focus:ring-offset-0 pointer-events-none cursor-pointer"
+                />
+                <span className="truncate">All Owners</span>
+              </div>
+            </div>
+
+            {filteredOwners.map((o) => {
+              const value = o.owner_zoho_id;
+              const label = o.owner_name;
+              const isChecked = selectedOwners.includes(value);
+
+              return (
+                <div
+                  key={value}
+                  onClick={() => handleToggle(value)}
+                  className={cx(
+                    "flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs cursor-pointer select-none transition",
+                    isChecked ? "bg-slate-50 text-slate-900 font-semibold" : "text-slate-600 hover:bg-slate-50"
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    readOnly
+                    className="rounded border-slate-300 text-slate-900 focus:ring-slate-500 focus:ring-offset-0 pointer-events-none cursor-pointer"
+                  />
+                  <span className="truncate text-left">{label}</span>
+                </div>
+              );
+            })}
+            {filteredOwners.length === 0 && (
+              <div className="py-2 text-center text-xs text-slate-400">
+                No reps found
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const PIPELINE_OPTIONS = [
   { value: "all", label: "Both pipelines" },
@@ -750,7 +910,6 @@ export default function BiginDashboard() {
   const pipeline = ["b2c", "b1b2", "all"].includes(params.get("pipeline"))
     ? params.get("pipeline")
     : "all";
-  const owner = params.get("owner") || "all";
   const dateFrom = params.get("date_from") || defaults.from;
   const dateTo = params.get("date_to") || defaults.to;
 
@@ -758,6 +917,18 @@ export default function BiginDashboard() {
     const next = new URLSearchParams(params);
     next.set(key, value);
     setParams(next, { replace: true });
+  };
+
+  const ownerParam = params.get("owner");
+  const selectedOwners = useMemo(() => {
+    if (!ownerParam || ownerParam === "all") return [];
+    return ownerParam.split(",").map((s) => s.trim()).filter(Boolean);
+  }, [ownerParam]);
+  const owner = ownerParam || "all";
+
+  const handleOwnerChange = (newSelected) => {
+    const val = newSelected.length === 0 ? "all" : newSelected.join(",");
+    update("owner", val);
   };
 
   useEffect(() => {
@@ -830,11 +1001,6 @@ export default function BiginDashboard() {
     fetchPrev: false,
   });
 
-  const ownerOptions = [
-    { value: "all", label: "All Owners" },
-    ...owners.map((o) => ({ value: o.owner_zoho_id, label: o.owner_name })),
-  ];
-
   return (
     <div className="min-h-full bg-slate-50/60">
       <div className="mx-auto max-w-[1440px] space-y-6 p-5 sm:p-7 lg:p-8">
@@ -881,11 +1047,10 @@ export default function BiginDashboard() {
                   </button>
                 ))}
               </div>
-              <ControlDropdown
-                value={owner}
-                options={ownerOptions}
-                onChange={(v) => update("owner", v)}
-                className="w-44"
+              <MultiSelectOwner
+                owners={owners}
+                selectedOwners={selectedOwners}
+                onChange={handleOwnerChange}
               />
               <ControlDropdown
                 value={pipeline}
