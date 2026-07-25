@@ -96,6 +96,7 @@ import ProductTour from "./tour/ProductTour";
 import { usePullToRefresh } from "./hooks/usePullToRefresh";
 import {
   getMaintenanceStatus,
+  isMaintenanceResponse,
   setMaintenanceStatus,
   subscribeMaintenanceStatus,
 } from "./utils/maintenanceSignal";
@@ -776,50 +777,87 @@ function AppContent() {
     return unsubscribe;
   }, []);
 
-  const checkHealth = useCallback(async (retriesLeft = 2) => {
+  const healthCheckInFlightRef = useRef(false);
+
+  const checkHealth = useCallback(async (maxRetries = 2) => {
     // Skip polling when the tab is not visible — avoids false triggers
     // caused by OS-level network suspension on background tabs.
-    if (document.visibilityState !== "visible") return;
+    if (
+      document.visibilityState !== "visible" ||
+      healthCheckInFlightRef.current
+    ) {
+      return;
+    }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    healthCheckInFlightRef.current = true;
 
     try {
       const baseUrl = import.meta.env.VITE_BACKEND_URL;
       const healthUrl = new URL("/health", baseUrl).toString();
-      const response = await fetch(healthUrl, {
-        method: "GET",
-        cache: "no-store",
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
 
-      if (response.ok) {
-        setMaintenanceStatus(false);
-        setMaintenanceOpen(false);
-        addSentryBreadcrumb({
-          category: "maintenance",
-          message: "health-check-ok",
-        });
-      } else {
-        throw new Error("Backend unhealthy");
-      }
-    } catch (error) {
-      clearTimeout(timeoutId);
+      for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      if (retriesLeft > 0) {
-        // Wait 2 seconds and retry transparently in the background
-        setTimeout(() => checkHealth(retriesLeft - 1), 2000);
-      } else {
-        // All retries exhausted, actually show the maintenance modal
-        setMaintenanceStatus(true);
-        setMaintenanceOpen(true);
-        captureFeatureError(error, {
-          featureArea: "maintenance",
-          tags: { action: "health-check-failed" },
-          extra: { retriesExhausted: true },
-        });
+        try {
+          const response = await fetch(healthUrl, {
+            method: "GET",
+            cache: "no-store",
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (response.ok) {
+            setMaintenanceStatus(false);
+            setMaintenanceOpen(false);
+            addSentryBreadcrumb({
+              category: "maintenance",
+              message: "health-check-ok",
+            });
+            return;
+          }
+
+          const data = await response.json().catch(() => null);
+          if (isMaintenanceResponse({ status: response.status, data })) {
+            setMaintenanceStatus(true);
+            setMaintenanceOpen(true);
+            addSentryBreadcrumb({
+              category: "maintenance",
+              message: "maintenance-mode-confirmed",
+            });
+            return;
+          }
+
+          if (attempt === maxRetries) {
+            addSentryBreadcrumb({
+              category: "maintenance",
+              message: "health-check-unavailable",
+              data: { status: response.status },
+            });
+            return;
+          }
+        } catch (error) {
+          clearTimeout(timeoutId);
+
+          if (attempt === maxRetries) {
+            // A timeout or network failure is not proof of maintenance. Keep
+            // the app usable and wait for the next scheduled health check.
+            addSentryBreadcrumb({
+              category: "maintenance",
+              message: "health-check-network-failure",
+              data: { error: error?.name || "unknown" },
+            });
+            return;
+          }
+        }
+
+        // Retry transparently, but keep the retry sequence inside this
+        // request so interval/manual checks cannot create racing retries.
+        await delay(2000);
       }
+    } finally {
+      healthCheckInFlightRef.current = false;
     }
   }, []);
 

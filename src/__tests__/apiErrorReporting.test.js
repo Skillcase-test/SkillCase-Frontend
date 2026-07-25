@@ -14,9 +14,13 @@ vi.mock("../redux/store", () => ({
   },
 }));
 vi.mock("../redux/auth/authSlice", () => ({ setUser: (u) => ({ type: "setUser", payload: u }) }));
-vi.mock("../utils/maintenanceSignal", () => ({
-  setMaintenanceStatus: (...a) => setMaintenanceStatus(...a),
-}));
+vi.mock("../utils/maintenanceSignal", async () => {
+  const actual = await vi.importActual("../utils/maintenanceSignal");
+  return {
+    ...actual,
+    setMaintenanceStatus: (...a) => setMaintenanceStatus(...a),
+  };
+});
 vi.mock("../observability/sentry", () => ({
   captureApiError: (...a) => captureApiError(...a),
   addSentryBreadcrumb: (...a) => addSentryBreadcrumb(...a),
@@ -29,6 +33,7 @@ vi.mock("../telemetry", () => ({
 
 let api;
 let onRejected;
+let onFulfilled;
 
 function failure({ status, data = {}, code } = {}) {
   return {
@@ -45,6 +50,7 @@ describe("api error reporting", () => {
     authState = { token: "token-1", user: { user_id: "u-1" } };
     Object.defineProperty(navigator, "onLine", { configurable: true, get: () => true });
     api = (await import("../api/axios")).default;
+    onFulfilled = api.interceptors.response.handlers[0].fulfilled;
     onRejected = api.interceptors.response.handlers[0].rejected;
   });
 
@@ -82,17 +88,48 @@ describe("api error reporting", () => {
     expect(captureApiError).not.toHaveBeenCalled();
   });
 
-  it("still reports genuine server faults and online transport failures", async () => {
+  it("only marks explicitly confirmed maintenance as maintenance", async () => {
     await expect(onRejected(failure({ status: 500 }))).rejects.toBeDefined();
     expect(captureApiError).toHaveBeenCalledTimes(1);
 
     vi.clearAllMocks();
     await expect(onRejected(failure({ code: "ERR_NETWORK" }))).rejects.toBeDefined();
     expect(captureApiError).toHaveBeenCalledTimes(1);
+    expect(setMaintenanceStatus).not.toHaveBeenCalled();
 
     vi.clearAllMocks();
-    await expect(onRejected(failure({ status: 503 }))).rejects.toBeDefined();
+    await expect(
+      onRejected(failure({ status: 503, data: { code: "backend_unhealthy" } })),
+    ).rejects.toBeDefined();
+    expect(captureApiError).toHaveBeenCalledTimes(1);
+    expect(setMaintenanceStatus).not.toHaveBeenCalled();
+
+    vi.clearAllMocks();
+    await expect(
+      onRejected(failure({ status: 503, data: { code: "maintenance_mode" } })),
+    ).rejects.toBeDefined();
     expect(captureApiError).toHaveBeenCalledTimes(1);
     expect(setMaintenanceStatus).toHaveBeenCalledWith(true);
+
+    vi.clearAllMocks();
+    await expect(
+      onRejected(failure({ status: 503, data: { message: "System under maintenance" } })),
+    ).rejects.toBeDefined();
+    expect(setMaintenanceStatus).toHaveBeenCalledWith(true);
+  });
+
+  it("does not clear maintenance because an unrelated request succeeds", async () => {
+    await expect(
+      onRejected(failure({ status: 503, data: { code: "maintenance_mode" } })),
+    ).rejects.toBeDefined();
+
+    vi.clearAllMocks();
+    await onFulfilled({
+      status: 200,
+      config: { url: "/health", method: "get", meta: {} },
+      headers: {},
+    });
+
+    expect(setMaintenanceStatus).not.toHaveBeenCalled();
   });
 });

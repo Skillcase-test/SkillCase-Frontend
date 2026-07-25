@@ -1,7 +1,10 @@
 import axios from "axios";
 import { store } from "../redux/store";
 import { setUser } from "../redux/auth/authSlice";
-import { setMaintenanceStatus } from "../utils/maintenanceSignal";
+import {
+  isMaintenanceResponse,
+  setMaintenanceStatus,
+} from "../utils/maintenanceSignal";
 import { addSentryBreadcrumb, captureApiError } from "../observability/sentry";
 import {
   getTelemetryHeaders,
@@ -141,7 +144,6 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => {
-    setMaintenanceStatus(false);
     const durationMs = response?.config?.meta?.startedAt
       ? Date.now() - response.config.meta.startedAt
       : null;
@@ -205,7 +207,7 @@ api.interceptors.response.use(
       },
     });
 
-    if (statusCode === 503) {
+    if (isMaintenanceResponse(error)) {
       setMaintenanceStatus(true);
     }
 
