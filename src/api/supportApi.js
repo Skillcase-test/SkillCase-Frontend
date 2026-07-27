@@ -17,3 +17,7 @@ export const uploadScreenshot = async (file) => {
     }
   });
 };
+
+export const replyToTicketComment = async (ticketId, parentCommentId, message) => {
+  return api.post(`/support/ticket/${ticketId}/comment`, { parentCommentId, message });
+};

@@ -1,7 +1,35 @@
 import React, { useState, useEffect } from "react";
-import { adminGetTickets, adminUpdateTicketStatus, adminUpdateTicketPriority } from "../../api/supportAdminApi";
-import { Loader2, ExternalLink, RefreshCw, X, HelpCircle, CheckCircle2, Clock, AlertCircle, Search, User, Phone, Calendar, Award } from "lucide-react";
+import { adminGetTickets, adminUpdateTicketStatus, adminUpdateTicketPriority, adminAddTicketComment } from "../../api/supportAdminApi";
+import { Loader2, ExternalLink, RefreshCw, X, HelpCircle, CheckCircle2, Clock, AlertCircle, Search, User, Phone, Calendar, Award, MessageSquare, Send, Reply } from "lucide-react";
 import toast from "react-hot-toast";
+
+const MIN_COMMENT_APP_VERSION = "1.2.5";
+
+function isAppVersionAtLeast(version, minVersion) {
+  if (!version || typeof version !== "string") return false;
+  const toParts = (v) => v.split(".").map((n) => parseInt(n, 10) || 0);
+  const versionParts = toParts(version);
+  const minParts = toParts(minVersion);
+  const len = Math.max(versionParts.length, minParts.length);
+  for (let i = 0; i < len; i++) {
+    const a = versionParts[i] || 0;
+    const b = minParts[i] || 0;
+    if (a > b) return true;
+    if (a < b) return false;
+  }
+  return true;
+}
+
+// A populated app_version is authoritative regardless of signup_source (some update paths
+// set app_version without flipping signup_source to 'app'), so it's always checked when present.
+// Only a genuinely null app_version is treated as "web, always up to date" — unless signup_source
+// already flags the row as an app user that just hasn't reported a version yet, which stays gated.
+function isCommentEligible(signupSource, appVersion) {
+  if (appVersion) {
+    return isAppVersionAtLeast(appVersion, MIN_COMMENT_APP_VERSION);
+  }
+  return signupSource !== "app";
+}
 
 export default function SupportTicketsAdmin() {
   const [tickets, setTickets] = useState([]);
@@ -10,6 +38,8 @@ export default function SupportTicketsAdmin() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [commentDrafts, setCommentDrafts] = useState({});
+  const [submittingCommentId, setSubmittingCommentId] = useState(null);
 
   const fetchTickets = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -67,6 +97,32 @@ export default function SupportTicketsAdmin() {
       toast.error("Failed to update priority");
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handleAddComment = async (ticketId) => {
+    const message = (commentDrafts[ticketId] || "").trim();
+    if (!message) return;
+
+    setSubmittingCommentId(ticketId);
+    try {
+      const res = await adminAddTicketComment(ticketId, message);
+      if (res.data?.success) {
+        setCommentDrafts((prev) => ({ ...prev, [ticketId]: "" }));
+        setTickets((prev) =>
+          prev.map((t) =>
+            t.ticket_id === ticketId
+              ? { ...t, comments: [...(t.comments || []), res.data.comment] }
+              : t
+          )
+        );
+        toast.success("Comment added");
+      }
+    } catch (err) {
+      console.error("Failed to add comment:", err);
+      toast.error(err.response?.data?.error || "Failed to add comment");
+    } finally {
+      setSubmittingCommentId(null);
     }
   };
 
@@ -389,6 +445,101 @@ export default function SupportTicketsAdmin() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Support conversation: admin comments + candidate replies */}
+              <div className="px-6 pb-6 pt-2 border-t border-slate-100 space-y-3">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  Support conversation
+                </div>
+
+                {(ticket.comments || []).length > 0 && (
+                  <div className="space-y-2">
+                    {ticket.comments
+                      .filter((c) => c.author_type === "admin")
+                      .map((comment) => {
+                        const reply = ticket.comments.find(
+                          (c) => c.author_type === "candidate" && c.parent_comment_id === comment.comment_id
+                        );
+                        return (
+                          <div key={comment.comment_id} className="space-y-1.5">
+                            <div className="flex items-start gap-2 bg-[#eef2f6] border border-[#ccd9e8] rounded-xl px-3.5 py-2.5 max-w-xl">
+                              <div className="flex-1 space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] font-bold text-[#002856]">You (Admin)</span>
+                                  <span className="text-[9px] text-slate-400">
+                                    {new Date(comment.created_at).toLocaleString()}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">
+                                  {comment.message}
+                                </p>
+                              </div>
+                            </div>
+
+                            {reply && (
+                              <div className="flex items-start gap-2 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-2.5 max-w-xl ml-6">
+                                <Reply className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                                <div className="flex-1 space-y-0.5">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[10px] font-bold text-slate-600">{ticket.name}</span>
+                                    <span className="text-[9px] text-slate-400">
+                                      {new Date(reply.created_at).toLocaleString()}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed">
+                                    {reply.message}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+
+                {isCommentEligible(ticket.candidate_signup_source, ticket.candidate_app_version) ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Add a comment for the candidate..."
+                      value={commentDrafts[ticket.ticket_id] || ""}
+                      onChange={(e) =>
+                        setCommentDrafts((prev) => ({ ...prev, [ticket.ticket_id]: e.target.value }))
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleAddComment(ticket.ticket_id);
+                        }
+                      }}
+                      disabled={submittingCommentId === ticket.ticket_id}
+                      className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200/60 rounded-xl text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-4 focus:ring-[#002856]/5 focus:border-[#002856] transition-all"
+                    />
+                    <button
+                      onClick={() => handleAddComment(ticket.ticket_id)}
+                      disabled={
+                        submittingCommentId === ticket.ticket_id || !(commentDrafts[ticket.ticket_id] || "").trim()
+                      }
+                      className="flex items-center justify-center gap-1.5 px-3.5 py-2 text-[10px] font-bold rounded-xl border border-transparent bg-[#002856] text-white hover:bg-[#001e40] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {submittingCommentId === ticket.ticket_id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Send className="w-3.5 h-3.5" />
+                      )}
+                      Send
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-200/60 rounded-xl text-[10px] font-semibold text-slate-400">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    Comments require app v{MIN_COMMENT_APP_VERSION}+ (candidate is on{" "}
+                    {ticket.candidate_app_version || "an older/unknown version"})
+                  </div>
+                )}
               </div>
             </div>
           ))}

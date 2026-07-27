@@ -19,11 +19,13 @@ import {
   FileText,
   ArrowLeft,
   Check,
+  Reply,
 } from "lucide-react";
 import {
   raiseTicket,
   getUserTickets,
   uploadScreenshot,
+  replyToTicketComment,
 } from "../api/supportApi";
 import toast from "react-hot-toast";
 import { trackFeatureEvent } from "../telemetry/events";
@@ -43,6 +45,8 @@ export default function SupportWidget() {
   const [attachmentPreviewModal, setAttachmentPreviewModal] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [tempSelectedFile, setTempSelectedFile] = useState(null);
+  const [replyDrafts, setReplyDrafts] = useState({});
+  const [submittingReplyId, setSubmittingReplyId] = useState(null);
   const ticketsRef = useRef([]);
   const fileInputRef = useRef(null);
   const modalFileInputRef = useRef(null);
@@ -220,6 +224,31 @@ export default function SupportWidget() {
       );
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleReplySubmit = async (ticketId, commentId) => {
+    const message = (replyDrafts[commentId] || "").trim();
+    if (!message) return;
+
+    setSubmittingReplyId(commentId);
+    try {
+      const res = await replyToTicketComment(ticketId, commentId, message);
+      if (res.data?.success) {
+        setReplyDrafts((prev) => ({ ...prev, [commentId]: "" }));
+        setTickets((prev) =>
+          prev.map((t) =>
+            t.ticket_id === ticketId
+              ? { ...t, comments: [...(t.comments || []), res.data.comment] }
+              : t
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Failed to send reply:", err);
+      toast.error(err.response?.data?.error || "Failed to send reply");
+    } finally {
+      setSubmittingReplyId(null);
     }
   };
 
@@ -645,6 +674,89 @@ export default function SupportWidget() {
                                   {ticket.description}
                                 </p>
                               </div>
+
+                              {/* Support conversation: admin comments + your reply */}
+                              {(ticket.comments || []).filter((c) => c.author_type === "admin").length > 0 && (
+                                <div className="space-y-2">
+                                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                                    SUPPORT TEAM
+                                  </span>
+                                  {ticket.comments
+                                    .filter((c) => c.author_type === "admin")
+                                    .map((comment) => {
+                                      const reply = ticket.comments.find(
+                                        (c) => c.author_type === "candidate" && c.parent_comment_id === comment.comment_id
+                                      );
+                                      return (
+                                        <div key={comment.comment_id} className="space-y-1.5">
+                                          <div className="bg-black/5 rounded-2xl px-3.5 py-2.5 space-y-0.5">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-xs font-semibold text-[#002856]">Support Team</span>
+                                              <span className="text-[10px] text-slate-400">
+                                                {new Date(comment.created_at).toLocaleString()}
+                                              </span>
+                                            </div>
+                                            <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                                              {comment.message}
+                                            </p>
+                                          </div>
+
+                                          {reply ? (
+                                            <div className="bg-white border border-slate-100 rounded-2xl px-3.5 py-2.5 ml-4 space-y-0.5">
+                                              <div className="flex items-center gap-2">
+                                                <Reply className="w-3 h-3 text-slate-400" />
+                                                <span className="text-xs font-semibold text-slate-600">You</span>
+                                                <span className="text-[10px] text-slate-400">
+                                                  {new Date(reply.created_at).toLocaleString()}
+                                                </span>
+                                              </div>
+                                              <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">
+                                                {reply.message}
+                                              </p>
+                                            </div>
+                                          ) : (
+                                            <div className="flex items-center gap-2 ml-4">
+                                              <input
+                                                type="text"
+                                                placeholder="Reply once to this comment..."
+                                                value={replyDrafts[comment.comment_id] || ""}
+                                                onChange={(e) =>
+                                                  setReplyDrafts((prev) => ({
+                                                    ...prev,
+                                                    [comment.comment_id]: e.target.value,
+                                                  }))
+                                                }
+                                                onKeyDown={(e) => {
+                                                  if (e.key === "Enter" && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    handleReplySubmit(ticket.ticket_id, comment.comment_id);
+                                                  }
+                                                }}
+                                                disabled={submittingReplyId === comment.comment_id}
+                                                className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg shadow-2xs text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+                                              />
+                                              <button
+                                                type="button"
+                                                onClick={() => handleReplySubmit(ticket.ticket_id, comment.comment_id)}
+                                                disabled={
+                                                  submittingReplyId === comment.comment_id ||
+                                                  !(replyDrafts[comment.comment_id] || "").trim()
+                                                }
+                                                className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#002856] hover:bg-[#001e40] text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                                              >
+                                                {submittingReplyId === comment.comment_id ? (
+                                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                ) : (
+                                                  <Send className="w-3.5 h-3.5" />
+                                                )}
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                </div>
+                              )}
 
                               {/* Attachment Section */}
                               {ticket.screenshot_url && (

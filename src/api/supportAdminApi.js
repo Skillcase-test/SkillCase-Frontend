@@ -11,3 +11,7 @@ export const adminUpdateTicketStatus = async (ticketId, status) => {
 export const adminUpdateTicketPriority = async (ticketId, priority) => {
   return api.patch(`/admin/support/ticket/${ticketId}/priority`, { priority });
 };
+
+export const adminAddTicketComment = async (ticketId, message) => {
+  return api.post(`/admin/support/ticket/${ticketId}/comment`, { message });
+};
