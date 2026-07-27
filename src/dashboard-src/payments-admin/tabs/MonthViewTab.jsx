@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ActionChip, ControlDropdown } from "../components/controls";
 import { formatInrFromPaise, formatIstDate } from "../utils/formatters";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { LEAD_OWNER_OPTIONS } from "../utils/constants";
 
 export function MonthViewTab({
   rows,
@@ -18,6 +19,8 @@ export function MonthViewTab({
   monthSortOrder,
   setMonthSortBy,
   setMonthSortOrder,
+  monthLeadOwnerFilter,
+  setMonthLeadOwnerFilter,
 }) {
   const [copiedEnrollmentId, setCopiedEnrollmentId] = useState("");
 
@@ -65,7 +68,16 @@ export function MonthViewTab({
   };
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-slate-200">
+    <div className="space-y-3">
+      <div className="grid gap-2 md:grid-cols-3">
+        <ControlDropdown
+          value={monthLeadOwnerFilter}
+          onChange={setMonthLeadOwnerFilter}
+          options={[{ value: "", label: "All Lead Owners" }, ...LEAD_OWNER_OPTIONS]}
+          placeholder="Filter by lead owner"
+        />
+      </div>
+      <div className="overflow-x-auto rounded-xl border border-slate-200">
       <table className="min-w-full text-sm">
         <thead>
           <tr className="border-b bg-slate-50 text-left text-xs uppercase text-slate-500">
@@ -412,6 +424,7 @@ export function MonthViewTab({
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

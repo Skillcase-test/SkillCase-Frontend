@@ -682,6 +682,10 @@ export default function PaymentsAdmin() {
                   setAllStatusFilter: state.setAllStatusFilter,
                   allBatchFilter: state.allBatchFilter,
                   setAllBatchFilter: state.setAllBatchFilter,
+                  allLeadOwnerFilter: state.allLeadOwnerFilter,
+                  setAllLeadOwnerFilter: state.setAllLeadOwnerFilter,
+                  monthLeadOwnerFilter: state.monthLeadOwnerFilter,
+                  setMonthLeadOwnerFilter: state.setMonthLeadOwnerFilter,
                   discountForm: state.discountForm,
                   setDiscountForm: state.setDiscountForm,
                   canApproveDiscounts:

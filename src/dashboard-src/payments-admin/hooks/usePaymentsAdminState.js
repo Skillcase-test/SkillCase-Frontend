@@ -130,6 +130,8 @@ export function usePaymentsAdminState() {
   const [rawSearch, setRawSearch] = useState("");
   const [allStatusFilter, setAllStatusFilter] = useState("");
   const [allBatchFilter, setAllBatchFilter] = useState("");
+  const [allLeadOwnerFilter, setAllLeadOwnerFilter] = useState("");
+  const [monthLeadOwnerFilter, setMonthLeadOwnerFilter] = useState("");
   const [allSortBy, setAllSortBy] = useState("created_at");
   const [allSortOrder, setAllSortOrder] = useState("desc");
   const [paymentSortBy, setPaymentSortBy] = useState("paid_at");
@@ -283,6 +285,7 @@ export function usePaymentsAdminState() {
           search: debouncedAllSearch || undefined,
           status: allStatusFilter || undefined,
           batch_id: allBatchFilter || undefined,
+          lead_owner: allLeadOwnerFilter || undefined,
           sortBy: allSortBy,
           sortOrder: allSortOrder,
           candidate_type: tab === "recruitment" ? "recruitment" : "student",
@@ -308,6 +311,7 @@ export function usePaymentsAdminState() {
           page: currentPage,
           limit: rowsPerPage,
           search: debouncedMonthSearch || undefined,
+          lead_owner: monthLeadOwnerFilter || undefined,
           sortBy: monthSortBy,
           sortOrder: monthSortOrder,
         });
@@ -534,9 +538,11 @@ export function usePaymentsAdminState() {
     (tab === "all" || tab === "recruitment") ? debouncedAllSearch : null,
     (tab === "all" || tab === "recruitment") ? allStatusFilter : null,
     (tab === "all" || tab === "recruitment") ? allBatchFilter : null,
+    (tab === "all" || tab === "recruitment") ? allLeadOwnerFilter : null,
     (tab === "all" || tab === "recruitment") ? allSortBy : null,
     (tab === "all" || tab === "recruitment") ? allSortOrder : null,
     tab === "month" ? debouncedMonthSearch : null,
+    tab === "month" ? monthLeadOwnerFilter : null,
     tab === "month" ? monthSortBy : null,
     tab === "month" ? monthSortOrder : null,
     tab === "fee" ? debouncedFeeSearch : null,
@@ -701,6 +707,10 @@ export function usePaymentsAdminState() {
     setAllStatusFilter,
     allBatchFilter,
     setAllBatchFilter,
+    allLeadOwnerFilter,
+    setAllLeadOwnerFilter,
+    monthLeadOwnerFilter,
+    setMonthLeadOwnerFilter,
     allSortBy,
     setAllSortBy,
     allSortOrder,

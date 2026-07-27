@@ -3,9 +3,11 @@ import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 import {
   CONTROL_BASE,
   ControlButton,
+  ControlDropdown,
   ControlInput,
   ControlSelect,
 } from "./controls";
+import { LEAD_OWNER_OPTIONS } from "../utils/constants";
 
 const personalFields = [
   ["student_name", "Name"],
@@ -14,7 +16,6 @@ const personalFields = [
   ["alternate_number", "Alternate Number"],
   ["nationality", "Nationality"],
   ["current_location_city", "Current Location (City)"],
-  ["lead_owner", "Lead Owner"],
 ];
 
 const INDIAN_STATES = [
@@ -1073,6 +1074,15 @@ export function CandidateDetailsForm({
             </Field>
           )}
           {personalFields.map(textField)}
+          <Field label="Lead Owner">
+            <ControlDropdown
+              value={editDraft.lead_owner || "-"}
+              onChange={(val) => setEditDraft((p) => ({ ...p, lead_owner: val }))}
+              options={LEAD_OWNER_OPTIONS}
+              placeholder="Select Lead Owner"
+              className="w-full"
+            />
+          </Field>
           <Field label="State" required={requiredFieldKeys.has("state")}>
             <ControlSelect
               value={editDraft.state || ""}

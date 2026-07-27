@@ -2,6 +2,7 @@ import { ActionChip, ControlDropdown } from "../components/controls";
 import { StatCard } from "../components/common";
 import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { LEAD_OWNER_OPTIONS } from "../utils/constants";
 
 function lifecycleActionsForRow(row) {
   const s = String(row.lifecycle_state || row.status || "").toLowerCase();
@@ -28,6 +29,8 @@ export function AllViewTab({
   setAllStatusFilter,
   allBatchFilter,
   setAllBatchFilter,
+  allLeadOwnerFilter,
+  setAllLeadOwnerFilter,
   batches,
   openLifecycleModal,
   handleChangeCandidateBatch,
@@ -85,7 +88,7 @@ export function AllViewTab({
         <StatCard label="Total Hold" value={allSummary?.total_hold || 0} tone="blue" />
       </div>
 
-      <div className="grid gap-2 md:grid-cols-2">
+      <div className="grid gap-2 md:grid-cols-3">
         <ControlDropdown
           value={allStatusFilter}
           onChange={setAllStatusFilter}
@@ -97,6 +100,12 @@ export function AllViewTab({
           onChange={setAllBatchFilter}
           options={batchOptions}
           placeholder="Filter by batch"
+        />
+        <ControlDropdown
+          value={allLeadOwnerFilter}
+          onChange={setAllLeadOwnerFilter}
+          options={[{ value: "", label: "All Lead Owners" }, ...LEAD_OWNER_OPTIONS]}
+          placeholder="Filter by lead owner"
         />
       </div>
 

@@ -30,3 +30,13 @@ export const MONTH_NAMES = [
 export const monthNameToNumber = Object.fromEntries(
   MONTH_NAMES.map((x, i) => [String(x).toLowerCase(), i]),
 );
+
+export const LEAD_OWNER_OPTIONS = [
+  { value: "Fiza", label: "Fiza" },
+  { value: "Rajith", label: "Rajith" },
+  { value: "Avinash", label: "Avinash" },
+  { value: "Swaraj", label: "Swaraj" },
+  { value: "Yash", label: "Yash" },
+  { value: "Harshita", label: "Harshita" },
+  { value: "-", label: "None" },
+];
