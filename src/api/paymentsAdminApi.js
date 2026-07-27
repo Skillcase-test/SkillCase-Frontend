@@ -42,6 +42,10 @@ export const paymentsAdminApi = {
     api.post(`/admin/payments/enrollments/${enrollmentId}/override-state`, payload),
   createPaymentLink: (payload) =>
     api.post("/admin/payments/create-payment-link", payload),
+  getLedgerPdf: (enrollmentId) =>
+    api.get(`/admin/payments/enrollments/${enrollmentId}/ledger-pdf`, {
+      responseType: "blob",
+    }),
 
   getBatches: (params = {}) => api.get("/admin/payments/batches", { params }),
   getBatchStudents: (batchId, params = {}) =>

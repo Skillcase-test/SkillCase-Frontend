@@ -338,6 +338,8 @@ export function CandidateDetailsForm({
   const [uploadingDoc, setUploadingDoc] = useState("");
   const [uploadError, setUploadError] = useState("");
   const [selfiePreviewUrl, setSelfiePreviewUrl] = useState("");
+  const [downloadingLedger, setDownloadingLedger] = useState(false);
+  const [ledgerError, setLedgerError] = useState("");
 
   useEffect(() => {
     const key = editDraft.selfie_key;
@@ -566,6 +568,36 @@ export function CandidateDetailsForm({
       );
     } finally {
       setUploadingDoc("");
+    }
+  }
+
+  async function handleDownloadLedgerPdf() {
+    if (downloadingLedger || !editDraft.enrollment_id) return;
+    setDownloadingLedger(true);
+    setLedgerError("");
+    try {
+      const res = await paymentsAdminApi.getLedgerPdf(editDraft.enrollment_id);
+      const url = URL.createObjectURL(
+        new Blob([res.data], { type: "application/pdf" }),
+      );
+      const a = document.createElement("a");
+      const disposition = res.headers["content-disposition"] || "";
+      const nameMatch = disposition.match(/filename="?([^"]+)"?/);
+      a.href = url;
+      a.download = nameMatch
+        ? nameMatch[1]
+        : `Ledger_${editDraft.student_name || "candidate"}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Ledger PDF download failed:", err);
+      setLedgerError(
+        err?.response?.data?.msg || "Could not download ledger PDF.",
+      );
+    } finally {
+      setDownloadingLedger(false);
     }
   }
 
@@ -1440,6 +1472,21 @@ export function CandidateDetailsForm({
               creating due unless expected is entered.
             </p>
           </div>
+          {!isCreateMode && (
+            <div className="flex flex-col items-end gap-1">
+              <ControlButton
+                type="button"
+                variant="secondary"
+                onClick={handleDownloadLedgerPdf}
+                disabled={downloadingLedger}
+              >
+                {downloadingLedger ? "Downloading..." : "Download Ledger PDF"}
+              </ControlButton>
+              {ledgerError ? (
+                <p className="text-xs text-rose-600">{ledgerError}</p>
+              ) : null}
+            </div>
+          )}
         </div>
         <div className="space-y-2">
           {expectedRows.map((row, index) => {
