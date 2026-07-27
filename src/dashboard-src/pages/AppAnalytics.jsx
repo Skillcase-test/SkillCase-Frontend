@@ -730,6 +730,7 @@ export default function AppAnalytics({ me }) {
     appVersions: [],
   });
   const [retentionGranularity, setRetentionGranularity] = useState("month");
+  const [retentionPaidStatus, setRetentionPaidStatus] = useState("all");
   const [retentionWeeks, setRetentionWeeks] = useState(6);
   const [retentionMonths, setRetentionMonths] = useState(6);
   const [options, setOptions] = useState({ appVersions: [] });
@@ -754,7 +755,10 @@ export default function AppAnalytics({ me }) {
     setLoading(true);
     try {
       const qs = queryString(filters);
-      const retentionQs = queryString(filters, { granularity: retentionGranularity });
+      const retentionQs = queryString(filters, {
+        granularity: retentionGranularity,
+        paidStatus: retentionPaidStatus,
+      });
       const [
         filterRes,
         summary,
@@ -803,7 +807,7 @@ export default function AppAnalytics({ me }) {
     } finally {
       setLoading(false);
     }
-  }, [filters, retentionGranularity]);
+  }, [filters, retentionGranularity, retentionPaidStatus]);
 
   useEffect(() => {
     fetchAll();
@@ -1118,6 +1122,15 @@ export default function AppAnalytics({ me }) {
                 <h2 className="text-lg font-semibold text-slate-800">Cohort Retention</h2>
               </div>
               <div className="flex items-center gap-2.5">
+                <Segmented
+                  value={retentionPaidStatus}
+                  onChange={setRetentionPaidStatus}
+                  options={[
+                    { label: "All", value: "all" },
+                    { label: "Paid", value: "paid" },
+                    { label: "Unpaid", value: "unpaid" },
+                  ]}
+                />
                 {retentionGranularity === "week" && (
                   <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Show</span>
