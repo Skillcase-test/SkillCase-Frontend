@@ -33,6 +33,28 @@ export const adminReviewAdditionalDoc = (userId, docId, payload) =>
     payload,
   );
 
+export const adminUploadProfileDocuments = (userId, formData) =>
+  api.post(
+    `/admin/job-screening/candidates/${userId}/profile-documents`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+export const adminUploadAdditionalDocForCandidate = (userId, docId, formData) =>
+  api.post(
+    `/admin/job-screening/candidates/${userId}/additional-documents/${docId}/upload`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
 export const adminUploadOfferLetter = (userId, formData, recruiterAccountId) =>
   api.post(`/admin/job-screening/candidates/${userId}/offer-letter`, formData, {
     params: recruiterAccountId ? { recruiterAccountId } : {},

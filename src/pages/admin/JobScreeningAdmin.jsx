@@ -22,6 +22,8 @@ import {
   adminGetCandidateDetail,
   adminUpdateCandidate,
   adminReviewAdditionalDoc,
+  adminUploadProfileDocuments,
+  adminUploadAdditionalDocForCandidate,
   adminUploadOfferLetter,
   getAdminDropdownOptions,
   adminGetSettings,
@@ -391,6 +393,61 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
     }
   };
 
+  const handleUploadProfileDocuments = async (userId, files) => {
+    if (blockIfReadOnly()) return;
+    const formData = new FormData();
+    if (files.resume) formData.append("resume", files.resume);
+    if (files.certificate) formData.append("certificate", files.certificate);
+
+    try {
+      setUpdating(true);
+      const { data } = await adminUploadProfileDocuments(userId, formData);
+      if (data?.success) {
+        toast.success("Document uploaded and approved on candidate's behalf");
+        applyUpdatedCandidate(data.data);
+        fetchList();
+      } else {
+        toast.error("Failed to upload document");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err.response?.data?.message || "Error uploading profile document",
+      );
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleUploadAdditionalDocForCandidate = async (userId, docId, file) => {
+    if (blockIfReadOnly()) return;
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      setUpdating(true);
+      const { data } = await adminUploadAdditionalDocForCandidate(
+        userId,
+        docId,
+        formData,
+      );
+      if (data?.success) {
+        toast.success("Document uploaded and approved on candidate's behalf");
+        applyUpdatedCandidate(data.data);
+        fetchList();
+      } else {
+        toast.error("Failed to upload document");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err.response?.data?.message || "Error uploading additional document",
+      );
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const handleUploadOfferLetter = async (userId, file, recruiterAccountId) => {
     if (blockIfReadOnly()) return;
     const formData = new FormData();
@@ -651,6 +708,10 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
             canEdit={canEdit}
             onUpdate={handleUpdateCandidate}
             onReviewDoc={handleReviewAdditionalDoc}
+            onUploadProfileDocuments={handleUploadProfileDocuments}
+            onUploadAdditionalDocForCandidate={
+              handleUploadAdditionalDocForCandidate
+            }
             onUploadOfferLetter={handleUploadOfferLetter}
             onUploadTrainingScheduleImage={handleUploadTrainingScheduleImage}
             onUploadRecruiterScheduleImage={handleUploadRecruiterScheduleImage}

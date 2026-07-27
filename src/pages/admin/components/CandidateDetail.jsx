@@ -68,6 +68,8 @@ const CandidateDetail = ({
   options,
   onUpdate,
   onReviewDoc,
+  onUploadProfileDocuments,
+  onUploadAdditionalDocForCandidate,
   onUploadOfferLetter,
   onUploadTrainingScheduleImage,
   onUploadRecruiterScheduleImage,
@@ -1401,13 +1403,66 @@ const CandidateDetail = ({
                               Reset Profile Verification
                             </button>
                           )}
-                          {isActive &&
-                            (candidate.resume_url ||
-                              candidate.lang_cert_url) && (
-                              <div className="mt-3 p-3 bg-slate-50 border border-slate-200/60 rounded-xl flex flex-col gap-2.5">
-                                <span className="font-bold text-[#083262] block">
-                                  Verify Profile Credentials
+                          {isActive && (
+                            <div className="mt-3 p-3 bg-slate-50 border border-slate-200/60 rounded-xl flex flex-col gap-2.5">
+                              <span className="font-bold text-[#083262] block">
+                                Verify Profile Credentials
+                              </span>
+
+                              <div className="bg-white border border-slate-150 rounded-lg p-2.5 flex flex-col gap-2">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                                  Upload on behalf of candidate
                                 </span>
+                                <p className="text-[9px] text-slate-400 leading-relaxed">
+                                  For candidates who are unable to upload
+                                  themselves. Files uploaded here are approved
+                                  immediately.
+                                </p>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                  <label className="flex-1 flex flex-col gap-1">
+                                    <span className="text-[9px] font-bold text-slate-500">
+                                      Resume / CV (PDF)
+                                    </span>
+                                    <input
+                                      type="file"
+                                      accept="application/pdf"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        onUploadProfileDocuments(
+                                          candidate.user_id,
+                                          { resume: file },
+                                        );
+                                        e.target.value = "";
+                                      }}
+                                      className="text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[9px] file:font-bold file:bg-[#083262] file:text-white"
+                                    />
+                                  </label>
+                                  <label className="flex-1 flex flex-col gap-1">
+                                    <span className="text-[9px] font-bold text-slate-500">
+                                      Language Certificate (PDF)
+                                    </span>
+                                    <input
+                                      type="file"
+                                      accept="application/pdf"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        onUploadProfileDocuments(
+                                          candidate.user_id,
+                                          { certificate: file },
+                                        );
+                                        e.target.value = "";
+                                      }}
+                                      className="text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[9px] file:font-bold file:bg-[#083262] file:text-white"
+                                    />
+                                  </label>
+                                </div>
+                              </div>
+
+                              {(candidate.resume_url ||
+                                candidate.lang_cert_url) && (
+                              <>
                                 {candidate.extracted_email && (
                                   <div className="text-[10px] text-slate-500 bg-white p-2 rounded-lg border border-slate-100">
                                     Extracted Email:{" "}
@@ -1581,8 +1636,10 @@ const CandidateDetail = ({
                                       )}
                                   </div>
                                 )}
-                              </div>
-                            )}
+                              </>
+                              )}
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -2012,8 +2069,64 @@ const CandidateDetail = ({
                                                 </button>
                                               </div>
                                             )}
+
+                                          {isActive && (
+                                            <label className="flex flex-col gap-1 mt-1">
+                                              <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
+                                                Replace on behalf of candidate
+                                              </span>
+                                              <input
+                                                type="file"
+                                                accept={(
+                                                  doc.allowed_extensions || []
+                                                )
+                                                  .map((ext) => `.${ext}`)
+                                                  .join(",")}
+                                                onChange={(e) => {
+                                                  const file =
+                                                    e.target.files?.[0];
+                                                  if (!file) return;
+                                                  onUploadAdditionalDocForCandidate(
+                                                    candidate.user_id,
+                                                    doc.id,
+                                                    file,
+                                                  );
+                                                  e.target.value = "";
+                                                }}
+                                                className="text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[9px] file:font-bold file:bg-[#083262] file:text-white"
+                                              />
+                                            </label>
+                                          )}
                                         </div>
-                                      ) : null}
+                                      ) : (
+                                        isActive && (
+                                          <label className="flex flex-col gap-1">
+                                            <span className="text-[9px] font-bold text-slate-500">
+                                              Upload on behalf of candidate
+                                            </span>
+                                            <input
+                                              type="file"
+                                              accept={(
+                                                doc.allowed_extensions || []
+                                              )
+                                                .map((ext) => `.${ext}`)
+                                                .join(",")}
+                                              onChange={(e) => {
+                                                const file =
+                                                  e.target.files?.[0];
+                                                if (!file) return;
+                                                onUploadAdditionalDocForCandidate(
+                                                  candidate.user_id,
+                                                  doc.id,
+                                                  file,
+                                                );
+                                                e.target.value = "";
+                                              }}
+                                              className="text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[9px] file:font-bold file:bg-[#083262] file:text-white"
+                                            />
+                                          </label>
+                                        )
+                                      )}
                                     </div>
                                   );
                                 },

@@ -14,6 +14,8 @@ vi.mock("../api/jobScreeningAdminApi", () => ({
   adminGetCandidateDetail: vi.fn(),
   adminUpdateCandidate: vi.fn(),
   adminReviewAdditionalDoc: vi.fn(),
+  adminUploadProfileDocuments: vi.fn(),
+  adminUploadAdditionalDocForCandidate: vi.fn(),
   adminUploadOfferLetter: vi.fn(),
   getAdminDropdownOptions: vi.fn(),
   adminGetSettings: vi.fn(),
@@ -161,5 +163,83 @@ describe("JobScreeningAdmin — read-only enforcement", () => {
 
     const nameInput = await screen.findByDisplayValue("Jane Candidate");
     expect(nameInput).toBeDisabled();
+  });
+});
+
+describe("JobScreeningAdmin — upload documents on behalf of candidate", () => {
+  const candidateWithProfileStep = {
+    user_id: "candidate-2",
+    fullname: "Sam Candidate",
+    email: "sam@example.com",
+    current_step_id: "profile_completion",
+    steps_config: [
+      {
+        id: "profile_completion",
+        title: "Profile Completion",
+        status: "pending",
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockHappyApiResponses();
+    jobScreeningAdminApi.adminGetCandidates.mockResolvedValue({
+      data: {
+        success: true,
+        data: [candidateWithProfileStep],
+        summary: {},
+        pagination: { totalPages: 1 },
+      },
+    });
+    jobScreeningAdminApi.adminGetCandidateDetail.mockResolvedValue({
+      data: { success: true, data: candidateWithProfileStep },
+    });
+  });
+
+  test("editor admin can upload a resume on the candidate's behalf", async () => {
+    jobScreeningAdminApi.adminUploadProfileDocuments.mockResolvedValue({
+      data: { success: true, data: candidateWithProfileStep },
+    });
+
+    render(<JobScreeningAdmin canEdit={true} />);
+
+    const candidateButton = await screen.findByRole("button", {
+      name: /Sam Candidate/i,
+    });
+    fireEvent.click(candidateButton);
+
+    const resumeInput = await screen.findByLabelText("Resume / CV (PDF)");
+    const file = new File(["dummy"], "resume.pdf", {
+      type: "application/pdf",
+    });
+    fireEvent.change(resumeInput, { target: { files: [file] } });
+
+    await waitFor(() => {
+      expect(
+        jobScreeningAdminApi.adminUploadProfileDocuments,
+      ).toHaveBeenCalledTimes(1);
+    });
+    const [userId, formData] =
+      jobScreeningAdminApi.adminUploadProfileDocuments.mock.calls[0];
+    expect(userId).toBe("candidate-2");
+    expect(formData.get("resume")).toBe(file);
+    expect(formData.get("certificate")).toBeNull();
+  });
+
+  test("view-only admin's upload-on-behalf input is disabled and never calls the API", async () => {
+    render(<JobScreeningAdmin canEdit={false} />);
+
+    const candidateButton = await screen.findByRole("button", {
+      name: /Sam Candidate/i,
+    });
+    fireEvent.click(candidateButton);
+
+    const resumeInput = await screen.findByLabelText("Resume / CV (PDF)");
+    expect(resumeInput).toBeDisabled();
+
+    expect(
+      jobScreeningAdminApi.adminUploadProfileDocuments,
+    ).not.toHaveBeenCalled();
   });
 });
