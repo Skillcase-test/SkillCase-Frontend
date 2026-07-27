@@ -29,7 +29,6 @@ export function FunnelChart({ stages = [] }) {
         <div className="flex items-center gap-3 shrink-0">
           <span className="w-14 text-right">Leads</span>
           <span className="w-14 text-right">% of Total</span>
-          <span className="w-16 text-right">vs Prior</span>
         </div>
       </div>
 
@@ -61,19 +60,6 @@ export function FunnelChart({ stages = [] }) {
               </span>
               <span className="w-14 text-right text-slate-600">
                 {s.conversion_pct}%
-              </span>
-              <span
-                className={`w-16 text-right ${
-                  s.drop_off_pct != null && s.drop_off_pct <= -30
-                    ? "font-semibold text-rose-600"
-                    : s.drop_off_pct != null && s.drop_off_pct > 0
-                      ? "text-emerald-600"
-                      : "text-slate-600"
-                }`}
-              >
-                {s.drop_off_pct != null
-                  ? `${s.drop_off_pct > 0 ? "+" : ""}${s.drop_off_pct}%`
-                  : "—"}
               </span>
             </div>
           </div>
