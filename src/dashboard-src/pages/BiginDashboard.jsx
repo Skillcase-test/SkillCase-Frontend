@@ -976,6 +976,9 @@ export default function BiginDashboard() {
   // month, where do they stand as of right now" - so it buckets by each
   // lead's live current stage rather than a frozen last-month-end snapshot.
   // Only the created_time window is anchored to before this month.
+  // `closed_since: startOfMonth` excludes leads that already won/lost before
+  // this month started - those belong to the Complete view, not here; only
+  // leads that were still open last month but closed this month count.
   const beforeMonthApiFilters = useMemo(
     () => ({
       pipeline,
@@ -983,8 +986,9 @@ export default function BiginDashboard() {
       scope: "active",
       date_from: "1970-01-01",
       date_to: dayBeforeMonth,
+      closed_since: startOfMonth,
     }),
-    [pipeline, owner, dayBeforeMonth],
+    [pipeline, owner, dayBeforeMonth, startOfMonth],
   );
 
   const primaryFilters =
@@ -1121,7 +1125,7 @@ export default function BiginDashboard() {
             <DashboardBody data={primary} periodLabel="This month" compact />
             <DashboardBody
               data={secondary}
-              periodLabel="Before this month (snapshot, as of last month's end)"
+              periodLabel="Before this month (won/lost this month, rest live)"
               compact
             />
           </div>
