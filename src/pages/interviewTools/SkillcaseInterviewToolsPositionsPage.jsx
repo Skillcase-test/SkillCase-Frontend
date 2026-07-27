@@ -26,7 +26,8 @@ const STATUS_META = {
 export default function SkillcaseInterviewToolsPositionsPage({
   setActivePage,
   setSelectedInterviewPositionId,
-  isSuperAdmin = false,
+  canManageAll = false,
+  canViewAll = false,
 }) {
   const [positions, setPositions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -213,10 +214,10 @@ export default function SkillcaseInterviewToolsPositionsPage({
             <thead className="bg-slate-50 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">
               <tr>
                 <th className="px-6 py-4">Interview</th>
-                {isSuperAdmin ? (
+                {canViewAll ? (
                   <th className="px-6 py-4">Created By</th>
                 ) : null}
-                {isSuperAdmin ? (
+                {canViewAll ? (
                   <th className="px-6 py-4">Created On (IST)</th>
                 ) : null}
                 <th className="px-6 py-4">Status</th>
@@ -229,6 +230,8 @@ export default function SkillcaseInterviewToolsPositionsPage({
             <tbody className="divide-y divide-slate-100 text-sm text-slate-700 font-medium">
               {positions.map((position) => {
                 const publicLink = `${window.location.origin}/interview/${position.slug}`;
+                const canWriteThisPosition =
+                  canManageAll || position.is_own_position;
 
                 return (
                   <tr
@@ -243,14 +246,14 @@ export default function SkillcaseInterviewToolsPositionsPage({
                         {position.details || position.role_title}
                       </div>
                     </td>
-                    {isSuperAdmin ? (
+                    {canViewAll ? (
                       <td className="px-6 py-5 align-top text-xs text-slate-500 font-medium">
                         {position.created_by_username ||
                           position.created_by ||
                           "-"}
                       </td>
                     ) : null}
-                    {isSuperAdmin ? (
+                    {canViewAll ? (
                       <td className="px-6 py-5 align-top text-xs text-slate-500 font-medium whitespace-nowrap">
                         {formatDateTimeIST(position.created_at)}
                       </td>
@@ -310,56 +313,61 @@ export default function SkillcaseInterviewToolsPositionsPage({
                           Invite
                         </button>
 
-                        <button
-                          type="button"
-                          onClick={() => openBuilder(position.position_id)}
-                          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 shadow-sm"
-                        >
-                          <SquarePen className="h-4 w-4 text-slate-500" />
-                          Edit
-                        </button>
-
-                        <button
-                          type="button"
-                          disabled={Boolean(duplicatingPositionId)}
-                          onClick={() => duplicatePosition(position)}
-                          className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          <Copy className="h-4 w-4 text-slate-500" />
-                          {duplicatingPositionId === position.position_id
-                            ? "Duplicating..."
-                            : "Duplicate"}
-                        </button>
-
-                        {position.status === "published_open" ? (
+                        {canWriteThisPosition && (
                           <button
                             type="button"
-                            onClick={() =>
-                              updateStatus(
-                                position.position_id,
-                                "published_closed",
-                              )
-                            }
-                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 shadow-sm"
+                            onClick={() => openBuilder(position.position_id)}
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 shadow-sm"
                           >
-                            <Lock className="h-4 w-4" />
-                            Close
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              updateStatus(
-                                position.position_id,
-                                "published_open",
-                              )
-                            }
-                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 shadow-sm"
-                          >
-                            <Globe className="h-4 w-4" />
-                            Open
+                            <SquarePen className="h-4 w-4 text-slate-500" />
+                            Edit
                           </button>
                         )}
+
+                        {canWriteThisPosition && (
+                          <button
+                            type="button"
+                            disabled={Boolean(duplicatingPositionId)}
+                            onClick={() => duplicatePosition(position)}
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            <Copy className="h-4 w-4 text-slate-500" />
+                            {duplicatingPositionId === position.position_id
+                              ? "Duplicating..."
+                              : "Duplicate"}
+                          </button>
+                        )}
+
+                        {canWriteThisPosition &&
+                          (position.status === "published_open" ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateStatus(
+                                  position.position_id,
+                                  "published_closed",
+                                )
+                              }
+                              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 shadow-sm"
+                            >
+                              <Lock className="h-4 w-4" />
+                              Close
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateStatus(
+                                  position.position_id,
+                                  "published_open",
+                                )
+                              }
+                              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 shadow-sm"
+                            >
+                              <Globe className="h-4 w-4" />
+                              Open
+                            </button>
+                          ))}
 
                         <button
                           type="button"
@@ -370,16 +378,18 @@ export default function SkillcaseInterviewToolsPositionsPage({
                           Public
                         </button>
 
-                        <button
-                          type="button"
-                          onClick={() => deletePosition(position)}
-                          className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3.5 py-2.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50 shadow-sm"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Delete
-                        </button>
+                        {canWriteThisPosition && (
+                          <button
+                            type="button"
+                            onClick={() => deletePosition(position)}
+                            className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-white px-3.5 py-2.5 text-xs font-bold text-rose-700 transition hover:bg-rose-50 shadow-sm"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Delete
+                          </button>
+                        )}
 
-                        {isSuperAdmin && (
+                        {canManageAll && (
                           <button
                             type="button"
                             onClick={async () => {

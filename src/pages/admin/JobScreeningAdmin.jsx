@@ -32,7 +32,7 @@ import {
 import CandidateList from "./components/CandidateList";
 import CandidateDetail from "./components/CandidateDetail";
 
-const JobScreeningAdmin = () => {
+const JobScreeningAdmin = ({ canEdit = true }) => {
   const detailRequestIdRef = React.useRef(0);
   const [candidates, setCandidates] = useState([]);
   const [options, setOptions] = useState({
@@ -87,7 +87,16 @@ const JobScreeningAdmin = () => {
     }),
   );
 
+  const blockIfReadOnly = () => {
+    if (!canEdit) {
+      toast.error("You have view-only access to Job Screening");
+      return true;
+    }
+    return false;
+  };
+
   const handleDragEndGlobal = (event) => {
+    if (blockIfReadOnly()) return;
     const { active, over } = event;
     if (active.id !== over.id) {
       const steps = globalSettings.steps_config || [];
@@ -337,6 +346,7 @@ const JobScreeningAdmin = () => {
   };
 
   const handleUpdateCandidate = async (userId, payload) => {
+    if (blockIfReadOnly()) return;
     try {
       setUpdating(true);
       const { data } = await adminUpdateCandidate(userId, payload);
@@ -358,6 +368,7 @@ const JobScreeningAdmin = () => {
   };
 
   const handleReviewAdditionalDoc = async (userId, docId, payload) => {
+    if (blockIfReadOnly()) return;
     try {
       setUpdating(true);
       const { data } = await adminReviewAdditionalDoc(userId, docId, payload);
@@ -381,6 +392,7 @@ const JobScreeningAdmin = () => {
   };
 
   const handleUploadOfferLetter = async (userId, file, recruiterAccountId) => {
+    if (blockIfReadOnly()) return;
     const formData = new FormData();
     formData.append("offer_letter", file);
 
@@ -409,6 +421,7 @@ const JobScreeningAdmin = () => {
   };
 
   const handleUploadTrainingScheduleImage = async (userId, file) => {
+    if (blockIfReadOnly()) return;
     const formData = new FormData();
     formData.append("schedule_image", file);
 
@@ -438,6 +451,7 @@ const JobScreeningAdmin = () => {
     file,
     recruiterAccountId,
   ) => {
+    if (blockIfReadOnly()) return;
     const formData = new FormData();
     formData.append("schedule_image", file);
 
@@ -467,6 +481,7 @@ const JobScreeningAdmin = () => {
   };
 
   const handleUpdateSettings = async (payload) => {
+    if (blockIfReadOnly()) return;
     try {
       setUpdating(true);
       const { data } = await adminUpdateSettings(payload);
@@ -513,6 +528,7 @@ const JobScreeningAdmin = () => {
   });
 
   const handleAddDocRequirement = () => {
+    if (blockIfReadOnly()) return;
     if (!newDocTitle.trim()) {
       toast.error("Document title cannot be empty");
       return;
@@ -546,6 +562,7 @@ const JobScreeningAdmin = () => {
   };
 
   const handleRemoveDocRequirement = (docId) => {
+    if (blockIfReadOnly()) return;
     setGlobalSettings((prev) => ({
       ...prev,
       required_additional_documents: (
@@ -558,11 +575,20 @@ const JobScreeningAdmin = () => {
     <div className="flex flex-col gap-6 h-full font-sans">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-slate-100 pb-4">
         <div>
-          <h1 className="text-xl font-extrabold text-[#083262]">
-            Job Screening Admin
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-extrabold text-[#083262]">
+              Job Screening Admin
+            </h1>
+            {!canEdit && (
+              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200">
+                View Only
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500 mt-1">
-            Manage B1/B2 candidate profiles, slot times, and step orderings.
+            {canEdit
+              ? "Manage B1/B2 candidate profiles, slot times, and step orderings."
+              : "You have view-only access — editing and updates are disabled."}
           </p>
         </div>
 
@@ -622,6 +648,7 @@ const JobScreeningAdmin = () => {
             candidate={selectedCandidateDetail}
             loading={detailLoading}
             options={options}
+            canEdit={canEdit}
             onUpdate={handleUpdateCandidate}
             onReviewDoc={handleReviewAdditionalDoc}
             onUploadOfferLetter={handleUploadOfferLetter}
@@ -769,7 +796,8 @@ const JobScreeningAdmin = () => {
               <button
                 type="button"
                 onClick={() => handleUpdateSettings(globalSettings)}
-                disabled={updating}
+                disabled={updating || !canEdit}
+                title={!canEdit ? "You have view-only access" : undefined}
                 className="px-6 py-2.5 bg-[#083262] text-white hover:bg-[#052243] rounded-xl text-xs font-extrabold transition-all disabled:opacity-50 shadow-sm cursor-pointer shrink-0"
               >
                 {updating ? "Saving Defaults..." : "Save Global Defaults"}
@@ -777,6 +805,7 @@ const JobScreeningAdmin = () => {
             </div>
 
             {/* Grid of 3 spacious cards */}
+            <fieldset disabled={!canEdit} className="contents">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
               {/* Card 1: Default Templates & Job Info */}
               <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-4">
@@ -1163,6 +1192,7 @@ const JobScreeningAdmin = () => {
                 </div>
               </div>
             </div>
+            </fieldset>
           </div>
         )}
       </div>

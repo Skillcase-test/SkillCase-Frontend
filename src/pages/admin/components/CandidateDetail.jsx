@@ -74,6 +74,7 @@ const CandidateDetail = ({
   updating,
   onRefresh,
   onClose,
+  canEdit = true,
 }) => {
   const [fullname, setFullname] = useState("");
   const [email, setEmail] = useState("");
@@ -668,9 +669,16 @@ const CandidateDetail = ({
           )}
           <div className="h-4 w-px bg-slate-200" />
           <div>
-            <h2 className="text-sm font-bold text-slate-800">
-              Candidate Pipeline Details
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-bold text-slate-800">
+                Candidate Pipeline Details
+              </h2>
+              {!canEdit && (
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500 border border-slate-200">
+                  View Only
+                </span>
+              )}
+            </div>
             <p className="text-[10px] text-slate-400 font-medium">
               Verify documents, schedule classes and dispatch offers.
             </p>
@@ -705,6 +713,7 @@ const CandidateDetail = ({
       {/* Main split dashboard view */}
       <div className="flex-1 overflow-hidden grid grid-cols-1 md:grid-cols-12 h-full">
         {/* Left Column: Profile Card */}
+        <fieldset disabled={!canEdit} className="contents">
         <div className="md:col-span-5 border-r border-slate-100 p-5 flex flex-col gap-5 bg-slate-50/30 overflow-y-auto h-full">
           {/* Summary profile badge */}
           <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-[0_2px_8px_rgba(0,40,86,0.03)] flex flex-col shrink-0">
@@ -1236,8 +1245,10 @@ const CandidateDetail = ({
             </form>
           </details>
         </div>
+        </fieldset>
 
         {/* Right Column: Steps Pipeline Timeline */}
+        <fieldset disabled={!canEdit} className="contents">
         <div className="md:col-span-7 overflow-y-auto p-6 bg-white h-full">
           <h3 className="text-xs font-bold text-[#083262] uppercase tracking-wider mb-6 pb-2 border-b border-slate-100">
             Pipeline Steps Timeline
@@ -3527,6 +3538,7 @@ const CandidateDetail = ({
             </div>
           </details>
         </div>
+        </fieldset>
       </div>
 
       {/* Confirmation Modal */}

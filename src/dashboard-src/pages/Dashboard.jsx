@@ -209,6 +209,8 @@ function InterviewToolsModule({ isSuperAdmin = false }) {
 
 function SkillcaseInterviewsModule({
   isSuperAdmin = false,
+  canManageAll = false,
+  canViewAll = false,
   canDownload = false,
 }) {
   const location = useLocation();
@@ -263,7 +265,8 @@ function SkillcaseInterviewsModule({
           <SkillcaseInterviewToolsPositionsPage
             setActivePage={setActivePage}
             setSelectedInterviewPositionId={setSelectedInterviewPositionId}
-            isSuperAdmin={isSuperAdmin}
+            canManageAll={canManageAll}
+            canViewAll={canViewAll}
           />
         }
       />
@@ -1173,10 +1176,20 @@ export default function Dashboard() {
                   <Guard allowed={hasPermission(me, "skillcase_interviews")}>
                     <SkillcaseInterviewsModule
                       isSuperAdmin={me.role === "super_admin"}
+                      canManageAll={hasPermission(
+                        me,
+                        "skillcase_interviews",
+                        "manage",
+                      )}
+                      canViewAll={hasPermission(
+                        me,
+                        "skillcase_interviews",
+                        "view_all",
+                      )}
                       canDownload={hasPermission(
                         me,
                         "skillcase_interviews",
-                        "download",
+                        "manage",
                       )}
                     />
                   </Guard>
@@ -1267,7 +1280,9 @@ export default function Dashboard() {
                 path="job-screening"
                 element={
                   <Guard allowed={hasPermission(me, "job_screening")}>
-                    <JobScreeningAdmin />
+                    <JobScreeningAdmin
+                      canEdit={hasPermission(me, "job_screening", "edit")}
+                    />
                   </Guard>
                 }
               />

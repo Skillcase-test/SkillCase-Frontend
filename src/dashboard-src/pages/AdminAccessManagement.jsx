@@ -58,6 +58,64 @@ const PAYMENTS_ALL_TAB_KEYS = PAYMENTS_TAB_OPTIONS.map((t) => t.key).filter(
       "tab_invoice_download",
     ].includes(key),
 );
+
+// Modules whose admin pages only ever check "view" vs "edit" (no create/delete/manage
+// concept), and which already gate/disable their UI based on that distinction. These
+// get a simple two-state "View Only" / "Full Access" toggle instead of the generic
+// 5-action checkbox grid, which is misleading for modules that don't use those actions.
+const SIMPLE_ACCESS_MODULES = {
+  job_screening: { viewActions: ["view"], fullActions: ["view", "edit"] },
+  events: {
+    viewActions: ["view"],
+    fullActions: ["view", "create", "edit", "delete"],
+  },
+  interview_tools: {
+    viewActions: ["view"],
+    fullActions: ["view", "create", "edit", "delete"],
+  },
+  explore_candidates: {
+    viewActions: ["view"],
+    fullActions: ["view", "edit", "delete"],
+  },
+  exam: {
+    viewActions: ["view"],
+    fullActions: ["view", "create", "edit", "delete"],
+  },
+  batch: {
+    viewActions: ["view"],
+    fullActions: ["view", "create", "edit", "delete"],
+  },
+  wise: { viewActions: ["view"], fullActions: ["view", "edit"] },
+  wise_classes: { viewActions: ["view"], fullActions: ["view", "edit"] },
+  paywall: { viewActions: ["view"], fullActions: ["view", "edit"] },
+  terms: { viewActions: ["view"], fullActions: ["view", "edit"] },
+  notifications: {
+    viewActions: ["view"],
+    fullActions: ["view", "create", "edit"],
+  },
+};
+
+// Modules with no meaningful edit action at all — always shown as view-only,
+// no toggle needed.
+const READ_ONLY_MODULES = new Set([
+  "analytics",
+  "app_analytics",
+  "new_analytics",
+  "bigin_dashboard",
+  "internal",
+]);
+
+// Content/page-editing tools meant only for the person actually doing the edit —
+// there's no useful "view only" mode here, so access is granted or not, full stop.
+// grantAction is whichever single action each module's backend actually checks.
+const FULL_ACCESS_ONLY_MODULES = {
+  content: { grantAction: "manage" },
+  a2_content: { grantAction: "manage" },
+  b1_content: { grantAction: "manage" },
+  learn_german: { grantAction: "manage" },
+  landing_page: { grantAction: "edit" },
+  trust_page: { grantAction: "edit" },
+};
 function normalizeBatch(batch) {
   const id = batch.id ?? batch.batch_id ?? batch.value;
   const name =
@@ -77,8 +135,17 @@ function PermissionPicker({ value, onChange }) {
       const next = {};
       MODULE_OPTIONS.forEach((moduleDef) => {
         // For payments, grant the two basic view tabs instead of a generic "view" action
-        next[moduleDef.key] =
-          moduleDef.key === "payments" ? ["tab_month", "tab_all"] : ["view"];
+        if (moduleDef.key === "payments") {
+          next[moduleDef.key] = ["tab_month", "tab_all"];
+        } else if (SIMPLE_ACCESS_MODULES[moduleDef.key]) {
+          next[moduleDef.key] = [
+            ...SIMPLE_ACCESS_MODULES[moduleDef.key].viewActions,
+          ];
+        } else if (FULL_ACCESS_ONLY_MODULES[moduleDef.key]) {
+          // No view-only mode exists for these edit-only tools — leave ungranted.
+        } else {
+          next[moduleDef.key] = ["view"];
+        }
       });
       onChange(next);
       return;
@@ -86,10 +153,21 @@ function PermissionPicker({ value, onChange }) {
     if (mode === "all") {
       const next = {};
       MODULE_OPTIONS.forEach((moduleDef) => {
-        next[moduleDef.key] =
-          moduleDef.key === "payments"
-            ? [...PAYMENTS_ALL_TAB_KEYS]
-            : [...ACTION_OPTIONS];
+        if (moduleDef.key === "payments") {
+          next[moduleDef.key] = [...PAYMENTS_ALL_TAB_KEYS];
+        } else if (SIMPLE_ACCESS_MODULES[moduleDef.key]) {
+          next[moduleDef.key] = [
+            ...SIMPLE_ACCESS_MODULES[moduleDef.key].fullActions,
+          ];
+        } else if (READ_ONLY_MODULES.has(moduleDef.key)) {
+          next[moduleDef.key] = ["view"];
+        } else if (FULL_ACCESS_ONLY_MODULES[moduleDef.key]) {
+          next[moduleDef.key] = [
+            FULL_ACCESS_ONLY_MODULES[moduleDef.key].grantAction,
+          ];
+        } else {
+          next[moduleDef.key] = [...ACTION_OPTIONS];
+        }
       });
       onChange(next);
       return;
@@ -120,16 +198,30 @@ function PermissionPicker({ value, onChange }) {
     setModuleActions(SKILLCASE_INTERVIEW_MODULE, [...actionSet]);
   };
 
-  const toggleSkillcaseInterviewDownloadAccess = () => {
+  // "Super View": read-only access across every admin's positions (plus inviting
+  // candidates), without the edit/delete-everything rights that Super Access grants.
+  const toggleSkillcaseInterviewViewAllAccess = () => {
     const existing = normalized[SKILLCASE_INTERVIEW_MODULE] || [];
     const actionSet = new Set(existing);
-    if (actionSet.has("download")) {
-      actionSet.delete("download");
+    if (actionSet.has("view_all")) {
+      actionSet.delete("view_all");
     } else {
-      actionSet.add("download");
+      actionSet.add("view_all");
       actionSet.add("view");
     }
     setModuleActions(SKILLCASE_INTERVIEW_MODULE, [...actionSet]);
+  };
+
+  // Base own-only tier: view-only vs full CRUD on positions this admin created —
+  // preserves whichever of the manage/view_all flags above are already set.
+  const setSkillcaseInterviewBaseAccess = (baseActions) => {
+    const existing = normalized[SKILLCASE_INTERVIEW_MODULE] || [];
+    const flags = existing.filter(
+      (a) => !["view", "create", "edit", "delete"].includes(a),
+    );
+    setModuleActions(SKILLCASE_INTERVIEW_MODULE, [
+      ...new Set([...baseActions, ...flags]),
+    ]);
   };
 
   return (
@@ -161,6 +253,156 @@ function PermissionPicker({ value, onChange }) {
       <div className="grid gap-3 md:grid-cols-2">
         {MODULE_OPTIONS.map((moduleDef) => {
           const selected = normalized[moduleDef.key] || [];
+
+          // Edit-only tools: no view-only mode, just grant/revoke full access
+          if (FULL_ACCESS_ONLY_MODULES[moduleDef.key]) {
+            const grantAction = FULL_ACCESS_ONLY_MODULES[moduleDef.key].grantAction;
+            const hasAccess = selected.includes(grantAction);
+            return (
+              <div
+                key={moduleDef.key}
+                className="rounded-xl border border-slate-200 bg-slate-50/60 p-3"
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                    {moduleDef.label}
+                  </p>
+                  <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+                    Full Access Only
+                  </span>
+                </div>
+                <label
+                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer ${
+                    hasAccess
+                      ? "border-blue-700 bg-blue-700 text-white"
+                      : "border-slate-300 bg-white text-slate-600"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={hasAccess}
+                    onChange={(e) =>
+                      setModuleActions(
+                        moduleDef.key,
+                        e.target.checked ? [grantAction] : [],
+                      )
+                    }
+                  />
+                  {hasAccess ? "Access Granted" : "No Access"}
+                </label>
+              </div>
+            );
+          }
+
+          // Modules with no edit concept at all: fixed view-only state, grant/revoke only
+          if (READ_ONLY_MODULES.has(moduleDef.key)) {
+            const hasAccess = selected.length > 0;
+            return (
+              <div
+                key={moduleDef.key}
+                className="rounded-xl border border-slate-200 bg-slate-50/60 p-3"
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                    {moduleDef.label}
+                  </p>
+                  <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+                    View Only
+                  </span>
+                </div>
+                <label
+                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer ${
+                    hasAccess
+                      ? "border-blue-700 bg-blue-700 text-white"
+                      : "border-slate-300 bg-white text-slate-600"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    className="hidden"
+                    checked={hasAccess}
+                    onChange={(e) =>
+                      setModuleActions(
+                        moduleDef.key,
+                        e.target.checked ? ["view"] : [],
+                      )
+                    }
+                  />
+                  {hasAccess ? "Access Granted" : "No Access"}
+                </label>
+              </div>
+            );
+          }
+
+          // Modules that only recognize view/edit get a simple two-state toggle
+          if (SIMPLE_ACCESS_MODULES[moduleDef.key]) {
+            const config = SIMPLE_ACCESS_MODULES[moduleDef.key];
+            const sortedSelected = [...selected].sort().join(",");
+            const isViewOnly =
+              sortedSelected === [...config.viewActions].sort().join(",");
+            const isFullAccess =
+              sortedSelected === [...config.fullActions].sort().join(",");
+            return (
+              <div
+                key={moduleDef.key}
+                className="rounded-xl border border-slate-200 bg-slate-50/60 p-3"
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                    {moduleDef.label}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setModuleActions(moduleDef.key, [])}
+                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+                  >
+                    clear
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <label
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer ${
+                      isViewOnly
+                        ? "border-blue-700 bg-blue-700 text-white"
+                        : "border-slate-300 bg-white text-slate-600"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      className="hidden"
+                      checked={isViewOnly}
+                      onChange={() =>
+                        setModuleActions(moduleDef.key, [
+                          ...config.viewActions,
+                        ])
+                      }
+                    />
+                    {moduleDef.label}: View Only
+                  </label>
+                  <label
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer ${
+                      isFullAccess
+                        ? "border-blue-700 bg-blue-700 text-white"
+                        : "border-slate-300 bg-white text-slate-600"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      className="hidden"
+                      checked={isFullAccess}
+                      onChange={() =>
+                        setModuleActions(moduleDef.key, [
+                          ...config.fullActions,
+                        ])
+                      }
+                    />
+                    {moduleDef.label}: Full Access
+                  </label>
+                </div>
+              </div>
+            );
+          }
 
           // Payments module gets tab-level toggle pills instead of generic action checkboxes
           if (moduleDef.key === "payments") {
@@ -251,6 +493,109 @@ function PermissionPicker({ value, onChange }) {
             );
           }
 
+          // Skillcase Interviews: own-only view/edit tier, plus two independent
+          // super-tiers (Super View = read-all + invite, Super Access = full control)
+          if (moduleDef.key === SKILLCASE_INTERVIEW_MODULE) {
+            const baseActions = selected.filter((a) =>
+              ["view", "create", "edit", "delete"].includes(a),
+            );
+            const sortedBase = [...baseActions].sort().join(",");
+            const isViewOnly = sortedBase === "view";
+            const isFullAccess =
+              sortedBase === ["create", "delete", "edit", "view"].sort().join(",");
+            const hasSuperAccess = selected.includes("manage");
+            const hasViewAll = selected.includes("view_all");
+
+            return (
+              <div
+                key={moduleDef.key}
+                className="rounded-xl border border-slate-200 bg-slate-50/60 p-3"
+              >
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                    {moduleDef.label}
+                  </p>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={toggleSkillcaseInterviewViewAllAccess}
+                      className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${
+                        hasViewAll
+                          ? "border-blue-200 bg-blue-50 text-blue-700"
+                          : "border-slate-200 bg-white text-slate-600"
+                      }`}
+                    >
+                      {hasViewAll ? "super view on" : "super view"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={toggleSkillcaseInterviewSuperAccess}
+                      className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${
+                        hasSuperAccess
+                          ? "border-amber-200 bg-amber-50 text-amber-700"
+                          : "border-slate-200 bg-white text-slate-600"
+                      }`}
+                    >
+                      {hasSuperAccess ? "super access on" : "super access"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setModuleActions(moduleDef.key, [])}
+                      className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+                    >
+                      clear
+                    </button>
+                  </div>
+                </div>
+                <p className="mb-2 text-[10px] font-medium leading-relaxed text-slate-400">
+                  Super Access: full control (edit/delete/download) across every
+                  admin's interviews. Super View: read-only across every admin's
+                  interviews, can still invite candidates, no downloads. Below sets
+                  this admin's own default access to interviews they create.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <label
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer ${
+                      isViewOnly
+                        ? "border-blue-700 bg-blue-700 text-white"
+                        : "border-slate-300 bg-white text-slate-600"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      className="hidden"
+                      checked={isViewOnly}
+                      onChange={() => setSkillcaseInterviewBaseAccess(["view"])}
+                    />
+                    View Only (own)
+                  </label>
+                  <label
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer ${
+                      isFullAccess
+                        ? "border-blue-700 bg-blue-700 text-white"
+                        : "border-slate-300 bg-white text-slate-600"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      className="hidden"
+                      checked={isFullAccess}
+                      onChange={() =>
+                        setSkillcaseInterviewBaseAccess([
+                          "view",
+                          "create",
+                          "edit",
+                          "delete",
+                        ])
+                      }
+                    />
+                    Full Access (own)
+                  </label>
+                </div>
+              </div>
+            );
+          }
+
           // All other modules: standard action checkboxes
           return (
             <div
@@ -262,36 +607,6 @@ function PermissionPicker({ value, onChange }) {
                   {moduleDef.label}
                 </p>
                 <div className="flex gap-1">
-                  {moduleDef.key === SKILLCASE_INTERVIEW_MODULE ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={toggleSkillcaseInterviewSuperAccess}
-                        className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${
-                          selected.includes("manage")
-                            ? "border-amber-200 bg-amber-50 text-amber-700"
-                            : "border-slate-200 bg-white text-slate-600"
-                        }`}
-                      >
-                        {selected.includes("manage")
-                          ? "super access on"
-                          : "super access"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={toggleSkillcaseInterviewDownloadAccess}
-                        className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${
-                          selected.includes("download")
-                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                            : "border-slate-200 bg-white text-slate-600"
-                        }`}
-                      >
-                        {selected.includes("download")
-                          ? "download on"
-                          : "download"}
-                      </button>
-                    </>
-                  ) : null}
                   <button
                     type="button"
                     onClick={() => setModuleActions(moduleDef.key, ["view"])}
