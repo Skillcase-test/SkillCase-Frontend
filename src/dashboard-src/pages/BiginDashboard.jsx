@@ -972,6 +972,10 @@ export default function BiginDashboard() {
     () => ({ pipeline, owner, scope: "active", date_from: startOfMonth, date_to: today }),
     [pipeline, owner, startOfMonth, today],
   );
+  // No `as_of` here on purpose: this panel is "leads created before this
+  // month, where do they stand as of right now" - so it buckets by each
+  // lead's live current stage rather than a frozen last-month-end snapshot.
+  // Only the created_time window is anchored to before this month.
   const beforeMonthApiFilters = useMemo(
     () => ({
       pipeline,
@@ -979,7 +983,6 @@ export default function BiginDashboard() {
       scope: "active",
       date_from: "1970-01-01",
       date_to: dayBeforeMonth,
-      as_of: dayBeforeMonth,
     }),
     [pipeline, owner, dayBeforeMonth],
   );
