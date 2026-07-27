@@ -129,7 +129,7 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
 
           {/* Action Button */}
           <button
-            onClick={onBack}
+            onClick={() => onComplete(progress, true)}
             className="w-full h-12 bg-[#002856] hover:bg-[#001f42] text-white rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer border-none"
           >
             <span>Move to next step</span>

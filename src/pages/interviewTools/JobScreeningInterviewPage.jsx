@@ -332,7 +332,10 @@ export default function JobScreeningInterviewPage() {
                 (s) => s.id === "interview_attempt",
               );
               if (interviewStep && interviewStep.status === "completed") {
-                navigate("/job-screening", { replace: true });
+                navigate("/job-screening", {
+                  replace: true,
+                  state: { justCompletedStepId: "interview_attempt" },
+                });
                 return;
               }
             }
@@ -1763,7 +1766,11 @@ export default function JobScreeningInterviewPage() {
               {/* Go to Home Button */}
               {isJobScreeningCandidate && (
                 <button
-                  onClick={() => navigate("/job-screening")}
+                  onClick={() =>
+                    navigate("/job-screening", {
+                      state: { justCompletedStepId: "interview_attempt" },
+                    })
+                  }
                   className="w-full h-12 bg-[#002856] hover:bg-[#001f42] text-white rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer border-none"
                 >
                   <span>Go to Home</span>

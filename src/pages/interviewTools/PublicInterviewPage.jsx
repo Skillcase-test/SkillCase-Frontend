@@ -1669,7 +1669,11 @@ export default function PublicInterviewPage() {
               </p>
               {isJobScreeningCandidate && (
                 <button
-                  onClick={() => navigate("/job-screening")}
+                  onClick={() =>
+                    navigate("/job-screening", {
+                      state: { justCompletedStepId: "interview_attempt" },
+                    })
+                  }
                   className="mt-8 px-8 py-3 bg-[#083262] text-white hover:bg-[#062446] rounded-full font-bold text-sm transition-all shadow-md active:scale-[0.99]"
                 >
                   Return to Job Screening

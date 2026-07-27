@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import api from "../../api/axios";
 import {
@@ -97,6 +97,7 @@ const syncPreferredModeCache = (user = {}) => {
 
 const JobScreening = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const [progress, setProgress] = useState(null);
@@ -110,10 +111,15 @@ const JobScreening = () => {
   const [welcomeAnimationState, setWelcomeAnimationState] = useState("idle");
   const [finalProgressData, setFinalProgressData] = useState(null);
   const [executingStepId, setExecutingStepId] = useState(null);
+  // Holds the just-finished step's id while its lobby checkmark animates in;
+  // the actual advance into nextStepId happens once that animation completes,
+  // so the candidate always sees the lobby update before moving on.
+  const [pendingAutoAdvance, setPendingAutoAdvance] = useState(null);
   const [reviewCheckStepId, setReviewCheckStepId] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const activeStepRef = useRef(null);
   const activeStepContainerRef = useRef(null);
+  const welcomeTimeoutIdsRef = useRef([]);
 
   useEffect(() => {
     const stepId = progress?.current_step_id;
@@ -141,12 +147,13 @@ const JobScreening = () => {
 
   useEffect(() => {
     if (progress && activeStepRef.current) {
-      setTimeout(() => {
-        activeStepRef.current.scrollIntoView({
+      const timeoutId = setTimeout(() => {
+        activeStepRef.current?.scrollIntoView({
           behavior: "smooth",
           block: "center",
         });
       }, 300);
+      return () => clearTimeout(timeoutId);
     }
   }, [progress, isExecutingStep]);
 
@@ -176,6 +183,31 @@ const JobScreening = () => {
       const { data } = await getProgress();
       if (data?.success) {
         setProgress(data.data);
+
+        // Returning from an external page (interview submission, agreement
+        // signing) after finishing a step is still a same-session continuation
+        // from the candidate's perspective, even though it's a fresh mount —
+        // show the lobby + checkmark animation, then auto-advance, same as if
+        // they'd finished the step without leaving.
+        const justCompletedStepId = location.state?.justCompletedStepId;
+        if (justCompletedStepId) {
+          navigate(location.pathname, { replace: true, state: null });
+          const justCompletedStep = data.data?.steps_config?.find(
+            (s) => s.id === justCompletedStepId,
+          );
+          const nextStepId = data.data?.current_step_id;
+          if (
+            justCompletedStep?.status === "completed" &&
+            nextStepId &&
+            nextStepId !== justCompletedStepId
+          ) {
+            setPendingAutoAdvance({
+              completedStepId: justCompletedStepId,
+              nextStepId,
+              progressData: data.data,
+            });
+          }
+        }
       } else {
         setError("Failed to load progress settings");
       }
@@ -235,23 +267,15 @@ const JobScreening = () => {
     fetchProgress();
   }, []);
 
+  // These timers intentionally live outside a useEffect: welcomeAnimationState
+  // changes partway through the sequence (idle -> active -> complete -> idle),
+  // and a useEffect keyed on that same state would tear itself down and cancel
+  // its own pending timers the moment the state it schedules actually changes.
   useEffect(() => {
-    if (welcomeAnimationState === "welcome_active") {
-      const t1 = setTimeout(() => {
-        setWelcomeAnimationState("welcome_complete");
-      }, 1200);
-
-      const t2 = setTimeout(() => {
-        setWelcomeAnimationState("idle");
-        setProgress(finalProgressData);
-      }, 4000);
-
-      return () => {
-        clearTimeout(t1);
-        clearTimeout(t2);
-      };
-    }
-  }, [welcomeAnimationState, finalProgressData]);
+    return () => {
+      welcomeTimeoutIdsRef.current.forEach(clearTimeout);
+    };
+  }, []);
 
   if (loading || redirecting) {
     return (
@@ -292,25 +316,69 @@ const JobScreening = () => {
       lifecycle: "succeeded",
       attributes: { stage: executingStepId || progress?.current_step_id },
     });
+    const completedStepId = executingStepId;
     setProgress(updatedData);
     if (shouldExitStep) {
       setIsExecutingStep(false);
       setExecutingStepId(null);
+
+      // Skip the extra tap: once a step finishes and the next one unlocks,
+      // show the lobby (with the just-finished step's checkmark animating in)
+      // and open the next step once that animation completes.
+      const nextStepId = updatedData?.current_step_id;
+      if (nextStepId && nextStepId !== completedStepId) {
+        setPendingAutoAdvance({
+          completedStepId,
+          nextStepId,
+          progressData: updatedData,
+        });
+      }
     }
+  };
+
+  const handleAutoAdvanceCheckmarkComplete = (stepId) => {
+    setPendingAutoAdvance((current) => {
+      if (!current || current.completedStepId !== stepId) return current;
+      handleStartStep(current.nextStepId, current.progressData);
+      return null;
+    });
   };
 
   const handleWelcomeComplete = (updatedData) => {
     setFinalProgressData(updatedData);
     setWelcomeAnimationState("welcome_active");
+
+    // Just long enough for the full-screen-welcome-to-lobby transition to
+    // settle before the welcome step's checkmark starts animating in. The
+    // actual advance into the next step is triggered by that checkmark
+    // animation's onAnimationComplete below, not by a guessed duration here.
+    const t1 = setTimeout(() => {
+      setWelcomeAnimationState("welcome_complete");
+    }, 350);
+
+    welcomeTimeoutIdsRef.current = [t1];
   };
 
-  const handleStartStep = async (stepId) => {
+  const handleWelcomeCheckmarkComplete = () => {
+    if (welcomeAnimationState !== "welcome_complete") return;
+    setWelcomeAnimationState("idle");
+    setProgress(finalProgressData);
+    if (finalProgressData?.current_step_id) {
+      handleStartStep(finalProgressData.current_step_id, finalProgressData);
+    }
+  };
+
+  const handleStartStep = async (stepId, progressOverride) => {
     // If the welcome animation is still playing, commit the final state immediately
     // so that currentStepId is correct before renderActiveStepComponent runs.
     if (welcomeAnimationState !== "idle" && finalProgressData) {
       setProgress(finalProgressData);
       setWelcomeAnimationState("idle");
     }
+
+    // When auto-advancing right after a step completes, `progress` state hasn't
+    // re-rendered yet — use the freshly-completed data instead of the stale closure.
+    const activeProgress = progressOverride || progress;
 
     const targetStepId = stepId || displayCurrentStepId;
     trackFeatureEvent("job_screening", "step_started", {
@@ -319,7 +387,8 @@ const JobScreening = () => {
       lifecycle: "started",
       attributes: { stage: targetStepId },
     });
-    const clickedStep = steps.find((s) => s.id === targetStepId);
+    const stepsForLookup = activeProgress?.steps_config || steps;
+    const clickedStep = stepsForLookup.find((s) => s.id === targetStepId);
 
     if (clickedStep && clickedStep.status === "review") {
       try {
@@ -342,16 +411,19 @@ const JobScreening = () => {
 
     if (
       targetStepId === "interview_attempt" &&
-      progress?.assigned_interview_slug &&
-      progress?.candidate_email
+      activeProgress?.assigned_interview_slug &&
+      activeProgress?.candidate_email
     ) {
-      navigate(`/job-screening/interview/${progress.assigned_interview_slug}`, {
-        state: {
-          name: progress.candidate_name,
-          email: progress.candidate_email,
-          phone: progress.candidate_phone,
+      navigate(
+        `/job-screening/interview/${activeProgress.assigned_interview_slug}`,
+        {
+          state: {
+            name: activeProgress.candidate_name,
+            email: activeProgress.candidate_email,
+            phone: activeProgress.candidate_phone,
+          },
         },
-      });
+      );
     } else if (targetStepId === "registration_form") {
       try {
         setAgreementLoading(true);
@@ -863,6 +935,17 @@ const JobScreening = () => {
                             stiffness: 320,
                             damping: 22,
                           }}
+                          onAnimationComplete={
+                            step.id === "welcome"
+                              ? handleWelcomeCheckmarkComplete
+                              : pendingAutoAdvance?.completedStepId ===
+                                  step.id
+                                ? () =>
+                                    handleAutoAdvanceCheckmarkComplete(
+                                      step.id,
+                                    )
+                                : undefined
+                          }
                           className="w-3.5 h-3.5 stroke-3 text-white"
                           viewBox="0 0 24 24"
                           fill="none"

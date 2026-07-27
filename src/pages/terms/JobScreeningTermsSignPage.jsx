@@ -1116,7 +1116,11 @@ export default function JobScreeningTermsSignPage() {
         <div className="w-full max-w-md py-2.5 flex flex-col justify-start items-start gap-2.5">
           <div className="self-stretch inline-flex justify-between items-center">
             <div
-              onClick={() => navigate("/job-screening")}
+              onClick={() =>
+                navigate("/job-screening", {
+                  state: { justCompletedStepId: "registration_form" },
+                })
+              }
               className="flex justify-start items-center gap-1 cursor-pointer"
             >
               <ChevronLeft className="w-5 h-5 text-slate-800" />
@@ -1185,7 +1189,11 @@ export default function JobScreeningTermsSignPage() {
 
                   {/* Return Button */}
                   <button
-                    onClick={() => navigate("/job-screening")}
+                    onClick={() =>
+                      navigate("/job-screening", {
+                        state: { justCompletedStepId: "registration_form" },
+                      })
+                    }
                     className="self-stretch px-4 py-3 bg-[#002856] hover:bg-[#001c3d] text-white rounded-lg shadow-md font-semibold text-base flex justify-center items-center transition-colors cursor-pointer"
                   >
                     Move to next step
