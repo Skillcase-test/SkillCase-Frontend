@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+  useRef,
+} from "react";
 import toast from "react-hot-toast";
 import {
   Activity,
@@ -35,7 +42,11 @@ import {
 } from "chart.js";
 import "chartjs-adapter-moment";
 
-import { ControlInput, ControlSelect, ControlButton } from "../payments-admin/components/controls";
+import {
+  ControlInput,
+  ControlSelect,
+  ControlButton,
+} from "../payments-admin/components/controls";
 import { chartColors } from "../charts/ChartjsConfig";
 
 // Register Chart.js components
@@ -48,7 +59,7 @@ Chart.register(
   CategoryScale,
   TimeScale,
   Tooltip,
-  Legend
+  Legend,
 );
 
 function todayMinus(days) {
@@ -92,7 +103,9 @@ function queryString(filters, extra = {}) {
 
 function timeAgo(timestamp) {
   if (!timestamp) return "—";
-  const seconds = Math.floor((Date.now() - new Date(timestamp).getTime()) / 1000);
+  const seconds = Math.floor(
+    (Date.now() - new Date(timestamp).getTime()) / 1000,
+  );
   if (seconds < 60) return `${Math.max(seconds, 0)}s ago`;
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
@@ -176,7 +189,9 @@ function getUserTrackValue(user = {}) {
   const languageLevel = String(
     user.language_level || user.current_profeciency_level || "A1",
   ).toUpperCase();
-  const learningLevel = String(user.current_profeciency_level || "A1").toUpperCase();
+  const learningLevel = String(
+    user.current_profeciency_level || "A1",
+  ).toUpperCase();
   const isJobScreening = mode === "job_screening" || preference === "3";
 
   if (isJobScreening) {
@@ -190,7 +205,9 @@ function getUserTrackValue(user = {}) {
 
 function DashboardCard({ title, action, children, className = "" }) {
   return (
-    <div className={`flex flex-col bg-white shadow-xs rounded-xl p-5 ${className}`}>
+    <div
+      className={`flex flex-col bg-white shadow-xs rounded-xl p-5 ${className}`}
+    >
       <header className="flex justify-between items-start mb-4">
         <div>
           <h2 className="text-lg font-semibold text-slate-800">{title}</h2>
@@ -204,7 +221,7 @@ function DashboardCard({ title, action, children, className = "" }) {
 
 function Segmented({ value, onChange, options }) {
   return (
-    <div className="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium">
+    <div className="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs font-medium cursor-pointer">
       {options.map((option) => (
         <button
           key={option.value}
@@ -212,8 +229,8 @@ function Segmented({ value, onChange, options }) {
           onClick={() => onChange(option.value)}
           className={`rounded-md px-2.5 py-1 transition-colors ${
             value === option.value
-              ? "bg-white text-slate-800 shadow-sm"
-              : "text-slate-500 hover:text-slate-700"
+              ? "bg-white text-slate-800 shadow-sm cursor-not-allowed"
+              : "text-slate-500 hover:text-slate-700 cursor-pointer"
           }`}
         >
           {option.label}
@@ -252,7 +269,7 @@ function SingleSelectDropdown({ options, value, onChange }) {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex h-9 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-700 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+        className="flex h-9 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-700 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 cursor-pointer"
       >
         <span className="truncate">{selected?.label || "Select"}</span>
         <ChevronDown size={14} className="ml-2 shrink-0 text-slate-400" />
@@ -268,7 +285,7 @@ function SingleSelectDropdown({ options, value, onChange }) {
                 onChange(opt.value);
                 setIsOpen(false);
               }}
-              className={`block w-full rounded-lg px-2.5 py-2 text-left text-xs ${
+              className={`block w-full rounded-lg px-2.5 py-2 text-left text-xs cursor-pointer ${
                 value === opt.value
                   ? "bg-slate-100 text-slate-900 font-semibold"
                   : "text-slate-700 hover:bg-slate-50"
@@ -317,7 +334,7 @@ function MultiSelectDropdown({ options, selected, onChange }) {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex h-9 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-700 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+        className="flex h-9 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-700 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 cursor-pointer"
       >
         <span className="truncate">{displayText}</span>
         <ChevronDown size={14} className="ml-2 shrink-0 text-slate-400" />
@@ -364,7 +381,9 @@ function AppTrendChart({ data = [] }) {
       existingChart.destroy();
     }
 
-    const labels = data.map((d) => (d.activity_date ? d.activity_date.slice(5, 10) : ""));
+    const labels = data.map((d) =>
+      d.activity_date ? d.activity_date.slice(5, 10) : "",
+    );
     const dauData = data.map((d) => Number(d.dau || 0));
     const wauData = data.map((d) => Number(d.wau || 0));
     const mauData = data.map((d) => Number(d.mau || 0));
@@ -517,7 +536,9 @@ function NewUserTrendChart({ data = [] }) {
       existingChart.destroy();
     }
 
-    const labels = data.map((d) => (d.signup_date ? d.signup_date.slice(5, 10) : ""));
+    const labels = data.map((d) =>
+      d.signup_date ? d.signup_date.slice(5, 10) : "",
+    );
     const usersData = data.map((d) => Number(d.users || 0));
 
     const {
@@ -616,7 +637,8 @@ function RetentionCurveChart({ rows = [], granularity }) {
 
   useLayoutEffect(() => {
     const ctx = canvasRef.current;
-    if (!ctx?.isConnected || !ctx.parentElement || visibleRows.length === 0) return;
+    if (!ctx?.isConnected || !ctx.parentElement || visibleRows.length === 0)
+      return;
 
     const existingChart = Chart.getChart(ctx);
     if (existingChart) {
@@ -716,7 +738,8 @@ function RetentionCurveChart({ rows = [], granularity }) {
             padding: 8,
             cornerRadius: 6,
             callbacks: {
-              label: (context) => `${context.dataset.label}: ${context.raw.toFixed(1)}%`,
+              label: (context) =>
+                `${context.dataset.label}: ${context.raw.toFixed(1)}%`,
             },
           },
         },
@@ -746,7 +769,10 @@ function buildRetentionMatrix(rows = []) {
     const cohort = String(row.cohort_bucket || "").slice(0, 10);
     const bucket = Number(row.bucket_number || 0);
     if (!cohorts[cohort]) {
-      cohorts[cohort] = { cohortSize: Number(row.cohort_size || 0), buckets: {} };
+      cohorts[cohort] = {
+        cohortSize: Number(row.cohort_size || 0),
+        buckets: {},
+      };
     }
     cohorts[cohort].buckets[bucket] = {
       rate: Number(row.retention_rate || 0),
@@ -764,9 +790,10 @@ function buildRetentionMatrix(rows = []) {
 function RetentionHeatmap({ rows = [], granularity, maxColumns }) {
   const matrix = useMemo(() => buildRetentionMatrix(rows), [rows]);
   const prefix = granularity === "month" ? "M" : "W";
-  const displayColumns = maxColumns != null
-    ? matrix.columns.slice(0, maxColumns + 1)
-    : matrix.columns;
+  const displayColumns =
+    maxColumns != null
+      ? matrix.columns.slice(0, maxColumns + 1)
+      : matrix.columns;
 
   if (!rows.length) return <EmptyState label="No retention cohorts found" />;
 
@@ -779,7 +806,8 @@ function RetentionHeatmap({ rows = [], granularity, maxColumns }) {
             <th className="px-3 py-3 text-left">Size</th>
             {displayColumns.map((bucket) => (
               <th key={bucket} className="w-12 px-2 py-3 text-center">
-                {prefix}{bucket}
+                {prefix}
+                {bucket}
               </th>
             ))}
           </tr>
@@ -797,7 +825,10 @@ function RetentionHeatmap({ rows = [], granularity, maxColumns }) {
                 const cell = data.buckets[bucket];
                 if (!cell) {
                   return (
-                    <td key={bucket} className="py-2.5 text-center font-medium text-slate-200">
+                    <td
+                      key={bucket}
+                      className="py-2.5 text-center font-medium text-slate-200"
+                    >
                       -
                     </td>
                   );
@@ -842,7 +873,11 @@ function LiveUsersModal({ users = [], appUsers, webUsers, onClose }) {
               Web {formatNumber(webUsers)}
             </p>
           </div>
-          <ControlButton onClick={onClose} variant="secondary" className="h-9 w-9 !p-0">
+          <ControlButton
+            onClick={onClose}
+            variant="secondary"
+            className="h-9 w-9 !p-0"
+          >
             <X className="h-4 w-4" />
           </ControlButton>
         </header>
@@ -854,7 +889,9 @@ function LiveUsersModal({ users = [], appUsers, webUsers, onClose }) {
                 className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/20 p-3 hover:bg-slate-50/40 transition-colors"
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
-                  {(user.fullname || user.username || "?").slice(0, 2).toUpperCase()}
+                  {(user.fullname || user.username || "?")
+                    .slice(0, 2)
+                    .toUpperCase()}
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -936,14 +973,18 @@ function AllUsersModal({ onClose }) {
     const option = USER_TRACK_OPTIONS.find((o) => o.value === trackValue);
     if (!option) return;
     const prevUsers = users;
-    setUsers((prev) => prev.map((u) => (u.user_id === userId ? { ...u, ...option.payload } : u)));
+    setUsers((prev) =>
+      prev.map((u) => (u.user_id === userId ? { ...u, ...option.payload } : u)),
+    );
     updateUser(userId, option.payload, () => setUsers(prevUsers));
   };
 
   const handlePaidToggle = (userId, currentPaid) => {
     const prevUsers = users;
     setUsers((prev) =>
-      prev.map((u) => (u.user_id === userId ? { ...u, is_paid: !currentPaid } : u)),
+      prev.map((u) =>
+        u.user_id === userId ? { ...u, is_paid: !currentPaid } : u,
+      ),
     );
     updateUser(userId, { is_paid: !currentPaid }, () => setUsers(prevUsers));
   };
@@ -958,7 +999,8 @@ function AllUsersModal({ onClose }) {
           (user.phone || "").toLowerCase().includes(q);
         if (!matches) return false;
       }
-      if (trackFilter !== "all" && getUserTrackValue(user) !== trackFilter) return false;
+      if (trackFilter !== "all" && getUserTrackValue(user) !== trackFilter)
+        return false;
       if (paidFilter === "paid" && !user.is_paid) return false;
       if (paidFilter === "unpaid" && user.is_paid) return false;
       return true;
@@ -966,17 +1008,28 @@ function AllUsersModal({ onClose }) {
   }, [users, search, trackFilter, paidFilter]);
 
   const handleDownloadCSV = () => {
-    const headers = ["Full Name", "Phone", "Track", "Source", "Payment", "Signup Date", "Last Active"];
+    const headers = [
+      "Full Name",
+      "Phone",
+      "Track",
+      "Source",
+      "Payment",
+      "Signup Date",
+      "Last Active",
+    ];
     const rows = filteredUsers.map((u) => [
       u.fullname || u.username || "",
       u.phone || "",
-      USER_TRACK_OPTIONS.find((o) => o.value === getUserTrackValue(u))?.label || "",
+      USER_TRACK_OPTIONS.find((o) => o.value === getUserTrackValue(u))?.label ||
+        "",
       u.signup_source || "",
       u.is_paid ? "Paid" : "Free",
       u.created_at ? u.created_at.slice(0, 10) : "",
       u.last_activity_at || "",
     ]);
-    const csv = [headers, ...rows].map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = [headers, ...rows]
+      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -993,14 +1046,24 @@ function AllUsersModal({ onClose }) {
         <header className="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-4">
           <div>
             <h3 className="text-base font-bold text-slate-900">All Users</h3>
-            <p className="mt-0.5 text-xs text-slate-400">{formatNumber(filteredUsers.length)} users found</p>
+            <p className="mt-0.5 text-xs text-slate-400">
+              {formatNumber(filteredUsers.length)} users found
+            </p>
           </div>
           <div className="flex items-center gap-2">
-            <ControlButton onClick={handleDownloadCSV} variant="secondary" className="h-9 gap-1.5 px-3 text-xs">
+            <ControlButton
+              onClick={handleDownloadCSV}
+              variant="secondary"
+              className="h-9 gap-1.5 px-3 text-xs"
+            >
               <Download className="h-3.5 w-3.5" />
               Export CSV
             </ControlButton>
-            <ControlButton onClick={onClose} variant="secondary" className="h-9 w-9 !p-0">
+            <ControlButton
+              onClick={onClose}
+              variant="secondary"
+              className="h-9 w-9 !p-0"
+            >
               <X className="h-4 w-4" />
             </ControlButton>
           </div>
@@ -1019,7 +1082,13 @@ function AllUsersModal({ onClose }) {
           <SingleSelectDropdown
             value={trackFilter}
             onChange={setTrackFilter}
-            options={[{ value: "all", label: "All Tracks" }, ...USER_TRACK_OPTIONS.map((o) => ({ value: o.value, label: o.label }))]}
+            options={[
+              { value: "all", label: "All Tracks" },
+              ...USER_TRACK_OPTIONS.map((o) => ({
+                value: o.value,
+                label: o.label,
+              })),
+            ]}
           />
           <Segmented
             value={paidFilter}
@@ -1034,9 +1103,13 @@ function AllUsersModal({ onClose }) {
 
         <div className="flex-1 overflow-y-auto px-6 py-3">
           {loading ? (
-            <div className="py-12 text-center text-sm font-semibold text-slate-400 animate-pulse">Loading users...</div>
+            <div className="py-12 text-center text-sm font-semibold text-slate-400 animate-pulse">
+              Loading users...
+            </div>
           ) : error ? (
-            <div className="py-12 text-center text-sm font-semibold text-rose-500">{error}</div>
+            <div className="py-12 text-center text-sm font-semibold text-rose-500">
+              {error}
+            </div>
           ) : (
             <table className="w-full text-xs">
               <thead className="sticky top-0 bg-white">
@@ -1053,21 +1126,36 @@ function AllUsersModal({ onClose }) {
                 {filteredUsers.map((user) => {
                   const isSaving = savingUserId === user.user_id;
                   const trackValue = getUserTrackValue(user);
-                  const trackOption = USER_TRACK_OPTIONS.find((o) => o.value === trackValue);
+                  const trackOption = USER_TRACK_OPTIONS.find(
+                    (o) => o.value === trackValue,
+                  );
                   return (
-                    <tr key={user.user_id} className={isSaving ? "bg-indigo-50/40" : "hover:bg-slate-50/50"}>
+                    <tr
+                      key={user.user_id}
+                      className={
+                        isSaving ? "bg-indigo-50/40" : "hover:bg-slate-50/50"
+                      }
+                    >
                       <td className="py-2.5 pr-3">
-                        <div className="font-semibold text-slate-700">{user.fullname || user.username}</div>
+                        <div className="font-semibold text-slate-700">
+                          {user.fullname || user.username}
+                        </div>
                         {rowErrors[user.user_id] && (
-                          <div className="mt-0.5 text-[10px] font-semibold text-rose-500">{rowErrors[user.user_id]}</div>
+                          <div className="mt-0.5 text-[10px] font-semibold text-rose-500">
+                            {rowErrors[user.user_id]}
+                          </div>
                         )}
                       </td>
-                      <td className="py-2.5 pr-3 text-slate-500">{user.phone || "—"}</td>
+                      <td className="py-2.5 pr-3 text-slate-500">
+                        {user.phone || "—"}
+                      </td>
                       <td className="py-2.5 pr-3">
                         <select
                           value={trackValue}
                           disabled={isSaving}
-                          onChange={(e) => handleTrackChange(user.user_id, e.target.value)}
+                          onChange={(e) =>
+                            handleTrackChange(user.user_id, e.target.value)
+                          }
                           className={`cursor-pointer rounded-full border-0 px-2 py-0.5 text-[10px] font-bold outline-none focus:ring-2 focus:ring-indigo-200 disabled:opacity-60 ${trackOption?.badgeClass || "bg-slate-100 text-slate-600"}`}
                         >
                           {USER_TRACK_OPTIONS.map((option) => (
@@ -1081,24 +1169,37 @@ function AllUsersModal({ onClose }) {
                         <button
                           type="button"
                           disabled={isSaving}
-                          onClick={() => handlePaidToggle(user.user_id, user.is_paid)}
+                          onClick={() =>
+                            handlePaidToggle(user.user_id, user.is_paid)
+                          }
                           className={`rounded-full px-2 py-0.5 text-[10px] font-bold transition-opacity hover:opacity-80 disabled:opacity-60 ${
-                            user.is_paid ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
+                            user.is_paid
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-slate-100 text-slate-500"
                           }`}
                         >
-                          {isSaving ? "Saving…" : user.is_paid ? "Paid" : "Free"}
+                          {isSaving
+                            ? "Saving…"
+                            : user.is_paid
+                              ? "Paid"
+                              : "Free"}
                         </button>
                       </td>
                       <td className="py-2.5 pr-3 text-slate-500">
                         {user.created_at ? user.created_at.slice(0, 10) : "—"}
                       </td>
-                      <td className="py-2.5 text-slate-500">{timeAgo(user.last_activity_at)}</td>
+                      <td className="py-2.5 text-slate-500">
+                        {timeAgo(user.last_activity_at)}
+                      </td>
                     </tr>
                   );
                 })}
                 {filteredUsers.length === 0 && (
                   <tr>
-                    <td colSpan="6" className="py-10 text-center text-slate-400">
+                    <td
+                      colSpan="6"
+                      className="py-10 text-center text-slate-400"
+                    >
                       No users match your filters.
                     </td>
                   </tr>
@@ -1231,7 +1332,10 @@ export default function AppAnalytics({ me }) {
     try {
       const res = await api.post("/admin/app-analytics/refresh");
       toast.success("Analytics refreshed");
-      setState((prev) => ({ ...prev, metadata: res.data?.metadata || prev.metadata }));
+      setState((prev) => ({
+        ...prev,
+        metadata: res.data?.metadata || prev.metadata,
+      }));
       await fetchAll();
     } catch (error) {
       console.error("Manual app analytics refresh failed:", error);
@@ -1243,7 +1347,12 @@ export default function AppAnalytics({ me }) {
 
   const getInitials = (name) => {
     if (!name) return "?";
-    return name.split(" ").map(n => n[0]).slice(0, 2).join("").toUpperCase();
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
   };
 
   const doughnutData = useMemo(() => {
@@ -1251,7 +1360,10 @@ export default function AppAnalytics({ me }) {
       labels: ["Paid Users", "Free Users"],
       datasets: [
         {
-          data: [Number(state.summary?.paid_users || 0), Number(state.summary?.unpaid_users || 0)],
+          data: [
+            Number(state.summary?.paid_users || 0),
+            Number(state.summary?.unpaid_users || 0),
+          ],
           backgroundColor: ["#10b981", "#6366f1"],
           hoverBackgroundColor: ["#059669", "#4f46e5"],
           borderWidth: 0,
@@ -1267,7 +1379,8 @@ export default function AppAnalytics({ me }) {
         <div>
           <h1 className="text-xl font-bold text-slate-900">App Analytics</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Real-time app usage telemetry, retention cohorts, learning indicators and user journeys
+            Real-time app usage telemetry, retention cohorts, learning
+            indicators and user journeys
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1299,7 +1412,9 @@ export default function AppAnalytics({ me }) {
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-4 shadow-xs">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Platform</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Platform
+            </span>
             <SingleSelectDropdown
               options={[
                 { value: "both", label: "Both" },
@@ -1307,36 +1422,50 @@ export default function AppAnalytics({ me }) {
                 { value: "web", label: "Web" },
               ]}
               value={filters.platform}
-              onChange={(val) => setFilters((prev) => ({ ...prev, platform: val }))}
+              onChange={(val) =>
+                setFilters((prev) => ({ ...prev, platform: val }))
+              }
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Start Date</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Start Date
+            </span>
             <ControlInput
               type="date"
               value={filters.startDate}
-              onChange={(e) => setFilters((prev) => ({ ...prev, startDate: e.target.value }))}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, startDate: e.target.value }))
+              }
               className="h-9 text-xs w-36"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">End Date</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              End Date
+            </span>
             <ControlInput
               type="date"
               value={filters.endDate}
-              onChange={(e) => setFilters((prev) => ({ ...prev, endDate: e.target.value }))}
+              onChange={(e) =>
+                setFilters((prev) => ({ ...prev, endDate: e.target.value }))
+              }
               className="h-9 text-xs w-36"
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">App Versions</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              App Versions
+            </span>
             <MultiSelectDropdown
               options={options.appVersions || []}
               selected={filters.appVersions}
-              onChange={(vals) => setFilters((prev) => ({ ...prev, appVersions: vals }))}
+              onChange={(vals) =>
+                setFilters((prev) => ({ ...prev, appVersions: vals }))
+              }
             />
           </div>
         </div>
@@ -1353,7 +1482,9 @@ export default function AppAnalytics({ me }) {
               variant="secondary"
               className="h-9 px-3.5 text-xs"
             >
-              <RefreshCw className={`mr-1.5 w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              <RefreshCw
+                className={`mr-1.5 w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+              />
               {refreshing ? "Refreshing..." : "Refresh"}
             </ControlButton>
           )}
@@ -1366,17 +1497,18 @@ export default function AppAnalytics({ me }) {
         </div>
       ) : (
         <div className="grid grid-cols-12 gap-4">
-          
           {/* Six Metric Cards */}
           <div className="col-span-full sm:col-span-6 xl:col-span-2 bg-white shadow-xs rounded-xl p-5 flex flex-col justify-between min-h-[120px]">
             <div>
               <header className="flex justify-between items-start mb-2">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Total Users</span>
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  Total Users
+                </span>
                 <button
                   type="button"
                   onClick={() => setAllUsersOpen(true)}
                   title="View all users"
-                  className="text-slate-400 hover:text-indigo-600 transition-colors"
+                  className="text-slate-400 hover:text-indigo-600 transition-colors cursor-pointer"
                 >
                   <Users className="w-4 h-4" />
                 </button>
@@ -1389,24 +1521,33 @@ export default function AppAnalytics({ me }) {
               <div className="flex items-center gap-3 text-[11px] text-gray-500">
                 <span className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  Paid: <span className="font-semibold text-slate-700">{formatNumber(state.summary?.paid_users)}</span>
+                  Paid:{" "}
+                  <span className="font-semibold text-slate-700">
+                    {formatNumber(state.summary?.paid_users)}
+                  </span>
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                  Free: <span className="font-semibold text-slate-700">{formatNumber(state.summary?.unpaid_users)}</span>
+                  Free:{" "}
+                  <span className="font-semibold text-slate-700">
+                    {formatNumber(state.summary?.unpaid_users)}
+                  </span>
                 </span>
               </div>
               <div className="flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-slate-400 font-medium">
                 {levelRows.map((row) => (
                   <span key={row.key}>
-                    {row.key} <span className="font-bold text-slate-600">{formatNumber(row.count)}</span>
+                    {row.key}{" "}
+                    <span className="font-bold text-slate-600">
+                      {formatNumber(row.count)}
+                    </span>
                   </span>
                 ))}
               </div>
               <button
                 type="button"
                 onClick={() => setAllUsersOpen(true)}
-                className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700"
+                className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 cursor-pointer"
               >
                 View all users →
               </button>
@@ -1416,7 +1557,9 @@ export default function AppAnalytics({ me }) {
           <div className="col-span-full sm:col-span-6 xl:col-span-2 bg-white shadow-xs rounded-xl p-5 flex flex-col justify-between min-h-[120px]">
             <div>
               <header className="flex justify-between items-start mb-2">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">New Yesterday</span>
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  New Yesterday
+                </span>
                 <Users className="w-4 h-4 text-blue-500" />
               </header>
               <div className="text-3xl font-bold text-slate-800 leading-tight">
@@ -1431,7 +1574,9 @@ export default function AppAnalytics({ me }) {
           <div className="col-span-full sm:col-span-6 xl:col-span-2 bg-white shadow-xs rounded-xl p-5 flex flex-col justify-between min-h-[120px]">
             <div>
               <header className="flex justify-between items-start mb-2">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">DAU</span>
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  DAU
+                </span>
                 <Activity className="w-4 h-4 text-emerald-500" />
               </header>
               <div className="text-3xl font-bold text-slate-800 leading-tight">
@@ -1439,14 +1584,18 @@ export default function AppAnalytics({ me }) {
               </div>
             </div>
             <div className="text-[11px] text-gray-500 mt-3 border-t border-slate-50 pt-2.5 truncate">
-              <span>Source: {state.summary?.activity_source || "App / Web"}</span>
+              <span>
+                Source: {state.summary?.activity_source || "App / Web"}
+              </span>
             </div>
           </div>
 
           <div className="col-span-full sm:col-span-6 xl:col-span-2 bg-white shadow-xs rounded-xl p-5 flex flex-col justify-between min-h-[120px]">
             <div>
               <header className="flex justify-between items-start mb-2">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">WAU</span>
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  WAU
+                </span>
                 <Activity className="w-4 h-4 text-indigo-500" />
               </header>
               <div className="text-3xl font-bold text-slate-800 leading-tight">
@@ -1461,7 +1610,9 @@ export default function AppAnalytics({ me }) {
           <div className="col-span-full sm:col-span-6 xl:col-span-2 bg-white shadow-xs rounded-xl p-5 flex flex-col justify-between min-h-[120px]">
             <div>
               <header className="flex justify-between items-start mb-2">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">MAU</span>
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  MAU
+                </span>
                 <Activity className="w-4 h-4 text-purple-500" />
               </header>
               <div className="text-3xl font-bold text-slate-800 leading-tight">
@@ -1476,7 +1627,9 @@ export default function AppAnalytics({ me }) {
           <div className="col-span-full sm:col-span-6 xl:col-span-2 bg-white shadow-xs rounded-xl p-5 flex flex-col justify-between min-h-[120px]">
             <div>
               <header className="flex justify-between items-start mb-2">
-                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Avg Session</span>
+                <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                  Avg Session
+                </span>
                 <Clock className="w-4 h-4 text-amber-500" />
               </header>
               <div className="text-3xl font-bold text-slate-800 leading-tight">
@@ -1497,7 +1650,9 @@ export default function AppAnalytics({ me }) {
           <div className="col-span-full bg-white shadow-xs rounded-xl p-5">
             <header className="flex justify-between items-center mb-4">
               <div>
-                <h2 className="text-lg font-semibold text-slate-800">Cohort Retention</h2>
+                <h2 className="text-lg font-semibold text-slate-800">
+                  Cohort Retention
+                </h2>
               </div>
               <div className="flex items-center gap-2.5">
                 <Segmented
@@ -1511,9 +1666,14 @@ export default function AppAnalytics({ me }) {
                 />
                 {retentionGranularity === "week" && (
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Show</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Show
+                    </span>
                     <SingleSelectDropdown
-                      options={[2, 4, 6, 8, 10, 12].map((n) => ({ value: n, label: `${n} Weeks` }))}
+                      options={[2, 4, 6, 8, 10, 12].map((n) => ({
+                        value: n,
+                        label: `${n} Weeks`,
+                      }))}
                       value={retentionWeeks}
                       onChange={(val) => setRetentionWeeks(Number(val))}
                     />
@@ -1521,9 +1681,14 @@ export default function AppAnalytics({ me }) {
                 )}
                 {retentionGranularity === "month" && (
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Show</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Show
+                    </span>
                     <SingleSelectDropdown
-                      options={[3, 6, 9, 12, 18, 24].map((n) => ({ value: n, label: `${n} Months` }))}
+                      options={[3, 6, 9, 12, 18, 24].map((n) => ({
+                        value: n,
+                        label: `${n} Months`,
+                      }))}
                       value={retentionMonths}
                       onChange={(val) => setRetentionMonths(Number(val))}
                     />
@@ -1544,38 +1709,72 @@ export default function AppAnalytics({ me }) {
                 <RetentionHeatmap
                   rows={state.retention}
                   granularity={retentionGranularity}
-                  maxColumns={retentionGranularity === "week" ? retentionWeeks : retentionMonths}
+                  maxColumns={
+                    retentionGranularity === "week"
+                      ? retentionWeeks
+                      : retentionMonths
+                  }
                 />
               </div>
               <div className="xl:col-span-5 rounded-xl border border-slate-200 p-4 bg-slate-50/30">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">Retention Decay Curve</p>
-                <RetentionCurveChart rows={state.retention} granularity={retentionGranularity} />
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-3">
+                  Retention Decay Curve
+                </p>
+                <RetentionCurveChart
+                  rows={state.retention}
+                  granularity={retentionGranularity}
+                />
               </div>
             </div>
           </div>
 
           {/* User Paid vs Unpaid Donut */}
-          <DashboardCard title="Acquisition Split" className="col-span-full sm:col-span-6 xl:col-span-4">
+          <DashboardCard
+            title="Acquisition Split"
+            className="col-span-full sm:col-span-6 xl:col-span-4"
+          >
             {(() => {
-              const totalUsers = Number(state.summary?.paid_users || 0) + Number(state.summary?.unpaid_users || 0);
+              const totalUsers =
+                Number(state.summary?.paid_users || 0) +
+                Number(state.summary?.unpaid_users || 0);
               return (
                 <div className="flex flex-col items-center justify-between h-full">
                   <div className="h-48 w-full flex items-center justify-center">
-                    <DoughnutChart data={doughnutData} width={220} height={180} />
+                    <DoughnutChart
+                      data={doughnutData}
+                      width={220}
+                      height={180}
+                    />
                   </div>
                   <div className="w-full flex justify-center gap-6 mt-2 pb-2 text-xs border-t border-slate-50 pt-3">
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#10b981]" />
                       <span className="text-slate-500 font-medium">Paid</span>
                       <span className="font-bold text-slate-800">
-                        {formatNumber(state.summary?.paid_users)} ({totalUsers ? Math.round((Number(state.summary?.paid_users || 0) / totalUsers) * 100) : 0}%)
+                        {formatNumber(state.summary?.paid_users)} (
+                        {totalUsers
+                          ? Math.round(
+                              (Number(state.summary?.paid_users || 0) /
+                                totalUsers) *
+                                100,
+                            )
+                          : 0}
+                        %)
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="w-2.5 h-2.5 rounded-full bg-[#6366f1]" />
                       <span className="text-slate-500 font-medium">Free</span>
                       <span className="font-bold text-slate-800">
-                        {formatNumber(state.summary?.unpaid_users)} ({totalUsers ? Math.round((Number(state.summary?.unpaid_users || 0) / totalUsers) * 100) : 0}%)
+                        {formatNumber(state.summary?.unpaid_users)} (
+                        {totalUsers
+                          ? Math.round(
+                              (Number(state.summary?.unpaid_users || 0) /
+                                totalUsers) *
+                                100,
+                            )
+                          : 0}
+                        %)
                       </span>
                     </div>
                   </div>
@@ -1585,67 +1784,115 @@ export default function AppAnalytics({ me }) {
           </DashboardCard>
 
           {/* Level Wise Users */}
-          <DashboardCard title="Users by Proficiency Level" className="col-span-full sm:col-span-6 xl:col-span-8">
+          <DashboardCard
+            title="Users by Proficiency Level"
+            className="col-span-full sm:col-span-6 xl:col-span-8"
+          >
             <div className="grid grid-cols-2 gap-3 md:grid-cols-6 h-full items-center">
               {levelRows.map((row) => (
-                <div key={row.key} className="rounded-xl border border-slate-200 bg-slate-50/30 p-4 text-center hover:bg-slate-50/60 transition-colors">
-                  <p className="text-xl font-bold text-slate-855 tracking-tight">{formatNumber(row.count)}</p>
-                  <p className="text-[10px] font-semibold text-slate-400 mt-1 uppercase tracking-wide">{row.key}</p>
+                <div
+                  key={row.key}
+                  className="rounded-xl border border-slate-200 bg-slate-50/30 p-4 text-center hover:bg-slate-50/60 transition-colors"
+                >
+                  <p className="text-xl font-bold text-slate-855 tracking-tight">
+                    {formatNumber(row.count)}
+                  </p>
+                  <p className="text-[10px] font-semibold text-slate-400 mt-1 uppercase tracking-wide">
+                    {row.key}
+                  </p>
                   <div className="mt-2.5 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-indigo-600 rounded-full" style={{ width: `${row.pct}%` }} />
+                    <div
+                      className="h-full bg-indigo-600 rounded-full"
+                      style={{ width: `${row.pct}%` }}
+                    />
                   </div>
-                  <p className="text-[9px] font-bold text-slate-400 mt-1">{row.pct}%</p>
+                  <p className="text-[9px] font-bold text-slate-400 mt-1">
+                    {row.pct}%
+                  </p>
                 </div>
               ))}
             </div>
           </DashboardCard>
 
           {/* Learning Overview */}
-          <DashboardCard title="Learning Module Overview" className="col-span-full sm:col-span-6">
+          <DashboardCard
+            title="Learning Module Overview"
+            className="col-span-full sm:col-span-6"
+          >
             <div className="grid grid-cols-2 gap-3 max-h-80 overflow-auto pr-1">
               {state.learning.length ? (
                 state.learning.map((row) => {
-                  const diff = Number(row.current_count || 0) - Number(row.previous_count || 0);
+                  const diff =
+                    Number(row.current_count || 0) -
+                    Number(row.previous_count || 0);
                   const isUp = diff >= 0;
                   return (
-                    <div key={row.feature_key} className="rounded-xl border border-slate-200 bg-slate-50/30 p-4 hover:bg-slate-50/60 transition-colors">
-                      <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-slate-400">{row.feature_key}</p>
-                      <p className="mt-1 text-2xl font-bold tracking-tight text-slate-700">{formatNumber(row.current_count)}</p>
+                    <div
+                      key={row.feature_key}
+                      className="rounded-xl border border-slate-200 bg-slate-50/30 p-4 hover:bg-slate-50/60 transition-colors"
+                    >
+                      <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                        {row.feature_key}
+                      </p>
+                      <p className="mt-1 text-2xl font-bold tracking-tight text-slate-700">
+                        {formatNumber(row.current_count)}
+                      </p>
                       <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-bold">
-                        <span className={`inline-flex rounded px-1.5 py-0.5 ${
-                          isUp ? "bg-green-50 text-green-700" : "bg-rose-50 text-rose-700"
-                        }`}>
-                          {isUp ? "+" : ""}{formatNumber(diff)}
+                        <span
+                          className={`inline-flex rounded px-1.5 py-0.5 ${
+                            isUp
+                              ? "bg-green-50 text-green-700"
+                              : "bg-rose-50 text-rose-700"
+                          }`}
+                        >
+                          {isUp ? "+" : ""}
+                          {formatNumber(diff)}
                         </span>
-                        <span className="text-slate-400 font-medium">vs prev</span>
+                        <span className="text-slate-400 font-medium">
+                          vs prev
+                        </span>
                       </div>
                     </div>
                   );
                 })
               ) : (
-                <div className="col-span-full"><EmptyState /></div>
+                <div className="col-span-full">
+                  <EmptyState />
+                </div>
               )}
             </div>
           </DashboardCard>
 
           {/* Top Usage Features */}
-          <DashboardCard title="Top Usage Features" className="col-span-full sm:col-span-6">
+          <DashboardCard
+            title="Top Usage Features"
+            className="col-span-full sm:col-span-6"
+          >
             <div className="space-y-2.5 max-h-72 overflow-auto pr-1">
               {state.topUsage.length ? (
                 state.topUsage.map((row) => (
-                  <div key={`${row.feature_key}-${row.title}`} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/20 p-3.5 hover:bg-slate-50/55 transition-colors">
+                  <div
+                    key={`${row.feature_key}-${row.title}`}
+                    className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/20 p-3.5 hover:bg-slate-50/55 transition-colors"
+                  >
                     <div>
                       <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
                         {row.feature_key}
                       </span>
-                      <p className="mt-1.5 text-xs font-semibold text-slate-700">{row.title}</p>
+                      <p className="mt-1.5 text-xs font-semibold text-slate-700">
+                        {row.title}
+                      </p>
                       <p className="text-[10px] font-medium text-slate-400 mt-0.5">
                         {formatNumber(row.users)} users
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-bold text-slate-800">{formatNumber(row.usage_count)}</p>
-                      <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">Usage</p>
+                      <p className="text-lg font-bold text-slate-800">
+                        {formatNumber(row.usage_count)}
+                      </p>
+                      <p className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
+                        Usage
+                      </p>
                     </div>
                   </div>
                 ))
@@ -1656,20 +1903,36 @@ export default function AppAnalytics({ me }) {
           </DashboardCard>
 
           {/* Overall Funnel */}
-          <DashboardCard title="Overall Funnel" className="col-span-full sm:col-span-6">
+          <DashboardCard
+            title="Overall Funnel"
+            className="col-span-full sm:col-span-6"
+          >
             <div className="space-y-2 max-h-80 overflow-auto pr-1">
               {state.funnel.map((row, idx) => {
                 const firstCount = Number(state.funnel[0]?.count || 1);
-                const prevCount = idx > 0 ? Number(state.funnel[idx - 1]?.count || 1) : firstCount;
-                const pctOfFirst = Math.round((Number(row.count || 0) / firstCount) * 100);
-                const dropoff = idx > 0 ? Math.round(((prevCount - Number(row.count || 0)) / prevCount) * 100) : 0;
+                const prevCount =
+                  idx > 0
+                    ? Number(state.funnel[idx - 1]?.count || 1)
+                    : firstCount;
+                const pctOfFirst = Math.round(
+                  (Number(row.count || 0) / firstCount) * 100,
+                );
+                const dropoff =
+                  idx > 0
+                    ? Math.round(
+                        ((prevCount - Number(row.count || 0)) / prevCount) *
+                          100,
+                      )
+                    : 0;
 
                 return (
                   <div key={row.step} className="relative">
                     {idx > 0 && (
                       <div className="my-1.5 flex items-center justify-center gap-1.5 text-[9px] font-bold text-rose-500">
                         <span className="h-3 border-l border-dashed border-rose-300" />
-                        <span className="bg-rose-50 px-1.5 py-0.5 rounded-full">-{dropoff}% loss</span>
+                        <span className="bg-rose-50 px-1.5 py-0.5 rounded-full">
+                          -{dropoff}% loss
+                        </span>
                       </div>
                     )}
                     <div className="grid grid-cols-[28px_1fr_auto] items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/20 px-3 py-2 hover:bg-slate-50/40 transition-colors">
@@ -1677,10 +1940,16 @@ export default function AppAnalytics({ me }) {
                         {idx + 1}
                       </span>
                       <div>
-                        <p className="text-xs font-semibold text-slate-700">{row.step}</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">{pctOfFirst}% conversion</p>
+                        <p className="text-xs font-semibold text-slate-700">
+                          {row.step}
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">
+                          {pctOfFirst}% conversion
+                        </p>
                       </div>
-                      <span className="text-xs font-bold text-indigo-600">{formatNumber(row.count)}</span>
+                      <span className="text-xs font-bold text-indigo-600">
+                        {formatNumber(row.count)}
+                      </span>
                     </div>
                   </div>
                 );
@@ -1689,25 +1958,38 @@ export default function AppAnalytics({ me }) {
           </DashboardCard>
 
           {/* High Value Prospects */}
-          <DashboardCard title="High Value Prospects" className="col-span-full sm:col-span-6">
+          <DashboardCard
+            title="High Value Prospects"
+            className="col-span-full sm:col-span-6"
+          >
             <div className="max-h-80 space-y-2.5 overflow-auto pr-1">
               {state.prospects.length ? (
                 state.prospects.map((row) => (
-                  <div key={row.user_id} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/20 p-3 hover:bg-slate-50/40 transition-colors">
+                  <div
+                    key={row.user_id}
+                    className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/20 p-3 hover:bg-slate-50/40 transition-colors"
+                  >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
                       {getInitials(row.name)}
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <p className="truncate text-xs font-semibold text-slate-700">
-                          {row.name} {row.phone && <span className="ml-1 text-[10px] text-slate-500 font-normal">({row.phone})</span>}
+                          {row.name}{" "}
+                          {row.phone && (
+                            <span className="ml-1 text-[10px] text-slate-500 font-normal">
+                              ({row.phone})
+                            </span>
+                          )}
                         </p>
                         <span className="inline-flex rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
                           {row.prospect_score}
                         </span>
                       </div>
                       <p className="text-[10px] text-slate-400 mt-0.5 font-medium">
-                        {row.level || "N/A"} • {formatNumber(row.activity_count)} events • {formatIst(row.last_activity)}
+                        {row.level || "N/A"} •{" "}
+                        {formatNumber(row.activity_count)} events •{" "}
+                        {formatIst(row.last_activity)}
                       </p>
                     </div>
                   </div>
@@ -1719,21 +2001,32 @@ export default function AppAnalytics({ me }) {
           </DashboardCard>
 
           {/* Recent User Activity */}
-          <DashboardCard title="Recent User Activity" className="col-span-full sm:col-span-6">
+          <DashboardCard
+            title="Recent User Activity"
+            className="col-span-full sm:col-span-6"
+          >
             <div className="max-h-80 space-y-2.5 overflow-auto pr-1">
               {state.recent.length ? (
                 state.recent.map((row) => (
-                  <div key={row.user_id} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/20 p-3 hover:bg-slate-50/40 transition-colors">
+                  <div
+                    key={row.user_id}
+                    className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/20 p-3 hover:bg-slate-50/40 transition-colors"
+                  >
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold text-slate-600">
                       {getInitials(row.name)}
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="truncate text-xs font-semibold text-slate-700">{row.name}</p>
-                        <span className="text-xs font-bold text-slate-700">{row.activity_count}</span>
+                        <p className="truncate text-xs font-semibold text-slate-700">
+                          {row.name}
+                        </p>
+                        <span className="text-xs font-bold text-slate-700">
+                          {row.activity_count}
+                        </span>
                       </div>
                       <p className="text-[10px] text-slate-400 mt-0.5 font-medium">
-                        {row.level || "N/A"} • Active {formatIst(row.last_activity)}
+                        {row.level || "N/A"} • Active{" "}
+                        {formatIst(row.last_activity)}
                       </p>
                     </div>
                   </div>
@@ -1748,19 +2041,31 @@ export default function AppAnalytics({ me }) {
           <div className="flex flex-col col-span-full sm:col-span-6 bg-white shadow-xs rounded-xl">
             <div className="px-5 pt-5 pb-4">
               <header className="flex justify-between items-start mb-1">
-                <h2 className="text-lg font-semibold text-slate-800">New Users</h2>
+                <h2 className="text-lg font-semibold text-slate-800">
+                  New Users
+                </h2>
                 <div className="flex items-center gap-1.5 rounded bg-indigo-50 px-2 py-0.5 text-[9px] font-bold text-indigo-700">
                   <Smartphone className="w-3 h-3 text-indigo-600" />
-                  App {formatNumber(state.activeNow?.appUsers)} / Web {formatNumber(state.activeNow?.webUsers)}
+                  App {formatNumber(state.activeNow?.appUsers)} / Web{" "}
+                  {formatNumber(state.activeNow?.webUsers)}
                 </div>
               </header>
               <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
                 Last 30 Days
               </div>
               {(() => {
-                const totalSignups = state.newUsers.reduce((sum, d) => sum + Number(d.users || 0), 0);
-                const appSignups = state.newUsers.reduce((sum, d) => sum + Number(d.app_users || 0), 0);
-                const webSignups = state.newUsers.reduce((sum, d) => sum + Number(d.web_users || 0), 0);
+                const totalSignups = state.newUsers.reduce(
+                  (sum, d) => sum + Number(d.users || 0),
+                  0,
+                );
+                const appSignups = state.newUsers.reduce(
+                  (sum, d) => sum + Number(d.app_users || 0),
+                  0,
+                );
+                const webSignups = state.newUsers.reduce(
+                  (sum, d) => sum + Number(d.web_users || 0),
+                  0,
+                );
                 return (
                   <>
                     <div className="flex items-baseline">
@@ -1772,11 +2077,21 @@ export default function AppAnalytics({ me }) {
                     <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
                       <div className="flex items-center gap-1.5">
                         <div className="w-2 h-2 rounded-full bg-violet-500"></div>
-                        <span>App: <span className="font-semibold text-slate-700">{formatNumber(appSignups)}</span></span>
+                        <span>
+                          App:{" "}
+                          <span className="font-semibold text-slate-700">
+                            {formatNumber(appSignups)}
+                          </span>
+                        </span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <div className="w-2 h-2 rounded-full bg-amber-500"></div>
-                        <span>Web: <span className="font-semibold text-slate-700">{formatNumber(webSignups)}</span></span>
+                        <span>
+                          Web:{" "}
+                          <span className="font-semibold text-slate-700">
+                            {formatNumber(webSignups)}
+                          </span>
+                        </span>
                       </div>
                     </div>
                   </>
@@ -1814,9 +2129,16 @@ export default function AppAnalytics({ me }) {
                 ["30+ Days", state.streaks.summary?.streak_30_plus],
                 ["Longest", state.streaks.summary?.current_longest_streak],
               ].map(([label, value]) => (
-                <div key={label} className="rounded-xl bg-slate-50 p-2.5 text-center">
-                  <p className="text-[9px] font-bold text-slate-400 uppercase">{label}</p>
-                  <p className="text-base font-black text-slate-700 mt-0.5">{formatNumber(value)}</p>
+                <div
+                  key={label}
+                  className="rounded-xl bg-slate-50 p-2.5 text-center"
+                >
+                  <p className="text-[9px] font-bold text-slate-400 uppercase">
+                    {label}
+                  </p>
+                  <p className="text-base font-black text-slate-700 mt-0.5">
+                    {formatNumber(value)}
+                  </p>
                 </div>
               ))}
             </div>
@@ -1826,16 +2148,23 @@ export default function AppAnalytics({ me }) {
                   {[...state.streaks.current]
                     .sort((a, b) =>
                       streakView === "longest"
-                        ? Number(b.longest_streak || 0) - Number(a.longest_streak || 0)
-                        : Number(b.current_streak || 0) - Number(a.current_streak || 0),
+                        ? Number(b.longest_streak || 0) -
+                          Number(a.longest_streak || 0)
+                        : Number(b.current_streak || 0) -
+                          Number(a.current_streak || 0),
                     )
                     .map((row, index) => {
-                      const value = streakView === "longest" ? row.longest_streak : row.current_streak;
+                      const value =
+                        streakView === "longest"
+                          ? row.longest_streak
+                          : row.current_streak;
                       return (
                         <div
                           key={row.user_id}
                           className={`flex items-center justify-between gap-3 px-3.5 py-2.5 transition-colors hover:bg-slate-50/50 ${
-                            index < 3 ? "bg-gradient-to-r from-slate-50 to-transparent" : ""
+                            index < 3
+                              ? "bg-gradient-to-r from-slate-50 to-transparent"
+                              : ""
                           }`}
                         >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -1847,11 +2176,15 @@ export default function AppAnalytics({ me }) {
                               ) : index === 2 ? (
                                 <Medal className="w-4 h-4 text-amber-600" />
                               ) : (
-                                <span className="text-xs font-bold text-slate-400">#{index + 1}</span>
+                                <span className="text-xs font-bold text-slate-400">
+                                  #{index + 1}
+                                </span>
                               )}
                             </span>
                             <div className="min-w-0">
-                              <p className="truncate text-xs font-semibold text-slate-700">{row.name}</p>
+                              <p className="truncate text-xs font-semibold text-slate-700">
+                                {row.name}
+                              </p>
                               <div className="flex items-center gap-1.5 mt-0.5">
                                 {row.level && (
                                   <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold text-indigo-600">
@@ -1860,7 +2193,9 @@ export default function AppAnalytics({ me }) {
                                 )}
                                 <span
                                   className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
-                                    row.is_paid ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500"
+                                    row.is_paid
+                                      ? "bg-emerald-50 text-emerald-700"
+                                      : "bg-slate-100 text-slate-500"
                                   }`}
                                 >
                                   {row.is_paid ? "Paid" : "Free"}
@@ -1871,22 +2206,29 @@ export default function AppAnalytics({ me }) {
                           <div className="text-right shrink-0">
                             <div className="flex items-center gap-1 text-orange-600 justify-end">
                               <Flame className="w-3.5 h-3.5" />
-                              <span className="text-lg font-bold">{formatNumber(value)}</span>
+                              <span className="text-lg font-bold">
+                                {formatNumber(value)}
+                              </span>
                             </div>
-                            {streakView === "current" && Number(row.longest_streak) > Number(row.current_streak) && (
-                              <p className="text-[9px] text-slate-400 font-medium">Best: {formatNumber(row.longest_streak)}</p>
-                            )}
+                            {streakView === "current" &&
+                              Number(row.longest_streak) >
+                                Number(row.current_streak) && (
+                                <p className="text-[9px] text-slate-400 font-medium">
+                                  Best: {formatNumber(row.longest_streak)}
+                                </p>
+                              )}
                           </div>
                         </div>
                       );
                     })}
                 </div>
               ) : (
-                <div className="px-3 py-8 text-center text-slate-400 text-sm font-medium">No active streaks</div>
+                <div className="px-3 py-8 text-center text-slate-400 text-sm font-medium">
+                  No active streaks
+                </div>
               )}
             </div>
           </div>
-
         </div>
       )}
 

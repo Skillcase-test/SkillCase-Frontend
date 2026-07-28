@@ -218,8 +218,10 @@ function groupJourneyItems(items = []) {
     const existing = grouped.get(key);
     if (existing) {
       existing.count += item.count || 1;
-      if (item.started_at < existing.first_at) existing.first_at = item.started_at;
-      if (item.started_at > existing.last_at) existing.last_at = item.started_at;
+      if (item.started_at < existing.first_at)
+        existing.first_at = item.started_at;
+      if (item.started_at > existing.last_at)
+        existing.last_at = item.started_at;
     } else {
       const entry = {
         ...item,
@@ -267,7 +269,8 @@ function moduleFromTimeline(items = []) {
     entry.events += item.count || 1;
     if (item.kind === "error") entry.errors += item.count || 1;
     if (item.kind === "friction") entry.friction += item.count || 1;
-    if (["completed", "flow_completed"].includes(item.kind)) entry.completed = true;
+    if (["completed", "flow_completed"].includes(item.kind))
+      entry.completed = true;
     if (item.first_at < entry.first_at) entry.first_at = item.first_at;
     if (item.last_at > entry.last_at) entry.last_at = item.last_at;
     const match = POSITION_IN_DETAIL.exec(item.detail || "");
@@ -277,16 +280,20 @@ function moduleFromTimeline(items = []) {
     }
     grouped.set(feature, entry);
   });
-  return [...grouped.values()]
-    .map((entry) => ({
-      ...entry,
-      items_used: entry.positions.size,
-      furthest_item: entry.positions.size ? Math.max(...entry.positions) : null,
-      positions: undefined,
-    }))
-    // Matches the order the backend serialises modules in, so the Last activity
-    // column reads top to bottom either way.
-    .sort((a, b) => new Date(a.last_at) - new Date(b.last_at));
+  return (
+    [...grouped.values()]
+      .map((entry) => ({
+        ...entry,
+        items_used: entry.positions.size,
+        furthest_item: entry.positions.size
+          ? Math.max(...entry.positions)
+          : null,
+        positions: undefined,
+      }))
+      // Matches the order the backend serialises modules in, so the Last activity
+      // column reads top to bottom either way.
+      .sort((a, b) => new Date(a.last_at) - new Date(b.last_at))
+  );
 }
 
 // One row per chapter, set or flow the candidate worked on, with the raw events
@@ -461,7 +468,12 @@ function HorizontalFunnel({ rows = [] }) {
 
 const FEATURE_TABLE_COLLAPSED_COUNT = 3;
 
-function FeatureOverviewTable({ rows = [], selectedFeature, onSelectFeature, loading }) {
+function FeatureOverviewTable({
+  rows = [],
+  selectedFeature,
+  onSelectFeature,
+  loading,
+}) {
   const [showAll, setShowAll] = useState(false);
 
   if (loading) {
@@ -470,7 +482,10 @@ function FeatureOverviewTable({ rows = [], selectedFeature, onSelectFeature, loa
         <div className="mb-6 h-3 w-40 animate-pulse rounded bg-slate-100" />
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-10 animate-pulse rounded-lg bg-slate-100" />
+            <div
+              key={i}
+              className="h-10 animate-pulse rounded-lg bg-slate-100"
+            />
           ))}
         </div>
       </div>
@@ -482,7 +497,9 @@ function FeatureOverviewTable({ rows = [], selectedFeature, onSelectFeature, loa
   const ranked = [...rows].sort(
     (a, b) => (b.adoption_percentage || 0) - (a.adoption_percentage || 0),
   );
-  const visible = showAll ? ranked : ranked.slice(0, FEATURE_TABLE_COLLAPSED_COUNT);
+  const visible = showAll
+    ? ranked
+    : ranked.slice(0, FEATURE_TABLE_COLLAPSED_COUNT);
   const hiddenCount = ranked.length - visible.length;
 
   const RANK_BADGE = [
@@ -509,9 +526,12 @@ function FeatureOverviewTable({ rows = [], selectedFeature, onSelectFeature, loa
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="flex items-center justify-between px-7 py-5">
         <div>
-          <h2 className="text-base font-bold text-slate-900">All Features at a Glance</h2>
+          <h2 className="text-base font-bold text-slate-900">
+            All Features at a Glance
+          </h2>
           <p className="mt-0.5 text-xs text-slate-400">
-            Ranked by adoption &middot; click a row to drill into that feature&apos;s funnel below.
+            Ranked by adoption &middot; click a row to drill into that
+            feature&apos;s funnel below.
           </p>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-500">
@@ -522,14 +542,30 @@ function FeatureOverviewTable({ rows = [], selectedFeature, onSelectFeature, loa
         <table className="w-full min-w-[860px] border-collapse text-left">
           <thead>
             <tr className="border-t border-b border-slate-200 bg-slate-50">
-              <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Rank</th>
-              <th className="px-2 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Feature</th>
-              <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">Eligible</th>
-              <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">Users</th>
-              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Usage %</th>
-              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Completion</th>
-              <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">Avg Session</th>
-              <th className="px-7 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Accuracy</th>
+              <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Rank
+              </th>
+              <th className="px-2 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Feature
+              </th>
+              <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Eligible
+              </th>
+              <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Users
+              </th>
+              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Usage %
+              </th>
+              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Completion
+              </th>
+              <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Avg Session
+              </th>
+              <th className="px-7 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Accuracy
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -569,17 +605,26 @@ function FeatureOverviewTable({ rows = [], selectedFeature, onSelectFeature, loa
                     {number(row.users)}
                   </td>
                   <td className="px-4 py-3">
-                    <MiniBar value={row.adoption_percentage} colorClass="bg-indigo-500" />
+                    <MiniBar
+                      value={row.adoption_percentage}
+                      colorClass="bg-indigo-500"
+                    />
                   </td>
                   <td className="px-4 py-3">
-                    <MiniBar value={row.completion_percentage} colorClass="bg-emerald-500" />
+                    <MiniBar
+                      value={row.completion_percentage}
+                      colorClass="bg-emerald-500"
+                    />
                   </td>
                   <td className="px-4 py-3 text-right text-xs font-semibold tabular-nums text-slate-600">
                     {number(row.averages?.session_minutes, 1)}m
                   </td>
                   <td className="px-7 py-3">
                     {row.averages?.accuracy_percentage ? (
-                      <MiniBar value={row.averages.accuracy_percentage} colorClass="bg-amber-500" />
+                      <MiniBar
+                        value={row.averages.accuracy_percentage}
+                        colorClass="bg-amber-500"
+                      />
                     ) : (
                       <span className="text-xs text-slate-300">—</span>
                     )}
@@ -595,9 +640,11 @@ function FeatureOverviewTable({ rows = [], selectedFeature, onSelectFeature, loa
           <button
             type="button"
             onClick={() => setShowAll((prev) => !prev)}
-            className="text-xs font-bold text-indigo-600 hover:text-indigo-700"
+            className="text-xs font-bold text-indigo-600 hover:text-indigo-700 cursor-pointer"
           >
-            {showAll ? "Show less" : `Show ${hiddenCount} more feature${hiddenCount > 1 ? "s" : ""}`}
+            {showAll
+              ? "Show less"
+              : `Show ${hiddenCount} more feature${hiddenCount > 1 ? "s" : ""}`}
           </button>
         </div>
       )}
@@ -874,8 +921,9 @@ function JourneyModal({ journey, loading, features = [], onClose }) {
                                 ) : (
                                   <p className="text-xs text-slate-400">
                                     {number(module.events)} action
-                                    {module.events === 1 ? "" : "s"} recorded, with
-                                    no further detail stored for this module.
+                                    {module.events === 1 ? "" : "s"} recorded,
+                                    with no further detail stored for this
+                                    module.
                                   </p>
                                 )}
                               </td>
@@ -1155,7 +1203,10 @@ export default function NewAnalytics({ me }) {
     setDetail(null);
     setDetailLoading(true);
     try {
-      const { data } = await newAnalyticsApi.journey(subjectId, filters.date_to);
+      const { data } = await newAnalyticsApi.journey(
+        subjectId,
+        filters.date_to,
+      );
       setDetail(data);
     } catch (err) {
       toast.error(err.response?.data?.msg || "Journey could not be loaded");
@@ -1299,7 +1350,9 @@ export default function NewAnalytics({ me }) {
                     max={filters.date_to || catalog?.default_date}
                     min={catalog?.available_from || undefined}
                     value={filters.date_from}
-                    onChange={(e) => updateRange(e.target.value, filters.date_to)}
+                    onChange={(e) =>
+                      updateRange(e.target.value, filters.date_to)
+                    }
                     className="w-full text-sm font-semibold text-slate-700"
                   />
                 </div>
@@ -1315,9 +1368,13 @@ export default function NewAnalytics({ me }) {
                     type="date"
                     aria-label="Range end date"
                     max={catalog?.default_date}
-                    min={filters.date_from || catalog?.available_from || undefined}
+                    min={
+                      filters.date_from || catalog?.available_from || undefined
+                    }
                     value={filters.date_to}
-                    onChange={(e) => updateRange(filters.date_from, e.target.value)}
+                    onChange={(e) =>
+                      updateRange(filters.date_from, e.target.value)
+                    }
                     className="w-full text-sm font-semibold text-slate-700"
                   />
                 </div>
@@ -1342,7 +1399,10 @@ export default function NewAnalytics({ me }) {
             {tab === "features" && (
               <>
                 <div className="flex flex-col sm:col-span-2">
-                  <label htmlFor="analytics-feature" className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  <label
+                    htmlFor="analytics-feature"
+                    className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400"
+                  >
                     Feature
                   </label>
                   <ControlDropdown
@@ -1356,7 +1416,10 @@ export default function NewAnalytics({ me }) {
                 </div>
 
                 <div className="flex flex-col">
-                  <label htmlFor="analytics-level" className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  <label
+                    htmlFor="analytics-level"
+                    className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400"
+                  >
                     Level
                   </label>
                   <ControlDropdown
@@ -1370,7 +1433,10 @@ export default function NewAnalytics({ me }) {
                 </div>
 
                 <div className="flex flex-col">
-                  <label htmlFor="analytics-user-type" className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  <label
+                    htmlFor="analytics-user-type"
+                    className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400"
+                  >
                     User type
                   </label>
                   <ControlDropdown
@@ -1384,7 +1450,10 @@ export default function NewAnalytics({ me }) {
                 </div>
 
                 <div className="flex flex-col">
-                  <label htmlFor="analytics-learner-stage" className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  <label
+                    htmlFor="analytics-learner-stage"
+                    className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400"
+                  >
                     Learner Stage
                   </label>
                   <ControlDropdown
@@ -1398,7 +1467,10 @@ export default function NewAnalytics({ me }) {
                 </div>
 
                 <div className="flex flex-col">
-                  <label htmlFor="analytics-platform" className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  <label
+                    htmlFor="analytics-platform"
+                    className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400"
+                  >
                     Platform
                   </label>
                   <ControlDropdown
@@ -1453,8 +1525,8 @@ export default function NewAnalytics({ me }) {
                 title={catalog.eligibility_note || undefined}
               >
                 <Users className="h-3 w-3" />
-                Eligible = last seen on v{catalog.min_app_version}+ (older builds
-                cannot report)
+                Eligible = last seen on v{catalog.min_app_version}+ (older
+                builds cannot report)
               </span>
             )}
           </div>

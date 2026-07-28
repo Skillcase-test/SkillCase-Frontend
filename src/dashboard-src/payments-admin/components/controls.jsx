@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 export const CONTROL_BASE =
-  "h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
+  "h-10 rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 cursor-pointer";
 
 export function ControlInput({ className = "", leftIcon = null, ...props }) {
   return (
@@ -72,7 +72,7 @@ export function ActionChip({
     <button
       type="button"
       {...props}
-      className={`inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${variantClass} ${className}`}
+      className={`inline-flex h-8 items-center justify-center rounded-lg border px-2.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer ${variantClass} ${className}`}
     />
   );
 }
@@ -136,7 +136,11 @@ export function ControlDropdown({
         onClick={() => {
           if (fixedMenu && wrapRef.current) {
             const rect = wrapRef.current.getBoundingClientRect();
-            setMenuRect({ top: rect.bottom + 8, left: rect.left, width: rect.width });
+            setMenuRect({
+              top: rect.bottom + 8,
+              left: rect.left,
+              width: rect.width,
+            });
           }
           setOpen((v) => !v);
         }}
@@ -158,8 +162,10 @@ export function ControlDropdown({
             clearTimeout(typeaheadTimerRef.current);
           typeaheadTimerRef.current = setTimeout(() => setTypeahead(""), 500);
         }}
-        className={`${compact ? "h-8 rounded-lg px-2.5 text-xs font-semibold text-slate-700" : CONTROL_BASE} flex w-full items-center justify-between border border-slate-300 bg-white outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400`}
-        style={compact ? { paddingLeft: "10px", paddingRight: "10px" } : undefined}
+        className={`${compact ? "h-8 rounded-lg px-2.5 text-xs font-semibold text-slate-700" : CONTROL_BASE} flex w-full items-center justify-between border border-slate-300 bg-white outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 cursor-pointer`}
+        style={
+          compact ? { paddingLeft: "10px", paddingRight: "10px" } : undefined
+        }
       >
         <span className="truncate text-left">
           {selected?.label || placeholder || "Select"}
@@ -171,7 +177,15 @@ export function ControlDropdown({
           role="listbox"
           aria-label={ariaLabel}
           className={`${fixedMenu ? "fixed" : "absolute mt-2 w-full"} z-50 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg`}
-          style={fixedMenu && menuRect ? { top: menuRect.top, left: menuRect.left, width: menuRect.width } : undefined}
+          style={
+            fixedMenu && menuRect
+              ? {
+                  top: menuRect.top,
+                  left: menuRect.left,
+                  width: menuRect.width,
+                }
+              : undefined
+          }
         >
           <div className="max-h-56 overflow-auto">
             {filtered.map((o) => (
@@ -185,7 +199,7 @@ export function ControlDropdown({
                   setOpen(false);
                   if (searchable) setQuery(o.label);
                 }}
-                className={`block w-full rounded-lg px-2 py-2 text-left text-sm ${
+                className={`block w-full rounded-lg px-2 py-2 text-left text-sm cursor-pointer ${
                   String(value) === String(o.value)
                     ? "bg-slate-100 text-slate-900"
                     : "text-slate-700 hover:bg-slate-50"
