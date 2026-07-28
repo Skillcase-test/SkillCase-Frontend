@@ -119,11 +119,31 @@ describe("NewAnalytics", () => {
         phone: "9999999999",
         event_count: 12,
         diagnostics: { errors: 1, rage_points: 0 },
+        modules: [
+          {
+            feature: "flashcards",
+            level: "A1",
+            module_key: "flash_card_set:12",
+            module_kind: "flash_card_set",
+            module_id: "12",
+            module_label: "Der Körper",
+            items_used: 14,
+            furthest_item: 14,
+            total_items: 20,
+            events: 4,
+            errors: 0,
+            friction: 0,
+            completed: true,
+            first_at: "2026-07-20T05:00:00Z",
+            last_at: "2026-07-20T05:20:00Z",
+          },
+        ],
         timeline: [
           {
             label: "Flipped a flashcard to reveal the answer",
             detail: "Card 5 of 20",
             feature: "flashcards",
+            module_key: "flash_card_set:12",
             count: 4,
             started_at: "2026-07-20T05:00:00Z",
           },
@@ -138,7 +158,7 @@ describe("NewAnalytics", () => {
         <NewAnalytics me={{ role: "admin" }} />
       </MemoryRouter>,
     );
-    expect(await screen.findByText("40%")).toBeInTheDocument();
+    expect(await screen.findAllByText("40%")).not.toHaveLength(0);
     expect(screen.getByText("Conversion Funnel")).toBeInTheDocument();
     expect(screen.getByLabelText("Feature")).toHaveTextContent("Flashcards");
     expect(newAnalyticsApi.metrics).toHaveBeenCalledWith(
@@ -161,7 +181,7 @@ describe("NewAnalytics", () => {
         <NewAnalytics me={{ role: "admin" }} />
       </MemoryRouter>,
     );
-    await screen.findByText("40%");
+    await screen.findAllByText("40%");
 
     expect(screen.getByRole("button", { name: "Day" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "7 days" })).toBeDisabled();
@@ -186,7 +206,7 @@ describe("NewAnalytics", () => {
         <NewAnalytics me={{ role: "admin" }} />
       </MemoryRouter>,
     );
-    await screen.findByText("40%");
+    await screen.findAllByText("40%");
 
     const sevenDays = screen.getByRole("button", { name: "7 days" });
     expect(sevenDays).toBeEnabled();
@@ -213,7 +233,7 @@ describe("NewAnalytics", () => {
         <NewAnalytics me={{ role: "admin" }} />
       </MemoryRouter>,
     );
-    await screen.findByText("40%");
+    await screen.findAllByText("40%");
 
     await waitFor(() =>
       expect(newAnalyticsApi.metrics).toHaveBeenLastCalledWith(
@@ -227,10 +247,14 @@ describe("NewAnalytics", () => {
 
   it("repairs stale journey filter values instead of rendering blank selects", async () => {
     render(<MemoryRouter initialEntries={["/?tab=features&feature=all&level=all"]}><NewAnalytics me={{ role: "admin" }} /></MemoryRouter>);
-    expect(await screen.findByText("40%")).toBeInTheDocument();
+    expect(await screen.findAllByText("40%")).not.toHaveLength(0);
     expect(screen.getByLabelText("Feature")).toHaveTextContent("Flashcards");
     expect(screen.getByLabelText("Level")).toHaveTextContent("All levels");
-    expect(newAnalyticsApi.metrics).toHaveBeenLastCalledWith(expect.objectContaining({ feature: "flashcards", level: "ALL" }));
+    // The overview table fires one call per feature after this one, so assert
+    // the drill-down request rather than whichever call happened to land last.
+    expect(newAnalyticsApi.metrics.mock.calls[0][0]).toEqual(
+      expect.objectContaining({ feature: "flashcards", level: "ALL" }),
+    );
   });
 
   it("shows only features available for the selected level", async () => {
@@ -239,7 +263,7 @@ describe("NewAnalytics", () => {
         <NewAnalytics me={{ role: "admin" }} />
       </MemoryRouter>,
     );
-    await screen.findByText("40%");
+    await screen.findAllByText("40%");
     fireEvent.click(screen.getByLabelText("Level"));
     fireEvent.click(screen.getByRole("option", { name: "A1" }));
     await waitFor(() =>
@@ -263,7 +287,7 @@ describe("NewAnalytics", () => {
         <NewAnalytics me={{ role: "admin" }} />
       </MemoryRouter>,
     );
-    await screen.findByText("40%");
+    await screen.findAllByText("40%");
     fireEvent.click(screen.getByLabelText("Level"));
     fireEvent.click(screen.getByRole("option", { name: "Learn German" }));
     await waitFor(() =>
@@ -296,11 +320,58 @@ describe("NewAnalytics", () => {
     await waitFor(() =>
       expect(newAnalyticsApi.journey).toHaveBeenCalledWith("7", "2026-07-20"),
     );
+    // One summary row per chapter, not a dump of every event.
+    const chapter = await screen.findByText("Der Körper");
+    expect(chapter).toBeInTheDocument();
+    expect(screen.getByText("14 of 20 cards")).toBeInTheDocument();
+    expect(screen.getByText("Done")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Flipped a flashcard to reveal the answer"),
+    ).not.toBeInTheDocument();
+
+    // The raw events stay one click away.
+    fireEvent.click(chapter);
     expect(
       await screen.findByText("Flipped a flashcard to reveal the answer"),
     ).toBeInTheDocument();
     expect(screen.getByText("Card 5 of 20")).toBeInTheDocument();
-    expect(screen.getAllByText("Flashcards").length).toBeGreaterThan(0);
+  });
+
+  it("summarises a day rolled up before modules were stored", async () => {
+    newAnalyticsApi.journey.mockResolvedValue({
+      data: {
+        subject_id: "7",
+        name: "Adil",
+        event_count: 4,
+        diagnostics: { errors: 0, rage_points: 0 },
+        modules: [],
+        timeline: [
+          {
+            label: "Flipped a flashcard to reveal the answer",
+            detail: "Item 14 of 20",
+            feature: "flashcards",
+            kind: "content",
+            count: 4,
+            started_at: "2026-07-20T05:00:00Z",
+          },
+        ],
+      },
+    });
+    render(
+      <MemoryRouter>
+        <NewAnalytics me={{ role: "super_admin" }} />
+      </MemoryRouter>,
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "User journeys" }),
+    );
+    await screen.findByText("Adil");
+    fireEvent.click(screen.getByRole("button", { name: "View journey" }));
+    await waitFor(() =>
+      expect(newAnalyticsApi.journey).toHaveBeenCalledWith("7", "2026-07-20"),
+    );
+    expect(await screen.findByText("1 of 20 cards")).toBeInTheDocument();
+    expect(screen.getByText("In progress")).toBeInTheDocument();
   });
 
   it("requires confirmation before rebuilding an analytics day", async () => {
@@ -311,7 +382,7 @@ describe("NewAnalytics", () => {
       </MemoryRouter>,
     );
 
-    await screen.findByText("40%");
+    await screen.findAllByText("40%");
     fireEvent.click(screen.getByRole("button", { name: "Rebuild day" }));
 
     expect(newAnalyticsApi.refresh).not.toHaveBeenCalled();

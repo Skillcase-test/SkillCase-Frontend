@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Activity,
@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   Bookmark,
   CalendarDays,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -204,6 +205,128 @@ function visibleJourneyItems(timeline = []) {
   );
 }
 
+// Clubs every occurrence of the same activity (e.g. "Flashcard flipped")
+// across the whole day into one row with a combined count, instead of one
+// row per event — mergeTimeline on the backend only collapses *consecutive*
+// repeats, so a repeated action interspersed with other events still arrives
+// here as separate entries.
+function groupJourneyItems(items = []) {
+  const order = [];
+  const grouped = new Map();
+  items.forEach((item) => {
+    const key = `${item.feature || ""}|${item.label || ""}|${item.detail || ""}`;
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.count += item.count || 1;
+      if (item.started_at < existing.first_at) existing.first_at = item.started_at;
+      if (item.started_at > existing.last_at) existing.last_at = item.started_at;
+    } else {
+      const entry = {
+        ...item,
+        count: item.count || 1,
+        first_at: item.started_at,
+        last_at: item.started_at,
+      };
+      grouped.set(key, entry);
+      order.push(key);
+    }
+  });
+  return order.map((key) => grouped.get(key));
+}
+
+const LEVEL_LABELS = { ALL: "—", LEARN_GERMAN: "Lessons", UNKNOWN: "—" };
+
+// Days rolled up before the journey stored `modules` only have a timeline, and
+// the position is buried in strings like "Item 14 of 20". Reading it back keeps
+// those days looking like every other day instead of empty.
+const POSITION_IN_DETAIL = /(\d+)\s+of\s+(\d+)/;
+
+function moduleFromTimeline(items = []) {
+  const grouped = new Map();
+  items.forEach((item) => {
+    const feature = item.feature || "diagnostic";
+    const entry = grouped.get(feature) || {
+      feature,
+      level: null,
+      module_key: feature,
+      module_kind: null,
+      module_label: null,
+      positions: new Set(),
+      total_items: null,
+      step_index: null,
+      step_label: null,
+      events: 0,
+      errors: 0,
+      friction: 0,
+      completed: false,
+      first_at: item.first_at,
+      last_at: item.last_at,
+      timeline: [],
+    };
+    entry.timeline.push(item);
+    entry.events += item.count || 1;
+    if (item.kind === "error") entry.errors += item.count || 1;
+    if (item.kind === "friction") entry.friction += item.count || 1;
+    if (["completed", "flow_completed"].includes(item.kind)) entry.completed = true;
+    if (item.first_at < entry.first_at) entry.first_at = item.first_at;
+    if (item.last_at > entry.last_at) entry.last_at = item.last_at;
+    const match = POSITION_IN_DETAIL.exec(item.detail || "");
+    if (match) {
+      entry.positions.add(Number(match[1]));
+      entry.total_items = Math.max(entry.total_items || 0, Number(match[2]));
+    }
+    grouped.set(feature, entry);
+  });
+  return [...grouped.values()]
+    .map((entry) => ({
+      ...entry,
+      items_used: entry.positions.size,
+      furthest_item: entry.positions.size ? Math.max(...entry.positions) : null,
+      positions: undefined,
+    }))
+    // Matches the order the backend serialises modules in, so the Last activity
+    // column reads top to bottom either way.
+    .sort((a, b) => new Date(a.last_at) - new Date(b.last_at));
+}
+
+// One row per chapter, set or flow the candidate worked on, with the raw events
+// behind it kept for the expanded view.
+function summarizeJourney(journey) {
+  const timeline = groupJourneyItems(
+    visibleJourneyItems(journey?.timeline || []),
+  );
+  const modules = Array.isArray(journey?.modules) ? journey.modules : [];
+  if (!modules.length) return moduleFromTimeline(timeline);
+
+  const byModule = new Map();
+  timeline.forEach((item) => {
+    const key = `${item.feature || ""}|${item.module_key || ""}`;
+    byModule.set(key, [...(byModule.get(key) || []), item]);
+  });
+  return modules.map((module) => ({
+    ...module,
+    timeline: byModule.get(`${module.feature}|${module.module_key}`) || [],
+  }));
+}
+
+function moduleProgressText(module, metric) {
+  if (module.step_label || module.step_index != null) {
+    const position =
+      module.step_index == null
+        ? null
+        : module.total_items
+          ? `Step ${module.step_index} of ${module.total_items}`
+          : `Step ${module.step_index}`;
+    return [position, module.step_label].filter(Boolean).join(" · ") || null;
+  }
+  const used = module.items_used || 0;
+  if (!used) return null;
+  const noun = metric || "actions";
+  return module.total_items
+    ? `${used} of ${module.total_items} ${noun}`
+    : `${used} ${noun}`;
+}
+
 function initials(name = "") {
   return name
     .split(" ")
@@ -333,10 +456,166 @@ function HorizontalFunnel({ rows = [] }) {
   );
 }
 
+// Feature Overview Table — every feature side by side, click a row to drill
+// into that feature's funnel below.
+
+const FEATURE_TABLE_COLLAPSED_COUNT = 3;
+
+function FeatureOverviewTable({ rows = [], selectedFeature, onSelectFeature, loading }) {
+  const [showAll, setShowAll] = useState(false);
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+        <div className="mb-6 h-3 w-40 animate-pulse rounded bg-slate-100" />
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-10 animate-pulse rounded-lg bg-slate-100" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!rows.length) return null;
+
+  const ranked = [...rows].sort(
+    (a, b) => (b.adoption_percentage || 0) - (a.adoption_percentage || 0),
+  );
+  const visible = showAll ? ranked : ranked.slice(0, FEATURE_TABLE_COLLAPSED_COUNT);
+  const hiddenCount = ranked.length - visible.length;
+
+  const RANK_BADGE = [
+    "bg-indigo-500 text-white",
+    "bg-indigo-400 text-white",
+    "bg-indigo-300 text-white",
+  ];
+
+  const MiniBar = ({ value, colorClass }) => (
+    <div className="flex items-center gap-2">
+      <span className="w-11 shrink-0 text-xs font-semibold tabular-nums text-slate-700">
+        {number(value, 1)}%
+      </span>
+      <div className="h-2 w-16 overflow-hidden rounded-full bg-slate-100">
+        <div
+          className={`h-full rounded-full ${colorClass}`}
+          style={{ width: `${Math.min(100, Math.max(4, value || 0))}%` }}
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between px-7 py-5">
+        <div>
+          <h2 className="text-base font-bold text-slate-900">All Features at a Glance</h2>
+          <p className="mt-0.5 text-xs text-slate-400">
+            Ranked by adoption &middot; click a row to drill into that feature&apos;s funnel below.
+          </p>
+        </div>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-500">
+          {rows.length} features
+        </span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[860px] border-collapse text-left">
+          <thead>
+            <tr className="border-t border-b border-slate-200 bg-slate-50">
+              <th className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Rank</th>
+              <th className="px-2 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Feature</th>
+              <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">Eligible</th>
+              <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">Users</th>
+              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Usage %</th>
+              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Completion</th>
+              <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">Avg Session</th>
+              <th className="px-7 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">Accuracy</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {visible.map((row, index) => {
+              const isSelected = row.feature.key === selectedFeature;
+              const theme = getFeatureTheme(row.feature.key, false);
+              const Icon = theme.icon;
+              return (
+                <tr
+                  key={row.feature.key}
+                  onClick={() => onSelectFeature(row.feature.key)}
+                  className={`cursor-pointer transition-colors ${
+                    isSelected ? "bg-indigo-50/60" : "hover:bg-slate-50"
+                  }`}
+                >
+                  <td className="px-5 py-3">
+                    <span
+                      className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
+                        RANK_BADGE[index] || "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {index + 1}
+                    </span>
+                  </td>
+                  <td className="px-2 py-3">
+                    <span
+                      className={`inline-flex items-center gap-1.5 rounded-lg border border-slate-100 px-2.5 py-1 text-xs font-bold ${theme.iconBg}`}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                      {row.feature.label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right text-xs tabular-nums text-slate-500">
+                    {number(row.eligible_users)}
+                  </td>
+                  <td className="px-4 py-3 text-right text-sm font-bold tabular-nums text-slate-800">
+                    {number(row.users)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <MiniBar value={row.adoption_percentage} colorClass="bg-indigo-500" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <MiniBar value={row.completion_percentage} colorClass="bg-emerald-500" />
+                  </td>
+                  <td className="px-4 py-3 text-right text-xs font-semibold tabular-nums text-slate-600">
+                    {number(row.averages?.session_minutes, 1)}m
+                  </td>
+                  <td className="px-7 py-3">
+                    {row.averages?.accuracy_percentage ? (
+                      <MiniBar value={row.averages.accuracy_percentage} colorClass="bg-amber-500" />
+                    ) : (
+                      <span className="text-xs text-slate-300">—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {ranked.length > FEATURE_TABLE_COLLAPSED_COUNT && (
+        <div className="border-t border-slate-100 px-7 py-3 text-center">
+          <button
+            type="button"
+            onClick={() => setShowAll((prev) => !prev)}
+            className="text-xs font-bold text-indigo-600 hover:text-indigo-700"
+          >
+            {showAll ? "Show less" : `Show ${hiddenCount} more feature${hiddenCount > 1 ? "s" : ""}`}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Journey Modal
 
-function JourneyModal({ journey, loading, onClose }) {
-  const rawTimeline = visibleJourneyItems(journey?.timeline || []);
+function JourneyModal({ journey, loading, features = [], onClose }) {
+  const [expanded, setExpanded] = useState(null);
+  const modules = useMemo(() => summarizeJourney(journey), [journey]);
+  // Labels and the per-feature metric word ("cards", "questions", "screens")
+  // come from the catalog so this table never drifts from the backend registry.
+  const featureMeta = useMemo(
+    () => new Map(features.map((feature) => [feature.key, feature])),
+    [features],
+  );
 
   useEffect(() => {
     function onKey(e) {
@@ -363,7 +642,7 @@ function JourneyModal({ journey, loading, onClose }) {
 
       {/* Modal Container */}
       <div
-        className="relative flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-950/5"
+        className="relative flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-950/5"
         style={{ animation: "analyticsModalSlideUp 200ms ease-out" }}
       >
         {/* Header */}
@@ -429,89 +708,184 @@ function JourneyModal({ journey, loading, onClose }) {
             </div>
           </div>
         ) : (
-          /* Activity Stream Area */
-          <div className="flex-1 overflow-y-auto px-8 py-7 bg-white">
-            <p className="mb-6 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-              Activity Stream &middot; {rawTimeline.length} events
+          /* One row per chapter, set or flow — click a row for the raw events */
+          <div className="flex-1 overflow-y-auto bg-white px-8 py-6">
+            <p className="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              What they worked on &middot; {modules.length} module
+              {modules.length === 1 ? "" : "s"} &middot;{" "}
+              {number(
+                modules.reduce((sum, module) => sum + (module.events || 0), 0),
+              )}{" "}
+              actions
             </p>
 
-            {rawTimeline.length === 0 ? (
+            {modules.length === 0 ? (
               <p className="py-12 text-center text-sm text-slate-400">
                 No events recorded for this candidate on this day.
               </p>
             ) : (
-              <div className="relative flex flex-col pl-2">
-                {rawTimeline.map((item, idx) => {
-                  const isError =
-                    String(item.event_name || "")
-                      .toLowerCase()
-                      .includes("fail") ||
-                    String(item.label || "")
-                      .toLowerCase()
-                      .includes("failed") ||
-                    item.feature === "diagnostic";
-                  const theme = getFeatureTheme(item.feature, isError);
-                  const IconComponent = theme.icon;
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-t border-b border-slate-200 bg-slate-50">
+                      <th className="w-8 px-3 py-3" />
+                      <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        Feature
+                      </th>
+                      <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        Chapter
+                      </th>
+                      <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        Level
+                      </th>
+                      <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        Progress
+                      </th>
+                      <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        Status
+                      </th>
+                      <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        Last activity
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {modules.map((module) => {
+                      const rowKey = `${module.feature}|${module.level || ""}|${module.module_key}`;
+                      const isOpen = expanded === rowKey;
+                      const isError =
+                        module.feature === "diagnostic" ||
+                        (module.errors || 0) > 0;
+                      const theme = getFeatureTheme(module.feature, isError);
+                      const Icon = theme.icon;
+                      const meta = featureMeta.get(module.feature);
+                      const progress = moduleProgressText(module, meta?.metric);
+                      const level =
+                        LEVEL_LABELS[module.level] || module.level || "—";
 
-                  return (
-                    <div
-                      key={idx}
-                      className="relative flex gap-4 pl-6 pb-5 group"
-                    >
-                      {/* Vertical connector line segment */}
-                      {idx < rawTimeline.length - 1 && (
-                        <div className="absolute left-[37px] top-[26px] bottom-0 w-[1.5px] bg-slate-100 group-hover:bg-slate-200 transition-colors" />
-                      )}
-
-                      {/* Icon Node bubble */}
-                      <span
-                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white shadow-sm z-10 transition-transform group-hover:scale-105 ${theme.iconBg}`}
-                      >
-                        <IconComponent className="h-3.5 w-3.5" />
-                      </span>
-
-                      {/* Log body content */}
-                      <div className="flex-1 flex flex-col">
-                        <div className="flex items-baseline justify-between gap-4">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={`text-sm font-semibold tracking-tight ${isError ? "text-rose-600 font-bold" : "text-slate-800"}`}
-                            >
-                              {item.label ||
-                                fallbackJourneyLabel(item.event_name)}
-                            </span>
-
-                            {item.count > 1 && (
-                              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-extrabold text-slate-500 leading-none">
-                                ×{item.count}
-                              </span>
-                            )}
-
-                            {item.feature && !isError && (
-                              <span
-                                className={`rounded-md px-1.5 py-0.5 text-[9px] font-bold border border-slate-100 ${theme.iconBg}`}
-                              >
-                                {fallbackJourneyLabel(item.feature)}
-                              </span>
-                            )}
-                          </div>
-
-                          <time className="text-[10px] text-slate-400 font-semibold tabular-nums leading-none shrink-0">
-                            {istTime(item.started_at)}
-                          </time>
-                        </div>
-
-                        {item.detail && (
-                          <p
-                            className={`mt-1 text-xs font-medium leading-relaxed ${isError ? "text-rose-500/90" : "text-slate-400"}`}
+                      return (
+                        <Fragment key={rowKey}>
+                          <tr
+                            onClick={() => setExpanded(isOpen ? null : rowKey)}
+                            className={`cursor-pointer transition-colors ${
+                              isOpen
+                                ? "bg-indigo-50/60"
+                                : isError
+                                  ? "bg-rose-50/40"
+                                  : "hover:bg-slate-50"
+                            }`}
                           >
-                            {item.detail}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                            <td className="px-3 py-3">
+                              <ChevronRight
+                                className={`h-4 w-4 text-slate-400 transition-transform ${
+                                  isOpen ? "rotate-90" : ""
+                                }`}
+                              />
+                            </td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={`inline-flex items-center gap-1.5 rounded-lg border border-slate-100 px-2.5 py-1 text-[10px] font-bold ${theme.iconBg}`}
+                              >
+                                <Icon className="h-3 w-3" />
+                                {meta?.label ||
+                                  fallbackJourneyLabel(module.feature)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 font-semibold text-slate-800">
+                              {module.module_label ||
+                                meta?.label ||
+                                fallbackJourneyLabel(module.feature)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="inline-flex rounded px-2 py-0.5 text-xs font-semibold text-slate-500">
+                                {level}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-xs font-medium text-slate-500">
+                              {progress || (
+                                <span className="text-slate-300">—</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {module.completed ? (
+                                <span
+                                  className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-700"
+                                  title="Completed"
+                                >
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Done
+                                </span>
+                              ) : (
+                                <span
+                                  className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700"
+                                  title="Still in progress"
+                                >
+                                  <Clock3 className="h-3 w-3" />
+                                  In progress
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right text-xs font-semibold tabular-nums text-slate-500">
+                              {istTime(module.last_at)}
+                            </td>
+                          </tr>
+                          {isOpen && (
+                            <tr className="bg-slate-50">
+                              <td colSpan={7} className="px-6 py-4">
+                                {module.timeline?.length ? (
+                                  <ul className="space-y-2">
+                                    {module.timeline.map((item, itemIndex) => (
+                                      <li
+                                        key={`${rowKey}-${itemIndex}`}
+                                        className="flex items-start justify-between gap-4"
+                                      >
+                                        <div className="min-w-0">
+                                          <p
+                                            className={`text-xs font-semibold ${
+                                              item.kind === "error"
+                                                ? "text-rose-600"
+                                                : "text-slate-700"
+                                            }`}
+                                          >
+                                            {item.label ||
+                                              fallbackJourneyLabel(
+                                                item.event_name,
+                                              )}
+                                            {item.count > 1 && (
+                                              <span className="ml-2 rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700">
+                                                ×{item.count}
+                                              </span>
+                                            )}
+                                          </p>
+                                          {item.detail && (
+                                            <p className="mt-0.5 text-[11px] text-slate-400">
+                                              {item.detail}
+                                            </p>
+                                          )}
+                                        </div>
+                                        <span className="shrink-0 text-[11px] font-semibold tabular-nums text-slate-400">
+                                          {item.first_at !== item.last_at
+                                            ? `${istTime(item.first_at)} – ${istTime(item.last_at)}`
+                                            : istTime(item.started_at)}
+                                        </span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                ) : (
+                                  <p className="text-xs text-slate-400">
+                                    {number(module.events)} action
+                                    {module.events === 1 ? "" : "s"} recorded, with
+                                    no further detail stored for this module.
+                                  </p>
+                                )}
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -568,6 +942,7 @@ export default function NewAnalytics({ me }) {
   const [params, setParams] = useSearchParams();
   const [catalog, setCatalog] = useState(null);
   const [metrics, setMetrics] = useState(null);
+  const [featureTable, setFeatureTable] = useState([]);
   const [journeys, setJourneys] = useState(null);
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -734,17 +1109,35 @@ export default function NewAnalytics({ me }) {
     setError("");
     const request =
       tab === "features"
-        ? newAnalyticsApi.metrics(filters)
+        ? Promise.all([
+            newAnalyticsApi.metrics(filters),
+            // One call per visible feature so the overview table can show every
+            // feature side by side, independent of which single feature is
+            // selected in the drill-down dropdown above.
+            Promise.all(
+              visibleFeatures.map((feature) =>
+                newAnalyticsApi
+                  .metrics({ ...filters, feature: feature.key })
+                  .then(({ data }) => ({ ...data, feature }))
+                  .catch(() => null),
+              ),
+            ),
+          ])
         : newAnalyticsApi.journeys({
             date: filters.date_to,
             page: filters.page,
             limit: filters.limit,
           });
     request
-      .then(({ data }) => {
+      .then((result) => {
         if (!live) return;
-        if (tab === "features") setMetrics(data);
-        else setJourneys(data);
+        if (tab === "features") {
+          const [metricsRes, tableRows] = result;
+          setMetrics(metricsRes.data);
+          setFeatureTable(tableRows.filter(Boolean));
+        } else {
+          setJourneys(result.data);
+        }
       })
       .catch((err) => {
         if (live)
@@ -756,7 +1149,7 @@ export default function NewAnalytics({ me }) {
     return () => {
       live = false;
     };
-  }, [filters, tab, reloadToken]);
+  }, [filters, tab, reloadToken, visibleFeatures]);
 
   const openJourney = async (subjectId) => {
     setDetail(null);
@@ -1160,6 +1553,13 @@ export default function NewAnalytics({ me }) {
                 </div>
                 <HorizontalFunnel rows={metrics.funnel} />
               </div>
+
+              {/* Feature Overview Table */}
+              <FeatureOverviewTable
+                rows={featureTable}
+                selectedFeature={filters.feature}
+                onSelectFeature={(key) => update("feature", key)}
+              />
             </div>
           ) : (
             <EmptyState message="No rollup data exists for this date. Select another day." />
@@ -1419,6 +1819,7 @@ export default function NewAnalytics({ me }) {
         <JourneyModal
           journey={detail}
           loading={detailLoading}
+          features={catalog?.features || []}
           onClose={() => setDetail(null)}
         />
       )}
