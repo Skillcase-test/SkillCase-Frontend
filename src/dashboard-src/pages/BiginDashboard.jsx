@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowDownRight, ArrowUpRight, BarChart3, ChevronRight, Clock3, Search } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  BarChart3,
+  ChevronRight,
+  Clock3,
+  Search,
+} from "lucide-react";
 
 import { biginDashboardApi } from "../../api/biginDashboardApi";
 import {
@@ -19,7 +26,12 @@ function cx(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-function MultiSelectOwner({ owners = [], selectedOwners = [], onChange, loading = false }) {
+function MultiSelectOwner({
+  owners = [],
+  selectedOwners = [],
+  onChange,
+  loading = false,
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef(null);
@@ -38,7 +50,10 @@ function MultiSelectOwner({ owners = [], selectedOwners = [], onChange, loading 
     return owners.filter((o) => {
       const name = (o.owner_name || "").toLowerCase();
       const id = (o.owner_zoho_id || "").toLowerCase();
-      return name.includes(searchQuery.toLowerCase()) || id.includes(searchQuery.toLowerCase());
+      return (
+        name.includes(searchQuery.toLowerCase()) ||
+        id.includes(searchQuery.toLowerCase())
+      );
     });
   }, [owners, searchQuery]);
 
@@ -76,14 +91,14 @@ function MultiSelectOwner({ owners = [], selectedOwners = [], onChange, loading 
         disabled={loading}
         className={cx(
           "flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xs outline-none transition duration-200 hover:bg-slate-50 hover:border-slate-300 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer",
-          isOpen && "border-slate-400 ring-2 ring-slate-100"
+          isOpen && "border-slate-400 ring-2 ring-slate-100",
         )}
       >
         <span className="truncate text-left">{selectedLabels}</span>
         <ChevronRight
           className={cx(
             "h-3.5 w-3.5 text-slate-400 transition-transform duration-200 shrink-0 ml-1",
-            isOpen ? "-rotate-90" : "rotate-90"
+            isOpen ? "-rotate-90" : "rotate-90",
           )}
         />
       </button>
@@ -126,7 +141,9 @@ function MultiSelectOwner({ owners = [], selectedOwners = [], onChange, loading 
                 onClick={handleSelectAll}
                 className={cx(
                   "flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-semibold cursor-pointer select-none transition",
-                  selectedOwners.length === 0 ? "bg-slate-50 text-slate-900" : "text-slate-600 hover:bg-slate-50"
+                  selectedOwners.length === 0
+                    ? "bg-slate-50 text-slate-900"
+                    : "text-slate-600 hover:bg-slate-50",
                 )}
               >
                 <input
@@ -150,7 +167,9 @@ function MultiSelectOwner({ owners = [], selectedOwners = [], onChange, loading 
                   onClick={() => handleToggle(value)}
                   className={cx(
                     "flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs cursor-pointer select-none transition",
-                    isChecked ? "bg-slate-50 text-slate-900 font-semibold" : "text-slate-600 hover:bg-slate-50"
+                    isChecked
+                      ? "bg-slate-50 text-slate-900 font-semibold"
+                      : "text-slate-600 hover:bg-slate-50",
                   )}
                 >
                   <input
@@ -540,7 +559,8 @@ function useBiginData(apiFilters, { enabled = true, fetchPrev = false } = {}) {
         setState((s) => ({
           ...s,
           loading: false,
-          error: err.response?.data?.msg || "Could not load the bigin dashboard.",
+          error:
+            err.response?.data?.msg || "Could not load the bigin dashboard.",
         }));
       });
     return () => {
@@ -576,7 +596,10 @@ function DashboardBody({ data, periodLabel, compact = false }) {
     setPerfPage(1);
   }, [performance]);
 
-  const perfTotalPages = Math.max(1, Math.ceil(performance.length / perfPageSize));
+  const perfTotalPages = Math.max(
+    1,
+    Math.ceil(performance.length / perfPageSize),
+  );
   const perfRows = performance.slice(
     (perfPage - 1) * perfPageSize,
     perfPage * perfPageSize,
@@ -754,14 +777,30 @@ function DashboardBody({ data, periodLabel, compact = false }) {
               </colgroup>
               <thead>
                 <tr className="border-b border-slate-100">
-                  <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Rep</th>
-                  <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">New</th>
-                  <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Active</th>
-                  <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Qualified</th>
-                  <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Won</th>
-                  <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Lost</th>
-                  <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Conv %</th>
-                  <th className="py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Avg Days</th>
+                  <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Rep
+                  </th>
+                  <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    New
+                  </th>
+                  <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Active
+                  </th>
+                  <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Qualified
+                  </th>
+                  <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Won
+                  </th>
+                  <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Lost
+                  </th>
+                  <th className="py-2 pr-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Conv %
+                  </th>
+                  <th className="py-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Avg Days
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -792,7 +831,9 @@ function DashboardBody({ data, periodLabel, compact = false }) {
                       {row.conversion_rate_pct}%
                     </td>
                     <td className="py-2 tabular-nums text-slate-600">
-                      {row.avg_days_to_close != null ? number(row.avg_days_to_close, 1) : "—"}
+                      {row.avg_days_to_close != null
+                        ? number(row.avg_days_to_close, 1)
+                        : "—"}
                     </td>
                   </tr>
                 ))}
@@ -811,8 +852,13 @@ function DashboardBody({ data, periodLabel, compact = false }) {
 
       {/* Three comparably-sized panels grouped together so their heights
           stay close. */}
-      <div className={`grid grid-cols-1 items-start gap-6 ${compact ? "" : "lg:grid-cols-3"}`}>
-        <SectionCard title="Lead Ageing" subtitle="From created date · active leads only">
+      <div
+        className={`grid grid-cols-1 items-start gap-6 ${compact ? "" : "lg:grid-cols-3"}`}
+      >
+        <SectionCard
+          title="Lead Ageing"
+          subtitle="From created date · active leads only"
+        >
           {ageing.length ? (
             <>
               <div className="relative">
@@ -906,7 +952,8 @@ export default function BiginDashboard() {
   const view = ["active", "complete", "running"].includes(params.get("view"))
     ? params.get("view")
     : "active";
-  const runningMode = params.get("running_mode") === "month" ? "month" : "today";
+  const runningMode =
+    params.get("running_mode") === "today" ? "today" : "month";
   const pipeline = ["b2c", "b1b2", "all"].includes(params.get("pipeline"))
     ? params.get("pipeline")
     : "all";
@@ -922,7 +969,10 @@ export default function BiginDashboard() {
   const ownerParam = params.get("owner");
   const selectedOwners = useMemo(() => {
     if (!ownerParam || ownerParam === "all") return [];
-    return ownerParam.split(",").map((s) => s.trim()).filter(Boolean);
+    return ownerParam
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
   }, [ownerParam]);
   const owner = ownerParam || "all";
 
@@ -957,7 +1007,13 @@ export default function BiginDashboard() {
   }, []);
 
   const activeApiFilters = useMemo(
-    () => ({ pipeline, owner, scope: "active", date_from: dateFrom, date_to: dateTo }),
+    () => ({
+      pipeline,
+      owner,
+      scope: "active",
+      date_from: dateFrom,
+      date_to: dateTo,
+    }),
     [pipeline, owner, dateFrom, dateTo],
   );
   const completeApiFilters = useMemo(
@@ -965,11 +1021,23 @@ export default function BiginDashboard() {
     [pipeline, owner],
   );
   const todayApiFilters = useMemo(
-    () => ({ pipeline, owner, scope: "active", date_from: today, date_to: today }),
+    () => ({
+      pipeline,
+      owner,
+      scope: "active",
+      date_from: today,
+      date_to: today,
+    }),
     [pipeline, owner, today],
   );
   const thisMonthApiFilters = useMemo(
-    () => ({ pipeline, owner, scope: "active", date_from: startOfMonth, date_to: today }),
+    () => ({
+      pipeline,
+      owner,
+      scope: "active",
+      date_from: startOfMonth,
+      date_to: today,
+    }),
     [pipeline, owner, startOfMonth, today],
   );
   // No `as_of` here on purpose: this panel is "leads created before this
@@ -1002,7 +1070,10 @@ export default function BiginDashboard() {
 
   const monthMode = view === "running" && runningMode === "month";
 
-  const primary = useBiginData(primaryFilters, { enabled: true, fetchPrev: view === "active" });
+  const primary = useBiginData(primaryFilters, {
+    enabled: true,
+    fetchPrev: view === "active",
+  });
   const secondary = useBiginData(monthMode ? beforeMonthApiFilters : null, {
     enabled: monthMode,
     fetchPrev: false,
@@ -1027,7 +1098,9 @@ export default function BiginDashboard() {
                 <Clock3 className="h-3 w-3" />
                 Last synced: {formatSyncedAt(syncStatus?.synced_to)}
                 {syncStatus?.status === "error" && (
-                  <span className="font-semibold text-rose-500">(last attempt failed)</span>
+                  <span className="font-semibold text-rose-500">
+                    (last attempt failed)
+                  </span>
                 )}
               </p>
             </div>
