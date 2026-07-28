@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { adminGetTickets, adminUpdateTicketStatus, adminUpdateTicketPriority, adminAddTicketComment } from "../../api/supportAdminApi";
-import { Loader2, ExternalLink, RefreshCw, X, HelpCircle, CheckCircle2, Clock, AlertCircle, Search, User, Phone, Calendar, Award, MessageSquare, Send, Reply } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { adminGetTickets, adminUpdateTicketStatus, adminUpdateTicketPriority, adminAddTicketComment, adminUploadCommentImage } from "../../api/supportAdminApi";
+import { Loader2, ExternalLink, RefreshCw, X, HelpCircle, CheckCircle2, Clock, AlertCircle, Search, User, Phone, Calendar, Award, MessageSquare, Send, Paperclip } from "lucide-react";
 import toast from "react-hot-toast";
+
+const MAX_COMMENT_IMAGE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_COMMENT_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/jpg"]);
 
 const MIN_COMMENT_APP_VERSION = "1.2.5";
 
@@ -39,7 +42,9 @@ export default function SupportTicketsAdmin() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [commentDrafts, setCommentDrafts] = useState({});
+  const [commentImageDrafts, setCommentImageDrafts] = useState({});
   const [submittingCommentId, setSubmittingCommentId] = useState(null);
+  const commentFileInputRefs = useRef({});
 
   const fetchTickets = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -100,15 +105,56 @@ export default function SupportTicketsAdmin() {
     }
   };
 
+  const handleCommentImageSelect = (ticketId, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!ALLOWED_COMMENT_IMAGE_TYPES.has(file.type)) {
+      toast.error("Only PNG and JPG images are allowed");
+      return;
+    }
+    if (file.size > MAX_COMMENT_IMAGE_SIZE) {
+      toast.error("Maximum image size is 5MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCommentImageDrafts((prev) => ({ ...prev, [ticketId]: { file, preview: reader.result } }));
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleRemoveCommentImage = (ticketId) => {
+    setCommentImageDrafts((prev) => {
+      const next = { ...prev };
+      delete next[ticketId];
+      return next;
+    });
+  };
+
   const handleAddComment = async (ticketId) => {
     const message = (commentDrafts[ticketId] || "").trim();
-    if (!message) return;
+    const imageDraft = commentImageDrafts[ticketId];
+    if (!message && !imageDraft) return;
 
     setSubmittingCommentId(ticketId);
     try {
-      const res = await adminAddTicketComment(ticketId, message);
+      let imageUrl = null;
+      if (imageDraft) {
+        const uploadRes = await adminUploadCommentImage(imageDraft.file);
+        if (uploadRes.data?.success) {
+          imageUrl = uploadRes.data.url;
+        } else {
+          throw new Error("Image upload failed");
+        }
+      }
+
+      const res = await adminAddTicketComment(ticketId, message, imageUrl);
       if (res.data?.success) {
         setCommentDrafts((prev) => ({ ...prev, [ticketId]: "" }));
+        handleRemoveCommentImage(ticketId);
         setTickets((prev) =>
           prev.map((t) =>
             t.ticket_id === ticketId
@@ -447,7 +493,7 @@ export default function SupportTicketsAdmin() {
                 </div>
               </div>
 
-              {/* Support conversation: admin comments + candidate replies */}
+              {/* Support conversation: unlimited admin comments + candidate messages */}
               <div className="px-6 pb-6 pt-2 border-t border-slate-100 space-y-3">
                 <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                   <MessageSquare className="w-3.5 h-3.5" />
@@ -456,82 +502,113 @@ export default function SupportTicketsAdmin() {
 
                 {(ticket.comments || []).length > 0 && (
                   <div className="space-y-2">
-                    {ticket.comments
-                      .filter((c) => c.author_type === "admin")
-                      .map((comment) => {
-                        const reply = ticket.comments.find(
-                          (c) => c.author_type === "candidate" && c.parent_comment_id === comment.comment_id
-                        );
-                        return (
-                          <div key={comment.comment_id} className="space-y-1.5">
-                            <div className="flex items-start gap-2 bg-[#eef2f6] border border-[#ccd9e8] rounded-xl px-3.5 py-2.5 max-w-xl">
-                              <div className="flex-1 space-y-0.5">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[10px] font-bold text-[#002856]">You (Admin)</span>
-                                  <span className="text-[9px] text-slate-400">
-                                    {new Date(comment.created_at).toLocaleString()}
-                                  </span>
-                                </div>
-                                <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">
-                                  {comment.message}
-                                </p>
-                              </div>
-                            </div>
-
-                            {reply && (
-                              <div className="flex items-start gap-2 bg-slate-50 border border-slate-100 rounded-xl px-3.5 py-2.5 max-w-xl ml-6">
-                                <Reply className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
-                                <div className="flex-1 space-y-0.5">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[10px] font-bold text-slate-600">{ticket.name}</span>
-                                    <span className="text-[9px] text-slate-400">
-                                      {new Date(reply.created_at).toLocaleString()}
-                                    </span>
-                                  </div>
-                                  <p className="text-xs text-slate-600 whitespace-pre-wrap leading-relaxed">
-                                    {reply.message}
-                                  </p>
-                                </div>
-                              </div>
-                            )}
+                    {ticket.comments.map((comment) => {
+                      const isAdmin = comment.author_type === "admin";
+                      return (
+                        <div
+                          key={comment.comment_id}
+                          className={`rounded-xl px-3.5 py-2.5 max-w-xl space-y-1.5 ${
+                            isAdmin
+                              ? "bg-[#eef2f6] border border-[#ccd9e8]"
+                              : "bg-slate-50 border border-slate-100 ml-6"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-bold ${isAdmin ? "text-[#002856]" : "text-slate-600"}`}>
+                              {isAdmin ? "You (Admin)" : ticket.name}
+                            </span>
+                            <span className="text-[9px] text-slate-400">
+                              {new Date(comment.created_at).toLocaleString()}
+                            </span>
                           </div>
-                        );
-                      })}
+                          {comment.message && (
+                            <p className={`text-xs whitespace-pre-wrap leading-relaxed ${isAdmin ? "text-slate-700" : "text-slate-600"}`}>
+                              {comment.message}
+                            </p>
+                          )}
+                          {comment.image_url && (
+                            <img
+                              src={comment.image_url}
+                              alt="Comment attachment"
+                              onClick={() => setSelectedImage(comment.image_url)}
+                              className="h-20 rounded-lg object-cover cursor-zoom-in hover:opacity-85 transition-all"
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
                 {isCommentEligible(ticket.candidate_signup_source, ticket.candidate_app_version) ? (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="Add a comment for the candidate..."
-                      value={commentDrafts[ticket.ticket_id] || ""}
-                      onChange={(e) =>
-                        setCommentDrafts((prev) => ({ ...prev, [ticket.ticket_id]: e.target.value }))
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleAddComment(ticket.ticket_id);
+                  <div className="space-y-2">
+                    {commentImageDrafts[ticket.ticket_id] && (
+                      <div className="flex items-center gap-2 bg-slate-50 border border-slate-200/60 rounded-xl px-3 py-2">
+                        <img
+                          src={commentImageDrafts[ticket.ticket_id].preview}
+                          alt="Attachment preview"
+                          className="h-10 w-10 rounded-lg object-cover"
+                        />
+                        <span className="text-[10px] text-slate-500 truncate flex-1">
+                          {commentImageDrafts[ticket.ticket_id].file.name}
+                        </span>
+                        <button
+                          onClick={() => handleRemoveCommentImage(ticket.ticket_id)}
+                          className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={(el) => (commentFileInputRefs.current[ticket.ticket_id] = el)}
+                        type="file"
+                        accept="image/png,image/jpeg"
+                        className="hidden"
+                        onChange={(e) => handleCommentImageSelect(ticket.ticket_id, e)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => commentFileInputRefs.current[ticket.ticket_id]?.click()}
+                        disabled={submittingCommentId === ticket.ticket_id}
+                        className="flex items-center justify-center w-9 h-9 shrink-0 rounded-xl border border-slate-200/60 bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-[#002856] transition-colors cursor-pointer disabled:opacity-40"
+                        title="Attach image"
+                      >
+                        <Paperclip className="w-3.5 h-3.5" />
+                      </button>
+                      <input
+                        type="text"
+                        placeholder="Add a comment for the candidate..."
+                        value={commentDrafts[ticket.ticket_id] || ""}
+                        onChange={(e) =>
+                          setCommentDrafts((prev) => ({ ...prev, [ticket.ticket_id]: e.target.value }))
                         }
-                      }}
-                      disabled={submittingCommentId === ticket.ticket_id}
-                      className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200/60 rounded-xl text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-4 focus:ring-[#002856]/5 focus:border-[#002856] transition-all"
-                    />
-                    <button
-                      onClick={() => handleAddComment(ticket.ticket_id)}
-                      disabled={
-                        submittingCommentId === ticket.ticket_id || !(commentDrafts[ticket.ticket_id] || "").trim()
-                      }
-                      className="flex items-center justify-center gap-1.5 px-3.5 py-2 text-[10px] font-bold rounded-xl border border-transparent bg-[#002856] text-white hover:bg-[#001e40] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {submittingCommentId === ticket.ticket_id ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Send className="w-3.5 h-3.5" />
-                      )}
-                      Send
-                    </button>
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleAddComment(ticket.ticket_id);
+                          }
+                        }}
+                        disabled={submittingCommentId === ticket.ticket_id}
+                        className="flex-1 px-3.5 py-2 bg-slate-50 border border-slate-200/60 rounded-xl text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-4 focus:ring-[#002856]/5 focus:border-[#002856] transition-all"
+                      />
+                      <button
+                        onClick={() => handleAddComment(ticket.ticket_id)}
+                        disabled={
+                          submittingCommentId === ticket.ticket_id ||
+                          (!(commentDrafts[ticket.ticket_id] || "").trim() && !commentImageDrafts[ticket.ticket_id])
+                        }
+                        className="flex items-center justify-center gap-1.5 px-3.5 py-2 text-[10px] font-bold rounded-xl border border-transparent bg-[#002856] text-white hover:bg-[#001e40] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {submittingCommentId === ticket.ticket_id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Send className="w-3.5 h-3.5" />
+                        )}
+                        Send
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 px-3.5 py-2.5 bg-slate-50 border border-slate-200/60 rounded-xl text-[10px] font-semibold text-slate-400">

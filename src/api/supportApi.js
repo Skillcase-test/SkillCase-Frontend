@@ -18,6 +18,16 @@ export const uploadScreenshot = async (file) => {
   });
 };
 
-export const replyToTicketComment = async (ticketId, parentCommentId, message) => {
-  return api.post(`/support/ticket/${ticketId}/comment`, { parentCommentId, message });
+export const addTicketComment = async (ticketId, message, imageUrl) => {
+  return api.post(`/support/ticket/${ticketId}/comment`, { message, imageUrl });
+};
+
+export const uploadCommentImage = async (file) => {
+  const formData = new FormData();
+  formData.append("image", file);
+  return api.post("/support/comment-image/upload", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data"
+    }
+  });
 };

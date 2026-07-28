@@ -19,16 +19,20 @@ import {
   FileText,
   ArrowLeft,
   Check,
-  Reply,
+  Paperclip,
 } from "lucide-react";
 import {
   raiseTicket,
   getUserTickets,
   uploadScreenshot,
-  replyToTicketComment,
+  addTicketComment,
+  uploadCommentImage,
 } from "../api/supportApi";
 import toast from "react-hot-toast";
 import { trackFeatureEvent } from "../telemetry/events";
+
+const MAX_COMMENT_IMAGE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_COMMENT_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/jpg"]);
 
 export default function SupportWidget() {
   const location = useLocation();
@@ -45,11 +49,13 @@ export default function SupportWidget() {
   const [attachmentPreviewModal, setAttachmentPreviewModal] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [tempSelectedFile, setTempSelectedFile] = useState(null);
-  const [replyDrafts, setReplyDrafts] = useState({});
-  const [submittingReplyId, setSubmittingReplyId] = useState(null);
+  const [commentDrafts, setCommentDrafts] = useState({});
+  const [commentImageDrafts, setCommentImageDrafts] = useState({});
+  const [submittingCommentTicketId, setSubmittingCommentTicketId] = useState(null);
   const ticketsRef = useRef([]);
   const fileInputRef = useRef(null);
   const modalFileInputRef = useRef(null);
+  const commentFileInputRefs = useRef({});
 
   // Check if we are on landing page, learn german home, or job screening home
   const showSupport =
@@ -227,15 +233,56 @@ export default function SupportWidget() {
     }
   };
 
-  const handleReplySubmit = async (ticketId, commentId) => {
-    const message = (replyDrafts[commentId] || "").trim();
-    if (!message) return;
+  const handleCommentImageSelect = (ticketId, e) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
 
-    setSubmittingReplyId(commentId);
+    if (!ALLOWED_COMMENT_IMAGE_TYPES.has(selectedFile.type)) {
+      toast.error("Only PNG and JPG images are allowed");
+      return;
+    }
+    if (selectedFile.size > MAX_COMMENT_IMAGE_SIZE) {
+      toast.error("Maximum image size is 5MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setCommentImageDrafts((prev) => ({ ...prev, [ticketId]: { file: selectedFile, preview: reader.result } }));
+    };
+    reader.readAsDataURL(selectedFile);
+    e.target.value = "";
+  };
+
+  const handleRemoveCommentImage = (ticketId) => {
+    setCommentImageDrafts((prev) => {
+      const next = { ...prev };
+      delete next[ticketId];
+      return next;
+    });
+  };
+
+  const handleCommentSubmit = async (ticketId) => {
+    const message = (commentDrafts[ticketId] || "").trim();
+    const imageDraft = commentImageDrafts[ticketId];
+    if (!message && !imageDraft) return;
+
+    setSubmittingCommentTicketId(ticketId);
     try {
-      const res = await replyToTicketComment(ticketId, commentId, message);
+      let imageUrl = null;
+      if (imageDraft) {
+        const uploadRes = await uploadCommentImage(imageDraft.file);
+        if (uploadRes.data?.success) {
+          imageUrl = uploadRes.data.url;
+        } else {
+          throw new Error("Image upload failed");
+        }
+      }
+
+      const res = await addTicketComment(ticketId, message, imageUrl);
       if (res.data?.success) {
-        setReplyDrafts((prev) => ({ ...prev, [commentId]: "" }));
+        setCommentDrafts((prev) => ({ ...prev, [ticketId]: "" }));
+        handleRemoveCommentImage(ticketId);
         setTickets((prev) =>
           prev.map((t) =>
             t.ticket_id === ticketId
@@ -245,10 +292,10 @@ export default function SupportWidget() {
         );
       }
     } catch (err) {
-      console.error("Failed to send reply:", err);
-      toast.error(err.response?.data?.error || "Failed to send reply");
+      console.error("Failed to send message:", err);
+      toast.error(err.response?.data?.error || "Failed to send message");
     } finally {
-      setSubmittingReplyId(null);
+      setSubmittingCommentTicketId(null);
     }
   };
 
@@ -675,88 +722,119 @@ export default function SupportWidget() {
                                 </p>
                               </div>
 
-                              {/* Support conversation: admin comments + your reply */}
-                              {(ticket.comments || []).filter((c) => c.author_type === "admin").length > 0 && (
+                              {/* Support conversation: unlimited messages with the support team */}
+                              {(ticket.comments || []).length > 0 && (
                                 <div className="space-y-2">
                                   <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
                                     SUPPORT TEAM
                                   </span>
-                                  {ticket.comments
-                                    .filter((c) => c.author_type === "admin")
-                                    .map((comment) => {
-                                      const reply = ticket.comments.find(
-                                        (c) => c.author_type === "candidate" && c.parent_comment_id === comment.comment_id
-                                      );
-                                      return (
-                                        <div key={comment.comment_id} className="space-y-1.5">
-                                          <div className="bg-black/5 rounded-2xl px-3.5 py-2.5 space-y-0.5">
-                                            <div className="flex items-center gap-2">
-                                              <span className="text-xs font-semibold text-[#002856]">Support Team</span>
-                                              <span className="text-[10px] text-slate-400">
-                                                {new Date(comment.created_at).toLocaleString()}
-                                              </span>
-                                            </div>
-                                            <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                                              {comment.message}
-                                            </p>
-                                          </div>
-
-                                          {reply ? (
-                                            <div className="bg-white border border-slate-100 rounded-2xl px-3.5 py-2.5 ml-4 space-y-0.5">
-                                              <div className="flex items-center gap-2">
-                                                <Reply className="w-3 h-3 text-slate-400" />
-                                                <span className="text-xs font-semibold text-slate-600">You</span>
-                                                <span className="text-[10px] text-slate-400">
-                                                  {new Date(reply.created_at).toLocaleString()}
-                                                </span>
-                                              </div>
-                                              <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">
-                                                {reply.message}
-                                              </p>
-                                            </div>
-                                          ) : (
-                                            <div className="flex items-center gap-2 ml-4">
-                                              <input
-                                                type="text"
-                                                placeholder="Reply once to this comment..."
-                                                value={replyDrafts[comment.comment_id] || ""}
-                                                onChange={(e) =>
-                                                  setReplyDrafts((prev) => ({
-                                                    ...prev,
-                                                    [comment.comment_id]: e.target.value,
-                                                  }))
-                                                }
-                                                onKeyDown={(e) => {
-                                                  if (e.key === "Enter" && !e.shiftKey) {
-                                                    e.preventDefault();
-                                                    handleReplySubmit(ticket.ticket_id, comment.comment_id);
-                                                  }
-                                                }}
-                                                disabled={submittingReplyId === comment.comment_id}
-                                                className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg shadow-2xs text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
-                                              />
-                                              <button
-                                                type="button"
-                                                onClick={() => handleReplySubmit(ticket.ticket_id, comment.comment_id)}
-                                                disabled={
-                                                  submittingReplyId === comment.comment_id ||
-                                                  !(replyDrafts[comment.comment_id] || "").trim()
-                                                }
-                                                className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#002856] hover:bg-[#001e40] text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-                                              >
-                                                {submittingReplyId === comment.comment_id ? (
-                                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                ) : (
-                                                  <Send className="w-3.5 h-3.5" />
-                                                )}
-                                              </button>
-                                            </div>
-                                          )}
+                                  {ticket.comments.map((comment) => {
+                                    const isAdmin = comment.author_type === "admin";
+                                    return (
+                                      <div
+                                        key={comment.comment_id}
+                                        className={`rounded-2xl px-3.5 py-2.5 space-y-0.5 ${
+                                          isAdmin ? "bg-black/5" : "bg-white border border-slate-100 ml-4"
+                                        }`}
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <span className={`text-xs font-semibold ${isAdmin ? "text-[#002856]" : "text-slate-600"}`}>
+                                            {isAdmin ? "Support Team" : "You"}
+                                          </span>
+                                          <span className="text-[10px] text-slate-400">
+                                            {new Date(comment.created_at).toLocaleString()}
+                                          </span>
                                         </div>
-                                      );
-                                    })}
+                                        {comment.message && (
+                                          <p className={`text-sm whitespace-pre-wrap leading-relaxed ${isAdmin ? "text-slate-700" : "text-slate-600"}`}>
+                                            {comment.message}
+                                          </p>
+                                        )}
+                                        {comment.image_url && (
+                                          <img
+                                            src={comment.image_url}
+                                            alt="Comment attachment"
+                                            onClick={() => setSelectedImage(comment.image_url)}
+                                            className="w-20 h-24 object-cover rounded-md cursor-pointer hover:opacity-90 transition-opacity mt-1"
+                                          />
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               )}
+
+                              {/* Send a message to the support team */}
+                              <div className="space-y-2">
+                                {commentImageDrafts[ticket.ticket_id] && (
+                                  <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                                    <img
+                                      src={commentImageDrafts[ticket.ticket_id].preview}
+                                      alt="Attachment preview"
+                                      className="h-10 w-10 rounded-md object-cover"
+                                    />
+                                    <span className="text-[10px] text-slate-500 truncate flex-1">
+                                      {commentImageDrafts[ticket.ticket_id].file.name}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveCommentImage(ticket.ticket_id)}
+                                      className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    ref={(el) => (commentFileInputRefs.current[ticket.ticket_id] = el)}
+                                    type="file"
+                                    accept="image/png,image/jpeg"
+                                    className="hidden"
+                                    onChange={(e) => handleCommentImageSelect(ticket.ticket_id, e)}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => commentFileInputRefs.current[ticket.ticket_id]?.click()}
+                                    disabled={submittingCommentTicketId === ticket.ticket_id}
+                                    className="flex items-center justify-center w-8 h-8 shrink-0 rounded-lg border border-slate-300 bg-white text-slate-500 hover:bg-slate-50 hover:text-[#002856] transition-colors cursor-pointer disabled:opacity-40"
+                                    title="Attach image"
+                                  >
+                                    <Paperclip className="w-3.5 h-3.5" />
+                                  </button>
+                                  <input
+                                    type="text"
+                                    placeholder="Message the support team..."
+                                    value={commentDrafts[ticket.ticket_id] || ""}
+                                    onChange={(e) =>
+                                      setCommentDrafts((prev) => ({ ...prev, [ticket.ticket_id]: e.target.value }))
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleCommentSubmit(ticket.ticket_id);
+                                      }
+                                    }}
+                                    disabled={submittingCommentTicketId === ticket.ticket_id}
+                                    className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg shadow-2xs text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCommentSubmit(ticket.ticket_id)}
+                                    disabled={
+                                      submittingCommentTicketId === ticket.ticket_id ||
+                                      (!(commentDrafts[ticket.ticket_id] || "").trim() && !commentImageDrafts[ticket.ticket_id])
+                                    }
+                                    className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#002856] hover:bg-[#001e40] text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                                  >
+                                    {submittingCommentTicketId === ticket.ticket_id ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                      <Send className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
 
                               {/* Attachment Section */}
                               {ticket.screenshot_url && (
