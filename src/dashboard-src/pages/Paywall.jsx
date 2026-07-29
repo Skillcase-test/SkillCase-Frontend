@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
 import api from "../../api/axios";
 import { Search, RefreshCw, History, Ban, X, ShieldAlert, CheckCircle, HelpCircle, Activity } from "lucide-react";
+import { ControlDropdown } from "../payments-admin/components/controls";
+
+const STATUS_FILTER_OPTIONS = [
+  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+];
 
 function getInitials(name) {
   return String(name || "?")
@@ -29,6 +36,7 @@ function Paywall() {
   const [students, setStudents] = useState([]);
   const [prospects, setProspects] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [loadingProspects, setLoadingProspects] = useState(false);
   const [page, setPage] = useState(1);
@@ -54,7 +62,7 @@ function Paywall() {
   // Fetch lists
   useEffect(() => {
     fetchStudents();
-  }, [page, searchQuery]);
+  }, [page, searchQuery, statusFilter]);
 
   useEffect(() => {
     fetchProspects();
@@ -68,7 +76,7 @@ function Paywall() {
     setLoadingStudents(true);
     try {
       const response = await api.get("/admin/paywall/students", {
-        params: { page, limit, search: searchQuery },
+        params: { page, limit, search: searchQuery, status: statusFilter },
       });
       setStudents(response.data.students || []);
       setTotalPages(response.data.pagination?.totalPages || 1);
@@ -108,6 +116,11 @@ function Paywall() {
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
+    setPage(1);
+  };
+
+  const handleStatusFilterChange = (value) => {
+    setStatusFilter(value);
     setPage(1);
   };
 
@@ -224,8 +237,8 @@ function Paywall() {
       case "created":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            Session
+            <HelpCircle className="w-3.5 h-3.5" />
+            Checkout Started
           </span>
         );
       default:
@@ -259,15 +272,24 @@ function Paywall() {
                 <span className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
                 Students Access Directories
               </h2>
-              <div className="relative w-64 mt-2 sm:mt-0">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={handleSearchChange}
-                  placeholder="Search name or phone..."
-                  className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder-slate-400"
+              <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                <ControlDropdown
+                  aria-label="Paywall status filter"
+                  value={statusFilter}
+                  onChange={handleStatusFilterChange}
+                  options={STATUS_FILTER_OPTIONS}
+                  className="w-36"
                 />
-                <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                <div className="relative w-64">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    placeholder="Search name or phone..."
+                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder-slate-400"
+                  />
+                  <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                </div>
               </div>
             </header>
 
@@ -405,8 +427,18 @@ function Paywall() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-xs font-semibold text-slate-700">
+                      <p className="truncate text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                         {prospect.name}{" "}
+                        {prospect.is_paid ? (
+                          <span className="shrink-0 rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
+                            Paid
+                          </span>
+                        ) : prospect.paywall_active ? (
+                          <span className="shrink-0 rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
+                            Active
+                          </span>
+                        ) : null}
+                        {" "}
                         {prospect.phone && (
                           <span className="ml-1 text-[10px] font-normal text-slate-500">({prospect.phone})</span>
                         )}

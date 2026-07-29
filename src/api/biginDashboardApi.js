@@ -2,6 +2,8 @@ import api from "./axios";
 
 export const biginDashboardApi = {
   summary: (params) => api.get("/admin/bigin-dashboard/summary", { params }),
+  candidates: (params) =>
+    api.get("/admin/bigin-dashboard/candidates", { params }),
   funnel: (params) => api.get("/admin/bigin-dashboard/funnel", { params }),
   leadAgeing: (params) => api.get("/admin/bigin-dashboard/lead-ageing", { params }),
   salesPerformance: (params) =>

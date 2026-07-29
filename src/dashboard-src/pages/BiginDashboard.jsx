@@ -6,7 +6,9 @@ import {
   BarChart3,
   ChevronRight,
   Clock3,
+  Download,
   Search,
+  X,
 } from "lucide-react";
 
 import { biginDashboardApi } from "../../api/biginDashboardApi";
@@ -243,6 +245,17 @@ function formatSyncedAt(iso) {
   });
 }
 
+// Timestamps arrive from the API as UTC ISO strings, so slicing the first 10
+// chars would show the UTC date - a lead created 00:29 IST on the 28th reads
+// as the 27th. Every date filter on this page is IST, so render dates in IST
+// too or the list looks like it leaked in rows from outside the window.
+function istDate(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("en-CA", {
+    timeZone: "Asia/Kolkata",
+  });
+}
+
 function defaultDateRange() {
   const to = new Date();
   const from = new Date(to.getFullYear(), to.getMonth(), 1);
@@ -414,9 +427,29 @@ function KpiTile({
   footNote,
   breakdown,
   breakdownFormat,
+  onClick,
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
+    <div
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      className={cx(
+        "rounded-2xl border border-slate-200 bg-white p-4 shadow-xs",
+        onClick &&
+          "cursor-pointer transition hover:border-indigo-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400",
+      )}
+    >
       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
         {label}
       </p>
@@ -441,6 +474,208 @@ function KpiTile({
           format={breakdownFormat}
         />
       )}
+    </div>
+  );
+}
+
+const CANDIDATE_PAGE_SIZE = 50;
+
+// Drilldown behind a KPI tile: who exactly is in that bucket. Server-side
+// paginated and searched (the buckets run to thousands of rows), reusing the
+// same apiFilters the tile's own number came from so the two always agree.
+function CandidatesModal({ bucket, label, apiFilters, onClose }) {
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [state, setState] = useState({
+    rows: [],
+    total: 0,
+    loading: true,
+    error: null,
+  });
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    const onEsc = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onEsc);
+    return () => window.removeEventListener("keydown", onEsc);
+  }, [onClose]);
+
+  useEffect(() => {
+    let live = true;
+    setState((s) => ({ ...s, loading: true, error: null }));
+    biginDashboardApi
+      .candidates({
+        ...apiFilters,
+        bucket,
+        search: debouncedSearch || undefined,
+        limit: CANDIDATE_PAGE_SIZE,
+        offset: (page - 1) * CANDIDATE_PAGE_SIZE,
+      })
+      .then(({ data }) => {
+        if (!live) return;
+        setState({
+          rows: data.candidates || [],
+          total: data.total || 0,
+          loading: false,
+          error: null,
+        });
+      })
+      .catch((err) => {
+        if (!live) return;
+        setState((s) => ({
+          ...s,
+          loading: false,
+          error: err.response?.data?.msg || "Could not load candidates.",
+        }));
+      });
+    return () => {
+      live = false;
+    };
+  }, [bucket, apiFilters, debouncedSearch, page]);
+
+  const totalPages = Math.max(1, Math.ceil(state.total / CANDIDATE_PAGE_SIZE));
+
+  const handleExport = () => {
+    const headers = ["Name", "Phone", "Pipeline", "Stage", "Owner", "Created"];
+    const rows = state.rows.map((r) => [
+      r.deal_name || "",
+      r.phone || "",
+      r.pipeline_name || "",
+      r.stage || "",
+      r.owner_name || "",
+      r.created_time ? istDate(r.created_time) : "",
+    ]);
+    const csv = [headers, ...rows]
+      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bigin_${bucket}_page${page}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/60" onClick={onClose} />
+      <div className="relative flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <header className="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-4">
+          <div>
+            <h3 className="text-base font-bold text-slate-900">{label}</h3>
+            <p className="mt-0.5 text-xs text-slate-400">
+              {number(state.total)} candidate{state.total === 1 ? "" : "s"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={!state.rows.length}
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export page
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </header>
+
+        <div className="border-b border-slate-100 px-6 py-3">
+          <ControlInput
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or phone…"
+            leftIcon={<Search className="h-4 w-4" />}
+            className="w-full"
+          />
+        </div>
+
+        <div className="flex-1 overflow-auto px-6 py-4">
+          {state.error ? (
+            <div
+              role="alert"
+              className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
+            >
+              {state.error}
+            </div>
+          ) : state.loading ? (
+            <TableSkeleton rows={6} />
+          ) : state.rows.length === 0 ? (
+            <EmptyState message="No candidates match this filter." />
+          ) : (
+            <table className="w-full border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <th className="pb-2 pr-3">Name</th>
+                  <th className="pb-2 pr-3">Phone</th>
+                  <th className="pb-2 pr-3">Stage</th>
+                  <th className="pb-2 pr-3">Owner</th>
+                  <th className="pb-2">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {state.rows.map((row) => (
+                  <tr
+                    key={row.zoho_id}
+                    className="border-b border-slate-50 last:border-0"
+                  >
+                    <td className="py-2 pr-3 font-semibold text-slate-800">
+                      {row.deal_name || "—"}{" "}
+                      <span className="ml-1 whitespace-nowrap rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+                        {row.pipeline_name}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-3 tabular-nums text-slate-600">
+                      {row.phone ? (
+                        <a
+                          href={`tel:${row.phone}`}
+                          className="hover:text-indigo-600"
+                        >
+                          {row.phone}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="py-2 pr-3 text-slate-600">{row.stage}</td>
+                    <td className="py-2 pr-3 text-slate-600">
+                      {row.owner_name || "—"}
+                    </td>
+                    <td className="py-2 tabular-nums text-slate-500">
+                      {istDate(row.created_time)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {totalPages > 1 && (
+          <div className="border-t border-slate-100 px-6 py-3">
+            <PaginationBar
+              currentPage={page}
+              totalPages={totalPages}
+              setCurrentPage={setPage}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -575,7 +810,7 @@ function useBiginData(apiFilters, { enabled = true, fetchPrev = false } = {}) {
 // Renders the full component set (KPI tiles through Daily Trend) for one
 // dataset - used once for Active/Complete/Running-Today, and twice (labeled)
 // for Running -> As of Month.
-function DashboardBody({ data, periodLabel, compact = false }) {
+function DashboardBody({ data, apiFilters, periodLabel, compact = false }) {
   const {
     summary,
     prevSummary,
@@ -591,6 +826,15 @@ function DashboardBody({ data, periodLabel, compact = false }) {
   } = data;
   const [perfPage, setPerfPage] = useState(1);
   const perfPageSize = 8;
+  // Which KPI tile's candidate list is open, if any.
+  const [drilldown, setDrilldown] = useState(null);
+  const openDrilldown = apiFilters
+    ? (bucket, label) => () =>
+        setDrilldown({
+          bucket,
+          label: periodLabel ? `${label} · ${periodLabel}` : label,
+        })
+    : () => undefined;
 
   useEffect(() => {
     setPerfPage(1);
@@ -642,6 +886,7 @@ function DashboardBody({ data, periodLabel, compact = false }) {
               b1b2: breakdown.summary.b1b2.new_leads,
             }
           }
+          onClick={openDrilldown("new", "New Leads")}
         />
         <KpiTile
           label="Active Leads"
@@ -655,6 +900,7 @@ function DashboardBody({ data, periodLabel, compact = false }) {
               b1b2: breakdown.summary.b1b2.active_leads,
             }
           }
+          onClick={openDrilldown("active", "Active Leads")}
         />
         <KpiTile
           label="Qualified Leads"
@@ -668,6 +914,7 @@ function DashboardBody({ data, periodLabel, compact = false }) {
               b1b2: breakdown.summary.b1b2.qualified_leads,
             }
           }
+          onClick={openDrilldown("qualified", "Qualified Leads")}
         />
         <KpiTile
           label="Won"
@@ -681,6 +928,7 @@ function DashboardBody({ data, periodLabel, compact = false }) {
               b1b2: breakdown.summary.b1b2.won,
             }
           }
+          onClick={openDrilldown("won", "Won")}
         />
         <KpiTile
           label="Lost"
@@ -695,6 +943,7 @@ function DashboardBody({ data, periodLabel, compact = false }) {
               b1b2: breakdown.summary.b1b2.lost,
             }
           }
+          onClick={openDrilldown("lost", "Lost")}
         />
         <KpiTile
           label="Conversion Rate"
@@ -927,6 +1176,15 @@ function DashboardBody({ data, periodLabel, compact = false }) {
         <SectionCard title="Daily Trend">
           <EmptyState message="No activity in this window." />
         </SectionCard>
+      )}
+
+      {drilldown && (
+        <CandidatesModal
+          bucket={drilldown.bucket}
+          label={drilldown.label}
+          apiFilters={apiFilters}
+          onClose={() => setDrilldown(null)}
+        />
       )}
     </div>
   );
@@ -1195,15 +1453,21 @@ export default function BiginDashboard() {
 
         {monthMode ? (
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <DashboardBody data={primary} periodLabel="This month" compact />
+            <DashboardBody
+              data={primary}
+              apiFilters={primaryFilters}
+              periodLabel="This month"
+              compact
+            />
             <DashboardBody
               data={secondary}
+              apiFilters={beforeMonthApiFilters}
               periodLabel="Before this month (won/lost this month, rest live)"
               compact
             />
           </div>
         ) : (
-          <DashboardBody data={primary} />
+          <DashboardBody data={primary} apiFilters={primaryFilters} />
         )}
       </div>
     </div>
