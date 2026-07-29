@@ -333,6 +333,8 @@ function Paywall() {
                         <td className="px-4 py-3 whitespace-nowrap text-center">
                           <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 text-xs font-bold">
                             {student.current_profeciency_level || "A1"}
+                            {String(student.current_profeciency_level || "").toUpperCase() === "B1" &&
+                              ` ${student.is_job_screening ? "Job Screening" : "Practice"}`}
                           </span>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-center">
@@ -448,7 +450,10 @@ function Paywall() {
                       </span>
                     </div>
                     <p className="mt-0.5 text-[10px] font-medium text-slate-400">
-                      {prospect.level || "N/A"} - {formatNumber(prospect.activity_count)} events - {formatIst(prospect.last_activity)}
+                      {prospect.level || "N/A"}
+                      {String(prospect.level || "").toUpperCase() === "B1" &&
+                        ` ${prospect.is_job_screening ? "Job Screening" : "Practice"}`}
+                      {" "}- {formatNumber(prospect.activity_count)} events - {formatIst(prospect.last_activity)}
                     </p>
                   </div>
                 </div>
