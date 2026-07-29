@@ -5,6 +5,7 @@ import {
 } from "./platform";
 import { initializeExperienceTelemetry } from "./experience";
 import { installFetchTelemetry } from "./fetch";
+import { logMetaEvent } from "./metaEvents";
 
 const MAX_QUEUE_EVENTS = 2000;
 const MAX_BATCH_EVENTS = 50;
@@ -543,6 +544,7 @@ export function captureTelemetryError(error, context = {}) {
 }
 
 export function mirrorLegacyEvent(name, properties = {}) {
+  logMetaEvent(name, properties);
   const level = properties.level || properties.proficiency_level;
   const moduleName = properties.module || properties.feature_key;
   return recordEvent(`legacy.${String(name || "event").replace(/[^a-zA-Z0-9_.-]/g, "_")}`, {

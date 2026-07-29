@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { trackFeatureEvent } from "./events";
+import { logMetaFlowEvent } from "./metaEvents";
 
 export function useFlowJourney({ domain, flowId, step, stepIndex, totalSteps, entityId, attributes = {} }) {
   const flowStartRef = useRef(performance.now());
@@ -87,6 +88,7 @@ export function trackFlowAction(
   legacyContext = {},
 ) {
   const normalizedContext = normalizeFlowContext(context, legacyContext);
+  logMetaFlowEvent(flowId, action, normalizedContext);
   return trackFeatureEvent(domain, action, {
     feature: flowId,
     entityType: normalizedContext.entityType || "flow_step",
