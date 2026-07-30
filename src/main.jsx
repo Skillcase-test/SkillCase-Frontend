@@ -4,6 +4,7 @@ const CHUNK_ERROR_PATTERNS = [
   "failed to fetch dynamically imported module",
   "error loading dynamically imported module",
   "importing a module script failed",
+  "is not a valid javascript mime type",
   "failed to load module script",
   "chunkloaderror",
   "loading chunk",

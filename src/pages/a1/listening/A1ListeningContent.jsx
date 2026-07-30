@@ -54,6 +54,18 @@ import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
 import { useLearningQuestionJourney } from "../../../telemetry/learning";
 import { trackLearningEvent } from "../../../telemetry/events";
 
+function normalizeSubtitles(subtitles) {
+  if (!Array.isArray(subtitles)) return [];
+
+  return subtitles.filter(
+    (subtitle) =>
+      subtitle &&
+      typeof subtitle === "object" &&
+      Number.isFinite(Number(subtitle.start)) &&
+      Number.isFinite(Number(subtitle.end)),
+  );
+}
+
 const CustomDropdown = memo(({
   options,
   value,
@@ -492,7 +504,14 @@ export default function A1ListeningContent() {
       try {
         const res = await getListeningContent(chapterId);
         const data = res?.data || res || [];
-        setContent(Array.isArray(data) ? data : []);
+        setContent(
+          Array.isArray(data)
+            ? data.map((item) => ({
+                ...item,
+                subtitles: normalizeSubtitles(item?.subtitles),
+              }))
+            : [],
+        );
         analytics?.capture("learning_module_started", {
           module: "A1 Listening",
           level: "A1",
@@ -513,7 +532,7 @@ export default function A1ListeningContent() {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const subtitles = currentItem?.subtitles || [];
+    const subtitles = normalizeSubtitles(currentItem?.subtitles);
 
     const onTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
@@ -732,7 +751,7 @@ export default function A1ListeningContent() {
   }
 
   const progress = duration ? (currentTime / duration) * 100 : 0;
-  const subtitles = currentItem?.subtitles || [];
+  const subtitles = normalizeSubtitles(currentItem?.subtitles);
 
   return (
     <div className="min-h-screen bg-white">

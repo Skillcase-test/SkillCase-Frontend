@@ -1,6 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
+function normalizeSubtitles(subtitles) {
+  if (!Array.isArray(subtitles)) return [];
+
+  return subtitles.filter(
+    (subtitle) =>
+      subtitle &&
+      typeof subtitle === "object" &&
+      Number.isFinite(Number(subtitle.start)) &&
+      Number.isFinite(Number(subtitle.end)),
+  );
+}
+
 export default function KaraokeSubtitles({
   subtitles, // Array of { start, end, text }
   currentTime,
@@ -11,6 +23,7 @@ export default function KaraokeSubtitles({
   subtitlesAreaId = "a2-listening-subtitles-area",
   subtitleToggleEventName = "tour:a2ListeningSubtitle",
 }) {
+  const validSubtitles = normalizeSubtitles(subtitles);
   const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef(null);
   // Touch handling state
@@ -19,9 +32,9 @@ export default function KaraokeSubtitles({
   const lastScrollTime = useRef(0);
 
   useEffect(() => {
-    if (!subtitles || !isVisible) return;
+    if (!isVisible) return;
 
-    const idx = subtitles.findIndex(
+    const idx = validSubtitles.findIndex(
       (sub) => currentTime >= sub.start && currentTime < sub.end,
     );
     setActiveIndex(idx !== -1 ? idx : activeIndex);
@@ -32,7 +45,7 @@ export default function KaraokeSubtitles({
   };
 
   const handleTouchEnd = (e) => {
-    if (!subtitles || !onSeek) return;
+    if (!onSeek) return;
 
     const touchEndY = e.changedTouches[0].clientY;
     const deltaY = touchEndY - touchStartY.current;
@@ -43,14 +56,14 @@ export default function KaraokeSubtitles({
     if (deltaY > 0) {
       // Swipe Down -> Prev (Like pulling down)
       if (activeIndex > 0) {
-        onSeek(subtitles[activeIndex - 1].start);
+        onSeek(validSubtitles[activeIndex - 1].start);
         setActiveIndex(activeIndex - 1);
       }
     } else {
       // Swipe Up -> Next
-      if (activeIndex < subtitles.length - 1) {
+      if (activeIndex < validSubtitles.length - 1) {
         const nextIdx = activeIndex === -1 ? 0 : activeIndex + 1;
-        onSeek(subtitles[nextIdx].start);
+        onSeek(validSubtitles[nextIdx].start);
         setActiveIndex(nextIdx);
       }
     }
@@ -60,27 +73,27 @@ export default function KaraokeSubtitles({
     // ... existing wheel logic ...
     // Simplifying to reuse logic if needed, but keeping separate is fine for now
     e.preventDefault();
-    if (!subtitles || !onSeek) return;
+    if (!onSeek) return;
 
     const now = Date.now();
     if (now - lastScrollTime.current < 200) return; // Reduced debounce for laptop trackpads
 
     if (e.deltaY > 0) {
       if (activeIndex > 0) {
-        onSeek(subtitles[activeIndex - 1].start);
+        onSeek(validSubtitles[activeIndex - 1].start);
         setActiveIndex(activeIndex - 1);
       }
     } else {
-      if (activeIndex < subtitles.length - 1) {
+      if (activeIndex < validSubtitles.length - 1) {
         const nextIdx = activeIndex === -1 ? 0 : activeIndex + 1;
-        onSeek(subtitles[nextIdx].start);
+        onSeek(validSubtitles[nextIdx].start);
         setActiveIndex(nextIdx);
       }
     }
     lastScrollTime.current = now;
   };
 
-  if (!subtitles || subtitles.length === 0) return null;
+  if (validSubtitles.length === 0) return null;
 
   return (
     <div className="mt-4">
@@ -125,7 +138,7 @@ export default function KaraokeSubtitles({
 
           {/* Items Container */}
           <div className="absolute top-1/2 left-0 w-full -translate-y-1/2 h-[60px]">
-            {subtitles.map((sub, idx) => {
+            {validSubtitles.map((sub, idx) => {
               const baseIndex = activeIndex === -1 ? -1 : activeIndex;
               const offset = idx - activeIndex; // Use simple offset (idx - activeIndex)
 

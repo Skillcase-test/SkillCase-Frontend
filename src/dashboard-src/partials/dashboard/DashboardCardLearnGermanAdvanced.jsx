@@ -44,15 +44,17 @@ function RetentionLineChart({ data }) {
   const { tooltipBodyColor, tooltipBgColor, tooltipBorderColor, tooltipTitleColor, gridColor, textColor } = chartColors;
 
   useLayoutEffect(() => {
-    if (!canvasRef.current?.isConnected || !canvasRef.current.parentElement || !data) return undefined;
+    const canvas = canvasRef.current;
+    if (!canvas?.isConnected || !canvas.parentElement || !data) return undefined;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return undefined;
     
     // Destroy previous chart if it exists
     if (chartRef.current) {
       chartRef.current.destroy();
     }
 
-    const ctx = canvasRef.current.getContext("2d");
-    const newChart = new Chart(ctx, {
+    const newChart = new Chart(canvas, {
       type: "line",
       data: data,
       options: {
