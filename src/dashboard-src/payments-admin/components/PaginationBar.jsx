@@ -6,7 +6,7 @@ export function PaginationBar({ currentPage, totalPages, setCurrentPage }) {
         <button
           onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
           disabled={currentPage <= 1}
-          className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-slate-700 disabled:opacity-40"
+          className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           Prev
         </button>
@@ -16,7 +16,7 @@ export function PaginationBar({ currentPage, totalPages, setCurrentPage }) {
         <button
           onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
           disabled={currentPage >= totalPages}
-          className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-slate-700 disabled:opacity-40"
+          className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           Next
         </button>

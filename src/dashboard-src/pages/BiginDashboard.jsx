@@ -595,7 +595,7 @@ function CandidatesModal({ bucket, label, apiFilters, onClose }) {
               type="button"
               onClick={handleExport}
               disabled={!state.rows.length}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
             >
               <Download className="h-3.5 w-3.5" />
               Export page
@@ -603,7 +603,7 @@ function CandidatesModal({ bucket, label, apiFilters, onClose }) {
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 cursor-pointer"
             >
               <X className="h-4 w-4" />
             </button>
@@ -1412,7 +1412,7 @@ function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
             type="button"
             onClick={handleExport}
             disabled={!list.rows.length}
-            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
           >
             <Download className="h-3.5 w-3.5" />
             Export page
@@ -1702,8 +1702,8 @@ export default function BiginDashboard() {
                     onClick={() => update("view", opt.value)}
                     className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
                       view === opt.value
-                        ? "bg-slate-900 text-white"
-                        : "text-slate-600 hover:bg-slate-50"
+                        ? "bg-slate-900 text-white cursor-not-allowed"
+                        : "text-slate-600 hover:bg-slate-50 cursor-pointer"
                     }`}
                   >
                     {opt.label}
@@ -1780,8 +1780,8 @@ export default function BiginDashboard() {
                     onClick={() => update("running_mode", "today")}
                     className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
                       runningMode === "today"
-                        ? "bg-slate-900 text-white"
-                        : "text-slate-600 hover:bg-slate-50"
+                        ? "bg-slate-900 text-white cursor-not-allowed"
+                        : "text-slate-600 hover:bg-slate-50 cursor-pointer"
                     }`}
                   >
                     As of Today
@@ -1791,8 +1791,8 @@ export default function BiginDashboard() {
                     onClick={() => update("running_mode", "month")}
                     className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
                       runningMode === "month"
-                        ? "bg-slate-900 text-white"
-                        : "text-slate-600 hover:bg-slate-50"
+                        ? "bg-slate-900 text-white cursor-not-allowed"
+                        : "text-slate-600 hover:bg-slate-50 cursor-pointer"
                     }`}
                   >
                     As of Month
