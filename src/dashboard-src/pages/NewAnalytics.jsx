@@ -654,7 +654,7 @@ function FeatureOverviewTable({
 
 // Module Performance
 
-const MODULE_TABLE_COLLAPSED_COUNT = 12;
+const MODULE_TABLE_COLLAPSED_COUNT = 3;
 
 function ModulePerformanceTable({
   rows = [],
