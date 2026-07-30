@@ -3,6 +3,9 @@ import api from "./axios";
 export const newAnalyticsApi = {
   catalog: () => api.get("/admin/new-analytics/catalog"),
   metrics: (params) => api.get("/admin/new-analytics/metrics", { params }),
+  modules: (params) => api.get("/admin/new-analytics/modules", { params }),
+  moduleUsers: (params) =>
+    api.get("/admin/new-analytics/modules/users", { params }),
   journeys: (params) => api.get("/admin/new-analytics/journeys", { params }),
   journey: (subjectId, date) =>
     api.get(`/admin/new-analytics/journeys/${encodeURIComponent(subjectId)}`, {

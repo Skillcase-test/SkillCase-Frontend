@@ -652,6 +652,255 @@ function FeatureOverviewTable({
   );
 }
 
+// Module Performance
+
+const MODULE_TABLE_COLLAPSED_COUNT = 12;
+
+function ModulePerformanceTable({
+  rows = [],
+  featureLabel,
+  rangeLabel,
+  onOpen,
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const visible = showAll ? rows : rows.slice(0, MODULE_TABLE_COLLAPSED_COUNT);
+  const hiddenCount = rows.length - visible.length;
+
+  // Both count cells behave the same, only the accent and the modal they open
+  // differ, so they share one button.
+  const CountButton = ({ value, tone, onClick }) => (
+    <button
+      type="button"
+      disabled={!value}
+      onClick={onClick}
+      className={`inline-flex min-w-[3.25rem] items-center justify-center rounded-lg border px-2.5 py-1 text-sm font-bold tabular-nums transition-colors disabled:cursor-default disabled:border-transparent disabled:bg-transparent disabled:text-slate-300 ${
+        tone === "emerald"
+          ? "cursor-pointer border-emerald-100 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100"
+          : "cursor-pointer border-indigo-100 bg-indigo-50 text-indigo-700 hover:border-indigo-300 hover:bg-indigo-100"
+      }`}
+    >
+      {number(value)}
+    </button>
+  );
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between px-7 py-5">
+        <div>
+          <h2 className="text-base font-bold text-slate-900">
+            Module Performance
+          </h2>
+          <p className="mt-0.5 text-xs text-slate-400">
+            {featureLabel} &middot; {rangeLabel} &middot; click a count to see
+            who those learners are.
+          </p>
+        </div>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-500">
+          {rows.length} module{rows.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      {rows.length === 0 ? (
+        <div className="border-t border-slate-100 px-7 py-10">
+          <EmptyState message="No module activity for this feature in the selected range." />
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[680px] border-collapse text-left">
+            <thead>
+              <tr className="border-t border-b border-slate-200 bg-slate-50">
+                <th className="px-7 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  Lesson name
+                </th>
+                <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  Level
+                </th>
+                <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  Users started
+                </th>
+                <th className="px-7 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  Users completed
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {visible.map((row) => (
+                <tr key={row.module_key} className="hover:bg-slate-50">
+                  <td className="px-7 py-3">
+                    <span className="text-sm font-semibold text-slate-800">
+                      {row.module_label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs font-semibold text-slate-500">
+                    {LEVEL_LABELS[row.level] || row.level || "—"}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <CountButton
+                      value={row.users_started}
+                      tone="indigo"
+                      onClick={() => onOpen(row, "started")}
+                    />
+                  </td>
+                  <td className="px-7 py-3 text-right">
+                    <CountButton
+                      value={row.users_completed}
+                      tone="emerald"
+                      onClick={() => onOpen(row, "completed")}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {rows.length > MODULE_TABLE_COLLAPSED_COUNT && (
+        <div className="border-t border-slate-100 px-7 py-3 text-center">
+          <button
+            type="button"
+            onClick={() => setShowAll((prev) => !prev)}
+            className="cursor-pointer text-xs font-bold text-indigo-600 hover:text-indigo-700"
+          >
+            {showAll
+              ? "Show less"
+              : `Show ${hiddenCount} more module${hiddenCount > 1 ? "s" : ""}`}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// One component for both count columns: same list, different heading and
+// filter, so a separate "started" and "completed" component would be a copy.
+function ModuleUsersModal({ module, mode, data, loading, onClose }) {
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  const started = mode === "started";
+  const users = data?.users || [];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8"
+      style={{ animation: "analyticsModalFadeIn 150ms ease-out" }}
+    >
+      <div className="absolute inset-0 bg-slate-900/60" onClick={onClose} />
+      <div
+        className="relative flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-950/5"
+        style={{ animation: "analyticsModalSlideUp 200ms ease-out" }}
+      >
+        <div className="shrink-0 border-b border-slate-100 bg-white px-8 pb-6 pt-7">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <span
+                className={`inline-flex items-center rounded-lg px-2.5 py-0.5 text-[10px] font-bold ${
+                  started
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "bg-emerald-50 text-emerald-700"
+                }`}
+              >
+                {started ? "Users started" : "Users completed"}
+              </span>
+              <h2 className="mt-2 text-xl font-bold leading-snug tracking-tight text-slate-900">
+                {module?.module_label}
+              </h2>
+              <p className="mt-0.5 text-sm font-medium text-slate-400">
+                {loading
+                  ? "Loading…"
+                  : `${number(users.length)} learner${users.length === 1 ? "" : "s"}`}
+                {data?.truncated ? " (first 500)" : ""}
+              </p>
+            </div>
+            <ControlButton
+              onClick={onClose}
+              variant="secondary"
+              className="h-10 w-10 !p-0"
+            >
+              <X className="h-5 w-5" />
+            </ControlButton>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="flex-1 space-y-3 px-8 py-8">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <div className="h-9 w-9 animate-pulse rounded-full bg-slate-100" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-40 animate-pulse rounded bg-slate-100" />
+                  <div className="h-2 w-24 animate-pulse rounded bg-slate-100" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : users.length === 0 ? (
+          <div className="flex-1 px-8 py-12">
+            <EmptyState message="No learners match this module and the current filters." />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto bg-white px-8 py-6">
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full min-w-[440px] border-collapse text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50">
+                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      Name
+                    </th>
+                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      Number
+                    </th>
+                    <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      Level
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {users.map((user) => (
+                    <tr key={user.subject_id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3">
+                        <span className="flex items-center gap-3">
+                          <span
+                            className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-xs font-black ${getAvatarColor(user.name)}`}
+                          >
+                            {initials(user.name)}
+                          </span>
+                          <span className="font-semibold text-slate-800">
+                            {user.name}
+                          </span>
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 tabular-nums text-slate-500">
+                        {user.phone || "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                          {user.level || "—"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // Journey Modal
 
 function JourneyModal({ journey, loading, features = [], onClose }) {
@@ -991,6 +1240,9 @@ export default function NewAnalytics({ me }) {
   const [catalog, setCatalog] = useState(null);
   const [metrics, setMetrics] = useState(null);
   const [featureTable, setFeatureTable] = useState([]);
+  const [moduleRows, setModuleRows] = useState([]);
+  const [moduleUsers, setModuleUsers] = useState(null);
+  const [moduleUsersLoading, setModuleUsersLoading] = useState(false);
   const [journeys, setJourneys] = useState(null);
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1170,6 +1422,7 @@ export default function NewAnalytics({ me }) {
                   .catch(() => null),
               ),
             ),
+            newAnalyticsApi.modules(filters),
           ])
         : newAnalyticsApi.journeys({
             date: filters.date_to,
@@ -1180,9 +1433,10 @@ export default function NewAnalytics({ me }) {
       .then((result) => {
         if (!live) return;
         if (tab === "features") {
-          const [metricsRes, tableRows] = result;
+          const [metricsRes, tableRows, modulesRes] = result;
           setMetrics(metricsRes.data);
           setFeatureTable(tableRows.filter(Boolean));
+          setModuleRows(modulesRes.data?.rows || []);
         } else {
           setJourneys(result.data);
         }
@@ -1212,6 +1466,26 @@ export default function NewAnalytics({ me }) {
       toast.error(err.response?.data?.msg || "Journey could not be loaded");
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  // Same filters the table counted with, so the modal can always reproduce the
+  // number the button showed.
+  const openModuleUsers = async (module, mode) => {
+    setModuleUsers({ module, mode, data: null });
+    setModuleUsersLoading(true);
+    try {
+      const { data } = await newAnalyticsApi.moduleUsers({
+        ...filters,
+        module_key: module.module_key,
+        mode,
+      });
+      setModuleUsers((current) => (current ? { ...current, data } : current));
+    } catch (err) {
+      toast.error(err.response?.data?.msg || "Learners could not be loaded");
+      setModuleUsers(null);
+    } finally {
+      setModuleUsersLoading(false);
     }
   };
 
@@ -1626,6 +1900,17 @@ export default function NewAnalytics({ me }) {
                 <HorizontalFunnel rows={metrics.funnel} />
               </div>
 
+              {/* Per-module performance for the selected feature */}
+              <ModulePerformanceTable
+                rows={moduleRows}
+                featureLabel={metrics.feature?.label || "Feature"}
+                rangeLabel={formatRangeLabel(
+                  filters.date_from,
+                  filters.date_to,
+                )}
+                onOpen={openModuleUsers}
+              />
+
               {/* Feature Overview Table */}
               <FeatureOverviewTable
                 rows={featureTable}
@@ -1884,6 +2169,16 @@ export default function NewAnalytics({ me }) {
             </div>
           </div>
         </div>
+      )}
+
+      {moduleUsers && (
+        <ModuleUsersModal
+          module={moduleUsers.module}
+          mode={moduleUsers.mode}
+          data={moduleUsers.data}
+          loading={moduleUsersLoading}
+          onClose={() => setModuleUsers(null)}
+        />
       )}
 
       {/* Modal Dialog */}
