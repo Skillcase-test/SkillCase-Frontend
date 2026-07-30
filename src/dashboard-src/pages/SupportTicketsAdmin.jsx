@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { adminGetTickets, adminUpdateTicketStatus, adminUpdateTicketPriority, adminAddTicketComment, adminUploadCommentImage } from "../../api/supportAdminApi";
-import { Loader2, ExternalLink, RefreshCw, X, HelpCircle, CheckCircle2, Clock, AlertCircle, Search, User, Phone, Calendar, Award, MessageSquare, Send, Paperclip } from "lucide-react";
+import { Loader2, ExternalLink, RefreshCw, X, HelpCircle, CheckCircle2, Clock, AlertCircle, Search, User, Phone, Calendar, Award, MessageSquare, Send, Paperclip, ZoomIn, ZoomOut } from "lucide-react";
 import toast from "react-hot-toast";
 
 const MAX_COMMENT_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -39,6 +39,7 @@ export default function SupportTicketsAdmin() {
   const [loading, setLoading] = useState(false);
   const [updatingId, setUpdatingId] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [imageZoom, setImageZoom] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [commentDrafts, setCommentDrafts] = useState({});
@@ -64,6 +65,26 @@ export default function SupportTicketsAdmin() {
   useEffect(() => {
     fetchTickets();
   }, []);
+
+  useEffect(() => {
+    if (!selectedImage) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setSelectedImage(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedImage]);
+
+  const openImage = (imageUrl) => {
+    setImageZoom(1);
+    setSelectedImage(imageUrl);
+  };
+
+  const closeImage = () => {
+    setSelectedImage(null);
+    setImageZoom(1);
+  };
 
   const handleStatusChange = async (ticketId, newStatus) => {
     setUpdatingId(ticketId);
@@ -481,10 +502,10 @@ export default function SupportTicketsAdmin() {
                         <img
                           src={ticket.screenshot_url}
                           alt="Supporting attachment"
-                          onClick={() => setSelectedImage(ticket.screenshot_url)}
+                          onClick={() => openImage(ticket.screenshot_url)}
                           className="h-20 max-w-sm object-cover hover:opacity-85 transition-all"
                         />
-                        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/10 opacity-0 transition-opacity group-hover:opacity-100">
                           <ExternalLink className="w-4 h-4 text-white" />
                         </div>
                       </div>
@@ -530,7 +551,7 @@ export default function SupportTicketsAdmin() {
                             <img
                               src={comment.image_url}
                               alt="Comment attachment"
-                              onClick={() => setSelectedImage(comment.image_url)}
+                              onClick={() => openImage(comment.image_url)}
                               className="h-20 rounded-lg object-cover cursor-zoom-in hover:opacity-85 transition-all"
                             />
                           )}
@@ -625,18 +646,55 @@ export default function SupportTicketsAdmin() {
 
       {/* Lightbox Modal */}
       {selectedImage && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/95">
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/95 p-4"
+          onClick={closeImage}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Fullscreen attachment preview"
+        >
+          <div
+            className="relative flex h-full w-full items-center justify-center overflow-auto"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="absolute left-2 top-2 z-10 flex items-center gap-2 sm:left-5 sm:top-5">
+              <button
+                type="button"
+                onClick={() => setImageZoom((zoom) => Math.max(1, zoom - 0.5))}
+                disabled={imageZoom === 1}
+                className="rounded-full bg-slate-900/70 p-2 text-white transition-colors hover:bg-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
+                title="Zoom out"
+              >
+                <ZoomOut className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setImageZoom((zoom) => Math.min(3, zoom + 0.5))}
+                disabled={imageZoom === 3}
+                className="rounded-full bg-slate-900/70 p-2 text-white transition-colors hover:bg-slate-950 disabled:cursor-not-allowed disabled:opacity-40"
+                title="Zoom in"
+              >
+                <ZoomIn className="h-5 w-5" />
+              </button>
+            </div>
           <button
-            onClick={() => setSelectedImage(null)}
+            type="button"
+            onClick={closeImage}
             className="absolute top-5 right-5 p-2 bg-slate-900/60 hover:bg-slate-950 text-white rounded-full transition-colors cursor-pointer"
+            title="Close image"
           >
             <X className="w-6 h-6" />
           </button>
           <img
             src={selectedImage}
             alt="Fullscreen attachment preview"
-            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={() => setImageZoom((zoom) => (zoom === 1 ? 2 : 1))}
+            className={`cursor-zoom-in rounded-lg object-contain ${
+              imageZoom === 1 ? "max-h-full max-w-full" : "max-h-none max-w-none"
+            }`}
+            style={imageZoom === 1 ? undefined : { width: `${imageZoom * 100}%` }}
           />
+          </div>
         </div>
       )}
     </div>
