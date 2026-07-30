@@ -3,10 +3,12 @@ import { ActionChip, ControlDropdown } from "../components/controls";
 import { formatInrFromPaise, formatIstDate } from "../utils/formatters";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { LEAD_OWNER_OPTIONS } from "../utils/constants";
+import { MandateBadge } from "../components/MandateBadge";
 
 export function MonthViewTab({
   rows,
   setEditDraft,
+  mandateStatuses,
   handleFinalize,
   handleSendAgreement,
   handleDeleteCandidate,
@@ -185,7 +187,10 @@ export function MonthViewTab({
                 key={r.enrollment_id}
                 className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}
               >
-                <td className="px-3 py-3">{r.student_name || "-"}</td>
+                <td className="px-3 py-3">
+                  {r.student_name || "-"}
+                  <MandateBadge status={mandateStatuses?.[r.enrollment_id]?.status} />
+                </td>
                 <td className="px-2 py-2">
                   <span className="font-mono text-xs text-slate-700">
                     {r.notes?.candidate_id || "-"}

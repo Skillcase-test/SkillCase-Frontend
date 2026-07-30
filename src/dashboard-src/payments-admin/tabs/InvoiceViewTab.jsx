@@ -6,6 +6,7 @@ import {
   formatIstDate,
 } from "../utils/formatters";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
+import { MandateBadge } from "../components/MandateBadge";
 
 const formatMonthYearName = (year, month) => {
   const date = new Date(Date.UTC(year, month - 1, 1));
@@ -22,6 +23,7 @@ export function InvoiceViewTab({
   setSelectedInvoicePaymentId,
   selectedInvoicePaymentId,
   selectedEnrollment,
+  mandateStatuses,
   handleGenerateInvoice,
   handleSendInvoice,
   handleCancelInvoice,
@@ -581,6 +583,7 @@ export function InvoiceViewTab({
                     <td className="px-3 py-3">
                       <div className="font-semibold text-slate-800">
                         {r.student_name}
+                        <MandateBadge status={mandateStatuses?.[r.enrollment_id]?.status} />
                       </div>
                       <div className="text-xs text-slate-500">
                         {r.student_email}
@@ -745,6 +748,7 @@ export function InvoiceViewTab({
                     <td className="px-2 py-3">
                       <div className="font-semibold text-slate-800">
                         {r.student_name}
+                        <MandateBadge status={mandateStatuses?.[r.enrollment_id]?.status} />
                       </div>
                       <div className="text-xs text-slate-500">
                         {r.student_email}
@@ -1180,6 +1184,7 @@ export function InvoiceViewTab({
                           <td className="px-3 py-3">
                             <div className="font-semibold text-slate-800">
                               {r.student_name}
+                              <MandateBadge status={mandateStatuses?.[r.enrollment_id]?.status} />
                             </div>
                             <div className="text-xs text-slate-500">
                               {r.student_email}
@@ -1346,6 +1351,7 @@ export function InvoiceViewTab({
                           <td className="px-3 py-3">
                             <div className="font-semibold text-slate-800">
                               {r.student_name}
+                              <MandateBadge status={mandateStatuses?.[r.enrollment_id]?.status} />
                             </div>
                             <div className="text-xs text-slate-500">
                               {r.student_email}

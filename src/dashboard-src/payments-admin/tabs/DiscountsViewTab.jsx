@@ -8,6 +8,7 @@ import {
 import { MONTH_NAMES } from "../utils/constants";
 import { formatInrFromPaise } from "../utils/formatters";
 import { candidatePhoneLabel } from "../utils/candidatePhones";
+import { MandateBadge } from "../components/MandateBadge";
 
 const MONTH_SHORT_NAMES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function getActiveMonthsRange(targetYear, targetMonth, durationMonths) {
@@ -26,6 +27,7 @@ export function DiscountsViewTab({
   setDiscountForm,
   candidateOptions,
   handleCreateDiscountRequest,
+  mandateStatuses,
   handleDiscountDecision,
   setRejectModal,
   canApproveDiscounts,
@@ -148,7 +150,10 @@ export function DiscountsViewTab({
               key={r.discount_id}
               className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}
             >
-              <td className="px-3 py-3">{r.student_name || "-"}</td>
+              <td className="px-3 py-3">
+                {r.student_name || "-"}
+                <MandateBadge status={mandateStatuses?.[r.enrollment_id]?.status} />
+              </td>
               <td className="px-2 py-2">{r.student_phone || "-"}</td>
               <td className="px-2 py-2">
                 {MONTH_NAMES[Number(r.target_month) || 0] || r.target_month}

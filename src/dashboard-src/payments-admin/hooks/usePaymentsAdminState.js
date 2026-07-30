@@ -89,6 +89,7 @@ export function usePaymentsAdminState() {
   const [notice, setNotice] = useState("");
   const [rows, setRows] = useState([]);
   const [batches, setBatches] = useState([]);
+  const [mandateStatuses, setMandateStatuses] = useState({});
   const [batchFilter, setBatchFilter] = useState("");
   const [selectedEnrollmentId, setSelectedEnrollmentId] = useState("");
   const [savingEnrollmentId, setSavingEnrollmentId] = useState("");
@@ -248,6 +249,15 @@ export function usePaymentsAdminState() {
       setBatches(res.data.batches || []);
     } catch {
       setBatches([]);
+    }
+  }
+
+  async function refreshMandateStatuses() {
+    try {
+      const res = await paymentsAdminApi.getJodoMandateStatuses();
+      setMandateStatuses(res.data || {});
+    } catch {
+      setMandateStatuses({});
     }
   }
 
@@ -462,6 +472,7 @@ export function usePaymentsAdminState() {
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false);
+        refreshMandateStatuses();
       }
     }
   }
@@ -575,6 +586,7 @@ export function usePaymentsAdminState() {
   useEffect(() => {
     if (!permittedTabs || permittedTabs.size === 0) return;
     refreshBatches();
+    refreshMandateStatuses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [permittedTabs]);
 
@@ -661,6 +673,8 @@ export function usePaymentsAdminState() {
     setRows,
     batches,
     setBatches,
+    mandateStatuses,
+    setMandateStatuses,
     batchFilter,
     setBatchFilter,
     selectedEnrollmentId,
