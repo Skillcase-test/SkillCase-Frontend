@@ -8,6 +8,7 @@ import {
   ControlSelect,
 } from "./controls";
 import { LEAD_OWNER_OPTIONS } from "../utils/constants";
+import { MandateBadge } from "./MandateBadge";
 
 const personalFields = [
   ["student_name", "Name"],
@@ -296,6 +297,7 @@ export function CandidateDetailsForm({
   handleDeleteCandidate,
   savingEnrollmentId,
   onRefresh,
+  mandateStatuses,
 }) {
   const paymentIdCounts = useMemo(() => {
     const counts = {};
@@ -874,6 +876,9 @@ export function CandidateDetailsForm({
         <div>
           <h2 className="text-xl font-bold text-slate-900">
             {isCreateMode ? "Add Candidate" : "Candidate Details"}
+            {!isCreateMode && (
+              <MandateBadge status={mandateStatuses?.[editDraft.enrollment_id]?.status} />
+            )}
           </h2>
           <p className="text-sm text-slate-500">
             {editDraft.student_phone || "No phone"}

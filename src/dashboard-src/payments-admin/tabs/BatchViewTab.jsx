@@ -1,7 +1,6 @@
 import { ActionChip, ControlButton, ControlInput } from "../components/controls";
 import { formatInrFromPaise, formatIstDate } from "../utils/formatters";
 import { ArrowLeft, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
-import { MandateBadge } from "../components/MandateBadge";
 
 export function BatchViewTab({
   batches,
@@ -16,7 +15,6 @@ export function BatchViewTab({
   setActiveBatchName,
   rows,
   setEditDraft,
-  mandateStatuses,
   batchSortBy,
   setBatchSortBy,
   batchSortOrder,
@@ -176,7 +174,6 @@ export function BatchViewTab({
                   >
                     <td className="px-3 py-3 font-medium text-slate-900">
                       {r.student_name || "-"}
-                      <MandateBadge status={mandateStatuses?.[r.enrollment_id]?.status} />
                     </td>
                     <td className="px-2 py-2">
                       <span className="font-mono text-xs text-slate-700">

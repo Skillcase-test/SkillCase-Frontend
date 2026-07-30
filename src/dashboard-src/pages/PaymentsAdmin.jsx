@@ -325,6 +325,7 @@ export default function PaymentsAdmin() {
             handleDeleteCandidate={actions.handleDeleteCandidate}
             savingEnrollmentId={state.savingEnrollmentId}
             onRefresh={state.loadTabData}
+            mandateStatuses={state.mandateStatuses}
           />
         ) : state.tab === "import" ? (
           <TabContent tab={state.tab} props={{}} />

@@ -4,12 +4,10 @@ import { StatCard } from "../components/common";
 import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
 import { ArrowUp, ArrowDown, ArrowUpDown, X, Trash2, Loader2 } from "lucide-react";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
-import { MandateBadge } from "../components/MandateBadge";
 
 export function RecruitmentViewTab({
   rows,
   setEditDraft,
-  mandateStatuses,
   handleFinalize,
   handleSendAgreement,
   handleDeleteCandidate,
@@ -273,10 +271,7 @@ export function RecruitmentViewTab({
                   key={r.enrollment_id}
                   className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}
                 >
-                  <td className="px-3 py-3">
-                    {r.student_name || "-"}
-                    <MandateBadge status={mandateStatuses?.[r.enrollment_id]?.status} />
-                  </td>
+                  <td className="px-3 py-3">{r.student_name || "-"}</td>
                   <td className="px-2 py-2">
                     <span className="font-mono text-xs text-slate-700">
                       {r.notes?.candidate_id || "-"}
