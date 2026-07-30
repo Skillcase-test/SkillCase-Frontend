@@ -206,6 +206,7 @@ const VIEW_OPTIONS = [
   { value: "active", label: "Active" },
   { value: "complete", label: "Complete" },
   { value: "running", label: "Running" },
+  { value: "weekly", label: "Weekly Snapshot" },
 ];
 
 const DONUT_COLORS = [
@@ -223,14 +224,17 @@ function number(val, digits = 0) {
   });
 }
 
-// Formats the local calendar date (not the UTC one - going through
-// toISOString() here would roll back to the previous day for any timezone
-// ahead of UTC, e.g. IST, whenever `date` is local midnight).
 function toIso(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function formatDMY(iso) {
+  if (!iso) return "—";
+  const [year, month, day] = iso.split("-");
+  return `${day}-${month}-${year}`;
 }
 
 function formatSyncedAt(iso) {
@@ -245,10 +249,6 @@ function formatSyncedAt(iso) {
   });
 }
 
-// Timestamps arrive from the API as UTC ISO strings, so slicing the first 10
-// chars would show the UTC date - a lead created 00:29 IST on the 28th reads
-// as the 27th. Every date filter on this page is IST, so render dates in IST
-// too or the list looks like it leaked in rows from outside the window.
 function istDate(iso) {
   if (!iso) return "—";
   return new Date(iso).toLocaleDateString("en-CA", {
@@ -260,6 +260,35 @@ function defaultDateRange() {
   const to = new Date();
   const from = new Date(to.getFullYear(), to.getMonth(), 1);
   return { from: toIso(from), to: toIso(to) };
+}
+
+// Last 7 days ending today - the Weekly Snapshot tab's default window.
+function defaultWeekRange() {
+  const to = new Date();
+  const from = new Date(to);
+  from.setDate(from.getDate() - 6);
+  return { from: toIso(from), to: toIso(to) };
+}
+
+function shiftWeek(field, value) {
+  const todayIso = toIso(new Date());
+  const maxStart = new Date();
+  maxStart.setDate(maxStart.getDate() - 6);
+  const maxStartIso = toIso(maxStart);
+
+  if (field === "week_from") {
+    const weekFrom = value > maxStartIso ? maxStartIso : value;
+    const anchor = new Date(`${weekFrom}T00:00:00`);
+    const other = new Date(anchor);
+    other.setDate(other.getDate() + 6);
+    return { week_from: weekFrom, week_to: toIso(other) };
+  }
+
+  const weekTo = value > todayIso ? todayIso : value;
+  const anchor = new Date(`${weekTo}T00:00:00`);
+  const other = new Date(anchor);
+  other.setDate(other.getDate() - 6);
+  return { week_from: toIso(other), week_to: weekTo };
 }
 
 // Same-length window immediately before date_from, for the "vs previous
@@ -275,9 +304,6 @@ function previousPeriod(dateFrom, dateTo) {
   return { date_from: toIso(prevFrom), date_to: toIso(prevTo) };
 }
 
-// A radial gradient per slice (solid color at the outer edge, faded toward
-// the center) - same gradient treatment as the bar/line charts, adapted for
-// an arc instead of a rectangle.
 function sliceGradient(context, color) {
   const { chart } = context;
   const { ctx, chartArea } = chart;
@@ -325,9 +351,6 @@ function sumBy(rows, valueKey) {
   return rows.reduce((sum, r) => sum + (r[valueKey] || 0), 0);
 }
 
-// Overlays a centered total on top of the donut's hole. Positioned to match
-// just the canvas height (DoughnutChart's own legend div, unused here since
-// it doesn't populate reliably, sits below and is left untouched).
 function DonutCenterLabel({ total, label, height }) {
   return (
     <div
@@ -342,8 +365,7 @@ function DonutCenterLabel({ total, label, height }) {
   );
 }
 
-// The shared DoughnutChart's own HTML legend doesn't populate reliably, so
-// this page draws its own label list next to the donut.
+// The shared DoughnutChart's own HTML legend doesn't populate reliably
 function DonutLegend({ rows, labelKey, valueKey }) {
   const total = sumBy(rows, valueKey);
   return (
@@ -398,8 +420,7 @@ function TrendBadge({ current, previous, invert = false }) {
   );
 }
 
-// Small per-pipeline breakdown row shown under a total, when "Both pipelines"
-// is selected - e.g. 482 total -> B2C Sales 380 / B1/B2 Sales 102.
+// Small per-pipeline breakdown row shown under a total, when "Both pipelines" is selected - e.g. 482 total -> B2C Sales 380 / B1/B2 Sales 102.
 function BreakdownNotch({ b2c, b1b2, format = (v) => number(v) }) {
   return (
     <div className="mt-2 flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5">
@@ -414,9 +435,6 @@ function BreakdownNotch({ b2c, b1b2, format = (v) => number(v) }) {
   );
 }
 
-// Stat tile matching OverallViewTab: uppercase label, big value + trend
-// badge, previous-period footer - plus the per-pipeline breakdown notch
-// underneath it (not instead of it) when both pipelines are selected.
 function KpiTile({
   label,
   value,
@@ -480,9 +498,6 @@ function KpiTile({
 
 const CANDIDATE_PAGE_SIZE = 50;
 
-// Drilldown behind a KPI tile: who exactly is in that bucket. Server-side
-// paginated and searched (the buckets run to thousands of rows), reusing the
-// same apiFilters the tile's own number came from so the two always agree.
 function CandidatesModal({ bucket, label, apiFilters, onClose }) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -695,9 +710,6 @@ function SectionCard({ title, subtitle, panel = false, children }) {
   );
 }
 
-// Fetches every dataset this dashboard needs for one set of filters. Two
-// instances of this run in parallel for Running -> As of Month (this month
-// vs. before this month); everywhere else only one instance is enabled.
 function useBiginData(apiFilters, { enabled = true, fetchPrev = false } = {}) {
   const [state, setState] = useState({
     summary: null,
@@ -801,15 +813,11 @@ function useBiginData(apiFilters, { enabled = true, fetchPrev = false } = {}) {
     return () => {
       live = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, key, fetchPrev]);
 
   return state;
 }
 
-// Renders the full component set (KPI tiles through Daily Trend) for one
-// dataset - used once for Active/Complete/Running-Today, and twice (labeled)
-// for Running -> As of Month.
 function DashboardBody({ data, apiFilters, periodLabel, compact = false }) {
   const {
     summary,
@@ -1190,13 +1198,318 @@ function DashboardBody({ data, apiFilters, periodLabel, compact = false }) {
   );
 }
 
+// Cohort view: leads created on `startDate`, where each one's stage stood on that day vs. where it stands on `endDate`.
+function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
+  const startLabel = formatDMY(startDate);
+  const endLabel = formatDMY(endDate);
+  const [summary, setSummary] = useState({
+    rows: [],
+    loading: true,
+    error: "",
+  });
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [list, setList] = useState({
+    rows: [],
+    total: 0,
+    loading: true,
+    error: "",
+  });
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const filtersKey = JSON.stringify(apiFilters);
+
+  useEffect(() => {
+    let live = true;
+    setSummary((s) => ({ ...s, loading: true, error: "" }));
+    biginDashboardApi
+      .weeklySnapshotSummary(apiFilters)
+      .then(({ data }) => {
+        if (live) setSummary({ rows: data, loading: false, error: "" });
+      })
+      .catch((err) => {
+        if (!live) return;
+        setSummary({
+          rows: [],
+          loading: false,
+          error:
+            err.response?.data?.msg ||
+            "Could not load the weekly movement summary.",
+        });
+      });
+    return () => {
+      live = false;
+    };
+  }, [filtersKey]);
+
+  useEffect(() => {
+    let live = true;
+    setList((s) => ({ ...s, loading: true, error: "" }));
+    biginDashboardApi
+      .weeklySnapshotCandidates({
+        ...apiFilters,
+        search: debouncedSearch || undefined,
+        limit: CANDIDATE_PAGE_SIZE,
+        offset: (page - 1) * CANDIDATE_PAGE_SIZE,
+      })
+      .then(({ data }) => {
+        if (!live) return;
+        setList({
+          rows: data.candidates || [],
+          total: data.total || 0,
+          loading: false,
+          error: "",
+        });
+      })
+      .catch((err) => {
+        if (!live) return;
+        setList((s) => ({
+          ...s,
+          loading: false,
+          error:
+            err.response?.data?.msg || "Could not load the candidate list.",
+        }));
+      });
+    return () => {
+      live = false;
+    };
+  }, [filtersKey, debouncedSearch, page]);
+
+  const byPipeline = useMemo(() => {
+    const groups = {};
+    for (const row of summary.rows) {
+      groups[row.pipeline_name] = groups[row.pipeline_name] || [];
+      groups[row.pipeline_name].push(row);
+    }
+    return groups;
+  }, [summary.rows]);
+
+  const totalPages = Math.max(1, Math.ceil(list.total / CANDIDATE_PAGE_SIZE));
+
+  const handleExport = () => {
+    const headers = [
+      "Name",
+      "Phone",
+      "Pipeline",
+      "Owner",
+      `Stage on ${startLabel}`,
+      `Stage on ${endLabel}`,
+      "Created",
+    ];
+    const rows = list.rows.map((r) => [
+      r.deal_name || "",
+      r.phone || "",
+      r.pipeline_name || "",
+      r.owner_name || "",
+      r.stage_at_start || "",
+      r.stage_at_end || "",
+      r.created_time ? formatDMY(istDate(r.created_time)) : "",
+    ]);
+    const csv = [headers, ...rows]
+      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bigin_weekly_snapshot_${startDate}_to_${endDate}_page${page}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="space-y-6">
+      <SectionCard
+        title="Weekly Movement"
+        subtitle={`Leads created on ${startLabel} · stage then vs. stage as of ${endLabel} (end-of-day snapshot; Only today's stage is live)`}
+      >
+        {summary.error ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
+          >
+            {summary.error}
+          </div>
+        ) : summary.loading ? (
+          <TableSkeleton rows={4} />
+        ) : summary.rows.length === 0 ? (
+          <EmptyState message="No leads were created on this start date." />
+        ) : (
+          <div
+            className={`grid grid-cols-1 gap-6 ${Object.keys(byPipeline).length > 1 ? "lg:grid-cols-2" : ""}`}
+          >
+            {Object.entries(byPipeline).map(([pipelineName, rows]) => {
+              const pipelineTotal = sumBy(rows, "leads");
+              return (
+                <div
+                  key={pipelineName}
+                  className="rounded-xl border border-slate-200 p-5"
+                >
+                  <p className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    {pipelineName}
+                  </p>
+                  <table className="w-full border-collapse text-left text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        <th className="pb-2 pr-3">Stage on {startLabel}</th>
+                        <th className="pb-2 pr-3">Stage on {endLabel}</th>
+                        <th className="pb-2 text-right">Leads</th>
+                        <th className="pb-2 pl-3 text-right">% of Created</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((row, i) => (
+                        <tr
+                          key={i}
+                          className="border-b border-slate-50 last:border-0"
+                        >
+                          <td className="py-2 pr-3 text-slate-600">
+                            {row.stage_at_start}
+                          </td>
+                          <td className="py-2 pr-3 font-medium text-slate-800">
+                            {row.stage_at_end}
+                          </td>
+                          <td className="py-2 text-right tabular-nums text-slate-600">
+                            {number(row.leads)}
+                          </td>
+                          <td className="py-2 pl-3 text-right tabular-nums text-slate-500">
+                            {pipelineTotal > 0
+                              ? Math.round((row.leads / pipelineTotal) * 100)
+                              : 0}
+                            %
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard
+        title="Candidates"
+        subtitle="Every lead in this cohort, individually · stages are end-of-day snapshots (Only today's stage is live)"
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <ControlInput
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name or phone…"
+            leftIcon={<Search className="h-4 w-4" />}
+            className="w-full max-w-lg cursor-text"
+          />
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={!list.rows.length}
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export page
+          </button>
+        </div>
+
+        {list.error ? (
+          <div
+            role="alert"
+            className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700"
+          >
+            {list.error}
+          </div>
+        ) : list.loading ? (
+          <TableSkeleton rows={6} />
+        ) : list.rows.length === 0 ? (
+          <EmptyState message="No candidates match this filter." />
+        ) : (
+          <>
+            <table className="w-full border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  <th className="pb-2 pr-3">Name</th>
+                  <th className="pb-2 pr-3">Owner</th>
+                  <th className="pb-2 pr-3">Stage on {startLabel}</th>
+                  <th className="pb-2 pr-3">Stage on {endLabel}</th>
+                  <th className="pb-2">Phone</th>
+                </tr>
+              </thead>
+              <tbody>
+                {list.rows.map((row) => (
+                  <tr
+                    key={row.zoho_id}
+                    className="border-b border-slate-50 last:border-0"
+                  >
+                    <td className="py-2 pr-3 font-semibold text-slate-800">
+                      {row.deal_name || "—"}{" "}
+                      <span className="ml-1 whitespace-nowrap rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+                        {row.pipeline_name}
+                      </span>
+                    </td>
+                    <td className="py-2 pr-3 text-slate-600">
+                      {row.owner_name || "—"}
+                    </td>
+                    <td className="py-2 pr-3 text-slate-600">
+                      {row.stage_at_start}
+                    </td>
+                    <td className="py-2 pr-3 font-medium text-slate-800">
+                      {row.stage_at_end}
+                    </td>
+                    <td className="py-2 tabular-nums text-slate-600">
+                      {row.phone ? (
+                        <a
+                          href={`tel:${row.phone}`}
+                          className="hover:text-indigo-600"
+                        >
+                          {row.phone}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {totalPages > 1 && (
+              <div className="pt-3">
+                <PaginationBar
+                  currentPage={page}
+                  totalPages={totalPages}
+                  setCurrentPage={setPage}
+                />
+              </div>
+            )}
+          </>
+        )}
+      </SectionCard>
+    </div>
+  );
+}
+
 export default function BiginDashboard() {
   const [params, setParams] = useSearchParams();
   const [syncStatus, setSyncStatus] = useState(null);
   const [owners, setOwners] = useState([]);
 
   const defaults = useMemo(() => defaultDateRange(), []);
+  const weekDefaults = useMemo(() => defaultWeekRange(), []);
   const today = useMemo(() => toIso(new Date()), []);
+  // Latest a Weekly Snapshot start date can be and still leave a full 7-day
+  // window ending on/before today.
+  const maxWeekFrom = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 6);
+    return toIso(d);
+  }, []);
   const startOfMonth = useMemo(() => {
     const now = new Date();
     return toIso(new Date(now.getFullYear(), now.getMonth(), 1));
@@ -1207,7 +1520,9 @@ export default function BiginDashboard() {
     return toIso(d);
   }, [startOfMonth]);
 
-  const view = ["active", "complete", "running"].includes(params.get("view"))
+  const view = ["active", "complete", "running", "weekly"].includes(
+    params.get("view"),
+  )
     ? params.get("view")
     : "active";
   const runningMode =
@@ -1217,10 +1532,20 @@ export default function BiginDashboard() {
     : "all";
   const dateFrom = params.get("date_from") || defaults.from;
   const dateTo = params.get("date_to") || defaults.to;
+  const weekFrom = params.get("week_from") || weekDefaults.from;
+  const weekTo = params.get("week_to") || weekDefaults.to;
 
   const update = (key, value) => {
     const next = new URLSearchParams(params);
     next.set(key, value);
+    setParams(next, { replace: true });
+  };
+
+  const handleWeekChange = (field, value) => {
+    const next = new URLSearchParams(params);
+    const { week_from, week_to } = shiftWeek(field, value);
+    next.set("week_from", week_from);
+    next.set("week_to", week_to);
     setParams(next, { replace: true });
   };
 
@@ -1298,13 +1623,7 @@ export default function BiginDashboard() {
     }),
     [pipeline, owner, startOfMonth, today],
   );
-  // No `as_of` here on purpose: this panel is "leads created before this
-  // month, where do they stand as of right now" - so it buckets by each
-  // lead's live current stage rather than a frozen last-month-end snapshot.
-  // Only the created_time window is anchored to before this month.
-  // `closed_since: startOfMonth` excludes leads that already won/lost before
-  // this month started - those belong to the Complete view, not here; only
-  // leads that were still open last month but closed this month count.
+
   const beforeMonthApiFilters = useMemo(
     () => ({
       pipeline,
@@ -1316,20 +1635,26 @@ export default function BiginDashboard() {
     }),
     [pipeline, owner, dayBeforeMonth, startOfMonth],
   );
+  const weeklyApiFilters = useMemo(
+    () => ({ pipeline, owner, date_from: weekFrom, date_to: weekTo }),
+    [pipeline, owner, weekFrom, weekTo],
+  );
 
   const primaryFilters =
     view === "active"
       ? activeApiFilters
       : view === "complete"
         ? completeApiFilters
-        : runningMode === "today"
-          ? todayApiFilters
-          : thisMonthApiFilters;
+        : view === "running"
+          ? runningMode === "today"
+            ? todayApiFilters
+            : thisMonthApiFilters
+          : activeApiFilters;
 
   const monthMode = view === "running" && runningMode === "month";
 
   const primary = useBiginData(primaryFilters, {
-    enabled: true,
+    enabled: view !== "weekly",
     fetchPrev: view === "active",
   });
   const secondary = useBiginData(monthMode ? beforeMonthApiFilters : null, {
@@ -1421,6 +1746,33 @@ export default function BiginDashboard() {
                 </>
               )}
 
+              {view === "weekly" && (
+                <>
+                  <ControlInput
+                    type="date"
+                    aria-label="Week start"
+                    max={maxWeekFrom}
+                    value={weekFrom}
+                    onChange={(e) =>
+                      handleWeekChange("week_from", e.target.value)
+                    }
+                    className="h-9 text-sm"
+                  />
+                  <span className="text-slate-400">to</span>
+                  <ControlInput
+                    type="date"
+                    aria-label="Week end"
+                    min={weekFrom}
+                    max={today}
+                    value={weekTo}
+                    onChange={(e) =>
+                      handleWeekChange("week_to", e.target.value)
+                    }
+                    className="h-9 text-sm"
+                  />
+                </>
+              )}
+
               {view === "running" && (
                 <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
                   <button
@@ -1451,7 +1803,13 @@ export default function BiginDashboard() {
           </div>
         </div>
 
-        {monthMode ? (
+        {view === "weekly" ? (
+          <WeeklySnapshotView
+            apiFilters={weeklyApiFilters}
+            startDate={weekFrom}
+            endDate={weekTo}
+          />
+        ) : monthMode ? (
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <DashboardBody
               data={primary}
