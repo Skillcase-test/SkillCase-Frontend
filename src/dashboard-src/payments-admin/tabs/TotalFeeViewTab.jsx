@@ -1,5 +1,6 @@
 import { ActionChip } from "../components/controls";
 import { formatInrFromPaise } from "../utils/formatters";
+import { MandateBadge } from "../components/MandateBadge";
 
 export function TotalFeeViewTab({
   rows,
@@ -9,6 +10,7 @@ export function TotalFeeViewTab({
   setCohortFilter,
   openFeeBreakdown,
   openDiscountBreakdown,
+  mandateStatuses,
 }) {
   return (
     <div className="space-y-3">
@@ -97,7 +99,10 @@ export function TotalFeeViewTab({
           <tbody>
             {rows.length ? rows.map((r, idx) => (
               <tr key={r.enrollment_id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
-                <td className="px-3 py-3">{r.student_name || "-"}</td>
+                <td className="px-3 py-3">
+                  {r.student_name || "-"}
+                  <MandateBadge status={mandateStatuses?.[r.enrollment_id]?.status} />
+                </td>
                 <td className="px-2 py-2">{r.student_phone || "-"}</td>
                 <td className="px-2 py-2">{formatInrFromPaise(r.carryForwardDuePaise)}</td>
                 <td className="px-2 py-2">{formatInrFromPaise(r.monthlyBasePaise)}</td>

@@ -340,16 +340,16 @@ export function CandidateDetailsForm({
   const [jodoProjection, setJodoProjection] = useState(null);
 
   useEffect(() => {
-    if (!editDraft?.enrollment_id || editDraft?.collection_provider !== "jodo") {
+    if (!editDraft?.enrollment_id) {
       setJodoProjection(null);
       return;
     }
     let active = true;
     paymentsAdminApi.getJodoProjection(editDraft.enrollment_id)
       .then((res) => { if (active) setJodoProjection(res.data); })
-      .catch(() => { if (active) setJodoProjection({ projections: [], quarantined_events: [] }); });
+      .catch(() => { if (active) setJodoProjection(null); });
     return () => { active = false; };
-  }, [editDraft?.enrollment_id, editDraft?.collection_provider]);
+  }, [editDraft?.enrollment_id]);
 
   useEffect(() => {
     const key = editDraft.selfie_key;
@@ -1178,20 +1178,18 @@ export function CandidateDetailsForm({
               <option value="have_doubts">I have doubts</option>
             </ControlSelect>
           </Field>
-          <Field label={editDraft.collection_provider === "jodo" ? "Jodo Scheduled Total (INR)" : "Total Amount (INR)"}>
+          <Field label="Total Amount (INR)">
             <ControlInput
-              value={editDraft.total_fee_inr ?? ""}
-              disabled={editDraft.collection_provider === "jodo"}
+              value={editDraft.total_fee_inr || ""}
               onChange={(e) =>
                 setEditDraft((p) => ({ ...p, total_fee_inr: e.target.value }))
               }
               className="w-full"
             />
           </Field>
-          <Field label={editDraft.collection_provider === "jodo" ? "Uniform Jodo Instalment (INR)" : "Default Monthly Amount (INR)"}>
+          <Field label="Default Monthly Amount (INR)">
             <ControlInput
-              value={editDraft.monthly_fee_inr ?? ""}
-              disabled={editDraft.collection_provider === "jodo"}
+              value={editDraft.monthly_fee_inr || ""}
               onChange={(e) =>
                 setEditDraft((p) => ({ ...p, monthly_fee_inr: e.target.value }))
               }
@@ -1450,12 +1448,12 @@ export function CandidateDetailsForm({
         </div>
       </section>
 
-      {editDraft.collection_provider === "jodo" && !isCreateMode ? (
+      {!isCreateMode && (jodoProjection?.projections?.length > 0 || jodoProjection?.student_link) ? (
         <section className="rounded-2xl border border-violet-200 bg-violet-50/60 p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-bold uppercase text-violet-700">Jodo Integration</h3>
-              <p className="mt-1 text-xs text-violet-600">Webhook-projected data is read-only. Jodo remains the source of truth.</p>
+              <p className="mt-1 text-xs text-violet-600">Payments and eMandate status from Jodo. Fee, schedule, and discounts remain SkillCase-owned.</p>
             </div>
             <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-violet-700 ring-1 ring-violet-200">
               {jodoProjection?.student_link ? `Linked: ${jodoProjection.student_link.jodo_student_id}` : "Awaiting student registration"}
@@ -1491,9 +1489,8 @@ export function CandidateDetailsForm({
               Expected Payments
             </h3>
             <p className="mt-1 text-xs text-slate-500">
-              {editDraft.collection_provider === "jodo"
-                ? "Schedule and payment rows are synchronized from Jodo and cannot be edited here."
-                : "Date drives month/year. Imported actuals appear here without creating due unless expected is entered."}
+              Date drives month/year. Imported actuals appear here without
+              creating due unless expected is entered.
             </p>
           </div>
         </div>

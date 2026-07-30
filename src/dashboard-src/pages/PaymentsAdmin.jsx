@@ -670,6 +670,7 @@ export default function PaymentsAdmin() {
               <TabContent
                 tab={state.tab}
                 props={{
+                  mandateStatuses: state.mandateStatuses,
                   batchForm: state.batchForm,
                   setBatchForm: state.setBatchForm,
                   handleCreateBatch: actions.handleCreateBatch,

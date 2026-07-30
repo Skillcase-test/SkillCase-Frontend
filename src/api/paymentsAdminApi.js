@@ -95,6 +95,8 @@ export const paymentsAdminApi = {
     api.get("/admin/payments/raw-logs", { params }),
   getJodoProjection: (enrollmentId) =>
     api.get(`/admin/payments/enrollments/${enrollmentId}/jodo`),
+  getJodoMandateStatuses: () =>
+    api.get("/admin/payments/jodo/mandate-status"),
   linkJodoStudent: (payload) =>
     api.post("/admin/payments/jodo/mappings", payload),
   reprocessJodoEvent: (rawLogId) =>
