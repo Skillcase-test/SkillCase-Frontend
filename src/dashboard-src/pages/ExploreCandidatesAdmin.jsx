@@ -356,6 +356,7 @@ function AccountsPage() {
                 <th className="px-6 py-4 text-center">Mask Contacts</th>
                 <th className="px-6 py-4 text-center">Force Password</th>
                 <th className="px-6 py-4 text-center">Force Terms</th>
+                <th className="px-6 py-4 text-center">Shared Account</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </TableHead>
@@ -419,6 +420,23 @@ function AccountsPage() {
                         }}
                       />
                       {toggling[`terms-${account.id}`] && <Spinner size="sm" />}
+                    </div>
+                  </td>
+                  <td className="px-6 py-5 align-top">
+                    <div className="flex justify-center items-center gap-2">
+                      <ToggleSwitch
+                        checked={Boolean(account.prompt_individual_email)}
+                        disabled={toggling[`shared-${account.id}`]}
+                        onChange={async (val) => {
+                          setToggling(prev => ({ ...prev, [`shared-${account.id}`]: true }));
+                          await exploreCandidatesAdminApi.updateAccountSettings(account.id, {
+                            prompt_individual_email: val,
+                          });
+                          await load();
+                          setToggling(prev => ({ ...prev, [`shared-${account.id}`]: false }));
+                        }}
+                      />
+                      {toggling[`shared-${account.id}`] && <Spinner size="sm" />}
                     </div>
                   </td>
                   <td className="px-6 py-5 align-top">
