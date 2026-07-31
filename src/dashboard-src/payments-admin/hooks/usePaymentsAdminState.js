@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 import { MONTH_NAMES } from "../utils/constants";
+import { toast } from "react-hot-toast";
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -85,8 +86,22 @@ export function usePaymentsAdminState() {
   const [paymentActions, setPaymentActions] = useState([]);
 
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [error, setErrorState] = useState("");
+  const [notice, setNoticeState] = useState("");
+
+  const setError = (msg) => {
+    setErrorState(msg);
+    if (msg) {
+      toast.error(msg);
+    }
+  };
+
+  const setNotice = (msg) => {
+    setNoticeState(msg);
+    if (msg) {
+      toast.success(msg);
+    }
+  };
   const [rows, setRows] = useState([]);
   const [batches, setBatches] = useState([]);
   const [mandateStatuses, setMandateStatuses] = useState({});

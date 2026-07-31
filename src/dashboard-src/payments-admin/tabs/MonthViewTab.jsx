@@ -403,7 +403,7 @@ export function MonthViewTab({
                         disabled={savingEnrollmentId === r.enrollment_id}
                         variant="success"
                       >
-                        Finalize
+                        {savingEnrollmentId === r.enrollment_id ? "Finalizing..." : "Finalize"}
                       </ActionChip>
                     )}
                     <ActionChip

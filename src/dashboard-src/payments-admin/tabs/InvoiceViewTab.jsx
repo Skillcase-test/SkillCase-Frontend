@@ -53,7 +53,8 @@ export function InvoiceViewTab({
   const [candidatesSearch, setCandidatesSearch] = useState("");
   const [draftInvoice, setDraftInvoice] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isSending, setIsSending] = useState(false);
+  const [sendingId, setSendingId] = useState(null);
+  const isSending = !!sendingId;
   const [isCancelling, setIsCancelling] = useState(false);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState([]);
@@ -380,14 +381,14 @@ export function InvoiceViewTab({
     ) {
       return;
     }
-    setIsSending(true);
+    setSendingId(row.booked_amount_id);
     setLocalError("");
     try {
       await handleSendInvoice(row.draft_invoice_id);
     } catch (err) {
       alert(err?.response?.data?.msg || "Failed to send invoice");
     } finally {
-      setIsSending(false);
+      setSendingId(null);
     }
   };
 
@@ -425,7 +426,7 @@ export function InvoiceViewTab({
 
   const handleConfirmAndSend = async () => {
     if (!draftInvoice?.invoice_id) return;
-    setIsSending(true);
+    setSendingId(draftInvoice.invoice_id);
     setLocalError("");
     try {
       await handleSendInvoice(draftInvoice.invoice_id);
@@ -434,7 +435,7 @@ export function InvoiceViewTab({
     } catch (err) {
       setLocalError(err?.response?.data?.msg || "Failed to send invoice");
     } finally {
-      setIsSending(false);
+      setSendingId(null);
     }
   };
 
@@ -636,14 +637,14 @@ export function InvoiceViewTab({
                               >
                                 Regenerate
                               </ControlButton>
-                              <ControlButton
-                                onClick={() => handleQuickSend(r)}
-                                disabled={isGenerating || isSending}
-                                variant="primary"
-                                className="h-8 rounded-lg px-3.5 text-xs bg-[#002856] hover:bg-[#002860] border-none text-white shadow-sm active:scale-95 transition-all duration-150 font-semibold"
-                              >
-                                {isSending ? "Sending..." : "Send"}
-                              </ControlButton>
+                                <ControlButton
+                                  onClick={() => handleQuickSend(r)}
+                                  disabled={isGenerating || isSending}
+                                  variant="primary"
+                                  className="h-8 rounded-lg px-3.5 text-xs bg-[#002856] hover:bg-[#002860] border-none text-white shadow-sm active:scale-95 transition-all duration-150 font-semibold"
+                                >
+                                  {sendingId === r.booked_amount_id ? "Sending..." : "Send"}
+                                </ControlButton>
                             </>
                           ) : null}
                         </div>
@@ -1060,7 +1061,7 @@ export function InvoiceViewTab({
                       disabled={isSending || isCancelling}
                       className="bg-[#002856] hover:bg-[#002860] border-none text-white active:scale-95 transition-all duration-150 font-semibold"
                     >
-                      {isSending ? "Sending..." : "Confirm & Send Email"}
+                      {sendingId === draftInvoice?.invoice_id ? "Sending..." : "Confirm & Send Email"}
                     </ControlButton>
                   </>
                 )}
