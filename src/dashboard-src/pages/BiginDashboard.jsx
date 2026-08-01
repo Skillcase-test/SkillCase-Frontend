@@ -237,6 +237,15 @@ function formatDMY(iso) {
   return `${day}-${month}-${year}`;
 }
 
+// "2026-07" -> "Jul 2026"
+function monthLabel(monthStr) {
+  const [y, m] = monthStr.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function formatSyncedAt(iso) {
   if (!iso) return "not yet synced";
   return new Date(iso).toLocaleString("en-IN", {
@@ -1019,6 +1028,13 @@ function DashboardBody({ data, apiFilters, periodLabel, compact = false }) {
         title="Sales Team Performance"
         subtitle="Same KPI set as above, grouped by current owner"
       >
+        {apiFilters?.as_of && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            Reflects current owner assignment, not who owned each lead on{" "}
+            {formatDMY(apiFilters.as_of)} — leads reassigned since then won't
+            attribute correctly.
+          </div>
+        )}
         {perfRows.length ? (
           <>
             <table className="w-full table-fixed border-collapse text-left text-sm">
@@ -1510,15 +1526,38 @@ export default function BiginDashboard() {
     d.setDate(d.getDate() - 6);
     return toIso(d);
   }, []);
-  const startOfMonth = useMemo(() => {
-    const now = new Date();
-    return toIso(new Date(now.getFullYear(), now.getMonth(), 1));
-  }, []);
+  const currentMonthStr = today.slice(0, 7);
+  const asOfMonth = params.get("running_as_of_month") || currentMonthStr;
+  const isPastAsOf = asOfMonth !== currentMonthStr;
+
+  const startOfMonth = useMemo(() => `${asOfMonth}-01`, [asOfMonth]);
   const dayBeforeMonth = useMemo(() => {
     const d = new Date(`${startOfMonth}T00:00:00`);
     d.setDate(d.getDate() - 1);
     return toIso(d);
   }, [startOfMonth]);
+  // Last calendar day of asOfMonth, or today if it's the current month.
+  const asOfPeriodEnd = useMemo(() => {
+    if (!isPastAsOf) return today;
+    const [y, m] = asOfMonth.split("-").map(Number);
+    return toIso(new Date(y, m, 0));
+  }, [asOfMonth, isPastAsOf, today]);
+
+  // Only offer months the snapshot backfill actually covers, so picking a
+  // month never silently falls back to live/today data - see biginDashboardService.js
+  // comment on stageAsOfSql for why an ungated past date would be unsafe.
+  const monthDropdownOptions = useMemo(() => {
+    const earliest = syncStatus?.earliest_snapshot_date?.slice(0, 10);
+    const options = [];
+    const cursor = new Date(`${currentMonthStr}-01T00:00:00`);
+    for (let i = 0; i < 12; i++) {
+      const monthStr = toIso(cursor).slice(0, 7);
+      if (i > 0 && earliest && `${monthStr}-01` < earliest.slice(0, 7) + "-01") break;
+      options.push({ value: monthStr, label: monthLabel(monthStr) });
+      cursor.setMonth(cursor.getMonth() - 1);
+    }
+    return options;
+  }, [currentMonthStr, syncStatus?.earliest_snapshot_date]);
 
   const view = ["active", "complete", "running", "weekly"].includes(
     params.get("view"),
@@ -1619,9 +1658,10 @@ export default function BiginDashboard() {
       owner,
       scope: "active",
       date_from: startOfMonth,
-      date_to: today,
+      date_to: asOfPeriodEnd,
+      ...(isPastAsOf && { as_of: asOfPeriodEnd }),
     }),
-    [pipeline, owner, startOfMonth, today],
+    [pipeline, owner, startOfMonth, asOfPeriodEnd, isPastAsOf],
   );
 
   const beforeMonthApiFilters = useMemo(
@@ -1632,8 +1672,9 @@ export default function BiginDashboard() {
       date_from: "1970-01-01",
       date_to: dayBeforeMonth,
       closed_since: startOfMonth,
+      ...(isPastAsOf && { as_of: asOfPeriodEnd }),
     }),
-    [pipeline, owner, dayBeforeMonth, startOfMonth],
+    [pipeline, owner, dayBeforeMonth, startOfMonth, asOfPeriodEnd, isPastAsOf],
   );
   const weeklyApiFilters = useMemo(
     () => ({ pipeline, owner, date_from: weekFrom, date_to: weekTo }),
@@ -1774,30 +1815,40 @@ export default function BiginDashboard() {
               )}
 
               {view === "running" && (
-                <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
-                  <button
-                    type="button"
-                    onClick={() => update("running_mode", "today")}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                      runningMode === "today"
-                        ? "bg-slate-900 text-white cursor-not-allowed"
-                        : "text-slate-600 hover:bg-slate-50 cursor-pointer"
-                    }`}
-                  >
-                    As of Today
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => update("running_mode", "month")}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                      runningMode === "month"
-                        ? "bg-slate-900 text-white cursor-not-allowed"
-                        : "text-slate-600 hover:bg-slate-50 cursor-pointer"
-                    }`}
-                  >
-                    As of Month
-                  </button>
-                </div>
+                <>
+                  <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
+                    <button
+                      type="button"
+                      onClick={() => update("running_mode", "today")}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                        runningMode === "today"
+                          ? "bg-slate-900 text-white cursor-not-allowed"
+                          : "text-slate-600 hover:bg-slate-50 cursor-pointer"
+                      }`}
+                    >
+                      As of Today
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => update("running_mode", "month")}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                        runningMode === "month"
+                          ? "bg-slate-900 text-white cursor-not-allowed"
+                          : "text-slate-600 hover:bg-slate-50 cursor-pointer"
+                      }`}
+                    >
+                      {isPastAsOf ? `As of ${monthLabel(asOfMonth)}` : "As of Month"}
+                    </button>
+                  </div>
+                  {runningMode === "month" && (
+                    <ControlDropdown
+                      value={asOfMonth}
+                      options={monthDropdownOptions}
+                      onChange={(v) => update("running_as_of_month", v)}
+                      className="w-40"
+                    />
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -1814,13 +1865,17 @@ export default function BiginDashboard() {
             <DashboardBody
               data={primary}
               apiFilters={primaryFilters}
-              periodLabel="This month"
+              periodLabel={isPastAsOf ? monthLabel(asOfMonth) : "This month"}
               compact
             />
             <DashboardBody
               data={secondary}
               apiFilters={beforeMonthApiFilters}
-              periodLabel="Before this month (won/lost this month, rest live)"
+              periodLabel={
+                isPastAsOf
+                  ? `Before ${monthLabel(asOfMonth)} (won/lost that month, rest as of month-end)`
+                  : "Before this month (won/lost this month, rest live)"
+              }
               compact
             />
           </div>
