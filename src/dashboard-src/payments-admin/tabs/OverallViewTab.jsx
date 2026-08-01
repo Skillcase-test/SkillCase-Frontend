@@ -32,8 +32,18 @@ Chart.register(
 );
 
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December"
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ];
 
 function getDayOffsetDate(offset) {
@@ -83,10 +93,14 @@ function renderTrend(current, previous) {
   }
   const pct = (diff / previous) * 100;
   const isUp = pct > 0;
-  const color = isUp ? "text-emerald-700 bg-emerald-50" : "text-rose-700 bg-rose-50";
+  const color = isUp
+    ? "text-emerald-700 bg-emerald-50"
+    : "text-rose-700 bg-rose-50";
   const Icon = isUp ? ArrowUpRight : ArrowDownRight;
   return (
-    <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${color}`}>
+    <span
+      className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold ${color}`}
+    >
       <Icon className="h-3 w-3" />
       {Math.abs(pct).toFixed(1)}%
     </span>
@@ -103,18 +117,26 @@ function ComparativeBarChart({
   isRevenue,
   interval,
   valueOverride,
-  subLabel = "total in period"
+  subLabel = "total in period",
 }) {
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
 
-  const displayValue = valueOverride !== undefined
-    ? valueOverride
-    : (currentData ? currentData.reduce((s, val) => s + Number(val || 0), 0) : 0);
+  const displayValue =
+    valueOverride !== undefined
+      ? valueOverride
+      : currentData
+        ? currentData.reduce((s, val) => s + Number(val || 0), 0)
+        : 0;
 
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas?.isConnected || !canvas.parentElement || !currentData || currentData.length === 0) {
+    if (
+      !canvas?.isConnected ||
+      !canvas.parentElement ||
+      !currentData ||
+      currentData.length === 0
+    ) {
       return undefined;
     }
     if (chartRef.current) {
@@ -177,8 +199,8 @@ function ComparativeBarChart({
             hoverBackgroundColor: adjustColorOpacity(prevColor, 0.6),
             hoverBorderColor: prevColor,
             hoverBorderWidth: 1.5,
-          }
-        ]
+          },
+        ],
       },
       options: {
         responsive: true,
@@ -198,10 +220,11 @@ function ComparativeBarChart({
               maxRotation: 0,
               maxTicksLimit: 10,
               padding: 8,
-            }
+            },
           },
           y: {
             beginAtZero: true,
+            grace: "25%",
             grid: {
               color: "#f3f4f6",
               borderDash: [4, 4],
@@ -218,9 +241,9 @@ function ComparativeBarChart({
                   if (val >= 1000) return `${(val / 1000).toFixed(0)}k`;
                 }
                 return val;
-              }
-            }
-          }
+              },
+            },
+          },
         },
         plugins: {
           legend: { display: false },
@@ -238,21 +261,54 @@ function ComparativeBarChart({
             caretSize: 0,
             caretPadding: 20,
             callbacks: {
-              title: (ctx) => interval === "month" ? `Month ${ctx[0].dataIndex + 1}` : `Day ${ctx[0].dataIndex + 1}`,
+              title: (ctx) =>
+                interval === "month"
+                  ? `Month ${ctx[0].dataIndex + 1}`
+                  : `Day ${ctx[0].dataIndex + 1}`,
               label: (ctx) => {
                 const idx = ctx.dataIndex;
                 const dsLabel = ctx.dataset.label;
-                const dateLabel = dsLabel === "Current Period" ? labels[idx] : prevLabels[idx];
+                const dateLabel =
+                  dsLabel === "Current Period" ? labels[idx] : prevLabels[idx];
                 let val = ctx.parsed.y;
                 if (isRevenue) {
                   val = formatCurrency(val);
                 }
                 return `${dsLabel} (${dateLabel}): ${val}`;
-              }
-            }
-          }
-        }
-      }
+              },
+            },
+          },
+        },
+      },
+      plugins: [
+        {
+          id: "bar-labels",
+          afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            ctx.save();
+            ctx.font = "bold 11px sans-serif";
+            ctx.fillStyle = "#334155";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "bottom";
+
+            chart.data.datasets.forEach((dataset, i) => {
+              const meta = chart.getDatasetMeta(i);
+              if (meta.hidden) return;
+
+              meta.data.forEach((bar, index) => {
+                const val = dataset.data[index];
+                if (val === null || val === undefined || val === 0) return;
+
+                const label = new Intl.NumberFormat("en-IN").format(val);
+
+                const { x, y } = bar.tooltipPosition();
+                ctx.fillText(label, x, y - 4);
+              });
+            });
+            ctx.restore();
+          },
+        },
+      ],
     });
 
     chartRef.current = newChart;
@@ -261,7 +317,15 @@ function ComparativeBarChart({
       newChart.stop();
       newChart.destroy();
     };
-  }, [currentData, previousData, labels, prevLabels, color, isRevenue, interval]);
+  }, [
+    currentData,
+    previousData,
+    labels,
+    prevLabels,
+    color,
+    isRevenue,
+    interval,
+  ]);
 
   return (
     <div className="col-span-full bg-white shadow-xs rounded-xl relative overflow-hidden">
@@ -270,7 +334,10 @@ function ComparativeBarChart({
           <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: color }}
+              />
               <span className="text-xs text-gray-500">Current Period</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -300,7 +367,7 @@ function ComparativeBarChart({
 
 export function OverallViewTab() {
   const [interval, setInterval] = useState("day");
-  
+
   const [fromDate, setFromDate] = useState(() => getFirstDayOfCurrentMonth());
   const [toDate, setToDate] = useState(() => getLastDayOfCurrentMonth());
 
@@ -340,8 +407,8 @@ export function OverallViewTab() {
   const currentTrend = stats?.current || [];
   const previousTrend = stats?.previous || [];
 
-  const labels = currentTrend.map(d => d.label);
-  const prevLabels = previousTrend.map(d => d.label);
+  const labels = currentTrend.map((d) => d.label);
+  const prevLabels = previousTrend.map((d) => d.label);
 
   const getMonthOptions = () => {
     const list = [];
@@ -409,7 +476,7 @@ export function OverallViewTab() {
                 onChange={(e) => setFromMonth(e.target.value)}
                 className="w-44 text-xs"
               >
-                {monthOptions.map(opt => (
+                {monthOptions.map((opt) => (
                   <option key={opt.val} value={opt.val}>
                     {opt.label}
                   </option>
@@ -421,7 +488,7 @@ export function OverallViewTab() {
                 onChange={(e) => setToMonth(e.target.value)}
                 className="w-44 text-xs"
               >
-                {monthOptions.map(opt => (
+                {monthOptions.map((opt) => (
                   <option key={opt.val} value={opt.val}>
                     {opt.label}
                   </option>
@@ -440,8 +507,15 @@ export function OverallViewTab() {
             <option value="old">Old Joined</option>
           </ControlSelect>
 
-          <ControlButton variant="secondary" onClick={fetchOverallStats} disabled={loading}>
-            <RefreshCw size={12} className={`mr-1 ${loading ? "animate-spin" : ""}`} />
+          <ControlButton
+            variant="secondary"
+            onClick={fetchOverallStats}
+            disabled={loading}
+          >
+            <RefreshCw
+              size={12}
+              className={`mr-1 ${loading ? "animate-spin" : ""}`}
+            />
             Refresh
           </ControlButton>
         </div>
@@ -468,10 +542,16 @@ export function OverallViewTab() {
                 Number(summary.current.enrollments || 0)
               )}
             </h3>
-            {!loading && renderTrend(summary.current.enrollments || 0, summary.previous.enrollments || 0)}
+            {!loading &&
+              renderTrend(
+                summary.current.enrollments || 0,
+                summary.previous.enrollments || 0,
+              )}
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-            <span className="text-[10px] font-semibold text-slate-400">Previous window</span>
+            <span className="text-[10px] font-semibold text-slate-400">
+              Previous window
+            </span>
             <span className="text-xs font-bold text-slate-600">
               {Number(summary.previous.enrollments || 0)}
             </span>
@@ -491,10 +571,16 @@ export function OverallViewTab() {
                 formatCurrency(summary.current.revenue || 0)
               )}
             </h3>
-            {!loading && renderTrend(summary.current.revenue || 0, summary.previous.revenue || 0)}
+            {!loading &&
+              renderTrend(
+                summary.current.revenue || 0,
+                summary.previous.revenue || 0,
+              )}
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-            <span className="text-[10px] font-semibold text-slate-400">Previous window</span>
+            <span className="text-[10px] font-semibold text-slate-400">
+              Previous window
+            </span>
             <span className="text-xs font-bold text-slate-600">
               {formatCurrency(summary.previous.revenue || 0)}
             </span>
@@ -514,10 +600,16 @@ export function OverallViewTab() {
                 Number(summary.current.activeStudents || 0)
               )}
             </h3>
-            {!loading && renderTrend(summary.current.activeStudents || 0, summary.previous.activeStudents || 0)}
+            {!loading &&
+              renderTrend(
+                summary.current.activeStudents || 0,
+                summary.previous.activeStudents || 0,
+              )}
           </div>
           <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
-            <span className="text-[10px] font-semibold text-slate-400">Previous window</span>
+            <span className="text-[10px] font-semibold text-slate-400">
+              Previous window
+            </span>
             <span className="text-xs font-bold text-slate-600">
               {Number(summary.previous.activeStudents || 0)}
             </span>
@@ -529,14 +621,16 @@ export function OverallViewTab() {
       {loading && !stats ? (
         <div className="flex h-[300px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-400 bg-slate-50/50">
           <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
-          <span className="text-sm font-semibold">Loading comparative charts...</span>
+          <span className="text-sm font-semibold">
+            Loading comparative charts...
+          </span>
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-1">
           <ComparativeBarChart
             title="Enrollments Comparative Graph"
-            currentData={currentTrend.map(d => d.enrollments)}
-            previousData={previousTrend.map(d => d.enrollments)}
+            currentData={currentTrend.map((d) => d.enrollments)}
+            previousData={previousTrend.map((d) => d.enrollments)}
             labels={labels}
             prevLabels={prevLabels}
             color="#3b82f6"
@@ -547,8 +641,8 @@ export function OverallViewTab() {
 
           <ComparativeBarChart
             title="Revenue Comparative Graph"
-            currentData={currentTrend.map(d => d.revenue)}
-            previousData={previousTrend.map(d => d.revenue)}
+            currentData={currentTrend.map((d) => d.revenue)}
+            previousData={previousTrend.map((d) => d.revenue)}
             labels={labels}
             prevLabels={prevLabels}
             color="#10b981"
@@ -560,8 +654,8 @@ export function OverallViewTab() {
           {interval === "month" ? (
             <ComparativeBarChart
               title="Booked Amount Comparative Graph"
-              currentData={currentTrend.map(d => d.bookedAmount)}
-              previousData={previousTrend.map(d => d.bookedAmount)}
+              currentData={currentTrend.map((d) => d.bookedAmount)}
+              previousData={previousTrend.map((d) => d.bookedAmount)}
               labels={labels}
               prevLabels={prevLabels}
               color="#f59e0b"
@@ -573,8 +667,8 @@ export function OverallViewTab() {
 
           <ComparativeBarChart
             title="Active Students Comparative Graph"
-            currentData={currentTrend.map(d => d.activeStudents)}
-            previousData={previousTrend.map(d => d.activeStudents)}
+            currentData={currentTrend.map((d) => d.activeStudents)}
+            previousData={previousTrend.map((d) => d.activeStudents)}
             labels={labels}
             prevLabels={prevLabels}
             color="#8b5cf6"
