@@ -15,6 +15,8 @@ import {
   getLGMode,
   getLessonsList,
   getVocabProgress,
+  invalidateLearnGermanProgressCache,
+  trackLearnGermanVisit,
 } from "../../api/learnGermanApi";
 import DailyGoalModal, {
   shouldShowDailyGoal,
@@ -23,13 +25,13 @@ import DailyGoalModal, {
   markDailyGoalCompletedShown,
 } from "./DailyGoalModal";
 import DailyGoalCompletedModal from "./DailyGoalCompletedModal";
+import { useUsageLimitGate } from "../../hooks/useUsageLimits";
 import TypewriterText from "./lesson/screens/shared/TypewriterText";
 
 import bg1 from "../../assets/2.webp";
 import bg2 from "../../assets/1.webp";
 import bg3 from "../../assets/3.webp";
 
-import api from "../../api/axios";
 import { setClarityTag, trackClarityEvent } from "../../observability/clarity";
 import {
   getLgGuideStage,
@@ -672,6 +674,12 @@ export default function LearnGermanHome() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
+  // Learn German is entered via the bottom mode switcher / navbar, not a
+  // FeatureCard tile, so it has no built-in entry gate the way A1/A2/B1
+  // features do — this is that gate, covering every path in (switcher,
+  // navbar, deep link, browser back/forward). The cap is per-level (see
+  // MODULE_REGISTRY), so this must gate on the user's own level, not "ALL".
+  useUsageLimitGate(user?.user_prof_level, "learn_german");
   const [modules, setModules] = useState([]);
   const [vocabProgress, setVocabProgress] = useState({
     totalWords: 0,
@@ -774,7 +782,7 @@ export default function LearnGermanHome() {
     async ({ forceFresh = false, completedLessonId = null } = {}) => {
       try {
         if (forceFresh) {
-          api.clearGetCache?.();
+          invalidateLearnGermanProgressCache();
         }
         if (completedLessonId != null) {
           completedLessonOverrideRef.current = completedLessonId;
@@ -802,7 +810,7 @@ export default function LearnGermanHome() {
   useEffect(() => {
     const logVisit = async () => {
       try {
-        await api.post("/dynamic-lesson/track-visit");
+        await trackLearnGermanVisit();
       } catch (err) {
         console.error("Failed to log Learn German visit:", err);
       }

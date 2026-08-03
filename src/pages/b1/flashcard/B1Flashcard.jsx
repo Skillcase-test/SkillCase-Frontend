@@ -23,6 +23,7 @@ import ProgressBar from "../../../components/b1/ProgressBar";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import UmlautKeyboard from "../../../components/b1/UmlautKeyboard";
+import { useUsageLimits } from "../../../hooks/useUsageLimits";
 
 import {
   DndContext,
@@ -420,6 +421,9 @@ export default function B1Flashcard() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
+  const { guardUsage } = useUsageLimits();
+  // Last index this component saved progress for — see the save effect.
+  const savedCardRef = useRef(null);
 
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -555,15 +559,29 @@ export default function B1Flashcard() {
       }
     };
     fetchData();
-  }, [chapterId, user, navigate]);
+    // user_id (a stable primitive), not the `user` object — a reference
+    // change on the redux auth slice (e.g. a periodic session refresh)
+    // would otherwise refire this effect and re-restore currentCard from
+    // whatever the server had as of that moment, racing in-progress saves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chapterId, user?.user_id, navigate]);
 
+  // This effect also runs on mount, on backward navigation and on shuffle —
+  // none of which consume a card. `advanced` marks only the saves that moved
+  // forward to a new index, so a "20 flashcards" cap means 20 cards rather
+  // than 20 progress writes. Derived from the index rather than set at each
+  // call site so every advance path (swipe, button, continue-after-test) is
+  // covered without having to find them all.
   useEffect(() => {
     if (!setId || totalCards === 0 || !user) return;
+    const advanced = savedCardRef.current !== null && currentCard > savedCardRef.current;
+    savedCardRef.current = currentCard;
     saveFlashcardProgress({
       setId,
       currentIndex: currentCard,
       isCompleted: currentCard >= totalCards - 1,
-    }).catch(console.error);
+      advanced,
+    }).catch((err) => console.error("Progress save failed:", err));
   }, [currentCard, user, setId, totalCards]);
 
   const handleSpeak = (text) => {
@@ -616,6 +634,9 @@ export default function B1Flashcard() {
         if (shouldShowTest(nextIndex)) {
           setShowTestPrompt(true);
           setDragOffset(0);
+        } else if (!guardUsage("B1", "flashcard")) {
+          // guardUsage itself refreshes the real state and pops the lock modal.
+          setDragOffset(0);
         } else if (currentCard < totalCards - 1) {
           recordFlashcardNavigation({
             fromIndex: currentCard,
@@ -660,6 +681,8 @@ export default function B1Flashcard() {
     const nextIndex = currentCard + 1;
     if (shouldShowTest(nextIndex)) {
       setShowTestPrompt(true);
+    } else if (!guardUsage("B1", "flashcard")) {
+      // guardUsage itself refreshes the real state and pops the lock modal.
     } else if (currentCard < totalCards - 1) {
       recordFlashcardNavigation({
         fromIndex: currentCard,

@@ -1,30 +1,105 @@
 import api from "./axios";
 
-// STUDENT ENDPOINTS
-export const getB1ReadingChapters = (module) => api.get(`/b1/read-listen/chapters/${module}`);
-export const getB1ReadingChapterItems = (module, chapterId) => api.get(`/b1/read-listen/chapters/${module}/${chapterId}/items`);
-export const getB1ReadingContent = (contentId) => api.get(`/b1/read-listen/content/${contentId}`);
-export const submitB1ReadingQuiz = (data) => api.post("/b1/read-listen/submit", data);
+const B1_READ_LISTEN_CACHE_TAG = "b1:read-listen";
+const B1_DESCRIBE_SPEAK_CACHE_TAG = "b1:describe-speak";
+const B1_VIDEO_CACHE_TAG = "b1:video";
+const B1_FLASHCARD_CACHE_TAG = "b1:flashcard";
 
-export const getB1DescribeSpeakChapters = () => api.get("/b1/describe-speak/chapters");
-export const getB1DescribeSpeakChapterItems = (chapterId) => api.get(`/b1/describe-speak/chapters/${chapterId}/items`);
-export const getB1DescribeSpeakContent = (topicId) => api.get(`/b1/describe-speak/content/${topicId}`);
+// STUDENT ENDPOINTS
+export const getB1ReadingChapters = (module) =>
+  api.cachedGet(
+    `/b1/read-listen/chapters/${module}`,
+    { meta: { cacheTags: [B1_READ_LISTEN_CACHE_TAG] } },
+    "MEDIUM_PRIVATE",
+  );
+export const getB1ReadingChapterItems = (module, chapterId) =>
+  api.cachedGet(
+    `/b1/read-listen/chapters/${module}/${chapterId}/items`,
+    { meta: { cacheTags: [B1_READ_LISTEN_CACHE_TAG] } },
+    "MEDIUM_PRIVATE",
+  );
+export const getB1ReadingContent = (contentId) =>
+  api.cachedGet(
+    `/b1/read-listen/content/${contentId}`,
+    { meta: { cacheTags: [B1_READ_LISTEN_CACHE_TAG] } },
+    "MEDIUM_PRIVATE",
+  );
+export const submitB1ReadingQuiz = (data) =>
+  api.post("/b1/read-listen/submit", data, {
+    meta: { invalidateCacheTags: [B1_READ_LISTEN_CACHE_TAG] },
+  });
+
+export const getB1DescribeSpeakChapters = () =>
+  api.cachedGet(
+    "/b1/describe-speak/chapters",
+    { meta: { cacheTags: [B1_DESCRIBE_SPEAK_CACHE_TAG] } },
+    "MEDIUM_PRIVATE",
+  );
+export const getB1DescribeSpeakChapterItems = (chapterId) =>
+  api.cachedGet(
+    `/b1/describe-speak/chapters/${chapterId}/items`,
+    { meta: { cacheTags: [B1_DESCRIBE_SPEAK_CACHE_TAG] } },
+    "MEDIUM_PRIVATE",
+  );
+export const getB1DescribeSpeakContent = (topicId) =>
+  api.cachedGet(
+    `/b1/describe-speak/content/${topicId}`,
+    { meta: { cacheTags: [B1_DESCRIBE_SPEAK_CACHE_TAG] } },
+    "MEDIUM_PRIVATE",
+  );
 export const uploadB1DescribeSpeakOcr = (formData) => api.post("/b1/describe-speak/upload-ocr", formData, {
   headers: { "Content-Type": "multipart/form-data" },
+  meta: { skipCacheInvalidation: true },
 });
-export const submitB1DescribeSpeakWriting = (data) => api.post("/b1/describe-speak/submit-writing", data);
+export const submitB1DescribeSpeakWriting = (data) =>
+  api.post("/b1/describe-speak/submit-writing", data, {
+    meta: { invalidateCacheTags: [B1_DESCRIBE_SPEAK_CACHE_TAG] },
+  });
 export const submitB1DescribeSpeakSpeaking = (formData) => api.post("/b1/describe-speak/submit-speaking", formData, {
   headers: { "Content-Type": "multipart/form-data" },
+  meta: { invalidateCacheTags: [B1_DESCRIBE_SPEAK_CACHE_TAG] },
 });
-export const resetB1DescribeSpeakProgress = (topicId) => api.post(`/b1/describe-speak/reset/${topicId}`);
-export const skipB1DescribeSpeakSpeaking = (topicId) => api.post(`/b1/describe-speak/skip-speaking/${topicId}`);
+export const resetB1DescribeSpeakProgress = (topicId) =>
+  api.post(`/b1/describe-speak/reset/${topicId}`, null, {
+    meta: { invalidateCacheTags: [B1_DESCRIBE_SPEAK_CACHE_TAG] },
+  });
+export const skipB1DescribeSpeakSpeaking = (topicId) =>
+  api.post(`/b1/describe-speak/skip-speaking/${topicId}`, null, {
+    meta: { invalidateCacheTags: [B1_DESCRIBE_SPEAK_CACHE_TAG] },
+  });
 
-export const getB1FlashcardChapters = () => api.get("/b1/flashcard/chapters");
-export const getB1Flashcards = (chapterId) => api.get(`/b1/flashcard/cards/${chapterId}`);
-export const saveB1FlashcardProgress = (data) => api.post("/b1/flashcard/progress", data);
-export const getB1FlashcardMiniQuiz = (setId) => api.get(`/b1/flashcard/quiz/mini/${setId}`);
-export const getB1FlashcardFinalQuiz = (setId) => api.get(`/b1/flashcard/quiz/final/${setId}`);
-export const submitB1FlashcardQuiz = (data) => api.post("/b1/flashcard/quiz/submit", data);
+export const getB1FlashcardChapters = () =>
+  api.cachedGet(
+    "/b1/flashcard/chapters",
+    { meta: { cacheTags: [B1_FLASHCARD_CACHE_TAG] } },
+    "MEDIUM_PRIVATE",
+  );
+export const getB1Flashcards = (chapterId) =>
+  api.cachedGet(
+    `/b1/flashcard/cards/${chapterId}`,
+    { meta: { cacheTags: [B1_FLASHCARD_CACHE_TAG] } },
+    "MEDIUM_PRIVATE",
+  );
+export const saveB1FlashcardProgress = (data) =>
+  api.post("/b1/flashcard/progress", data, {
+    meta: { invalidateCacheTags: [B1_FLASHCARD_CACHE_TAG] },
+  });
+export const getB1FlashcardMiniQuiz = (setId) =>
+  api.cachedGet(
+    `/b1/flashcard/quiz/mini/${setId}`,
+    { meta: { cacheTags: [B1_FLASHCARD_CACHE_TAG] } },
+    "MEDIUM_PRIVATE",
+  );
+export const getB1FlashcardFinalQuiz = (setId) =>
+  api.cachedGet(
+    `/b1/flashcard/quiz/final/${setId}`,
+    { meta: { cacheTags: [B1_FLASHCARD_CACHE_TAG] } },
+    "MEDIUM_PRIVATE",
+  );
+export const submitB1FlashcardQuiz = (data) =>
+  api.post("/b1/flashcard/quiz/submit", data, {
+    meta: { invalidateCacheTags: [B1_FLASHCARD_CACHE_TAG] },
+  });
 
 // ADMIN ENDPOINTS
 export const getB1Chapters = (module) => api.get(`/admin/b1/chapters/${module}`);
@@ -69,10 +144,30 @@ export const submitB1ExamSpeakingAudio = (submissionId, formData) => api.post(`/
 export const resetB1ExamSubmission = (submissionId) => api.post(`/b1/exams/submissions/${submissionId}/reset`);
 
 // B1 VIDEO & AUDIO ENDPOINTS
-export const getB1Videos = (level) => api.get(`/b1/video/list/${level}`);
-export const getB1VideoById = (videoId) => api.get(`/b1/video/${videoId}`);
-export const submitB1VideoQuiz = (videoId, data) => api.post(`/b1/video/${videoId}/submit`, data);
-export const updateB1VideoProgress = (videoId, data) => api.post(`/b1/video/${videoId}/progress`, data);
+export const getB1Videos = (level) =>
+  api.cachedGet(
+    `/b1/video/list/${level}`,
+    { meta: { cacheTags: [B1_VIDEO_CACHE_TAG] } },
+    "MEDIUM_PRIVATE",
+  );
+export const getB1VideoById = (videoId) =>
+  api.cachedGet(
+    `/b1/video/${videoId}`,
+    { meta: { cacheTags: [B1_VIDEO_CACHE_TAG] } },
+    "MEDIUM_PRIVATE",
+  );
+export const submitB1VideoQuiz = (videoId, data) =>
+  api.post(`/b1/video/${videoId}/submit`, data, {
+    meta: {
+      invalidateCacheTags: [B1_READ_LISTEN_CACHE_TAG, B1_VIDEO_CACHE_TAG],
+    },
+  });
+export const updateB1VideoProgress = (videoId, data) =>
+  api.post(`/b1/video/${videoId}/progress`, data, {
+    meta: {
+      invalidateCacheTags: [B1_READ_LISTEN_CACHE_TAG, B1_VIDEO_CACHE_TAG],
+    },
+  });
 
 // B1 VIDEO ADMIN ENDPOINTS
 export const getB1VideosAdmin = () => api.get("/admin/b1/video/all");
