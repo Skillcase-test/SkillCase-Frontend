@@ -18,7 +18,7 @@ export const biginDashboardApi = {
   syncStatus: () => api.get("/admin/bigin-dashboard/sync-status"),
   owners: () => api.get("/admin/bigin-dashboard/owners"),
   weeklySnapshotSummary: (params) =>
-    api.get("/admin/bigin-dashboard/weekly-snapshot/summary", { params }),
+    api.get("/admin/bigin-dashboard/created-lead-movement/summary", { params }),
   weeklySnapshotCandidates: (params) =>
-    api.get("/admin/bigin-dashboard/weekly-snapshot/candidates", { params }),
+    api.get("/admin/bigin-dashboard/created-lead-movement/candidates", { params }),
 };

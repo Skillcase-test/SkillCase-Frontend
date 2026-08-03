@@ -206,7 +206,7 @@ const VIEW_OPTIONS = [
   { value: "active", label: "Active" },
   { value: "complete", label: "Complete" },
   { value: "running", label: "Running" },
-  { value: "weekly", label: "Weekly Snapshot" },
+  { value: "movement", label: "Weekly Snapshot" },
 ];
 
 const DONUT_COLORS = [
@@ -271,33 +271,15 @@ function defaultDateRange() {
   return { from: toIso(from), to: toIso(to) };
 }
 
-// Last 7 days ending today - the Weekly Snapshot tab's default window.
-function defaultWeekRange() {
-  const to = new Date();
-  const from = new Date(to);
-  from.setDate(from.getDate() - 6);
-  return { from: toIso(from), to: toIso(to) };
+function shiftIsoDate(iso, days) {
+  const date = new Date(`${iso}T12:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
-function shiftWeek(field, value) {
-  const todayIso = toIso(new Date());
-  const maxStart = new Date();
-  maxStart.setDate(maxStart.getDate() - 6);
-  const maxStartIso = toIso(maxStart);
-
-  if (field === "week_from") {
-    const weekFrom = value > maxStartIso ? maxStartIso : value;
-    const anchor = new Date(`${weekFrom}T00:00:00`);
-    const other = new Date(anchor);
-    other.setDate(other.getDate() + 6);
-    return { week_from: weekFrom, week_to: toIso(other) };
-  }
-
-  const weekTo = value > todayIso ? todayIso : value;
-  const anchor = new Date(`${weekTo}T00:00:00`);
-  const other = new Date(anchor);
-  other.setDate(other.getDate() - 6);
-  return { week_from: toIso(other), week_to: weekTo };
+// Last 7 days ending today - the Weekly Snapshot default window.
+function defaultWeeklyRange(today) {
+  return { from: shiftIsoDate(today, -6), to: today };
 }
 
 // Same-length window immediately before date_from, for the "vs previous
@@ -507,7 +489,13 @@ function KpiTile({
 
 const CANDIDATE_PAGE_SIZE = 50;
 
-function CandidatesModal({ bucket, label, apiFilters, onClose }) {
+function CandidatesModal({
+  bucket,
+  label,
+  apiFilters,
+  onClose,
+  isSuperAdmin = false,
+}) {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -568,6 +556,7 @@ function CandidatesModal({ bucket, label, apiFilters, onClose }) {
   const totalPages = Math.max(1, Math.ceil(state.total / CANDIDATE_PAGE_SIZE));
 
   const handleExport = () => {
+    if (!isSuperAdmin) return;
     const headers = ["Name", "Phone", "Pipeline", "Stage", "Owner", "Created"];
     const rows = state.rows.map((r) => [
       r.deal_name || "",
@@ -600,15 +589,17 @@ function CandidatesModal({ bucket, label, apiFilters, onClose }) {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleExport}
-              disabled={!state.rows.length}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Export page
-            </button>
+            {isSuperAdmin && (
+              <button
+                type="button"
+                onClick={handleExport}
+                disabled={!state.rows.length}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export page
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
@@ -646,7 +637,7 @@ function CandidatesModal({ bucket, label, apiFilters, onClose }) {
               <thead>
                 <tr className="border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   <th className="pb-2 pr-3">Name</th>
-                  <th className="pb-2 pr-3">Phone</th>
+                  {isSuperAdmin && <th className="pb-2 pr-3">Phone</th>}
                   <th className="pb-2 pr-3">Stage</th>
                   <th className="pb-2 pr-3">Owner</th>
                   <th className="pb-2">Created</th>
@@ -664,7 +655,8 @@ function CandidatesModal({ bucket, label, apiFilters, onClose }) {
                         {row.pipeline_name}
                       </span>
                     </td>
-                    <td className="py-2 pr-3 tabular-nums text-slate-600">
+                    {isSuperAdmin && (
+                      <td className="py-2 pr-3 tabular-nums text-slate-600">
                       {row.phone ? (
                         <a
                           href={`tel:${row.phone}`}
@@ -675,7 +667,8 @@ function CandidatesModal({ bucket, label, apiFilters, onClose }) {
                       ) : (
                         "—"
                       )}
-                    </td>
+                      </td>
+                    )}
                     <td className="py-2 pr-3 text-slate-600">{row.stage}</td>
                     <td className="py-2 pr-3 text-slate-600">
                       {row.owner_name || "—"}
@@ -827,7 +820,13 @@ function useBiginData(apiFilters, { enabled = true, fetchPrev = false } = {}) {
   return state;
 }
 
-function DashboardBody({ data, apiFilters, periodLabel, compact = false }) {
+function DashboardBody({
+  data,
+  apiFilters,
+  periodLabel,
+  compact = false,
+  isSuperAdmin = false,
+}) {
   const {
     summary,
     prevSummary,
@@ -1208,16 +1207,23 @@ function DashboardBody({ data, apiFilters, periodLabel, compact = false }) {
           label={drilldown.label}
           apiFilters={apiFilters}
           onClose={() => setDrilldown(null)}
+          isSuperAdmin={isSuperAdmin}
         />
       )}
     </div>
   );
 }
 
-// Cohort view: leads created on `startDate`, where each one's stage stood on that day vs. where it stands on `endDate`.
-function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
-  const startLabel = formatDMY(startDate);
-  const endLabel = formatDMY(endDate);
+// Cohort view: leads created in the selected range, compared from each lead's
+// creation-day stage to its own day-six/latest stage.
+function WeeklySnapshotView({
+  apiFilters,
+  createdFrom,
+  createdTo,
+  isSuperAdmin = false,
+}) {
+  const createdFromLabel = formatDMY(createdFrom);
+  const createdToLabel = formatDMY(createdTo);
   const [summary, setSummary] = useState({
     rows: [],
     loading: true,
@@ -1258,13 +1264,13 @@ function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
           loading: false,
           error:
             err.response?.data?.msg ||
-            "Could not load the weekly movement summary.",
+            "Could not load the weekly snapshot summary.",
         });
       });
     return () => {
       live = false;
     };
-  }, [filtersKey]);
+  }, [apiFilters, filtersKey]);
 
   useEffect(() => {
     let live = true;
@@ -1297,7 +1303,7 @@ function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
     return () => {
       live = false;
     };
-  }, [filtersKey, debouncedSearch, page]);
+  }, [apiFilters, filtersKey, debouncedSearch, page]);
 
   const byPipeline = useMemo(() => {
     const groups = {};
@@ -1311,23 +1317,26 @@ function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
   const totalPages = Math.max(1, Math.ceil(list.total / CANDIDATE_PAGE_SIZE));
 
   const handleExport = () => {
+    if (!isSuperAdmin) return;
     const headers = [
       "Name",
       "Phone",
       "Pipeline",
       "Owner",
-      `Stage on ${startLabel}`,
-      `Stage on ${endLabel}`,
-      "Created",
+      "Created date",
+      "Comparison date",
+      "Stage on comparison date",
     ];
     const rows = list.rows.map((r) => [
       r.deal_name || "",
       r.phone || "",
       r.pipeline_name || "",
       r.owner_name || "",
-      r.stage_at_start || "",
-      r.stage_at_end || "",
-      r.created_time ? formatDMY(istDate(r.created_time)) : "",
+      r.created_date ? formatDMY(r.created_date) : "",
+      r.comparison_date
+        ? `${formatDMY(r.comparison_date)}${r.comparison_is_current ? " (latest)" : ""}`
+        : "",
+      r.stage_at_comparison || "",
     ]);
     const csv = [headers, ...rows]
       .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
@@ -1335,7 +1344,7 @@ function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `bigin_weekly_snapshot_${startDate}_to_${endDate}_page${page}.csv`;
+    a.download = `bigin_weekly_snapshot_${createdFrom}_to_${createdTo}_page${page}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -1343,8 +1352,8 @@ function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
   return (
     <div className="space-y-6">
       <SectionCard
-        title="Weekly Movement"
-        subtitle={`Leads created on ${startLabel} · stage then vs. stage as of ${endLabel} (end-of-day snapshot; Only today's stage is live)`}
+        title="Weekly Snapshot"
+        subtitle={`Leads created from ${createdFromLabel} to ${createdToLabel} - comparison stage on day 6 or latest current stage (end-of-day IST snapshots)`}
       >
         {summary.error ? (
           <div
@@ -1356,7 +1365,7 @@ function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
         ) : summary.loading ? (
           <TableSkeleton rows={4} />
         ) : summary.rows.length === 0 ? (
-          <EmptyState message="No leads were created on this start date." />
+          <EmptyState message="No leads were created in this date range." />
         ) : (
           <div
             className={`grid grid-cols-1 gap-6 ${Object.keys(byPipeline).length > 1 ? "lg:grid-cols-2" : ""}`}
@@ -1374,8 +1383,7 @@ function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
                   <table className="w-full border-collapse text-left text-sm">
                     <thead>
                       <tr className="border-b border-slate-100 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                        <th className="pb-2 pr-3">Stage on {startLabel}</th>
-                        <th className="pb-2 pr-3">Stage on {endLabel}</th>
+                        <th className="pb-2 pr-3">Stage on day 6 / latest</th>
                         <th className="pb-2 text-right">Leads</th>
                         <th className="pb-2 pl-3 text-right">% of Created</th>
                       </tr>
@@ -1386,11 +1394,8 @@ function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
                           key={i}
                           className="border-b border-slate-50 last:border-0"
                         >
-                          <td className="py-2 pr-3 text-slate-600">
-                            {row.stage_at_start}
-                          </td>
                           <td className="py-2 pr-3 font-medium text-slate-800">
-                            {row.stage_at_end}
+                            {row.stage_at_comparison}
                           </td>
                           <td className="py-2 text-right tabular-nums text-slate-600">
                             {number(row.leads)}
@@ -1414,7 +1419,7 @@ function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
 
       <SectionCard
         title="Candidates"
-        subtitle="Every lead in this cohort, individually · stages are end-of-day snapshots (Only today's stage is live)"
+        subtitle="Every lead in this cohort, individually - each comparison date is shown below; today uses the latest live stage"
       >
         <div className="mb-4 flex items-center justify-between gap-3">
           <ControlInput
@@ -1424,15 +1429,17 @@ function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
             leftIcon={<Search className="h-4 w-4" />}
             className="w-full max-w-lg cursor-text"
           />
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={!list.rows.length}
-            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
-          >
-            <Download className="h-3.5 w-3.5" />
-            Export page
-          </button>
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={!list.rows.length}
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export page
+            </button>
+          )}
         </div>
 
         {list.error ? (
@@ -1453,9 +1460,10 @@ function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
                 <tr className="border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   <th className="pb-2 pr-3">Name</th>
                   <th className="pb-2 pr-3">Owner</th>
-                  <th className="pb-2 pr-3">Stage on {startLabel}</th>
-                  <th className="pb-2 pr-3">Stage on {endLabel}</th>
-                  <th className="pb-2">Phone</th>
+                  <th className="pb-2 pr-3">Created</th>
+                  <th className="pb-2 pr-3">Comparison date</th>
+                  <th className="pb-2 pr-3">Stage on day 6 / latest</th>
+                  {isSuperAdmin && <th className="pb-2">Phone</th>}
                 </tr>
               </thead>
               <tbody>
@@ -1474,12 +1482,27 @@ function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
                       {row.owner_name || "—"}
                     </td>
                     <td className="py-2 pr-3 text-slate-600">
-                      {row.stage_at_start}
+                      {row.created_date ? formatDMY(row.created_date) : "—"}
+                    </td>
+                    <td className="py-2 pr-3 text-slate-600">
+                      {row.comparison_date ? (
+                        <>
+                          {formatDMY(row.comparison_date)}
+                          {row.comparison_is_current && (
+                            <span className="ml-1 whitespace-nowrap rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
+                              Latest
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="py-2 pr-3 font-medium text-slate-800">
-                      {row.stage_at_end}
+                      {row.stage_at_comparison}
                     </td>
-                    <td className="py-2 tabular-nums text-slate-600">
+                    {isSuperAdmin && (
+                      <td className="py-2 tabular-nums text-slate-600">
                       {row.phone ? (
                         <a
                           href={`tel:${row.phone}`}
@@ -1490,7 +1513,8 @@ function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
                       ) : (
                         "—"
                       )}
-                    </td>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -1511,21 +1535,17 @@ function WeeklySnapshotView({ apiFilters, startDate, endDate }) {
   );
 }
 
-export default function BiginDashboard() {
+export default function BiginDashboard({ isSuperAdmin = false }) {
   const [params, setParams] = useSearchParams();
   const [syncStatus, setSyncStatus] = useState(null);
   const [owners, setOwners] = useState([]);
 
   const defaults = useMemo(() => defaultDateRange(), []);
-  const weekDefaults = useMemo(() => defaultWeekRange(), []);
-  const today = useMemo(() => toIso(new Date()), []);
-  // Latest a Weekly Snapshot start date can be and still leave a full 7-day
-  // window ending on/before today.
-  const maxWeekFrom = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() - 6);
-    return toIso(d);
-  }, []);
+  const today = useMemo(() => istDate(new Date().toISOString()), []);
+  const createdLeadDefaults = useMemo(
+    () => defaultWeeklyRange(today),
+    [today],
+  );
   const currentMonthStr = today.slice(0, 7);
   const asOfMonth = params.get("running_as_of_month") || currentMonthStr;
   const isPastAsOf = asOfMonth !== currentMonthStr;
@@ -1559,7 +1579,7 @@ export default function BiginDashboard() {
     return options;
   }, [currentMonthStr, syncStatus?.earliest_snapshot_date]);
 
-  const view = ["active", "complete", "running", "weekly"].includes(
+  const view = ["active", "complete", "running", "movement"].includes(
     params.get("view"),
   )
     ? params.get("view")
@@ -1571,8 +1591,9 @@ export default function BiginDashboard() {
     : "all";
   const dateFrom = params.get("date_from") || defaults.from;
   const dateTo = params.get("date_to") || defaults.to;
-  const weekFrom = params.get("week_from") || weekDefaults.from;
-  const weekTo = params.get("week_to") || weekDefaults.to;
+  const createdFrom =
+    params.get("created_from") || createdLeadDefaults.from;
+  const createdTo = params.get("created_to") || createdLeadDefaults.to;
 
   const update = (key, value) => {
     const next = new URLSearchParams(params);
@@ -1580,11 +1601,23 @@ export default function BiginDashboard() {
     setParams(next, { replace: true });
   };
 
-  const handleWeekChange = (field, value) => {
+  const handleCreatedDateChange = (field, value) => {
+    if (!value) return;
     const next = new URLSearchParams(params);
-    const { week_from, week_to } = shiftWeek(field, value);
-    next.set("week_from", week_from);
-    next.set("week_to", week_to);
+    const nextValue = value > today ? today : value;
+    let nextFrom = createdFrom;
+    let nextTo = createdTo;
+
+    if (field === "created_from") {
+      nextFrom = nextValue;
+      if (nextTo < nextFrom) nextTo = nextFrom;
+    } else {
+      nextTo = nextValue;
+      if (nextTo < nextFrom) nextFrom = nextTo;
+    }
+
+    next.set("created_from", nextFrom);
+    next.set("created_to", nextTo);
     setParams(next, { replace: true });
   };
 
@@ -1676,9 +1709,14 @@ export default function BiginDashboard() {
     }),
     [pipeline, owner, dayBeforeMonth, startOfMonth, asOfPeriodEnd, isPastAsOf],
   );
-  const weeklyApiFilters = useMemo(
-    () => ({ pipeline, owner, date_from: weekFrom, date_to: weekTo }),
-    [pipeline, owner, weekFrom, weekTo],
+  const weeklySnapshotApiFilters = useMemo(
+    () => ({
+      pipeline,
+      owner,
+      created_from: createdFrom,
+      created_to: createdTo,
+    }),
+    [pipeline, owner, createdFrom, createdTo],
   );
 
   const primaryFilters =
@@ -1695,7 +1733,7 @@ export default function BiginDashboard() {
   const monthMode = view === "running" && runningMode === "month";
 
   const primary = useBiginData(primaryFilters, {
-    enabled: view !== "weekly",
+    enabled: view !== "movement",
     fetchPrev: view === "active",
   });
   const secondary = useBiginData(monthMode ? beforeMonthApiFilters : null, {
@@ -1787,27 +1825,27 @@ export default function BiginDashboard() {
                 </>
               )}
 
-              {view === "weekly" && (
+              {view === "movement" && (
                 <>
                   <ControlInput
                     type="date"
-                    aria-label="Week start"
-                    max={maxWeekFrom}
-                    value={weekFrom}
+                    aria-label="Created from"
+                    max={today}
+                    value={createdFrom}
                     onChange={(e) =>
-                      handleWeekChange("week_from", e.target.value)
+                      handleCreatedDateChange("created_from", e.target.value)
                     }
                     className="h-9 text-sm"
                   />
                   <span className="text-slate-400">to</span>
                   <ControlInput
                     type="date"
-                    aria-label="Week end"
-                    min={weekFrom}
+                    aria-label="Created to"
+                    min={createdFrom}
                     max={today}
-                    value={weekTo}
+                    value={createdTo}
                     onChange={(e) =>
-                      handleWeekChange("week_to", e.target.value)
+                      handleCreatedDateChange("created_to", e.target.value)
                     }
                     className="h-9 text-sm"
                   />
@@ -1854,11 +1892,12 @@ export default function BiginDashboard() {
           </div>
         </div>
 
-        {view === "weekly" ? (
+        {view === "movement" ? (
           <WeeklySnapshotView
-            apiFilters={weeklyApiFilters}
-            startDate={weekFrom}
-            endDate={weekTo}
+            apiFilters={weeklySnapshotApiFilters}
+            createdFrom={createdFrom}
+            createdTo={createdTo}
+            isSuperAdmin={isSuperAdmin}
           />
         ) : monthMode ? (
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -1867,6 +1906,7 @@ export default function BiginDashboard() {
               apiFilters={primaryFilters}
               periodLabel={isPastAsOf ? monthLabel(asOfMonth) : "This month"}
               compact
+              isSuperAdmin={isSuperAdmin}
             />
             <DashboardBody
               data={secondary}
@@ -1877,10 +1917,15 @@ export default function BiginDashboard() {
                   : "Before this month (won/lost this month, rest live)"
               }
               compact
+              isSuperAdmin={isSuperAdmin}
             />
           </div>
         ) : (
-          <DashboardBody data={primary} apiFilters={primaryFilters} />
+          <DashboardBody
+            data={primary}
+            apiFilters={primaryFilters}
+            isSuperAdmin={isSuperAdmin}
+          />
         )}
       </div>
     </div>

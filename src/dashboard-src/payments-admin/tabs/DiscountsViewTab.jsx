@@ -6,7 +6,7 @@ import {
   ControlSelect,
 } from "../components/controls";
 import { MONTH_NAMES } from "../utils/constants";
-import { formatInrFromPaise } from "../utils/formatters";
+import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
 import { candidatePhoneLabel } from "../utils/candidatePhones";
 
 const MONTH_SHORT_NAMES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -18,6 +18,22 @@ function getActiveMonthsRange(targetYear, targetMonth, durationMonths) {
   const endYearNum = Math.floor((endYm - 1) / 12);
   const endMonthNum = ((endYm - 1) % 12) + 1;
   return `${MONTH_SHORT_NAMES[startMonthNum]} ${startYearNum} - ${MONTH_SHORT_NAMES[endMonthNum]} ${endYearNum}`;
+}
+
+function renderDiscountTimestamp(value) {
+  const formatted = formatIstDateTime(value);
+  if (formatted === "-") return <span>-</span>;
+
+  const match = formatted.match(/^(.*\d{4})\s+(\d{1,2}:\d{2}\s+[AP]M)$/);
+  const datePart = match?.[1] || formatted;
+  const timePart = match?.[2] || "";
+
+  return (
+    <span className="block max-w-[108px] leading-tight" title={formatted}>
+      <span className="block">{datePart}</span>
+      {timePart && <span className="block text-slate-500">{timePart}</span>}
+    </span>
+  );
 }
 
 export function DiscountsViewTab({
@@ -127,9 +143,9 @@ export function DiscountsViewTab({
       </div>
 
       <div className="overflow-x-auto rounded-xl border border-slate-200">
-        <table className="min-w-full text-sm">
+        <table className="min-w-full text-[11px]">
         <thead>
-          <tr className="border-b bg-slate-50 text-left text-xs uppercase text-slate-500">
+          <tr className="border-b bg-slate-50 text-left text-[11px] uppercase text-slate-500">
             <th className="px-3 py-3">Name</th>
             <th className="px-2 py-2">Phone</th>
             <th className="px-2 py-2">Month</th>
@@ -138,6 +154,8 @@ export function DiscountsViewTab({
             <th className="px-2 py-2">Reason</th>
             <th className="px-2 py-2">Requested By</th>
             <th className="px-2 py-2">Approved By</th>
+            <th className="w-[108px] px-1 py-2 text-[11px] leading-tight">Initiated At</th>
+            <th className="w-[108px] px-1 py-2 text-[11px] leading-tight">Approved / Reviewed At</th>
             <th className="px-2 py-2">Status</th>
             {canApproveDiscounts && <th className="px-2 py-2">Action</th>}
           </tr>
@@ -172,6 +190,12 @@ export function DiscountsViewTab({
               <td className="px-2 py-2">{r.reason || "-"}</td>
               <td className="px-2 py-2">{r.requested_by_name || "-"}</td>
               <td className="px-2 py-2">{r.approved_by_name || "-"}</td>
+              <td className="w-[108px] max-w-[108px] px-1 py-2 text-[11px]">
+                {renderDiscountTimestamp(r.created_at)}
+              </td>
+              <td className="w-[108px] max-w-[108px] px-1 py-2 text-[11px]">
+                {renderDiscountTimestamp(r.approved_at)}
+              </td>
               <td
                 className="px-2 py-2"
                 title={
@@ -221,7 +245,7 @@ export function DiscountsViewTab({
             </tr>
           )) : (
             <tr>
-              <td colSpan={canApproveDiscounts ? 10 : 9} className="px-3 py-6 text-center text-slate-500">
+              <td colSpan={canApproveDiscounts ? 12 : 11} className="px-3 py-6 text-center text-slate-500">
                 No discount requests found.
               </td>
             </tr>

@@ -1148,7 +1148,9 @@ export default function Dashboard() {
                 path="bigin-dashboard"
                 element={
                   <Guard allowed={hasPermission(me, "bigin_dashboard")}>
-                    <BiginDashboard />
+                    <BiginDashboard
+                      isSuperAdmin={me?.role === "super_admin"}
+                    />
                   </Guard>
                 }
               />
