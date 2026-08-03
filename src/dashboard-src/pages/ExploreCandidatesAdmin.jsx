@@ -31,9 +31,25 @@ const initialProfileForm = {
 function Spinner({ size = "md" }) {
   const sz = size === "sm" ? "h-4 w-4" : "h-6 w-6";
   return (
-    <svg className={`animate-spin ${sz} text-slate-400`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    <svg
+      className={`animate-spin ${sz} text-slate-400`}
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      ></circle>
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      ></path>
     </svg>
   );
 }
@@ -65,8 +81,14 @@ function PageCard({ title, description, children, actions }) {
     <div className="space-y-6 font-sans">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{title}</h1>
-          {description && <p className="mt-2 text-sm text-slate-500 font-medium">{description}</p>}
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            {title}
+          </h1>
+          {description && (
+            <p className="mt-2 text-sm text-slate-500 font-medium">
+              {description}
+            </p>
+          )}
         </div>
         {actions && <div className="flex items-center gap-3">{actions}</div>}
       </div>
@@ -96,7 +118,11 @@ function TableHead({ children }) {
 }
 
 function TableBody({ children }) {
-  return <tbody className="divide-y divide-slate-100 text-sm text-slate-700 font-medium">{children}</tbody>;
+  return (
+    <tbody className="divide-y divide-slate-100 text-sm text-slate-700 font-medium">
+      {children}
+    </tbody>
+  );
 }
 
 function PrimaryButton({ children, ...props }) {
@@ -124,13 +150,18 @@ function SecondaryButton({ children, ...props }) {
 }
 
 function ActionButton({ children, variant = "default", ...props }) {
-  const base = "inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed";
+  const base =
+    "inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
   const variants = {
     default: "text-slate-700 hover:bg-slate-50",
     danger: "border-rose-200 text-rose-700 hover:bg-rose-50",
-    primary: "text-[#083262] hover:bg-blue-50 border-[#083262]"
+    primary: "text-[#083262] hover:bg-blue-50 border-[#083262]",
   };
-  return <button type="button" className={`${base} ${variants[variant]}`} {...props}>{children}</button>;
+  return (
+    <button type="button" className={`${base} ${variants[variant]}`} {...props}>
+      {children}
+    </button>
+  );
 }
 
 function formatRecruitmentStageLabel(stage) {
@@ -159,7 +190,9 @@ function RecruitmentStatusModal({ open, loading, data, error, onClose }) {
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl border border-slate-200">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-          <h3 className="text-lg font-bold text-slate-900">Recruitment Status</h3>
+          <h3 className="text-lg font-bold text-slate-900">
+            Recruitment Status
+          </h3>
           <button
             type="button"
             className="text-slate-500 hover:text-slate-900 text-xl leading-none"
@@ -169,38 +202,67 @@ function RecruitmentStatusModal({ open, loading, data, error, onClose }) {
           </button>
         </div>
         <div className="p-6 space-y-4">
-          {loading ? <p className="text-sm text-slate-500">Loading status...</p> : null}
-          {!loading && error ? <p className="text-sm text-rose-600">{error}</p> : null}
+          {loading ? (
+            <p className="text-sm text-slate-500">Loading status...</p>
+          ) : null}
+          {!loading && error ? (
+            <p className="text-sm text-rose-600">{error}</p>
+          ) : null}
           {!loading && !error && data ? (
             <>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-xl border border-slate-200 p-3 bg-slate-50">
-                  <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Linked Learner</p>
+                  <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+                    Linked Learner
+                  </p>
                   <p className="text-sm text-slate-900 mt-1 font-semibold">
-                    {data.linked_user ? `${data.linked_user.fullname || "-"} (${data.linked_user.user_id})` : "Not linked"}
+                    {data.linked_user
+                      ? `${data.linked_user.fullname || "-"} (${data.linked_user.user_id})`
+                      : "Not linked"}
                   </p>
                 </div>
                 <div className="rounded-xl border border-slate-200 p-3 bg-slate-50">
-                  <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Current Stage</p>
+                  <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+                    Current Stage
+                  </p>
                   <p className="text-sm text-slate-900 mt-1 font-semibold">
                     {formatRecruitmentStageLabel(data.derived_stage)}
                   </p>
                 </div>
                 <div className="rounded-xl border border-slate-200 p-3 bg-slate-50 sm:col-span-2">
-                  <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">Learner Visibility</p>
+                  <p className="text-[11px] uppercase tracking-wider text-slate-500 font-bold">
+                    Learner Visibility
+                  </p>
                   <p className="text-sm text-slate-900 mt-1 font-semibold">
                     {data?.linked_user
-                      ? (data?.visibility?.is_enabled ? "Enabled" : "Disabled")
+                      ? data?.visibility?.is_enabled
+                        ? "Enabled"
+                        : "Disabled"
                       : "Not available (learner not linked)"}
                   </p>
                 </div>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                <div className="rounded-lg border border-slate-200 p-2 text-center"><p className="text-xs text-slate-500">Shown</p><p className="font-bold">{counts.shown_to_recruiters || 0}</p></div>
-                <div className="rounded-lg border border-slate-200 p-2 text-center"><p className="text-xs text-slate-500">Viewed</p><p className="font-bold">{counts.viewed || 0}</p></div>
-                <div className="rounded-lg border border-slate-200 p-2 text-center"><p className="text-xs text-slate-500">Shortlisted</p><p className="font-bold">{counts.shortlisted || 0}</p></div>
-                <div className="rounded-lg border border-slate-200 p-2 text-center"><p className="text-xs text-slate-500">Rejected</p><p className="font-bold">{counts.rejected || 0}</p></div>
-                <div className="rounded-lg border border-slate-200 p-2 text-center"><p className="text-xs text-slate-500">Scheduled</p><p className="font-bold">{counts.scheduled_interview || 0}</p></div>
+                <div className="rounded-lg border border-slate-200 p-2 text-center">
+                  <p className="text-xs text-slate-500">Shown</p>
+                  <p className="font-bold">{counts.shown_to_recruiters || 0}</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 p-2 text-center">
+                  <p className="text-xs text-slate-500">Viewed</p>
+                  <p className="font-bold">{counts.viewed || 0}</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 p-2 text-center">
+                  <p className="text-xs text-slate-500">Shortlisted</p>
+                  <p className="font-bold">{counts.shortlisted || 0}</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 p-2 text-center">
+                  <p className="text-xs text-slate-500">Rejected</p>
+                  <p className="font-bold">{counts.rejected || 0}</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 p-2 text-center">
+                  <p className="text-xs text-slate-500">Scheduled</p>
+                  <p className="font-bold">{counts.scheduled_interview || 0}</p>
+                </div>
               </div>
               <div className="overflow-x-auto rounded-xl border border-slate-200">
                 <table className="min-w-full text-sm">
@@ -216,19 +278,33 @@ function RecruitmentStatusModal({ open, loading, data, error, onClose }) {
                     {(data.recruiter_breakdown || []).length ? (
                       data.recruiter_breakdown.map((row) => (
                         <tr key={`${row.account_id}-${row.recruiter_email}`}>
-                          <td className="px-3 py-2">{row.recruiter_email || "-"}</td>
-                          <td className="px-3 py-2">{formatRecruitmentStageLabel(row.stage)}</td>
+                          <td className="px-3 py-2">
+                            {row.recruiter_email || "-"}
+                          </td>
+                          <td className="px-3 py-2">
+                            {formatRecruitmentStageLabel(row.stage)}
+                          </td>
                           <td className="px-3 py-2">{row.view_count || 0}</td>
                           <td className="px-3 py-2">
-                            {row.latest_scheduled_at || row.status_updated_at || row.last_viewed_at || row.assigned_at
-                              ? new Date(row.latest_scheduled_at || row.status_updated_at || row.last_viewed_at || row.assigned_at).toLocaleString("en-IN")
+                            {row.latest_scheduled_at ||
+                            row.status_updated_at ||
+                            row.last_viewed_at ||
+                            row.assigned_at
+                              ? new Date(
+                                  row.latest_scheduled_at ||
+                                    row.status_updated_at ||
+                                    row.last_viewed_at ||
+                                    row.assigned_at,
+                                ).toLocaleString("en-IN")
                               : "-"}
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td className="px-3 py-3 text-slate-500" colSpan={4}>No recruiter activity yet.</td>
+                        <td className="px-3 py-3 text-slate-500" colSpan={4}>
+                          No recruiter activity yet.
+                        </td>
                       </tr>
                     )}
                   </tbody>
@@ -272,11 +348,18 @@ function AccountsPage() {
     }
 
     try {
-      const eventsRes = await exploreCandidatesAdminApi.listRecruiterLoginEvents({ page: 1, limit: 20 });
+      const eventsRes =
+        await exploreCandidatesAdminApi.listRecruiterLoginEvents({
+          page: 1,
+          limit: 20,
+        });
       setLoginEvents(eventsRes?.data?.data || []);
     } catch (error) {
       setLoginEvents([]);
-      setEventsError(error?.response?.data?.message || "Could not load recruiter login events");
+      setEventsError(
+        error?.response?.data?.message ||
+          "Could not load recruiter login events",
+      );
     } finally {
       setEventsLoading(false);
     }
@@ -299,31 +382,44 @@ function AccountsPage() {
       >
         <div className="grid gap-4 md:grid-cols-4 items-end">
           <div className="space-y-1">
-             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Email</label>
-             <input
-               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
-               placeholder="Enter email"
-               value={form.email}
-               onChange={(e) => setForm((v) => ({ ...v, email: e.target.value }))}
-             />
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Email
+            </label>
+            <input
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
+              placeholder="Enter email"
+              value={form.email}
+              onChange={(e) =>
+                setForm((v) => ({ ...v, email: e.target.value }))
+              }
+            />
           </div>
           <div className="space-y-1">
-             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Password</label>
-             <input
-               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
-               placeholder="Enter password"
-               value={form.password}
-               onChange={(e) => setForm((v) => ({ ...v, password: e.target.value }))}
-             />
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Password
+            </label>
+            <input
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
+              placeholder="Enter password"
+              value={form.password}
+              onChange={(e) =>
+                setForm((v) => ({ ...v, password: e.target.value }))
+              }
+            />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Partner Logo</label>
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Partner Logo
+            </label>
             <input
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm file:mr-4 file:rounded-md file:border-0 file:bg-slate-100 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-slate-700 hover:file:bg-slate-200 transition"
               type="file"
               accept="image/*"
               onChange={(e) =>
-                setForm((v) => ({ ...v, partner_logo_file: e.target.files?.[0] || null }))
+                setForm((v) => ({
+                  ...v,
+                  partner_logo_file: e.target.files?.[0] || null,
+                }))
               }
             />
           </div>
@@ -332,7 +428,12 @@ function AccountsPage() {
             onClick={async () => {
               setSavingAccount(true);
               await exploreCandidatesAdminApi.upsertAccount(form);
-              setForm({ email: "", password: "", partner_logo_file: null, status: 1 });
+              setForm({
+                email: "",
+                password: "",
+                partner_logo_file: null,
+                status: 1,
+              });
               await load();
               setSavingAccount(false);
             }}
@@ -362,9 +463,14 @@ function AccountsPage() {
             </TableHead>
             <TableBody>
               {accounts.map((account) => (
-                <tr key={account.id} className="hover:bg-slate-50 transition-colors">
+                <tr
+                  key={account.id}
+                  className="hover:bg-slate-50 transition-colors"
+                >
                   <td className="px-6 py-5 align-top">
-                    <div className="font-bold text-slate-900">{account.email}</div>
+                    <div className="font-bold text-slate-900">
+                      {account.email}
+                    </div>
                   </td>
                   <td className="px-6 py-5 align-top">
                     <span className="inline-flex rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
@@ -377,12 +483,21 @@ function AccountsPage() {
                         checked={Boolean(account.mask_contacts_enabled)}
                         disabled={toggling[`mask-${account.id}`]}
                         onChange={async (val) => {
-                          setToggling(prev => ({ ...prev, [`mask-${account.id}`]: true }));
-                          await exploreCandidatesAdminApi.updateAccountSettings(account.id, {
-                            mask_contacts_enabled: val,
-                          });
+                          setToggling((prev) => ({
+                            ...prev,
+                            [`mask-${account.id}`]: true,
+                          }));
+                          await exploreCandidatesAdminApi.updateAccountSettings(
+                            account.id,
+                            {
+                              mask_contacts_enabled: val,
+                            },
+                          );
                           await load();
-                          setToggling(prev => ({ ...prev, [`mask-${account.id}`]: false }));
+                          setToggling((prev) => ({
+                            ...prev,
+                            [`mask-${account.id}`]: false,
+                          }));
                         }}
                       />
                       {toggling[`mask-${account.id}`] && <Spinner size="sm" />}
@@ -394,12 +509,21 @@ function AccountsPage() {
                         checked={Boolean(account.force_password_change)}
                         disabled={toggling[`force-${account.id}`]}
                         onChange={async (val) => {
-                          setToggling(prev => ({ ...prev, [`force-${account.id}`]: true }));
-                          await exploreCandidatesAdminApi.updateAccountSettings(account.id, {
-                            force_password_change: val,
-                          });
+                          setToggling((prev) => ({
+                            ...prev,
+                            [`force-${account.id}`]: true,
+                          }));
+                          await exploreCandidatesAdminApi.updateAccountSettings(
+                            account.id,
+                            {
+                              force_password_change: val,
+                            },
+                          );
                           await load();
-                          setToggling(prev => ({ ...prev, [`force-${account.id}`]: false }));
+                          setToggling((prev) => ({
+                            ...prev,
+                            [`force-${account.id}`]: false,
+                          }));
                         }}
                       />
                       {toggling[`force-${account.id}`] && <Spinner size="sm" />}
@@ -411,12 +535,21 @@ function AccountsPage() {
                         checked={Boolean(account.force_terms_acceptance)}
                         disabled={toggling[`terms-${account.id}`]}
                         onChange={async (val) => {
-                          setToggling(prev => ({ ...prev, [`terms-${account.id}`]: true }));
-                          await exploreCandidatesAdminApi.updateAccountSettings(account.id, {
-                            force_terms_acceptance: val,
-                          });
+                          setToggling((prev) => ({
+                            ...prev,
+                            [`terms-${account.id}`]: true,
+                          }));
+                          await exploreCandidatesAdminApi.updateAccountSettings(
+                            account.id,
+                            {
+                              force_terms_acceptance: val,
+                            },
+                          );
                           await load();
-                          setToggling(prev => ({ ...prev, [`terms-${account.id}`]: false }));
+                          setToggling((prev) => ({
+                            ...prev,
+                            [`terms-${account.id}`]: false,
+                          }));
                         }}
                       />
                       {toggling[`terms-${account.id}`] && <Spinner size="sm" />}
@@ -428,35 +561,66 @@ function AccountsPage() {
                         checked={Boolean(account.prompt_individual_email)}
                         disabled={toggling[`shared-${account.id}`]}
                         onChange={async (val) => {
-                          setToggling(prev => ({ ...prev, [`shared-${account.id}`]: true }));
-                          await exploreCandidatesAdminApi.updateAccountSettings(account.id, {
-                            prompt_individual_email: val,
-                          });
+                          setToggling((prev) => ({
+                            ...prev,
+                            [`shared-${account.id}`]: true,
+                          }));
+                          await exploreCandidatesAdminApi.updateAccountSettings(
+                            account.id,
+                            {
+                              prompt_individual_email: val,
+                            },
+                          );
                           await load();
-                          setToggling(prev => ({ ...prev, [`shared-${account.id}`]: false }));
+                          setToggling((prev) => ({
+                            ...prev,
+                            [`shared-${account.id}`]: false,
+                          }));
                         }}
                       />
-                      {toggling[`shared-${account.id}`] && <Spinner size="sm" />}
+                      {toggling[`shared-${account.id}`] && (
+                        <Spinner size="sm" />
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-5 align-top">
                     <div className="flex flex-wrap justify-end gap-2">
                       <ActionButton
-                        onClick={() => navigate(`/admin/explore-candidates/accounts/${account.id}/profiles`)}
+                        onClick={() =>
+                          navigate(
+                            `/admin/explore-candidates/accounts/${account.id}/profiles`,
+                          )
+                        }
                       >
                         Manage Profiles
                       </ActionButton>
                       <ActionButton
                         onClick={async () => {
-                          const nextEmail = window.prompt("Enter updated recruiter email", account.email || "");
-                          if (!nextEmail || nextEmail.trim().toLowerCase() === String(account.email || "").trim().toLowerCase()) return;
+                          const nextEmail = window.prompt(
+                            "Enter updated recruiter email",
+                            account.email || "",
+                          );
+                          if (
+                            !nextEmail ||
+                            nextEmail.trim().toLowerCase() ===
+                              String(account.email || "")
+                                .trim()
+                                .toLowerCase()
+                          )
+                            return;
                           try {
-                            await exploreCandidatesAdminApi.updateAccountIdentity(account.id, {
-                              email: nextEmail.trim(),
-                            });
+                            await exploreCandidatesAdminApi.updateAccountIdentity(
+                              account.id,
+                              {
+                                email: nextEmail.trim(),
+                              },
+                            );
                             await load();
                           } catch (error) {
-                            window.alert(error?.response?.data?.message || "Could not update recruiter email");
+                            window.alert(
+                              error?.response?.data?.message ||
+                                "Could not update recruiter email",
+                            );
                           }
                         }}
                       >
@@ -471,12 +635,18 @@ function AccountsPage() {
                             const file = e.target.files?.[0];
                             if (!file) return;
                             try {
-                              await exploreCandidatesAdminApi.updateAccountIdentity(account.id, {
-                                partner_logo_file: file,
-                              });
+                              await exploreCandidatesAdminApi.updateAccountIdentity(
+                                account.id,
+                                {
+                                  partner_logo_file: file,
+                                },
+                              );
                               await load();
                             } catch (error) {
-                              window.alert(error?.response?.data?.message || "Could not update partner logo");
+                              window.alert(
+                                error?.response?.data?.message ||
+                                  "Could not update partner logo",
+                              );
                             }
                           };
                           input.click();
@@ -486,8 +656,12 @@ function AccountsPage() {
                       </ActionButton>
                       <ActionButton
                         onClick={async () => {
-                          const res = await exploreCandidatesAdminApi.resetAccountPassword(account.id);
-                          const generated = res?.data?.data?.generated_password || "";
+                          const res =
+                            await exploreCandidatesAdminApi.resetAccountPassword(
+                              account.id,
+                            );
+                          const generated =
+                            res?.data?.data?.generated_password || "";
                           if (generated && navigator.clipboard?.writeText) {
                             await navigator.clipboard.writeText(generated);
                           }
@@ -499,8 +673,14 @@ function AccountsPage() {
                       <ActionButton
                         variant="danger"
                         onClick={async () => {
-                          if (window.confirm(`Delete recruiter account "${account.email}"?\n\nThis will permanently remove the account and all profile assignments.`)) {
-                            await exploreCandidatesAdminApi.deleteAccount(account.id);
+                          if (
+                            window.confirm(
+                              `Delete recruiter account "${account.email}"?\n\nThis will permanently remove the account and all profile assignments.`,
+                            )
+                          ) {
+                            await exploreCandidatesAdminApi.deleteAccount(
+                              account.id,
+                            );
                             await load();
                           }
                         }}
@@ -517,9 +697,13 @@ function AccountsPage() {
       </div>
 
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-slate-800 px-1">Recruiter Login Events</h2>
+        <h2 className="text-xl font-bold text-slate-800 px-1">
+          Recruiter Login Events
+        </h2>
         {eventsLoading ? (
-          <div className="text-sm text-slate-500 px-1">Loading recruiter login events...</div>
+          <div className="text-sm text-slate-500 px-1">
+            Loading recruiter login events...
+          </div>
         ) : eventsError ? (
           <div className="text-sm text-rose-600 px-1">{eventsError}</div>
         ) : (
@@ -542,8 +726,13 @@ function AccountsPage() {
                 </tr>
               ) : (
                 loginEvents.map((event) => (
-                  <tr key={event.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-5">{event.recruiter_email || "-"}</td>
+                  <tr
+                    key={event.id}
+                    className="hover:bg-slate-50 transition-colors"
+                  >
+                    <td className="px-6 py-5">
+                      {event.recruiter_email || "-"}
+                    </td>
                     <td className="px-6 py-5">{event.account_id || "-"}</td>
                     <td className="px-6 py-5">{event.source || "-"}</td>
                     <td className="px-6 py-5">
@@ -584,9 +773,12 @@ function AccountProfilesPage() {
   const [statusToggling, setStatusToggling] = useState({});
 
   async function load() {
-    const assignRes = await exploreCandidatesAdminApi.getAccountProfiles(accountId);
+    const assignRes =
+      await exploreCandidatesAdminApi.getAccountProfiles(accountId);
     const nextState = assignRes.data.data || { assigned: [], available: [] };
-    const assigned = Array.isArray(nextState.assigned) ? nextState.assigned : [];
+    const assigned = Array.isArray(nextState.assigned)
+      ? nextState.assigned
+      : [];
     const localRows = assigned.filter((row) =>
       String(row.id || "").startsWith("local:"),
     );
@@ -596,8 +788,13 @@ function AccountProfilesPage() {
         try {
           const localId = Number(String(row.id).split(":")[1] || 0);
           if (!localId) return;
-          const res = await exploreCandidatesAdminApi.getProfileRecruitmentStatus(localId);
-          visibilityById[row.id] = res?.data?.data?.visibility || { is_enabled: false };
+          const res =
+            await exploreCandidatesAdminApi.getProfileRecruitmentStatus(
+              localId,
+            );
+          visibilityById[row.id] = res?.data?.data?.visibility || {
+            is_enabled: false,
+          };
         } catch (_err) {
           visibilityById[row.id] = { is_enabled: false };
         }
@@ -607,7 +804,8 @@ function AccountProfilesPage() {
       ...nextState,
       assigned: assigned.map((row) => ({
         ...row,
-        visibility: visibilityById[row.id] || row.visibility || { is_enabled: false },
+        visibility: visibilityById[row.id] ||
+          row.visibility || { is_enabled: false },
       })),
     });
   }
@@ -633,10 +831,17 @@ function AccountProfilesPage() {
   async function openRecruitmentStatusForAssigned(profileRow) {
     const [rowSource, rowIdRaw] = String(profileRow.id || "").split(":");
     const localProfileId =
-      rowSource === "local" ? Number(rowIdRaw || 0) : Number(profileRow.id || 0);
+      rowSource === "local"
+        ? Number(rowIdRaw || 0)
+        : Number(profileRow.id || 0);
 
-    if (!localProfileId || ["explore_php", "main_php", "job_screening"].includes(rowSource)) {
-      window.alert("Recruitment status is available only for local shared profiles.");
+    if (
+      !localProfileId ||
+      ["explore_php", "main_php", "job_screening"].includes(rowSource)
+    ) {
+      window.alert(
+        "Recruitment status is available only for local shared profiles.",
+      );
       return;
     }
 
@@ -645,10 +850,15 @@ function AccountProfilesPage() {
     setStatusError("");
     setStatusData(null);
     try {
-      const res = await exploreCandidatesAdminApi.getProfileRecruitmentStatus(localProfileId);
+      const res =
+        await exploreCandidatesAdminApi.getProfileRecruitmentStatus(
+          localProfileId,
+        );
       setStatusData(res?.data?.data || null);
     } catch (error) {
-      setStatusError(error?.response?.data?.message || "Could not fetch recruitment status");
+      setStatusError(
+        error?.response?.data?.message || "Could not fetch recruitment status",
+      );
     } finally {
       setStatusLoading(false);
     }
@@ -657,22 +867,35 @@ function AccountProfilesPage() {
   async function toggleRecruitmentStatusForAssigned(profileRow, shouldEnable) {
     const [rowSource, rowIdRaw] = String(profileRow.id || "").split(":");
     const localProfileId =
-      rowSource === "local" ? Number(rowIdRaw || 0) : Number(profileRow.id || 0);
-    if (!localProfileId || ["explore_php", "main_php", "job_screening"].includes(rowSource)) {
-      window.alert("Recruitment status visibility is available only for local shared profiles.");
+      rowSource === "local"
+        ? Number(rowIdRaw || 0)
+        : Number(profileRow.id || 0);
+    if (
+      !localProfileId ||
+      ["explore_php", "main_php", "job_screening"].includes(rowSource)
+    ) {
+      window.alert(
+        "Recruitment status visibility is available only for local shared profiles.",
+      );
       return;
     }
     const key = `assigned-${profileRow.id}`;
     try {
       setStatusToggling((prev) => ({ ...prev, [key]: true }));
       if (shouldEnable) {
-        await exploreCandidatesAdminApi.enableProfileRecruitmentStatus(localProfileId);
+        await exploreCandidatesAdminApi.enableProfileRecruitmentStatus(
+          localProfileId,
+        );
       } else {
-        await exploreCandidatesAdminApi.disableProfileRecruitmentStatus(localProfileId);
+        await exploreCandidatesAdminApi.disableProfileRecruitmentStatus(
+          localProfileId,
+        );
       }
       await load();
     } catch (error) {
-      window.alert(error?.response?.data?.message || "Could not update visibility");
+      window.alert(
+        error?.response?.data?.message || "Could not update visibility",
+      );
     } finally {
       setStatusToggling((prev) => ({ ...prev, [key]: false }));
     }
@@ -688,7 +911,9 @@ function AccountProfilesPage() {
             <Link to="/admin/explore-candidates/library">
               <SecondaryButton>Open Library</SecondaryButton>
             </Link>
-            <Link to={`/admin/explore-candidates/profiles/new?accountId=${accountId}`}>
+            <Link
+              to={`/admin/explore-candidates/profiles/new?accountId=${accountId}`}
+            >
               <PrimaryButton>Add Profile</PrimaryButton>
             </Link>
             <Link to="/admin/explore-candidates">
@@ -699,71 +924,100 @@ function AccountProfilesPage() {
       >
         <div className="flex flex-col sm:flex-row gap-3 items-end flex-wrap">
           <div className="space-y-1 w-full sm:max-w-[190px]">
-             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Source</label>
-             <select
-               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition bg-white"
-               value={pickSource}
-               onChange={(e) => {
-                 setPickSource(e.target.value);
-                 setPickId("");
-               }}
-             >
-               <option value="local">Local Shared</option>
-               <option value="explore_php">Main Site Shared (Explore)</option>
-               <option value="main_php">Main Site Users (Read-only)</option>
-               <option value="job_screening">Job Screening Candidates</option>
-             </select>
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Source
+            </label>
+            <select
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition bg-white"
+              value={pickSource}
+              onChange={(e) => {
+                setPickSource(e.target.value);
+                setPickId("");
+              }}
+            >
+              <option value="local">Local Shared</option>
+              <option value="explore_php">Main Site Shared (Explore)</option>
+              <option value="main_php">Main Site Users (Read-only)</option>
+              <option value="job_screening">Job Screening Candidates</option>
+            </select>
           </div>
           <div className="space-y-1 w-full sm:max-w-[150px]">
-             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Search by</label>
-             <select
-               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition bg-white"
-               value={pickSearchBy}
-               onChange={(e) => {
-                 setPickSearchBy(e.target.value);
-                 setPickId("");
-               }}
-             >
-               <option value="name">Name</option>
-               <option value="phone">Phone</option>
-             </select>
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Search by
+            </label>
+            <select
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition bg-white"
+              value={pickSearchBy}
+              onChange={(e) => {
+                setPickSearchBy(e.target.value);
+                setPickId("");
+              }}
+            >
+              <option value="name">Name</option>
+              <option value="phone">Phone</option>
+            </select>
           </div>
           <div className="space-y-1 flex-1 min-w-[220px]">
-             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Search text</label>
-             <input
-               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
-               value={pickQuery}
-               onChange={(e) => {
-                 setPickQuery(e.target.value);
-                 setPickId("");
-               }}
-               placeholder={pickSearchBy === "phone" ? "Type phone..." : "Type name..."}
-             />
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Search text
+            </label>
+            <input
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
+              value={pickQuery}
+              onChange={(e) => {
+                setPickQuery(e.target.value);
+                setPickId("");
+              }}
+              placeholder={
+                pickSearchBy === "phone" ? "Type phone..." : "Type name..."
+              }
+            />
           </div>
           <div className="space-y-1 flex-1 min-w-[260px]">
-             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Assign existing profile</label>
-             <select
-               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition bg-white"
-               value={pickId}
-               onChange={(e) => setPickId(e.target.value)}
-             >
-                <option value="">Select a shared profile...</option>
-               {pickOptions.map((p) => (
-                 <option key={p.profile_uid || p.id} value={p.profile_uid || `${pickSource}:${p.id}`}>
-                   {p.fullname}{p.phone ? ` (${p.countrycode || ""}${p.phone})` : ""}
-                 </option>
-               ))}
-             </select>
-           </div>
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Assign existing profile
+            </label>
+            <select
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition bg-white"
+              value={pickId}
+              onChange={(e) => setPickId(e.target.value)}
+            >
+              <option value="">Select a shared profile...</option>
+              {pickOptions.map((p) => (
+                <option
+                  key={p.profile_uid || p.id}
+                  value={p.profile_uid || `${pickSource}:${p.id}`}
+                >
+                  {p.fullname}
+                  {p.phone ? ` (${p.countrycode || ""}${p.phone})` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
           <PrimaryButton
             disabled={!pickId}
             onClick={async () => {
               const [selectedSource, selectedIdRaw] = String(pickId).split(":");
-              const selectedId = selectedSource === "job_screening" ? selectedIdRaw : Number(selectedIdRaw || 0);
-              if (["explore_php", "main_php", "job_screening"].includes(selectedSource)) {
-                await exploreCandidatesAdminApi.assignBridgeProfile(accountId, selectedId, selectedSource);
+              const selectedId =
+                selectedSource === "job_screening"
+                  ? selectedIdRaw
+                  : Number(selectedIdRaw || 0);
+              if (
+                ["explore_php", "main_php", "job_screening"].includes(
+                  selectedSource,
+                )
+              ) {
+                await exploreCandidatesAdminApi.assignBridgeProfile(
+                  accountId,
+                  selectedId,
+                  selectedSource,
+                );
               } else {
-                await exploreCandidatesAdminApi.assignProfile(accountId, selectedId, 0);
+                await exploreCandidatesAdminApi.assignProfile(
+                  accountId,
+                  selectedId,
+                  0,
+                );
               }
               setPickId("");
               await load();
@@ -775,7 +1029,9 @@ function AccountProfilesPage() {
       </PageCard>
 
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-slate-800 px-1">Assigned Profiles</h2>
+        <h2 className="text-xl font-bold text-slate-800 px-1">
+          Assigned Profiles
+        </h2>
         <TableWrapper>
           <TableHead>
             <tr>
@@ -789,7 +1045,9 @@ function AccountProfilesPage() {
               <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-6 py-5 align-middle">
                   <div className="font-bold text-slate-900">{p.fullname}</div>
-                  <div className="text-xs text-slate-500 mt-1">{p.source || "local"}</div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    {p.source || "local"}
+                  </div>
                 </td>
                 <td className="px-6 py-5 align-middle">
                   {(p.source || "local") === "local" ? (
@@ -807,15 +1065,21 @@ function AccountProfilesPage() {
                       }}
                     />
                   ) : (
-                    <span className="text-xs text-slate-500">Managed on main site</span>
+                    <span className="text-xs text-slate-500">
+                      Managed on main site
+                    </span>
                   )}
                 </td>
                 <td className="px-6 py-5 align-middle">
                   <div className="flex flex-wrap justify-end gap-2">
-                    <Link to={`/admin/explore-candidates/profiles/${p.id}/edit?accountId=${accountId}`}>
+                    <Link
+                      to={`/admin/explore-candidates/profiles/${p.id}/edit?accountId=${accountId}`}
+                    >
                       <ActionButton>Edit</ActionButton>
                     </Link>
-                    <ActionButton onClick={() => openRecruitmentStatusForAssigned(p)}>
+                    <ActionButton
+                      onClick={() => openRecruitmentStatusForAssigned(p)}
+                    >
                       Status
                     </ActionButton>
                     <ActionButton
@@ -837,13 +1101,23 @@ function AccountProfilesPage() {
                     <ActionButton
                       variant="danger"
                       onClick={async () => {
-                        if (window.confirm("Are you sure you want to unassign this profile?")) {
+                        if (
+                          window.confirm(
+                            "Are you sure you want to unassign this profile?",
+                          )
+                        ) {
                           const [rowSource, rowIdRaw] = String(p.id).split(":");
                           const rowId = Number(rowIdRaw || 0);
                           if (rowSource === "explore_php") {
-                            await exploreCandidatesAdminApi.unassignBridgeProfile(accountId, rowId);
+                            await exploreCandidatesAdminApi.unassignBridgeProfile(
+                              accountId,
+                              rowId,
+                            );
                           } else {
-                            await exploreCandidatesAdminApi.unassignProfile(accountId, rowId);
+                            await exploreCandidatesAdminApi.unassignProfile(
+                              accountId,
+                              rowId,
+                            );
                           }
                           await load();
                         }
@@ -875,7 +1149,12 @@ function LibraryPage() {
   const [searchBy, setSearchBy] = useState("name");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, total_pages: 1 });
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    total_pages: 1,
+  });
   const [loading, setLoading] = useState(false);
   const [addingLocal, setAddingLocal] = useState({});
   const [statusModalOpen, setStatusModalOpen] = useState(false);
@@ -904,9 +1183,12 @@ function LibraryPage() {
           const uid = String(row.profile_uid || `local:${row.id}`);
           try {
             const statusRes =
-              await exploreCandidatesAdminApi.getLibraryProfileRecruitmentStatus(uid);
-            visibilityByUid[uid] =
-              statusRes?.data?.data?.visibility || { is_enabled: false };
+              await exploreCandidatesAdminApi.getLibraryProfileRecruitmentStatus(
+                uid,
+              );
+            visibilityByUid[uid] = statusRes?.data?.data?.visibility || {
+              is_enabled: false,
+            };
           } catch (_err) {
             visibilityByUid[uid] = { is_enabled: false };
           }
@@ -917,12 +1199,19 @@ function LibraryPage() {
           const uid = String(row.profile_uid || `local:${row.id}`);
           return {
             ...row,
-            visibility:
-              visibilityByUid[uid] || row.visibility || { is_enabled: false },
+            visibility: visibilityByUid[uid] ||
+              row.visibility || { is_enabled: false },
           };
         }),
       );
-      setPagination(res?.data?.pagination || { page: 1, limit: 20, total: 0, total_pages: 1 });
+      setPagination(
+        res?.data?.pagination || {
+          page: 1,
+          limit: 20,
+          total: 0,
+          total_pages: 1,
+        },
+      );
     } finally {
       setLoading(false);
     }
@@ -943,7 +1232,9 @@ function LibraryPage() {
   async function openRecruitmentStatusForLibrary(profileRow) {
     const uid = String(profileRow.profile_uid || `local:${profileRow.id}`);
     if (!uid.startsWith("local:")) {
-      window.alert("Recruitment status is available only for local shared profiles.");
+      window.alert(
+        "Recruitment status is available only for local shared profiles.",
+      );
       return;
     }
     setStatusModalOpen(true);
@@ -966,20 +1257,28 @@ function LibraryPage() {
   async function toggleRecruitmentStatusForLibrary(profileRow, shouldEnable) {
     const uid = String(profileRow.profile_uid || `local:${profileRow.id}`);
     if (!uid.startsWith("local:")) {
-      window.alert("Recruitment status visibility is available only for local shared profiles.");
+      window.alert(
+        "Recruitment status visibility is available only for local shared profiles.",
+      );
       return;
     }
     const key = `library-${uid}`;
     try {
       setStatusToggling((prev) => ({ ...prev, [key]: true }));
       if (shouldEnable) {
-        await exploreCandidatesAdminApi.enableLibraryProfileRecruitmentStatus(uid);
+        await exploreCandidatesAdminApi.enableLibraryProfileRecruitmentStatus(
+          uid,
+        );
       } else {
-        await exploreCandidatesAdminApi.disableLibraryProfileRecruitmentStatus(uid);
+        await exploreCandidatesAdminApi.disableLibraryProfileRecruitmentStatus(
+          uid,
+        );
       }
       await load();
     } catch (error) {
-      window.alert(error?.response?.data?.message || "Could not update visibility");
+      window.alert(
+        error?.response?.data?.message || "Could not update visibility",
+      );
     } finally {
       setStatusToggling((prev) => ({ ...prev, [key]: false }));
     }
@@ -1003,7 +1302,9 @@ function LibraryPage() {
       />
 
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-slate-800 px-1">Library Profiles</h2>
+        <h2 className="text-xl font-bold text-slate-800 px-1">
+          Library Profiles
+        </h2>
         <div className="grid gap-3 md:grid-cols-4">
           <select
             className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition bg-white"
@@ -1031,7 +1332,11 @@ function LibraryPage() {
           </select>
           <input
             className="md:col-span-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
-            placeholder={searchBy === "phone" ? "Type phone number..." : "Type candidate name..."}
+            placeholder={
+              searchBy === "phone"
+                ? "Type phone number..."
+                : "Type candidate name..."
+            }
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -1049,112 +1354,146 @@ function LibraryPage() {
           <TableBody>
             {loading ? (
               <tr>
-                <td className="px-6 py-5 text-slate-500" colSpan={5}>Loading profiles...</td>
+                <td className="px-6 py-5 text-slate-500" colSpan={5}>
+                  Loading profiles...
+                </td>
               </tr>
-            ) : profiles.map((p) => (
-              <tr key={p.profile_uid || p.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-5 align-middle">
-                  <div className="font-bold text-slate-900">{p.fullname}</div>
-                </td>
-                <td className="px-6 py-5 align-middle">{`${p.countrycode || ""}${p.phone || "-"}`}</td>
-                <td className="px-6 py-5 align-middle">{p.source || source}</td>
-                <td className="px-6 py-5 align-middle">
-                  <span className="inline-flex rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
-                    Used {p.usage_count || 0} times
-                  </span>
-                </td>
-                <td className="px-6 py-5 align-middle">
-                  <div className="flex flex-wrap justify-end gap-2">
-                    {String(p.source || "").endsWith("_php") || String(p.source || "") === "job_screening" ? (
-                      <ActionButton
-                        variant="primary"
-                        disabled={Boolean(addingLocal[p.profile_uid || p.id])}
-                        onClick={async () => {
-                          const key = p.profile_uid || p.id;
-                          const sourceValue = String(p.source || source);
-                          const sourceProfileId = sourceValue === "job_screening"
-                            ? (p.source_profile_id || p.id)
-                            : Number(p.source_profile_id || p.id || 0);
-                          if (!sourceProfileId) return;
-                          try {
-                            setAddingLocal((prev) => ({ ...prev, [key]: true }));
-                            await exploreCandidatesAdminApi.addBridgeProfileToLocal(
-                              sourceProfileId,
-                              sourceValue,
-                            );
-                            window.alert("Profile added to local library");
-                          } catch (error) {
-                            window.alert(
-                              error?.response?.data?.message ||
-                                "Could not add profile to local library",
-                            );
-                          } finally {
-                            setAddingLocal((prev) => ({
-                              ...prev,
-                              [key]: false,
-                            }));
-                          }
-                        }}
-                      >
-                        {addingLocal[p.profile_uid || p.id]
-                          ? "Adding..."
-                          : "Add to Local"}
-                      </ActionButton>
-                    ) : null}
-                    {String(p.source || "") === "main_php" || String(p.source || "") === "job_screening" ? (
-                      <span className="text-xs text-amber-700 font-semibold">
-                        Not editable here.
-                      </span>
-                    ) : (
-                      <>
-                        <ActionButton onClick={() => openRecruitmentStatusForLibrary(p)}>
-                          Status
-                        </ActionButton>
+            ) : (
+              profiles.map((p) => (
+                <tr
+                  key={p.profile_uid || p.id}
+                  className="hover:bg-slate-50 transition-colors"
+                >
+                  <td className="px-6 py-5 align-middle">
+                    <div className="font-bold text-slate-900">{p.fullname}</div>
+                  </td>
+                  <td className="px-6 py-5 align-middle">{`${p.countrycode || ""}${p.phone || "-"}`}</td>
+                  <td className="px-6 py-5 align-middle">
+                    {p.source || source}
+                  </td>
+                  <td className="px-6 py-5 align-middle">
+                    <span className="inline-flex rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                      Used {p.usage_count || 0} times
+                    </span>
+                  </td>
+                  <td className="px-6 py-5 align-middle">
+                    <div className="flex flex-wrap justify-end gap-2">
+                      {String(p.source || "").endsWith("_php") ||
+                      String(p.source || "") === "job_screening" ? (
                         <ActionButton
-                          variant={p?.visibility?.is_enabled ? "danger" : "primary"}
-                          disabled={Boolean(statusToggling[`library-${p.profile_uid || `local:${p.id}`}`])}
-                          onClick={() =>
-                            toggleRecruitmentStatusForLibrary(
-                              p,
-                              !p?.visibility?.is_enabled,
-                            )
-                          }
-                        >
-                          {statusToggling[`library-${p.profile_uid || `local:${p.id}`}`]
-                            ? "Saving..."
-                            : p?.visibility?.is_enabled
-                              ? "Stop Status"
-                              : "Show Status"}
-                        </ActionButton>
-                        <Link to={`/admin/explore-candidates/profiles/${encodeURIComponent(p.profile_uid || `local:${p.id}`)}/edit`}>
-                          <ActionButton>Edit</ActionButton>
-                        </Link>
-                        <ActionButton
-                          variant="danger"
+                          variant="primary"
+                          disabled={Boolean(addingLocal[p.profile_uid || p.id])}
                           onClick={async () => {
-                            const isPhpSource = String(p.source || "").endsWith("_php");
-                            const confirmMessage = isPhpSource
-                              ? "Disable this PHP source profile?"
-                              : "Are you sure you want to delete this profile?";
-                            if (window.confirm(confirmMessage)) {
-                              await exploreCandidatesAdminApi.deleteProfile(p.profile_uid || p.id);
-                              await load();
+                            const key = p.profile_uid || p.id;
+                            const sourceValue = String(p.source || source);
+                            const sourceProfileId =
+                              sourceValue === "job_screening"
+                                ? p.source_profile_id || p.id
+                                : Number(p.source_profile_id || p.id || 0);
+                            if (!sourceProfileId) return;
+                            try {
+                              setAddingLocal((prev) => ({
+                                ...prev,
+                                [key]: true,
+                              }));
+                              await exploreCandidatesAdminApi.addBridgeProfileToLocal(
+                                sourceProfileId,
+                                sourceValue,
+                              );
+                              window.alert("Profile added to local library");
+                            } catch (error) {
+                              window.alert(
+                                error?.response?.data?.message ||
+                                  "Could not add profile to local library",
+                              );
+                            } finally {
+                              setAddingLocal((prev) => ({
+                                ...prev,
+                                [key]: false,
+                              }));
                             }
                           }}
                         >
-                          {String(p.source || "").endsWith("_php") ? "Disable" : "Delete"}
+                          {addingLocal[p.profile_uid || p.id]
+                            ? "Adding..."
+                            : "Add to Local"}
                         </ActionButton>
-                      </>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
+                      ) : null}
+                      {String(p.source || "") === "main_php" ||
+                      String(p.source || "") === "job_screening" ? (
+                        <span className="text-xs text-amber-700 font-semibold">
+                          Not editable here.
+                        </span>
+                      ) : (
+                        <>
+                          <ActionButton
+                            onClick={() => openRecruitmentStatusForLibrary(p)}
+                          >
+                            Status
+                          </ActionButton>
+                          <ActionButton
+                            variant={
+                              p?.visibility?.is_enabled ? "danger" : "primary"
+                            }
+                            disabled={Boolean(
+                              statusToggling[
+                                `library-${p.profile_uid || `local:${p.id}`}`
+                              ],
+                            )}
+                            onClick={() =>
+                              toggleRecruitmentStatusForLibrary(
+                                p,
+                                !p?.visibility?.is_enabled,
+                              )
+                            }
+                          >
+                            {statusToggling[
+                              `library-${p.profile_uid || `local:${p.id}`}`
+                            ]
+                              ? "Saving..."
+                              : p?.visibility?.is_enabled
+                                ? "Stop Status"
+                                : "Show Status"}
+                          </ActionButton>
+                          <Link
+                            to={`/admin/explore-candidates/profiles/${encodeURIComponent(p.profile_uid || `local:${p.id}`)}/edit`}
+                          >
+                            <ActionButton>Edit</ActionButton>
+                          </Link>
+                          <ActionButton
+                            variant="danger"
+                            onClick={async () => {
+                              const isPhpSource = String(
+                                p.source || "",
+                              ).endsWith("_php");
+                              const confirmMessage = isPhpSource
+                                ? "Disable this PHP source profile?"
+                                : "Are you sure you want to delete this profile?";
+                              if (window.confirm(confirmMessage)) {
+                                await exploreCandidatesAdminApi.deleteProfile(
+                                  p.profile_uid || p.id,
+                                );
+                                await load();
+                              }
+                            }}
+                          >
+                            {String(p.source || "").endsWith("_php")
+                              ? "Disable"
+                              : "Delete"}
+                          </ActionButton>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </TableBody>
         </TableWrapper>
         <div className="flex items-center justify-between px-1">
           <div className="text-xs text-slate-500">
-            Showing page {pagination.page} of {pagination.total_pages} ({pagination.total} profiles)
+            Showing page {pagination.page} of {pagination.total_pages} (
+            {pagination.total} profiles)
           </div>
           <div className="flex gap-2">
             <SecondaryButton
@@ -1165,7 +1504,9 @@ function LibraryPage() {
             </SecondaryButton>
             <SecondaryButton
               disabled={pagination.page >= pagination.total_pages}
-              onClick={() => setPage((v) => Math.min(pagination.total_pages, v + 1))}
+              onClick={() =>
+                setPage((v) => Math.min(pagination.total_pages, v + 1))
+              }
             >
               Next
             </SecondaryButton>
@@ -1191,8 +1532,16 @@ function ProfileFormPage({ mode }) {
   const [form, setForm] = useState(initialProfileForm);
   const [videos, setVideos] = useState([]);
   const [documents, setDocuments] = useState([]);
-  const [newVideo, setNewVideo] = useState({ title: "", display_order: 0, file: null });
-  const [newDoc, setNewDoc] = useState({ title: "", display_order: 0, file: null });
+  const [newVideo, setNewVideo] = useState({
+    title: "",
+    display_order: 0,
+    file: null,
+  });
+  const [newDoc, setNewDoc] = useState({
+    title: "",
+    display_order: 0,
+    file: null,
+  });
   const [createVideos, setCreateVideos] = useState([]);
   const [createDocs, setCreateDocs] = useState([]);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -1233,9 +1582,28 @@ function ProfileFormPage({ mode }) {
     return candidate;
   };
 
+  const openDocumentInline = async (url) => {
+    try {
+      const res = await fetch(url);
+      const rawBlob = await res.blob();
+      const blob =
+        rawBlob.type === "application/pdf"
+          ? rawBlob
+          : rawBlob.slice(0, rawBlob.size, "application/pdf");
+      window.open(URL.createObjectURL(blob), "_blank", "noopener,noreferrer");
+    } catch (err) {
+      console.error(
+        "Failed to open document inline, falling back to direct link",
+        err,
+      );
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+
   const pickPdfOrReset = (file, inputEl) => {
     if (!file) return null;
-    const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name || "");
+    const isPdf =
+      file.type === "application/pdf" || /\.pdf$/i.test(file.name || "");
     if (!isPdf) {
       window.alert("Only PDF files are allowed.");
       if (inputEl) inputEl.value = "";
@@ -1267,7 +1635,8 @@ function ProfileFormPage({ mode }) {
     });
   }, [mode, profileId]);
 
-  const title = mode === "edit" ? "Edit Shared Profile" : "Create Shared Profile";
+  const title =
+    mode === "edit" ? "Edit Shared Profile" : "Create Shared Profile";
 
   return (
     <div className="space-y-8 font-sans pb-12">
@@ -1307,18 +1676,24 @@ function ProfileFormPage({ mode }) {
             ["language", "Language"],
           ].map(([field, label]) => (
             <div key={field} className="space-y-1">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">{label}</label>
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                {label}
+              </label>
               <input
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
                 placeholder={`Enter ${label.toLowerCase()}`}
                 value={form[field] || ""}
-                onChange={(e) => setForm((v) => ({ ...v, [field]: e.target.value }))}
+                onChange={(e) =>
+                  setForm((v) => ({ ...v, [field]: e.target.value }))
+                }
               />
             </div>
           ))}
-          
+
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Date of Birth</label>
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Date of Birth
+            </label>
             <input
               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
               type="date"
@@ -1326,13 +1701,17 @@ function ProfileFormPage({ mode }) {
               onChange={(e) => setForm((v) => ({ ...v, dob: e.target.value }))}
             />
           </div>
-          
+
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Gender</label>
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Gender
+            </label>
             <select
               className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition bg-white"
               value={form.gender || ""}
-              onChange={(e) => setForm((v) => ({ ...v, gender: e.target.value }))}
+              onChange={(e) =>
+                setForm((v) => ({ ...v, gender: e.target.value }))
+              }
             >
               <option value="">Select gender...</option>
               <option value="Male">Male</option>
@@ -1340,15 +1719,20 @@ function ProfileFormPage({ mode }) {
               <option value="Others">Others</option>
             </select>
           </div>
-          
+
           {[
             ["resume", "Resume (PDF)"],
             ["degcert", "Degree Certificate (PDF)"],
             ["workcert", "Work Certificate (PDF)"],
-            ["langcert", "Language Certificate (PDF)"]
+            ["langcert", "Language Certificate (PDF)"],
           ].map(([field, label]) => (
-            <div key={field} className="space-y-2 rounded-xl border border-slate-200 p-4 bg-slate-50">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">{label}</label>
+            <div
+              key={field}
+              className="space-y-2 rounded-xl border border-slate-200 p-4 bg-slate-50"
+            >
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                {label}
+              </label>
               <input
                 className="w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-[#083262] file:text-white file:px-4 file:py-2 file:text-xs file:font-semibold hover:file:bg-[#052243] transition cursor-pointer"
                 type="file"
@@ -1356,30 +1740,57 @@ function ProfileFormPage({ mode }) {
                 onChange={(e) =>
                   setForm((v) => ({
                     ...v,
-                    [field]: pickPdfOrReset(e.target.files?.[0] || null, e.target),
+                    [field]: pickPdfOrReset(
+                      e.target.files?.[0] || null,
+                      e.target,
+                    ),
                   }))
                 }
               />
-              <div className="text-xs text-slate-600">
-                {(typeof File !== "undefined" && form[field] instanceof File)
-                  ? form[field].name
-                  : (form[field] ? getStoredAssetLabel(form[field], `${label.replace(/\s*\(PDF\)\s*/i, "")}.pdf`) : "No file chosen")}
+              <div className="text-xs text-slate-600 flex items-center gap-2">
+                <span>
+                  {typeof File !== "undefined" && form[field] instanceof File
+                    ? form[field].name
+                    : form[field]
+                      ? getStoredAssetLabel(
+                          form[field],
+                          `${label.replace(/\s*\(PDF\)\s*/i, "")}.pdf`,
+                        )
+                      : "No file chosen"}
+                </span>
+                {!(
+                  typeof File !== "undefined" && form[field] instanceof File
+                ) &&
+                  form[field] && (
+                    <ActionButton
+                      variant="primary"
+                      onClick={() => openDocumentInline(form[field])}
+                    >
+                      View
+                    </ActionButton>
+                  )}
               </div>
             </div>
           ))}
 
           <div className="space-y-2 rounded-xl border border-slate-200 p-4 bg-slate-50">
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">Profile Photo (Image)</label>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Profile Photo (Image)
+            </label>
             <input
               className="w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-[#083262] file:text-white file:px-4 file:py-2 file:text-xs file:font-semibold hover:file:bg-[#052243] transition cursor-pointer"
               type="file"
               accept="image/*"
-              onChange={(e) => setForm((v) => ({ ...v, photo: e.target.files?.[0] || null }))}
+              onChange={(e) =>
+                setForm((v) => ({ ...v, photo: e.target.files?.[0] || null }))
+              }
             />
             <div className="text-xs text-slate-600">
-              {(typeof File !== "undefined" && form.photo instanceof File)
+              {typeof File !== "undefined" && form.photo instanceof File
                 ? form.photo.name
-                : (form.photo ? getStoredAssetLabel(form.photo, "Profile photo") : "No file chosen")}
+                : form.photo
+                  ? getStoredAssetLabel(form.photo, "Profile photo")
+                  : "No file chosen"}
             </div>
           </div>
         </div>
@@ -1411,37 +1822,55 @@ function ProfileFormPage({ mode }) {
 
                 let profile;
                 if (mode === "edit") {
-                  const res = await exploreCandidatesAdminApi.updateProfile(profileId, payload);
+                  const res = await exploreCandidatesAdminApi.updateProfile(
+                    profileId,
+                    payload,
+                  );
                   profile = res.data.data;
                 } else {
-                  const res = await exploreCandidatesAdminApi.createProfile(payload);
+                  const res =
+                    await exploreCandidatesAdminApi.createProfile(payload);
                   profile = res.data.data;
                   for (const d of createDocs) {
                     if (!d.title || !d.file) continue;
-                    await exploreCandidatesAdminApi.addProfileDocument(profile.id, {
-                      title: d.title,
-                      display_order: d.display_order || 0,
-                      document_file_upload: d.file,
-                    });
+                    await exploreCandidatesAdminApi.addProfileDocument(
+                      profile.id,
+                      {
+                        title: d.title,
+                        display_order: d.display_order || 0,
+                        document_file_upload: d.file,
+                      },
+                    );
                   }
                   for (const v of createVideos) {
                     if (!v.title || !v.file) continue;
-                    await exploreCandidatesAdminApi.addProfileVideo(profile.id, {
-                      title: v.title,
-                      display_order: v.display_order || 0,
-                      video_file_upload: v.file,
-                    });
+                    await exploreCandidatesAdminApi.addProfileVideo(
+                      profile.id,
+                      {
+                        title: v.title,
+                        display_order: v.display_order || 0,
+                        video_file_upload: v.file,
+                      },
+                    );
                   }
                 }
 
                 if (accountId && profile?.id) {
-                  await exploreCandidatesAdminApi.assignProfile(accountId, profile.id, 0);
-                  navigate(`/admin/explore-candidates/accounts/${accountId}/profiles`);
+                  await exploreCandidatesAdminApi.assignProfile(
+                    accountId,
+                    profile.id,
+                    0,
+                  );
+                  navigate(
+                    `/admin/explore-candidates/accounts/${accountId}/profiles`,
+                  );
                   return;
                 }
                 navigate("/admin/explore-candidates/library");
               } catch (error) {
-                window.alert(error?.response?.data?.message || "Could not save profile");
+                window.alert(
+                  error?.response?.data?.message || "Could not save profile",
+                );
               } finally {
                 setSavingProfile(false);
               }
@@ -1458,60 +1887,102 @@ function ProfileFormPage({ mode }) {
 
       <>
         <div className="space-y-4">
-          <h2 className="text-xl font-bold text-slate-800 px-1">Additional Documents</h2>
+          <h2 className="text-xl font-bold text-slate-800 px-1">
+            Additional Documents
+          </h2>
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
             {(mode === "edit" ? documents : createDocs).map((doc, idx) => (
-              <div key={doc.id || `new-doc-${idx}`} className="flex flex-col md:flex-row md:items-end gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50">
+              <div
+                key={doc.id || `new-doc-${idx}`}
+                className="flex flex-col md:flex-row md:items-end gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50"
+              >
                 {mode === "edit" ? (
                   <>
                     <div className="flex-1 space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Title</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        Title
+                      </label>
                       <input
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
                         defaultValue={doc.title}
                         onBlur={async (e) => {
-                          await exploreCandidatesAdminApi.updateProfileDocument(doc.id, {
-                            title: e.target.value,
-                          });
+                          await exploreCandidatesAdminApi.updateProfileDocument(
+                            doc.id,
+                            {
+                              title: e.target.value,
+                            },
+                          );
                         }}
                       />
                     </div>
                     <div className="w-24 space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Order</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        Order
+                      </label>
                       <input
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
                         type="number"
                         defaultValue={doc.display_order || 0}
                         onBlur={async (e) => {
-                          await exploreCandidatesAdminApi.updateProfileDocument(doc.id, {
-                            display_order: Number(e.target.value || 0),
-                          });
+                          await exploreCandidatesAdminApi.updateProfileDocument(
+                            doc.id,
+                            {
+                              display_order: Number(e.target.value || 0),
+                            },
+                          );
                           await refreshProfileDetails();
                         }}
                       />
                     </div>
                     <div className="flex-[2] space-y-1">
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex justify-between">
-                        File {doc.document_file && <span className="text-[#083262] truncate ml-2 max-w-[150px]" title={doc.document_file}>{getStoredAssetLabel(doc.document_file, `${doc.title || "Document"}.pdf`)}</span>}
+                        File{" "}
+                        {doc.document_file && (
+                          <span
+                            className="text-[#083262] truncate ml-2 max-w-[150px]"
+                            title={doc.document_file}
+                          >
+                            {getStoredAssetLabel(
+                              doc.document_file,
+                              `${doc.title || "Document"}.pdf`,
+                            )}
+                          </span>
+                        )}
                       </label>
                       <input
                         className="w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-200 file:px-3 file:py-1.5 file:text-xs file:font-semibold hover:file:bg-slate-300 transition cursor-pointer"
                         type="file"
                         accept=".pdf,application/pdf"
                         onChange={async (e) => {
-                          const f = pickPdfOrReset(e.target.files?.[0] || null, e.target);
+                          const f = pickPdfOrReset(
+                            e.target.files?.[0] || null,
+                            e.target,
+                          );
                           if (!f) return;
-                          await exploreCandidatesAdminApi.updateProfileDocument(doc.id, {
-                            document_file_upload: f,
-                          });
+                          await exploreCandidatesAdminApi.updateProfileDocument(
+                            doc.id,
+                            {
+                              document_file_upload: f,
+                            },
+                          );
                         }}
                       />
                     </div>
+                    {doc.document_file && (
+                      <ActionButton
+                        variant="primary"
+                        onClick={() => openDocumentInline(doc.document_file)}
+                      >
+                        View
+                      </ActionButton>
+                    )}
                     <ActionButton
                       variant="danger"
                       onClick={async () => {
                         if (window.confirm("Delete this document?")) {
-                          await exploreCandidatesAdminApi.deleteProfileDocument(doc.id);
+                          await exploreCandidatesAdminApi.deleteProfileDocument(
+                            doc.id,
+                          );
                           await refreshProfileDetails();
                         }
                       }}
@@ -1522,7 +1993,9 @@ function ProfileFormPage({ mode }) {
                 ) : (
                   <>
                     <div className="flex-1 space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Title</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        Title
+                      </label>
                       <input
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
                         value={doc.title}
@@ -1534,20 +2007,27 @@ function ProfileFormPage({ mode }) {
                       />
                     </div>
                     <div className="w-24 space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Order</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        Order
+                      </label>
                       <input
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
                         type="number"
                         value={doc.display_order || 0}
                         onChange={(e) => {
                           const next = [...createDocs];
-                          next[idx] = { ...next[idx], display_order: Number(e.target.value || 0) };
+                          next[idx] = {
+                            ...next[idx],
+                            display_order: Number(e.target.value || 0),
+                          };
                           setCreateDocs(next);
                         }}
                       />
                     </div>
                     <div className="flex-[2] flex items-center justify-between text-sm text-slate-600 bg-white border border-slate-200 rounded-lg px-3 py-2">
-                      <span className="truncate">{doc.file?.name || "No file attached"}</span>
+                      <span className="truncate">
+                        {doc.file?.name || "No file attached"}
+                      </span>
                       <ActionButton
                         variant="danger"
                         onClick={() => {
@@ -1562,30 +2042,41 @@ function ProfileFormPage({ mode }) {
                 )}
               </div>
             ))}
-            
+
             <div className="flex flex-col md:flex-row md:items-end gap-3 p-4 rounded-xl border border-dashed border-slate-300 bg-white">
               <div className="flex-1 space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">New Document Title</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  New Document Title
+                </label>
                 <input
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
                   placeholder="Document title"
                   value={newDoc.title}
-                  onChange={(e) => setNewDoc((v) => ({ ...v, title: e.target.value }))}
+                  onChange={(e) =>
+                    setNewDoc((v) => ({ ...v, title: e.target.value }))
+                  }
                 />
               </div>
               <div className="w-24 space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Order</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  Order
+                </label>
                 <input
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
                   type="number"
                   value={newDoc.display_order}
                   onChange={(e) =>
-                    setNewDoc((v) => ({ ...v, display_order: Number(e.target.value || 0) }))
+                    setNewDoc((v) => ({
+                      ...v,
+                      display_order: Number(e.target.value || 0),
+                    }))
                   }
                 />
               </div>
               <div className="flex-[2] space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">File (PDF)</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  File (PDF)
+                </label>
                 <input
                   key={`new-doc-file-${docInputKey}`}
                   className="w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-200 file:px-3 file:py-1.5 file:text-xs file:font-semibold hover:file:bg-slate-300 transition cursor-pointer"
@@ -1594,7 +2085,10 @@ function ProfileFormPage({ mode }) {
                   onChange={(e) =>
                     setNewDoc((v) => ({
                       ...v,
-                      file: pickPdfOrReset(e.target.files?.[0] || null, e.target),
+                      file: pickPdfOrReset(
+                        e.target.files?.[0] || null,
+                        e.target,
+                      ),
                     }))
                   }
                 />
@@ -1604,11 +2098,14 @@ function ProfileFormPage({ mode }) {
                 onClick={async () => {
                   if (!newDoc.title || !newDoc.file) return;
                   if (mode === "edit") {
-                    await exploreCandidatesAdminApi.addProfileDocument(profileId, {
-                      title: newDoc.title,
-                      display_order: newDoc.display_order,
-                      document_file_upload: newDoc.file,
-                    });
+                    await exploreCandidatesAdminApi.addProfileDocument(
+                      profileId,
+                      {
+                        title: newDoc.title,
+                        display_order: newDoc.display_order,
+                        document_file_upload: newDoc.file,
+                      },
+                    );
                   } else {
                     setCreateDocs((prev) => [...prev, { ...newDoc }]);
                   }
@@ -1627,31 +2124,44 @@ function ProfileFormPage({ mode }) {
           <h2 className="text-xl font-bold text-slate-800 px-1">Videos</h2>
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
             {(mode === "edit" ? videos : createVideos).map((video, idx) => (
-              <div key={video.id || `new-video-${idx}`} className="flex flex-col md:flex-row md:items-end gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50">
+              <div
+                key={video.id || `new-video-${idx}`}
+                className="flex flex-col md:flex-row md:items-end gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50"
+              >
                 {mode === "edit" ? (
                   <>
                     <div className="flex-1 space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Title</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        Title
+                      </label>
                       <input
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
                         defaultValue={video.title}
                         onBlur={async (e) => {
-                          await exploreCandidatesAdminApi.updateProfileVideo(video.id, {
-                            title: e.target.value,
-                          });
+                          await exploreCandidatesAdminApi.updateProfileVideo(
+                            video.id,
+                            {
+                              title: e.target.value,
+                            },
+                          );
                         }}
                       />
                     </div>
                     <div className="w-24 space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Order</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        Order
+                      </label>
                       <input
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
                         type="number"
                         defaultValue={video.display_order || 0}
                         onBlur={async (e) => {
-                          await exploreCandidatesAdminApi.updateProfileVideo(video.id, {
-                            display_order: Number(e.target.value || 0),
-                          });
+                          await exploreCandidatesAdminApi.updateProfileVideo(
+                            video.id,
+                            {
+                              display_order: Number(e.target.value || 0),
+                            },
+                          );
                           await refreshProfileDetails();
                         }}
                       />
@@ -1660,10 +2170,18 @@ function ProfileFormPage({ mode }) {
                       <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex justify-between">
                         <span>File</span>
                         {videoUploadState[video.id] ? (
-                          <span className="text-[#083262] ml-2">Uploading...</span>
+                          <span className="text-[#083262] ml-2">
+                            Uploading...
+                          </span>
                         ) : video.video_file ? (
-                          <span className="text-[#083262] truncate ml-2 max-w-[150px]" title={video.video_file}>
-                            {getStoredAssetLabel(video.video_file, `${video.title || "Video"}`)}
+                          <span
+                            className="text-[#083262] truncate ml-2 max-w-[150px]"
+                            title={video.video_file}
+                          >
+                            {getStoredAssetLabel(
+                              video.video_file,
+                              `${video.title || "Video"}`,
+                            )}
                           </span>
                         ) : null}
                       </label>
@@ -1675,16 +2193,28 @@ function ProfileFormPage({ mode }) {
                         onChange={async (e) => {
                           const f = e.target.files?.[0];
                           if (!f) return;
-                          setVideoUploadState((state) => ({ ...state, [video.id]: true }));
+                          setVideoUploadState((state) => ({
+                            ...state,
+                            [video.id]: true,
+                          }));
                           try {
-                            await exploreCandidatesAdminApi.updateProfileVideo(video.id, {
-                              video_file_upload: f,
-                            });
+                            await exploreCandidatesAdminApi.updateProfileVideo(
+                              video.id,
+                              {
+                                video_file_upload: f,
+                              },
+                            );
                             await refreshProfileDetails();
                           } catch (error) {
-                            window.alert(error?.response?.data?.message || "Could not upload video");
+                            window.alert(
+                              error?.response?.data?.message ||
+                                "Could not upload video",
+                            );
                           } finally {
-                            setVideoUploadState((state) => ({ ...state, [video.id]: false }));
+                            setVideoUploadState((state) => ({
+                              ...state,
+                              [video.id]: false,
+                            }));
                             e.target.value = "";
                           }
                         }}
@@ -1694,7 +2224,9 @@ function ProfileFormPage({ mode }) {
                       variant="danger"
                       onClick={async () => {
                         if (window.confirm("Delete this video?")) {
-                          await exploreCandidatesAdminApi.deleteProfileVideo(video.id);
+                          await exploreCandidatesAdminApi.deleteProfileVideo(
+                            video.id,
+                          );
                           await refreshProfileDetails();
                         }
                       }}
@@ -1705,7 +2237,9 @@ function ProfileFormPage({ mode }) {
                 ) : (
                   <>
                     <div className="flex-1 space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Title</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        Title
+                      </label>
                       <input
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
                         value={video.title}
@@ -1717,20 +2251,27 @@ function ProfileFormPage({ mode }) {
                       />
                     </div>
                     <div className="w-24 space-y-1">
-                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Order</label>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        Order
+                      </label>
                       <input
                         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
                         type="number"
                         value={video.display_order || 0}
                         onChange={(e) => {
                           const next = [...createVideos];
-                          next[idx] = { ...next[idx], display_order: Number(e.target.value || 0) };
+                          next[idx] = {
+                            ...next[idx],
+                            display_order: Number(e.target.value || 0),
+                          };
                           setCreateVideos(next);
                         }}
                       />
                     </div>
                     <div className="flex-[2] flex items-center justify-between text-sm text-slate-600 bg-white border border-slate-200 rounded-lg px-3 py-2">
-                      <span className="truncate">{video.file?.name || "No file attached"}</span>
+                      <span className="truncate">
+                        {video.file?.name || "No file attached"}
+                      </span>
                       <ActionButton
                         variant="danger"
                         onClick={() => {
@@ -1745,59 +2286,86 @@ function ProfileFormPage({ mode }) {
                 )}
               </div>
             ))}
-            
+
             <div className="flex flex-col md:flex-row md:items-end gap-3 p-4 rounded-xl border border-dashed border-slate-300 bg-white">
               <div className="flex-1 space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">New Video Title</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  New Video Title
+                </label>
                 <input
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
                   placeholder="Video title"
                   value={newVideo.title}
-                  onChange={(e) => setNewVideo((v) => ({ ...v, title: e.target.value }))}
+                  onChange={(e) =>
+                    setNewVideo((v) => ({ ...v, title: e.target.value }))
+                  }
                 />
               </div>
               <div className="w-24 space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Order</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  Order
+                </label>
                 <input
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
                   type="number"
                   value={newVideo.display_order}
                   onChange={(e) =>
-                    setNewVideo((v) => ({ ...v, display_order: Number(e.target.value || 0) }))
+                    setNewVideo((v) => ({
+                      ...v,
+                      display_order: Number(e.target.value || 0),
+                    }))
                   }
                 />
               </div>
               <div className="flex-[2] space-y-1">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">File (Video)</label>
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  File (Video)
+                </label>
                 <input
                   key={`new-video-file-${videoInputKey}`}
                   className="w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-slate-200 file:px-3 file:py-1.5 file:text-xs file:font-semibold hover:file:bg-slate-300 transition cursor-pointer"
                   type="file"
                   accept="video/*"
                   onChange={(e) =>
-                    setNewVideo((v) => ({ ...v, file: e.target.files?.[0] || null }))
+                    setNewVideo((v) => ({
+                      ...v,
+                      file: e.target.files?.[0] || null,
+                    }))
                   }
                 />
               </div>
               <SecondaryButton
-                disabled={!newVideo.title || !newVideo.file || Boolean(videoUploadState.new)}
+                disabled={
+                  !newVideo.title ||
+                  !newVideo.file ||
+                  Boolean(videoUploadState.new)
+                }
                 onClick={async () => {
                   if (!newVideo.title || !newVideo.file) return;
                   if (mode === "edit") {
                     setVideoUploadState((state) => ({ ...state, new: true }));
                     try {
-                      await exploreCandidatesAdminApi.addProfileVideo(profileId, {
-                        title: newVideo.title,
-                        display_order: newVideo.display_order,
-                        video_file_upload: newVideo.file,
-                      });
+                      await exploreCandidatesAdminApi.addProfileVideo(
+                        profileId,
+                        {
+                          title: newVideo.title,
+                          display_order: newVideo.display_order,
+                          video_file_upload: newVideo.file,
+                        },
+                      );
                       setNewVideo({ title: "", display_order: 0, file: null });
                       setVideoInputKey((v) => v + 1);
                       await refreshProfileDetails();
                     } catch (error) {
-                      window.alert(error?.response?.data?.message || "Could not upload video");
+                      window.alert(
+                        error?.response?.data?.message ||
+                          "Could not upload video",
+                      );
                     } finally {
-                      setVideoUploadState((state) => ({ ...state, new: false }));
+                      setVideoUploadState((state) => ({
+                        ...state,
+                        new: false,
+                      }));
                     }
                     return;
                   } else {
@@ -1822,12 +2390,20 @@ export default function ExploreCandidatesAdmin() {
   return (
     <Routes>
       <Route index element={<AccountsPage />} />
-      <Route path="accounts/:accountId/profiles" element={<AccountProfilesPage />} />
+      <Route
+        path="accounts/:accountId/profiles"
+        element={<AccountProfilesPage />}
+      />
       <Route path="library" element={<LibraryPage />} />
       <Route path="profiles/new" element={<ProfileFormPage mode="create" />} />
-      <Route path="profiles/:profileId/edit" element={<ProfileFormPage mode="edit" />} />
-      <Route path="*" element={<Navigate to="/admin/explore-candidates" replace />} />
+      <Route
+        path="profiles/:profileId/edit"
+        element={<ProfileFormPage mode="edit" />}
+      />
+      <Route
+        path="*"
+        element={<Navigate to="/admin/explore-candidates" replace />}
+      />
     </Routes>
   );
 }
-
