@@ -1546,6 +1546,7 @@ function ProfileFormPage({ mode }) {
   const [createDocs, setCreateDocs] = useState([]);
   const [savingProfile, setSavingProfile] = useState(false);
   const [videoUploadState, setVideoUploadState] = useState({});
+  const [videoViewState, setVideoViewState] = useState({});
   const [docInputKey, setDocInputKey] = useState(0);
   const [videoInputKey, setVideoInputKey] = useState(0);
   const isMainPhpReadOnly =
@@ -1582,23 +1583,41 @@ function ProfileFormPage({ mode }) {
     return candidate;
   };
 
-  const openDocumentInline = async (url) => {
+  const guessMimeFromUrl = (url) => {
+    const ext = String(url).split("?")[0].split(".").pop()?.toLowerCase();
+    const map = {
+      pdf: "application/pdf",
+      png: "image/png",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      gif: "image/gif",
+      webp: "image/webp",
+      mp4: "video/mp4",
+      mov: "video/quicktime",
+      webm: "video/webm",
+    };
+    return map[ext] || "application/pdf";
+  };
+
+  const openAssetInline = async (url) => {
+    const expectedMime = guessMimeFromUrl(url);
     try {
       const res = await fetch(url);
       const rawBlob = await res.blob();
       const blob =
-        rawBlob.type === "application/pdf"
+        rawBlob.type && rawBlob.type !== "application/octet-stream"
           ? rawBlob
-          : rawBlob.slice(0, rawBlob.size, "application/pdf");
+          : rawBlob.slice(0, rawBlob.size, expectedMime);
       window.open(URL.createObjectURL(blob), "_blank", "noopener,noreferrer");
     } catch (err) {
       console.error(
-        "Failed to open document inline, falling back to direct link",
+        "Failed to open asset inline, falling back to direct link",
         err,
       );
       window.open(url, "_blank", "noopener,noreferrer");
     }
   };
+  const openDocumentInline = openAssetInline;
 
   const pickPdfOrReset = (file, inputEl) => {
     if (!file) return null;
@@ -1785,12 +1804,22 @@ function ProfileFormPage({ mode }) {
                 setForm((v) => ({ ...v, photo: e.target.files?.[0] || null }))
               }
             />
-            <div className="text-xs text-slate-600">
-              {typeof File !== "undefined" && form.photo instanceof File
-                ? form.photo.name
-                : form.photo
-                  ? getStoredAssetLabel(form.photo, "Profile photo")
-                  : "No file chosen"}
+            <div className="text-xs text-slate-600 flex items-center gap-3">
+              <span>
+                {typeof File !== "undefined" && form.photo instanceof File
+                  ? form.photo.name
+                  : form.photo
+                    ? getStoredAssetLabel(form.photo, "Profile photo")
+                    : "No file chosen"}
+              </span>
+              {typeof form.photo === "string" && form.photo && (
+                <img
+                  src={form.photo}
+                  alt="Profile"
+                  className="h-10 w-10 rounded-lg object-cover border border-slate-200 cursor-pointer"
+                  onClick={() => window.open(form.photo, "_blank", "noopener,noreferrer")}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -2220,6 +2249,22 @@ function ProfileFormPage({ mode }) {
                         }}
                       />
                     </div>
+                    {video.video_file && (
+                      <ActionButton
+                        variant="primary"
+                        disabled={Boolean(videoViewState[video.id])}
+                        onClick={async () => {
+                          setVideoViewState((state) => ({ ...state, [video.id]: true }));
+                          try {
+                            await openAssetInline(video.video_file);
+                          } finally {
+                            setVideoViewState((state) => ({ ...state, [video.id]: false }));
+                          }
+                        }}
+                      >
+                        {videoViewState[video.id] ? "Loading..." : "View"}
+                      </ActionButton>
+                    )}
                     <ActionButton
                       variant="danger"
                       onClick={async () => {
