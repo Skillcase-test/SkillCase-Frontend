@@ -1152,14 +1152,31 @@ function UserOverridesTab({ canEdit }) {
                   Untouched modules keep following the global defaults.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving || !canEdit}
-                className="px-5 py-2 bg-[#083262] text-white hover:bg-[#052243] rounded-xl text-xs font-extrabold transition-all disabled:opacity-50"
-              >
-                {saving ? "Saving…" : "Save Overrides"}
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Usage counters move on their own as the learner plays, so the
+                    panel goes stale while it sits open. Re-runs the same load
+                    openUser() does — unsaved edits below are discarded with it. */}
+                <button
+                  type="button"
+                  onClick={() => openUser(selectedUser)}
+                  disabled={loadingDetail}
+                  title="Reload this user's live limits and usage"
+                  className="px-3 py-2 border border-slate-200 text-[#083262] hover:bg-slate-50 rounded-xl text-xs font-extrabold transition-all disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <RefreshCw
+                    className={`w-3.5 h-3.5 ${loadingDetail ? "animate-spin" : ""}`}
+                  />
+                  Refresh
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving || !canEdit}
+                  className="px-5 py-2 bg-[#083262] text-white hover:bg-[#052243] rounded-xl text-xs font-extrabold transition-all disabled:opacity-50"
+                >
+                  {saving ? "Saving…" : "Save Overrides"}
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">

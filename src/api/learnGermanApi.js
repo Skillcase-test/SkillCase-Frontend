@@ -68,7 +68,12 @@ export const completeDynamicLesson = (lessonId) =>
   api.post(
     "/dynamic-lesson/complete",
     { lessonId },
-    { meta: { invalidateCacheTags: LEARN_GERMAN_PROGRESS_CACHE_TAGS } },
+    {
+      meta: {
+        invalidateCacheTags: LEARN_GERMAN_PROGRESS_CACHE_TAGS,
+        refreshUsageLimitsOnSuccess: true,
+      },
+    },
   );
 
 export const trackLearnGermanVisit = () =>

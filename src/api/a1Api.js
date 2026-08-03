@@ -27,7 +27,10 @@ export const getFlashcards = (chapterId) =>
   );
 export const saveFlashcardProgress = (data) =>
   api.post("/a1/flashcard/progress", data, {
-    meta: { invalidateCacheTags: [A1_FLASHCARD_CACHE_TAG] },
+    meta: {
+      invalidateCacheTags: [A1_FLASHCARD_CACHE_TAG],
+      ...(data?.advanced === true && { refreshUsageLimitsOnSuccess: true }),
+    },
   });
 export const generateMiniQuiz = (setId) =>
   api.cachedGet(
@@ -69,7 +72,10 @@ export const getGrammarQuestions = (topicId) =>
   );
 export const saveGrammarProgress = (data) =>
   api.post("/a1/grammar/progress", data, {
-    meta: { invalidateCacheTags: [A1_GRAMMAR_CACHE_TAG] },
+    meta: {
+      invalidateCacheTags: [A1_GRAMMAR_CACHE_TAG],
+      ...(data?.isCompleted === true && { refreshUsageLimitsOnSuccess: true }),
+    },
   });
 export const checkGrammarAnswer = (data) =>
   api.post("/a1/grammar/check", data, {
@@ -93,7 +99,10 @@ export const getReadingContent = (chapterId) =>
   );
 export const saveReadingProgress = (data) =>
   api.post("/a1/reading/progress", data, {
-    meta: { invalidateCacheTags: [A1_READING_CACHE_TAG] },
+    meta: {
+      invalidateCacheTags: [A1_READING_CACHE_TAG],
+      ...(data?.isCompleted === true && { refreshUsageLimitsOnSuccess: true }),
+    },
   });
 export const checkReadingAnswers = (data) =>
   api.post("/a1/reading/check", data, {
@@ -117,7 +126,10 @@ export const getListeningContent = (chapterId) =>
   );
 export const saveListeningProgress = (data) =>
   api.post("/a1/listening/progress", data, {
-    meta: { invalidateCacheTags: [A1_LISTENING_CACHE_TAG] },
+    meta: {
+      invalidateCacheTags: [A1_LISTENING_CACHE_TAG],
+      ...(data?.isCompleted === true && { refreshUsageLimitsOnSuccess: true }),
+    },
   });
 export const checkListeningAnswers = (data) =>
   api.post("/a1/listening/check", data, {
@@ -141,7 +153,10 @@ export const getSpeakingContent = (chapterId) =>
   );
 export const saveSpeakingProgress = (data) =>
   api.post("/a1/speaking/progress", data, {
-    meta: { invalidateCacheTags: [A1_SPEAKING_CACHE_TAG] },
+    meta: {
+      invalidateCacheTags: [A1_SPEAKING_CACHE_TAG],
+      ...(data?.advanced === true && { refreshUsageLimitsOnSuccess: true }),
+    },
   });
 export const saveSpeakingAssessment = (data) =>
   api.post("/a1/speaking/assessment", data, {
@@ -163,7 +178,10 @@ export const getTestSet = (topicId, level, setNumber) =>
   api.cachedGet(`/a1/test/set/${topicId}/${level}/${setNumber}`, {}, "NO_CACHE");
 export const submitTest = (data) =>
   api.post("/a1/test/submit", data, {
-    meta: { invalidateCacheTags: [A1_TEST_CACHE_TAG] },
+    meta: {
+      invalidateCacheTags: [A1_TEST_CACHE_TAG],
+      refreshUsageLimitsOnSuccess: true,
+    },
   });
 export const getTestReview = (topicId) =>
   api.cachedGet(

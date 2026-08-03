@@ -430,6 +430,7 @@ export default function A2Flashcard() {
   const { guardUsage } = useUsageLimits();
   // Last index this component saved progress for — see the save effect.
   const savedCardRef = useRef(null);
+  const saveAttemptRef = useRef(0);
 
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -603,14 +604,27 @@ export default function A2Flashcard() {
   // covered without having to find them all.
   useEffect(() => {
     if (!setId || totalCards === 0 || !user) return;
-    const advanced = savedCardRef.current !== null && currentCard > savedCardRef.current;
+    const previousSavedCard = savedCardRef.current;
+    const advanced = previousSavedCard !== null && currentCard > previousSavedCard;
     savedCardRef.current = currentCard;
+    const saveAttempt = ++saveAttemptRef.current;
     saveFlashcardProgress({
       setId,
       currentIndex: currentCard,
       isCompleted: currentCard >= totalCards - 1,
       advanced,
-    }).catch((err) => console.error("Progress save failed:", err));
+    }).catch((err) => {
+      if (
+        err?.response?.status === 402 &&
+        saveAttempt === saveAttemptRef.current &&
+        savedCardRef.current === currentCard
+      ) {
+        const rollbackCard = previousSavedCard ?? Math.max(0, currentCard - 1);
+        savedCardRef.current = rollbackCard;
+        setCurrentCard((card) => (card === currentCard ? rollbackCard : card));
+      }
+      console.error("Progress save failed:", err);
+    });
   }, [currentCard, user, setId, totalCards]);
 
   const handleSpeak = (text) => {
@@ -959,6 +973,7 @@ export default function A2Flashcard() {
     setShowTestPrompt(false);
     setShowTest(false);
     if (currentCard < totalCards - 1) {
+      if (!guardUsage("A2", "flashcard")) return;
       setCurrentCard(currentCard + 1);
       setDeckRotation((p) => (p + 1) % 3);
       setIsFlipped(false);
@@ -1063,6 +1078,7 @@ export default function A2Flashcard() {
       });
       navigate("/a2/flashcard");
     } else {
+      if (!guardUsage("A2", "flashcard")) return;
       setCurrentCard(currentCard + 1);
       setDeckRotation((p) => (p + 1) % 3);
     }

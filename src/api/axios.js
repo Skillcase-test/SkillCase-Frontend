@@ -23,9 +23,11 @@ const GET_CACHE_TTLS = {
   LONG_PUBLIC: 3_600_000,
 };
 
+const CACHE_EPOCH_STORAGE_KEY = "skillcase:get-cache-epochs:v1";
+const MAX_PERSISTED_CACHE_SCOPES = 32;
 const getCache = new Map();
 const inFlightGet = new Map();
-const cacheTagEpochs = new Map();
+let cacheTagEpochs = new Map();
 let activeAuthScope = "";
 let paywallRefreshPromise = null;
 // Bumped by clearGetCaches(). A GET already in flight when a clear happens
@@ -33,6 +35,181 @@ let paywallRefreshPromise = null;
 // pre-write data after the clear runs, or the clear is silently undone the
 // moment that slow/older request finally resolves.
 let cacheEpoch = 0;
+
+function getEpochStorage() {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeEpoch(value) {
+  return Number.isSafeInteger(value) && value >= 0 ? value : 0;
+}
+
+function normalizeEpochRecord(record) {
+  const tags = {};
+  const savedTags = record?.tags;
+
+  if (savedTags && typeof savedTags === "object" && !Array.isArray(savedTags)) {
+    Object.entries(savedTags).forEach(([tag, epoch]) => {
+      if (
+        typeof tag === "string" &&
+        tag &&
+        Number.isSafeInteger(epoch) &&
+        epoch >= 0
+      ) {
+        tags[tag] = epoch;
+      }
+    });
+  }
+
+  return {
+    global: normalizeEpoch(record?.global),
+    tags,
+  };
+}
+
+function mergeEpochRecords(...records) {
+  const merged = { global: 0, tags: {} };
+
+  records.forEach((record) => {
+    const normalized = normalizeEpochRecord(record);
+    merged.global = Math.max(merged.global, normalized.global);
+    Object.entries(normalized.tags).forEach(([tag, epoch]) => {
+      merged.tags[tag] = Math.max(merged.tags[tag] || 0, epoch);
+    });
+  });
+
+  return merged;
+}
+
+function readPersistedCacheEpochs() {
+  const storage = getEpochStorage();
+  if (!storage) return {};
+
+  try {
+    const parsed = JSON.parse(storage.getItem(CACHE_EPOCH_STORAGE_KEY) || "{}");
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+
+    // Older builds included a token suffix in the scope key. Collapse those
+    // records into the user-id scope while reading so a deployment does not
+    // reset its HTTP-cache generation, and never write the token residue back.
+    return Object.entries(parsed).reduce((scopes, [scope, record]) => {
+      if (typeof scope !== "string" || !scope) return scopes;
+      const userScope = scope.split("::", 1)[0] || "anon";
+      scopes[userScope] = mergeEpochRecords(scopes[userScope], record);
+      return scopes;
+    }, {});
+  } catch {
+    return {};
+  }
+}
+
+// The browser's HTTP cache survives a reload, while module variables do not.
+// Keep one generation record per auth scope so a post-write request cannot
+// reuse the URL/body that was cached before that write. A scope with no write
+// still reuses its previous generation and therefore keeps normal cache hits.
+const persistedCacheEpochs = readPersistedCacheEpochs();
+
+function getCacheEpochRecord() {
+  const tags = {};
+  cacheTagEpochs.forEach((epoch, tag) => {
+    tags[tag] = epoch;
+  });
+  return { global: cacheEpoch, tags };
+}
+
+function setCacheEpochRecord(record) {
+  const normalized = normalizeEpochRecord(record);
+  cacheEpoch = normalized.global;
+  cacheTagEpochs = new Map(Object.entries(normalized.tags));
+}
+
+function restoreCacheEpochs(scope) {
+  setCacheEpochRecord(persistedCacheEpochs[scope]);
+}
+
+function adoptExternalCacheEpochs(record) {
+  const current = getCacheEpochRecord();
+  const merged = mergeEpochRecords(current, record);
+  const hasNewerGlobal = merged.global > current.global;
+  const hasNewerTag = Object.entries(merged.tags).some(
+    ([tag, epoch]) => epoch > (current.tags[tag] || 0),
+  );
+
+  if (hasNewerGlobal || hasNewerTag) {
+    getCache.clear();
+    inFlightGet.clear();
+  }
+
+  setCacheEpochRecord(merged);
+}
+
+function prunePersistedCacheEpochs(records, keepScope) {
+  const scopes = Object.keys(records);
+  while (scopes.length > MAX_PERSISTED_CACHE_SCOPES) {
+    const removable = scopes.find((scope) => scope !== keepScope);
+    if (removable === undefined) break;
+    delete records[removable];
+    scopes.splice(scopes.indexOf(removable), 1);
+  }
+  return records;
+}
+
+function replacePersistedCacheEpochs(records) {
+  Object.keys(persistedCacheEpochs).forEach((scope) => {
+    delete persistedCacheEpochs[scope];
+  });
+  Object.assign(persistedCacheEpochs, records);
+}
+
+function persistCacheEpochs() {
+  if (!activeAuthScope) return;
+
+  const storage = getEpochStorage();
+  // Another tab may have advanced a different tag since this module last
+  // read localStorage. Merge by maximum epoch before writing so this tab
+  // cannot clobber that invalidation with its stale in-memory snapshot.
+  const latest = readPersistedCacheEpochs();
+  const mergedActive = mergeEpochRecords(
+    latest[activeAuthScope],
+    getCacheEpochRecord(),
+  );
+  adoptExternalCacheEpochs(mergedActive);
+
+  const next = { ...latest };
+  delete next[activeAuthScope];
+  next[activeAuthScope] = getCacheEpochRecord();
+  prunePersistedCacheEpochs(next, activeAuthScope);
+  replacePersistedCacheEpochs(next);
+
+  if (!storage) return;
+  try {
+    storage.setItem(CACHE_EPOCH_STORAGE_KEY, JSON.stringify(persistedCacheEpochs));
+  } catch {
+    // Private browsing and quota-restricted contexts can reject storage. The
+    // in-memory epoch guards still protect the current page in that case.
+  }
+}
+
+function handleCacheEpochStorage(event) {
+  if (event?.key !== CACHE_EPOCH_STORAGE_KEY) return;
+
+  const latest = readPersistedCacheEpochs();
+  replacePersistedCacheEpochs(latest);
+  if (activeAuthScope && latest[activeAuthScope]) {
+    adoptExternalCacheEpochs(latest[activeAuthScope]);
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", handleCacheEpochStorage);
+}
 
 // Statuses that describe an expected business or auth state rather than a
 // defect: the paywall (402), auth challenges (401/403), absent optional content
@@ -55,23 +232,33 @@ function isExpectedApiOutcome(error) {
 
 function getAuthScope() {
   const state = store.getState().auth;
-  const uid = state?.user?.user_id || "anon";
-  const token = state?.token || "";
-  const tokenFingerprint = token ? token.slice(-12) : "no-token";
-  return `${uid}::${tokenFingerprint}`;
+  return String(state?.user?.user_id || "anon");
 }
 
 function clearGetCaches() {
+  ensureAuthScopeFresh();
   getCache.clear();
   inFlightGet.clear();
   cacheEpoch += 1;
+  persistCacheEpochs();
 }
 
 function ensureAuthScopeFresh() {
   const currentScope = getAuthScope();
   if (currentScope !== activeAuthScope) {
+    const hadActiveScope = activeAuthScope !== "";
+    getCache.clear();
+    inFlightGet.clear();
     activeAuthScope = currentScope;
-    clearGetCaches();
+    restoreCacheEpochs(currentScope);
+    // A scope transition must invalidate any request that was in flight for
+    // the previous user/session. The initial module load intentionally does
+    // not bump the restored value, which is what preserves valid HTTP-cache
+    // reuse across a reload.
+    if (hadActiveScope) {
+      cacheEpoch += 1;
+      persistCacheEpochs();
+    }
   }
   return currentScope;
 }
@@ -101,6 +288,8 @@ function invalidateGetCacheTags(tags) {
   const normalizedTags = normalizeCacheTags(tags);
   if (!normalizedTags.length) return;
 
+  ensureAuthScopeFresh();
+
   normalizedTags.forEach((tag) => {
     cacheTagEpochs.set(tag, getCacheTagEpoch(tag) + 1);
   });
@@ -118,6 +307,8 @@ function invalidateGetCacheTags(tags) {
   for (const [key, entry] of inFlightGet.entries()) {
     if (hasInvalidatedTag(entry)) inFlightGet.delete(key);
   }
+
+  persistCacheEpochs();
 }
 
 api.cachedGet = async (url, config = {}, cacheProfile = "NO_CACHE") => {
@@ -148,13 +339,6 @@ api.cachedGet = async (url, config = {}, cacheProfile = "NO_CACHE") => {
   const now = Date.now();
   const existing = getCache.get(key);
   if (existing && now < existing.expiresAt) {
-    // TEMP DEBUG: verify tagged-learning cache reuse during rollout; remove
-    // once the cache migration is confirmed.
-    console.log("[usageLimitDebug] cachedGet: served from cache", {
-      at: now,
-      url,
-      ageMs: ttl - (existing.expiresAt - now),
-    });
     return existing.response;
   }
   if (existing) getCache.delete(key);
@@ -177,13 +361,6 @@ api.cachedGet = async (url, config = {}, cacheProfile = "NO_CACHE") => {
             response,
             expiresAt: Date.now() + ttl,
             tags: cacheTags,
-          });
-        } else {
-          console.log("[usageLimitDebug] cachedGet: discarding stale in-flight response (cache cleared meanwhile)", {
-            at: Date.now(),
-            url,
-            epochAtStart,
-            cacheEpoch,
           });
         }
         return response;
@@ -212,6 +389,18 @@ api.interceptors.request.use((config) => {
     startedAt: Date.now(),
     telemetryContext,
   };
+
+  const requestMethod = (config.method || "get").toLowerCase();
+  if (requestMethod !== "get") {
+    const invalidationTags = normalizeCacheTags(config.meta.invalidateCacheTags);
+    if (invalidationTags.length) {
+      // Invalidate at request start as well as on direct response-handler
+      // calls. This closes the small window where a fire-and-forget progress
+      // save is followed immediately by a GET before the POST resolves.
+      invalidateGetCacheTags(invalidationTags);
+    }
+  }
+
   config.headers = {
     ...(config.headers || {}),
     ...getTelemetryHeaders(telemetryContext),
@@ -248,12 +437,22 @@ api.interceptors.response.use(
         response?.config?.meta?.invalidateCacheTags,
       );
       if (invalidationTags.length) {
+        // Keep request-start invalidation for fire-and-forget saves, and also
+        // invalidate after the server response. The latter prevents a GET
+        // that started between request dispatch and DB commit from surviving
+        // under the post-request generation.
         invalidateGetCacheTags(invalidationTags);
       } else if (response?.config?.meta?.skipCacheInvalidation !== true) {
         // Keep the existing safe fallback for mutations that have not yet
         // been assigned tags. Flashcard writes use targeted invalidation.
         clearGetCaches();
       }
+    }
+    if (
+      response?.config?.meta?.refreshUsageLimitsOnSuccess === true &&
+      typeof window !== "undefined"
+    ) {
+      window.dispatchEvent(new CustomEvent("skillcase:usage-limit-refresh"));
     }
     const durationMs = response?.config?.meta?.startedAt
       ? Date.now() - response.config.meta.startedAt
@@ -289,7 +488,9 @@ api.interceptors.response.use(
     const invalidationTags = normalizeCacheTags(
       error?.config?.meta?.invalidateCacheTags,
     );
-    if (invalidationTags.length) invalidateGetCacheTags(invalidationTags);
+    if (invalidationTags.length) {
+      invalidateGetCacheTags(invalidationTags);
+    }
 
     recordEvent("api.request", {
       domain: "api",

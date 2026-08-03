@@ -18,12 +18,14 @@ import {
 } from "../../../api/b1Api";
 import toast, { Toaster } from "react-hot-toast";
 import { trackLearningEvent } from "../../../telemetry/events";
+import { useUsageLimitGate } from "../../../hooks/useUsageLimits";
 
 export default function VideoReader() {
   const { videoId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
+  useUsageLimitGate("B1", "reading");
 
   const videoRef = useRef(null);
   const videoContainerRef = useRef(null);

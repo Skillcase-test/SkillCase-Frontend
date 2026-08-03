@@ -98,12 +98,12 @@ describe("Learn German cache metadata", () => {
       await write();
 
       expect(api.post).toHaveBeenCalledWith(path, payload, {
-        meta: {
+        meta: expect.objectContaining({
           invalidateCacheTags: [
             learnGermanApi.LEARN_GERMAN_LESSONS_CACHE_TAG,
             learnGermanApi.LEARN_GERMAN_VOCAB_CACHE_TAG,
           ],
-        },
+        }),
       });
     },
   );

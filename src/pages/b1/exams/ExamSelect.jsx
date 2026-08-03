@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ChevronLeft, Loader2, AlertCircle } from "lucide-react";
 import { getB1Exams } from "../../../api/b1Api";
+import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 
 export default function ExamSelect() {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ export default function ExamSelect() {
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
+  const { locked: usageLocked } = useUsageLimitModule("B1", "exams");
 
   const fetchExamsList = async () => {
     setLoading(true);
@@ -32,6 +34,7 @@ export default function ExamSelect() {
   }, [user?.user_id]);
 
   const handleExamClick = (examType) => {
+    if (usageLocked) return;
     navigate(`/b1/exams/${examType}/papers`);
   };
 
@@ -118,7 +121,9 @@ export default function ExamSelect() {
                 key={exam.id}
                 id={index === 0 ? "b1-exam-first-item" : undefined}
                 onClick={() => handleExamClick(exam.exam_type)}
-                className="w-full p-2 bg-white rounded-xl border border-zinc-200 flex justify-start items-center gap-4 cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all shrink-0"
+                className={`w-full p-2 bg-white rounded-xl border border-zinc-200 flex justify-start items-center gap-4 transition-all shrink-0 ${
+                  usageLocked ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
+                }`}
               >
                 {/* Logo Wrapper */}
                 <div className="w-16 h-16 bg-zinc-50 rounded-lg overflow-hidden shrink-0 flex items-center justify-center border border-zinc-100">

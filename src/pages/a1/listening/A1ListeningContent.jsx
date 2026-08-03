@@ -49,6 +49,7 @@ import A2AudioPlayer from "../../../components/a2/A2AudioPlayer";
 import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
+import { useUsageLimitGate } from "../../../hooks/useUsageLimits";
 import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
 import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
 import { useLearningQuestionJourney } from "../../../telemetry/learning";
@@ -440,6 +441,7 @@ export default function A1ListeningContent() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
   const analytics = useFirstPartyAnalytics();
+  useUsageLimitGate("A1", "listening");
 
   const [content, setContent] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);

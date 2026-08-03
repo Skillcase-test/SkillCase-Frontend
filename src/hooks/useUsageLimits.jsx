@@ -118,14 +118,17 @@ export function UsageLimitProvider({ children }) {
     };
     const onFocus = () => refresh();
     const onUsageLimitHit = () => refresh();
+    const onUsageLimitRefresh = () => refresh();
 
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("skillcase:usage-limit", onUsageLimitHit);
+    window.addEventListener("skillcase:usage-limit-refresh", onUsageLimitRefresh);
     return () => {
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("skillcase:usage-limit", onUsageLimitHit);
+      window.removeEventListener("skillcase:usage-limit-refresh", onUsageLimitRefresh);
     };
   }, [isAuthenticated, refresh]);
 
@@ -163,18 +166,8 @@ export function UsageLimitProvider({ children }) {
   const guardUsage = useCallback(
     (level, moduleKey) => {
       const state = getState(level, moduleKey);
-      // TEMP DEBUG: pinpointing the flashcard-position-loss report — remove
-      // once confirmed fixed. Shows exactly what guardUsage saw and decided.
-      console.log("[usageLimitDebug] guardUsage", {
-        at: Date.now(),
-        level,
-        moduleKey,
-        state,
-        localIncrements: { ...localIncrements.current },
-      });
       if (!state) return true; // unconfigured/unlimited/ineligible
       if (state.locked) {
-        console.log("[usageLimitDebug] guardUsage: already locked, blocking + refreshing", { at: Date.now() });
         refresh();
         return false;
       }
@@ -185,17 +178,11 @@ export function UsageLimitProvider({ children }) {
         (p) => p.limit_value > 0 && p.used + local >= p.limit_value,
       );
       if (wouldExceed) {
-        console.log("[usageLimitDebug] guardUsage: would exceed, blocking + refreshing", {
-          at: Date.now(),
-          key,
-          local,
-        });
         refresh();
         return false;
       }
 
       localIncrements.current[key] = local + 1;
-      console.log("[usageLimitDebug] guardUsage: allowed", { at: Date.now(), key, newLocal: local + 1 });
       return true;
     },
     [getState, refresh],
@@ -211,6 +198,20 @@ export function UsageLimitProvider({ children }) {
 
 export function useUsageLimits() {
   return useContext(UsageLimitContext);
+}
+
+// Module selection screens use this hook to refresh the authoritative state
+// when they mount, then expose the current lock so they can disable every
+// chapter/topic entry—not only the home feature tile.
+export function useUsageLimitModule(level, moduleKey) {
+  const { getState, refresh } = useUsageLimits();
+  const state = getState(level, moduleKey);
+
+  useEffect(() => {
+    refresh();
+  }, [level, moduleKey, refresh]);
+
+  return { state, locked: Boolean(state?.locked) };
 }
 
 // A1/A2/B1 features get their entry gate for free from FeatureCard (it

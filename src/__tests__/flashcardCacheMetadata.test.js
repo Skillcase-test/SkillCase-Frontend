@@ -236,7 +236,7 @@ describe("flashcard cache metadata", () => {
         savePath,
         payload,
         expect.objectContaining({
-          meta: { invalidateCacheTags: invalidatedTags },
+          meta: expect.objectContaining({ invalidateCacheTags: invalidatedTags }),
         }),
       );
     },
@@ -262,9 +262,13 @@ describe("flashcard cache metadata", () => {
 
       await saveProgress(payload);
 
-      expect(api.post).toHaveBeenCalledWith(progressPath, payload, {
-        meta: { invalidateCacheTags: [tag] },
-      });
+      expect(api.post).toHaveBeenCalledWith(
+        progressPath,
+        payload,
+        expect.objectContaining({
+          meta: expect.objectContaining({ invalidateCacheTags: [tag] }),
+        }),
+      );
     },
   );
 });

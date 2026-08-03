@@ -26,7 +26,10 @@ export const getB1ReadingContent = (contentId) =>
   );
 export const submitB1ReadingQuiz = (data) =>
   api.post("/b1/read-listen/submit", data, {
-    meta: { invalidateCacheTags: [B1_READ_LISTEN_CACHE_TAG] },
+    meta: {
+      invalidateCacheTags: [B1_READ_LISTEN_CACHE_TAG],
+      refreshUsageLimitsOnSuccess: true,
+    },
   });
 
 export const getB1DescribeSpeakChapters = () =>
@@ -57,7 +60,10 @@ export const submitB1DescribeSpeakWriting = (data) =>
   });
 export const submitB1DescribeSpeakSpeaking = (formData) => api.post("/b1/describe-speak/submit-speaking", formData, {
   headers: { "Content-Type": "multipart/form-data" },
-  meta: { invalidateCacheTags: [B1_DESCRIBE_SPEAK_CACHE_TAG] },
+  meta: {
+    invalidateCacheTags: [B1_DESCRIBE_SPEAK_CACHE_TAG],
+    refreshUsageLimitsOnSuccess: true,
+  },
 });
 export const resetB1DescribeSpeakProgress = (topicId) =>
   api.post(`/b1/describe-speak/reset/${topicId}`, null, {
@@ -65,7 +71,10 @@ export const resetB1DescribeSpeakProgress = (topicId) =>
   });
 export const skipB1DescribeSpeakSpeaking = (topicId) =>
   api.post(`/b1/describe-speak/skip-speaking/${topicId}`, null, {
-    meta: { invalidateCacheTags: [B1_DESCRIBE_SPEAK_CACHE_TAG] },
+    meta: {
+      invalidateCacheTags: [B1_DESCRIBE_SPEAK_CACHE_TAG],
+      refreshUsageLimitsOnSuccess: true,
+    },
   });
 
 export const getB1FlashcardChapters = () =>
@@ -82,7 +91,10 @@ export const getB1Flashcards = (chapterId) =>
   );
 export const saveB1FlashcardProgress = (data) =>
   api.post("/b1/flashcard/progress", data, {
-    meta: { invalidateCacheTags: [B1_FLASHCARD_CACHE_TAG] },
+    meta: {
+      invalidateCacheTags: [B1_FLASHCARD_CACHE_TAG],
+      ...(data?.advanced === true && { refreshUsageLimitsOnSuccess: true }),
+    },
   });
 export const getB1FlashcardMiniQuiz = (setId) =>
   api.cachedGet(
@@ -132,7 +144,10 @@ export const uploadB1ExamOcr = (formData) => api.post("/b1/exams/upload-ocr", fo
 });
 export const getB1Exams = () => api.get("/b1/exams");
 export const getB1ExamPapers = (examType) => api.get(`/b1/exams/${examType}/papers`);
-export const startB1ExamSubmission = (paperId) => api.post(`/b1/exams/papers/${paperId}/start`);
+export const startB1ExamSubmission = (paperId) =>
+  api.post(`/b1/exams/papers/${paperId}/start`, null, {
+    meta: { refreshUsageLimitsOnSuccess: true },
+  });
 export const getB1ExamSubmissionStatus = (submissionId) => api.get(`/b1/exams/submissions/${submissionId}`);
 export const getB1ExamSectionContent = (paperId, sectionType) => api.get(`/b1/exams/papers/${paperId}/sections/${sectionType}`);
 export const submitB1ExamReadingAnswers = (submissionId, data) => api.post(`/b1/exams/submissions/${submissionId}/sections/reading/submit`, data);
@@ -160,6 +175,7 @@ export const submitB1VideoQuiz = (videoId, data) =>
   api.post(`/b1/video/${videoId}/submit`, data, {
     meta: {
       invalidateCacheTags: [B1_READ_LISTEN_CACHE_TAG, B1_VIDEO_CACHE_TAG],
+      refreshUsageLimitsOnSuccess: true,
     },
   });
 export const updateB1VideoProgress = (videoId, data) =>

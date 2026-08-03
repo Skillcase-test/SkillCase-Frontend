@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import ChapterSelectTemplate from "../../../components/a2/ChapterSelectTemplate";
 import { getListeningChapters } from "../../../api/a2Api";
+import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 export default function A2ListeningSelect() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { locked: usageLocked } = useUsageLimitModule("A2", "listening");
   useEffect(() => {
     if (!user) {
       navigate("/login");
@@ -42,6 +44,7 @@ export default function A2ListeningSelect() {
       loading={loading}
       onChapterClick={handleChapterClick}
       getProgress={getProgress}
+      isChapterLocked={() => usageLocked}
       backPath="/"
       showTourIds={true}
     />

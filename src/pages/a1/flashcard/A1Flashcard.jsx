@@ -25,14 +25,6 @@ import UmlautKeyboard from "../../../components/a2/UmlautKeyboard";
 import { getFlashcards, saveFlashcardProgress } from "../../../api/a1Api";
 import api from "../../../api/axios";
 
-// TEMP DEBUG: pinpointing the flashcard-position-loss report. Every
-// setCurrentCard call site is logged through this so a regression shows up
-// no matter which code path caused it, with a timestamp to line up against
-// the backend's own timestamped logs. Remove once confirmed fixed.
-function dbgSetCurrentCard(source, value) {
-  console.log("[usageLimitDebug] A1Flashcard: setCurrentCard", { at: Date.now(), source, value });
-  return value;
-}
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
@@ -156,6 +148,7 @@ export default function A1Flashcard() {
   const { guardUsage } = useUsageLimits();
   // Last index this component saved progress for — see the save effect.
   const savedCardRef = useRef(null);
+  const saveAttemptRef = useRef(0);
 
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -233,26 +226,13 @@ export default function A1Flashcard() {
         });
 
         const urlStartIndex = parseInt(searchParams.get("start_index"), 10);
-        // TEMP DEBUG: pinpointing the flashcard-position-loss report — shows
-        // exactly what the server told us to restore to on this load. Remove
-        // once confirmed fixed.
-        console.log("[usageLimitDebug] A1Flashcard fetchData: restoring position", {
-          at: Date.now(),
-          chapterId,
-          urlStartIndex,
-          serverCurrentIndex: data.progress?.current_index,
-          totalCards: cards.length,
-        });
         if (!Number.isNaN(urlStartIndex) && urlStartIndex >= 0) {
           setCurrentCard(
-            dbgSetCurrentCard("fetchData:urlStartIndex", Math.min(urlStartIndex, Math.max(cards.length - 1, 0))),
+            Math.min(urlStartIndex, Math.max(cards.length - 1, 0)),
           );
         } else if (data.progress?.current_index > 0) {
           setCurrentCard(
-            dbgSetCurrentCard(
-              "fetchData:serverProgress",
-              Math.min(data.progress.current_index, Math.max(cards.length - 1, 0)),
-            ),
+            Math.min(data.progress.current_index, Math.max(cards.length - 1, 0)),
           );
         }
 
@@ -297,48 +277,30 @@ export default function A1Flashcard() {
   // button, continue-after-test) is covered without having to find them all.
   useEffect(() => {
     if (!setId || totalCards === 0 || !user) return;
-    const advanced = savedCardRef.current !== null && currentCard > savedCardRef.current;
-    const prevSavedCard = savedCardRef.current;
+    const previousSavedCard = savedCardRef.current;
+    const advanced = previousSavedCard !== null && currentCard > previousSavedCard;
     savedCardRef.current = currentCard;
-    // TEMP DEBUG: pinpointing the flashcard-position-loss report — logs the
-    // request as it's fired and its outcome (success / actual HTTP status on
-    // failure). Remove once confirmed fixed.
-    const firedAt = Date.now();
-    console.log("[usageLimitDebug] A1Flashcard: saving progress", {
-      at: firedAt,
-      setId,
-      currentCard,
-      prevSavedCard,
-      advanced,
-      isCompleted: completedTests.has(totalCards),
-    });
+    const saveAttempt = ++saveAttemptRef.current;
     saveFlashcardProgress({
       setId,
       currentIndex: currentCard,
       isCompleted: completedTests.has(totalCards),
       advanced,
     })
-      .then((res) => {
-        console.log("[usageLimitDebug] A1Flashcard: progress save OK", {
-          at: Date.now(),
-          firedAt,
-          currentCard,
-          status: res?.status,
-          data: res?.data,
-        });
-      })
       .catch((err) => {
-        console.error(
-          "[usageLimitDebug] A1Flashcard: progress save FAILED — currentCard will NOT persist server-side",
-          {
-            at: Date.now(),
-            firedAt,
-            currentCard,
-            status: err?.response?.status,
-            data: err?.response?.data,
-            message: err?.message,
-          },
-        );
+        // A consuming advance can be rejected when the limit locks between
+        // the local guard and the server check. Roll back only if this is
+        // still the latest save, so a newer swipe is never overwritten.
+        if (
+          err?.response?.status === 402 &&
+          saveAttempt === saveAttemptRef.current &&
+          savedCardRef.current === currentCard
+        ) {
+          const rollbackCard = previousSavedCard ?? Math.max(0, currentCard - 1);
+          savedCardRef.current = rollbackCard;
+          setCurrentCard((card) => (card === currentCard ? rollbackCard : card));
+        }
+        console.error("Error saving A1 flashcard progress:", err);
       });
   }, [currentCard, user, setId, totalCards, completedTests]);
 
@@ -415,19 +377,11 @@ export default function A1Flashcard() {
   const moveToNextCard = (inputMethod = "swipe") => {
     if (currentCard >= totalCards - 1 || swipeDirection) return;
 
-    // TEMP DEBUG: pinpointing the flashcard-position-loss report — remove
-    // once confirmed fixed.
-    console.log("[usageLimitDebug] A1Flashcard: moveToNextCard called", { at: Date.now(), currentCard, inputMethod });
-
     if (!guardUsage("A1", "flashcard")) {
       // Already-known-exhausted — block the advance instantly instead of
       // letting several more swipes through before the real 402 lands.
       // guardUsage itself refreshes the real state and pops the lock modal;
       // nothing to do here but stop.
-      console.log("[usageLimitDebug] A1Flashcard: moveToNextCard blocked by guardUsage, staying at", {
-        at: Date.now(),
-        currentCard,
-      });
       return;
     }
 
@@ -440,7 +394,7 @@ export default function A1Flashcard() {
 
     setSwipeDirection("left");
     setTimeout(() => {
-      setCurrentCard((prev) => dbgSetCurrentCard("moveToNextCard", prev + 1));
+      setCurrentCard((prev) => prev + 1);
       setDeckRotation((prev) => (prev + 1) % 3);
       setIsFlipped(false);
       setSwipeDirection(null);
@@ -459,7 +413,7 @@ export default function A1Flashcard() {
 
     setSwipeDirection("right");
     setTimeout(() => {
-      setCurrentCard((prev) => dbgSetCurrentCard("moveToPreviousCard", prev - 1));
+      setCurrentCard((prev) => prev - 1);
       setDeckRotation((prev) => (prev - 1 + 3) % 3);
       setIsFlipped(false);
       setSwipeDirection(null);
@@ -493,7 +447,7 @@ export default function A1Flashcard() {
 
   const handleShuffle = () => {
     setFlashcardSet((prev) => [...prev].sort(() => Math.random() - 0.5));
-    setCurrentCard(dbgSetCurrentCard("handleShuffle", 0));
+    setCurrentCard(0);
     setDeckRotation(0);
     setIsFlipped(false);
     setShowTestPrompt(false);
@@ -502,7 +456,7 @@ export default function A1Flashcard() {
   };
 
   const handleReset = () => {
-    setCurrentCard(dbgSetCurrentCard("handleReset", 0));
+    setCurrentCard(0);
     setDeckRotation(0);
     setIsFlipped(false);
     setShowTestPrompt(false);
@@ -628,7 +582,8 @@ export default function A1Flashcard() {
     setShowTestPrompt(false);
     setShowTest(false);
     if (!isAtFinalCard) {
-      setCurrentCard(dbgSetCurrentCard("skipTest", currentCard + 1));
+      if (!guardUsage("A1", "flashcard")) return;
+      setCurrentCard(currentCard + 1);
       setDeckRotation((p) => (p + 1) % 3);
       setIsFlipped(false);
     }
@@ -727,7 +682,8 @@ export default function A1Flashcard() {
       });
       navigate("/a1/flashcard");
     } else {
-      setCurrentCard(dbgSetCurrentCard("continueAfterTest", currentCard + 1));
+      if (!guardUsage("A1", "flashcard")) return;
+      setCurrentCard(currentCard + 1);
       setDeckRotation((p) => (p + 1) % 3);
     }
     setIsFlipped(false);

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
 import ChapterSelectTemplate from "../../../components/a2/ChapterSelectTemplate";
+import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 
 import { getFlashcardChapters } from "../../../api/a2Api";
 
@@ -12,6 +13,7 @@ export default function A2FlashcardSelect() {
   const { user } = useSelector((state) => state.auth);
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { locked: usageLocked } = useUsageLimitModule("A2", "flashcard");
 
   useEffect(() => {
     if (!user) {
@@ -32,6 +34,7 @@ export default function A2FlashcardSelect() {
   }, [user, navigate]);
 
   const handleChapterClick = (chapter) => {
+    if (usageLocked) return;
     navigate(
       `/a2/flashcard/${chapter.id}?name=${encodeURIComponent(
         chapter.chapter_name,
@@ -60,6 +63,7 @@ export default function A2FlashcardSelect() {
       loading={loading}
       onChapterClick={handleChapterClick}
       getProgress={getProgress}
+      isChapterLocked={() => usageLocked}
       backPath="/"
       showTourIds
     />
