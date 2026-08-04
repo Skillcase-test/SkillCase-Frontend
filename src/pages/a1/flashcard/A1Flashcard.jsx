@@ -24,11 +24,13 @@ import ProgressBar from "../../../components/a2/ProgressBar";
 import UmlautKeyboard from "../../../components/a2/UmlautKeyboard";
 import { getFlashcards, saveFlashcardProgress } from "../../../api/a1Api";
 import api from "../../../api/axios";
+
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
 import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
 import { useFlashcardTelemetry } from "../../../telemetry/learning";
+import { useUsageLimits } from "../../../hooks/useUsageLimits";
 
 const CustomDropdown = ({
   options,
@@ -143,6 +145,10 @@ export default function A1Flashcard() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const analytics = useFirstPartyAnalytics();
+  const { guardUsage } = useUsageLimits();
+  // Last index this component saved progress for — see the save effect.
+  const savedCardRef = useRef(null);
+  const saveAttemptRef = useRef(0);
 
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -226,10 +232,7 @@ export default function A1Flashcard() {
           );
         } else if (data.progress?.current_index > 0) {
           setCurrentCard(
-            Math.min(
-              data.progress.current_index,
-              Math.max(cards.length - 1, 0),
-            ),
+            Math.min(data.progress.current_index, Math.max(cards.length - 1, 0)),
           );
         }
 
@@ -250,15 +253,55 @@ export default function A1Flashcard() {
     };
 
     fetchData();
-  }, [chapterId, user, navigate, searchParams]);
+    // Depend on the specific param value (a stable primitive), not the
+    // `searchParams` object itself — react-router's useSearchParams returns
+    // a new URLSearchParams wrapper on every render, so depending on the
+    // object re-ran this effect (full refetch + position restore from
+    // whatever `current_index` the server had AS OF THAT REQUEST) on every
+    // re-render this component made, including the ones its own swipes
+    // triggered. That raced the restore against in-progress advances and
+    // intermittently snapped currentCard back to an older saved index.
+    // Also depend on user_id (a stable primitive) rather than the `user`
+    // object — if the redux auth slice is ever replaced with a new object
+    // carrying the same user (e.g. a periodic session/profile refresh),
+    // reference-comparing `user` would refire this effect the same way
+    // `searchParams` did above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chapterId, user?.user_id, navigate, searchParams.get("start_index")]);
 
+  // This effect also runs on mount, on backward navigation and whenever
+  // completedTests changes — none of which consume a card. `advanced` marks
+  // only the saves that moved forward to a new index, so a "20 flashcards"
+  // cap means 20 cards rather than 20 progress writes. Derived from the
+  // index rather than set at each call site so every advance path (swipe,
+  // button, continue-after-test) is covered without having to find them all.
   useEffect(() => {
     if (!setId || totalCards === 0 || !user) return;
+    const previousSavedCard = savedCardRef.current;
+    const advanced = previousSavedCard !== null && currentCard > previousSavedCard;
+    savedCardRef.current = currentCard;
+    const saveAttempt = ++saveAttemptRef.current;
     saveFlashcardProgress({
       setId,
       currentIndex: currentCard,
       isCompleted: completedTests.has(totalCards),
-    }).catch((err) => console.error("Progress save failed:", err));
+      advanced,
+    })
+      .catch((err) => {
+        // A consuming advance can be rejected when the limit locks between
+        // the local guard and the server check. Roll back only if this is
+        // still the latest save, so a newer swipe is never overwritten.
+        if (
+          err?.response?.status === 402 &&
+          saveAttempt === saveAttemptRef.current &&
+          savedCardRef.current === currentCard
+        ) {
+          const rollbackCard = previousSavedCard ?? Math.max(0, currentCard - 1);
+          savedCardRef.current = rollbackCard;
+          setCurrentCard((card) => (card === currentCard ? rollbackCard : card));
+        }
+        console.error("Error saving A1 flashcard progress:", err);
+      });
   }, [currentCard, user, setId, totalCards, completedTests]);
 
   useEffect(() => {
@@ -333,6 +376,14 @@ export default function A1Flashcard() {
 
   const moveToNextCard = (inputMethod = "swipe") => {
     if (currentCard >= totalCards - 1 || swipeDirection) return;
+
+    if (!guardUsage("A1", "flashcard")) {
+      // Already-known-exhausted — block the advance instantly instead of
+      // letting several more swipes through before the real 402 lands.
+      // guardUsage itself refreshes the real state and pops the lock modal;
+      // nothing to do here but stop.
+      return;
+    }
 
     recordFlashcardNavigation({
       fromIndex: currentCard,
@@ -531,6 +582,7 @@ export default function A1Flashcard() {
     setShowTestPrompt(false);
     setShowTest(false);
     if (!isAtFinalCard) {
+      if (!guardUsage("A1", "flashcard")) return;
       setCurrentCard(currentCard + 1);
       setDeckRotation((p) => (p + 1) % 3);
       setIsFlipped(false);
@@ -630,6 +682,7 @@ export default function A1Flashcard() {
       });
       navigate("/a1/flashcard");
     } else {
+      if (!guardUsage("A1", "flashcard")) return;
       setCurrentCard(currentCard + 1);
       setDeckRotation((p) => (p + 1) % 3);
     }

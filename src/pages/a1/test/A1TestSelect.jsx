@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import ChapterSelectTemplate from "../../../components/a1/ChapterSelectTemplate";
 import { getTestTopics } from "../../../api/a1Api";
 import A2TestPrerequisiteModal from "../../../components/a2/A2TestPrerequisiteModal";
+import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 export default function A1TestSelect() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
@@ -11,6 +12,7 @@ export default function A1TestSelect() {
   const [loading, setLoading] = useState(true);
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const { locked: usageLocked } = useUsageLimitModule("A1", "test");
 
   // Dispatch tour event when prerequisite modal is shown
   useEffect(() => {
@@ -108,6 +110,7 @@ export default function A1TestSelect() {
         loading={loading}
         onChapterClick={handleChapterClick}
         getProgress={getProgress}
+        isChapterLocked={() => usageLocked}
         backPath="/"
         showTourIds
       />

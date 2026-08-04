@@ -4,12 +4,14 @@ import { useSelector } from "react-redux";
 
 import ChapterSelectTemplate from "../../../components/a1/ChapterSelectTemplate";
 import { getFlashcardChapters } from "../../../api/a1Api";
+import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 
 export default function A1FlashcardSelect() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { locked: usageLocked } = useUsageLimitModule("A1", "flashcard");
 
   useEffect(() => {
     if (!user) {
@@ -79,7 +81,7 @@ export default function A1FlashcardSelect() {
   }, [user, navigate]);
 
   const handleChapterClick = (chapter) => {
-    if (chapter?.is_locked) return;
+    if (usageLocked || chapter?.is_locked) return;
     navigate(
       `/a1/flashcard/${chapter.id}?name=${encodeURIComponent(
         chapter.chapter_name,
@@ -116,7 +118,7 @@ export default function A1FlashcardSelect() {
       loading={loading}
       onChapterClick={handleChapterClick}
       getProgress={getProgress}
-      isChapterLocked={(chapter) => !!chapter?.is_locked}
+      isChapterLocked={(chapter) => usageLocked || !!chapter?.is_locked}
       backPath="/"
       showTourIds={true}
     />

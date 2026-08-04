@@ -68,7 +68,7 @@ export async function getGermanTTSBlob(text, voiceName) {
         .post(
           "/dynamic-lesson/tts",
           { text: normalized, voiceName },
-          { responseType: "blob" },
+          { responseType: "blob", meta: { skipCacheInvalidation: true } },
         )
         .then((response) => {
           rememberGermanBlob(key, response.data);

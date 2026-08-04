@@ -37,6 +37,7 @@ import NewFooter from "./components/NewFooter";
 import Footer from "./components/Footer";
 import OtaUpdateModal from "./components/OtaUpdateModal";
 import MaintenanceModal from "./components/MaintenanceModal";
+import UsageLimitModal from "./components/UsageLimitModal";
 import PullToRefreshIndicator from "./components/PullToRefreshIndicator";
 import { useDispatch, useSelector } from "react-redux";
 import SupportWidget from "./components/SupportWidget";
@@ -967,6 +968,7 @@ function AppContent() {
           onOpenPlayStore={openPlayStore}
         />
         <MaintenanceModal open={maintenanceOpen} onRetry={checkHealth} />
+        <UsageLimitModal />
 
         <ProductTour>
           <A1ProductTour>

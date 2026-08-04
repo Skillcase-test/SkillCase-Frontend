@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, RefreshCw, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { images } from "../../assets/images";
 export default function ChapterSelectTemplate({
@@ -9,6 +9,7 @@ export default function ChapterSelectTemplate({
   error = null,
   onChapterClick,
   getProgress, // (chapter) => { completed, total }
+  isChapterLocked,
   backPath = "/",
   showTourIds = false,
 }) {
@@ -78,11 +79,17 @@ export default function ChapterSelectTemplate({
             const { completed, total } = getChapterData(chapter);
             const fillPercent = total > 0 ? (completed / total) * 100 : 0;
             const isComplete = isChapterComplete(chapter);
+            const isLocked =
+              typeof isChapterLocked === "function"
+                ? isChapterLocked(chapter)
+                : !!(chapter?.is_locked || chapter?.locked);
             return (
               <div
                 key={chapter.id || index}
-                onClick={() => onChapterClick(chapter)}
-                className="flex-shrink-0 flex flex-col items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => !isLocked && onChapterClick(chapter)}
+                className={`flex-shrink-0 flex flex-col items-center gap-1 transition-opacity ${
+                  isLocked ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:opacity-80"
+                }`}
                 style={{ minWidth: "50px", width: "50px" }}
               >
                 <div className="h-3 w-full rounded-full bg-[#f0f0f0] overflow-hidden">
@@ -120,12 +127,18 @@ export default function ChapterSelectTemplate({
           chapters.map((chapter, index) => {
             const { completed, total } = getChapterData(chapter);
             const badgeStyle = getBadgeStyle(completed, total);
+            const isLocked =
+              typeof isChapterLocked === "function"
+                ? isChapterLocked(chapter)
+                : !!(chapter?.is_locked || chapter?.locked);
             return (
               <div
                 key={chapter.id || index}
                 id={showTourIds && index === 0 ? "b1-first-chapter" : undefined}
-                onClick={() => onChapterClick(chapter)}
-                className="bg-white border border-[#dbdbdb] rounded-xl px-3 py-5 cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => !isLocked && onChapterClick(chapter)}
+                className={`bg-white border border-[#dbdbdb] rounded-xl px-3 py-5 transition-shadow ${
+                  isLocked ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:shadow-md"
+                }`}
               >
                 <div className="flex items-center justify-between">
                   <h3 className="text-base font-semibold text-[#181d27] flex-1 pr-2">
@@ -133,15 +146,21 @@ export default function ChapterSelectTemplate({
                   </h3>
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <div
-                      className={`${badgeStyle.bg} px-2.5 py-1 rounded-full`}
+                      className={`${isLocked ? "bg-gray-100" : badgeStyle.bg} px-2.5 py-1 rounded-full`}
                     >
                       <span
-                        className={`text-[13px] font-medium whitespace-nowrap ${badgeStyle.text}`}
+                        className={`text-[13px] font-medium whitespace-nowrap ${
+                          isLocked ? "text-gray-500" : badgeStyle.text
+                        }`}
                       >
-                        {completed}/{total} done
+                        {isLocked ? "Locked" : `${completed}/${total} done`}
                       </span>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-[#414651]" />
+                    {isLocked ? (
+                      <Lock className="w-4 h-4 text-gray-500" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-[#414651]" />
+                    )}
                   </div>
                 </div>
               </div>

@@ -33,6 +33,7 @@ import { CSS } from "@dnd-kit/utilities";
 import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
+import { useUsageLimitGate } from "../../../hooks/useUsageLimits";
 
 function shuffleNonIdentity(items, identityRef = items) {
   const arr = Array.isArray(items) ? [...items] : [];
@@ -228,6 +229,7 @@ export default function A1Reading() {
   const { user } = useSelector((state) => state.auth);
   const analytics = useFirstPartyAnalytics();
   const { isSpeaking, speakText } = useTextToSpeech();
+  useUsageLimitGate("A1", "reading");
   const [contentList, setContentList] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);

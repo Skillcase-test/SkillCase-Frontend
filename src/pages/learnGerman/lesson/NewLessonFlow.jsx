@@ -7,13 +7,18 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import api from "../../../api/axios";
-import { getLessonById, getLessonsList } from "../../../api/learnGermanApi";
+import {
+  completeDynamicLesson,
+  getLessonById,
+  getLessonsList,
+  saveDynamicLessonProgress,
+} from "../../../api/learnGermanApi";
 import { hapticLight, hapticMedium, hapticHeavy } from "../../../utils/haptics";
 import { trackAppAnalyticsEvent } from "../../../utils/appAnalytics";
 import { recordEvent } from "../../../telemetry";
 import { setClarityTag, trackClarityEvent } from "../../../observability/clarity";
 import { preloadMayaTTSText } from "./screens/shared/useMayaTTS";
+import { useUsageLimitGate } from "../../../hooks/useUsageLimits";
 import {
   getGermanTTSBlob,
   preloadGermanTTSText,
@@ -117,8 +122,13 @@ export default function NewLessonFlow() {
   // review mode: skip straight to the outro so the user replays the completion sequence
   const isReviewMode = searchParams.get("mode") === "review";
 
-  //  Core lesson state 
+  //  Core lesson state
   const [lessonData, setLessonData] = useState(null);
+  // Covers deep-linking straight into a lesson URL, bypassing LearnGermanHome's
+  // gate. Gates on THIS lesson's own level (matches completeLesson's real
+  // enforcement) rather than the user's general level — undefined/null level
+  // before lessonData loads is a safe no-op (no state to match).
+  useUsageLimitGate(lessonData?.proficiency_level, "learn_german");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [screenIndex, setScreenIndex] = useState(0);
@@ -497,11 +507,10 @@ export default function NewLessonFlow() {
       }
       lastPersistedScreenRef.current = nextSavedScreen;
       try {
-        await api.post("/dynamic-lesson/progress", {
+        await saveDynamicLessonProgress({
           lessonId: chapterId,
           screensCompleted: nextSavedScreen,
         });
-        api.clearGetCache?.();
       } catch (err) {
         // Non-blocking — progress save failures should not interrupt the lesson
         console.error("Failed to save progress:", err);
@@ -517,10 +526,8 @@ export default function NewLessonFlow() {
       return completionPersistPromiseRef.current;
     }
 
-    completionPersistPromiseRef.current = api
-      .post("/dynamic-lesson/complete", { lessonId: chapterId })
+    completionPersistPromiseRef.current = completeDynamicLesson(chapterId)
       .then(({ data }) => {
-        api.clearGetCache?.();
         const result = {
           // streakUpdated = true means this was the first lesson completed today
           streakUpdated: data?.streakUpdated === true,
