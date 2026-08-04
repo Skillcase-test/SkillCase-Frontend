@@ -103,6 +103,7 @@ export default function A1FlashcardDeck({
   return (
     <div
       id={containerId}
+      data-no-pull-refresh
       className="relative w-[300px] h-[370px]"
       style={{ perspective: "1000px" }}
     >

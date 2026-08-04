@@ -27,6 +27,7 @@ const B1FlashcardDeck = ({
 }) => {
   return (
     <div
+      data-no-pull-refresh
       className="relative w-[280px] h-[350px]"
       style={{ perspective: "1000px" }}
     >
@@ -74,7 +75,7 @@ const B1FlashcardDeck = ({
           <div
             key={`card-${position}-${deckRotation}`}
             className={`absolute w-[280px] h-[320px] rounded-[20px] ${
-              isFrontCard ? "cursor-grab active:cursor-grabbing select-none" : ""
+              isFrontCard ? "cursor-grab active:cursor-grabbing select-none touch-none" : ""
             }`}
             style={{
               backgroundColor: isFrontCard ? "transparent" : bgColor,
