@@ -13,6 +13,8 @@ const MODULE_OPTIONS = [
   { key: "b1_content", label: "B1" },
   { key: "learn_german", label: "Learn German" },
   { key: "events", label: "Events" },
+  { key: "stories", label: "Stories" },
+  { key: "conversations", label: "Conversations" },
   { key: "interview_tools", label: "Interview Tools" },
   { key: "skillcase_interviews", label: "Skillcase Interviews" },
   { key: "explore_candidates", label: "Explore Candidates" },
@@ -65,6 +67,10 @@ const PAYMENTS_ALL_TAB_KEYS = PAYMENTS_TAB_OPTIONS.map((t) => t.key).filter(
 // 5-action checkbox grid, which is misleading for modules that don't use those actions.
 const SIMPLE_ACCESS_MODULES = {
   job_screening: { viewActions: ["view"], fullActions: ["view", "edit"] },
+  conversations: {
+    viewActions: ["view"],
+    fullActions: ["view", "create", "delete"],
+  },
   events: {
     viewActions: ["view"],
     fullActions: ["view", "create", "edit", "delete"],
@@ -75,7 +81,7 @@ const SIMPLE_ACCESS_MODULES = {
   },
   explore_candidates: {
     viewActions: ["view"],
-    fullActions: ["view", "edit", "delete"],
+    fullActions: ["view", "create", "edit", "delete"],
   },
   exam: {
     viewActions: ["view"],
@@ -109,6 +115,7 @@ const READ_ONLY_MODULES = new Set([
 // there's no useful "view only" mode here, so access is granted or not, full stop.
 // grantAction is whichever single action each module's backend actually checks.
 const FULL_ACCESS_ONLY_MODULES = {
+  stories: { grantAction: "manage" },
   content: { grantAction: "manage" },
   a2_content: { grantAction: "manage" },
   b1_content: { grantAction: "manage" },
