@@ -7,7 +7,7 @@ import {
 } from "../../../api/videoCourseApi";
 import { trackFeatureEvent } from "../../../telemetry/events";
 
-export default function ChatDrawer({ videoId, open, onClose }) {
+export default function ChatDrawer({ videoId, open, onClose, language = "en" }) {
   const [messages, setMessages] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [input, setInput] = useState("");
@@ -44,7 +44,8 @@ export default function ChatDrawer({ videoId, open, onClose }) {
     });
 
     try {
-      const res = await chatWithVideo(videoId, message, history);
+      const res = await chatWithVideo(videoId, message, history, language);
+
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: res.data?.data?.reply || "" },

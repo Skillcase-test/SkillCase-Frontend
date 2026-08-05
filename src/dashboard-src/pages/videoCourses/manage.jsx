@@ -92,10 +92,10 @@ export default function VideoCourseManage() {
         course_id: editingVideo.course_id || null,
         title: editingVideo.title,
         description: editingVideo.description,
-        transcript: editingVideo.transcript,
         proficiency_level: editingVideo.proficiency_level,
         display_order: editingVideo.display_order,
       });
+
       if (videoThumb) {
         const formData = new FormData();
         formData.append("thumbnail", videoThumb);
@@ -329,14 +329,8 @@ export default function VideoCourseManage() {
                   className="mt-1 w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#002856] border border-slate-200 rounded-lg p-1.5 bg-white"
                 />
               </label>
-              <textarea
-                rows={4}
-                value={editingVideo.transcript || ""}
-                onChange={(e) => setEditingVideo({ ...editingVideo, transcript: e.target.value })}
-                placeholder="Transcript"
-                className={inputClass}
-              />
               <div className="grid gap-3 md:grid-cols-3">
+
                 <select
                   value={editingVideo.course_id || ""}
                   onChange={(e) => setEditingVideo({ ...editingVideo, course_id: e.target.value })}
@@ -390,6 +384,7 @@ export default function VideoCourseManage() {
                     <th className="px-6 py-3">Title</th>
                     <th className="px-6 py-3">Course</th>
                     <th className="px-6 py-3">Level</th>
+                    <th className="px-6 py-3">Status</th>
                     <th className="px-6 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -414,6 +409,26 @@ export default function VideoCourseManage() {
                           {vid.proficiency_level}
                         </span>
                       </td>
+                      <td className="px-6 py-4">
+                        {vid.processing_status === "completed" ? (
+                          <span className="text-[10px] px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded font-bold uppercase">
+                            Ready
+                          </span>
+                        ) : vid.processing_status === "processing" ? (
+                          <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded font-bold uppercase">
+                            Processing {vid.processing_progress || 0}%
+                          </span>
+                        ) : vid.processing_status === "failed" ? (
+                          <span className="text-[10px] px-2 py-0.5 bg-red-50 text-red-700 border border-red-200 rounded font-bold uppercase">
+                            Failed
+                          </span>
+                        ) : (
+                          <span className="text-[10px] px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded font-bold uppercase">
+                            Pending
+                          </span>
+                        )}
+                      </td>
+
                       <td className="px-6 py-4 text-right whitespace-nowrap">
                         <button
                           onClick={() => openChapters(vid)}

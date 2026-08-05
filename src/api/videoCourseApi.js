@@ -51,12 +51,13 @@ export const updateVideoCourseProgress = (videoId, data) =>
   });
 export const getVideoCourseProgress = (videoId) =>
   api.get(`/video-courses/${videoId}/progress`);
-export const chatWithVideo = (videoId, message, history = []) =>
+export const chatWithVideo = (videoId, message, history = [], language = "en") =>
   api.post(
     `/video-courses/${videoId}/chat`,
-    { message, history },
+    { message, history, language },
     { meta: { skipCacheInvalidation: true } },
   );
+
 export const getSuggestedVideoQuestions = (videoId) =>
   api.cachedGet(
     `/video-courses/${videoId}/suggested-questions`,
@@ -90,6 +91,9 @@ export const updateVideoCourseVideoThumbnail = (videoId, formData) =>
   });
 export const deleteVideoCourseVideo = (videoId) =>
   api.delete(`/admin/video-courses/${videoId}`);
+export const getVideoCourseProcessingStatus = (videoId) =>
+  api.get(`/admin/video-courses/${videoId}/status`);
+
 
 export const getVideoCourseTimestamps = (videoId) =>
   api.get(`/admin/video-courses/${videoId}/timestamps`);

@@ -33,6 +33,7 @@ export default function VideoPlayerPage() {
   useUsageLimitGate("ALL", "video_courses");
 
   const videoRef = useRef(null);
+  const dubAudioRef = useRef(null);
   const videoContainerRef = useRef(null);
   const progressBarRef = useRef(null);
   const controlsTimeoutRef = useRef(null);
@@ -50,10 +51,30 @@ export default function VideoPlayerPage() {
   const [showControls, setShowControls] = useState(true);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [audioLang, setAudioLang] = useState("en");
 
   const video = data?.video;
   const timestamps = data?.timestamps || [];
+  const audioTracks = data?.audio_tracks || [];
+  const selectedTrack = audioTracks.find((t) => t.language_code === audioLang);
+  const dubUrl = selectedTrack?.audio_url;
   const level = video?.proficiency_level;
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = audioLang !== "en" && Boolean(dubUrl);
+    }
+    if (dubAudioRef.current && videoRef.current) {
+      dubAudioRef.current.currentTime = videoRef.current.currentTime;
+      dubAudioRef.current.playbackRate = playbackRate;
+      if (!videoRef.current.paused && audioLang !== "en" && dubUrl) {
+        dubAudioRef.current.play().catch(() => {});
+      } else {
+        dubAudioRef.current.pause();
+      }
+    }
+  }, [audioLang, dubUrl, playbackRate]);
+
 
   useEffect(() => {
     if (!user?.user_id) return;
@@ -128,10 +149,15 @@ export default function VideoPlayerPage() {
     if (el.paused) {
       trackLearningEvent("media_played", { level, module: "video_course", contentId: videoId, entityId: videoId, mediaState: "playing", progressBucket });
       el.play().catch(() => {});
+      if (dubAudioRef.current && audioLang !== "en" && dubUrl) {
+        dubAudioRef.current.currentTime = el.currentTime;
+        dubAudioRef.current.play().catch(() => {});
+      }
       setIsPlaying(true);
     } else {
       trackLearningEvent("media_paused", { level, module: "video_course", contentId: videoId, entityId: videoId, mediaState: "paused", progressBucket });
       el.pause();
+      if (dubAudioRef.current) dubAudioRef.current.pause();
       setIsPlaying(false);
     }
   };
@@ -141,7 +167,9 @@ export default function VideoPlayerPage() {
     const el = videoRef.current;
     if (!el) return;
     trackLearningEvent("media_seeked", { level, module: "video_course", contentId: videoId, entityId: videoId, direction: delta > 0 ? "forward" : "backward" });
-    el.currentTime = Math.min(duration, Math.max(0, el.currentTime + delta));
+    const target = Math.min(duration, Math.max(0, el.currentTime + delta));
+    el.currentTime = target;
+    if (dubAudioRef.current) dubAudioRef.current.currentTime = target;
   };
 
   const handleLoadedMetadata = () => {
@@ -155,15 +183,16 @@ export default function VideoPlayerPage() {
     const resumeAt = Number.isFinite(requested)
       ? requested
       : Number(video?.watch_time_seconds) || 0;
-    // Resuming at the very end would just replay the completion frame.
     if (resumeAt > 0 && resumeAt < el.duration - 5) {
       el.currentTime = resumeAt;
+      if (dubAudioRef.current) dubAudioRef.current.currentTime = resumeAt;
       setCurrentTime(resumeAt);
     }
   };
 
   const handleVideoEnded = () => {
     setIsPlaying(false);
+    if (dubAudioRef.current) dubAudioRef.current.pause();
     trackLearningEvent("media_completed", { level, module: "video_course", contentId: videoId, entityId: videoId, mediaState: "ended", progressBucket: 100 });
     saveProgress(true);
   };
@@ -174,6 +203,7 @@ export default function VideoPlayerPage() {
     if (!el) return;
     const nextRate = { 1: 1.25, 1.25: 1.5, 1.5: 2 }[playbackRate] || 1;
     el.playbackRate = nextRate;
+    if (dubAudioRef.current) dubAudioRef.current.playbackRate = nextRate;
     setPlaybackRate(nextRate);
     trackLearningEvent("media_speed_changed", { level, module: "video_course", contentId: videoId, entityId: videoId, speed: nextRate });
   };
@@ -219,16 +249,23 @@ export default function VideoPlayerPage() {
     const el = videoRef.current;
     if (!rect || !el) return;
     const percentage = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    el.currentTime = percentage * duration;
-    setCurrentTime(percentage * duration);
+    const target = percentage * duration;
+    el.currentTime = target;
+    if (dubAudioRef.current) dubAudioRef.current.currentTime = target;
+    setCurrentTime(target);
     trackLearningEvent("media_seeked", { level, module: "video_course", contentId: videoId, entityId: videoId, direction: "scrub" });
   };
 
   const handleChapterClick = (seconds) => {
     const el = videoRef.current;
     if (!el) return;
-    el.currentTime = parseFloat(seconds);
+    const target = parseFloat(seconds);
+    el.currentTime = target;
+    if (dubAudioRef.current) dubAudioRef.current.currentTime = target;
     el.play().catch(() => {});
+    if (dubAudioRef.current && audioLang !== "en" && dubUrl) {
+      dubAudioRef.current.play().catch(() => {});
+    }
     setIsPlaying(true);
     trackLearningEvent("media_seeked", {
       level,
@@ -244,6 +281,7 @@ export default function VideoPlayerPage() {
       },
     });
   };
+
 
   const index = siblings.findIndex((v) => String(v.video_id) === String(videoId));
   const prev = index > 0 ? siblings[index - 1] : null;
@@ -301,7 +339,15 @@ export default function VideoPlayerPage() {
                   data-testid="course-video"
                   className="w-full h-full object-contain cursor-pointer"
                   poster={video.thumbnail_url}
-                  onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime || 0)}
+                  onTimeUpdate={() => {
+                    const vTime = videoRef.current?.currentTime || 0;
+                    setCurrentTime(vTime);
+                    if (dubAudioRef.current && audioLang !== "en" && dubUrl) {
+                      if (Math.abs(dubAudioRef.current.currentTime - vTime) > 0.3) {
+                        dubAudioRef.current.currentTime = vTime;
+                      }
+                    }
+                  }}
                   onLoadedMetadata={handleLoadedMetadata}
                   onEnded={handleVideoEnded}
                   onClick={togglePlay}
@@ -312,6 +358,10 @@ export default function VideoPlayerPage() {
                   onSeeked={() => setIsVideoLoading(false)}
                   onLoadStart={() => setIsVideoLoading(true)}
                 />
+
+                <audio ref={dubAudioRef} src={dubUrl || undefined} preload="auto" className="hidden" />
+
+
 
                 {isVideoLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10 pointer-events-none">
@@ -417,10 +467,28 @@ export default function VideoPlayerPage() {
                 >
                   {playbackRate} x
                 </button>
+
+                {audioTracks.length > 1 && (
+                  <select
+                    value={audioLang}
+                    onChange={(e) => setAudioLang(e.target.value)}
+                    title="Audio Language"
+                    className="bg-transparent border-none text-white hover:text-[#F5A623] font-bold cursor-pointer text-xs outline-none bg-black"
+                  >
+                    <option value="en" className="bg-black text-white">EN</option>
+                    {audioTracks.some((t) => t.language_code === "hi") && (
+                      <option value="hi" className="bg-black text-white">हिंदी</option>
+                    )}
+                    {audioTracks.some((t) => t.language_code === "kn") && (
+                      <option value="kn" className="bg-black text-white">ಕನ್ನಡ</option>
+                    )}
+                  </select>
+                )}
               </div>
             </div>
           </div>
         </div>
+
 
         {timestamps.length > 0 && (
           <div className="px-4 py-3 mt-3 flex flex-col gap-2 bg-slate-50 border-y border-zinc-100">
@@ -527,7 +595,9 @@ export default function VideoPlayerPage() {
         videoId={videoId}
         open={chatOpen}
         onClose={() => setChatOpen(false)}
+        language={audioLang}
       />
+
     </div>
   );
 }

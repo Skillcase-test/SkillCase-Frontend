@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Upload, CheckCircle, AlertCircle, Loader } from "lucide-react";
 import {
   getVideoCoursesAdmin,
   initVideoCourseUpload,
   completeVideoCourseUpload,
+  getVideoCourseProcessingStatus,
 } from "../../../api/videoCourseApi";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -15,7 +16,6 @@ export default function VideoCourseAdd() {
     course_id: "",
     title: "",
     description: "",
-    transcript: "",
     proficiency_level: "A1",
     display_order: 0,
   });
@@ -23,12 +23,19 @@ export default function VideoCourseAdd() {
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [videoDuration, setVideoDuration] = useState(0);
   const [uploadStatus, setUploadStatus] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const pollRef = useRef(null);
 
   useEffect(() => {
     getVideoCoursesAdmin()
       .then((res) => setCourses(res.data?.data || []))
       .catch(() => toast.error("Failed to load courses"));
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, []);
 
   const setField = (key) => (e) =>
@@ -39,8 +46,8 @@ export default function VideoCourseAdd() {
     if (!file) return;
     setVideoFile(file);
     setUploadStatus("");
+    setUploadProgress(0);
 
-    // Read duration off the local file so the row carries it without a probe.
     const tempUrl = URL.createObjectURL(file);
     const vid = document.createElement("video");
     vid.preload = "metadata";
@@ -73,7 +80,10 @@ export default function VideoCourseAdd() {
       return;
     }
 
+    if (pollRef.current) clearInterval(pollRef.current);
     setIsUploading(true);
+    setIsProcessing(false);
+    setUploadProgress(0);
     setUploadStatus("uploading:Initializing upload with server...");
 
     try {
@@ -85,16 +95,25 @@ export default function VideoCourseAdd() {
       }
 
       const { upload_url, s3_key } = initRes.data.data;
-      setUploadStatus("uploading:Uploading video file to S3 (this may take a minute)...");
+      setUploadStatus("uploading:Uploading video file to S3...");
 
-      const uploadResponse = await fetch(upload_url, {
-        method: "PUT",
-        body: videoFile,
-        headers: { "Content-Type": videoFile.type || "video/mp4" },
+      await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", upload_url, true);
+        xhr.setRequestHeader("Content-Type", videoFile.type || "video/mp4");
+        xhr.upload.onprogress = (evt) => {
+          if (!evt.lengthComputable) return;
+          const percent = Math.round((evt.loaded / evt.total) * 100);
+          setUploadProgress(percent);
+          setUploadStatus(`uploading:Uploading video to S3 — ${percent}%`);
+        };
+        xhr.onload = () =>
+          xhr.status >= 200 && xhr.status < 300
+            ? resolve()
+            : reject(new Error(`Failed to upload video file directly to S3. (${xhr.status})`));
+        xhr.onerror = () => reject(new Error("Network error while uploading video to S3."));
+        xhr.send(videoFile);
       });
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload video file directly to S3.");
-      }
 
       setUploadStatus("uploading:Completing upload and saving metadata...");
 
@@ -103,7 +122,6 @@ export default function VideoCourseAdd() {
       if (form.course_id) completeData.append("course_id", form.course_id);
       completeData.append("title", form.title);
       completeData.append("description", form.description);
-      completeData.append("transcript", form.transcript);
       completeData.append("proficiency_level", form.proficiency_level);
       completeData.append("display_order", form.display_order || 0);
       completeData.append("video_duration", videoDuration || 0);
@@ -114,13 +132,15 @@ export default function VideoCourseAdd() {
         throw new Error("Failed to save video metadata on backend.");
       }
 
-      toast.success("Successfully uploaded course video!");
-      setUploadStatus("success:Video uploaded successfully!");
+      const videoId = completeRes.data?.data?.video_id;
+
+      // File upload complete - enable button for next video submission while polling continues
+      setIsUploading(false);
+
       setForm({
         course_id: form.course_id,
         title: "",
         description: "",
-        transcript: "",
         proficiency_level: form.proficiency_level,
         display_order: 0,
       });
@@ -131,14 +151,60 @@ export default function VideoCourseAdd() {
       if (vidInput) vidInput.value = "";
       const thumbInput = document.getElementById("course-thumb-file-input");
       if (thumbInput) thumbInput.value = "";
+
+      if (videoId) {
+        setIsProcessing(true);
+        setUploadStatus("uploading:Queued for processing... You can safely leave this page; processing continues in the background.");
+        let attempts = 0;
+        const maxAttempts = 360;
+        pollRef.current = setInterval(async () => {
+          attempts++;
+          try {
+            const statusRes = await getVideoCourseProcessingStatus(videoId);
+            const statusData = statusRes.data?.data;
+            if (!statusData) return;
+
+            const st = statusData.processing_status;
+            const prg = statusData.processing_progress || 0;
+
+            if (st === "pending") {
+              setUploadStatus("uploading:Queued for processing... You can safely leave this page; processing continues in the background.");
+            } else if (st === "processing") {
+              setUploadStatus(`uploading:Generating transcript and Hindi/Kannada audio — ${prg}% (You can safely leave this page)`);
+            } else if (st === "completed") {
+              clearInterval(pollRef.current);
+              setUploadStatus("success:Video processed. Hindi and Kannada audio are ready.");
+              setIsProcessing(false);
+              toast.success("Video processed successfully!");
+            } else if (st === "failed") {
+              clearInterval(pollRef.current);
+              setUploadStatus(`error:Processing failed: ${statusData.processing_error || "Unknown error"}`);
+              setIsProcessing(false);
+            }
+          } catch (pErr) {
+            console.error("Polling error:", pErr);
+          }
+
+          if (attempts >= maxAttempts) {
+            clearInterval(pollRef.current);
+            setUploadStatus("error:Processing timed out. Please check the Manage page for status.");
+            setIsProcessing(false);
+          }
+        }, 5000);
+      } else {
+        toast.success("Successfully uploaded course video!");
+        setUploadStatus("success:Video uploaded successfully!");
+      }
     } catch (err) {
       console.error(err);
       toast.error(err.message || "Error uploading video.");
       setUploadStatus("error:" + (err.message || "Error uploading video."));
-    } finally {
       setIsUploading(false);
+      setIsProcessing(false);
     }
   };
+
+
 
   const statusInfo = (() => {
     if (!uploadStatus) return null;
@@ -230,18 +296,6 @@ export default function VideoCourseAdd() {
 
           <div>
             <label className="block text-sm font-semibold text-gray-800 mb-2">
-              Transcript
-            </label>
-            <textarea
-              rows={6}
-              value={form.transcript}
-              onChange={setField("transcript")}
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">
               Display Order
             </label>
             <input
@@ -295,6 +349,15 @@ export default function VideoCourseAdd() {
               <span className={`text-sm font-medium ${statusInfo.config.text}`}>
                 {statusInfo.message}
               </span>
+            </div>
+          )}
+
+          {isUploading && uploadProgress > 0 && uploadProgress < 100 && (
+            <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%` }}
+              />
             </div>
           )}
 
