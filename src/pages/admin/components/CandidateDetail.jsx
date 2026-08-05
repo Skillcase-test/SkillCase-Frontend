@@ -418,7 +418,8 @@ const CandidateDetail = ({
         "This will reset the welcome step status back to pending. The candidate will need to start the pipeline again.",
       onConfirm: () => {
         const updatedSteps = steps.map((s) => {
-          if (s.id === "welcome") return { ...s, status: "pending" };
+          if (s.id === "welcome")
+            return { ...s, status: "pending", is_skippable: false };
           return { ...s, status: "locked" };
         });
         onUpdate(candidate.user_id, { steps_config: updatedSteps });
@@ -1270,8 +1271,9 @@ const CandidateDetail = ({
               const isRecruiter = step.id === "recruiter_interview";
               const isOffer = step.id === "offer_letter";
 
+              const isSkipped = step.status === "skipped";
               const isCompleted =
-                step.status === "completed" || step.status === "skipped";
+                step.status === "completed" || isSkipped;
               const isActive = step.id === candidate.current_step_id;
               const isLocked = !isCompleted && !isActive;
               const stepTimestamps = candidate.step_timestamps?.[step.id] || {};
@@ -1323,11 +1325,13 @@ const CandidateDetail = ({
                               : "bg-slate-50 text-slate-400 border-slate-100"
                         }`}
                       >
-                        {isCompleted
-                          ? "Completed"
-                          : isActive
-                            ? "Active"
-                            : "Locked"}
+                        {isSkipped
+                          ? "Skipped"
+                          : isCompleted
+                            ? "Completed"
+                            : isActive
+                              ? "Active"
+                              : "Locked"}
                       </span>
                     </div>
 
@@ -1382,7 +1386,7 @@ const CandidateDetail = ({
                               onClick={handleResetWelcome}
                               className="mt-2 text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1 rounded-lg transition-all"
                             >
-                              Reset Welcome
+                              {isSkipped ? "Unskip Step" : "Reset Welcome"}
                             </button>
                           )}
                         </div>
@@ -1400,7 +1404,9 @@ const CandidateDetail = ({
                               onClick={handleResetProfile}
                               className="mt-2 text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1 rounded-lg transition-all"
                             >
-                              Reset Profile Verification
+                              {step.status === "skipped"
+                                ? "Unskip Step"
+                                : "Reset Profile Verification"}
                             </button>
                           )}
                           {isActive && (
@@ -1415,8 +1421,8 @@ const CandidateDetail = ({
                                 </span>
                                 <p className="text-[9px] text-slate-400 leading-relaxed">
                                   For candidates who are unable to upload
-                                  themselves. Files uploaded here are approved
-                                  immediately.
+                                  themselves. Uploaded files stay pending
+                                  until approved below.
                                 </p>
                                 <div className="flex flex-col sm:flex-row gap-2">
                                   <label className="flex-1 flex flex-col gap-1">
@@ -1748,7 +1754,7 @@ const CandidateDetail = ({
                               onClick={handleResetInterview}
                               className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1 rounded-lg transition-all"
                             >
-                              Reset Interview
+                              {isSkipped ? "Unskip Step" : "Reset Interview"}
                             </button>
                           )}
                         </div>
@@ -1815,7 +1821,9 @@ const CandidateDetail = ({
                               onClick={handleResetAgreement}
                               className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1 rounded-lg transition-all"
                             >
-                              Reset Agreement Checkpoint
+                              {isSkipped
+                                ? "Unskip Step"
+                                : "Reset Agreement Checkpoint"}
                             </button>
                           )}
                         </div>
@@ -1948,7 +1956,9 @@ const CandidateDetail = ({
                               onClick={handleResetReview}
                               className="mt-2 text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1 rounded-lg transition-all"
                             >
-                              Reset Review Decision
+                              {step.status === "skipped"
+                                ? "Unskip Step"
+                                : "Reset Review Decision"}
                             </button>
                           )}
                         </div>
@@ -2140,7 +2150,9 @@ const CandidateDetail = ({
                               onClick={handleResetAdditionalDocs}
                               className="mt-2 text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1 rounded-lg transition-all cursor-pointer"
                             >
-                              Reset Documents Checkpoint
+                              {isSkipped
+                                ? "Unskip Step"
+                                : "Reset Documents Checkpoint"}
                             </button>
                           )}
                         </div>
@@ -2336,7 +2348,9 @@ const CandidateDetail = ({
                               onClick={handleResetTraining}
                               className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1 rounded-lg transition-all"
                             >
-                              Reset Training Checkpoint
+                              {isSkipped
+                                ? "Unskip Step"
+                                : "Reset Training Checkpoint"}
                             </button>
                           )}
                         </div>
