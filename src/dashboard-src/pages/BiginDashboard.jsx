@@ -488,6 +488,23 @@ function KpiTile({
 }
 
 const CANDIDATE_PAGE_SIZE = 50;
+const EXPORT_PAGE_SIZE = 500;
+
+// Loops a paginated candidates endpoint until every matching row is fetched
+// (not just whatever page the table happens to be showing), for full-table
+// CSV export. `params` should already include the current filters/search.
+async function fetchAllCandidates(apiFn, params) {
+  let all = [];
+  let offset = 0;
+  let total = Infinity;
+  while (offset < total) {
+    const { data } = await apiFn({ ...params, limit: EXPORT_PAGE_SIZE, offset });
+    all = all.concat(data.candidates || []);
+    total = data.total || 0;
+    offset += EXPORT_PAGE_SIZE;
+  }
+  return all;
+}
 
 function CandidatesModal({
   bucket,
@@ -499,6 +516,7 @@ function CandidatesModal({
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
   const [state, setState] = useState({
     rows: [],
     total: 0,
@@ -555,26 +573,36 @@ function CandidatesModal({
 
   const totalPages = Math.max(1, Math.ceil(state.total / CANDIDATE_PAGE_SIZE));
 
-  const handleExport = () => {
-    if (!isSuperAdmin) return;
-    const headers = ["Name", "Phone", "Pipeline", "Stage", "Owner", "Created"];
-    const rows = state.rows.map((r) => [
-      r.deal_name || "",
-      r.phone || "",
-      r.pipeline_name || "",
-      r.stage || "",
-      r.owner_name || "",
-      r.created_time ? istDate(r.created_time) : "",
-    ]);
-    const csv = [headers, ...rows]
-      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `bigin_${bucket}_page${page}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleExport = async () => {
+    if (!isSuperAdmin || exporting) return;
+    setExporting(true);
+    try {
+      const all = await fetchAllCandidates(biginDashboardApi.candidates, {
+        ...apiFilters,
+        bucket,
+        search: debouncedSearch || undefined,
+      });
+      const headers = ["Name", "Phone", "Pipeline", "Stage", "Owner", "Created"];
+      const rows = all.map((r) => [
+        r.deal_name || "",
+        r.phone || "",
+        r.pipeline_name || "",
+        r.stage || "",
+        r.owner_name || "",
+        r.created_time ? istDate(r.created_time) : "",
+      ]);
+      const csv = [headers, ...rows]
+        .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+        .join("\n");
+      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `bigin_${bucket}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -593,11 +621,11 @@ function CandidatesModal({
               <button
                 type="button"
                 onClick={handleExport}
-                disabled={!state.rows.length}
+                disabled={!state.rows.length || exporting}
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
               >
                 <Download className="h-3.5 w-3.5" />
-                Export page
+                {exporting ? "Exporting…" : "Export all"}
               </button>
             )}
             <button
@@ -826,6 +854,7 @@ function DashboardBody({
   periodLabel,
   compact = false,
   isSuperAdmin = false,
+  showAvgDaysToFirstMove = false,
 }) {
   const {
     summary,
@@ -888,7 +917,13 @@ function DashboardBody({
       )}
 
       <div
-        className={`grid gap-4 ${compact ? "grid-cols-3" : "grid-cols-2 sm:grid-cols-4 lg:grid-cols-7"}`}
+        className={`grid gap-4 ${
+          compact
+            ? "grid-cols-3"
+            : showAvgDaysToFirstMove
+              ? "grid-cols-2 sm:grid-cols-4 lg:grid-cols-8"
+              : "grid-cols-2 sm:grid-cols-4 lg:grid-cols-7"
+        }`}
       >
         <KpiTile
           label="New Leads"
@@ -999,6 +1034,32 @@ function DashboardBody({
           }
           breakdownFormat={(v) => (v != null ? number(v, 1) : "—")}
         />
+        {showAvgDaysToFirstMove && (
+          <KpiTile
+            label="Avg Days to First Movement"
+            value={
+              summary.avg_days_to_first_move != null
+                ? number(summary.avg_days_to_first_move, 1)
+                : "—"
+            }
+            current={summary.avg_days_to_first_move}
+            previous={prevSummary?.avg_days_to_first_move}
+            previousValue={
+              prevSummary?.avg_days_to_first_move != null
+                ? number(prevSummary.avg_days_to_first_move, 1)
+                : "—"
+            }
+            invert
+            footNote="From creation to first stage change · Previous"
+            breakdown={
+              breakdown && {
+                b2c: breakdown.summary.b2c.avg_days_to_first_move,
+                b1b2: breakdown.summary.b1b2.avg_days_to_first_move,
+              }
+            }
+            breakdownFormat={(v) => (v != null ? number(v, 1) : "—")}
+          />
+        )}
       </div>
 
       <SectionCard
@@ -1232,6 +1293,7 @@ function WeeklySnapshotView({
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [exporting, setExporting] = useState(false);
   const [list, setList] = useState({
     rows: [],
     total: 0,
@@ -1316,37 +1378,46 @@ function WeeklySnapshotView({
 
   const totalPages = Math.max(1, Math.ceil(list.total / CANDIDATE_PAGE_SIZE));
 
-  const handleExport = () => {
-    if (!isSuperAdmin) return;
-    const headers = [
-      "Name",
-      "Phone",
-      "Pipeline",
-      "Owner",
-      "Created date",
-      "Comparison date",
-      "Stage on comparison date",
-    ];
-    const rows = list.rows.map((r) => [
-      r.deal_name || "",
-      r.phone || "",
-      r.pipeline_name || "",
-      r.owner_name || "",
-      r.created_date ? formatDMY(r.created_date) : "",
-      r.comparison_date
-        ? `${formatDMY(r.comparison_date)}${r.comparison_is_current ? " (latest)" : ""}`
-        : "",
-      r.stage_at_comparison || "",
-    ]);
-    const csv = [headers, ...rows]
-      .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
-    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `bigin_weekly_snapshot_${createdFrom}_to_${createdTo}_page${page}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleExport = async () => {
+    if (!isSuperAdmin || exporting) return;
+    setExporting(true);
+    try {
+      const all = await fetchAllCandidates(
+        biginDashboardApi.weeklySnapshotCandidates,
+        { ...apiFilters, search: debouncedSearch || undefined },
+      );
+      const headers = [
+        "Name",
+        "Phone",
+        "Pipeline",
+        "Owner",
+        "Created date",
+        "Comparison date",
+        "Stage on comparison date",
+      ];
+      const rows = all.map((r) => [
+        r.deal_name || "",
+        r.phone || "",
+        r.pipeline_name || "",
+        r.owner_name || "",
+        r.created_date ? formatDMY(r.created_date) : "",
+        r.comparison_date
+          ? `${formatDMY(r.comparison_date)}${r.comparison_is_current ? " (latest)" : ""}`
+          : "",
+        r.stage_at_comparison || "",
+      ]);
+      const csv = [headers, ...rows]
+        .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+        .join("\n");
+      const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `bigin_weekly_snapshot_${createdFrom}_to_${createdTo}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -1433,11 +1504,11 @@ function WeeklySnapshotView({
             <button
               type="button"
               onClick={handleExport}
-              disabled={!list.rows.length}
+              disabled={!list.rows.length || exporting}
               className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
             >
               <Download className="h-3.5 w-3.5" />
-              Export page
+              {exporting ? "Exporting…" : "Export all"}
             </button>
           )}
         </div>
@@ -1907,6 +1978,7 @@ export default function BiginDashboard({ isSuperAdmin = false }) {
               periodLabel={isPastAsOf ? monthLabel(asOfMonth) : "This month"}
               compact
               isSuperAdmin={isSuperAdmin}
+              showAvgDaysToFirstMove
             />
             <DashboardBody
               data={secondary}
@@ -1918,6 +1990,7 @@ export default function BiginDashboard({ isSuperAdmin = false }) {
               }
               compact
               isSuperAdmin={isSuperAdmin}
+              showAvgDaysToFirstMove
             />
           </div>
         ) : (
@@ -1925,6 +1998,7 @@ export default function BiginDashboard({ isSuperAdmin = false }) {
             data={primary}
             apiFilters={primaryFilters}
             isSuperAdmin={isSuperAdmin}
+            showAvgDaysToFirstMove={view === "running"}
           />
         )}
       </div>
