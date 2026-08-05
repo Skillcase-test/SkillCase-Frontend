@@ -36,6 +36,7 @@ export function trackLearningEvent(event, context = {}) {
       mode: context.mode,
       recording_duration_ms: context.recordingDurationMs,
       score: context.score,
+      ...context.attributes,
     },
   });
 }

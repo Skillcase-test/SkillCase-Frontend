@@ -104,6 +104,9 @@ const B1ArticleManage = lazy(() => import("./b1/article/manage"));
 const B1ExamsAdd = lazy(() => import("./b1/exams/add"));
 const B1ExamsManage = lazy(() => import("./b1/exams/manage"));
 
+const VideoCourseAdd = lazy(() => import("./videoCourses/add"));
+const VideoCourseManage = lazy(() => import("./videoCourses/manage"));
+
 function hasPermission(me, moduleKey, action = "view") {
   if (!me) return false;
   if (me.role === "super_admin") return true;
@@ -962,15 +965,33 @@ export default function Dashboard() {
           ]
         : [];
 
-    const extraContentItems = dynamicLessonAllowed
-      ? [
-          {
-            key: "dynamic-lesson",
-            label: "Learn German",
-            path: "/admin/dynamic-lesson",
-          },
-        ]
-      : [];
+    const extraContentItems = [
+      ...(dynamicLessonAllowed
+        ? [
+            {
+              key: "dynamic-lesson",
+              label: "Learn German",
+              path: "/admin/dynamic-lesson",
+            },
+          ]
+        : []),
+      // Video courses are not level-scoped, so they sit as flat entries
+      // rather than inside the A1/A2/B1 module tree.
+      ...(hasPermission(me, "video_course_content", "manage")
+        ? [
+            {
+              key: "video-courses-add",
+              label: "Video Courses — Add",
+              path: "/admin/video-courses/add",
+            },
+            {
+              key: "video-courses-manage",
+              label: "Video Courses — Manage",
+              path: "/admin/video-courses/manage",
+            },
+          ]
+        : []),
+    ];
 
     return {
       core,
@@ -1607,6 +1628,24 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "b1_content", "edit")}>
                     <B1ExamsManage />
+                  </Guard>
+                }
+              />
+
+              {/* Video Courses Routes */}
+              <Route
+                path="video-courses/add"
+                element={
+                  <Guard allowed={hasPermission(me, "video_course_content", "manage")}>
+                    <VideoCourseAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="video-courses/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "video_course_content", "manage")}>
+                    <VideoCourseManage />
                   </Guard>
                 }
               />

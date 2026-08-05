@@ -281,6 +281,15 @@ const VideoReader = lazy(() => import("./pages/b1/read-listen/VideoReader"));
 const VideoSuccess = lazy(() => import("./pages/b1/read-listen/VideoSuccess"));
 const B1AdminPage = lazy(() => import("./pages/b1/B1AdminPage"));
 
+// Video Courses (standalone course browsing + playback + AI chat)
+const CourseSelectPage = lazy(
+  () => import("./pages/videoCourses/CourseSelectPage"),
+);
+const VideoListPage = lazy(() => import("./pages/videoCourses/VideoListPage"));
+const VideoPlayerPage = lazy(
+  () => import("./pages/videoCourses/VideoPlayerPage"),
+);
+
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 2000;
 const PLAY_STORE_URL = "market://details?id=com.skillcase.app";
@@ -382,6 +391,8 @@ function AppContent() {
       /^\/interview\/[^/]+$/.test(location.pathname) ||
       location.pathname.startsWith("/news") ||
       location.pathname.startsWith("/learn-german/lesson") ||
+      location.pathname.startsWith("/video-course/") ||
+      location.pathname.startsWith("/video-courses/") ||
       location.pathname.startsWith("/onboarding"),
     [location.pathname],
   );
@@ -1758,6 +1769,22 @@ function AppContent() {
                         <VideoSuccess />
                       </LearningRoute>
                     }
+                  />
+                  {/* Video Courses */}
+                  <Route
+                    path="/video-courses"
+                    element={lazyScreen(
+                      <CourseSelectPage />,
+                      "Loading Courses...",
+                    )}
+                  />
+                  <Route
+                    path="/video-courses/:courseId"
+                    element={lazyScreen(<VideoListPage />, "Loading Videos...")}
+                  />
+                  <Route
+                    path="/video-course/:videoId"
+                    element={lazyScreen(<VideoPlayerPage />, "Loading Video...")}
                   />
                   <Route
                     path="/b1admin"
