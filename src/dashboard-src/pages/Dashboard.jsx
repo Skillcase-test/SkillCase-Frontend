@@ -63,6 +63,7 @@ const JobScreeningAdmin = lazy(
   () => import("../../pages/admin/JobScreeningAdmin"),
 );
 const Paywall = lazy(() => import("./Paywall"));
+const UsageLimits = lazy(() => import("./UsageLimits"));
 
 const A1FlashcardAdd = lazy(() => import("./a1/flashcard/add"));
 const A1FlashcardManage = lazy(() => import("./a1/flashcard/manage"));
@@ -824,6 +825,12 @@ export default function Dashboard() {
         path: "/admin/paywall",
         module: "paywall",
       },
+      {
+        key: "usage-limits",
+        label: "Usage Limits",
+        path: "/admin/usage-limits",
+        module: "usage_limits",
+      },
     ].filter((item) => hasPermission(me, item.module, "view"));
 
     if (me.role !== "super_admin" && hasPaymentsAccess) {
@@ -1293,6 +1300,14 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "paywall")}>
                     <Paywall />
+                  </Guard>
+                }
+              />
+              <Route
+                path="usage-limits"
+                element={
+                  <Guard allowed={hasPermission(me, "usage_limits")}>
+                    <UsageLimits canEdit={hasPermission(me, "usage_limits", "edit")} />
                   </Guard>
                 }
               />

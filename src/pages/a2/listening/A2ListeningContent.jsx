@@ -51,6 +51,7 @@ import { trackLearningEvent } from "../../../telemetry/events";
 import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
+import { useUsageLimitGate } from "../../../hooks/useUsageLimits";
 
 const CustomDropdown = memo(({
   options,
@@ -358,6 +359,7 @@ export default function A2ListeningContent() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
   const analytics = useFirstPartyAnalytics();
+  useUsageLimitGate("A2", "listening");
 
   const [content, setContent] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);

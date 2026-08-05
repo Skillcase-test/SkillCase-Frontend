@@ -30,6 +30,7 @@ const MODULE_OPTIONS = [
   { key: "terms", label: "Terms & Signatures" },
   { key: "payments", label: "Payments" },
   { key: "paywall", label: "Paywall" },
+  { key: "usage_limits", label: "Usage Limits" },
 ];
 const ACTION_OPTIONS = ["view", "create", "edit", "delete", "manage"];
 const SKILLCASE_INTERVIEW_MODULE = "skillcase_interviews";
@@ -94,6 +95,7 @@ const SIMPLE_ACCESS_MODULES = {
   wise: { viewActions: ["view"], fullActions: ["view", "edit"] },
   wise_classes: { viewActions: ["view"], fullActions: ["view", "edit"] },
   paywall: { viewActions: ["view"], fullActions: ["view", "edit"] },
+  usage_limits: { viewActions: ["view"], fullActions: ["view", "edit"] },
   terms: { viewActions: ["view"], fullActions: ["view", "edit"] },
   notifications: {
     viewActions: ["view"],

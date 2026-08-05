@@ -5,6 +5,7 @@ import { ChevronLeft, Loader2, AlertCircle } from "lucide-react";
 import { BsNewspaper } from "react-icons/bs";
 import { getB1ExamPapers, startB1ExamSubmission } from "../../../api/b1Api";
 import toast, { Toaster } from "react-hot-toast";
+import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 
 export default function PaperSelect() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ export default function PaperSelect() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const [startingPaperId, setStartingPaperId] = useState(null);
+  const { locked: usageLocked } = useUsageLimitModule("B1", "exams");
 
   const fetchPapersList = async () => {
     setLoading(true);
@@ -36,6 +38,7 @@ export default function PaperSelect() {
   }, [user?.user_id, examType]);
 
   const handlePaperClick = async (paperId) => {
+    if (usageLocked) return;
     setStartingPaperId(paperId);
     try {
       const res = await startB1ExamSubmission(paperId);
@@ -136,7 +139,9 @@ export default function PaperSelect() {
               <div
                 key={paper.id}
                 onClick={() => !isStarting && handlePaperClick(paper.id)}
-                className="w-full p-3 bg-white rounded-xl border border-zinc-200 flex justify-start items-start gap-3 cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all shrink-0"
+                className={`w-full p-3 bg-white rounded-xl border border-zinc-200 flex justify-start items-start gap-3 transition-all shrink-0 ${
+                  usageLocked ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
+                }`}
               >
                 {/* Icon Wrapper */}
                 <div

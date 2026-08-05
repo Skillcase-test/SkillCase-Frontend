@@ -4,10 +4,38 @@ import Badge from "../../../components/ui/Badge";
 import ExamCards from "../../exam/ExamCards";
 import { images } from "../../../assets/images.js";
 import { useState } from "react";
+import { Lock } from "lucide-react";
 import { hapticLight } from "../../../utils/haptics";
 import { isB1PracticeLevel } from "../../../utils/b1Progress";
+import { useUsageLimits } from "../../../hooks/useUsageLimits";
 
 /* Feature Cards */
+
+// Maps a feature card's id to the (level, module_key) the backend gates it
+// under (see SkillCase-backend/util/usageLimits.js MODULE_REGISTRY). Only
+// the revamp A1/A2/B1 module routes are actually usage-limited today — the
+// legacy a1Features/pronounce/conversation/stories/news tiles aren't wired
+// to any usageLimitMiddleware mount, so they're intentionally left out here
+// rather than showing a lock badge nothing backs up.
+const MODULE_MAP = {
+  "a1-revamp-flashcard": { level: "A1", module_key: "flashcard" },
+  "a1-revamp-grammar": { level: "A1", module_key: "grammar" },
+  "a1-revamp-listening": { level: "A1", module_key: "listening" },
+  "a1-revamp-speaking": { level: "A1", module_key: "speaking" },
+  "a1-revamp-reading": { level: "A1", module_key: "reading" },
+  "a1-revamp-test": { level: "A1", module_key: "test" },
+  "a2-flashcards": { level: "A2", module_key: "flashcard" },
+  "a2-grammar": { level: "A2", module_key: "grammar" },
+  "a2-listening": { level: "A2", module_key: "listening" },
+  "a2-speaking": { level: "A2", module_key: "speaking" },
+  "a2-reading": { level: "A2", module_key: "reading" },
+  "a2-test": { level: "A2", module_key: "test" },
+  "b1-flashcard": { level: "B1", module_key: "flashcard" },
+  "b1-read-listen": { level: "B1", module_key: "reading" },
+  "b1-describe-speak": { level: "B1", module_key: "describe_speak" },
+  "b1-exams": { level: "B1", module_key: "exams" },
+  "b1-maya": { level: "B1", module_key: "maya" },
+};
 
 export default function FeatureCardsGrid({ useRevampA1 = false }) {
   const { user } = useSelector((state) => state.auth);
@@ -308,6 +336,7 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
             key={feature.id}
             {...feature}
             tourId={getTourId(feature.id)}
+            moduleInfo={MODULE_MAP[feature.id]}
           />
         ))}
         <ExamCards />
@@ -324,36 +353,72 @@ function FeatureCard({
   enabled,
   comingSoon,
   tourId,
+  moduleInfo,
 }) {
-  const CardWrapper = enabled ? Link : "div";
+  const { getState } = useUsageLimits();
+  const moduleState = moduleInfo ? getState(moduleInfo.level, moduleInfo.module_key) : null;
+  const isLocked = Boolean(moduleState?.locked);
+
+  const clickable = enabled && !isLocked;
+  const CardWrapper = clickable ? Link : "div";
   const [isPressed, setIsPressed] = useState(false);
+
+  const openLockModal = () => {
+    if (!isLocked || !moduleState) return;
+    window.dispatchEvent(
+      new CustomEvent("skillcase:usage-limit", {
+        detail: {
+          locked: true,
+          reason: "usage_limit",
+          module_key: moduleInfo.module_key,
+          level: moduleInfo.level,
+          limit_value: moduleState.limit_value,
+          periods: moduleState.periods,
+          reset_at: moduleState.reset_at,
+          msg: moduleState.hard_locked
+            ? "This feature is currently locked."
+            : "Your limit for this feature has been reached.",
+        },
+      }),
+    );
+  };
 
   return (
     <CardWrapper
       id={tourId}
-      to={enabled ? link : undefined}
+      to={clickable ? link : undefined}
+      onClick={isLocked ? openLockModal : undefined}
       onTouchStart={() => {
-        if (enabled) {
+        if (clickable) {
           setIsPressed(true);
           hapticLight();
         }
       }}
       onTouchEnd={() => setIsPressed(false)}
-      onMouseDown={() => enabled && setIsPressed(true)}
+      onMouseDown={() => clickable && setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}
       className={`
-        bg-white rounded-lg p-0.5 card-shadow
+        relative bg-white rounded-lg p-0.5 card-shadow
         transition-all duration-150
         ${
-          enabled
+          clickable
             ? "hover:scale-105 cursor-pointer"
-            : "opacity-60 cursor-not-allowed"
+            : isLocked
+              ? "cursor-pointer"
+              : "opacity-60 cursor-not-allowed"
         }
         ${isPressed ? "scale-[0.85] shadow-inner" : ""}
         ${!enabled && "bg-[#e5e5e5]"}
+        ${isLocked && "opacity-75"}
       `}
     >
+      {isLocked && (
+        <span className="absolute top-1 right-1 z-10 flex items-center justify-center w-5 h-5 rounded-full bg-slate-900/70 text-white">
+          <Lock className="w-2.5 h-2.5" />
+        </span>
+      )}
+
       {/* Image */}
       <div className="h-16 md:h-40 rounded-md overflow-hidden">
         <img
@@ -372,6 +437,10 @@ function FeatureCard({
         </h3>
         {comingSoon ? (
           <Badge variant="warning">Coming soon</Badge>
+        ) : isLocked ? (
+          <Badge variant="warning">
+            {moduleState.limit_value === 0 ? "Locked" : "Limit reached"}
+          </Badge>
         ) : (
           <p className="text-[8px] md:text-[14px] text-black opacity-60 leading-[1.3]">
             {description}

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { getB1DescribeSpeakChapters, getB1DescribeSpeakChapterItems } from "../../../api/b1Api";
+import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 
 export default function DescribeSpeakSelect() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function DescribeSpeakSelect() {
   const [fetchError, setFetchError] = useState(false);
   const [selectedChapterId, setSelectedChapterId] = useState(null);
   const [chapterTitle, setChapterTitle] = useState("");
+  const { locked: usageLocked } = useUsageLimitModule("B1", "describe_speak");
 
   const fetchChapters = async () => {
     setLoading(true);
@@ -61,6 +63,7 @@ export default function DescribeSpeakSelect() {
   };
 
   const handleCardClick = (item) => {
+    if (usageLocked) return;
     if (selectedChapterId === null) {
       setSelectedChapterId(item.id);
       setChapterTitle(item.title);
@@ -182,7 +185,9 @@ export default function DescribeSpeakSelect() {
                 key={topic.id}
                 id={index === 0 ? "b1-describe-speak-first-chapter" : undefined}
                 onClick={() => handleCardClick(topic)}
-                className="w-full p-3 bg-white rounded-xl border border-zinc-200 flex justify-start items-start gap-3 cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all shrink-0"
+                className={`w-full p-3 bg-white rounded-xl border border-zinc-200 flex justify-start items-start gap-3 transition-all shrink-0 ${
+                  usageLocked ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
+                }`}
               >
                 <div
                   className="w-14 h-14 bg-indigo-50 rounded-sm overflow-hidden shrink-0"

@@ -879,10 +879,12 @@ export default function useB1MayaVAD() {
     await pauseVad();
     if (sessionIdRef.current) {
       try {
-        const res = await api.post("/b1-maya/end", {
-          sessionId: sessionIdRef.current,
-          durationSeconds: callDuration,
-        });
+      const res = await api.post("/b1-maya/end", {
+        sessionId: sessionIdRef.current,
+        durationSeconds: callDuration,
+      }, {
+        meta: { refreshUsageLimitsOnSuccess: true },
+      });
         if (res.data?.success) setSessionReport(res.data);
         if (res.data?.success) trackFeatureEvent("maya", "call_reported", {
           entityType: "maya_session", entityId: sessionIdRef.current,

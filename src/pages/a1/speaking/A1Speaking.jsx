@@ -14,12 +14,14 @@ import { useA1Tour } from "../../../tour/A1TourContext";
 import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
 import { useLearningQuestionJourney } from "../../../telemetry/learning";
 import { trackLearningEvent } from "../../../telemetry/events";
+import { useUsageLimits } from "../../../hooks/useUsageLimits";
 
 export default function A1Speaking() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const analytics = useFirstPartyAnalytics();
+  const { guardUsage } = useUsageLimits();
 
   const [content, setContent] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -149,6 +151,13 @@ export default function A1Speaking() {
 
   const handleNext = async () => {
     cancelSpeech();
+    if (currentIndex < totalCards - 1 && !guardUsage("A1", "speaking")) {
+      // Already-known-exhausted — block the advance instantly instead of
+      // letting several more cards through before the real 402 lands.
+      // guardUsage itself refreshes the real state and pops the lock modal;
+      // nothing to do here but stop.
+      return;
+    }
     if (currentIndex < totalCards - 1) {
       setCurrentIndex((p) => p + 1);
       setDeckRotation((p) => (p + 1) % 3);
@@ -158,6 +167,9 @@ export default function A1Speaking() {
         await saveSpeakingProgress({
           chapterId: parseInt(chapterId),
           contentIndex: currentIndex + 1,
+          // The one save here that consumes a card. handlePrevious and
+          // handleFinish POST to the same route and must not be charged.
+          advanced: true,
         });
       } catch {}
     } else {

@@ -6,6 +6,7 @@ import { getB1ReadingContent, submitB1ReadingQuiz } from "../../../api/b1Api";
 import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
 import toast, { Toaster } from "react-hot-toast";
 import { trackLearningEvent } from "../../../telemetry/events";
+import { useUsageLimitGate } from "../../../hooks/useUsageLimits";
 
 function readingTelemetryModule(module) {
   return module === "news"
@@ -18,6 +19,7 @@ export default function NewsArticleReader() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
+  useUsageLimitGate("B1", "reading");
   const { isSpeaking, isLoadingAudio, speakText, cancelSpeech } =
     useTextToSpeech();
 

@@ -45,7 +45,11 @@ function getMayaTTSBlob(text, config = {}) {
         .post(
           "/dynamic-lesson/maya-tts",
           { text: key },
-          { responseType: "blob", ...config },
+          {
+            responseType: "blob",
+            ...config,
+            meta: { skipCacheInvalidation: true, ...(config.meta || {}) },
+          },
         )
         .then((response) => {
           rememberMayaBlob(key, response.data);

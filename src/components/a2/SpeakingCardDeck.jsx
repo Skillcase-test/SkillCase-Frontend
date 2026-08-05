@@ -32,7 +32,7 @@ const SpeakingCardDeck = ({
   containerId = "a2-speaking-container",
 }) => {
   return (
-    <div id={containerId} className="relative w-[280px] h-[440px]">
+    <div id={containerId} data-no-pull-refresh className="relative w-[280px] h-[440px]">
       {[0, 1, 2].map((position) => {
         const cardIndex = currentIndex + (2 - position);
         const cardData =
@@ -73,7 +73,7 @@ const SpeakingCardDeck = ({
           <div
             key={`card-${position}-${deckRotation}`}
             className={`absolute w-[280px] h-[420px] rounded-[20px] ${
-              isFrontCard ? "cursor-grab select-none" : ""
+              isFrontCard ? "cursor-grab select-none touch-none" : ""
             }`}
             style={{
               backgroundColor: bgColor,

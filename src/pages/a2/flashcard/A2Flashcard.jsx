@@ -21,6 +21,7 @@ import ProgressBar from "../../../components/a2/ProgressBar";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import UmlautKeyboard from "../../../components/a2/UmlautKeyboard";
+import { useUsageLimits } from "../../../hooks/useUsageLimits";
 
 import {
   DndContext,
@@ -426,6 +427,10 @@ export default function A2Flashcard() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const analytics = useFirstPartyAnalytics();
+  const { guardUsage } = useUsageLimits();
+  // Last index this component saved progress for — see the save effect.
+  const savedCardRef = useRef(null);
+  const saveAttemptRef = useRef(0);
 
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -584,15 +589,42 @@ export default function A2Flashcard() {
       }
     };
     fetchData();
-  }, [chapterId, user, navigate]);
+    // user_id (a stable primitive), not the `user` object — a reference
+    // change on the redux auth slice (e.g. a periodic session refresh)
+    // would otherwise refire this effect and re-restore currentCard from
+    // whatever the server had as of that moment, racing in-progress saves.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chapterId, user?.user_id, navigate]);
 
+  // This effect also runs on mount, on backward navigation and on shuffle —
+  // none of which consume a card. `advanced` marks only the saves that moved
+  // forward to a new index, so a "20 flashcards" cap means 20 cards rather
+  // than 20 progress writes. Derived from the index rather than set at each
+  // call site so every advance path (swipe, button, continue-after-test) is
+  // covered without having to find them all.
   useEffect(() => {
     if (!setId || totalCards === 0 || !user) return;
+    const previousSavedCard = savedCardRef.current;
+    const advanced = previousSavedCard !== null && currentCard > previousSavedCard;
+    savedCardRef.current = currentCard;
+    const saveAttempt = ++saveAttemptRef.current;
     saveFlashcardProgress({
       setId,
       currentIndex: currentCard,
       isCompleted: currentCard >= totalCards - 1,
-    }).catch(console.error);
+      advanced,
+    }).catch((err) => {
+      if (
+        err?.response?.status === 402 &&
+        saveAttempt === saveAttemptRef.current &&
+        savedCardRef.current === currentCard
+      ) {
+        const rollbackCard = previousSavedCard ?? Math.max(0, currentCard - 1);
+        savedCardRef.current = rollbackCard;
+        setCurrentCard((card) => (card === currentCard ? rollbackCard : card));
+      }
+      console.error("Progress save failed:", err);
+    });
   }, [currentCard, user, setId, totalCards]);
 
   const handleSpeak = (text) => {
@@ -651,6 +683,9 @@ export default function A2Flashcard() {
         if (shouldShowTest(nextIndex)) {
           setShowTestPrompt(true);
           setDragOffset(0);
+        } else if (!guardUsage("A2", "flashcard")) {
+          // guardUsage itself refreshes the real state and pops the lock modal.
+          setDragOffset(0);
         } else if (currentCard < totalCards - 1) {
           recordFlashcardNavigation({
             fromIndex: currentCard,
@@ -690,6 +725,8 @@ export default function A2Flashcard() {
     const nextIndex = currentCard + 1;
     if (shouldShowTest(nextIndex)) {
       setShowTestPrompt(true);
+    } else if (!guardUsage("A2", "flashcard")) {
+      // guardUsage itself refreshes the real state and pops the lock modal.
     } else if (currentCard < totalCards - 1) {
       recordFlashcardNavigation({
         fromIndex: currentCard,
@@ -936,6 +973,7 @@ export default function A2Flashcard() {
     setShowTestPrompt(false);
     setShowTest(false);
     if (currentCard < totalCards - 1) {
+      if (!guardUsage("A2", "flashcard")) return;
       setCurrentCard(currentCard + 1);
       setDeckRotation((p) => (p + 1) % 3);
       setIsFlipped(false);
@@ -1040,6 +1078,7 @@ export default function A2Flashcard() {
       });
       navigate("/a2/flashcard");
     } else {
+      if (!guardUsage("A2", "flashcard")) return;
       setCurrentCard(currentCard + 1);
       setDeckRotation((p) => (p + 1) % 3);
     }

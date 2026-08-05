@@ -26,6 +26,10 @@ export function usePullToRefresh(onRefresh, enabled = true, options = {}) {
     (event) => {
       if (!enabled || isRefreshing) return;
       if (window.scrollY > 0) return;
+      // Swipeable card decks (flashcard/speaking) mark themselves so a
+      // horizontal swipe's incidental vertical drift never arms the pull
+      // gesture — see A1/A2/B1FlashcardDeck and SpeakingCardDeck.
+      if (event.target.closest?.("[data-no-pull-refresh]")) return;
 
       startY.current = event.touches[0].clientY;
       pulling.current = true;

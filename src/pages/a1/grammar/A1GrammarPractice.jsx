@@ -23,12 +23,14 @@ import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import { useLearningQuestionJourney } from "../../../telemetry/learning";
 import { trackLearningEvent } from "../../../telemetry/events";
+import { useUsageLimitGate } from "../../../hooks/useUsageLimits";
 
 export default function A1GrammarPractice() {
   const { topicId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const analytics = useFirstPartyAnalytics();
+  useUsageLimitGate("A1", "grammar");
 
   const isReviewMode = searchParams.get("mode") === "review";
 

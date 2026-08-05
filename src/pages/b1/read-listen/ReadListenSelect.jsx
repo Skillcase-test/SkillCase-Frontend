@@ -6,6 +6,7 @@ import { ImNewspaper } from "react-icons/im";
 import { RiNewspaperFill } from "react-icons/ri";
 import { FaHeadphonesSimple } from "react-icons/fa6";
 import { getB1ReadingChapters } from "../../../api/b1Api";
+import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 
 export default function ReadListenSelect() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export default function ReadListenSelect() {
     article: { completed: 0, total: 0 },
     video: { completed: 0, total: 0 },
   });
+  const { locked: usageLocked } = useUsageLimitModule("B1", "reading");
 
   useEffect(() => {
     if (!user?.user_id) return;
@@ -52,7 +54,7 @@ export default function ReadListenSelect() {
   }, [user?.user_id]);
 
   const handleCardClick = (moduleName, enabled) => {
-    if (!enabled) return;
+    if (!enabled || usageLocked) return;
     navigate(`/b1/read-listen/list/${moduleName}`);
   };
 

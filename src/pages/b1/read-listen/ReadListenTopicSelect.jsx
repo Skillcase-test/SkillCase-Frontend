@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { getB1ReadingChapterItems, getB1ReadingChapters } from "../../../api/b1Api";
+import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 
 export default function ReadListenTopicSelect() {
   const { module, chapterId } = useParams();
@@ -11,6 +12,7 @@ export default function ReadListenTopicSelect() {
 
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { locked: usageLocked } = useUsageLimitModule("B1", "reading");
   const isChapterList = !chapterId;
 
   useEffect(() => {
@@ -145,13 +147,16 @@ export default function ReadListenTopicSelect() {
               <div
                 key={id}
                 onClick={() => {
+                  if (usageLocked) return;
                   if (isChapterList) {
                     navigate(`/b1/read-listen/list/${module}/${id}`);
                     return;
                   }
                   navigate(isVideo ? `/b1/read-listen/video/${id}` : `/b1/read-listen/content/${id}`);
                 }}
-                className="w-full max-w-[380px] p-3 bg-white rounded-xl border border-zinc-200 flex justify-start items-start gap-3 cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99] transition-all shrink-0"
+                className={`w-full max-w-[380px] p-3 bg-white rounded-xl border border-zinc-200 flex justify-start items-start gap-3 transition-all shrink-0 ${
+                  usageLocked ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"
+                }`}
               >
                 {imageUrl ? (
                   <img
