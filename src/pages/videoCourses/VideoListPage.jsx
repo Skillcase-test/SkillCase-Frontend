@@ -55,7 +55,9 @@ export default function VideoListPage() {
       searchVideoCourseVideos(q)
         .then((res) => {
           const found = res.data?.data || [];
-          setResults(found.filter((v) => String(v.course_id) === String(courseId)));
+          setResults(
+            found.filter((v) => String(v.course_id) === String(courseId)),
+          );
           trackFeatureEvent("video_courses", "search_performed", {
             entityType: "course",
             entityId: courseId,
@@ -74,11 +76,14 @@ export default function VideoListPage() {
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col shadow-sm">
       <div className="self-stretch px-4 py-2.5 flex justify-between items-center bg-white">
         <button
-          onClick={() => navigate("/video-courses")}
+          onClick={() => navigate("/video-courses/videos")}
           className="px-0.5 flex items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
         >
           <ChevronLeft className="w-4 h-4 text-slate-900" />
-          <span className="text-slate-900 text-sm font-semibold leading-6">Back</span>
+
+          <span className="text-slate-900 text-sm font-semibold leading-6">
+            Back
+          </span>
         </button>
         <span className="text-neutral-500 text-sm font-semibold leading-6 truncate max-w-[60%]">
           {course?.name || "Course"}
@@ -94,7 +99,7 @@ export default function VideoListPage() {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search videos and transcripts..."
             aria-label="Search videos"
-            className="flex-1 bg-transparent text-xs text-slate-800 outline-none"
+            className="flex-1 bg-transparent text-xs text-slate-800 outline-none border-0 focus:ring-0 focus:border-0"
           />
         </div>
       </div>
@@ -138,7 +143,10 @@ export default function VideoListPage() {
                   )}
                   {video.completed && (
                     <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-green-700 flex items-center justify-center">
-                      <Check className="w-2.5 h-2.5 text-white" strokeWidth={4} />
+                      <Check
+                        className="w-2.5 h-2.5 text-white"
+                        strokeWidth={4}
+                      />
                     </span>
                   )}
                 </div>
@@ -147,7 +155,8 @@ export default function VideoListPage() {
                     {video.title}
                   </span>
                   <span className="text-neutral-500 text-[10px] font-medium">
-                    {formatTime(video.video_duration)} · {video.proficiency_level}
+                    {formatTime(video.video_duration)} ·{" "}
+                    {video.proficiency_level}
                   </span>
                 </div>
               </button>

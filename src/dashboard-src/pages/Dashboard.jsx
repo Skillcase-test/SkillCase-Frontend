@@ -107,6 +107,9 @@ const B1ExamsManage = lazy(() => import("./b1/exams/manage"));
 const VideoCourseAdd = lazy(() => import("./videoCourses/add"));
 const VideoCourseManage = lazy(() => import("./videoCourses/manage"));
 
+const NotesAdd = lazy(() => import("./notes/add"));
+const NotesManage = lazy(() => import("./notes/manage"));
+
 function hasPermission(me, moduleKey, action = "view") {
   if (!me) return false;
   if (me.role === "super_admin") return true;
@@ -377,7 +380,7 @@ function ModuleItem({ module, onLinkClick }) {
             className={({ isActive }) =>
               `block rounded px-3 py-1.5 text-xs font-medium ${
                 isActive
-                  ? "bg-blue-700 text-white"
+                  ? "bg-[#002856] text-white"
                   : "text-slate-500 hover:bg-slate-100"
               }`
             }
@@ -390,7 +393,7 @@ function ModuleItem({ module, onLinkClick }) {
             className={({ isActive }) =>
               `block rounded px-3 py-1.5 text-xs font-medium ${
                 isActive
-                  ? "bg-blue-700 text-white"
+                  ? "bg-[#002856] text-white"
                   : "text-slate-500 hover:bg-slate-100"
               }`
             }
@@ -452,6 +455,7 @@ function ContentModuleTree({
   a1Modules,
   a2Modules,
   b1Modules = [],
+  videoModules = [],
   extraItems = [],
   onLinkClick,
 }) {
@@ -460,6 +464,7 @@ function ContentModuleTree({
     a1Modules.length > 0 ||
     a2Modules.length > 0 ||
     b1Modules.length > 0 ||
+    videoModules.length > 0 ||
     extraItems.length > 0;
   const [open, setOpen] = useState(false);
 
@@ -473,13 +478,23 @@ function ContentModuleTree({
     const matchesB1 = b1Modules.some((m) =>
       location.pathname.startsWith(m.basePath),
     );
-    if (matchesA1 || matchesA2 || matchesB1) {
+    const matchesVideo = videoModules.some((m) =>
+      location.pathname.startsWith(m.basePath),
+    );
+    if (matchesA1 || matchesA2 || matchesB1 || matchesVideo) {
       setOpen(true);
     }
     if (extraItems.some((item) => location.pathname.startsWith(item.path))) {
       setOpen(true);
     }
-  }, [location.pathname, a1Modules, a2Modules, b1Modules, extraItems]);
+  }, [
+    location.pathname,
+    a1Modules,
+    a2Modules,
+    b1Modules,
+    videoModules,
+    extraItems,
+  ]);
 
   if (!hasModules) return null;
 
@@ -500,7 +515,7 @@ function ContentModuleTree({
       </button>
       <div
         className="overflow-hidden transition-all duration-200 ease-in-out"
-        style={{ maxHeight: open ? "1200px" : "0px" }}
+        style={{ maxHeight: open ? "2400px" : "0px" }}
       >
         <div className="space-y-1 pt-1">
           {a1Modules.length > 0 && (
@@ -524,6 +539,13 @@ function ContentModuleTree({
               onLinkClick={onLinkClick}
             />
           )}
+          {videoModules.length > 0 && (
+            <ModuleGroup
+              title="Video Courses"
+              modules={videoModules}
+              onLinkClick={onLinkClick}
+            />
+          )}
           {extraItems.map((item) => (
             <NavLink
               key={item.key}
@@ -532,7 +554,7 @@ function ContentModuleTree({
               className={({ isActive }) =>
                 `ml-2 block rounded-md px-3 py-2 text-sm font-semibold ${
                   isActive
-                    ? "bg-blue-700 text-white"
+                    ? "bg-[#002856] text-white"
                     : "text-slate-700 hover:bg-slate-100"
                 }`
               }
@@ -710,6 +732,7 @@ export default function Dashboard() {
         a1Modules: [],
         a2Modules: [],
         b1Modules: [],
+        videoCoursesModules: [],
         superAdmin: [],
       };
 
@@ -947,6 +970,25 @@ export default function Dashboard() {
         ]
       : [];
 
+    const videoCoursesModules = hasPermission(
+      me,
+      "video_course_content",
+      "manage",
+    )
+      ? [
+          {
+            key: "video",
+            label: "Video",
+            basePath: "/admin/video-courses",
+          },
+          {
+            key: "notes",
+            label: "Notes",
+            basePath: "/admin/notes",
+          },
+        ]
+      : [];
+
     const superAdmin =
       me.role === "super_admin"
         ? [
@@ -975,22 +1017,6 @@ export default function Dashboard() {
             },
           ]
         : []),
-      // Video courses are not level-scoped, so they sit as flat entries
-      // rather than inside the A1/A2/B1 module tree.
-      ...(hasPermission(me, "video_course_content", "manage")
-        ? [
-            {
-              key: "video-courses-add",
-              label: "Video Courses — Add",
-              path: "/admin/video-courses/add",
-            },
-            {
-              key: "video-courses-manage",
-              label: "Video Courses — Manage",
-              path: "/admin/video-courses/manage",
-            },
-          ]
-        : []),
     ];
 
     return {
@@ -998,6 +1024,7 @@ export default function Dashboard() {
       a1Modules,
       a2Modules,
       b1Modules,
+      videoCoursesModules,
       extraContentItems,
       superAdmin,
     };
@@ -1009,6 +1036,9 @@ export default function Dashboard() {
     (sections.a1Modules[0] ? `${sections.a1Modules[0].basePath}/add` : null) ||
     (sections.a2Modules[0] ? `${sections.a2Modules[0].basePath}/add` : null) ||
     (sections.b1Modules[0] ? `${sections.b1Modules[0].basePath}/add` : null) ||
+    (sections.videoCoursesModules[0]
+      ? `${sections.videoCoursesModules[0].basePath}/add`
+      : null) ||
     sections.superAdmin[0]?.path ||
     "/admin/no-access";
 
@@ -1097,6 +1127,7 @@ export default function Dashboard() {
                 a1Modules={sections.a1Modules}
                 a2Modules={sections.a2Modules}
                 b1Modules={sections.b1Modules}
+                videoModules={sections.videoCoursesModules}
                 extraItems={sections.extraContentItems}
               />
               <SidebarSection title="Super Admin" items={sections.superAdmin} />
@@ -1123,6 +1154,7 @@ export default function Dashboard() {
                 a1Modules={sections.a1Modules}
                 a2Modules={sections.a2Modules}
                 b1Modules={sections.b1Modules}
+                videoModules={sections.videoCoursesModules}
                 extraItems={sections.extraContentItems}
                 onLinkClick={closeMobileSidebar}
               />
@@ -1176,9 +1208,7 @@ export default function Dashboard() {
                 path="bigin-dashboard"
                 element={
                   <Guard allowed={hasPermission(me, "bigin_dashboard")}>
-                    <BiginDashboard
-                      isSuperAdmin={me?.role === "super_admin"}
-                    />
+                    <BiginDashboard isSuperAdmin={me?.role === "super_admin"} />
                   </Guard>
                 }
               />
@@ -1328,7 +1358,9 @@ export default function Dashboard() {
                 path="usage-limits"
                 element={
                   <Guard allowed={hasPermission(me, "usage_limits")}>
-                    <UsageLimits canEdit={hasPermission(me, "usage_limits", "edit")} />
+                    <UsageLimits
+                      canEdit={hasPermission(me, "usage_limits", "edit")}
+                    />
                   </Guard>
                 }
               />
@@ -1636,7 +1668,13 @@ export default function Dashboard() {
               <Route
                 path="video-courses/add"
                 element={
-                  <Guard allowed={hasPermission(me, "video_course_content", "manage")}>
+                  <Guard
+                    allowed={hasPermission(
+                      me,
+                      "video_course_content",
+                      "manage",
+                    )}
+                  >
                     <VideoCourseAdd />
                   </Guard>
                 }
@@ -1644,8 +1682,44 @@ export default function Dashboard() {
               <Route
                 path="video-courses/manage"
                 element={
-                  <Guard allowed={hasPermission(me, "video_course_content", "manage")}>
+                  <Guard
+                    allowed={hasPermission(
+                      me,
+                      "video_course_content",
+                      "manage",
+                    )}
+                  >
                     <VideoCourseManage />
+                  </Guard>
+                }
+              />
+
+              {/* Notes Routes */}
+              <Route
+                path="notes/add"
+                element={
+                  <Guard
+                    allowed={hasPermission(
+                      me,
+                      "video_course_content",
+                      "manage",
+                    )}
+                  >
+                    <NotesAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="notes/manage"
+                element={
+                  <Guard
+                    allowed={hasPermission(
+                      me,
+                      "video_course_content",
+                      "manage",
+                    )}
+                  >
+                    <NotesManage />
                   </Guard>
                 }
               />

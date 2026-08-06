@@ -281,7 +281,10 @@ const VideoReader = lazy(() => import("./pages/b1/read-listen/VideoReader"));
 const VideoSuccess = lazy(() => import("./pages/b1/read-listen/VideoSuccess"));
 const B1AdminPage = lazy(() => import("./pages/b1/B1AdminPage"));
 
-// Video Courses (standalone course browsing + playback + AI chat)
+// Video Courses & Notes (standalone course browsing + PDF study notes + playback + AI chat)
+const LearnHubPage = lazy(
+  () => import("./pages/videoCourses/LearnHubPage"),
+);
 const CourseSelectPage = lazy(
   () => import("./pages/videoCourses/CourseSelectPage"),
 );
@@ -289,8 +292,11 @@ const VideoListPage = lazy(() => import("./pages/videoCourses/VideoListPage"));
 const VideoPlayerPage = lazy(
   () => import("./pages/videoCourses/VideoPlayerPage"),
 );
+const NotesListPage = lazy(() => import("./pages/notes/NotesListPage"));
+const NotePreviewPage = lazy(() => import("./pages/notes/NotePreviewPage"));
 
 const MAX_RETRY_ATTEMPTS = 3;
+
 const RETRY_DELAY_MS = 2000;
 const PLAY_STORE_URL = "market://details?id=com.skillcase.app";
 const PLAY_STORE_WEB_URL =
@@ -1770,12 +1776,33 @@ function AppContent() {
                       </LearningRoute>
                     }
                   />
-                  {/* Video Courses */}
+                  {/* Video Courses & Notes */}
                   <Route
                     path="/video-courses"
                     element={lazyScreen(
+                      <LearnHubPage />,
+                      "Loading Library...",
+                    )}
+                  />
+                  <Route
+                    path="/video-courses/videos"
+                    element={lazyScreen(
                       <CourseSelectPage />,
                       "Loading Courses...",
+                    )}
+                  />
+                  <Route
+                    path="/video-courses/notes"
+                    element={lazyScreen(
+                      <NotesListPage />,
+                      "Loading Notes...",
+                    )}
+                  />
+                  <Route
+                    path="/video-courses/notes/:noteId"
+                    element={lazyScreen(
+                      <NotePreviewPage />,
+                      "Loading Note...",
                     )}
                   />
                   <Route
@@ -1788,6 +1815,7 @@ function AppContent() {
                   />
                   <Route
                     path="/b1admin"
+
                     element={lazyScreen(<B1AdminPage />, "Loading B1 Admin...")}
                   />
                 </Routes>
