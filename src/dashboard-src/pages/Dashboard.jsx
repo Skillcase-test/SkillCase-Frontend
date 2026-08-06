@@ -342,7 +342,7 @@ function SidebarSection({ title, items, onLinkClick }) {
   );
 }
 
-function ModuleItem({ module, onLinkClick }) {
+function ModuleItem({ module, onLinkClick, standalone = false }) {
   const location = useLocation();
   const [open, setOpen] = useState(() =>
     location.pathname.startsWith(module.basePath),
@@ -357,16 +357,20 @@ function ModuleItem({ module, onLinkClick }) {
   const toggle = () => setOpen((prev) => !prev);
 
   return (
-    <div className="ml-3">
+    <div className={standalone ? "ml-2" : "ml-3"}>
       <button
         onClick={toggle}
-        className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-xs font-semibold text-slate-600 hover:bg-slate-100"
+        className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left font-semibold hover:bg-slate-100 ${
+          standalone
+            ? "text-sm text-slate-700"
+            : "text-xs text-slate-600"
+        }`}
       >
         <span>{module.label}</span>
         <ChevronRight
-          className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${
+          className={`text-slate-400 transition-transform duration-200 ${
             open ? "rotate-90" : ""
-          }`}
+          } ${standalone ? "h-4 w-4" : "h-3.5 w-3.5"}`}
         />
       </button>
       <div
@@ -550,6 +554,7 @@ function ContentModuleTree({
               key={module.key}
               module={module}
               onLinkClick={onLinkClick}
+              standalone
             />
           ))}
           {notesModules.map((module) => (
@@ -557,6 +562,7 @@ function ContentModuleTree({
               key={module.key}
               module={module}
               onLinkClick={onLinkClick}
+              standalone
             />
           ))}
           {extraItems.map((item) => (
