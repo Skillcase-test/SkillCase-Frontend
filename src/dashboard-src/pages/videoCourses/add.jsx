@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Upload, CheckCircle, AlertCircle, Loader } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   getVideoCoursesAdmin,
   initVideoCourseUpload,
@@ -9,6 +10,11 @@ import {
 import toast, { Toaster } from "react-hot-toast";
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1", "ALL"];
+
+const inputClass =
+  "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/60 rounded-xl text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-4 focus:ring-[#002856]/5 focus:border-[#002856] transition-all";
+const fileClass =
+  "w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#eef2f6] file:text-[#002856] hover:file:bg-[#dfe6ef] border border-slate-200/60 rounded-xl p-1.5 bg-slate-50 cursor-pointer transition-colors";
 
 export default function VideoCourseAdd() {
   const [courses, setCourses] = useState([]);
@@ -25,7 +31,6 @@ export default function VideoCourseAdd() {
   const [uploadStatus, setUploadStatus] = useState("");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const pollRef = useRef(null);
 
   useEffect(() => {
@@ -82,7 +87,6 @@ export default function VideoCourseAdd() {
 
     if (pollRef.current) clearInterval(pollRef.current);
     setIsUploading(true);
-    setIsProcessing(false);
     setUploadProgress(0);
     setUploadStatus("uploading:Initializing upload with server...");
 
@@ -153,7 +157,6 @@ export default function VideoCourseAdd() {
       if (thumbInput) thumbInput.value = "";
 
       if (videoId) {
-        setIsProcessing(true);
         setUploadStatus("uploading:Queued for processing... You can safely leave this page; processing continues in the background.");
         let attempts = 0;
         const maxAttempts = 360;
@@ -174,12 +177,10 @@ export default function VideoCourseAdd() {
             } else if (st === "completed") {
               clearInterval(pollRef.current);
               setUploadStatus("success:Video processed. Hindi and Kannada audio are ready.");
-              setIsProcessing(false);
               toast.success("Video processed successfully!");
             } else if (st === "failed") {
               clearInterval(pollRef.current);
               setUploadStatus(`error:Processing failed: ${statusData.processing_error || "Unknown error"}`);
-              setIsProcessing(false);
             }
           } catch (pErr) {
             console.error("Polling error:", pErr);
@@ -188,7 +189,6 @@ export default function VideoCourseAdd() {
           if (attempts >= maxAttempts) {
             clearInterval(pollRef.current);
             setUploadStatus("error:Processing timed out. Please check the Manage page for status.");
-            setIsProcessing(false);
           }
         }, 5000);
       } else {
@@ -200,11 +200,8 @@ export default function VideoCourseAdd() {
       toast.error(err.message || "Error uploading video.");
       setUploadStatus("error:" + (err.message || "Error uploading video."));
       setIsUploading(false);
-      setIsProcessing(false);
     }
   };
-
-
 
   const statusInfo = (() => {
     if (!uploadStatus) return null;
@@ -212,35 +209,38 @@ export default function VideoCourseAdd() {
     const type = parts[0];
     const message = parts.slice(1).join(":");
     const statusConfig = {
-      success: { bg: "bg-green-50", border: "border-green-200", text: "text-green-700", icon: CheckCircle },
-      error: { bg: "bg-red-50", border: "border-red-200", text: "text-red-700", icon: AlertCircle },
-      uploading: { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", icon: Loader },
+      success: { bg: "bg-[#eaf7f0]", border: "border-[#c3ebc6]", text: "text-[#1e7e34]", icon: CheckCircle },
+      error: { bg: "bg-[#fff1f2]", border: "border-[#fecdd3]", text: "text-[#e11d48]", icon: AlertCircle },
+      uploading: { bg: "bg-[#eef2f6]", border: "border-[#ccd9e8]", text: "text-[#002856]", icon: Loader },
     };
     return { type, message, config: statusConfig[type] };
   })();
 
-  const inputClass =
-    "w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-blue-600";
-  const fileClass =
-    "w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#002856] hover:file:bg-blue-100 border border-slate-150 rounded-lg p-1.5 bg-slate-50/50";
-
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
+    <div className="space-y-6 p-6 max-w-7xl mx-auto">
       <Toaster position="top-center" />
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl text-gray-800 font-bold">
-          Upload Course Video
-        </h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Upload videos directly to S3 and attach them to a video course.
-        </p>
+
+      {/* Header card */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="space-y-1">
+          <h1 className="text-xl font-bold text-slate-800">Upload Course Video</h1>
+          <p className="text-xs text-slate-400">
+            Upload videos directly to S3 and attach them to a video course.
+          </p>
+        </div>
+        <Link
+          to="/admin/video-courses/manage"
+          className="inline-flex items-center justify-center gap-2 self-start md:self-auto px-4 py-2.5 border border-slate-200 hover:border-[#002856] text-slate-600 hover:text-[#002856] font-bold text-xs rounded-xl bg-white hover:bg-slate-50 transition-colors cursor-pointer"
+        >
+          Manage videos
+        </Link>
       </div>
 
-      <div className="bg-white shadow-sm border border-slate-100 rounded-xl">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm">
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-2">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                 Course
               </label>
               <select
@@ -258,7 +258,7 @@ export default function VideoCourseAdd() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-2">
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
                 Proficiency Level
               </label>
               <select
@@ -276,14 +276,14 @@ export default function VideoCourseAdd() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
               Title
             </label>
             <input value={form.title} onChange={setField("title")} className={inputClass} />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
               Description
             </label>
             <textarea
@@ -295,7 +295,7 @@ export default function VideoCourseAdd() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
               Display Order
             </label>
             <input
@@ -307,7 +307,7 @@ export default function VideoCourseAdd() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
               Video File (.mp4)
             </label>
             <input
@@ -318,14 +318,14 @@ export default function VideoCourseAdd() {
               className={fileClass}
             />
             {videoDuration > 0 && (
-              <p className="text-xs text-green-700 font-semibold mt-2">
+              <p className="text-xs text-[#1e7e34] font-semibold mt-2">
                 Duration detected: {Math.floor(videoDuration / 60)}m {videoDuration % 60}s
               </p>
             )}
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
               Thumbnail Image (Optional)
             </label>
             <input
@@ -339,14 +339,14 @@ export default function VideoCourseAdd() {
 
           {statusInfo && (
             <div
-              className={`flex items-center gap-3 p-4 rounded-lg border ${statusInfo.config.bg} ${statusInfo.config.border}`}
+              className={`flex items-center gap-3 p-4 rounded-xl border ${statusInfo.config.bg} ${statusInfo.config.border}`}
             >
               <statusInfo.config.icon
                 className={`w-5 h-5 flex-shrink-0 ${statusInfo.config.text} ${
                   statusInfo.type === "uploading" ? "animate-spin" : ""
                 }`}
               />
-              <span className={`text-sm font-medium ${statusInfo.config.text}`}>
+              <span className={`text-xs font-semibold ${statusInfo.config.text}`}>
                 {statusInfo.message}
               </span>
             </div>
@@ -355,7 +355,7 @@ export default function VideoCourseAdd() {
           {isUploading && uploadProgress > 0 && uploadProgress < 100 && (
             <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
               <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                className="bg-[#002856] h-2 rounded-full transition-all duration-300"
                 style={{ width: `${uploadProgress}%` }}
               />
             </div>
@@ -364,16 +364,16 @@ export default function VideoCourseAdd() {
           <button
             type="submit"
             disabled={isUploading || !videoFile || !form.title.trim()}
-            className="w-full bg-blue-600 text-white hover:bg-blue-700 px-6 py-3 rounded-lg transition font-semibold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[#002856] text-white hover:bg-[#001e40] px-6 py-3 rounded-xl transition font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isUploading ? (
               <>
-                <Loader className="w-5 h-5 animate-spin" />
+                <Loader className="w-4 h-4 animate-spin" />
                 <span>Processing...</span>
               </>
             ) : (
               <>
-                <Upload className="w-5 h-5" />
+                <Upload className="w-4 h-4" />
                 <span>Upload Video</span>
               </>
             )}

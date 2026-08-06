@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Upload, CheckCircle, AlertCircle, Loader } from "lucide-react";
+import { Link } from "react-router-dom";
 import { uploadNoteAdmin } from "../../../api/notesApi";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -9,6 +10,11 @@ const LANGUAGES = [
   { code: "hi", label: "Hindi" },
   { code: "kn", label: "Kannada" },
 ];
+
+const inputClass =
+  "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/60 rounded-xl text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-4 focus:ring-[#002856]/5 focus:border-[#002856] transition-all";
+const fileClass =
+  "w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#eef2f6] file:text-[#002856] hover:file:bg-[#dfe6ef] border border-slate-200/60 rounded-xl p-1.5 bg-slate-50 cursor-pointer transition-colors";
 
 export default function NotesAdd() {
   const [form, setForm] = useState({
@@ -87,19 +93,29 @@ export default function NotesAdd() {
     }
   };
 
-  const inputClass =
-    "w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-slate-900";
-  const fileClass =
-    "w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer";
-
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <div className="space-y-6 p-6 max-w-3xl mx-auto">
       <Toaster position="top-right" />
-      <h1 className="text-xl font-bold text-slate-900 mb-6">Upload Study Note</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-5 bg-white p-6 rounded-xl border border-slate-200 shadow-xs">
+      {/* Header card */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="space-y-1">
+          <h1 className="text-xl font-bold text-slate-800">Upload Study Note</h1>
+          <p className="text-xs text-slate-400">
+            Upload a PDF study note and index it for candidates
+          </p>
+        </div>
+        <Link
+          to="/admin/notes/manage"
+          className="inline-flex items-center justify-center gap-2 self-start md:self-auto px-4 py-2.5 border border-slate-200 hover:border-[#002856] text-slate-600 hover:text-[#002856] font-bold text-xs rounded-xl bg-white hover:bg-slate-50 transition-colors cursor-pointer"
+        >
+          Manage notes
+        </Link>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
         <div>
-          <label className="block text-sm font-semibold text-slate-800 mb-2">
+          <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
             Title (Required)
           </label>
           <input
@@ -113,7 +129,7 @@ export default function NotesAdd() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-800 mb-2">
+          <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
             Description (Optional)
           </label>
           <textarea
@@ -127,7 +143,7 @@ export default function NotesAdd() {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-slate-800 mb-2">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
               Language
             </label>
             <select
@@ -144,7 +160,7 @@ export default function NotesAdd() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-800 mb-2">
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
               Proficiency Level
             </label>
             <select
@@ -162,7 +178,7 @@ export default function NotesAdd() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-800 mb-2">
+          <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
             Display Order
           </label>
           <input
@@ -174,7 +190,7 @@ export default function NotesAdd() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-800 mb-2">
+          <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
             PDF Document (.pdf)
           </label>
           <input
@@ -189,12 +205,12 @@ export default function NotesAdd() {
 
         {statusInfo && (
           <div
-            className={`flex items-center gap-3 p-4 rounded-lg border text-sm font-medium ${
+            className={`flex items-center gap-3 p-4 rounded-xl border text-xs font-semibold ${
               statusInfo.type === "uploading"
-                ? "bg-blue-50 border-blue-200 text-blue-700"
+                ? "bg-[#eef2f6] border-[#ccd9e8] text-[#002856]"
                 : statusInfo.type === "success"
-                ? "bg-green-50 border-green-200 text-green-700"
-                : "bg-red-50 border-red-200 text-red-700"
+                ? "bg-[#eaf7f0] border-[#c3ebc6] text-[#1e7e34]"
+                : "bg-[#fff1f2] border-[#fecdd3] text-[#e11d48]"
             }`}
           >
             {statusInfo.type === "uploading" ? (
@@ -211,7 +227,7 @@ export default function NotesAdd() {
         <button
           type="submit"
           disabled={isSubmitting || !pdfFile || !form.title.trim()}
-          className="w-full py-2.5 px-4 bg-[#002856] text-white font-semibold rounded-lg hover:bg-blue-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 cursor-pointer"
+          className="w-full py-3 px-4 bg-[#002856] text-white font-bold text-sm rounded-xl hover:bg-[#001e40] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           {isSubmitting ? (
             <>

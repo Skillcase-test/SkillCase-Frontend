@@ -1,5 +1,19 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Loader2, Pencil, Play, Plus, Save, Trash2, X, FileText } from "lucide-react";
+import {
+  Loader2,
+  Pencil,
+  Play,
+  Plus,
+  Save,
+  Trash2,
+  X,
+  FileText,
+  RefreshCw,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  HelpCircle,
+} from "lucide-react";
 import {
   getVideoCoursesAdmin,
   createVideoCourse,
@@ -23,7 +37,9 @@ import toast, { Toaster } from "react-hot-toast";
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1", "ALL"];
 const inputClass =
-  "w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-600";
+  "w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200/60 rounded-xl text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-4 focus:ring-[#002856]/5 focus:border-[#002856] transition-all";
+const fileClass =
+  "w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-[#eef2f6] file:text-[#002856] hover:file:bg-[#dfe6ef] border border-slate-200/60 rounded-xl p-1.5 bg-slate-50 cursor-pointer transition-colors";
 
 const emptyCourse = {
   name: "",
@@ -33,6 +49,39 @@ const emptyCourse = {
   total_hours: 0,
   display_order: 0,
 };
+
+function StatusBadge({ status, progress }) {
+  if (status === "completed") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#eaf7f0] text-[#1e7e34] border border-[#c3ebc6]">
+        <CheckCircle2 className="w-3 h-3" />
+        Ready
+      </span>
+    );
+  }
+  if (status === "processing") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#eef2f6] text-[#002856] border border-[#ccd9e8]">
+        <Loader2 className="w-3 h-3 animate-spin" />
+        Processing {progress || 0}%
+      </span>
+    );
+  }
+  if (status === "failed") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fff1f2] text-[#e11d48] border border-[#fecdd3]">
+        <AlertCircle className="w-3 h-3" />
+        Failed
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#fef8e7] text-[#b25e00] border border-[#fbecc8]">
+      <Clock className="w-3 h-3" />
+      Pending
+    </span>
+  );
+}
 
 export default function VideoCourseManage() {
   const [tab, setTab] = useState("videos");
@@ -118,7 +167,6 @@ export default function VideoCourseManage() {
       toast.error("Failed to delete note");
     }
   };
-
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -319,47 +367,68 @@ export default function VideoCourseManage() {
     }
   };
 
+  const iconBtnClass =
+    "p-1.5 rounded-lg text-slate-400 transition-colors cursor-pointer";
+
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
+    <div className="space-y-6 p-6 max-w-7xl mx-auto">
       <Toaster position="top-center" />
-      <div className="mb-6 flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl md:text-3xl text-gray-800 font-bold">
-            Manage Video Courses
-          </h1>
-          <p className="text-sm text-gray-600 mt-1">
+
+      {/* Header card */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="space-y-1">
+          <h1 className="text-xl font-bold text-slate-800">Manage Video Courses</h1>
+          <p className="text-xs text-slate-400">
             Edit or delete course videos, and manage the courses themselves.
           </p>
         </div>
         <button
           onClick={fetchAll}
-          className="text-xs text-blue-600 font-bold hover:underline cursor-pointer"
+          disabled={loading}
+          className="flex items-center justify-center gap-2 self-start md:self-auto px-4 py-2.5 border border-slate-200 hover:border-[#002856] text-slate-600 hover:text-[#002856] font-bold text-xs rounded-xl bg-white hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
         >
+          <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
           Refresh
         </button>
       </div>
 
-      <div className="mb-4 flex gap-2">
-        {["videos", "courses"].map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize cursor-pointer ${
-              tab === t ? "bg-[#002856] text-white" : "bg-slate-100 text-slate-600"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
+      {/* Control panel: tabs with counts */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="flex flex-wrap gap-2">
+          {[
+            { key: "videos", label: "Videos", count: videos.length },
+            { key: "courses", label: "Courses", count: courses.length },
+          ].map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-4 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer flex items-center gap-2 ${
+                tab === t.key
+                  ? "bg-[#002856] text-white border-[#002856] shadow-sm"
+                  : "bg-slate-50 text-slate-500 border-slate-200/80 hover:bg-slate-100"
+              }`}
+            >
+              <span>{t.label}</span>
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
+                  tab === t.key ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
+                }`}
+              >
+                {t.count}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
-        <div className="py-12 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
+        <div className="flex flex-col items-center justify-center py-20 text-slate-400 bg-white border border-slate-100 rounded-2xl">
+          <Loader2 className="w-10 h-10 animate-spin text-[#002856] mb-3" />
+          <span className="text-xs">Loading video courses...</span>
         </div>
       ) : tab === "videos" ? (
-        <div className="bg-white shadow-sm border border-slate-100 rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50 font-semibold text-slate-700">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-600 uppercase tracking-wider">
             Videos ({videos.length})
           </div>
 
@@ -396,11 +465,10 @@ export default function VideoCourseManage() {
                   type="file"
                   accept="image/*"
                   onChange={(e) => setVideoThumb(e.target.files?.[0] || null)}
-                  className="mt-1 w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#002856] border border-slate-200 rounded-lg p-1.5 bg-white"
+                  className={`${fileClass} mt-1`}
                 />
               </label>
               <div className="grid gap-3 md:grid-cols-3">
-
                 <select
                   value={editingVideo.course_id || ""}
                   onChange={(e) => setEditingVideo({ ...editingVideo, course_id: e.target.value })}
@@ -434,7 +502,7 @@ export default function VideoCourseManage() {
               </div>
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-semibold cursor-pointer"
+                className="bg-[#002856] text-white hover:bg-[#001e40] px-5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors"
               >
                 Save changes
               </button>
@@ -442,8 +510,12 @@ export default function VideoCourseManage() {
           )}
 
           {videos.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 font-medium">
-              No videos uploaded yet.
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <HelpCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <h3 className="text-slate-600 font-bold text-sm">No videos yet</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Upload videos from the Upload Course Video page
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -475,41 +547,28 @@ export default function VideoCourseManage() {
                         {vid.course_name || "Unassigned"}
                       </td>
                       <td className="px-6 py-4">
-                        <span className="text-[10px] px-2 py-0.5 bg-slate-100 rounded text-slate-600 font-bold uppercase">
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#eef2f6] text-[#002856] border border-[#ccd9e8] font-bold uppercase">
                           {vid.proficiency_level}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        {vid.processing_status === "completed" ? (
-                          <span className="text-[10px] px-2 py-0.5 bg-green-50 text-green-700 border border-green-200 rounded font-bold uppercase">
-                            Ready
-                          </span>
-                        ) : vid.processing_status === "processing" ? (
-                          <span className="text-[10px] px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded font-bold uppercase">
-                            Processing {vid.processing_progress || 0}%
-                          </span>
-                        ) : vid.processing_status === "failed" ? (
-                          <span className="text-[10px] px-2 py-0.5 bg-red-50 text-red-700 border border-red-200 rounded font-bold uppercase">
-                            Failed
-                          </span>
-                        ) : (
-                          <span className="text-[10px] px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded font-bold uppercase">
-                            Pending
-                          </span>
-                        )}
+                        <StatusBadge
+                          status={vid.processing_status}
+                          progress={vid.processing_progress}
+                        />
                       </td>
 
                       <td className="px-6 py-4 text-right whitespace-nowrap">
                         <button
                           onClick={() => openChapters(vid)}
-                          className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg cursor-pointer"
+                          className={`${iconBtnClass} hover:text-emerald-600 hover:bg-emerald-50`}
                           title="Manage chapters"
                         >
                           <Plus className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => openNotesModal(vid)}
-                          className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg cursor-pointer"
+                          className={`${iconBtnClass} hover:text-amber-600 hover:bg-amber-50`}
                           title="Manage PDF notes"
                         >
                           <FileText className="w-4 h-4" />
@@ -517,14 +576,14 @@ export default function VideoCourseManage() {
 
                         <button
                           onClick={() => setEditingVideo(vid)}
-                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
+                          className={`${iconBtnClass} hover:text-blue-600 hover:bg-blue-50`}
                           title="Edit"
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteVideo(vid.video_id, vid.title)}
-                          className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
+                          className={`${iconBtnClass} hover:text-red-600 hover:bg-red-50`}
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -541,9 +600,9 @@ export default function VideoCourseManage() {
         <div className="space-y-6">
           <form
             onSubmit={handleSaveCourse}
-            className="bg-white shadow-sm border border-slate-100 rounded-xl p-6 space-y-4"
+            className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4"
           >
-            <h2 className="font-bold text-slate-800">
+            <h2 className="font-bold text-slate-800 text-sm">
               {editingCourseId ? "Edit course" : "Create course"}
             </h2>
             <input
@@ -603,12 +662,12 @@ export default function VideoCourseManage() {
               type="file"
               accept="image/*"
               onChange={(e) => setCourseThumb(e.target.files?.[0] || null)}
-              className="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#002856] border border-slate-150 rounded-lg p-1.5 bg-slate-50/50"
+              className={fileClass}
             />
             <div className="flex gap-2">
               <button
                 type="submit"
-                className="bg-blue-600 text-white px-5 py-2 rounded-lg text-sm font-semibold cursor-pointer"
+                className="bg-[#002856] text-white hover:bg-[#001e40] px-5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors"
               >
                 {editingCourseId ? "Save course" : "Create course"}
               </button>
@@ -619,7 +678,7 @@ export default function VideoCourseManage() {
                     setEditingCourseId(null);
                     setCourseForm(emptyCourse);
                   }}
-                  className="px-5 py-2 rounded-lg text-sm font-semibold bg-slate-100 text-slate-600 cursor-pointer"
+                  className="px-5 py-2 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-[#002856] hover:text-[#002856] cursor-pointer transition-colors"
                 >
                   Cancel
                 </button>
@@ -627,13 +686,17 @@ export default function VideoCourseManage() {
             </div>
           </form>
 
-          <div className="bg-white shadow-sm border border-slate-100 rounded-xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50 font-semibold text-slate-700">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50/50 text-xs font-bold text-slate-600 uppercase tracking-wider">
               Courses ({courses.length})
             </div>
             {courses.length === 0 ? (
-              <div className="py-12 text-center text-slate-500 font-medium">
-                No courses yet.
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <HelpCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <h3 className="text-slate-600 font-bold text-sm">No courses yet</h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Create a course above to group your videos
+                </p>
               </div>
             ) : (
               <table className="w-full text-left border-collapse">
@@ -666,14 +729,14 @@ export default function VideoCourseManage() {
                               display_order: c.display_order || 0,
                             });
                           }}
-                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
+                          className={`${iconBtnClass} hover:text-blue-600 hover:bg-blue-50`}
                           title="Edit"
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteCourse(c.course_id, c.name)}
-                          className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer"
+                          className={`${iconBtnClass} hover:text-red-600 hover:bg-red-50`}
                           title="Delete"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -693,13 +756,13 @@ export default function VideoCourseManage() {
           <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white rounded-2xl shadow-xl">
             <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <h2 className="font-bold text-slate-800">Manage chapters</h2>
+                <h2 className="font-bold text-slate-800 text-sm">Manage chapters</h2>
                 <p className="text-xs text-slate-500 mt-1">{chapterVideo.title}</p>
               </div>
               <button
                 type="button"
                 onClick={closeChapters}
-                className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg cursor-pointer"
                 aria-label="Close chapters"
               >
                 <X className="w-5 h-5" />
@@ -741,7 +804,7 @@ export default function VideoCourseManage() {
                 <button
                   type="submit"
                   disabled={chapterSaving}
-                  className="h-9 px-3 rounded-lg bg-blue-600 text-white text-xs font-semibold disabled:opacity-50 cursor-pointer"
+                  className="h-9 px-3 rounded-xl bg-[#002856] text-white text-xs font-bold disabled:opacity-50 cursor-pointer hover:bg-[#001e40] transition-colors"
                 >
                   Add
                 </button>
@@ -809,7 +872,7 @@ export default function VideoCourseManage() {
                       <button
                         type="button"
                         onClick={() => handleUpdateChapter(chapter)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
+                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors"
                         title="Save chapter"
                       >
                         <Save className="w-4 h-4" />
@@ -817,7 +880,7 @@ export default function VideoCourseManage() {
                       <button
                         type="button"
                         onClick={() => handleDeleteChapter(chapter)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg cursor-pointer"
+                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer transition-colors"
                         title="Delete chapter"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -832,9 +895,9 @@ export default function VideoCourseManage() {
       )}
 
       {noteVideo && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl border border-slate-200 shadow-xl max-w-lg w-full overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-xl max-w-lg w-full overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <div>
                 <h3 className="font-bold text-slate-800 text-sm">
                   PDF Notes — {noteVideo.title}
@@ -845,7 +908,7 @@ export default function VideoCourseManage() {
               </div>
               <button
                 onClick={closeNotesModal}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -870,7 +933,7 @@ export default function VideoCourseManage() {
                   return (
                     <div
                       key={lang.code}
-                      className="p-3 border border-slate-200 rounded-lg flex items-center justify-between gap-3 bg-slate-50/50"
+                      className="p-3 border border-slate-200/60 rounded-xl flex items-center justify-between gap-3 bg-slate-50/50"
                     >
                       <div className="flex-1 min-w-0">
                         <span className="font-semibold text-xs text-slate-800 block">
@@ -889,7 +952,7 @@ export default function VideoCourseManage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <label className="px-3 py-1.5 bg-[#002856] text-white text-xs font-semibold rounded-md hover:bg-blue-900 cursor-pointer flex items-center gap-1">
+                        <label className="px-3 py-1.5 bg-[#002856] text-white text-xs font-bold rounded-xl hover:bg-[#001e40] cursor-pointer flex items-center gap-1 transition-colors">
                           {isUploading ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           ) : (
@@ -912,7 +975,7 @@ export default function VideoCourseManage() {
                         {existingNote && (
                           <button
                             onClick={() => handleDeleteVideoNote(lang.code)}
-                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-md cursor-pointer"
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg cursor-pointer transition-colors"
                             title="Delete note"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -930,4 +993,3 @@ export default function VideoCourseManage() {
     </div>
   );
 }
-
