@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Trash2, Edit2, Check, X, Loader2, FileText } from "lucide-react";
-import { getNotesAdmin, updateNoteAdmin, deleteNoteAdmin } from "../../../api/notesApi";
+import { Trash2, Edit2, Check, X, Loader2, FileText, Users, Search } from "lucide-react";
+import { getNotesAdmin, updateNoteAdmin, deleteNoteAdmin, getStudentList, toggleStudentNotesAccess } from "../../../api/notesApi";
 import toast, { Toaster } from "react-hot-toast";
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1", "ALL"];
@@ -11,10 +11,17 @@ const LANGUAGES = [
 ];
 
 export default function NotesManage() {
+  const [activeTab, setActiveTab] = useState("notes");
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
+
+  const [students, setStudents] = useState([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const fetchNotes = () => {
     setLoading(true);
@@ -24,9 +31,24 @@ export default function NotesManage() {
       .finally(() => setLoading(false));
   };
 
+  const fetchStudents = () => {
+    setStudentsLoading(true);
+    getStudentList({ search, page, limit: 20 })
+      .then((res) => {
+        setStudents(res.data?.data || []);
+        setTotalPages(res.data?.pagination?.totalPages || 1);
+      })
+      .catch(() => toast.error("Failed to load students"))
+      .finally(() => setStudentsLoading(false));
+  };
+
   useEffect(() => {
-    fetchNotes();
-  }, []);
+    if (activeTab === "notes") fetchNotes();
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "students") fetchStudents();
+  }, [activeTab, search, page]);
 
   const startEdit = (note) => {
     setEditingId(note.note_id);
@@ -74,6 +96,24 @@ export default function NotesManage() {
     }
   };
 
+  const handleToggleAccess = async (userId, currentEnabled) => {
+    try {
+      const res = await toggleStudentNotesAccess(userId, !currentEnabled);
+      if (res.data?.success) {
+        toast.success(`Notes ${!currentEnabled ? "enabled" : "disabled"}`);
+        setStudents((prev) =>
+          prev.map((s) =>
+            s.user_id === userId ? { ...s, notes_enabled: !currentEnabled } : s
+          )
+        );
+      } else {
+        toast.error("Failed to update access");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Error updating access");
+    }
+  };
+
   const formatSize = (bytes) => {
     if (!bytes) return "0 KB";
     const kb = bytes / 1024;
@@ -84,20 +124,47 @@ export default function NotesManage() {
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <Toaster position="top-right" />
-      <h1 className="text-xl font-bold text-slate-900 mb-6">Manage Study Notes</h1>
+      <h1 className="text-xl font-bold text-slate-900 mb-6">Manage Notes</h1>
 
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-        </div>
-      ) : notes.length === 0 ? (
-        <div className="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-500 text-sm">
-          No study notes uploaded yet.
-        </div>
-      ) : (
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-700">
+      <div className="flex gap-2 mb-6 border-b border-slate-200">
+        <button
+          onClick={() => setActiveTab("notes")}
+          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+            activeTab === "notes"
+              ? "border-[#002856] text-[#002856]"
+              : "border-transparent text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          <FileText className="w-4 h-4 inline mr-2" />
+          Notes Upload
+        </button>
+        <button
+          onClick={() => setActiveTab("students")}
+          className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors ${
+            activeTab === "students"
+              ? "border-[#002856] text-[#002856]"
+              : "border-transparent text-slate-500 hover:text-slate-700"
+          }`}
+        >
+          <Users className="w-4 h-4 inline mr-2" />
+          Student Access
+        </button>
+      </div>
+
+      {activeTab === "notes" && (
+        <>
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
+            </div>
+          ) : notes.length === 0 ? (
+            <div className="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-500 text-sm">
+              No study notes uploaded yet.
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-slate-700">
               <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Title</th>
@@ -247,8 +314,108 @@ export default function NotesManage() {
                 })}
               </tbody>
             </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab === "students" && (
+        <>
+          <div className="mb-4 flex items-center gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search by name or phone..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="w-full pl-9 pr-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#002856] focus:border-transparent"
+              />
+            </div>
           </div>
-        </div>
+
+          {studentsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
+            </div>
+          ) : students.length === 0 ? (
+            <div className="bg-white p-8 rounded-xl border border-slate-200 text-center text-slate-500 text-sm">
+              {search ? "No students found matching your search." : "No students found."}
+            </div>
+          ) : (
+            <>
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-slate-700">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3">Name</th>
+                        <th className="px-4 py-3">Phone</th>
+                        <th className="px-4 py-3 text-center">Notes Access</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {students.map((student) => (
+                        <tr key={student.user_id} className="hover:bg-slate-50/50">
+                          <td className="px-4 py-3 font-medium text-slate-900">
+                            {student.name}
+                          </td>
+                          <td className="px-4 py-3 text-slate-600">
+                            {student.phone || "—"}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              onClick={() =>
+                                handleToggleAccess(student.user_id, student.notes_enabled)
+                              }
+                              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#002856] focus:ring-offset-2 ${
+                                student.notes_enabled ? "bg-green-600" : "bg-slate-300"
+                              }`}
+                              role="switch"
+                              aria-checked={student.notes_enabled}
+                            >
+                              <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                  student.notes_enabled ? "translate-x-6" : "translate-x-1"
+                                }`}
+                              />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4 text-sm text-slate-600">
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="px-3 py-1.5 border border-slate-300 rounded bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <span>
+                    Page {page} of {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="px-3 py-1.5 border border-slate-300 rounded bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </>
       )}
     </div>
   );

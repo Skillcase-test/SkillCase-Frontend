@@ -17,7 +17,9 @@ import {
   updateVideoCourseProgress,
 } from "../../api/videoCourseApi";
 import ChatDrawer from "./components/ChatDrawer";
+import PdfViewer from "../notes/components/PdfViewer";
 import { trackLearningEvent } from "../../telemetry/events";
+
 import { useUsageLimitGate } from "../../hooks/useUsageLimits";
 
 const formatTime = (secs) => {
@@ -52,12 +54,16 @@ export default function VideoPlayerPage() {
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [audioLang, setAudioLang] = useState("en");
+  const [noteLang, setNoteLang] = useState("en");
 
   const video = data?.video;
   const timestamps = data?.timestamps || [];
   const audioTracks = data?.audio_tracks || [];
+  const notes = data?.notes || [];
   const selectedTrack = audioTracks.find((t) => t.language_code === audioLang);
+  const selectedNote = notes.find((n) => n.language_code === noteLang) || notes[0];
   const dubUrl = selectedTrack?.audio_url;
+
   const level = video?.proficiency_level;
 
   useEffect(() => {
@@ -528,14 +534,46 @@ export default function VideoPlayerPage() {
             </p>
           )}
 
-          {video.transcript && (
-            <details className="border border-zinc-200 rounded-xl p-3">
-              <summary className="text-sky-950 text-sm font-semibold cursor-pointer">
-                Transcript
+          {notes.length > 0 && (
+            <details
+              className="border border-zinc-200 rounded-xl p-3"
+              onToggle={(e) => {
+                if (e.target.open) {
+                  trackLearningEvent("content_presented", {
+                    level,
+                    module: "video_course",
+                    contentId: videoId,
+                    entityId: videoId,
+                    entityType: "video_note",
+                    attributes: { language_code: noteLang },
+                  });
+                }
+              }}
+            >
+              <summary className="text-sky-950 text-sm font-semibold cursor-pointer flex justify-between items-center">
+                <span>Video Notes</span>
+                {notes.length > 1 && (
+                  <select
+                    value={noteLang}
+                    onChange={(e) => setNoteLang(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs bg-slate-100 border border-zinc-200 rounded px-2 py-1 outline-none text-slate-800 cursor-pointer"
+                  >
+                    {notes.map((n) => (
+                      <option key={n.language_code} value={n.language_code}>
+                        {n.language_code === "en"
+                          ? "English"
+                          : n.language_code === "hi"
+                          ? "Hindi"
+                          : "Kannada"}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </summary>
-              <p className="mt-2 text-slate-600 text-xs leading-5 text-left whitespace-pre-line">
-                {video.transcript}
-              </p>
+              <div className="mt-3">
+                <PdfViewer fileUrl={selectedNote?.file_url} width={340} />
+              </div>
             </details>
           )}
 

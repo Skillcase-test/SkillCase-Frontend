@@ -282,12 +282,10 @@ const VideoSuccess = lazy(() => import("./pages/b1/read-listen/VideoSuccess"));
 const B1AdminPage = lazy(() => import("./pages/b1/B1AdminPage"));
 
 // Video Courses & Notes (standalone course browsing + PDF study notes + playback + AI chat)
-const LearnHubPage = lazy(
-  () => import("./pages/videoCourses/LearnHubPage"),
-);
 const CourseSelectPage = lazy(
   () => import("./pages/videoCourses/CourseSelectPage"),
 );
+
 const VideoListPage = lazy(() => import("./pages/videoCourses/VideoListPage"));
 const VideoPlayerPage = lazy(
   () => import("./pages/videoCourses/VideoPlayerPage"),
@@ -1780,26 +1778,19 @@ function AppContent() {
                   <Route
                     path="/video-courses"
                     element={lazyScreen(
-                      <LearnHubPage />,
-                      "Loading Library...",
-                    )}
-                  />
-                  <Route
-                    path="/video-courses/videos"
-                    element={lazyScreen(
                       <CourseSelectPage />,
                       "Loading Courses...",
                     )}
                   />
                   <Route
-                    path="/video-courses/notes"
+                    path="/notes"
                     element={lazyScreen(
                       <NotesListPage />,
                       "Loading Notes...",
                     )}
                   />
                   <Route
-                    path="/video-courses/notes/:noteId"
+                    path="/notes/:noteId"
                     element={lazyScreen(
                       <NotePreviewPage />,
                       "Loading Note...",
@@ -1813,6 +1804,7 @@ function AppContent() {
                     path="/video-course/:videoId"
                     element={lazyScreen(<VideoPlayerPage />, "Loading Video...")}
                   />
+
                   <Route
                     path="/b1admin"
 

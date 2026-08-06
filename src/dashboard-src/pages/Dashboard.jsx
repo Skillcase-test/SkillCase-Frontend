@@ -456,6 +456,7 @@ function ContentModuleTree({
   a2Modules,
   b1Modules = [],
   videoModules = [],
+  notesModules = [],
   extraItems = [],
   onLinkClick,
 }) {
@@ -465,6 +466,7 @@ function ContentModuleTree({
     a2Modules.length > 0 ||
     b1Modules.length > 0 ||
     videoModules.length > 0 ||
+    notesModules.length > 0 ||
     extraItems.length > 0;
   const [open, setOpen] = useState(false);
 
@@ -481,7 +483,10 @@ function ContentModuleTree({
     const matchesVideo = videoModules.some((m) =>
       location.pathname.startsWith(m.basePath),
     );
-    if (matchesA1 || matchesA2 || matchesB1 || matchesVideo) {
+    const matchesNotes = notesModules.some((m) =>
+      location.pathname.startsWith(m.basePath),
+    );
+    if (matchesA1 || matchesA2 || matchesB1 || matchesVideo || matchesNotes) {
       setOpen(true);
     }
     if (extraItems.some((item) => location.pathname.startsWith(item.path))) {
@@ -493,6 +498,7 @@ function ContentModuleTree({
     a2Modules,
     b1Modules,
     videoModules,
+    notesModules,
     extraItems,
   ]);
 
@@ -539,13 +545,20 @@ function ContentModuleTree({
               onLinkClick={onLinkClick}
             />
           )}
-          {videoModules.length > 0 && (
-            <ModuleGroup
-              title="Video Courses"
-              modules={videoModules}
+          {videoModules.map((module) => (
+            <ModuleItem
+              key={module.key}
+              module={module}
               onLinkClick={onLinkClick}
             />
-          )}
+          ))}
+          {notesModules.map((module) => (
+            <ModuleItem
+              key={module.key}
+              module={module}
+              onLinkClick={onLinkClick}
+            />
+          ))}
           {extraItems.map((item) => (
             <NavLink
               key={item.key}
@@ -978,9 +991,14 @@ export default function Dashboard() {
       ? [
           {
             key: "video",
-            label: "Video",
+            label: "Video Courses",
             basePath: "/admin/video-courses",
           },
+        ]
+      : [];
+
+    const notesModules = hasPermission(me, "notes_content", "manage")
+      ? [
           {
             key: "notes",
             label: "Notes",
@@ -1025,6 +1043,7 @@ export default function Dashboard() {
       a2Modules,
       b1Modules,
       videoCoursesModules,
+      notesModules,
       extraContentItems,
       superAdmin,
     };
@@ -1128,6 +1147,7 @@ export default function Dashboard() {
                 a2Modules={sections.a2Modules}
                 b1Modules={sections.b1Modules}
                 videoModules={sections.videoCoursesModules}
+                notesModules={sections.notesModules}
                 extraItems={sections.extraContentItems}
               />
               <SidebarSection title="Super Admin" items={sections.superAdmin} />
@@ -1155,6 +1175,7 @@ export default function Dashboard() {
                 a2Modules={sections.a2Modules}
                 b1Modules={sections.b1Modules}
                 videoModules={sections.videoCoursesModules}
+                notesModules={sections.notesModules}
                 extraItems={sections.extraContentItems}
                 onLinkClick={closeMobileSidebar}
               />
@@ -1701,7 +1722,7 @@ export default function Dashboard() {
                   <Guard
                     allowed={hasPermission(
                       me,
-                      "video_course_content",
+                      "notes_content",
                       "manage",
                     )}
                   >
@@ -1715,7 +1736,7 @@ export default function Dashboard() {
                   <Guard
                     allowed={hasPermission(
                       me,
-                      "video_course_content",
+                      "notes_content",
                       "manage",
                     )}
                   >

@@ -12,8 +12,9 @@ const RULES = [
   [/^\/b1\/describe-speak/, "learning", "b1_describe_speak"],
   [/^\/b1\/flashcard/, "learning", "b1_flashcard"],
   [/^\/b1\/maya/, "maya", "maya"],
-  [/^\/video-courses\/notes/, "learning", "notes"],
+  [/^\/notes/, "learning", "notes"],
   [/^\/video-courses?(?:\/|$)/, "learning", "video_courses"],
+
   [/^\/exam/, "exam", "exam"],
 
   [/^\/test/, "exam", "legacy_exam"],

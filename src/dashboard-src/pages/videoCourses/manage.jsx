@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Loader2, Pencil, Play, Plus, Save, Trash2, X } from "lucide-react";
+import { Loader2, Pencil, Play, Plus, Save, Trash2, X, FileText } from "lucide-react";
 import {
   getVideoCoursesAdmin,
   createVideoCourse,
@@ -14,7 +14,11 @@ import {
   addVideoCourseTimestamp,
   updateVideoCourseTimestamp,
   deleteVideoCourseTimestamp,
+  getVideoCourseNotes,
+  uploadVideoCourseNote,
+  deleteVideoCourseNote,
 } from "../../../api/videoCourseApi";
+
 import toast, { Toaster } from "react-hot-toast";
 
 const LEVELS = ["A1", "A2", "B1", "B2", "C1", "ALL"];
@@ -49,6 +53,72 @@ export default function VideoCourseManage() {
   });
   const [chaptersLoading, setChaptersLoading] = useState(false);
   const [chapterSaving, setChapterSaving] = useState(false);
+
+  // Notes Modal state
+  const [noteVideo, setNoteVideo] = useState(null);
+  const [videoNotes, setVideoNotes] = useState([]);
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [uploadingLang, setUploadingLang] = useState(null);
+
+  const openNotesModal = async (video) => {
+    setNoteVideo(video);
+    setVideoNotes([]);
+    setNotesLoading(true);
+    try {
+      const res = await getVideoCourseNotes(video.video_id);
+      setVideoNotes(res.data?.data || []);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load video notes");
+    } finally {
+      setNotesLoading(false);
+    }
+  };
+
+  const closeNotesModal = () => {
+    setNoteVideo(null);
+    setVideoNotes([]);
+    setUploadingLang(null);
+  };
+
+  const handleUploadVideoNote = async (langCode, file) => {
+    if (!noteVideo || !file) return;
+    if (file.type !== "application/pdf") {
+      toast.error("Only PDF files are allowed");
+      return;
+    }
+    setUploadingLang(langCode);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("language_code", langCode);
+      const res = await uploadVideoCourseNote(noteVideo.video_id, formData);
+      if (res.data?.success) {
+        toast.success(`Note for ${langCode.toUpperCase()} uploaded!`);
+        const updated = await getVideoCourseNotes(noteVideo.video_id);
+        setVideoNotes(updated.data?.data || []);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to upload note");
+    } finally {
+      setUploadingLang(null);
+    }
+  };
+
+  const handleDeleteVideoNote = async (langCode) => {
+    if (!noteVideo) return;
+    if (!window.confirm(`Delete ${langCode.toUpperCase()} note for this video?`)) return;
+    try {
+      await deleteVideoCourseNote(noteVideo.video_id, langCode);
+      toast.success(`Note for ${langCode.toUpperCase()} deleted`);
+      setVideoNotes((prev) => prev.filter((n) => n.language_code !== langCode));
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete note");
+    }
+  };
+
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -438,6 +508,14 @@ export default function VideoCourseManage() {
                           <Plus className="w-4 h-4" />
                         </button>
                         <button
+                          onClick={() => openNotesModal(vid)}
+                          className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg cursor-pointer"
+                          title="Manage PDF notes"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </button>
+
+                        <button
                           onClick={() => setEditingVideo(vid)}
                           className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg cursor-pointer"
                           title="Edit"
@@ -752,6 +830,104 @@ export default function VideoCourseManage() {
           </div>
         </div>
       )}
+
+      {noteVideo && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xl max-w-lg w-full overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <div>
+                <h3 className="font-bold text-slate-800 text-sm">
+                  PDF Notes — {noteVideo.title}
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Upload or replace PDF study notes per language
+                </p>
+              </div>
+              <button
+                onClick={closeNotesModal}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {notesLoading ? (
+                <div className="py-8 flex justify-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#002856]" />
+                </div>
+              ) : (
+                [
+                  { code: "en", label: "English (EN)" },
+                  { code: "hi", label: "Hindi (HI)" },
+                  { code: "kn", label: "Kannada (KN)" },
+                ].map((lang) => {
+                  const existingNote = videoNotes.find(
+                    (n) => n.language_code === lang.code
+                  );
+                  const isUploading = uploadingLang === lang.code;
+
+                  return (
+                    <div
+                      key={lang.code}
+                      className="p-3 border border-slate-200 rounded-lg flex items-center justify-between gap-3 bg-slate-50/50"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <span className="font-semibold text-xs text-slate-800 block">
+                          {lang.label}
+                        </span>
+                        {existingNote ? (
+                          <span className="text-[11px] text-slate-500">
+                            {existingNote.page_count || 0} pages •{" "}
+                            {Math.round((existingNote.file_size_bytes || 0) / 1024)} KB
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 italic">
+                            No note uploaded yet
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <label className="px-3 py-1.5 bg-[#002856] text-white text-xs font-semibold rounded-md hover:bg-blue-900 cursor-pointer flex items-center gap-1">
+                          {isUploading ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <FileText className="w-3.5 h-3.5" />
+                          )}
+                          <span>{existingNote ? "Replace" : "Upload"}</span>
+                          <input
+                            type="file"
+                            accept="application/pdf"
+                            disabled={isUploading}
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleUploadVideoNote(lang.code, file);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+
+                        {existingNote && (
+                          <button
+                            onClick={() => handleDeleteVideoNote(lang.code)}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-md cursor-pointer"
+                            title="Delete note"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

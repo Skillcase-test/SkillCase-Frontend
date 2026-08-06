@@ -104,3 +104,16 @@ export const updateVideoCourseTimestamp = (videoId, timestampId, data) =>
   api.put(`/admin/video-courses/${videoId}/timestamp/${timestampId}`, data);
 export const deleteVideoCourseTimestamp = (videoId, timestampId) =>
   api.delete(`/admin/video-courses/${videoId}/timestamp/${timestampId}`);
+
+export const getVideoCourseNotes = (videoId) =>
+  api.get(`/admin/video-courses/${videoId}/notes`);
+export const uploadVideoCourseNote = (videoId, formData) =>
+  api.post(`/admin/video-courses/${videoId}/note`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+    meta: { invalidateCacheTags: [VIDEO_COURSE_CACHE_TAG] },
+  });
+export const deleteVideoCourseNote = (videoId, languageCode) =>
+  api.delete(`/admin/video-courses/${videoId}/note/${languageCode}`, {
+    meta: { invalidateCacheTags: [VIDEO_COURSE_CACHE_TAG] },
+  });
+

@@ -50,6 +50,16 @@ const videoCoursesFeature = {
   enabled: true,
 };
 
+const studyNotesFeature = {
+  id: "study-notes",
+  title: "Study Notes",
+  description: "Read PDF study notes and materials",
+  image: images.grammar,
+  link: "/notes",
+  enabled: true,
+};
+
+
 export default function FeatureCardsGrid({ useRevampA1 = false }) {
   const { user } = useSelector((state) => state.auth);
   const profLevel = user?.user_prof_level || "A1";
@@ -301,6 +311,7 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
           ? a1RevampFeatures
           : a1Features),
     videoCoursesFeature,
+    ...(user?.notes_enabled ? [studyNotesFeature] : []),
   ];
 
   const getTourId = (id) => {

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Search, Loader2, FileText } from "lucide-react";
 import { getNotes } from "../../api/notesApi";
 import { trackFeatureEvent } from "../../telemetry/events";
-import { useUsageLimitGate } from "../../hooks/useUsageLimits";
 
 const LANGUAGES = [
   { code: "en", label: "EN" },
@@ -15,7 +14,6 @@ const LEVELS = ["All", "A1", "A2", "B1", "B2", "C1"];
 
 export default function NotesListPage() {
   const navigate = useNavigate();
-  useUsageLimitGate("ALL", "notes");
 
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,16 +53,17 @@ export default function NotesListPage() {
       entityType: "note",
       entityId: note.note_id,
     });
-    navigate(`/video-courses/notes/${note.note_id}`);
+    navigate(`/notes/${note.note_id}`);
   };
 
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col shadow-sm">
       <div className="self-stretch px-4 py-2.5 flex justify-between items-center bg-white border-b border-zinc-100">
         <button
-          onClick={() => navigate("/video-courses")}
+          onClick={() => navigate("/")}
           className="px-0.5 flex items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
         >
+
           <ChevronLeft className="w-4 h-4 text-slate-900" />
           <span className="text-slate-900 text-sm font-semibold leading-6">
             Back
