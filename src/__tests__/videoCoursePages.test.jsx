@@ -54,6 +54,10 @@ vi.mock("react-redux", async (importOriginal) => {
   };
 });
 
+vi.mock("../pages/notes/components/PdfViewer", () => ({
+  default: () => <div data-testid="pdf-viewer-mock">PDF preview</div>,
+}));
+
 import {
   getVideoCourses,
   getVideoCourse,
@@ -205,6 +209,90 @@ describe("VideoPlayerPage", () => {
       "https://s3.example/signed.mp4",
     );
     expect(useUsageLimitGate).toHaveBeenCalledWith("ALL", "video_courses");
+  });
+
+  test("opens and closes the notes section", async () => {
+    getVideoCourseVideo.mockResolvedValueOnce({
+      data: {
+        data: {
+          video,
+          timestamps: [],
+          notes: [{ language_code: "en", file_url: "https://example.com/notes.pdf" }],
+        },
+      },
+    });
+
+    renderPlayer();
+
+    const heading = await screen.findByText("Video Notes");
+    const details = heading.closest("details");
+
+    expect(details).not.toBeNull();
+    expect(details.open).toBe(false);
+
+    fireEvent.click(heading);
+
+    expect(details.open).toBe(true);
+
+    fireEvent.click(heading);
+
+    expect(details.open).toBe(false);
+  });
+
+  test("switches note language with the custom dropdown", async () => {
+    getVideoCourseVideo.mockResolvedValueOnce({
+      data: {
+        data: {
+          video,
+          timestamps: [],
+          notes: [
+            { language_code: "en", file_url: "https://example.com/notes-en.pdf" },
+            { language_code: "hi", file_url: "https://example.com/notes-hi.pdf" },
+          ],
+        },
+      },
+    });
+
+    renderPlayer();
+
+    const langToggle = await screen.findByRole("button", { name: /English/i });
+    expect(langToggle.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(langToggle);
+    expect(langToggle.getAttribute("aria-expanded")).toBe("true");
+
+    fireEvent.click(await screen.findByRole("button", { name: /Hindi/i }));
+
+    const toggleAfter = await screen.findByRole("button", { name: /Hindi/i });
+    expect(toggleAfter.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  test("switches the audio language with the custom dropdown", async () => {
+    getVideoCourseVideo.mockResolvedValueOnce({
+      data: {
+        data: {
+          video,
+          timestamps: [],
+          audio_tracks: [
+            { language_code: "en", audio_url: "https://example.com/en.mp3" },
+            { language_code: "hi", audio_url: "https://example.com/hi.mp3" },
+          ],
+        },
+      },
+    });
+
+    renderPlayer();
+
+    const langToggle = await screen.findByRole("button", { name: /English/i });
+    expect(langToggle.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(langToggle);
+    expect(langToggle.getAttribute("aria-expanded")).toBe("true");
+
+    fireEvent.click(await screen.findByRole("button", { name: /Hindi/i }));
+
+    const toggleAfter = await screen.findByRole("button", { name: /Hindi/i });
+    expect(toggleAfter.getAttribute("aria-expanded")).toBe("false");
   });
 
   test("opens the chat drawer with suggested questions", async () => {

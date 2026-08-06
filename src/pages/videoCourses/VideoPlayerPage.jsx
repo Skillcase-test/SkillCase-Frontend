@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -26,6 +28,129 @@ const formatTime = (secs) => {
   const s = Math.floor(Number(secs) || 0);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
+
+const LANGUAGE_LABELS = { en: "English", hi: "Hindi", kn: "Kannada" };
+
+// Custom language dropdown shared by the notes section (light) and the video
+// audio-language control (dark) — same pattern as the A1/A2 flashcard,
+// listening and exam pages (button + chevron + option list). Options are
+// portaled to <body> and sized to match the trigger pill so they are never
+// clipped by the player's overflow-hidden containers.
+function LanguageDropdown({ options = [], value, onChange, variant = "light" }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [coords, setCoords] = useState(null);
+  const rootRef = useRef(null);
+  const listRef = useRef(null);
+
+  const dark = variant === "dark";
+
+  const measure = useCallback(() => {
+    const rect = rootRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setCoords({
+      top: rect.bottom + 6,
+      right: Math.max(8, window.innerWidth - rect.right),
+      width: rect.width,
+    });
+  }, []);
+
+  const toggle = (e) => {
+    e?.stopPropagation();
+    if (!isOpen) measure();
+    setIsOpen((prev) => !prev);
+  };
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const handlePointerOutside = (event) => {
+      const insideRoot = rootRef.current?.contains(event.target);
+      const insideList = listRef.current?.contains(event.target);
+      if (!insideRoot && !insideList) setIsOpen(false);
+    };
+    document.addEventListener("mousedown", handlePointerOutside);
+    document.addEventListener("touchstart", handlePointerOutside, {
+      passive: true,
+    });
+    window.addEventListener("scroll", measure, true);
+    window.addEventListener("resize", measure);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerOutside);
+      document.removeEventListener("touchstart", handlePointerOutside);
+      window.removeEventListener("scroll", measure, true);
+      window.removeEventListener("resize", measure);
+    };
+  }, [isOpen, measure]);
+
+  const selected = options.find((opt) => opt.value === value) || options[0];
+
+  return (
+    <div className="relative shrink-0" ref={rootRef}>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        className={
+          dark
+            ? `flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-lg bg-transparent border-none outline-none cursor-pointer transition-colors text-white hover:text-[#F5A623] ${
+                isOpen ? "text-[#F5A623]" : ""
+              }`
+            : `flex items-center gap-1.5 text-xs font-medium rounded-lg px-2.5 py-1.5 border transition-colors cursor-pointer ${
+                isOpen
+                  ? "bg-[#002856] text-white border-[#002856]"
+                  : "bg-slate-100 border-zinc-200 text-slate-800 hover:bg-slate-200/70"
+              }`
+        }
+      >
+        <span>{selected?.label || "Language"}</span>
+        <ChevronDown
+          className={`w-3.5 h-3.5 transition-transform duration-200 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {isOpen &&
+        createPortal(
+          <div
+            ref={listRef}
+            style={{
+              top: coords?.top ?? 0,
+              right: coords?.right ?? 8,
+              width: coords?.width ?? "auto",
+            }}
+            className={`fixed z-[70] rounded-lg overflow-hidden shadow-xl border ${
+              dark ? "bg-neutral-900 border-zinc-700" : "bg-white border-zinc-200"
+            }`}
+          >
+            {options.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onChange(opt.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                  opt.value === value
+                    ? dark
+                      ? "bg-zinc-800 text-[#F5A623]"
+                      : "bg-[#edfaff] text-[#002856]"
+                    : dark
+                      ? "text-zinc-300 hover:bg-zinc-800"
+                      : "text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>,
+          document.fullscreenElement || document.body,
+        )}
+    </div>
+  );
+}
 
 export default function VideoPlayerPage() {
   const { videoId } = useParams();
@@ -549,26 +674,17 @@ export default function VideoPlayerPage() {
                 </button>
 
                 {audioTracks.length > 1 && (
-                  <select
+                  <LanguageDropdown
+                    variant="dark"
+                    options={audioTracks.map((t) => ({
+                      value: t.language_code,
+                      label:
+                        LANGUAGE_LABELS[t.language_code] ||
+                        t.language_code.toUpperCase(),
+                    }))}
                     value={audioLang}
-                    onChange={(e) => setAudioLang(e.target.value)}
-                    title="Audio Language"
-                    className="bg-transparent border-none text-white hover:text-[#F5A623] font-bold cursor-pointer text-xs outline-none "
-                  >
-                    <option value="en" className="bg-black text-white">
-                      EN
-                    </option>
-                    {audioTracks.some((t) => t.language_code === "hi") && (
-                      <option value="hi" className="bg-black text-white">
-                        हिंदी
-                      </option>
-                    )}
-                    {audioTracks.some((t) => t.language_code === "kn") && (
-                      <option value="kn" className="bg-black text-white">
-                        ಕನ್ನಡ
-                      </option>
-                    )}
-                  </select>
+                    onChange={setAudioLang}
+                  />
                 )}
               </div>
             </div>
@@ -615,7 +731,7 @@ export default function VideoPlayerPage() {
 
           {notes.length > 0 && (
             <details
-              className="border border-zinc-200 rounded-xl p-3"
+              className="group border border-zinc-200 rounded-xl"
               onToggle={(e) => {
                 if (e.target.open) {
                   trackLearningEvent("content_presented", {
@@ -629,28 +745,23 @@ export default function VideoPlayerPage() {
                 }
               }}
             >
-              <summary className="text-sky-950 text-sm font-semibold cursor-pointer flex justify-between items-center">
-                <span>Video Notes</span>
+              <summary className="p-3 flex items-center gap-2 cursor-pointer list-none select-none [&::-webkit-details-marker]:hidden">
+                <span className="flex-1 text-left text-sky-950 text-sm font-semibold">
+                  Video Notes
+                </span>
                 {notes.length > 1 && (
-                  <select
+                  <LanguageDropdown
+                    options={notes.map((n) => ({
+                      value: n.language_code,
+                      label: LANGUAGE_LABELS[n.language_code] || n.language_code,
+                    }))}
                     value={noteLang}
-                    onChange={(e) => setNoteLang(e.target.value)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-xs bg-slate-100 border border-zinc-200 rounded px-2 py-1 outline-none text-slate-800 cursor-pointer"
-                  >
-                    {notes.map((n) => (
-                      <option key={n.language_code} value={n.language_code}>
-                        {n.language_code === "en"
-                          ? "English"
-                          : n.language_code === "hi"
-                            ? "Hindi"
-                            : "Kannada"}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setNoteLang}
+                  />
                 )}
+                <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-300 group-open:rotate-180" />
               </summary>
-              <div className="mt-3">
+              <div className="px-3 pb-3">
                 <PdfViewer fileUrl={selectedNote?.file_url} width={340} />
               </div>
             </details>
