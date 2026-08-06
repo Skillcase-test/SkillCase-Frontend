@@ -61,7 +61,8 @@ export default function VideoPlayerPage() {
   const audioTracks = data?.audio_tracks || [];
   const notes = data?.notes || [];
   const selectedTrack = audioTracks.find((t) => t.language_code === audioLang);
-  const selectedNote = notes.find((n) => n.language_code === noteLang) || notes[0];
+  const selectedNote =
+    notes.find((n) => n.language_code === noteLang) || notes[0];
   const dubUrl = selectedTrack?.audio_url;
 
   const level = video?.proficiency_level;
@@ -80,7 +81,6 @@ export default function VideoPlayerPage() {
       }
     }
   }, [audioLang, dubUrl, playbackRate]);
-
 
   useEffect(() => {
     if (!user?.user_id) return;
@@ -108,21 +108,30 @@ export default function VideoPlayerPage() {
     if (!video) return undefined;
     const startedAt = performance.now();
     trackLearningEvent("content_presented", {
-      level, module: "video_course", contentId: videoId, entityId: videoId,
+      level,
+      module: "video_course",
+      contentId: videoId,
+      entityId: videoId,
       entityType: "course_video",
     });
-    return () => trackLearningEvent("content_left", {
-      level, module: "video_course", contentId: videoId, entityId: videoId,
-      entityType: "course_video",
-      activeMs: Math.round(performance.now() - startedAt),
-    });
+    return () =>
+      trackLearningEvent("content_left", {
+        level,
+        module: "video_course",
+        contentId: videoId,
+        entityId: videoId,
+        entityType: "course_video",
+        activeMs: Math.round(performance.now() - startedAt),
+      });
   }, [video, videoId, level]);
 
   const saveProgress = (forceComplete = false, element = null) => {
     const el = element || videoRef.current;
     if (!el || !videoId) return;
-    const reachedCompletion = forceComplete || (el.duration && el.currentTime / el.duration > 0.9);
-    const shouldReportCompletion = reachedCompletion && !completionReportedRef.current;
+    const reachedCompletion =
+      forceComplete || (el.duration && el.currentTime / el.duration > 0.9);
+    const shouldReportCompletion =
+      reachedCompletion && !completionReportedRef.current;
     if (shouldReportCompletion) completionReportedRef.current = true;
     updateVideoCourseProgress(videoId, {
       watch_time_seconds: Math.floor(el.currentTime),
@@ -151,9 +160,17 @@ export default function VideoPlayerPage() {
   const togglePlay = () => {
     const el = videoRef.current;
     if (!el) return;
-    const progressBucket = Math.floor((el.currentTime / (el.duration || 1)) * 10) * 10;
+    const progressBucket =
+      Math.floor((el.currentTime / (el.duration || 1)) * 10) * 10;
     if (el.paused) {
-      trackLearningEvent("media_played", { level, module: "video_course", contentId: videoId, entityId: videoId, mediaState: "playing", progressBucket });
+      trackLearningEvent("media_played", {
+        level,
+        module: "video_course",
+        contentId: videoId,
+        entityId: videoId,
+        mediaState: "playing",
+        progressBucket,
+      });
       el.play().catch(() => {});
       if (dubAudioRef.current && audioLang !== "en" && dubUrl) {
         dubAudioRef.current.currentTime = el.currentTime;
@@ -161,7 +178,14 @@ export default function VideoPlayerPage() {
       }
       setIsPlaying(true);
     } else {
-      trackLearningEvent("media_paused", { level, module: "video_course", contentId: videoId, entityId: videoId, mediaState: "paused", progressBucket });
+      trackLearningEvent("media_paused", {
+        level,
+        module: "video_course",
+        contentId: videoId,
+        entityId: videoId,
+        mediaState: "paused",
+        progressBucket,
+      });
       el.pause();
       if (dubAudioRef.current) dubAudioRef.current.pause();
       setIsPlaying(false);
@@ -172,7 +196,13 @@ export default function VideoPlayerPage() {
     e.stopPropagation();
     const el = videoRef.current;
     if (!el) return;
-    trackLearningEvent("media_seeked", { level, module: "video_course", contentId: videoId, entityId: videoId, direction: delta > 0 ? "forward" : "backward" });
+    trackLearningEvent("media_seeked", {
+      level,
+      module: "video_course",
+      contentId: videoId,
+      entityId: videoId,
+      direction: delta > 0 ? "forward" : "backward",
+    });
     const target = Math.min(duration, Math.max(0, el.currentTime + delta));
     el.currentTime = target;
     if (dubAudioRef.current) dubAudioRef.current.currentTime = target;
@@ -199,7 +229,14 @@ export default function VideoPlayerPage() {
   const handleVideoEnded = () => {
     setIsPlaying(false);
     if (dubAudioRef.current) dubAudioRef.current.pause();
-    trackLearningEvent("media_completed", { level, module: "video_course", contentId: videoId, entityId: videoId, mediaState: "ended", progressBucket: 100 });
+    trackLearningEvent("media_completed", {
+      level,
+      module: "video_course",
+      contentId: videoId,
+      entityId: videoId,
+      mediaState: "ended",
+      progressBucket: 100,
+    });
     saveProgress(true);
   };
 
@@ -211,7 +248,13 @@ export default function VideoPlayerPage() {
     el.playbackRate = nextRate;
     if (dubAudioRef.current) dubAudioRef.current.playbackRate = nextRate;
     setPlaybackRate(nextRate);
-    trackLearningEvent("media_speed_changed", { level, module: "video_course", contentId: videoId, entityId: videoId, speed: nextRate });
+    trackLearningEvent("media_speed_changed", {
+      level,
+      module: "video_course",
+      contentId: videoId,
+      entityId: videoId,
+      speed: nextRate,
+    });
   };
 
   const toggleFullscreen = (e) => {
@@ -228,16 +271,21 @@ export default function VideoPlayerPage() {
   };
 
   useEffect(() => {
-    const onFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+    const onFullscreenChange = () =>
+      setIsFullscreen(!!document.fullscreenElement);
     document.addEventListener("fullscreenchange", onFullscreenChange);
-    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
 
   const resetControlsTimeout = () => {
     setShowControls(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     if (isPlaying && isFullscreen) {
-      controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 3000);
+      controlsTimeoutRef.current = setTimeout(
+        () => setShowControls(false),
+        3000,
+      );
     }
   };
 
@@ -254,12 +302,21 @@ export default function VideoPlayerPage() {
     const rect = progressBarRef.current?.getBoundingClientRect();
     const el = videoRef.current;
     if (!rect || !el) return;
-    const percentage = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const percentage = Math.min(
+      1,
+      Math.max(0, (e.clientX - rect.left) / rect.width),
+    );
     const target = percentage * duration;
     el.currentTime = target;
     if (dubAudioRef.current) dubAudioRef.current.currentTime = target;
     setCurrentTime(target);
-    trackLearningEvent("media_seeked", { level, module: "video_course", contentId: videoId, entityId: videoId, direction: "scrub" });
+    trackLearningEvent("media_seeked", {
+      level,
+      module: "video_course",
+      contentId: videoId,
+      entityId: videoId,
+      direction: "scrub",
+    });
   };
 
   const handleChapterClick = (seconds) => {
@@ -288,10 +345,12 @@ export default function VideoPlayerPage() {
     });
   };
 
-
-  const index = siblings.findIndex((v) => String(v.video_id) === String(videoId));
+  const index = siblings.findIndex(
+    (v) => String(v.video_id) === String(videoId),
+  );
   const prev = index > 0 ? siblings[index - 1] : null;
-  const next = index >= 0 && index < siblings.length - 1 ? siblings[index + 1] : null;
+  const next =
+    index >= 0 && index < siblings.length - 1 ? siblings[index + 1] : null;
 
   if (loading) {
     return (
@@ -317,7 +376,9 @@ export default function VideoPlayerPage() {
           className="px-0.5 flex items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
         >
           <ChevronLeft className="w-4 h-4 text-slate-900" />
-          <span className="text-slate-900 text-sm font-semibold leading-6">Back</span>
+          <span className="text-slate-900 text-sm font-semibold leading-6">
+            Back
+          </span>
         </button>
         <span className="text-neutral-500 text-sm font-semibold leading-6 truncate max-w-[55%]">
           {video.course_name || "Video Course"}
@@ -329,7 +390,9 @@ export default function VideoPlayerPage() {
           <div
             ref={videoContainerRef}
             onMouseMove={resetControlsTimeout}
-            onMouseLeave={() => isFullscreen && isPlaying && setShowControls(false)}
+            onMouseLeave={() =>
+              isFullscreen && isPlaying && setShowControls(false)
+            }
             className="self-stretch bg-black rounded-lg flex flex-col items-center relative overflow-hidden"
           >
             <div
@@ -349,7 +412,9 @@ export default function VideoPlayerPage() {
                     const vTime = videoRef.current?.currentTime || 0;
                     setCurrentTime(vTime);
                     if (dubAudioRef.current && audioLang !== "en" && dubUrl) {
-                      if (Math.abs(dubAudioRef.current.currentTime - vTime) > 0.3) {
+                      if (
+                        Math.abs(dubAudioRef.current.currentTime - vTime) > 0.3
+                      ) {
                         dubAudioRef.current.currentTime = vTime;
                       }
                     }
@@ -365,9 +430,12 @@ export default function VideoPlayerPage() {
                   onLoadStart={() => setIsVideoLoading(true)}
                 />
 
-                <audio ref={dubAudioRef} src={dubUrl || undefined} preload="auto" className="hidden" />
-
-
+                <audio
+                  ref={dubAudioRef}
+                  src={dubUrl || undefined}
+                  preload="auto"
+                  className="hidden"
+                />
 
                 {isVideoLoading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10 pointer-events-none">
@@ -390,7 +458,9 @@ export default function VideoPlayerPage() {
                   onClick={toggleFullscreen}
                   title="Fullscreen"
                   className={`p-1 right-2 top-2 absolute bg-black/60 rounded-sm flex items-center cursor-pointer z-20 hover:bg-black/80 transition-opacity duration-300 ${
-                    showControls ? "opacity-100" : "opacity-0 pointer-events-none"
+                    showControls
+                      ? "opacity-100"
+                      : "opacity-0 pointer-events-none"
                   }`}
                 >
                   <div className="w-4 h-4 flex items-center justify-center text-white">
@@ -448,7 +518,9 @@ export default function VideoPlayerPage() {
                   <div className="self-stretch h-2.5 bg-neutral-800 rounded-full relative overflow-hidden">
                     <div
                       className="h-full bg-[#F5A623] rounded-full"
-                      style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
+                      style={{
+                        width: `${(currentTime / (duration || 1)) * 100}%`,
+                      }}
                     />
                     {/* Chapter ticks */}
                     {duration > 0 &&
@@ -456,7 +528,9 @@ export default function VideoPlayerPage() {
                         <span
                           key={t.timestamp_id}
                           className="absolute top-0 h-full w-0.5 bg-white/60"
-                          style={{ left: `${(t.time_seconds / duration) * 100}%` }}
+                          style={{
+                            left: `${(t.time_seconds / duration) * 100}%`,
+                          }}
                         />
                       ))}
                   </div>
@@ -479,14 +553,20 @@ export default function VideoPlayerPage() {
                     value={audioLang}
                     onChange={(e) => setAudioLang(e.target.value)}
                     title="Audio Language"
-                    className="bg-transparent border-none text-white hover:text-[#F5A623] font-bold cursor-pointer text-xs outline-none bg-black"
+                    className="bg-transparent border-none text-white hover:text-[#F5A623] font-bold cursor-pointer text-xs outline-none "
                   >
-                    <option value="en" className="bg-black text-white">EN</option>
+                    <option value="en" className="bg-black text-white">
+                      EN
+                    </option>
                     {audioTracks.some((t) => t.language_code === "hi") && (
-                      <option value="hi" className="bg-black text-white">हिंदी</option>
+                      <option value="hi" className="bg-black text-white">
+                        हिंदी
+                      </option>
                     )}
                     {audioTracks.some((t) => t.language_code === "kn") && (
-                      <option value="kn" className="bg-black text-white">ಕನ್ನಡ</option>
+                      <option value="kn" className="bg-black text-white">
+                        ಕನ್ನಡ
+                      </option>
                     )}
                   </select>
                 )}
@@ -494,7 +574,6 @@ export default function VideoPlayerPage() {
             </div>
           </div>
         </div>
-
 
         {timestamps.length > 0 && (
           <div className="px-4 py-3 mt-3 flex flex-col gap-2 bg-slate-50 border-y border-zinc-100">
@@ -564,8 +643,8 @@ export default function VideoPlayerPage() {
                         {n.language_code === "en"
                           ? "English"
                           : n.language_code === "hi"
-                          ? "Hindi"
-                          : "Kannada"}
+                            ? "Hindi"
+                            : "Kannada"}
                       </option>
                     ))}
                   </select>
@@ -635,7 +714,6 @@ export default function VideoPlayerPage() {
         onClose={() => setChatOpen(false)}
         language={audioLang}
       />
-
     </div>
   );
 }
