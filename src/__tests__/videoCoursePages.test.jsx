@@ -182,7 +182,7 @@ describe("VideoPlayerPage", () => {
     });
   });
 
-  test("renders the video, its chapters and transcript", async () => {
+  test("renders the video, its chapters and metadata", async () => {
     getVideoCourseVideo.mockResolvedValueOnce({
       data: {
         data: {
@@ -199,7 +199,7 @@ describe("VideoPlayerPage", () => {
     expect(await screen.findByText("Greetings")).toBeInTheDocument();
     expect(screen.getByText("0:30 - Intro")).toBeInTheDocument();
     expect(screen.getByText("How to say hello")).toBeInTheDocument();
-    expect(screen.getByText("Transcript")).toBeInTheDocument();
+    expect(screen.getByText("German Basics")).toBeInTheDocument();
     expect(screen.getByTestId("course-video")).toHaveAttribute(
       "src",
       "https://s3.example/signed.mp4",

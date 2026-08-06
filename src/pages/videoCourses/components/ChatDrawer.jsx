@@ -7,7 +7,12 @@ import {
 } from "../../../api/videoCourseApi";
 import { trackFeatureEvent } from "../../../telemetry/events";
 
-export default function ChatDrawer({ videoId, open, onClose, language = "en" }) {
+export default function ChatDrawer({
+  videoId,
+  open,
+  onClose,
+  language = "en",
+}) {
   const [messages, setMessages] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [input, setInput] = useState("");
@@ -76,7 +81,7 @@ export default function ChatDrawer({ videoId, open, onClose, language = "en" }) 
         onClick={onClose}
         className="absolute inset-0 bg-black/40 border-0 cursor-pointer"
       />
-      <div className="relative mt-auto w-full max-w-md h-[75vh] bg-white rounded-t-2xl flex flex-col shadow-lg">
+      <div className="relative mt-auto w-full max-w-md h-[60vh] bg-white rounded-t-2xl flex flex-col shadow-lg">
         <div className="px-4 py-3 border-b border-zinc-100 flex justify-between items-center">
           <span className="text-sky-950 text-sm font-semibold">
             Ask about this video
@@ -89,7 +94,10 @@ export default function ChatDrawer({ videoId, open, onClose, language = "en" }) 
           </button>
         </div>
 
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3"
+        >
           {messages.length === 0 && suggestions.length > 0 && (
             <div className="flex flex-col gap-2">
               <span className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">
