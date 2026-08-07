@@ -10,15 +10,12 @@ const LANGUAGES = [
   { code: "kn", label: "ಕನ್ನಡ" },
 ];
 
-const LEVELS = ["All", "A1", "A2", "B1", "B2", "C1"];
-
 export default function NotesListPage() {
   const navigate = useNavigate();
 
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [language, setLanguage] = useState("en");
-  const [level, setLevel] = useState("All");
   const [query, setQuery] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
 
@@ -36,9 +33,10 @@ export default function NotesListPage() {
 
   useEffect(() => {
     setLoading(true);
+    // The notes library is level-filtered server-side from the logged-in
+    // user's proficiency level — the level selector was removed on purpose.
     getNotes({
       language,
-      level: level === "All" ? undefined : level,
       q: debouncedQ || undefined,
     })
       .then((res) => {
@@ -46,7 +44,7 @@ export default function NotesListPage() {
       })
       .catch((err) => console.error("Error fetching notes:", err))
       .finally(() => setLoading(false));
-  }, [language, level, debouncedQ]);
+  }, [language, debouncedQ]);
 
   const openNote = (note) => {
     trackFeatureEvent("notes", "note_opened", {
@@ -87,22 +85,6 @@ export default function NotesListPage() {
               }`}
             >
               {lang.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex gap-1.5 overflow-x-auto pb-1">
-          {LEVELS.map((lvl) => (
-            <button
-              key={lvl}
-              onClick={() => setLevel(lvl)}
-              className={`px-3 py-1 rounded-full text-xs font-medium shrink-0 cursor-pointer border transition-all ${
-                level === lvl
-                  ? "bg-amber-100 text-amber-900 border-amber-300 font-semibold"
-                  : "bg-white text-slate-600 border-zinc-200 hover:border-zinc-300"
-              }`}
-            >
-              {lvl}
             </button>
           ))}
         </div>
