@@ -179,6 +179,7 @@ describe("VideoPlayerPage", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     updateVideoCourseProgress.mockResolvedValue({ data: {} });
     getVideoCourse.mockResolvedValue({ data: { data: { course, videos: [video] } } });
     getSuggestedVideoQuestions.mockResolvedValue({
@@ -265,6 +266,83 @@ describe("VideoPlayerPage", () => {
 
     const toggleAfter = await screen.findByRole("button", { name: /Hindi/i });
     expect(toggleAfter.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  test("persists the chosen note language across reloads", async () => {
+    getVideoCourseVideo.mockResolvedValueOnce({
+      data: {
+        data: {
+          video,
+          timestamps: [],
+          notes: [
+            { language_code: "en", file_url: "https://example.com/notes-en.pdf" },
+            { language_code: "hi", file_url: "https://example.com/notes-hi.pdf" },
+          ],
+        },
+      },
+    });
+
+    const { unmount } = renderPlayer();
+
+    const toggle = await screen.findByRole("button", { name: /English/i });
+    fireEvent.click(toggle);
+    fireEvent.click(await screen.findByRole("button", { name: /Hindi/i }));
+
+    // Simulate leaving the page and coming back — the choice must survive.
+    unmount();
+    getVideoCourseVideo.mockResolvedValueOnce({
+      data: {
+        data: {
+          video,
+          timestamps: [],
+          notes: [
+            { language_code: "en", file_url: "https://example.com/notes-en.pdf" },
+            { language_code: "hi", file_url: "https://example.com/notes-hi.pdf" },
+          ],
+        },
+      },
+    });
+    renderPlayer();
+
+    expect(await screen.findByRole("button", { name: /Hindi/i })).toBeInTheDocument();
+  });
+
+  test("persists the chosen audio language across reloads", async () => {
+    getVideoCourseVideo.mockResolvedValueOnce({
+      data: {
+        data: {
+          video,
+          timestamps: [],
+          audio_tracks: [
+            { language_code: "en", audio_url: "https://example.com/en.mp3" },
+            { language_code: "hi", audio_url: "https://example.com/hi.mp3" },
+          ],
+        },
+      },
+    });
+
+    const { unmount } = renderPlayer();
+
+    const toggle = await screen.findByRole("button", { name: /English/i });
+    fireEvent.click(toggle);
+    fireEvent.click(await screen.findByRole("button", { name: /Hindi/i }));
+
+    unmount();
+    getVideoCourseVideo.mockResolvedValueOnce({
+      data: {
+        data: {
+          video,
+          timestamps: [],
+          audio_tracks: [
+            { language_code: "en", audio_url: "https://example.com/en.mp3" },
+            { language_code: "hi", audio_url: "https://example.com/hi.mp3" },
+          ],
+        },
+      },
+    });
+    renderPlayer();
+
+    expect(await screen.findByRole("button", { name: /Hindi/i })).toBeInTheDocument();
   });
 
   test("switches the audio language with the custom dropdown", async () => {

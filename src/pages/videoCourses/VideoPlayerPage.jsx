@@ -31,6 +31,37 @@ const formatTime = (secs) => {
 
 const LANGUAGE_LABELS = { en: "English", hi: "Hindi", kn: "Kannada" };
 
+// Stable default so the usePersistedState initializer identity never changes.
+const DEFAULT_LANG_PREFS = { audioLang: "en", noteLang: "en" };
+
+// Persists a value to localStorage so the learner's language choices survive
+// page reloads and prev/next navigation (pattern used across the app, e.g.
+// lg_preferred_mode). The value is read once on mount and written on change.
+function usePersistedState(key, initialValue) {
+  const read = useCallback(() => {
+    try {
+      const raw = window.localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : initialValue;
+    } catch {
+      return initialValue;
+    }
+  }, [key, initialValue]);
+  const [value, setValue] = useState(read);
+  // Re-read if the key changes after mount (e.g. the user profile finishes
+  // loading) so the real user's saved preference is picked up.
+  useEffect(() => {
+    setValue(read());
+  }, [read]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      // storage unavailable / quota exceeded — preference just won't persist
+    }
+  }, [key, value]);
+  return [value, setValue];
+}
+
 // Custom language dropdown shared by the notes section (light) and the video
 // audio-language control (dark) — same pattern as the A1/A2 flashcard,
 // listening and exam pages (button + chevron + option list). Options are
@@ -178,8 +209,18 @@ export default function VideoPlayerPage() {
   const [showControls, setShowControls] = useState(true);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
-  const [audioLang, setAudioLang] = useState("en");
-  const [noteLang, setNoteLang] = useState("en");
+  // Language preferences persist per user in localStorage, so a choice made
+  // on one video carries over to every other video and survives reloads.
+  const langPrefsKey = `skillcase_video_lang_prefs_${user?.user_id || "guest"}`;
+  const [langPrefs, setLangPrefs] = usePersistedState(
+    langPrefsKey,
+    DEFAULT_LANG_PREFS,
+  );
+  const updatePref = useCallback((pref, lang) => {
+    setLangPrefs((prev) => ({ ...prev, [pref]: lang }));
+  }, [setLangPrefs]);
+  const audioLang = langPrefs.audioLang;
+  const noteLang = langPrefs.noteLang;
 
   const video = data?.video;
   const timestamps = data?.timestamps || [];
@@ -683,7 +724,7 @@ export default function VideoPlayerPage() {
                         t.language_code.toUpperCase(),
                     }))}
                     value={audioLang}
-                    onChange={setAudioLang}
+                    onChange={(lang) => updatePref("audioLang", lang)}
                   />
                 )}
               </div>
@@ -756,7 +797,7 @@ export default function VideoPlayerPage() {
                       label: LANGUAGE_LABELS[n.language_code] || n.language_code,
                     }))}
                     value={noteLang}
-                    onChange={setNoteLang}
+                    onChange={(lang) => updatePref("noteLang", lang)}
                   />
                 )}
                 <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 transition-transform duration-300 group-open:rotate-180" />
