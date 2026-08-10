@@ -32,7 +32,8 @@ import LandingPage from "./pages/landing/LandingPage";
 import NewNavbar from "./components/NewNavbar";
 import PaywallBlocker from "./components/PaywallBlocker";
 import GuideSpotlight from "./components/GuideSpotlight";
-import BottomModeSwitcher from "./components/BottomModeSwitcher";
+import BottomTabBar from "./components/BottomTabBar";
+import TopModeSwitcher from "./components/TopModeSwitcher";
 import NewFooter from "./components/NewFooter";
 import Footer from "./components/Footer";
 import OtaUpdateModal from "./components/OtaUpdateModal";
@@ -996,6 +997,7 @@ function AppContent() {
                   containerStyle={{ zIndex: 100000 }}
                 />
                 <ConditionalNav />
+                <ConditionalTopSwitcher />
                 {isPaywallLocked && (
                   <PaywallBlocker
                     user={user}
@@ -1812,7 +1814,7 @@ function AppContent() {
                   />
                 </Routes>
 
-                <ConditionalBottomModeSwitcher />
+                <ConditionalBottomTabBar />
                 <ConditionalFooter />
                 <SupportWidget />
               </B1ProductTour>
@@ -1862,7 +1864,10 @@ function ConditionalFooter() {
     location.pathname.startsWith("/learn-german") ||
     location.pathname.startsWith("/job-screening") ||
     location.pathname.startsWith("/interview") ||
-    location.pathname.startsWith("/admin");
+    location.pathname.startsWith("/admin") ||
+    // New app-shell screens carry the floating bottom tab bar instead.
+    location.pathname === "/" ||
+    location.pathname.startsWith("/video-courses");
 
   if (hideFooter) return null;
   return <Footer />;
@@ -1903,18 +1908,39 @@ function ConditionalNav() {
   );
 }
 
-function ConditionalBottomModeSwitcher() {
+function ConditionalTopSwitcher() {
   const location = useLocation();
   const { isAuthenticated } = useSelector((state) => state.auth);
 
   if (!isAuthenticated) return null;
 
+  // The mode switcher lives on the three primary shell screens and scrolls
+  // away with the page (only the navbar is sticky).
   const showSwitcher =
-    location.pathname === "/" || location.pathname === "/learn-german";
+    location.pathname === "/" ||
+    location.pathname === "/learn-german" ||
+    location.pathname === "/video-courses";
 
   if (!showSwitcher) return null;
 
-  return <BottomModeSwitcher />;
+  return <TopModeSwitcher />;
+}
+
+function ConditionalBottomTabBar() {
+  const location = useLocation();
+  const { isAuthenticated } = useSelector((state) => state.auth);
+
+  if (!isAuthenticated) return null;
+
+  // The bottom tab bar lives on the three primary shell screens.
+  const showTabBar =
+    location.pathname === "/" ||
+    location.pathname === "/learn-german" ||
+    location.pathname === "/video-courses";
+
+  if (!showTabBar) return null;
+
+  return <BottomTabBar />;
 }
 
 function ScrollToTop() {

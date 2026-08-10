@@ -4,7 +4,7 @@ import Badge from "../../../components/ui/Badge";
 import ExamCards from "../../exam/ExamCards";
 import { images } from "../../../assets/images.js";
 import { useState } from "react";
-import { Lock } from "lucide-react";
+import FeatureStatusChip from "../../../components/ui/FeatureStatusChip";
 import { hapticLight } from "../../../utils/haptics";
 import { isB1PracticeLevel } from "../../../utils/b1Progress";
 import { useUsageLimits } from "../../../hooks/useUsageLimits";
@@ -382,7 +382,7 @@ function FeatureCard({
   tourId,
   moduleInfo,
 }) {
-  const { getState } = useUsageLimits();
+  const { eligible, getState } = useUsageLimits();
   const moduleState = moduleInfo ? getState(moduleInfo.level, moduleInfo.module_key) : null;
   const isLocked = Boolean(moduleState?.locked);
 
@@ -426,7 +426,7 @@ function FeatureCard({
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}
       className={`
-        relative bg-white rounded-lg p-0.5 card-shadow
+        relative bg-white rounded-lg p-0.5 card-shadow flex flex-col
         transition-all duration-150
         ${
           clickable
@@ -437,15 +437,8 @@ function FeatureCard({
         }
         ${isPressed ? "scale-[0.85] shadow-inner" : ""}
         ${!enabled && "bg-[#e5e5e5]"}
-        ${isLocked && "opacity-75"}
       `}
     >
-      {isLocked && (
-        <span className="absolute top-1 right-1 z-10 flex items-center justify-center w-5 h-5 rounded-full bg-slate-900/70 text-white">
-          <Lock className="w-2.5 h-2.5" />
-        </span>
-      )}
-
       {/* Image */}
       <div className="h-16 md:h-40 rounded-md overflow-hidden">
         <img
@@ -458,20 +451,25 @@ function FeatureCard({
       </div>
 
       {/* Content */}
-      <div className="p-1.5 pb-2">
+      <div className="p-1.5 pb-1.5 flex-1 flex flex-col justify-start items-start gap-1.5">
         <h3 className="text-xs md:text-xl font-medium text-black mb-1">
           {title}
         </h3>
         {comingSoon ? (
           <Badge variant="warning">Coming soon</Badge>
-        ) : isLocked ? (
-          <Badge variant="warning">
-            {moduleState.limit_value === 0 ? "Locked" : "Limit reached"}
-          </Badge>
         ) : (
-          <p className="text-[8px] md:text-[14px] text-black opacity-60 leading-[1.3]">
-            {description}
-          </p>
+          <>
+            <p className="text-[8px] md:text-[14px] text-black opacity-60 leading-[1.3]">
+              {description}
+            </p>
+            {/* Usage-state chip — pinned to the bottom-left of every card so
+                it stays consistent regardless of description length. */}
+            {eligible && (
+              <div className="mt-auto pt-1 self-stretch">
+                <FeatureStatusChip state={moduleState} />
+              </div>
+            )}
+          </>
         )}
       </div>
     </CardWrapper>

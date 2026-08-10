@@ -63,11 +63,13 @@ export default function SupportWidget() {
     location.pathname === "/learn-german" ||
     location.pathname === "/job-screening";
 
-  // Position dynamically to avoid overlapping the BottomModeSwitcher
+  // Position dynamically to avoid overlapping the bottom tab bar
   const hasSwitcher =
-    location.pathname === "/" || location.pathname === "/learn-german";
+    location.pathname === "/" ||
+    location.pathname === "/learn-german" ||
+    location.pathname === "/video-courses";
   const widgetBottomStyle = hasSwitcher
-    ? "bottom-[84px] md:bottom-[92px]"
+    ? "bottom-[92px] md:bottom-[96px]"
     : "bottom-[24px]";
 
   const fetchTickets = async (silent = false) => {

@@ -39,7 +39,7 @@ export default function CourseSelectPage() {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col shadow-sm">
+    <div className="w-full max-w-md mx-auto bg-white flex flex-col shadow-sm">
       <div className="self-stretch px-4 py-2.5 flex justify-between items-center bg-white">
         <button
           onClick={() => navigate("/")}
