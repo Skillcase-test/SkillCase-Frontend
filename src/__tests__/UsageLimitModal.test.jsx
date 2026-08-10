@@ -45,11 +45,11 @@ describe("UsageLimitModal", () => {
         <UsageLimitModal />
       </MemoryRouter>,
     );
-    expect(screen.queryByText(/limit reached/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/feature locked/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Subscribe to Premium Plan/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/free limit/i)).not.toBeInTheDocument();
   });
 
-  it("renders the hard-lock copy and CTAs when limit_value is 0", () => {
+  it("renders the premium (hard-lock) design when limit_value is 0", () => {
     render(
       <MemoryRouter>
         <UsageLimitModal />
@@ -67,12 +67,15 @@ describe("UsageLimitModal", () => {
       msg: "This feature is currently locked.",
     });
 
-    expect(screen.getByText("Feature locked")).toBeInTheDocument();
-    expect(screen.getByText("This feature is subscriber-only")).toBeInTheDocument();
-    expect(screen.getByText("Subscribe for unlimited access")).toBeInTheDocument();
-    expect(screen.getByText("Keep using free features")).toBeInTheDocument();
+    expect(screen.getByText("This is a premium feature")).toBeInTheDocument();
+    expect(screen.getByText("Subscribe to Premium Plan for access")).toBeInTheDocument();
+    expect(screen.getByText("Unlock Premium")).toBeInTheDocument();
+    expect(screen.getByText("Talk to an expert")).toBeInTheDocument();
+    // The premium plan pricing card is present.
+    expect(screen.getByText("₹99")).toBeInTheDocument();
+    expect(screen.getByText("Exam practice")).toBeInTheDocument();
     // No countdown UI for a permanent lock.
-    expect(screen.queryByText(/until this feature is free again/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Come back in/i)).not.toBeInTheDocument();
   });
 
   it("renders the countdown copy when limit_value > 0 and counts down", () => {
@@ -96,9 +99,9 @@ describe("UsageLimitModal", () => {
       msg: "Daily limit reached for Flashcards.",
     });
 
-    expect(screen.getByText("Limit reached")).toBeInTheDocument();
-    expect(screen.getByText("You've hit today's free limit")).toBeInTheDocument();
+    expect(screen.getByText("You have reached today's free limit")).toBeInTheDocument();
     expect(screen.getByText("00:01:01")).toBeInTheDocument();
+    expect(screen.getByText("Upgrade to Premium")).toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(30_000);
@@ -127,7 +130,7 @@ describe("UsageLimitModal", () => {
       msg: "Daily limit reached for Flashcards.",
     });
 
-    expect(screen.getByText("You've hit today's free limit")).toBeInTheDocument();
+    expect(screen.getByText("You have reached today's free limit")).toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(3_000);
@@ -183,7 +186,7 @@ describe("UsageLimitModal", () => {
       ],
     });
 
-    expect(screen.getByText("You've hit this week's free limit")).toBeInTheDocument();
+    expect(screen.getByText("You have reached this week's free limit")).toBeInTheDocument();
   });
 
   it("phrases the header by whichever period(s) actually locked — month only", () => {
@@ -202,7 +205,7 @@ describe("UsageLimitModal", () => {
       periods: [{ period: "month", limit_value: 500, used: 500, remaining: 0, locked_until: resetAt, locked: true }],
     });
 
-    expect(screen.getByText("You've hit this month's free limit")).toBeInTheDocument();
+    expect(screen.getByText("You have reached this month's free limit")).toBeInTheDocument();
   });
 
   it("names only the period driving the countdown when multiple periods are locked at once — not every locked period", () => {
@@ -225,11 +228,11 @@ describe("UsageLimitModal", () => {
       ],
     });
 
-    expect(screen.getByText("You've hit this week's free limit")).toBeInTheDocument();
+    expect(screen.getByText("You have reached this week's free limit")).toBeInTheDocument();
     expect(screen.queryByText(/today's and/)).not.toBeInTheDocument();
   });
 
-  it('"Wait it out" navigates back to the home hub instead of leaving the user stranded on the locked page', () => {
+  it("the close (X) button navigates back to the home hub while a feature is still locked", () => {
     const resetAt = new Date(Date.now() + 60_000).toISOString();
     render(
       <MemoryRouter initialEntries={["/a1/flashcard"]}>
@@ -249,15 +252,15 @@ describe("UsageLimitModal", () => {
     });
 
     act(() => {
-      screen.getByText("Wait it out").click();
+      screen.getByLabelText("Close").click();
     });
 
     expect(screen.getByText("HOME HUB")).toBeInTheDocument();
-    expect(screen.queryByText("You've hit today's free limit")).not.toBeInTheDocument();
+    expect(screen.queryByText("You have reached today's free limit")).not.toBeInTheDocument();
     expect(mockSwitchLGMode).not.toHaveBeenCalled();
   });
 
-  it('leaving a locked Learn German switches the saved mode to "practice" first — otherwise LandingPage\'s own redirect immediately bounces the user right back to /learn-german and the "Wait it out"/"Keep using free features" buttons never actually work', () => {
+  it('leaving a locked Learn German via the close button switches the saved mode to "practice" first — otherwise LandingPage\'s own redirect immediately bounces the user right back to /learn-german and the close button never actually works', () => {
     render(
       <MemoryRouter initialEntries={["/learn-german"]}>
         <Routes>
@@ -278,14 +281,14 @@ describe("UsageLimitModal", () => {
     });
 
     act(() => {
-      screen.getByText("Keep using free features").click();
+      screen.getByLabelText("Close").click();
     });
 
     expect(mockSwitchLGMode).toHaveBeenCalledWith("practice");
     expect(screen.getByText("HOME HUB")).toBeInTheDocument();
   });
 
-  it("clicking Subscribe triggers the shared autopay checkout flow", () => {
+  it("clicking Unlock Premium triggers the shared autopay checkout flow", () => {
     render(
       <MemoryRouter>
         <UsageLimitModal />
@@ -300,7 +303,30 @@ describe("UsageLimitModal", () => {
       reset_at: null,
     });
 
-    screen.getByText("Subscribe for unlimited access").click();
+    screen.getByText("Unlock Premium").click();
+    expect(mockHandlePay).toHaveBeenCalledTimes(1);
+  });
+
+  it("clicking Upgrade to Premium (limit-reached state) also triggers the autopay checkout flow", () => {
+    const resetAt = new Date(Date.now() + 60_000).toISOString();
+    render(
+      <MemoryRouter>
+        <UsageLimitModal />
+      </MemoryRouter>,
+    );
+    dispatchUsageLimitEvent({
+      locked: true,
+      reason: "usage_limit",
+      module_key: "flashcard",
+      level: "A1",
+      limit_value: 20,
+      used: 20,
+      remaining: 0,
+      reset_at: resetAt,
+      periods: [{ period: "day", limit_value: 20, used: 20, remaining: 0, locked_until: resetAt, locked: true }],
+    });
+
+    screen.getByText("Upgrade to Premium").click();
     expect(mockHandlePay).toHaveBeenCalledTimes(1);
   });
 });
