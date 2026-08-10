@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import { images } from "../assets/images.js";
 import { isB1PracticeLevel } from "../utils/b1Progress";
 import { hapticLight, hapticMedium } from "../utils/haptics";
-import { Gem } from "lucide-react";
+import { Gem, Gift } from "lucide-react";
 
 export default function Navbar({ disableNavigation = false }) {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -17,15 +17,20 @@ export default function Navbar({ disableNavigation = false }) {
   // white job-screening chrome must be path-based for them, not mode-based.
   const isB1User =
     isAuthenticated && user && isB1PracticeLevel(user?.user_prof_level);
+  // B1/B2 users own the navy mode-switcher shell everywhere — including the
+  // job-screening pipeline, where the switcher flips between Exam & Practice
+  // and Jobs. Only legacy (non-B1) job-screening candidates get the white
+  // pipeline chrome. An explicit ?source=job_screening query param still
+  // forces white chrome for shared flows (e.g. emailed terms links).
   const isJobScreening =
+    isJobScreeningParam ||
     (isAuthenticated &&
+      !isB1User &&
       (location.pathname.startsWith("/job-screening") ||
-        (!isB1User &&
-          ((user?.german_preference === "3" ||
-            user?.lg_preferred_mode === "job_screening") &&
-            cachedMode !== "practice" &&
-            cachedMode !== "learn")))) ||
-    isJobScreeningParam;
+        ((user?.german_preference === "3" ||
+          user?.lg_preferred_mode === "job_screening") &&
+          cachedMode !== "practice" &&
+          cachedMode !== "learn")));
 
   if (isJobScreening) {
     return <JobScreeningNavbar disableNavigation={disableNavigation} />;
@@ -87,13 +92,13 @@ export default function Navbar({ disableNavigation = false }) {
 
               {/* Plan pill */}
               <div
-                className="flex items-center gap-2 pl-1 pr-2 py-1 bg-white/10 rounded-[200px]"
+                className="flex items-center gap-1 pl-1 pr-2 py-1 bg-white/10 rounded-[200px]"
                 title={isPremium ? "Premium Plan" : "Free Plan"}
               >
-                <span className="w-6 h-6 bg-sky-900 rounded-full flex items-center justify-center shrink-0">
-                  <Gem className="w-3.5 h-3.5 text-white" />
+                <span className="w-6 h-6 bg-[#002856] rounded-full flex items-center justify-center shrink-0">
+                  <Gift className="w-3.5 h-3.5 text-white" />
                 </span>
-                <span className="text-white text-[10px] font-medium font-['Poppins'] leading-3">
+                <span className="text-white text-[10px] font-medium leading-3">
                   {isPremium ? "Premium" : "Free Plan"}
                 </span>
               </div>

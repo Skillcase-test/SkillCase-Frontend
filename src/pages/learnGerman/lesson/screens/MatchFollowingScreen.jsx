@@ -45,7 +45,9 @@ export default function MatchFollowingScreen({
           className="ml-2 bg-white p-3 rounded-xl shadow-sm relative flex-1"
         >
           <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rotate-45" />
-          <MayaDialogueBubble text={screen?.dialogue || "Match the following"} />
+          <MayaDialogueBubble
+            text={screen?.dialogue || "Match the following"}
+          />
         </motion.div>
       </div>
 
@@ -104,12 +106,12 @@ export default function MatchFollowingScreen({
                       isLeftRecentMatch
                         ? "bg-emerald-100/50 outline-[2px] outline-green-700 shadow-md z-10"
                         : isLeftMatched
-                        ? "bg-emerald-100/50 outline-green-700 cursor-default"
-                        : isLeftWrong
-                        ? "bg-rose-100 outline-red-500"
-                        : isLeftSelected
-                        ? "bg-blue-50 outline-blue-600"
-                        : "bg-white outline-zinc-300 hover:bg-gray-50"
+                          ? "bg-emerald-100/50 outline-green-700 cursor-default"
+                          : isLeftWrong
+                            ? "bg-rose-100 outline-red-500"
+                            : isLeftSelected
+                              ? "bg-blue-50 outline-blue-600"
+                              : "bg-white outline-zinc-300 hover:bg-gray-50"
                     }`}
                 >
                   <div className="flex-1 flex justify-start items-center gap-2">
@@ -119,10 +121,10 @@ export default function MatchFollowingScreen({
                         isLeftRecentMatch || isLeftMatched
                           ? "bg-green-700/10 text-green-700/80"
                           : isLeftWrong
-                          ? "bg-red-500/10 text-red-500/80"
-                          : isLeftSelected
-                          ? "bg-blue-600/10 text-blue-600/80"
-                          : "bg-black/5 text-gray-500"
+                            ? "bg-red-500/10 text-red-500/80"
+                            : isLeftSelected
+                              ? "bg-blue-600/10 text-blue-600/80"
+                              : "bg-black/5 text-gray-500"
                       }`}
                     >
                       {leftItem.letter}
@@ -133,10 +135,10 @@ export default function MatchFollowingScreen({
                         isLeftRecentMatch || isLeftMatched
                           ? "text-green-700"
                           : isLeftWrong
-                          ? "text-red-500"
-                          : isLeftSelected
-                          ? "text-blue-600"
-                          : "text-gray-900"
+                            ? "text-red-500"
+                            : isLeftSelected
+                              ? "text-blue-600"
+                              : "text-gray-900"
                       }`}
                     >
                       {leftItem.label}
@@ -166,17 +168,17 @@ export default function MatchFollowingScreen({
                     opacity: isRightMatched ? 0.4 : 1,
                   }}
                   transition={{ duration: 0.3 }}
-                  className={`flex-1 px-3 py-7 h-10 sm:h-12 rounded-lg outline-1 outline-offset-[-1px] flex justify-start items-center gap-2 sm:gap-4 transition-colors duration-300
+                  className={`flex-1 px-3 py-6 h-10 sm:h-12 rounded-lg outline-1 outline-offset-[-1px] flex justify-start items-center gap-2 sm:gap-4 transition-colors duration-300
                     ${
                       isRightRecentMatch
                         ? "bg-emerald-100/50 outline-[2px] outline-green-700 shadow-md z-10"
                         : isRightMatched
-                        ? "bg-emerald-100/50 outline-green-700 cursor-default"
-                        : isRightWrong
-                        ? "bg-rose-100 outline-red-500"
-                        : isRightSelected
-                        ? "bg-blue-50 outline-blue-600"
-                        : "bg-white outline-zinc-300 hover:bg-gray-50"
+                          ? "bg-emerald-100/50 outline-green-700 cursor-default"
+                          : isRightWrong
+                            ? "bg-rose-100 outline-red-500"
+                            : isRightSelected
+                              ? "bg-blue-50 outline-blue-600"
+                              : "bg-white outline-zinc-300 hover:bg-gray-50"
                     }`}
                 >
                   <div className="flex-1 flex justify-start items-center gap-2 sm:gap-4">
@@ -186,10 +188,10 @@ export default function MatchFollowingScreen({
                         isRightRecentMatch || isRightMatched
                           ? "text-green-700"
                           : isRightWrong
-                          ? "text-red-500"
-                          : isRightSelected
-                          ? "text-blue-600"
-                          : "text-gray-900"
+                            ? "text-red-500"
+                            : isRightSelected
+                              ? "text-blue-600"
+                              : "text-gray-900"
                       }`}
                     >
                       {rightItem.label}

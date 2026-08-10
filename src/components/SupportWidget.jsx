@@ -32,7 +32,11 @@ import toast from "react-hot-toast";
 import { trackFeatureEvent } from "../telemetry/events";
 
 const MAX_COMMENT_IMAGE_SIZE = 5 * 1024 * 1024;
-const ALLOWED_COMMENT_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/jpg"]);
+const ALLOWED_COMMENT_IMAGE_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+]);
 
 export default function SupportWidget() {
   const location = useLocation();
@@ -51,7 +55,8 @@ export default function SupportWidget() {
   const [tempSelectedFile, setTempSelectedFile] = useState(null);
   const [commentDrafts, setCommentDrafts] = useState({});
   const [commentImageDrafts, setCommentImageDrafts] = useState({});
-  const [submittingCommentTicketId, setSubmittingCommentTicketId] = useState(null);
+  const [submittingCommentTicketId, setSubmittingCommentTicketId] =
+    useState(null);
   const ticketsRef = useRef([]);
   const fileInputRef = useRef(null);
   const modalFileInputRef = useRef(null);
@@ -250,7 +255,10 @@ export default function SupportWidget() {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setCommentImageDrafts((prev) => ({ ...prev, [ticketId]: { file: selectedFile, preview: reader.result } }));
+      setCommentImageDrafts((prev) => ({
+        ...prev,
+        [ticketId]: { file: selectedFile, preview: reader.result },
+      }));
     };
     reader.readAsDataURL(selectedFile);
     e.target.value = "";
@@ -289,8 +297,8 @@ export default function SupportWidget() {
           prev.map((t) =>
             t.ticket_id === ticketId
               ? { ...t, comments: [...(t.comments || []), res.data.comment] }
-              : t
-          )
+              : t,
+          ),
         );
       }
     } catch (err) {
@@ -363,9 +371,9 @@ export default function SupportWidget() {
             }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center justify-center w-14 h-14 bg-[#002856] text-white rounded-full shadow-[0_8px_30px_rgba(0,40,86,0.3)] hover:brightness-110 focus:outline-none cursor-pointer"
+            className="flex items-center justify-center w-10 h-10 bg-[#002856] text-white rounded-full shadow-[0_8px_30px_rgba(0,40,86,0.3)] hover:brightness-110 focus:outline-none cursor-pointer"
           >
-            <MessageSquare className="w-6 h-6" />
+            <MessageSquare className="w-4 h-4" />
           </Motion.button>
         </div>
       )}
@@ -731,24 +739,33 @@ export default function SupportWidget() {
                                     SUPPORT TEAM
                                   </span>
                                   {ticket.comments.map((comment) => {
-                                    const isAdmin = comment.author_type === "admin";
+                                    const isAdmin =
+                                      comment.author_type === "admin";
                                     return (
                                       <div
                                         key={comment.comment_id}
                                         className={`rounded-2xl px-3.5 py-2.5 space-y-0.5 ${
-                                          isAdmin ? "bg-black/5" : "bg-white border border-slate-100 ml-4"
+                                          isAdmin
+                                            ? "bg-black/5"
+                                            : "bg-white border border-slate-100 ml-4"
                                         }`}
                                       >
                                         <div className="flex items-center gap-2">
-                                          <span className={`text-xs font-semibold ${isAdmin ? "text-[#002856]" : "text-slate-600"}`}>
+                                          <span
+                                            className={`text-xs font-semibold ${isAdmin ? "text-[#002856]" : "text-slate-600"}`}
+                                          >
                                             {isAdmin ? "Support Team" : "You"}
                                           </span>
                                           <span className="text-[10px] text-slate-400">
-                                            {new Date(comment.created_at).toLocaleString()}
+                                            {new Date(
+                                              comment.created_at,
+                                            ).toLocaleString()}
                                           </span>
                                         </div>
                                         {comment.message && (
-                                          <p className={`text-sm whitespace-pre-wrap leading-relaxed ${isAdmin ? "text-slate-700" : "text-slate-600"}`}>
+                                          <p
+                                            className={`text-sm whitespace-pre-wrap leading-relaxed ${isAdmin ? "text-slate-700" : "text-slate-600"}`}
+                                          >
                                             {comment.message}
                                           </p>
                                         )}
@@ -756,7 +773,11 @@ export default function SupportWidget() {
                                           <img
                                             src={comment.image_url}
                                             alt="Comment attachment"
-                                            onClick={() => setSelectedImage(comment.image_url)}
+                                            onClick={() =>
+                                              setSelectedImage(
+                                                comment.image_url,
+                                              )
+                                            }
                                             className="w-20 h-24 object-cover rounded-md cursor-pointer hover:opacity-90 transition-opacity mt-1"
                                           />
                                         )}
@@ -771,16 +792,26 @@ export default function SupportWidget() {
                                 {commentImageDrafts[ticket.ticket_id] && (
                                   <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
                                     <img
-                                      src={commentImageDrafts[ticket.ticket_id].preview}
+                                      src={
+                                        commentImageDrafts[ticket.ticket_id]
+                                          .preview
+                                      }
                                       alt="Attachment preview"
                                       className="h-10 w-10 rounded-md object-cover"
                                     />
                                     <span className="text-[10px] text-slate-500 truncate flex-1">
-                                      {commentImageDrafts[ticket.ticket_id].file.name}
+                                      {
+                                        commentImageDrafts[ticket.ticket_id]
+                                          .file.name
+                                      }
                                     </span>
                                     <button
                                       type="button"
-                                      onClick={() => handleRemoveCommentImage(ticket.ticket_id)}
+                                      onClick={() =>
+                                        handleRemoveCommentImage(
+                                          ticket.ticket_id,
+                                        )
+                                      }
                                       className="text-slate-400 hover:text-slate-600 cursor-pointer"
                                     >
                                       <X className="w-3.5 h-3.5" />
@@ -789,16 +820,32 @@ export default function SupportWidget() {
                                 )}
                                 <div className="flex items-center gap-2">
                                   <input
-                                    ref={(el) => (commentFileInputRefs.current[ticket.ticket_id] = el)}
+                                    ref={(el) =>
+                                      (commentFileInputRefs.current[
+                                        ticket.ticket_id
+                                      ] = el)
+                                    }
                                     type="file"
                                     accept="image/png,image/jpeg"
                                     className="hidden"
-                                    onChange={(e) => handleCommentImageSelect(ticket.ticket_id, e)}
+                                    onChange={(e) =>
+                                      handleCommentImageSelect(
+                                        ticket.ticket_id,
+                                        e,
+                                      )
+                                    }
                                   />
                                   <button
                                     type="button"
-                                    onClick={() => commentFileInputRefs.current[ticket.ticket_id]?.click()}
-                                    disabled={submittingCommentTicketId === ticket.ticket_id}
+                                    onClick={() =>
+                                      commentFileInputRefs.current[
+                                        ticket.ticket_id
+                                      ]?.click()
+                                    }
+                                    disabled={
+                                      submittingCommentTicketId ===
+                                      ticket.ticket_id
+                                    }
                                     className="flex items-center justify-center w-8 h-8 shrink-0 rounded-lg border border-slate-300 bg-white text-slate-500 hover:bg-slate-50 hover:text-[#002856] transition-colors cursor-pointer disabled:opacity-40"
                                     title="Attach image"
                                   >
@@ -807,9 +854,14 @@ export default function SupportWidget() {
                                   <input
                                     type="text"
                                     placeholder="Message the support team..."
-                                    value={commentDrafts[ticket.ticket_id] || ""}
+                                    value={
+                                      commentDrafts[ticket.ticket_id] || ""
+                                    }
                                     onChange={(e) =>
-                                      setCommentDrafts((prev) => ({ ...prev, [ticket.ticket_id]: e.target.value }))
+                                      setCommentDrafts((prev) => ({
+                                        ...prev,
+                                        [ticket.ticket_id]: e.target.value,
+                                      }))
                                     }
                                     onKeyDown={(e) => {
                                       if (e.key === "Enter" && !e.shiftKey) {
@@ -817,19 +869,29 @@ export default function SupportWidget() {
                                         handleCommentSubmit(ticket.ticket_id);
                                       }
                                     }}
-                                    disabled={submittingCommentTicketId === ticket.ticket_id}
+                                    disabled={
+                                      submittingCommentTicketId ===
+                                      ticket.ticket_id
+                                    }
                                     className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-lg shadow-2xs text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 transition-all"
                                   />
                                   <button
                                     type="button"
-                                    onClick={() => handleCommentSubmit(ticket.ticket_id)}
+                                    onClick={() =>
+                                      handleCommentSubmit(ticket.ticket_id)
+                                    }
                                     disabled={
-                                      submittingCommentTicketId === ticket.ticket_id ||
-                                      (!(commentDrafts[ticket.ticket_id] || "").trim() && !commentImageDrafts[ticket.ticket_id])
+                                      submittingCommentTicketId ===
+                                        ticket.ticket_id ||
+                                      (!(
+                                        commentDrafts[ticket.ticket_id] || ""
+                                      ).trim() &&
+                                        !commentImageDrafts[ticket.ticket_id])
                                     }
                                     className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#002856] hover:bg-[#001e40] text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
                                   >
-                                    {submittingCommentTicketId === ticket.ticket_id ? (
+                                    {submittingCommentTicketId ===
+                                    ticket.ticket_id ? (
                                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                     ) : (
                                       <Send className="w-3.5 h-3.5" />

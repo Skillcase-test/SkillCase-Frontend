@@ -90,14 +90,16 @@ body {
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 2rem);
 }
 
-/* Learn German lesson-only viewport helper */
+/* Learn German lesson-only viewport helper. The lesson screens no longer
+   render the app navbar, so they fill the full viewport (minus the notch
+   safe area) instead of reserving 55px for the removed header. */
 .lg-screen-height {
-  height: calc(100dvh - 55px - env(safe-area-inset-top, 0px));
+  height: calc(100dvh - env(safe-area-inset-top, 0px));
 }
 
 @supports not (height: 100svh) {
   .lg-screen-height {
-    height: calc(100dvh - 55px - env(safe-area-inset-top, 0px));
+    height: calc(100dvh - env(safe-area-inset-top, 0px));
   }
 }
 

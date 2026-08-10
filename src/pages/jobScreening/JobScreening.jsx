@@ -33,6 +33,7 @@ import { setUser } from "../../redux/auth/authSlice";
 import { trackFeatureEvent } from "../../telemetry/events";
 import { captureTelemetryError } from "../../telemetry";
 import { trackFlowAction } from "../../telemetry/flow";
+import { isB1PracticeLevel } from "../../utils/b1Progress";
 
 const STEP_DESCRIPTIONS = {
   welcome: {
@@ -95,11 +96,22 @@ const syncPreferredModeCache = (user = {}) => {
   window.dispatchEvent(new CustomEvent("lgModeChange", { detail: { mode } }));
 };
 
+// B1/B2 users see the navy navbar (64px) + the two-tab mode switcher (~60px)
+// above the pipeline, so the pipeline's viewport-relative min-heights must
+// reserve that extra chrome — otherwise the welcome/lobby gradients run past
+// the bottom of the screen. Legacy (non-B1) candidates keep the original
+// heights tuned for the 55px/72px white JobScreeningNavbar.
+const getPipelineMinHeightClass = (user = {}) =>
+  isB1PracticeLevel(user?.user_prof_level)
+    ? "min-h-[calc(100vh-124px)] lg:min-h-[calc(100vh-124px)]"
+    : "min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)]";
+
 const JobScreening = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const pipelineMinHeightClass = getPipelineMinHeightClass(user);
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
@@ -279,7 +291,7 @@ const JobScreening = () => {
 
   if (loading || redirecting) {
     return (
-      <div className="w-full min-h-screen bg-[#f6f8fc] flex items-center justify-center flex-col gap-3 font-sans">
+      <div className="w-full min-h-screen bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] flex items-center justify-center flex-col gap-3">
         <div className="w-10 h-10 border-[3.5px] border-[#002856] border-t-transparent rounded-full animate-spin" />
         <span className="text-slate-550 text-xs font-semibold">
           {redirecting
@@ -292,7 +304,7 @@ const JobScreening = () => {
 
   if (error && !progress) {
     return (
-      <div className="w-full min-h-screen bg-[#f6f8fc] flex items-center justify-center px-4 font-sans">
+      <div className="w-full min-h-screen bg-[#f6f8fc] flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white p-6 rounded-2xl border border-slate-200 text-center shadow-sm">
           <p className="text-sm font-semibold text-slate-800 mb-4">{error}</p>
           <button
@@ -666,7 +678,9 @@ const JobScreening = () => {
   // 0. Paywall Blocked Screen
   if (currentStepId === "paywall") {
     return (
-      <div className="w-full min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] pt-12 pb-28 px-4 flex flex-col items-center justify-center font-sans">
+      <div
+        className={`w-full ${pipelineMinHeightClass} bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] pt-12 pb-28 px-4 flex flex-col items-center justify-center`}
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -747,7 +761,9 @@ const JobScreening = () => {
     finalProgressData === null
   ) {
     return (
-      <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-linear-to-b from-[#002856] to-[#134074] w-full flex flex-col justify-center items-center pb-24">
+      <div
+        className={`${pipelineMinHeightClass} bg-linear-to-b from-[#002856] to-[#134074] w-full flex flex-col justify-center items-center pb-24`}
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStepId}
@@ -769,7 +785,7 @@ const JobScreening = () => {
     return (
       <div
         ref={activeStepContainerRef}
-        className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-white w-full flex flex-col items-center overflow-y-auto pb-24"
+        className={`${pipelineMinHeightClass} bg-white w-full flex flex-col items-center overflow-y-auto pb-24`}
       >
         <div className="w-full max-w-md py-4 px-4">
           <AnimatePresence mode="wait">
@@ -830,7 +846,9 @@ const JobScreening = () => {
 
   // 3. Central Job Progress Timeline screen (Progress Lobby)
   return (
-    <div className="w-full min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] pt-6 pb-28 px-4 flex flex-col items-center overflow-y-auto font-sans">
+    <div
+      className={`w-full ${pipelineMinHeightClass} bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] pt-6 pb-28 px-4 flex flex-col items-center overflow-y-auto`}
+    >
       <div className="w-full max-w-md flex flex-col gap-6">
         {/* Header Block with Circular Progress Ring */}
         <div className="pb-3 pt-2 flex items-center justify-between">
@@ -938,12 +956,9 @@ const JobScreening = () => {
                           onAnimationComplete={
                             step.id === "welcome"
                               ? handleWelcomeCheckmarkComplete
-                              : pendingAutoAdvance?.completedStepId ===
-                                  step.id
+                              : pendingAutoAdvance?.completedStepId === step.id
                                 ? () =>
-                                    handleAutoAdvanceCheckmarkComplete(
-                                      step.id,
-                                    )
+                                    handleAutoAdvanceCheckmarkComplete(step.id)
                                 : undefined
                           }
                           className="w-3.5 h-3.5 stroke-3 text-white"

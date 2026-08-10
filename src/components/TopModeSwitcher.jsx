@@ -5,6 +5,7 @@ import { getLGMode, setLGMode } from "../api/learnGermanApi";
 import { trackClarityEvent } from "../observability/clarity";
 import { hapticLight } from "../utils/haptics";
 import { isB1PracticeLevel } from "../utils/b1Progress";
+import { getSwitcherBlendColor } from "../utils/shellRoutes";
 import bookImg from "../assets/book.webp";
 import mayaSmilingImg from "../assets/onboarding/mayaSmiling.webp";
 import classImg from "../assets/class.webp";
@@ -45,6 +46,11 @@ export default function TopModeSwitcher({ isTourActive = false }) {
   }, []);
 
   const tourActive = isTourActive || localTourActive;
+
+  // Exact page-top color of the current shell page. The active tab + its
+  // concave notch are filled with this color so the tab melts into the page
+  // below (white on white pages, sky-blue on learn-german / job-screening).
+  const blendColor = getSwitcherBlendColor(location.pathname);
 
   const activeTab = isB1
     ? location.pathname.startsWith("/job-screening")
@@ -199,7 +205,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 line2=""
                 showLeftNotch={activeTab === "practice"}
                 showRightNotch={activeTab === "practice"}
-                notchColor="#ffffff"
+                blendColor={blendColor}
               />
               <SwitcherTab
                 active={activeTab === "jobs"}
@@ -209,7 +215,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 line2=""
                 showLeftNotch={activeTab === "jobs"}
                 showRightNotch={activeTab === "jobs"}
-                notchColor="#ffffff"
+                blendColor={blendColor}
               />
             </>
           ) : (
@@ -222,7 +228,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 line2="Practice"
                 showLeftNotch={activeTab === "practice"}
                 showRightNotch={activeTab === "practice"}
-                notchColor="#ffffff"
+                blendColor={blendColor}
               />
               <SwitcherTab
                 active={activeTab === "learn"}
@@ -232,7 +238,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 line2="German"
                 showLeftNotch={activeTab === "learn"}
                 showRightNotch={activeTab === "learn"}
-                notchColor="#ffffff"
+                blendColor={blendColor}
               />
               <SwitcherTab
                 active={activeTab === "courses"}
@@ -242,7 +248,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 line2="Classes"
                 showLeftNotch={activeTab === "courses"}
                 showRightNotch={activeTab === "courses"}
-                notchColor="#ffffff"
+                blendColor={blendColor}
               />
             </>
           )}
@@ -260,7 +266,7 @@ function SwitcherTab({
   line2,
   showLeftNotch = false,
   showRightNotch = false,
-  notchColor = "#ffffff",
+  blendColor = "#ffffff",
 }) {
   return (
     <button
@@ -268,9 +274,10 @@ function SwitcherTab({
       role="tab"
       onClick={onClick}
       aria-selected={active}
+      style={active ? { backgroundColor: blendColor } : undefined}
       className={`relative flex-1 px-1.5 sm:px-2.5 flex items-center justify-center gap-1.5 transition-colors duration-200 cursor-pointer select-none ${
         active
-          ? "bg-white rounded-t-lg h-14 rounded-b-none -mb-[2px] z-10"
+          ? "rounded-t-lg h-14 rounded-b-none -mb-[2px] z-10"
           : "bg-white/10 rounded-lg h-12 hover:bg-white/15 mb-2"
       }`}
     >
@@ -284,7 +291,7 @@ function SwitcherTab({
           >
             <path
               d="M 0,26 L 24,26 L 24,0 C 24,14 14,24 0,24 L 0,26 Z"
-              fill={notchColor}
+              fill={blendColor}
             />
           </svg>
         </span>
@@ -319,7 +326,7 @@ function SwitcherTab({
           >
             <path
               d="M 24,26 L 0,26 L 0,0 C 0,14 10,24 24,24 L 24,26 Z"
-              fill={notchColor}
+              fill={blendColor}
             />
           </svg>
         </span>

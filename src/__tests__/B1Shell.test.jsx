@@ -17,7 +17,8 @@ vi.mock("react-router-dom", () => ({
 }));
 
 vi.mock("react-redux", () => ({
-  useSelector: (selector) => selector({ auth: { user: mockUser } }),
+  useSelector: (selector) =>
+    selector({ auth: { user: mockUser, isAuthenticated: true } }),
 }));
 
 const mockSetLGMode = vi.fn().mockResolvedValue({ data: {} });
@@ -53,6 +54,7 @@ vi.mock("../utils/b1Progress", async (importOriginal) => ({
 
 import TopModeSwitcher from "../components/TopModeSwitcher";
 import BottomTabBar from "../components/BottomTabBar";
+import NewNavbar from "../components/NewNavbar";
 
 describe("B1/B2 shell — TopModeSwitcher", () => {
   beforeEach(() => {
@@ -62,15 +64,16 @@ describe("B1/B2 shell — TopModeSwitcher", () => {
     localStorage.clear();
   });
 
-  it("renders only Exam & Practice + Jobs for a B1 user (no Guided German / German Classes tabs)", () => {
+  it("renders only Job Preparation + German Jobs for a B1 user (no Guided German / German Classes tabs)", () => {
     render(<TopModeSwitcher />);
 
-    // The two-line tab labels render as separate spans, so the accessible
-    // text is "Exam &Practice" / "GuidedGerman" (no space) — match loosely.
+    // B1/B2 tabs: "Job Preparation" (practice hub) + "German Jobs" (pipeline)
     expect(
-      screen.getByRole("tab", { name: /exam.*practice/i }),
+      screen.getByRole("tab", { name: /job preparation/i }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /jobs/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: /german jobs/i }),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole("tab", { name: /guided.*german/i }),
     ).not.toBeInTheDocument();
@@ -97,24 +100,94 @@ describe("B1/B2 shell — TopModeSwitcher", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("tapping Jobs for a B1 user persists job_screening mode and navigates to the pipeline", () => {
+  it("tapping German Jobs for a B1 user persists job_screening mode and navigates to the pipeline", () => {
     render(<TopModeSwitcher />);
 
-    fireEvent.click(screen.getByRole("tab", { name: /jobs/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /german jobs/i }));
 
     expect(mockSetLGMode).toHaveBeenCalledWith("job_screening");
     expect(localStorage.getItem("lg_preferred_mode")).toBe("job_screening");
     expect(mockNavigate).toHaveBeenCalledWith("/job-screening");
   });
 
-  it("tapping Exam & Practice from the jobs screen returns to the practice home with practice mode", () => {
+  it("tapping Job Preparation from the jobs screen returns to the practice home with practice mode", () => {
     mockPathname = "/job-screening";
     render(<TopModeSwitcher />);
 
-    fireEvent.click(screen.getByRole("tab", { name: /exam.*practice/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /job preparation/i }));
 
     expect(mockSetLGMode).toHaveBeenCalledWith("practice");
     expect(mockNavigate).toHaveBeenCalledWith("/");
+  });
+
+  it("marks the German Jobs tab active while inside the job-screening pipeline", () => {
+    mockPathname = "/job-screening";
+    render(<TopModeSwitcher />);
+
+    expect(screen.getByRole("tab", { name: /german jobs/i })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(
+      screen.getByRole("tab", { name: /job preparation/i }),
+    ).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("fills the active tab with the sky-blue page-top color on /job-screening so it blends", () => {
+    mockPathname = "/job-screening";
+    render(<TopModeSwitcher />);
+
+    // Lobby top is from-[#e0f2fe] → the active German Jobs tab melts into it
+    expect(screen.getByRole("tab", { name: /german jobs/i })).toHaveStyle({
+      backgroundColor: "#e0f2fe",
+    });
+  });
+
+  it("keeps the active tab white on the white practice hub", () => {
+    mockPathname = "/";
+    render(<TopModeSwitcher />);
+
+    expect(
+      screen.getByRole("tab", { name: /job preparation/i }),
+    ).toHaveStyle({ backgroundColor: "#ffffff" });
+  });
+});
+
+describe("B1/B2 shell — NewNavbar chrome", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPathname = "/job-screening";
+    mockUser = { user_prof_level: "B1" };
+    localStorage.clear();
+  });
+
+  it("keeps the navy mode-switcher shell for B1 users inside the pipeline (no white JobScreeningNavbar)", () => {
+    render(<NewNavbar />);
+
+    // Navy shell: level title + Free Plan pill present
+    expect(screen.getByText("B1 German Level")).toBeInTheDocument();
+    expect(screen.getByText("Free Plan")).toBeInTheDocument();
+    // The white job-screening navbar (Skillcase logo) must NOT be rendered
+    expect(screen.queryByAltText("Skillcase")).not.toBeInTheDocument();
+  });
+
+  it("keeps the white JobScreeningNavbar for legacy non-B1 screening candidates", () => {
+    mockUser = { user_prof_level: "A1", german_preference: "3" };
+
+    render(<NewNavbar />);
+
+    expect(screen.getByAltText("Skillcase")).toBeInTheDocument();
+    expect(screen.queryByText("B1 German Level")).not.toBeInTheDocument();
+  });
+
+  it("keeps the navy shell for B1 users on the practice hub too", () => {
+    mockPathname = "/";
+    mockUser = { user_prof_level: "B2" };
+
+    render(<NewNavbar />);
+
+    expect(screen.getByText("B1 German Level")).toBeInTheDocument();
+    expect(screen.queryByAltText("Skillcase")).not.toBeInTheDocument();
   });
 });
 

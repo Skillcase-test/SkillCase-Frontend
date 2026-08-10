@@ -44,6 +44,7 @@ import { useDispatch, useSelector } from "react-redux";
 import SupportWidget from "./components/SupportWidget";
 import api from "./api/axios";
 import { isB1PracticeLevel } from "./utils/b1Progress";
+import { isShellRoute } from "./utils/shellRoutes";
 import { setUser, logout } from "./redux/auth/authSlice";
 
 if (typeof global === "undefined") {
@@ -1898,36 +1899,32 @@ function ConditionalNav() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
   const isJobScreening = queryParams.get("source") === "job_screening";
+  const path = location.pathname;
 
-  // Hide navbar completely on register and internal lead form
-  const hideNav =
-    location.pathname === "/register" ||
-    location.pathname.startsWith("/start-now") ||
-    location.pathname === "/thank-you" ||
-    location.pathname === "/internal/lead-form" ||
-    (    location.pathname.startsWith("/terms/sign") && !isJobScreening) ||
-    location.pathname.startsWith("/onboarding") ||
-    location.pathname === "/jobs" ||
-    (location.pathname.startsWith("/interview") && !isJobScreening);
+  // The app shell (navy navbar + top switcher) only lives on the four hub
+  // screens. Every learning / applying screen has its own in-page header and
+  // back navigation, so it renders without the navbar. Auth pages, the admin
+  // panel and shared job-screening flows (?source=job_screening) keep it.
+  const isAuthPage = path === "/login" || path === "/signup";
+  const isAdminPage = path.startsWith("/admin");
+  const isSharedJobScreening =
+    isJobScreening &&
+    (path.startsWith("/job-screening") || path.startsWith("/interview"));
+
+  if (
+    !isShellRoute(path) &&
+    !isAuthPage &&
+    !isAdminPage &&
+    !isSharedJobScreening
+  ) {
+    return null;
+  }
 
   const disableNav =
-    /^\/exam\/[^/]+\/take$/.test(location.pathname) ||
-    (location.pathname.startsWith("/interview") && isJobScreening) ||
-    location.pathname.startsWith("/job-screening/interview");
+    (path.startsWith("/interview") && isJobScreening) ||
+    path.startsWith("/job-screening/interview");
 
-  // Show minimal navbar (logo only, no links/burger) on auth pages
-  const isAuthPage =
-    location.pathname === "/login" || location.pathname === "/signup";
-  const isOnboarding = location.pathname.startsWith("/onboarding");
-
-  if (hideNav) return null;
-  return (
-    <NewNavbar
-      minimal={isAuthPage}
-      disableNavigation={disableNav}
-      isOnboarding={isOnboarding}
-    />
-  );
+  return <NewNavbar disableNavigation={disableNav} />;
 }
 
 function ConditionalTopSwitcher() {
@@ -1937,12 +1934,14 @@ function ConditionalTopSwitcher() {
   if (!isAuthenticated) return null;
 
   // The mode switcher lives on the three primary shell screens and scrolls
-  // away with the page (only the navbar is sticky). B1/B2 users only have the
+  // away with the page (only the navbar is sticky). B1/B2 users have the
   // Exam & Practice + Jobs tabs, so their switcher renders on the practice
-  // home only — the pipeline itself keeps its own chrome.
+  // home AND the job-screening pipeline lobby — flipping between the two
+  // modes is the whole point of their two-tab switcher. The focused
+  // interview / terms flows keep their own chrome.
   const isB1 = isB1PracticeLevel(user?.user_prof_level);
   const showSwitcher = isB1
-    ? location.pathname === "/"
+    ? location.pathname === "/" || location.pathname === "/job-screening"
     : location.pathname === "/" ||
       location.pathname === "/learn-german" ||
       location.pathname === "/video-courses";
@@ -1958,16 +1957,16 @@ function ConditionalBottomTabBar() {
 
   if (!isAuthenticated) return null;
 
-  // The bottom tab bar lives on the three primary shell screens. For B1/B2
-  // users it also renders inside the job-screening pipeline (Jobs tab active)
-  // so Home is always one tap away.
+  // The bottom tab bar lives on the four hub screens (shell routes) only —
+  // never on learning / applying screens or the focused interview / terms
+  // flows, which carry their own chrome. Legacy non-B1 screening candidates
+  // keep the white pipeline chrome, so the tab bar stays off /job-screening
+  // for them; B1/B2 users get it on the lobby (Jobs tab active) so Home is
+  // always one tap away.
   const isB1 = isB1PracticeLevel(user?.user_prof_level);
-  const showTabBar = isB1
-    ? location.pathname === "/" ||
-      location.pathname.startsWith("/job-screening")
-    : location.pathname === "/" ||
-      location.pathname === "/learn-german" ||
-      location.pathname === "/video-courses";
+  const showTabBar =
+    isShellRoute(location.pathname) &&
+    (isB1 || location.pathname !== "/job-screening");
 
   if (!showTabBar) return null;
 

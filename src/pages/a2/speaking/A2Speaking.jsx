@@ -284,7 +284,7 @@ export default function A2Speaking() {
     }
   };
   return (
-    <div className="min-h-[calc(100vh-65px)] bg-white flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       <div className="px-4 py-2.5 flex items-center justify-between">
         <button
           onClick={() => navigate("/a2/speaking")}

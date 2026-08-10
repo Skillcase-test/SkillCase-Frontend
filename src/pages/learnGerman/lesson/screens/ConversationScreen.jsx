@@ -156,8 +156,11 @@ export default function ConversationScreen({
           floatingHeader ? "" : "pt-4"
         }`}
         style={
+          // 96px used to clear the app navbar (55px) + the floating progress
+          // header. The navbar no longer renders on lesson screens, so only the
+          // ~41px floating header clearance remains.
           floatingHeader
-            ? { paddingTop: "calc(96px + env(safe-area-inset-top, 0px))" }
+            ? { paddingTop: "calc(65px + env(safe-area-inset-top, 0px))" }
             : {}
         }
       >
