@@ -195,8 +195,8 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 active={activeTab === "practice"}
                 onClick={() => handleSwitch("practice")}
                 image={bookImg}
-                line1="Exam &"
-                line2="Practice"
+                line1="Job Preparation"
+                line2=""
                 showLeftNotch={activeTab === "practice"}
                 showRightNotch={activeTab === "practice"}
                 notchColor="#ffffff"
@@ -205,7 +205,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 active={activeTab === "jobs"}
                 onClick={() => handleSwitch("jobs")}
                 image={bagImg}
-                line1="Jobs"
+                line1="German Jobs"
                 line2=""
                 showLeftNotch={activeTab === "jobs"}
                 showRightNotch={activeTab === "jobs"}
