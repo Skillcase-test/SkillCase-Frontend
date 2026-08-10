@@ -35,7 +35,12 @@ export default function BottomTabBar() {
   // (flashcards + reading/news/articles/videos + describe-speak + exams);
   // other levels keep the "German words learnt" ring.
   const isB1 = isB1PracticeLevel(user?.user_prof_level);
-  const isJobsActive = location.pathname.startsWith("/job-screening");
+  const isJobsActive =
+    location.pathname.startsWith("/job-screening") ||
+    location.pathname === "/jobs";
+  // A1/A2 users land on the locked /jobs teaser page (non-actionable, hardcoded
+  // job cards); B1/B2 users go into the real job-screening pipeline.
+  const jobsHref = isB1 ? "/job-screening" : "/jobs";
 
   useEffect(() => {
     let cancelled = false;
@@ -100,9 +105,10 @@ export default function BottomTabBar() {
 
         {/* Jobs — for B1/B2 users this is the job_screening mode entry, so the
             tap also persists the mode server-side (admin visibility stays
-            sticky via the screening record either way) */}
+            sticky via the screening record either way). A1/A2 users get the
+            locked /jobs teaser instead. */}
         <Link
-          to="/job-screening"
+          to={jobsHref}
           onClick={() => {
             hapticLight();
             if (isB1) {

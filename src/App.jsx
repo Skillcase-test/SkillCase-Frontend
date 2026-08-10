@@ -214,6 +214,7 @@ const LearnGermanHome = lazy(
   () => import("./pages/learnGerman/LearnGermanHome"),
 );
 const JobScreening = lazy(() => import("./pages/jobScreening/JobScreening"));
+const JobsLockedPage = lazy(() => import("./pages/jobs/JobsLockedPage"));
 const JobScreeningAdmin = lazy(() => import("./pages/admin/JobScreeningAdmin"));
 const NewLessonFlow = lazy(
   () => import("./pages/learnGerman/lesson/NewLessonFlow"),
@@ -918,6 +919,8 @@ function AppContent() {
     location.pathname.startsWith("/job-screening") ||
     location.pathname === "/profile" ||
     location.pathname.startsWith("/admin") ||
+    // A1/A2 users get the locked /jobs teaser page instead of the pipeline.
+    location.pathname === "/jobs" ||
     // B1/B2 users own the top mode switcher (Exam & Practice / Jobs), so they
     // must be free to roam the practice shell even while their saved mode is
     // job_screening — the switcher is how they get back into the pipeline.
@@ -1241,6 +1244,14 @@ function AppContent() {
                     path="/job-screening"
                     element={lazyScreen(
                       <JobScreening />,
+                      "Loading Jobs...",
+                    )}
+                  />
+                  {/* A1/A2 locked jobs teaser — B1/B2 redirect to the pipeline */}
+                  <Route
+                    path="/jobs"
+                    element={lazyScreen(
+                      <JobsLockedPage />,
                       "Loading Jobs...",
                     )}
                   />
@@ -1872,6 +1883,7 @@ function ConditionalFooter() {
     location.pathname.startsWith("/onboarding") ||
     location.pathname.startsWith("/learn-german") ||
     location.pathname.startsWith("/job-screening") ||
+    location.pathname === "/jobs" ||
     location.pathname.startsWith("/interview") ||
     location.pathname.startsWith("/admin") ||
     // New app-shell screens carry the floating bottom tab bar instead.
@@ -1893,8 +1905,9 @@ function ConditionalNav() {
     location.pathname.startsWith("/start-now") ||
     location.pathname === "/thank-you" ||
     location.pathname === "/internal/lead-form" ||
-    (location.pathname.startsWith("/terms/sign") && !isJobScreening) ||
+    (    location.pathname.startsWith("/terms/sign") && !isJobScreening) ||
     location.pathname.startsWith("/onboarding") ||
+    location.pathname === "/jobs" ||
     (location.pathname.startsWith("/interview") && !isJobScreening);
 
   const disableNav =
