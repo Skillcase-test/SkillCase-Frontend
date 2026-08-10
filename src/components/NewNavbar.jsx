@@ -12,13 +12,19 @@ export default function Navbar({ disableNavigation = false }) {
   const queryParams = new URLSearchParams(location.search);
   const isJobScreeningParam = queryParams.get("source") === "job_screening";
   const cachedMode = localStorage.getItem("lg_preferred_mode");
+  // B1/B2 users own the mode switcher (Exam & Practice / Jobs): their saved
+  // mode may stay job_screening while they browse the practice hub, so the
+  // white job-screening chrome must be path-based for them, not mode-based.
+  const isB1User =
+    isAuthenticated && user && isB1PracticeLevel(user?.user_prof_level);
   const isJobScreening =
     (isAuthenticated &&
       (location.pathname.startsWith("/job-screening") ||
-        ((user?.german_preference === "3" ||
-          user?.lg_preferred_mode === "job_screening") &&
-          cachedMode !== "practice" &&
-          cachedMode !== "learn"))) ||
+        (!isB1User &&
+          ((user?.german_preference === "3" ||
+            user?.lg_preferred_mode === "job_screening") &&
+            cachedMode !== "practice" &&
+            cachedMode !== "learn")))) ||
     isJobScreeningParam;
 
   if (isJobScreening) {

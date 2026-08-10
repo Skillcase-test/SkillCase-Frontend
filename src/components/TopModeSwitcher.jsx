@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { getLGMode, setLGMode } from "../api/learnGermanApi";
 import { trackClarityEvent } from "../observability/clarity";
 import { hapticLight } from "../utils/haptics";
+import { isB1PracticeLevel } from "../utils/b1Progress";
 import bookImg from "../assets/book.webp";
 import mayaSmilingImg from "../assets/onboarding/mayaSmiling.webp";
 import classImg from "../assets/class.webp";
+import bagImg from "../assets/bag.webp";
 
 const isLearnPath = (pathname = "") => pathname.startsWith("/learn-german");
 const isCoursesPath = (pathname = "") => pathname === "/video-courses";
@@ -22,6 +25,10 @@ const RECENT_MODE_SWITCH_MS = 10_000;
 export default function TopModeSwitcher({ isTourActive = false }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useSelector((state) => state.auth);
+  // B1/B2 users get a two-tab switcher: Exam & Practice + Jobs. The Jobs tab
+  // is the gateway into the job-screening pipeline (and back via practice).
+  const isB1 = isB1PracticeLevel(user?.user_prof_level);
   const [localTourActive, setLocalTourActive] = useState(false);
 
   useEffect(() => {
@@ -39,11 +46,15 @@ export default function TopModeSwitcher({ isTourActive = false }) {
 
   const tourActive = isTourActive || localTourActive;
 
-  const activeTab = isLearnPath(location.pathname)
-    ? "learn"
-    : isCoursesPath(location.pathname)
-      ? "courses"
-      : "practice";
+  const activeTab = isB1
+    ? location.pathname.startsWith("/job-screening")
+      ? "jobs"
+      : "practice"
+    : isLearnPath(location.pathname)
+      ? "learn"
+      : isCoursesPath(location.pathname)
+        ? "courses"
+        : "practice";
 
   const syncMode = (mode) => {
     localStorage.setItem("lg_preferred_mode", mode);
@@ -106,6 +117,29 @@ export default function TopModeSwitcher({ isTourActive = false }) {
 
     hapticLight();
 
+    if (isB1 && tab === "jobs") {
+      // Enter the job-screening pipeline. Persisting the mode server-side is
+      // what makes them eligible; the permanent user_job_screening record (and
+      // hence admin visibility) follows from entering the pipeline at all.
+      syncMode("job_screening");
+      localStorage.setItem("lg_mode_switched_at", String(Date.now()));
+      window.dispatchEvent(
+        new CustomEvent("lgModeChange", {
+          detail: { mode: "job_screening" },
+        }),
+      );
+      trackClarityEvent("lg_mode_switched", {
+        lg_mode: "job_screening",
+        lg_mode_source: activeTab,
+        lg_switcher_route: location.pathname,
+      });
+      setLGMode("job_screening").catch((err) => {
+        console.error("Failed to set mode:", err);
+      });
+      navigate("/job-screening");
+      return;
+    }
+
     if (tab === "courses") {
       trackClarityEvent("lg_mode_switched", {
         lg_mode: "courses",
@@ -155,36 +189,63 @@ export default function TopModeSwitcher({ isTourActive = false }) {
           aria-label="Learning mode"
           className="flex items-end gap-1.5 sm:gap-2"
         >
-          <SwitcherTab
-            active={activeTab === "practice"}
-            onClick={() => handleSwitch("practice")}
-            image={bookImg}
-            line1="Exam &"
-            line2="Practice"
-            showLeftNotch={activeTab === "practice"}
-            showRightNotch={activeTab === "practice"}
-            notchColor="#ffffff"
-          />
-          <SwitcherTab
-            active={activeTab === "learn"}
-            onClick={() => handleSwitch("learn")}
-            image={mayaSmilingImg}
-            line1="Guided"
-            line2="German"
-            showLeftNotch={activeTab === "learn"}
-            showRightNotch={activeTab === "learn"}
-            notchColor="#ffffff"
-          />
-          <SwitcherTab
-            active={activeTab === "courses"}
-            onClick={() => handleSwitch("courses")}
-            image={classImg}
-            line1="German"
-            line2="Classes"
-            showLeftNotch={activeTab === "courses"}
-            showRightNotch={activeTab === "courses"}
-            notchColor="#ffffff"
-          />
+          {isB1 ? (
+            <>
+              <SwitcherTab
+                active={activeTab === "practice"}
+                onClick={() => handleSwitch("practice")}
+                image={bookImg}
+                line1="Exam &"
+                line2="Practice"
+                showLeftNotch={activeTab === "practice"}
+                showRightNotch={activeTab === "practice"}
+                notchColor="#ffffff"
+              />
+              <SwitcherTab
+                active={activeTab === "jobs"}
+                onClick={() => handleSwitch("jobs")}
+                image={bagImg}
+                line1="Jobs"
+                line2=""
+                showLeftNotch={activeTab === "jobs"}
+                showRightNotch={activeTab === "jobs"}
+                notchColor="#ffffff"
+              />
+            </>
+          ) : (
+            <>
+              <SwitcherTab
+                active={activeTab === "practice"}
+                onClick={() => handleSwitch("practice")}
+                image={bookImg}
+                line1="Exam &"
+                line2="Practice"
+                showLeftNotch={activeTab === "practice"}
+                showRightNotch={activeTab === "practice"}
+                notchColor="#ffffff"
+              />
+              <SwitcherTab
+                active={activeTab === "learn"}
+                onClick={() => handleSwitch("learn")}
+                image={mayaSmilingImg}
+                line1="Guided"
+                line2="German"
+                showLeftNotch={activeTab === "learn"}
+                showRightNotch={activeTab === "learn"}
+                notchColor="#ffffff"
+              />
+              <SwitcherTab
+                active={activeTab === "courses"}
+                onClick={() => handleSwitch("courses")}
+                image={classImg}
+                line1="German"
+                line2="Classes"
+                showLeftNotch={activeTab === "courses"}
+                showRightNotch={activeTab === "courses"}
+                notchColor="#ffffff"
+              />
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -238,12 +299,14 @@ function SwitcherTab({
         }`}
       />
       <div
-        className={`flex flex-col text-left text-[10px] sm:text-xs leading-[11px] font-['Poppins'] ${
+        className={`flex flex-col ${
+          line2 ? "text-left" : "text-center"
+        } text-[10px] sm:text-xs leading-[11px] font-['Poppins'] ${
           active ? "text-[#002856] font-bold" : "text-white/90 font-medium"
         }`}
       >
         <span>{line1}</span>
-        <span>{line2}</span>
+        {line2 ? <span>{line2}</span> : null}
       </div>
 
       {/* Concave bottom-right notch using ultra-smooth 24px Cubic Bezier SVG with dynamic route fill color */}

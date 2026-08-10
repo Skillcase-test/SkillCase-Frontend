@@ -43,6 +43,7 @@ import PullToRefreshIndicator from "./components/PullToRefreshIndicator";
 import { useDispatch, useSelector } from "react-redux";
 import SupportWidget from "./components/SupportWidget";
 import api from "./api/axios";
+import { isB1PracticeLevel } from "./utils/b1Progress";
 import { setUser, logout } from "./redux/auth/authSlice";
 
 if (typeof global === "undefined") {
@@ -897,6 +898,9 @@ function AppContent() {
     return <Navigate to="/login" replace />;
   }
 
+  const isB1User =
+    isAuthenticated && user && isB1PracticeLevel(user?.user_prof_level);
+
   const isJobScreeningUser =
     isAuthenticated &&
     user &&
@@ -913,7 +917,12 @@ function AppContent() {
   const isJobScreeningAllowedRoute =
     location.pathname.startsWith("/job-screening") ||
     location.pathname === "/profile" ||
-    location.pathname.startsWith("/admin");
+    location.pathname.startsWith("/admin") ||
+    // B1/B2 users own the top mode switcher (Exam & Practice / Jobs), so they
+    // must be free to roam the practice shell even while their saved mode is
+    // job_screening — the switcher is how they get back into the pipeline.
+    (isB1User &&
+      (location.pathname === "/" || location.pathname.startsWith("/b1")));
 
   if (isJobScreeningUser && !isJobScreeningAllowedRoute) {
     return <Navigate to="/job-screening" replace />;
@@ -1910,16 +1919,20 @@ function ConditionalNav() {
 
 function ConditionalTopSwitcher() {
   const location = useLocation();
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   if (!isAuthenticated) return null;
 
   // The mode switcher lives on the three primary shell screens and scrolls
-  // away with the page (only the navbar is sticky).
-  const showSwitcher =
-    location.pathname === "/" ||
-    location.pathname === "/learn-german" ||
-    location.pathname === "/video-courses";
+  // away with the page (only the navbar is sticky). B1/B2 users only have the
+  // Exam & Practice + Jobs tabs, so their switcher renders on the practice
+  // home only — the pipeline itself keeps its own chrome.
+  const isB1 = isB1PracticeLevel(user?.user_prof_level);
+  const showSwitcher = isB1
+    ? location.pathname === "/"
+    : location.pathname === "/" ||
+      location.pathname === "/learn-german" ||
+      location.pathname === "/video-courses";
 
   if (!showSwitcher) return null;
 
@@ -1928,15 +1941,20 @@ function ConditionalTopSwitcher() {
 
 function ConditionalBottomTabBar() {
   const location = useLocation();
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   if (!isAuthenticated) return null;
 
-  // The bottom tab bar lives on the three primary shell screens.
-  const showTabBar =
-    location.pathname === "/" ||
-    location.pathname === "/learn-german" ||
-    location.pathname === "/video-courses";
+  // The bottom tab bar lives on the three primary shell screens. For B1/B2
+  // users it also renders inside the job-screening pipeline (Jobs tab active)
+  // so Home is always one tap away.
+  const isB1 = isB1PracticeLevel(user?.user_prof_level);
+  const showTabBar = isB1
+    ? location.pathname === "/" ||
+      location.pathname.startsWith("/job-screening")
+    : location.pathname === "/" ||
+      location.pathname === "/learn-german" ||
+      location.pathname === "/video-courses";
 
   if (!showTabBar) return null;
 

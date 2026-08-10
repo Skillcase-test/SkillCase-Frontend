@@ -666,7 +666,7 @@ const JobScreening = () => {
   // 0. Paywall Blocked Screen
   if (currentStepId === "paywall") {
     return (
-      <div className="w-full min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] py-12 px-4 flex flex-col items-center justify-center font-sans">
+      <div className="w-full min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] pt-12 pb-28 px-4 flex flex-col items-center justify-center font-sans">
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -747,7 +747,7 @@ const JobScreening = () => {
     finalProgressData === null
   ) {
     return (
-      <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-linear-to-b from-[#002856] to-[#134074] w-full flex flex-col justify-center items-center">
+      <div className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-linear-to-b from-[#002856] to-[#134074] w-full flex flex-col justify-center items-center pb-24">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStepId}
@@ -769,7 +769,7 @@ const JobScreening = () => {
     return (
       <div
         ref={activeStepContainerRef}
-        className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-white w-full flex flex-col items-center overflow-y-auto"
+        className="min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-white w-full flex flex-col items-center overflow-y-auto pb-24"
       >
         <div className="w-full max-w-md py-4 px-4">
           <AnimatePresence mode="wait">
@@ -830,7 +830,7 @@ const JobScreening = () => {
 
   // 3. Central Job Progress Timeline screen (Progress Lobby)
   return (
-    <div className="w-full min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] py-6 px-4 flex flex-col items-center overflow-y-auto font-sans">
+    <div className="w-full min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] pt-6 pb-28 px-4 flex flex-col items-center overflow-y-auto font-sans">
       <div className="w-full max-w-md flex flex-col gap-6">
         {/* Header Block with Circular Progress Ring */}
         <div className="pb-3 pt-2 flex items-center justify-between">

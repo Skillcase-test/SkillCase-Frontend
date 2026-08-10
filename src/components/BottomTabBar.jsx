@@ -2,8 +2,12 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { getStreakData } from "../api/streakApi";
-import { getVocabProgress } from "../api/learnGermanApi";
+import { getVocabProgress, setLGMode } from "../api/learnGermanApi";
 import { hapticLight } from "../utils/haptics";
+import {
+  isB1PracticeLevel,
+  getB1PracticeProgressRatio,
+} from "../utils/b1Progress";
 import homeImg from "../assets/home.webp";
 import bagImg from "../assets/bag.webp";
 import germanFlagImg from "../assets/recapGermanFlag.webp";
@@ -27,6 +31,12 @@ export default function BottomTabBar() {
   const [streak, setStreak] = useState(0);
   const [progressRatio, setProgressRatio] = useState(0);
 
+  // B1/B2 users see their aggregate B1 practice progress in the center arch
+  // (flashcards + reading/news/articles/videos + describe-speak + exams);
+  // other levels keep the "German words learnt" ring.
+  const isB1 = isB1PracticeLevel(user?.user_prof_level);
+  const isJobsActive = location.pathname.startsWith("/job-screening");
+
   useEffect(() => {
     let cancelled = false;
     getStreakData()
@@ -35,19 +45,27 @@ export default function BottomTabBar() {
       })
       .catch(() => {});
 
-    getVocabProgress()
-      .then((res) => {
-        if (!cancelled && res?.data) {
-          const ratio = res.data.progressRatio ?? 0;
-          setProgressRatio(Math.min(Math.max(ratio, 0), 1));
-        }
-      })
-      .catch(() => {});
+    if (isB1) {
+      getB1PracticeProgressRatio()
+        .then((ratio) => {
+          if (!cancelled) setProgressRatio(Math.min(Math.max(ratio, 0), 1));
+        })
+        .catch(() => {});
+    } else {
+      getVocabProgress()
+        .then((res) => {
+          if (!cancelled && res?.data) {
+            const ratio = res.data.progressRatio ?? 0;
+            setProgressRatio(Math.min(Math.max(ratio, 0), 1));
+          }
+        })
+        .catch(() => {});
+    }
 
     return () => {
       cancelled = true;
     };
-  }, [location.pathname]);
+  }, [location.pathname, isB1]);
 
   const isHome = location.pathname === "/";
 
@@ -80,11 +98,27 @@ export default function BottomTabBar() {
           </span>
         </Link>
 
-        {/* Jobs */}
+        {/* Jobs — for B1/B2 users this is the job_screening mode entry, so the
+            tap also persists the mode server-side (admin visibility stays
+            sticky via the screening record either way) */}
         <Link
           to="/job-screening"
-          onClick={hapticLight}
-          className="w-14 flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-lg   transition-colors hover:bg-stone-500/5"
+          onClick={() => {
+            hapticLight();
+            if (isB1) {
+              localStorage.setItem("lg_preferred_mode", "job_screening");
+              localStorage.setItem("lg_mode_switched_at", String(Date.now()));
+              window.dispatchEvent(
+                new CustomEvent("lgModeChange", {
+                  detail: { mode: "job_screening" },
+                }),
+              );
+              setLGMode("job_screening").catch(() => {});
+            }
+          }}
+          className={`w-14 flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-lg transition-colors ${
+            isJobsActive ? "bg-[#f4f4f6]" : "hover:bg-stone-500/5"
+          }`}
         >
           <img
             src={bagImg}
@@ -92,17 +126,22 @@ export default function BottomTabBar() {
             className="w-6 h-6 object-cover"
             loading="lazy"
           />
-          <span className="text-[10px] font-medium leading-3 text-stone-500">
+          <span
+            className={`text-[10px] font-medium leading-3 ${
+              isJobsActive ? "text-black font-semibold" : "text-stone-500"
+            }`}
+          >
             Jobs
           </span>
         </Link>
 
-        {/* Center — German words learnt (Sleek 4px SVG Arch Dome) */}
+        {/* Center — B1 progress arch for B1/B2 users, German words learnt
+            otherwise (Sleek 4px SVG Arch Dome) */}
         <Link
-          to="/learn-german"
+          to={isB1 ? "/" : "/learn-german"}
           onClick={hapticLight}
           className="relative flex flex-col items-center justify-center w-36 h-full transition-opacity hover:opacity-90 overflow-visible"
-          title="German words learnt"
+          title={isB1 ? "Your B1 progress" : "German words learnt"}
         >
           {/* Sleek Arch SVG (Solid White Interior + 4px Track + 4px Royal Blue Arc) */}
           <div className="absolute -top-7 left-1/2 -translate-x-1/2 w-36 h-12 overflow-visible pointer-events-none flex items-center justify-center drop-shadow-[0px_-3px_6px_rgba(0,0,0,0.03)]">
@@ -149,8 +188,17 @@ export default function BottomTabBar() {
             loading="lazy"
           />
           <div className="flex flex-col items-center text-center text-[10px] font-medium leading-[12px] text-stone-500 z-10">
-            <span>German</span>
-            <span>words learnt</span>
+            {isB1 ? (
+              <>
+                <span>Your B1</span>
+                <span>progress</span>
+              </>
+            ) : (
+              <>
+                <span>German</span>
+                <span>words learnt</span>
+              </>
+            )}
           </div>
         </Link>
 

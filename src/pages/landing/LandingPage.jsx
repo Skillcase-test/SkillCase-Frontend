@@ -15,6 +15,7 @@ import {
 } from "../../api/a1Api";
 import A1MigrationModal from "../../components/a1/A1MigrationModal";
 import ModalPortal from "../../components/common/ModalPortal";
+import { isB1PracticeLevel } from "../../utils/b1Progress";
 
 function getTodayISTKey() {
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -99,9 +100,14 @@ export default function LandingPage() {
       (user?.german_preference === "1" ||
         String(user?.german_preference || "").toLowerCase().includes("learn")));
 
+  // B1/B2 users own the mode switcher (Exam & Practice / Jobs) and may keep
+  // their saved mode as job_screening while viewing the practice hub — only
+  // non-B1 job candidates get force-redirected into the pipeline here.
+  const isB1User = isB1PracticeLevel(user?.user_prof_level);
   const isJobScreening =
-    user?.german_preference === "3" ||
-    user?.lg_preferred_mode === "job_screening";
+    !isB1User &&
+    (user?.german_preference === "3" ||
+      user?.lg_preferred_mode === "job_screening");
 
   useEffect(() => {
     if (isJobScreening) {
