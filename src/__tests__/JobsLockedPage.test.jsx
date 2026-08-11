@@ -46,6 +46,17 @@ vi.mock("../utils/haptics", () => ({
   hapticMedium: vi.fn(),
 }));
 
+const mockGetA1Ratio = vi.fn().mockResolvedValue(0.4);
+const mockGetA2Ratio = vi.fn().mockResolvedValue(0.6);
+const mockGetVideoRatio = vi.fn().mockResolvedValue(0.25);
+const mockGetJobRatio = vi.fn().mockResolvedValue(0.5);
+vi.mock("../utils/a1a2Progress", () => ({
+  getA1PracticeProgressRatio: (...args) => mockGetA1Ratio(...args),
+  getA2PracticeProgressRatio: (...args) => mockGetA2Ratio(...args),
+  getVideoCourseProgressRatio: (...args) => mockGetVideoRatio(...args),
+  getJobStepsProgressRatio: (...args) => mockGetJobRatio(...args),
+}));
+
 import JobsLockedPage from "../pages/jobs/JobsLockedPage";
 import BottomTabBar from "../components/BottomTabBar";
 

@@ -52,6 +52,17 @@ vi.mock("../utils/b1Progress", async (importOriginal) => ({
   getB1PracticeProgressRatio: (...args) => mockGetB1Ratio(...args),
 }));
 
+const mockGetA1Ratio = vi.fn().mockResolvedValue(0.4);
+const mockGetA2Ratio = vi.fn().mockResolvedValue(0.6);
+const mockGetVideoRatio = vi.fn().mockResolvedValue(0.25);
+const mockGetJobRatio = vi.fn().mockResolvedValue(0.5);
+vi.mock("../utils/a1a2Progress", () => ({
+  getA1PracticeProgressRatio: (...args) => mockGetA1Ratio(...args),
+  getA2PracticeProgressRatio: (...args) => mockGetA2Ratio(...args),
+  getVideoCourseProgressRatio: (...args) => mockGetVideoRatio(...args),
+  getJobStepsProgressRatio: (...args) => mockGetJobRatio(...args),
+}));
+
 import TopModeSwitcher from "../components/TopModeSwitcher";
 import BottomTabBar from "../components/BottomTabBar";
 import NewNavbar from "../components/NewNavbar";
@@ -214,8 +225,9 @@ describe("B1/B2 shell — BottomTabBar", () => {
     expect(mockGetVocab).not.toHaveBeenCalled();
   });
 
-  it("keeps the German words learnt label for non-B1 users", async () => {
+  it("shows the German words learnt ring on the Guided German view for A1 users", async () => {
     mockUser = { user_prof_level: "A1" };
+    mockPathname = "/learn-german";
 
     render(<BottomTabBar />);
 
@@ -224,6 +236,62 @@ describe("B1/B2 shell — BottomTabBar", () => {
     expect(screen.getByTitle("German words learnt")).toBeInTheDocument();
     await vi.waitFor(() => {
       expect(mockGetVocab).toHaveBeenCalled();
+    });
+    expect(mockGetB1Ratio).not.toHaveBeenCalled();
+  });
+
+  it("shows the Your A1 progress ring on the practice hub for A1 users", async () => {
+    mockUser = { user_prof_level: "A1" };
+    mockPathname = "/";
+
+    render(<BottomTabBar />);
+
+    expect(screen.getByText("Your A1")).toBeInTheDocument();
+    expect(screen.getByText("progress")).toBeInTheDocument();
+    expect(screen.getByTitle("Your A1 progress")).toBeInTheDocument();
+    await vi.waitFor(() => {
+      expect(mockGetA1Ratio).toHaveBeenCalled();
+    });
+    expect(mockGetVocab).not.toHaveBeenCalled();
+  });
+
+  it("shows the Your A2 progress ring on the practice hub for A2 users", async () => {
+    mockUser = { user_prof_level: "A2" };
+    mockPathname = "/";
+
+    render(<BottomTabBar />);
+
+    expect(screen.getByText("Your A2")).toBeInTheDocument();
+    expect(screen.getByTitle("Your A2 progress")).toBeInTheDocument();
+    await vi.waitFor(() => {
+      expect(mockGetA2Ratio).toHaveBeenCalled();
+    });
+  });
+
+  it("shows the Course status ring on the German Classes view", async () => {
+    mockUser = { user_prof_level: "A1" };
+    mockPathname = "/video-courses";
+
+    render(<BottomTabBar />);
+
+    expect(screen.getByText("Course")).toBeInTheDocument();
+    expect(screen.getByText("status")).toBeInTheDocument();
+    expect(screen.getByTitle("Course status")).toBeInTheDocument();
+    await vi.waitFor(() => {
+      expect(mockGetVideoRatio).toHaveBeenCalled();
+    });
+  });
+
+  it("shows the Your job progress ring on the job-screening lobby for B1 users", async () => {
+    mockPathname = "/job-screening";
+
+    render(<BottomTabBar />);
+
+    expect(screen.getByText("Your job")).toBeInTheDocument();
+    expect(screen.getByText("progress")).toBeInTheDocument();
+    expect(screen.getByTitle("Your job progress")).toBeInTheDocument();
+    await vi.waitFor(() => {
+      expect(mockGetJobRatio).toHaveBeenCalled();
     });
     expect(mockGetB1Ratio).not.toHaveBeenCalled();
   });
