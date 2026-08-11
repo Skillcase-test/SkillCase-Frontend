@@ -31,6 +31,17 @@ import whiteLogo from "../../assets/onboarding/white_mainlogo.webp";
 
 // Shared Components
 import TypewriterText from "../learnGerman/lesson/screens/shared/TypewriterText";
+
+// New signups who have never taken their one free trial get the trial offer
+// right after onboarding completes ("Welcome to {level} German level!").
+// Everyone else lands on their normal destination.
+const navigateAfterOnboarding = (userData, navigate, dest, state = {}) => {
+  if (userData && !userData.trial_taken) {
+    navigate("/trial-offer", { replace: true, state: { from: "/" } });
+    return;
+  }
+  navigate(dest, { replace: true, ...state });
+};
 import { setLgFirstLandingMarker } from "../learnGerman/lgFirstTimeGuide";
 
 // Map German level label to proficiency route
@@ -490,13 +501,14 @@ const OnboardingFlow = () => {
       // Navigate based on preference
       if (germanPrefCode === "2") {
         trackFlowAction("onboarding", "learner_onboarding", "flow_completed", { step: 8, lifecycle: "succeeded", branch: "practice" });
-        navigate("/", { replace: true, state: { justOnboarded: true } });
+        navigateAfterOnboarding(data.user, navigate, "/", {
+          state: { justOnboarded: true },
+        });
       } else {
         trackFlowAction("onboarding", "learner_onboarding", "flow_completed", { step: 8, lifecycle: "succeeded", branch: "learn" });
         // "Continue learning German" or "Yet to start"
         setLgFirstLandingMarker();
-        navigate("/learn-german", {
-          replace: true,
+        navigateAfterOnboarding(data.user, navigate, "/learn-german", {
           state: { fromOnboardingFirstLanding: true },
         });
       }
@@ -546,10 +558,12 @@ const OnboardingFlow = () => {
 
       if (preference === "3") {
         trackFlowAction("onboarding", "learner_onboarding", "flow_completed", { step: 9, lifecycle: "succeeded", branch: "job_screening" });
-        navigate("/job-screening", { replace: true });
+        navigateAfterOnboarding(data.user, navigate, "/job-screening");
       } else {
         trackFlowAction("onboarding", "learner_onboarding", "flow_completed", { step: 9, lifecycle: "succeeded", branch: "practice" });
-        navigate("/", { replace: true, state: { justOnboarded: true } });
+        navigateAfterOnboarding(data.user, navigate, "/", {
+          state: { justOnboarded: true },
+        });
       }
     } catch (err) {
       trackFlowAction("onboarding", "learner_onboarding", "flow_completion_failed", { step: 9, lifecycle: "failed", reasonCode: "api_failed" });

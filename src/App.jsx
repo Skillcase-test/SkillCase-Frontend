@@ -35,6 +35,8 @@ import OtaUpdateModal from "./components/OtaUpdateModal";
 import MaintenanceModal from "./components/MaintenanceModal";
 import UsageLimitModal from "./components/UsageLimitModal";
 import PremiumActivatedModal from "./components/PremiumActivatedModal";
+import TrialCountdownModal from "./components/TrialCountdownModal";
+import TrialEndedModal from "./components/TrialEndedModal";
 import PullToRefreshIndicator from "./components/PullToRefreshIndicator";
 import { useDispatch, useSelector } from "react-redux";
 import SupportWidget from "./components/SupportWidget";
@@ -125,6 +127,7 @@ const StoryPage = lazy(() => import("./pages/StoryPage"));
 const ThankYouPage = lazy(() => import("./pages/ThankYouPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const UpgradePlanPage = lazy(() => import("./pages/payments/UpgradePlanPage"));
+const TrialOfferPage = lazy(() => import("./pages/payments/TrialOfferPage"));
 const ManagePlanPage = lazy(() => import("./pages/payments/ManagePlanPage"));
 const TransactionHistoryPage = lazy(() =>
   import("./pages/payments/TransactionHistoryPage"),
@@ -1001,6 +1004,11 @@ function AppContent() {
         <MaintenanceModal open={maintenanceOpen} onRetry={checkHealth} />
         <UsageLimitModal />
 
+        {/* Free-trial lifecycle modals — countdown while <= 2 days remain,
+            trial-ended once it expires (one-time dismissal). */}
+        <TrialCountdownModal />
+        <TrialEndedModal />
+
         <ProductTour>
           <A1ProductTour>
             <A2ProductTour>
@@ -1241,6 +1249,13 @@ function AppContent() {
                     element={lazyScreen(
                       <UpgradePlanPage />,
                       "Loading Payment...",
+                    )}
+                  />
+                  <Route
+                    path="/trial-offer"
+                    element={lazyScreen(
+                      <TrialOfferPage />,
+                      "Loading Trial...",
                     )}
                   />
                   <Route

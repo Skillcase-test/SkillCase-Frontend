@@ -2,9 +2,20 @@ import { motion } from "framer-motion";
 import { Loader2, Phone, Lock, Check } from "lucide-react";
 import mayaLooking from "../assets/onboarding/mayaLooking.webp";
 import { useAutopayCheckout } from "../hooks/useAutopayCheckout";
+import { useNavigate } from "react-router-dom";
 
 export default function PaywallBlocker({ user, dispatch, onSuccess }) {
   const { loading, handlePay } = useAutopayCheckout({ user, dispatch, onSuccess });
+  const navigate = useNavigate();
+
+  // Never took the one free trial yet → trial offer comes before payment.
+  const openUpgrade = () => {
+    if (user && !user.trial_taken) {
+      navigate("/trial-offer", { state: { from: "/" } });
+      return;
+    }
+    handlePay();
+  };
 
   return (
     <div
@@ -83,7 +94,7 @@ export default function PaywallBlocker({ user, dispatch, onSuccess }) {
         {/* Actions */}
         <div className="flex flex-col gap-3 w-full">
           <motion.button
-            onClick={handlePay}
+            onClick={openUpgrade}
             disabled={loading}
             whileTap={{ scale: 0.985 }}
             className="w-full h-12 sm:h-13 bg-[#002856] hover:bg-[#001f42] active:bg-[#001f42] text-white rounded-2xl transition-all disabled:opacity-75 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center font-bold text-xs sm:text-sm"

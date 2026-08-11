@@ -38,14 +38,14 @@ function MethodIcon({ method }) {
   if (method === "razorpay") {
     return (
       <div className="size-8 bg-white rounded-sm flex items-center justify-center shrink-0">
-        <span className="text-blue-950 text-sm font-black">R</span>
+        <span className="text-[#002856] text-sm font-black">R</span>
       </div>
     );
   }
   if (method === "upi") {
     return (
       <div className="size-8 bg-white rounded-sm flex items-center justify-center shrink-0">
-        <span className="text-blue-950 text-[8px] font-bold">UPI</span>
+        <span className="text-[#002856] text-[8px] font-bold">UPI</span>
       </div>
     );
   }
@@ -57,7 +57,7 @@ function MethodIcon({ method }) {
         : Wallet;
   return (
     <div className="size-8 bg-white rounded-sm flex items-center justify-center shrink-0">
-      <Icon className="size-4 text-blue-950" />
+      <Icon className="size-4 text-[#002856]" />
     </div>
   );
 }
@@ -82,6 +82,18 @@ export default function UpgradePlanPage() {
     return <Navigate to="/profile/manage-plan" replace />;
   }
 
+  // Never took the free trial yet → the trial offer comes first; the user
+  // only lands on payment after the trial is claimed (or they skip it).
+  if (user && !user.trial_taken && !showSuccess) {
+    return (
+      <Navigate
+        to="/trial-offer"
+        state={{ from: "/profile/upgrade" }}
+        replace
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#002856] flex flex-col font-sans">
       {/* Header */}
@@ -104,7 +116,7 @@ export default function UpgradePlanPage() {
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
               <div className="p-1 bg-amber-300 rounded-3xl flex items-center justify-center">
-                <Gem className="size-4 text-blue-950" />
+                <Gem className="size-4 text-[#002856]" />
               </div>
               <span className="text-white text-base font-semibold">
                 Premium Plan
@@ -212,7 +224,7 @@ export default function UpgradePlanPage() {
             onClick={() => handlePay(method)}
             disabled={loading}
             whileTap={{ scale: 0.98 }}
-            className="w-full px-4 py-3 bg-linear-to-r from-amber-300 to-amber-400 rounded-lg text-blue-950 text-base font-semibold hover:bg-amber-400 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed border border-amber-400/80"
+            className="w-full px-4 py-3 bg-linear-to-r from-amber-300 to-amber-400 rounded-lg text-[#002856] text-base font-semibold hover:bg-amber-400 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed border border-amber-400/80"
           >
             {loading ? "Processing..." : "Pay ₹99 Securely"}
           </motion.button>

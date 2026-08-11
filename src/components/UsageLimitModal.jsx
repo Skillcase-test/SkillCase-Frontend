@@ -90,6 +90,17 @@ export default function UsageLimitModal() {
     },
   });
 
+  // A user who never took their one free trial gets the trial offer before
+  // any payment flow — payment only opens once the trial is claimed or
+  // skipped.
+  const openUpgrade = () => {
+    if (user && !user.trial_taken) {
+      navigate("/trial-offer", { state: { from: "/" } });
+      return;
+    }
+    handlePay();
+  };
+
   useEffect(() => {
     const onUsageLimitHit = (e) => {
       setExpired(false);
@@ -183,7 +194,7 @@ export default function UsageLimitModal() {
             )}
 
             <div className="self-stretch flex flex-col items-center gap-3">
-              <h2 className="self-stretch text-center text-blue-950 text-2xl font-bold leading-tight tracking-tight">
+              <h2 className="self-stretch text-center text-[#002856] text-2xl font-bold leading-tight tracking-tight">
                 {isHardLocked
                   ? "Subscribe to Premium Plan for access"
                   : expired
@@ -192,7 +203,7 @@ export default function UsageLimitModal() {
               </h2>
 
               {showCountdown ? (
-                <p className="w-64 text-center text-blue-950 text-xs font-normal leading-relaxed">
+                <p className="w-64 text-center text-[#002856] text-xs font-normal leading-relaxed">
                   Come back in{" "}
                   <span className="font-semibold tabular-nums text-[#002856]">
                     {formatCountdown(event.reset_at)}
@@ -200,7 +211,7 @@ export default function UsageLimitModal() {
                   or upgrade to premium for unlimited usage.
                 </p>
               ) : expired ? (
-                <p className="w-64 text-center text-blue-950 text-xs font-normal leading-relaxed">
+                <p className="w-64 text-center text-[#002856] text-xs font-normal leading-relaxed">
                   Your limit has reset — go ahead and keep practicing.
                 </p>
               ) : null}
@@ -217,7 +228,7 @@ export default function UsageLimitModal() {
                 </div>
               ) : (
                 <div className="self-stretch flex flex-col items-center">
-                  <div className="self-stretch px-1.5 py-1 bg-gradient-to-r from-blue-950 to-blue-700 rounded-tl-xl rounded-tr-xl inline-flex justify-center items-center gap-2">
+                  <div className="self-stretch px-1.5 py-1 bg-gradient-to-r from-[#002856] to-blue-700 rounded-tl-xl rounded-tr-xl inline-flex justify-center items-center gap-2">
                     <Gem className="w-3.5 h-3.5 text-amber-300" />
                     <span className="text-white text-xs font-normal">
                       Premium Plan
@@ -238,17 +249,17 @@ export default function UsageLimitModal() {
               <button
                 type="button"
                 onClick={close}
-                className="self-stretch px-4 py-3 bg-blue-950 hover:bg-[#001f42] active:bg-[#001f42] rounded-lg inline-flex justify-center items-center text-white text-base font-semibold cursor-pointer transition-colors"
+                className="self-stretch px-4 py-3 bg-[#002856] hover:bg-[#001f42] active:bg-[#001f42] rounded-lg inline-flex justify-center items-center text-white text-base font-semibold cursor-pointer transition-colors"
               >
                 Continue
               </button>
             ) : (
               <>
                 <motion.button
-                  onClick={handlePay}
+                  onClick={openUpgrade}
                   disabled={loading}
                   whileTap={{ scale: 0.985 }}
-                  className="self-stretch px-4 py-3 bg-blue-950 hover:bg-[#001f42] active:bg-[#001f42] rounded-lg shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] outline-offset-[-2px] outline-white/10 inline-flex justify-center items-center gap-1.5 overflow-hidden cursor-pointer transition-colors disabled:opacity-75 disabled:cursor-not-allowed"
+                  className="self-stretch px-4 py-3 bg-[#002856] hover:bg-[#001f42] active:bg-[#001f42] rounded-lg shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] outline-offset-[-2px] outline-white/10 inline-flex justify-center items-center gap-1.5 overflow-hidden cursor-pointer transition-colors disabled:opacity-75 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <Loader2 className="w-5 h-5 animate-spin text-white" />
@@ -263,14 +274,14 @@ export default function UsageLimitModal() {
                 </motion.button>
                 <a
                   href="tel:+919731462667"
-                  className="self-stretch px-4 py-3 rounded-lg outline-offset-[-1px] outline-zinc-400 inline-flex justify-center items-center gap-1.5 overflow-hidden text-blue-950 hover:bg-slate-50 transition-colors"
+                  className="self-stretch px-4 py-3 rounded-lg outline-offset-[-1px] outline-zinc-400 inline-flex justify-center items-center gap-1.5 overflow-hidden text-[#002856] hover:bg-slate-50 transition-colors"
                 >
-                  <Phone className="w-4 h-4 text-blue-950" />
-                  <span className="text-blue-950 text-base font-semibold leading-6">
+                  <Phone className="w-4 h-4 text-[#002856]" />
+                  <span className="text-[#002856] text-base font-semibold leading-6">
                     Talk to an expert
                   </span>
                 </a>
-                <p className="w-72 text-center text-blue-950/50 text-xs font-medium">
+                <p className="w-72 text-center text-[#002856]/50 text-xs font-medium">
                   You can cancel it anytime.
                 </p>
               </>
@@ -285,8 +296,8 @@ export default function UsageLimitModal() {
 function PriceRow() {
   return (
     <div className="text-center">
-      <span className="text-blue-950 text-4xl font-bold">₹99 </span>
-      <span className="text-blue-950 text-base font-normal">/ month</span>
+      <span className="text-[#002856] text-4xl font-bold">₹99 </span>
+      <span className="text-[#002856] text-base font-normal">/ month</span>
     </div>
   );
 }
@@ -299,9 +310,11 @@ function FeatureRows() {
           key={feature}
           className="self-stretch inline-flex justify-between items-center"
         >
-          <span className="text-blue-950 text-xs font-normal">{feature}</span>
+          <span className="text-[#002856] text-xs font-normal">{feature}</span>
           <span className="inline-flex justify-start items-center gap-2">
-            <span className="text-blue-950 text-xs font-medium">Unlimited</span>
+            <span className="text-[#002856] text-xs font-medium">
+              Unlimited
+            </span>
             <span className="size-2.5 bg-green-600 rounded-full flex items-center justify-center">
               <Check className="text-white size-[90%]" />
             </span>

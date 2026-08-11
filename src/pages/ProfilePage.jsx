@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setUser, logout } from "../redux/auth/authSlice";
 import { resetArticleEducation } from "../utils/articleUtils";
+import { isTrialActive, trialDaysLeft } from "../utils/premium";
 import api from "../api/axios";
 import { trackFeatureEvent } from "../telemetry/events";
 import {
@@ -710,6 +711,8 @@ export default function ProfilePage() {
   const displayName = form.fullname || user?.username || "Amélie Laurent";
   const displayPhone = phoneNumber || user?.number || "8240951870";
   const isAutopayActive = user && user.autopay_enabled === true;
+  const isTrial = !isAutopayActive && isTrialActive(user);
+  const trialDays = trialDaysLeft(user);
   const nextBilling = (() => {
     if (!user?.next_billing_at) return "";
     const d = new Date(user.next_billing_at);
@@ -856,7 +859,7 @@ export default function ProfilePage() {
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center gap-2">
                         <div className="p-1 bg-amber-300 rounded-3xl flex items-center justify-center">
-                          <GemIcon className="size-4 text-blue-950" />
+                          <GemIcon className="size-4 text-[#002856]" />
                         </div>
                         <span className="text-white text-base font-semibold leading-5">
                           Premium Member
@@ -892,6 +895,48 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
+            ) : isTrial ? (
+              <div className="w-full p-3 bg-gradient-to-r from-[#083262] to-[#1E5CA2] rounded-xl flex flex-col gap-2.5">
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex-1 min-w-0 flex flex-col gap-4">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1 bg-amber-300 rounded-3xl flex items-center justify-center">
+                          <GemIcon className="size-4 text-[#002856]" />
+                        </div>
+                        <span className="text-white text-base font-semibold leading-5">
+                          Free Trial
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-white text-xs font-normal leading-4">
+                          {trialDays} day{trialDays === 1 ? "" : "s"} left in
+                          your Premium Trial
+                        </p>
+                        <p className="text-white text-xs font-normal leading-4">
+                          Full access to all premium features.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => navigate("/profile/upgrade")}
+                      className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                    >
+                      <span className="text-amber-300 text-xs font-medium">
+                        Upgrade to Premium
+                      </span>
+                      <ChevronRightIcon className="size-3 text-amber-300" />
+                    </button>
+                  </div>
+                  <div className="size-24 rounded-3xl overflow-hidden shrink-0">
+                    <img
+                      src={diamond}
+                      alt="Premium"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="w-full p-3 bg-gradient-to-r from-white to-blue-100 rounded-xl flex flex-col gap-2.5">
                 <div className="flex justify-between items-start gap-3">
@@ -901,11 +946,11 @@ export default function ProfilePage() {
                         <div className="p-1 bg-[#002856] rounded-3xl flex items-center justify-center">
                           <LucideIcons.Gift className="size-4 text-white" />
                         </div>
-                        <span className="text-blue-950 text-base font-semibold leading-5">
+                        <span className="text-[#002856] text-base font-semibold leading-5">
                           Free Plan active
                         </span>
                       </div>
-                      <p className="text-blue-950 text-xs font-normal leading-4">
+                      <p className="text-[#002856] text-xs font-normal leading-4">
                         Subscribe to Premium Plan for unlimited access to all
                         features.
                       </p>
@@ -914,10 +959,10 @@ export default function ProfilePage() {
                       onClick={() => navigate("/profile/upgrade")}
                       className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
                     >
-                      <span className="text-blue-950 text-xs font-medium">
+                      <span className="text-[#002856] text-xs font-medium">
                         Upgrade to Premium
                       </span>
-                      <LucideIcons.ChevronRight className="size-3 text-blue-950" />
+                      <LucideIcons.ChevronRight className="size-3 text-[#002856]" />
                     </button>
                   </div>
                   <div className="size-24 rounded-3xl overflow-hidden shrink-0">

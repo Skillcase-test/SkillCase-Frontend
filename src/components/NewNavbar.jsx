@@ -4,6 +4,7 @@ import { images } from "../assets/images.js";
 import { isB1PracticeLevel } from "../utils/b1Progress";
 import { hapticLight, hapticMedium } from "../utils/haptics";
 import { Gem, Gift } from "lucide-react";
+import { isPremiumUser, isTrialActive, trialDaysLeft } from "../utils/premium";
 
 export default function Navbar({ disableNavigation = false }) {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -38,7 +39,9 @@ export default function Navbar({ disableNavigation = false }) {
 
   const rawLevel = user?.user_prof_level || "A1";
   const displayLevel = isB1PracticeLevel(rawLevel) ? "B1" : rawLevel;
-  const isPremium = user?.autopay_enabled === true;
+  const isPremium = isPremiumUser(user);
+  const isTrial = !isPremium && isTrialActive(user);
+  const daysLeft = trialDaysLeft(user);
 
   const renderAvatar = () => (
     <Link to="/profile" id="profile-nav-link" className="flex-shrink-0">
@@ -90,17 +93,55 @@ export default function Navbar({ disableNavigation = false }) {
                 </Link>
               )}
 
-              {/* Plan pill — amber diamond + Premium once activated, gift + Free Plan otherwise */}
+              {/* Plan pill — three states: premium (amber diamond), active trial
+                  (days-left countdown badge), free (gift) */}
               {isPremium ? (
                 <div
                   className="flex items-center gap-1.5 pl-1 pr-2 py-1 bg-white/10 rounded-[200px]"
                   title="Premium Plan"
                 >
                   <span className="p-1 bg-amber-300 rounded-3xl flex items-center justify-center shrink-0">
-                    <Gem className="w-3.5 h-3.5 text-blue-950" />
+                    <Gem className="w-3.5 h-3.5 text-[#002856]" />
                   </span>
                   <span className="text-white text-[10px] font-medium leading-3">
                     Premium
+                  </span>
+                </div>
+              ) : isTrial ? (
+                <div
+                  className="flex items-center gap-1 pl-0.5 pr-2 py-0.5 bg-white/10 rounded-[200px]"
+                  title={`${daysLeft} days left in Premium Trial`}
+                >
+                  <span className="relative w-6 h-6 shrink-0">
+                    <svg viewBox="0 0 24 24" className="w-6 h-6 -rotate-90">
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="9.5"
+                        fill="none"
+                        stroke="#002856"
+                        strokeWidth="3"
+                      />
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="9.5"
+                        fill="none"
+                        stroke="#fbbf24"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeDasharray={59.69}
+                        strokeDashoffset={
+                          59.69 * (1 - Math.min(1, daysLeft / 7))
+                        }
+                      />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-white text-[10px] font-semibold leading-3 tabular-nums">
+                      {String(daysLeft).padStart(2, "0")}
+                    </span>
+                  </span>
+                  <span className="text-white text-[10px] font-medium leading-3">
+                    days left
                   </span>
                 </div>
               ) : (
