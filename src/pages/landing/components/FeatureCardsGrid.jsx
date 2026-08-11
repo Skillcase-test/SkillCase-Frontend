@@ -35,19 +35,6 @@ const MODULE_MAP = {
   "b1-describe-speak": { level: "B1", module_key: "describe_speak" },
   "b1-exams": { level: "B1", module_key: "exams" },
   "b1-maya": { level: "B1", module_key: "maya" },
-  // Video courses are not CEFR-scoped — the backend gates them at level "ALL".
-  "video-courses": { level: "ALL", module_key: "video_courses" },
-};
-
-// Level-agnostic, so it is appended to whichever level's card list is shown.
-const videoCoursesFeature = {
-  id: "video-courses",
-  title: "Video Courses",
-  description: "Watch course videos and ask questions about them",
-  image:
-    "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090498/read_listen_pwnige.webp",
-  link: "/video-courses",
-  enabled: true,
 };
 
 const studyNotesFeature = {
@@ -310,7 +297,6 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
         : useRevampA1
           ? a1RevampFeatures
           : a1Features),
-    videoCoursesFeature,
     ...(user?.notes_enabled ? [studyNotesFeature] : []),
   ];
 

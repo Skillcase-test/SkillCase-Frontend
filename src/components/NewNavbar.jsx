@@ -90,18 +90,32 @@ export default function Navbar({ disableNavigation = false }) {
                 </Link>
               )}
 
-              {/* Plan pill */}
-              <div
-                className="flex items-center gap-1 pl-1 pr-2 py-1 bg-white/10 rounded-[200px]"
-                title={isPremium ? "Premium Plan" : "Free Plan"}
-              >
-                <span className="w-6 h-6 bg-[#002856] rounded-full flex items-center justify-center shrink-0">
-                  <Gift className="w-3.5 h-3.5 text-white" />
-                </span>
-                <span className="text-white text-[10px] font-medium leading-3">
-                  {isPremium ? "Premium" : "Free Plan"}
-                </span>
-              </div>
+              {/* Plan pill — amber diamond + Premium once activated, gift + Free Plan otherwise */}
+              {isPremium ? (
+                <div
+                  className="flex items-center gap-1.5 pl-1 pr-2 py-1 bg-white/10 rounded-[200px]"
+                  title="Premium Plan"
+                >
+                  <span className="p-1 bg-amber-300 rounded-3xl flex items-center justify-center shrink-0">
+                    <Gem className="w-3.5 h-3.5 text-blue-950" />
+                  </span>
+                  <span className="text-white text-[10px] font-medium leading-3">
+                    Premium
+                  </span>
+                </div>
+              ) : (
+                <div
+                  className="flex items-center gap-1 pl-1 pr-2 py-1 bg-white/10 rounded-[200px]"
+                  title="Free Plan"
+                >
+                  <span className="w-6 h-6 bg-[#002856] rounded-full flex items-center justify-center shrink-0">
+                    <Gift className="w-3.5 h-3.5 text-white" />
+                  </span>
+                  <span className="text-white text-[10px] font-medium leading-3">
+                    Free Plan
+                  </span>
+                </div>
+              )}
 
               {renderAvatar()}
             </>
