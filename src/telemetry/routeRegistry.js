@@ -3,6 +3,14 @@ const RULES = [
   [/^\/job-screening\/interview/, "job_screening", "interview"],
   [/^\/job-screening\/terms/, "terms", "terms_signing"],
   [/^\/job-screening/, "job_screening", "funnel"],
+  // A1/A2 users land on the locked jobs teaser instead of the pipeline.
+  [/^\/jobs/, "job_screening", "jobs_board"],
+  // Subscription funnel — kept ahead of the generic /profile rule so checkout,
+  // plan management and receipts don't disappear into profile analytics.
+  [/^\/trial-offer/, "payments", "trial_offer"],
+  [/^\/profile\/upgrade/, "payments", "checkout"],
+  [/^\/profile\/manage-plan/, "payments", "manage_plan"],
+  [/^\/profile\/transactions/, "payments", "transaction_history"],
   [/^\/profile/, "profile", "profile"],
   [/^\/learn-german\/(lesson|recap)/, "learning", "learn_german_lesson"],
   [/^\/learn-german/, "learning", "learn_german"],

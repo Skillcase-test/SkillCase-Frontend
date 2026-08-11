@@ -110,6 +110,7 @@ describe("videoCourseApi", () => {
       expect(data).toEqual({
         message: "Was ist das?",
         history: [{ role: "user", content: "hi" }],
+        language: "en",
       });
     });
 

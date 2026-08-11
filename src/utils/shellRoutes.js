@@ -17,6 +17,24 @@ export function isShellRoute(pathname = "") {
 }
 
 /**
+ * The subscription / trial funnel. These screens are the way *out* of a paywall
+ * lock, so nothing may cover or redirect them: the paywall blocker skips them,
+ * and the job-screening mode redirect lets them through. Without this a locked
+ * user taps "Upgrade", gets sent to the trial offer, and stares at the blocker
+ * overlay still painted on top of it.
+ */
+export const PAYMENT_ROUTES = [
+  "/trial-offer",
+  "/profile/upgrade",
+  "/profile/manage-plan",
+  "/profile/transactions",
+];
+
+export function isPaymentRoute(pathname = "") {
+  return PAYMENT_ROUTES.includes(pathname);
+}
+
+/**
  * Exact page-top background color of each shell page. The active switcher tab
  * (and its concave notch) is filled with this color so the tab melts into the
  * page below instead of leaving a harsh white crescent.

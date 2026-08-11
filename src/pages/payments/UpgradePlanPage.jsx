@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Navigate } from "react-router-dom";
+import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import {
@@ -64,6 +64,7 @@ function MethodIcon({ method }) {
 
 export default function UpgradePlanPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   const [method, setMethod] = useState("razorpay");
@@ -84,7 +85,14 @@ export default function UpgradePlanPage() {
 
   // Never took the free trial yet → the trial offer comes first; the user
   // only lands on payment after the trial is claimed (or they skip it).
-  if (user && !user.trial_taken && !showSuccess) {
+  // skipTrialOffer is set by the offer screen's "May be later", so choosing to
+  // skip lands here for real instead of ping-ponging back to the offer.
+  if (
+    user &&
+    !user.trial_taken &&
+    !showSuccess &&
+    !location.state?.skipTrialOffer
+  ) {
     return (
       <Navigate
         to="/trial-offer"

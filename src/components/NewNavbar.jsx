@@ -13,6 +13,25 @@ export default function Navbar({ disableNavigation = false }) {
   const queryParams = new URLSearchParams(location.search);
   const isJobScreeningParam = queryParams.get("source") === "job_screening";
   const cachedMode = localStorage.getItem("lg_preferred_mode");
+
+  // Auth pages get logo-only chrome: a "Get Started" CTA pointing at /login is
+  // pointless on /login, and "A1 German Level" is a lie before sign-in.
+  if (location.pathname === "/login" || location.pathname === "/signup") {
+    return (
+      <header
+        className="bg-white border-b border-[#efefef] sticky top-0 z-50"
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
+        <div className="h-[55px] lg:h-[72px] max-w-7xl mx-auto px-4 lg:px-8 flex items-center">
+          <img
+            src={images.skillcaseLogo}
+            alt="Skillcase"
+            className="h-4 w-26 lg:h-6 lg:w-38"
+          />
+        </div>
+      </header>
+    );
+  }
   // B1/B2 users own the mode switcher (Exam & Practice / Jobs): their saved
   // mode may stay job_screening while they browse the practice hub, so the
   // white job-screening chrome must be path-based for them, not mode-based.

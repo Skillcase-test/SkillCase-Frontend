@@ -100,7 +100,10 @@ export default function TrialOfferPage() {
   };
 
   const goLater = () => {
-    navigate(from, { replace: true });
+    // The skip has to stick. /profile/upgrade redirects first-time users here,
+    // so returning there without this marker bounces them straight back to this
+    // screen and "May be later" looks like a dead button.
+    navigate(from, { replace: true, state: { skipTrialOffer: true } });
   };
 
   return (

@@ -42,7 +42,8 @@ import { useDispatch, useSelector } from "react-redux";
 import SupportWidget from "./components/SupportWidget";
 import api from "./api/axios";
 import { isB1PracticeLevel } from "./utils/b1Progress";
-import { isShellRoute } from "./utils/shellRoutes";
+import { isShellRoute, isPaymentRoute } from "./utils/shellRoutes";
+import { hasPremiumAccess } from "./utils/premium";
 import { setUser, logout } from "./redux/auth/authSlice";
 
 if (typeof global === "undefined") {
@@ -914,17 +915,22 @@ function AppContent() {
     (String(user.german_preference) === "3" ||
       user.lg_preferred_mode === "job_screening");
 
+  // A running 7-day trial counts as premium access, so it lifts the lock the
+  // same way an active subscription does (hasPremiumAccess = paid OR trial).
   const isPaywallLocked =
     isAuthenticated &&
     user &&
     user.role === "user" &&
     user.paywall_active === true &&
-    user.autopay_enabled !== true;
+    !hasPremiumAccess(user);
 
   const isJobScreeningAllowedRoute =
     location.pathname.startsWith("/job-screening") ||
     location.pathname === "/profile" ||
     location.pathname.startsWith("/admin") ||
+    // Billing is never mode-specific — screening candidates must be able to
+    // claim the trial, subscribe, cancel and read their receipts too.
+    isPaymentRoute(location.pathname) ||
     // A1/A2 users get the locked /jobs teaser page instead of the pipeline.
     location.pathname === "/jobs" ||
     // B1/B2 users own the top mode switcher (Exam & Practice / Jobs), so they
@@ -1005,9 +1011,16 @@ function AppContent() {
         <UsageLimitModal />
 
         {/* Free-trial lifecycle modals — countdown while <= 2 days remain,
-            trial-ended once it expires (one-time dismissal). */}
-        <TrialCountdownModal />
-        <TrialEndedModal />
+            trial-ended once it expires (one-time dismissal). Hub screens only:
+            these are full-screen nags, so they must never land on top of an
+            exam attempt, a lesson, the interview flow or the payment funnel
+            they themselves link out to. */}
+        {isShellRoute(location.pathname) && (
+          <>
+            <TrialCountdownModal />
+            <TrialEndedModal />
+          </>
+        )}
 
         <ProductTour>
           <A1ProductTour>
@@ -1021,7 +1034,7 @@ function AppContent() {
                 />
                 <ConditionalNav />
                 <ConditionalTopSwitcher />
-                {isPaywallLocked && (
+                {isPaywallLocked && !isPaymentRoute(location.pathname) && (
                   <PaywallBlocker
                     user={user}
                     dispatch={dispatch}

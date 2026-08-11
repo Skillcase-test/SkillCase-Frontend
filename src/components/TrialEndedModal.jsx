@@ -60,8 +60,10 @@ export default function TrialEndedModal() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [closed, setClosed] = useState(false);
 
   if (
+    closed ||
     !user ||
     isPremiumUser(user) ||
     isTrialActive(user) ||
@@ -77,7 +79,11 @@ export default function TrialEndedModal() {
       const { data } = await api.post("/user/dismiss-trial-ended");
       dispatch(setUser(data.user));
     } catch (err) {
+      // Persisting the choice is best-effort. This is a full-screen overlay, so
+      // failing to record it must never leave the user locked out of the app —
+      // close locally and let the next successful load re-persist it.
       console.error("Dismiss trial ended error:", err);
+      setClosed(true);
     } finally {
       setLoading(false);
     }

@@ -6,6 +6,8 @@ vi.mock("../api/newAnalyticsApi", () => ({
   newAnalyticsApi: {
     catalog: vi.fn(),
     metrics: vi.fn(),
+    modules: vi.fn(),
+    moduleUsers: vi.fn(),
     journeys: vi.fn(),
     journey: vi.fn(),
     refresh: vi.fn(),
@@ -92,6 +94,7 @@ describe("NewAnalytics", () => {
     vi.clearAllMocks();
     newAnalyticsApi.catalog.mockResolvedValue({ data: catalog });
     newAnalyticsApi.metrics.mockResolvedValue({ data: metrics });
+    newAnalyticsApi.modules.mockResolvedValue({ data: { rows: [] } });
     newAnalyticsApi.journeys.mockResolvedValue({
       data: {
         total: 1,
