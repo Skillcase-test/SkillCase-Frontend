@@ -14,7 +14,7 @@ import {
 import { Document, Page, pdfjs } from "react-pdf";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import * as LucideIcons from "lucide-react";
-import mayaSad from "../assets/onboarding/mayaSad.webp";
+import diamond from "../assets/diamond.webp";
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -29,6 +29,8 @@ const MessageCircleQuestionMarkIcon =
 
 const ArrowLeftIcon = LucideIcons.ArrowLeft || LucideIcons.ChevronLeft;
 const CheckIcon = LucideIcons.Check;
+const GemIcon = LucideIcons.Gem || LucideIcons.Diamond;
+const ChevronRightIcon = LucideIcons.ChevronRight;
 const XIcon = LucideIcons.X;
 const UploadIcon = LucideIcons.Upload;
 const ExternalLinkIcon = LucideIcons.ExternalLink;
@@ -263,8 +265,6 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [toast, setToast] = useState({ show: false, msg: "", type: "" });
-  const [cancelling, setCancelling] = useState(false);
-  const [showCancelModal, setShowCancelModal] = useState(false);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -504,7 +504,10 @@ export default function ProfilePage() {
           entityId: "language_certificate",
           lifecycle: "succeeded",
           outcome: "uploaded",
-          attributes: { asset_type: "language_certificate", mime_family: "pdf" },
+          attributes: {
+            asset_type: "language_certificate",
+            mime_family: "pdf",
+          },
         });
       } else {
         showToast("Failed to upload language certificate", "error");
@@ -679,26 +682,6 @@ export default function ProfilePage() {
     });
   };
 
-  const handleDisableAutopay = async () => {
-    setCancelling(true);
-    try {
-      const res = await api.post("/user/disable-autopay");
-      dispatch(setUser(res.data.user));
-      showToast("Subscription cancelled successfully", "success");
-    } catch (err) {
-      console.error("Cancel subscription error:", err);
-      showToast(
-        err.response?.data?.msg || "Failed to cancel subscription",
-        "error",
-      );
-    } finally {
-      if (aliveRef.current) {
-        setCancelling(false);
-        setShowCancelModal(false);
-      }
-    }
-  };
-
   const openSupportDrawer = () => {
     window.dispatchEvent(new CustomEvent("skillcase:open-support"));
   };
@@ -727,6 +710,16 @@ export default function ProfilePage() {
   const displayName = form.fullname || user?.username || "Amélie Laurent";
   const displayPhone = phoneNumber || user?.number || "8240951870";
   const isAutopayActive = user && user.autopay_enabled === true;
+  const nextBilling = (() => {
+    if (!user?.next_billing_at) return "";
+    const d = new Date(user.next_billing_at);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  })();
 
   // Check if candidate is a job screening candidate (for displaying review status pills)
   const isJobScreeningCandidate =
@@ -769,7 +762,7 @@ export default function ProfilePage() {
               >
                 <ArrowLeftIcon className="w-4 h-4 text-slate-500" />
               </button>
-              <h1 className="text-base font-semibold text-[#002856] font-['Poppins']">
+              <h1 className="text-base font-semibold text-[#002856]">
                 Profile
               </h1>
             </div>
@@ -838,7 +831,7 @@ export default function ProfilePage() {
                   className="px-3 py-3.5 bg-white rounded-lg inline-flex justify-center items-center gap-2 border border-transparent shadow-xs hover:bg-slate-50 cursor-pointer transition-colors"
                 >
                   <FileCheckCornerIcon className="w-5 h-5 text-black shrink-0" />
-                  <span className="text-center text-black text-xs font-medium font-['Poppins']">
+                  <span className="text-center text-black text-xs font-medium">
                     Your Documents
                   </span>
                 </button>
@@ -848,12 +841,95 @@ export default function ProfilePage() {
                   className="px-3 py-3.5 bg-white rounded-lg inline-flex justify-center items-center gap-2 border border-transparent shadow-xs hover:bg-slate-50 cursor-pointer transition-colors"
                 >
                   <MessageCircleQuestionMarkIcon className="w-5 h-5 text-black shrink-0" />
-                  <span className="text-center text-black text-xs font-medium font-['Poppins']">
+                  <span className="text-center text-black text-xs font-medium">
                     Help & Support
                   </span>
                 </button>
               </div>
             </div>
+
+            {/* Plan Card — Free vs Premium Member */}
+            {isAutopayActive ? (
+              <div className="w-full p-3 bg-gradient-to-r from-[#083262] to-[#1E5CA2] rounded-xl flex flex-col gap-2.5">
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex-1 min-w-0 flex flex-col gap-4">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1 bg-amber-300 rounded-3xl flex items-center justify-center">
+                          <GemIcon className="size-4 text-blue-950" />
+                        </div>
+                        <span className="text-white text-base font-semibold leading-5">
+                          Premium Member
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-white text-xs font-normal leading-4">
+                          Active Plan: ₹99 / month
+                        </p>
+                        {nextBilling && (
+                          <p className="text-white text-xs font-normal leading-4">
+                            Next billing: {nextBilling}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => navigate("/profile/manage-plan")}
+                      className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                    >
+                      <span className="text-amber-300 text-xs font-medium">
+                        Manage Plan
+                      </span>
+                      <ChevronRightIcon className="size-3 text-amber-300" />
+                    </button>
+                  </div>
+                  <div className="size-24 rounded-3xl overflow-hidden shrink-0 ">
+                    <img
+                      src={diamond}
+                      alt="Premium"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="w-full p-3 bg-gradient-to-r from-white to-blue-100 rounded-xl flex flex-col gap-2.5">
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex-1 min-w-0 flex flex-col gap-4">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1 bg-[#002856] rounded-3xl flex items-center justify-center">
+                          <LucideIcons.Gift className="size-4 text-white" />
+                        </div>
+                        <span className="text-blue-950 text-base font-semibold leading-5">
+                          Free Plan active
+                        </span>
+                      </div>
+                      <p className="text-blue-950 text-xs font-normal leading-4">
+                        Subscribe to Premium Plan for unlimited access to all
+                        features.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => navigate("/profile/upgrade")}
+                      className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                    >
+                      <span className="text-blue-950 text-xs font-medium">
+                        Upgrade to Premium
+                      </span>
+                      <LucideIcons.ChevronRight className="size-3 text-blue-950" />
+                    </button>
+                  </div>
+                  <div className="size-24 rounded-3xl overflow-hidden shrink-0">
+                    <img
+                      src={diamond}
+                      alt="Premium"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Your Information Card */}
             <div className="flex flex-col gap-3">
@@ -1020,67 +1096,20 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Subscription Card - Only rendered when user has an active subscription */}
+            {/* Transactions — Premium members only */}
             {isAutopayActive && (
-              <div className="p-4 sm:p-5 bg-white rounded-xl border border-slate-300/80 shadow-2xs flex flex-col gap-5">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-base font-semibold text-slate-900">
-                    Subscription
-                  </h3>
-                  <div className="px-2.5 py-0.5 bg-emerald-50 rounded-full border border-emerald-200 flex justify-center items-center">
-                    <span className="text-center text-emerald-700 text-xs font-medium">
-                      active
-                    </span>
-                  </div>
-                </div>
-
-                <div className="p-4 bg-black/5 rounded-xl flex flex-col gap-4">
-                  <div className="text-center">
-                    <span className="text-[#002856] text-4xl font-bold">
-                      ₹99{" "}
-                    </span>
-                    <span className="text-[#002856] text-base font-normal">
-                      / month
-                    </span>
-                  </div>
-
-                  <div className="w-full border-t border-stone-300" />
-
-                  <div className="flex flex-col gap-2">
-                    {[
-                      "Streak Challenges",
-                      "German Lessons",
-                      "Flashcards",
-                      "Pronunciation practice",
-                      "Chapter tests",
-                    ].map((feature, idx) => (
-                      <div
-                        key={idx}
-                        className="flex justify-between items-center text-xs"
-                      >
-                        <span className="text-[#002856] font-normal">
-                          {feature}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[#002856] font-medium">
-                            Unlimited
-                          </span>
-                          <div className="w-3.5 h-3.5 bg-green-600 rounded-full flex items-center justify-center text-white shrink-0">
-                            <CheckIcon className="w-2.5 h-2.5 stroke-[3]" />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
+              <div className="flex flex-col gap-3">
+                <h3 className="text-base font-semibold text-[#101828] leading-6">
+                  Your transactions
+                </h3>
                 <button
-                  type="button"
-                  onClick={() => setShowCancelModal(true)}
-                  disabled={cancelling}
-                  className="w-full h-11 bg-white border border-red-500 text-red-500 hover:bg-red-50 text-sm font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                  onClick={() => navigate("/profile/transactions")}
+                  className="w-full p-3 bg-white rounded-lg outline-1 outline-zinc-300 flex items-center justify-between gap-3 cursor-pointer hover:bg-slate-50 transition-colors"
                 >
-                  {cancelling ? "Processing..." : "Cancel subscription"}
+                  <span className="text-sm font-medium text-slate-700">
+                    Check past transaction history
+                  </span>
+                  <ChevronRightIcon className="size-5 text-slate-400" />
                 </button>
               </div>
             )}
@@ -1432,7 +1461,7 @@ export default function ProfilePage() {
               <XIcon className="w-4 h-4" />
             </button>
 
-            <h3 className="text-lg font-semibold text-[#002856] text-center font-['Poppins']">
+            <h3 className="text-lg font-semibold text-[#002856] text-center">
               {uploadModal.docTitle}
             </h3>
 
@@ -1517,7 +1546,7 @@ export default function ProfilePage() {
               <XIcon className="w-4 h-4" />
             </button>
 
-            <h3 className="text-lg font-semibold text-[#002856] text-center font-['Poppins']">
+            <h3 className="text-lg font-semibold text-[#002856] text-center">
               {previewModal.docTitle}
             </h3>
 
@@ -1580,54 +1609,6 @@ export default function ProfilePage() {
                 className="w-full py-3 bg-white border border-slate-300 text-[#002856] hover:bg-slate-50 rounded-xl font-semibold text-sm transition-colors cursor-pointer"
               >
                 Re-upload {previewModal.docTitle.replace("Uploaded ", "")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Cancel Subscription Modal */}
-      {showCancelModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 select-none font-sans">
-          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 flex flex-col items-center gap-5 relative">
-            <button
-              onClick={() => setShowCancelModal(false)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors cursor-pointer"
-            >
-              <XIcon className="w-4 h-4" />
-            </button>
-
-            <div className="w-20 h-20 rounded-full bg-blue-100 overflow-hidden flex items-center justify-center shrink-0">
-              <img
-                src={mayaSad}
-                alt="Maya mascot"
-                className="w-full h-full object-cover"
-              />
-            </div>
-
-            <h3 className="text-xl font-bold text-[#002856] text-center">
-              Please don't leave us
-            </h3>
-
-            <p className="text-slate-600 text-center text-xs font-semibold leading-relaxed px-2">
-              You have covered a long way in your German journey.
-              <br /> Once cancelled, your monthly plan will not renew.
-            </p>
-
-            <div className="flex flex-col gap-2.5 w-full">
-              <button
-                onClick={() => setShowCancelModal(false)}
-                disabled={cancelling}
-                className="w-full py-3 bg-[#002856] hover:bg-[#001e40] text-white rounded-xl font-bold text-xs transition-colors cursor-pointer"
-              >
-                Continue subscription
-              </button>
-              <button
-                onClick={handleDisableAutopay}
-                disabled={cancelling}
-                className="w-full text-center text-rose-600 hover:text-rose-800 font-bold text-xs cursor-pointer py-1.5 disabled:opacity-50"
-              >
-                {cancelling ? "Processing..." : "Cancel Subscription"}
               </button>
             </div>
           </div>

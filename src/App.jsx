@@ -12,6 +12,7 @@ import {
   Routes,
   Route,
   useLocation,
+  useNavigate,
   Navigate,
 } from "react-router-dom";
 import {
@@ -20,13 +21,7 @@ import {
   LogOut,
   Loader2,
   CreditCard,
-  Unlock,
-  Check,
-  X,
 } from "lucide-react";
-import { motion } from "framer-motion";
-import mayaSmiling from "./assets/onboarding/mayaSmiling.webp";
-import mayaThumbsup from "./assets/onboarding/mayaThumbsup.webp";
 import { Toaster } from "react-hot-toast";
 import LandingPage from "./pages/landing/LandingPage";
 import NewNavbar from "./components/NewNavbar";
@@ -39,6 +34,7 @@ import Footer from "./components/Footer";
 import OtaUpdateModal from "./components/OtaUpdateModal";
 import MaintenanceModal from "./components/MaintenanceModal";
 import UsageLimitModal from "./components/UsageLimitModal";
+import PremiumActivatedModal from "./components/PremiumActivatedModal";
 import PullToRefreshIndicator from "./components/PullToRefreshIndicator";
 import { useDispatch, useSelector } from "react-redux";
 import SupportWidget from "./components/SupportWidget";
@@ -128,6 +124,11 @@ const ShortStoryHome = lazy(() => import("./pages/ShortStoryHome"));
 const StoryPage = lazy(() => import("./pages/StoryPage"));
 const ThankYouPage = lazy(() => import("./pages/ThankYouPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const UpgradePlanPage = lazy(() => import("./pages/payments/UpgradePlanPage"));
+const ManagePlanPage = lazy(() => import("./pages/payments/ManagePlanPage"));
+const TransactionHistoryPage = lazy(() =>
+  import("./pages/payments/TransactionHistoryPage"),
+);
 const ConversationSelect = lazy(() => import("./pages/ConversationSelect"));
 const ConversationPlayer = lazy(() => import("./pages/ConversationPlayer"));
 const NursingGermanyLanding = lazy(
@@ -331,6 +332,7 @@ function AppContent() {
   const location = useLocation();
   const [authBootstrapping, setAuthBootstrapping] = useState(Boolean(token));
 
+  const navigate = useNavigate();
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [showProfileHighlight, setShowProfileHighlight] = useState(false);
   const [profileRect, setProfileRect] = useState(null);
@@ -1019,75 +1021,18 @@ function AppContent() {
                   />
                 )}
 
-                {/* Autopay Success Modal */}
-                {showPaymentSuccess && (
-                  <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs select-none font-sans">
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.96 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="w-full max-w-[390px] bg-white border border-slate-100 rounded-[32px] shadow-2xl py-6 sm:py-8 px-4 sm:px-6 flex flex-col items-center gap-5 sm:gap-6 relative"
-                    >
-                      {/* Close Button */}
-                      <button
-                        onClick={() => {
-                          setShowPaymentSuccess(false);
-                          setShowProfileHighlight(true);
-                        }}
-                        className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors cursor-pointer"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-
-                      {/* Mascot Image positioned inside the card */}
-                      <div className="w-20 h-20 rounded-full shadow-sm bg-[#a2c5f2] overflow-hidden flex items-center justify-center shrink-0">
-                        <img
-                          src={mayaThumbsup}
-                          alt="Maya mascot thumbs up"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-
-                      {/* Unlocked Badge */}
-                      <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-full">
-                        <Unlock className="w-3.5 h-3.5 text-emerald-600" />
-                        <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
-                          Learning plan unlocked
-                        </span>
-                      </div>
-
-                      {/* Title */}
-                      <div className="flex items-center justify-center gap-2 flex-wrap">
-                        <h3 className="text-2xl sm:text-[26px] font-bold text-[#002856] text-center leading-tight tracking-tight">
-                          Autopay enabled
-                        </h3>
-                        <div className="w-6 h-6 bg-[#22c55e] rounded-full flex items-center justify-center shrink-0 shadow-xs">
-                          <Check
-                            className="w-4 h-4 text-white"
-                            strokeWidth={4}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Description */}
-                      <p className="text-[#002856] text-center text-xs sm:text-sm leading-relaxed font-semibold px-2">
-                        Your learning plan is now unlocked.
-                        <br className="hidden sm:inline" /> Continue your German
-                        journey.
-                      </p>
-
-                      {/* Lets Go Button */}
-                      <button
-                        onClick={() => {
-                          setShowPaymentSuccess(false);
-                          setShowProfileHighlight(true);
-                        }}
-                        className="w-full h-12 sm:h-13 bg-[#002856] hover:bg-[#001f42] active:bg-[#001f42] text-white rounded-2xl transition-all cursor-pointer font-bold text-xs sm:text-sm flex items-center justify-center mt-2"
-                      >
-                        Let's go
-                      </button>
-                    </motion.div>
-                  </div>
-                )}
+                {/* Premium Activated Modal — revamped success state */}
+                <PremiumActivatedModal
+                  open={showPaymentSuccess}
+                  onClose={() => {
+                    setShowPaymentSuccess(false);
+                    setShowProfileHighlight(true);
+                  }}
+                  onGoHome={() => {
+                    setShowPaymentSuccess(false);
+                    navigate("/");
+                  }}
+                />
 
                 {/* Profile Spotlight Guide */}
                 {showProfileHighlight && profileRect && (
@@ -1290,6 +1235,27 @@ function AppContent() {
                   <Route
                     path="/profile"
                     element={lazyScreen(<ProfilePage />, "Loading Profile...")}
+                  />
+                  <Route
+                    path="/profile/upgrade"
+                    element={lazyScreen(
+                      <UpgradePlanPage />,
+                      "Loading Payment...",
+                    )}
+                  />
+                  <Route
+                    path="/profile/manage-plan"
+                    element={lazyScreen(
+                      <ManagePlanPage />,
+                      "Loading Plan...",
+                    )}
+                  />
+                  <Route
+                    path="/profile/transactions"
+                    element={lazyScreen(
+                      <TransactionHistoryPage />,
+                      "Loading History...",
+                    )}
                   />
 
                   {/* A1 REVAMP ROUTES */}

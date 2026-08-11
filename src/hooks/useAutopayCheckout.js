@@ -36,12 +36,17 @@ function loadRazorpayScript() {
 }
 
 // Shared ₹99/month autopay subscription checkout — used by the blanket
-// paywall (PaywallBlocker) and the per-module usage-limit modal. One copy
-// of this money-path logic so the two surfaces can never drift apart.
+// paywall (PaywallBlocker), the per-module usage-limit modal, and the new
+// upgrade-plan page. One copy of this money-path logic so the surfaces can
+// never drift apart.
+//
+// handlePay(methodKey) accepts an optional Razorpay method key ("upi", "card",
+// "netbanking", "wallet") to pre-select that payment method in the checkout.
+// Omit it (or pass "razorpay") to keep Razorpay's default all-methods screen.
 export function useAutopayCheckout({ user, dispatch, onSuccess }) {
   const [loading, setLoading] = useState(false);
 
-  const handlePay = async () => {
+  const handlePay = async (methodKey) => {
     setLoading(true);
     try {
       const scriptLoaded = await loadRazorpayScript();
@@ -51,6 +56,18 @@ export function useAutopayCheckout({ user, dispatch, onSuccess }) {
         return;
       }
       const response = await api.post("/user/create-subscription");
+
+      // The account is already premium (e.g. frontend state went stale after a
+      // refresh, or a previous verification succeeded server-side). There is no
+      // checkout to open — refresh the redux user and bail out gracefully
+      // instead of trying to launch Razorpay with an undefined key.
+      if (response.data?.alreadyActive) {
+        if (response.data.user) dispatch(setUser(response.data.user));
+        if (onSuccess) onSuccess();
+        setLoading(false);
+        return;
+      }
+
       const { key, subscription_id } = response.data;
       let checkoutPrefill = buildCheckoutPrefill({ ...user, ...(response.data?.prefill || {}) });
 
@@ -79,6 +96,9 @@ export function useAutopayCheckout({ user, dispatch, onSuccess }) {
         key,
         subscription_id,
         webview_intent: Capacitor.getPlatform() === "android",
+        ...(methodKey && methodKey !== "razorpay"
+          ? { method: methodKey }
+          : {}),
         name: "SkillCase Journey",
         description: "Autopay Subscription - INR 99/month",
         image: "https://skillcase.co/images/logo.png",
