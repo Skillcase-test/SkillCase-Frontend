@@ -188,7 +188,7 @@ export default function ExamBlockSelector() {
         <>
           {/* Header Description */}
           <div className="self-stretch px-5 pt-3 flex flex-col justify-start items-start gap-1 shrink-0 bg-white pb-6 lg:px-8">
-            <h2 className="text-left text-sky-950 text-xl font-bold font-['Inter'] leading-7">
+            <h2 className="text-left text-sky-950 text-xl font-bold leading-7">
               Choose a section to start
             </h2>
             <p className="text-left text-slate-500 text-xs font-normal leading-4 mt-1">

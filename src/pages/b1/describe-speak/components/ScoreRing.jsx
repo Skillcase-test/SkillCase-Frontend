@@ -50,10 +50,10 @@ export default function ScoreRing({
         />
       </svg>
       <div className="absolute flex flex-col items-center justify-center text-center">
-        <span className="text-sky-950 text-3xl font-semibold font-['Inter'] leading-9">
+        <span className="text-sky-950 text-3xl font-semibold leading-9">
           {score}%
         </span>
-        <span className="w-20 text-center text-sky-950 text-[8px] font-semibold font-['Inter'] leading-normal">
+        <span className="w-20 text-center text-sky-950 text-[8px] font-semibold leading-normal">
           {label}
         </span>
       </div>

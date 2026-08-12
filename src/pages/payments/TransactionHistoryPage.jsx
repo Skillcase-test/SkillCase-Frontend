@@ -70,7 +70,7 @@ export default function TransactionHistoryPage() {
         >
           <ArrowLeft className="size-4" />
         </button>
-        <h1 className="text-blue-950 text-base font-semibold font-['Poppins']">
+        <h1 className="text-blue-950 text-base font-semibold">
           Transaction History
         </h1>
       </div>

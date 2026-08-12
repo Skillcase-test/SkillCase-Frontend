@@ -196,10 +196,10 @@ export default function ExamCongratulations() {
         <div className="w-full px-5 pt-10 pb-5 bg-black/5 rounded-xl flex flex-col justify-center items-center gap-6 mt-4">
           {/* Header section with trophy */}
           <div className="flex flex-col justify-start items-center gap-3">
-            <div className="text-center text-sky-950 text-3xl font-semibold font-['Inter'] leading-9">
+            <div className="text-center text-sky-950 text-3xl font-semibold leading-9">
               Congratulations
             </div>
-            <div className="w-48 text-center text-sky-950 text-base font-semibold font-['Inter'] leading-5">
+            <div className="w-48 text-center text-sky-950 text-base font-semibold leading-5">
               You have completed {capitalizedExam} exam papers
             </div>
             <img

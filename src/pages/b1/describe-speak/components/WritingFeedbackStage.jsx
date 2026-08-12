@@ -72,7 +72,7 @@ export default function WritingFeedbackStage({
         {/* Your Writing */}
         <div className="self-stretch flex flex-col justify-start items-start gap-3">
           <div className="w-full inline-flex justify-start items-start gap-4">
-            <div className="flex-1 text-sky-950 text-base font-semibold font-['Inter'] leading-5 text-left">
+            <div className="flex-1 text-sky-950 text-base font-semibold leading-5 text-left">
               Your Writing
             </div>
           </div>
@@ -86,7 +86,7 @@ export default function WritingFeedbackStage({
         {/* Corrected Version */}
         <div className="self-stretch flex flex-col justify-start items-start gap-3">
           <div className="w-full inline-flex justify-start items-start gap-4">
-            <div className="flex-1 text-sky-950 text-base font-semibold font-['Inter'] leading-5 text-left">
+            <div className="flex-1 text-sky-950 text-base font-semibold leading-5 text-left">
               Corrected Version
             </div>
           </div>
@@ -102,10 +102,10 @@ export default function WritingFeedbackStage({
       <div className="self-stretch px-4 pb-10">
         <div className="w-full px-5 pt-10 pb-5 bg-[#F5F5F5] rounded-xl flex flex-col justify-start items-center gap-9">
           <div className="flex flex-col justify-start items-center gap-3">
-            <div className="text-center text-sky-950 text-base font-semibold font-['Inter'] leading-5">
+            <div className="text-center text-sky-950 text-base font-semibold leading-5">
               Writing Feedback
             </div>
-            <div className="text-center text-sky-950 text-3xl font-semibold font-['Inter'] leading-9">
+            <div className="text-center text-sky-950 text-3xl font-semibold leading-9">
               {getScoreGreeting(writingScore)}
             </div>
           </div>
@@ -130,14 +130,14 @@ export default function WritingFeedbackStage({
             <button
               type="button"
               onClick={onPracticeSpeaking}
-              className="w-full px-4 py-3 bg-blue-950 hover:bg-blue-900 active:scale-95 text-white text-base font-semibold font-['Inter'] rounded-lg transition-all border-0 cursor-pointer flex justify-center items-center shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] outline outline-offset-[-2px] outline-white/10 shrink-0"
+              className="w-full px-4 py-3 bg-blue-950 hover:bg-blue-900 active:scale-95 text-white text-base font-semibold rounded-lg transition-all border-0 cursor-pointer flex justify-center items-center shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] outline outline-offset-[-2px] outline-white/10 shrink-0"
             >
               Practice Speaking
             </button>
             <button
               type="button"
               onClick={onSkipAndMoveToNext}
-              className="w-full px-4 py-3 border border-zinc-300 bg-white hover:bg-slate-50 text-blue-950 text-base font-semibold font-['Inter'] rounded-lg transition-all cursor-pointer flex justify-center items-center shrink-0 active:scale-95 shadow-sm"
+              className="w-full px-4 py-3 border border-zinc-300 bg-white hover:bg-slate-50 text-blue-950 text-base font-semibold rounded-lg transition-all cursor-pointer flex justify-center items-center shrink-0 active:scale-95 shadow-sm"
             >
               Move to next topic
             </button>

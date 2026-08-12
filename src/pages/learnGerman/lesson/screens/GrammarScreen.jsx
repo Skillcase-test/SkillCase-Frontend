@@ -116,11 +116,11 @@ export default function GrammarScreen({
                   />
                 )}
               </div>
-              <div className="text-black text-[46px] leading-none font-bold font-['Poppins'] mb-1">
+              <div className="text-black text-[46px] leading-none font-bold mb-1">
                 {grammar.word}
               </div>
               {!!grammar.meaning && (
-                <div className="text-slate-500 text-[34px] leading-none font-medium font-['Poppins']">
+                <div className="text-slate-500 text-[34px] leading-none font-medium">
                   {grammar.meaning}
                 </div>
               )}

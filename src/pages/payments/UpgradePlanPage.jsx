@@ -113,7 +113,7 @@ export default function UpgradePlanPage() {
         >
           <ArrowLeft className="size-4" />
         </button>
-        <h1 className="text-white text-base font-semibold font-['Poppins']">
+        <h1 className="text-white text-base font-semibold">
           Payment
         </h1>
       </div>
@@ -236,7 +236,7 @@ export default function UpgradePlanPage() {
           >
             {loading ? "Processing..." : "Pay ₹99 Securely"}
           </motion.button>
-          <p className="flex items-center gap-1 text-white/60 text-xs font-medium font-['Poppins']">
+          <p className="flex items-center gap-1 text-white/60 text-xs font-medium">
             You can cancel it anytime
             <ChevronRight className="size-3" />
           </p>

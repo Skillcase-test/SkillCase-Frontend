@@ -308,7 +308,7 @@ function SwitcherTab({
       <div
         className={`flex flex-col ${
           line2 ? "text-left" : "text-center"
-        } text-[10px] sm:text-xs leading-[11px] font-['Poppins'] ${
+        } text-[10px] sm:text-xs leading-[11px] ${
           active ? "text-[#002856] font-bold" : "text-white/90 font-medium"
         }`}
       >

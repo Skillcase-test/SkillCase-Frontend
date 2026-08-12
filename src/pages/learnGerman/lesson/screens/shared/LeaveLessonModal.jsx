@@ -64,7 +64,7 @@ export default function LeaveLessonModal({ isOpen, onClose, onLeave }) {
                 }}
                 className="flex-1 h-[48px] rounded-lg text-[16px] font-semibold transition-all bg-gradient-to-r from-amber-200 to-amber-300 text-[#1E3A8A] shadow-md active:scale-[0.98] border border-[#eec139]"
               >
-                <span className="text-[#002856] text-[15px] font-bold font-['Poppins'] tracking-wide">
+                <span className="text-[#002856] text-[15px] font-bold tracking-wide">
                   Continue Lesson
                 </span>
               </button>
@@ -80,7 +80,7 @@ export default function LeaveLessonModal({ isOpen, onClose, onLeave }) {
                 }}
                 className="w-[110px] px-4 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg flex justify-center items-center transition-all active:scale-95 shadow-md border border-slate-200"
               >
-                <span className="text-gray-600 text-[16px] font-bold font-['Poppins'] tracking-wide">
+                <span className="text-gray-600 text-[16px] font-bold tracking-wide">
                   Leave
                 </span>
               </button>

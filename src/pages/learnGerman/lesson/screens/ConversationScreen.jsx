@@ -93,7 +93,7 @@ export default function ConversationScreen({
         <div className="p-3 bg-[#E4EFFF] rounded-tr-xl rounded-bl-xl rounded-br-xl flex justify-center items-center gap-2.5 max-w-[75%]">
           <div className="flex flex-col justify-start items-start">
             <div className="flex justify-between items-start gap-4 w-full">
-              <div className="text-black text-[15px] font-medium font-['Poppins']">
+              <div className="text-black text-[15px] font-medium">
                 {dialogue}
               </div>
               {dialogue && (
@@ -111,7 +111,7 @@ export default function ConversationScreen({
               )}
             </div>
             {meaning && (
-              <div className="text-black/50 text-[13px] font-medium font-['Poppins'] mt-1">
+              <div className="text-black/50 text-[13px] font-medium mt-1">
                 {meaning}
               </div>
             )}
@@ -139,7 +139,7 @@ export default function ConversationScreen({
         className="w-full inline-flex justify-end items-start gap-3 mb-6"
       >
         <div className="p-3 bg-white rounded-tl-xl rounded-bl-xl rounded-br-xl flex justify-center items-center shadow-[0_2px_8px_rgba(0,0,0,0.04)] max-w-[75%]">
-          <div className="text-black text-[15px] font-medium font-['Poppins']">
+          <div className="text-black text-[15px] font-medium">
             {reply}
           </div>
         </div>

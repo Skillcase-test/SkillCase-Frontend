@@ -117,7 +117,7 @@ export default function ConversationIntroScreen({
             >
               <div className="p-3 bg-white rounded-xl shadow-md relative">
                 <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-4 h-4 bg-white rotate-45 -z-10" />
-                <div className="text-black text-[13px] font-medium font-['Poppins']">
+                <div className="text-black text-[13px] font-medium">
                   <TypewriterText
                     text={
                       screen?.characterDialogue || "Hi, I am Jacob, the baker."

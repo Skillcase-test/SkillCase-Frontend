@@ -9,10 +9,10 @@ export default function SpeakingFeedbackStage({ speakingFeedback, onSeeResults }
       <div className="self-stretch px-4 pb-10">
         <div className="w-full px-5 pt-10 pb-5 bg-black/5 rounded-xl flex flex-col justify-start items-center gap-9">
           <div className="flex flex-col justify-start items-center gap-3">
-            <div className="text-center text-sky-950 text-base font-semibold font-['Inter'] leading-5">
+            <div className="text-center text-sky-950 text-base font-semibold leading-5">
               Speaking Feedback
             </div>
-            <div className="text-center text-sky-950 text-3xl font-semibold font-['Inter'] leading-9">
+            <div className="text-center text-sky-950 text-3xl font-semibold leading-9">
               {getScoreGreeting(speakingFeedback.overallScore)}
             </div>
           </div>
@@ -68,7 +68,7 @@ export default function SpeakingFeedbackStage({ speakingFeedback, onSeeResults }
             <button
               type="button"
               onClick={onSeeResults}
-              className="w-full px-4 py-3 bg-blue-950 hover:bg-blue-900 active:scale-95 text-white text-base font-semibold font-['Inter'] rounded-lg transition-all border-0 cursor-pointer flex justify-center items-center shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] outline outline-offset-[-2px] outline-white/10 shrink-0"
+              className="w-full px-4 py-3 bg-blue-950 hover:bg-blue-900 active:scale-95 text-white text-base font-semibold rounded-lg transition-all border-0 cursor-pointer flex justify-center items-center shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] outline outline-offset-[-2px] outline-white/10 shrink-0"
             >
               See Overall Results
             </button>
