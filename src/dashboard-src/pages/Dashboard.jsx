@@ -13,6 +13,7 @@ const Analytics = lazy(() => import("./Analytics"));
 const AppAnalytics = lazy(() => import("./AppAnalytics"));
 const NewAnalytics = lazy(() => import("./NewAnalytics"));
 const BiginDashboard = lazy(() => import("./BiginDashboard"));
+const HighLevelDashboard = lazy(() => import("./HighLevelDashboard"));
 const ManageEvents = lazy(() => import("./event/ManageEvents"));
 const LandingPageManagement = lazy(() => import("./LandingPageManagement"));
 const TrustPageManagement = lazy(() => import("./TrustPageManagement"));
@@ -702,12 +703,26 @@ export default function Dashboard() {
   const sections = useMemo(() => {
     if (!me)
       return {
+        overview: [],
         core: [],
         a1Modules: [],
         a2Modules: [],
         b1Modules: [],
         superAdmin: [],
       };
+
+    // Temporary high level overview dashboard - pinned at the top of the
+    // sidebar, super admins only.
+    const overview =
+      me.role === "super_admin"
+        ? [
+            {
+              key: "high-level-dashboard",
+              label: "High Level Dashboard",
+              path: "/admin/high-level-dashboard",
+            },
+          ]
+        : [];
 
     const core = [
       {
@@ -966,6 +981,7 @@ export default function Dashboard() {
       : [];
 
     return {
+      overview,
       core,
       a1Modules,
       a2Modules,
@@ -1064,6 +1080,7 @@ export default function Dashboard() {
               <p className="mb-2 px-2 text-xs font-bold uppercase tracking-widest text-slate-500">
                 Admin Panel
               </p>
+              <SidebarSection title="Overview" items={sections.overview} />
               <SidebarSection title="Core" items={sections.core} />
               <ContentModuleTree
                 a1Modules={sections.a1Modules}
@@ -1086,6 +1103,11 @@ export default function Dashboard() {
               <p className="mb-2 px-2 text-xs font-bold uppercase tracking-widest text-slate-500">
                 Admin Panel
               </p>
+              <SidebarSection
+                title="Overview"
+                items={sections.overview}
+                onLinkClick={closeMobileSidebar}
+              />
               <SidebarSection
                 title="Core"
                 items={sections.core}
@@ -1145,12 +1167,20 @@ export default function Dashboard() {
                 }
               />
               <Route
+                path="high-level-dashboard"
+                element={
+                  me?.role === "super_admin" ? (
+                    <HighLevelDashboard />
+                  ) : (
+                    <Navigate to="/admin/no-access" replace />
+                  )
+                }
+              />
+              <Route
                 path="bigin-dashboard"
                 element={
                   <Guard allowed={hasPermission(me, "bigin_dashboard")}>
-                    <BiginDashboard
-                      isSuperAdmin={me?.role === "super_admin"}
-                    />
+                    <BiginDashboard isSuperAdmin={me?.role === "super_admin"} />
                   </Guard>
                 }
               />
