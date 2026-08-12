@@ -1,14 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Capacitor } from "@capacitor/core";
-import { App as CapApp } from "@capacitor/app";
-import { AppReview } from "@capawesome/capacitor-app-review";
 import FeatureCardsGrid from "./components/FeatureCardsGrid";
 import StreakLeaderboardModal from "../../components/StreakLeaderboardModal";
-import PlayStoreRatingModal from "../../components/PlayStoreRatingModal";
 import { AlertTriangle, Sparkles } from "lucide-react";
-import api from "../../api/axios";
 import {
   getA1MigrationStatus,
   saveA1MigrationDecision,
@@ -31,13 +26,6 @@ function getLeaderboardSeenKey(userId, dayKey) {
   return `streak_leaderboard_seen:${userId}:${dayKey}`;
 }
 
-function getPlayStoreRatingSeenKey(userId) {
-  return `playstore_rating_prompt_shown:v1:${userId}`;
-}
-
-const PLAY_STORE_DEEPLINK = "market://details?id=com.skillcase.app";
-const PLAY_STORE_WEB_URL =
-  "https://play.google.com/store/apps/details?id=com.skillcase.app";
 
 function LandingFeatureCardsSkeleton() {
   return (
@@ -72,8 +60,6 @@ export default function LandingPage() {
   const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [leaderboardError, setLeaderboardError] = useState("");
-  const [showPlayStoreRatingModal, setShowPlayStoreRatingModal] =
-    useState(false);
   const [leaderboardData, setLeaderboardData] = useState({
     leaderboard: [],
     myRank: null,
@@ -266,80 +252,6 @@ export default function LandingPage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (
-      prefersLearnMode ||
-      !user?.user_id ||
-      showA1MigrationModal ||
-      showSwitchConfirm ||
-      isUpgrading
-    ) {
-      return;
-    }
-
-    const seenKey = getPlayStoreRatingSeenKey(user.user_id);
-    if (localStorage.getItem(seenKey) === "1") return;
-
-    let mounted = true;
-    api
-      .get("/streak")
-      .then((res) => {
-        if (!mounted) return;
-        const currentStreak = Number(res?.data?.currentStreak || 0);
-        if (currentStreak >= 7) {
-          // Mark as shown as soon as it qualifies so the prompt is lifetime-once.
-          localStorage.setItem(seenKey, "1");
-          setShowPlayStoreRatingModal(true);
-        }
-      })
-      .catch((err) => {
-        console.error(
-          "Failed to evaluate rating prompt streak milestone:",
-          err,
-        );
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [
-    prefersLearnMode,
-    user?.user_id,
-    showA1MigrationModal,
-    showSwitchConfirm,
-    isUpgrading,
-  ]);
-
-  const handleOpenPlayStoreRating = async () => {
-    try {
-      if (Capacitor.isNativePlatform()) {
-        try {
-          await AppReview.requestReview();
-        } catch (reviewError) {
-          console.error("In-app review failed, opening store:", reviewError);
-          await AppReview.openAppStore();
-        }
-      } else {
-        window.open(PLAY_STORE_WEB_URL, "_blank", "noopener,noreferrer");
-      }
-    } catch (error) {
-      console.error("Failed to open Play Store deep link:", error);
-      if (Capacitor.isNativePlatform()) {
-        try {
-          await CapApp.openUrl({ url: PLAY_STORE_DEEPLINK });
-        } catch (fallbackError) {
-          console.error(
-            "Native store deep link fallback failed:",
-            fallbackError,
-          );
-        }
-      }
-      window.open(PLAY_STORE_WEB_URL, "_blank", "noopener,noreferrer");
-    } finally {
-      setShowPlayStoreRatingModal(false);
-    }
-  };
-
   const isA1User = (user?.user_prof_level || "").toLowerCase() === "a1";
   const isRevampA1User =
     isA1User &&
@@ -450,12 +362,6 @@ export default function LandingPage() {
         leaderboard={leaderboardData.leaderboard}
         myRank={leaderboardData.myRank}
         currentUserId={user?.user_id}
-      />
-
-      <PlayStoreRatingModal
-        open={showPlayStoreRatingModal}
-        onRateNow={handleOpenPlayStoreRating}
-        onClose={() => setShowPlayStoreRatingModal(false)}
       />
 
       {showSwitchConfirm && (

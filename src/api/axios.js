@@ -1,4 +1,5 @@
 import axios from "axios";
+import { Capacitor } from "@capacitor/core";
 import { store } from "../redux/store";
 import { setUser } from "../redux/auth/authSlice";
 import {
@@ -453,6 +454,28 @@ api.interceptors.response.use(
       typeof window !== "undefined"
     ) {
       window.dispatchEvent(new CustomEvent("skillcase:usage-limit-refresh"));
+    }
+    // Play Store review prompt (app only): when a streak response carries a
+    // reviewPrompt payload, the student just crossed a streak milestone.
+    // Signal the global AppReviewPromptModal instead of wiring every practice
+    // screen individually. /streak/log is the main path; /streak/flip covers
+    // the classic flashcard flow which updates streaks too.
+    if (
+      response?.data?.reviewPrompt &&
+      typeof window !== "undefined" &&
+      Capacitor.isNativePlatform()
+    ) {
+      const url = String(response?.config?.url || "");
+      if (url.endsWith("/streak/log") || url.endsWith("/streak/flip")) {
+        window.dispatchEvent(
+          new CustomEvent("skillcase:show-review-prompt", {
+            detail: {
+              milestone: response.data.reviewPrompt.milestone,
+              streakDays: response.data.reviewPrompt.streakDays,
+            },
+          }),
+        );
+      }
     }
     const durationMs = response?.config?.meta?.startedAt
       ? Date.now() - response.config.meta.startedAt

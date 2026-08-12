@@ -32,6 +32,7 @@ import TopModeSwitcher from "./components/TopModeSwitcher";
 import NewFooter from "./components/NewFooter";
 import Footer from "./components/Footer";
 import OtaUpdateModal from "./components/OtaUpdateModal";
+import AppReviewPromptModal from "./components/AppReviewPromptModal";
 import MaintenanceModal from "./components/MaintenanceModal";
 import UsageLimitModal from "./components/UsageLimitModal";
 import PremiumActivatedModal from "./components/PremiumActivatedModal";
@@ -968,6 +969,9 @@ function AppContent() {
               }
         }
       >
+        <AppReviewPromptModal
+          blocked={maintenanceOpen || otaState !== null}
+        />
         <OtaUpdateModal
           otaState={maintenanceOpen ? null : otaState}
           otaProgress={otaProgress}
