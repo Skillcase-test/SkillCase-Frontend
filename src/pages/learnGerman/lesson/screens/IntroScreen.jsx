@@ -17,7 +17,9 @@ export default function IntroScreen({
   onDialogueDone,
   onNext,
 }) {
-  const bgImage = screen.image ? resolveAssetUrl(screen.image) : DEFAULT_LESSON_BACKGROUND;
+  const bgImage = screen.image
+    ? resolveAssetUrl(screen.image)
+    : DEFAULT_LESSON_BACKGROUND;
   const dialogueText =
     screen.dialogue ||
     "You will learn about food items and how to pronounce them. Lets start.";

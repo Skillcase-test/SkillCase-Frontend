@@ -535,7 +535,7 @@ export default function VideoPlayerPage() {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto min-h-[calc(100dvh_-_env(safe-area-inset-top,0px))] lg:min-h-[calc(100dvh_-_env(safe-area-inset-top,0px))] bg-white flex flex-col shadow-sm relative">
+    <div      className="w-full max-w-md mx-auto min-h-[100dvh] lg:min-h-[100dvh] bg-white flex flex-col shadow-sm relative">
       <div className="self-stretch px-4 py-2.5 flex justify-between items-center bg-white">
         <button
           onClick={() => navigate(`/video-courses/${video.course_id || ""}`)}

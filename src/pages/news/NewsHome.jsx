@@ -83,7 +83,7 @@ export default function NewsHome() {
 
   return (
     <div
-      className="h-[calc(100dvh-env(safe-area-inset-top))] lg:h-[calc(100dvh-env(safe-area-inset-top))] bg-[#f6f8fc] overflow-hidden overscroll-none flex flex-col"
+      className="h-[100dvh] lg:h-[100dvh] bg-[#f6f8fc] overflow-hidden overscroll-none flex flex-col"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="w-full bg-white border-b border-gray-200 shrink-0 z-[1000] relative">

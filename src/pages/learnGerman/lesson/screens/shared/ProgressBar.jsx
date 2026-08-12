@@ -38,7 +38,9 @@ export default function ProgressBar({
           : "relative"
       }`}
       style={
-        floating ? { top: "env(safe-area-inset-top, 0px)" } : {}
+        // Flush with the top edge, same as every other in-page header (e.g.
+        // the B1 exam headers) — no safe-area offset above it.
+        floating ? { top: 0 } : {}
       }
     >
       <div className="flex justify-between items-center gap-2">

@@ -238,7 +238,7 @@ export default function DialogueListenMatch({
       }
       onDragEnd={handleDragEnd}
     >
-      <div className="px-4 pt-4 pb-28">
+      <div className="px-4 pt-4 pb-8">
         <div className="mb-3">
           <p
             className="text-xs font-bold uppercase tracking-widest mb-1"

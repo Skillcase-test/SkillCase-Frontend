@@ -152,16 +152,14 @@ export default function ConversationScreen({
       {/* Chat History & Current Turn */}
       <div
         ref={scrollRef}
-        className={`w-full flex-1 overflow-y-auto px-4 pb-32 scroll-smooth ${
+        className={`w-full flex-1 overflow-y-auto px-4 pb-8 scroll-smooth ${
           floatingHeader ? "" : "pt-4"
         }`}
         style={
-          // 96px used to clear the app navbar (55px) + the floating progress
-          // header. The navbar no longer renders on lesson screens, so only the
-          // ~41px floating header clearance remains.
-          floatingHeader
-            ? { paddingTop: "calc(65px + env(safe-area-inset-top, 0px))" }
-            : {}
+          // The floating progress header sits flush at the top (like every
+          // other in-page header), so the content only needs to clear its
+          // height (~65px incl. the back button).
+          floatingHeader ? { paddingTop: "65px" } : {}
         }
       >
         <div className="flex flex-col justify-start items-start w-full max-w-[500px] mx-auto">
@@ -243,7 +241,7 @@ export default function ConversationScreen({
                         className={`w-full px-3 py-3 rounded-lg outline-1 outline-offset-[-1px] inline-flex justify-between items-center transition-all ${containerClasses}`}
                       >
                         <div
-                          className={`flex-1 text-left text-[15px] font-medium font-['Inter'] leading-snug ${textClasses}`}
+                          className={`flex-1 text-left text-[15px] font-medium leading-snug ${textClasses}`}
                         >
                           {option}
                         </div>

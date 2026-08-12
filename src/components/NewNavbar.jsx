@@ -89,15 +89,20 @@ export default function Navbar({ disableNavigation = false }) {
       aria-disabled={disableNavigation}
     >
       <div className="h-16 w-full max-w-7xl mx-auto px-4 flex items-center justify-between gap-3">
-        {/* Level title */}
-        <div className="min-w-0 flex flex-col justify-center">
-          <h1 className="text-white text-base font-semibold leading-5 font-['Inter'] truncate">
+        {/* Level title — tappable brand entry, same as the old logo: goes home */}
+        <Link
+          to="/"
+          onClick={hapticLight}
+          className="min-w-0 flex flex-col justify-center transition-opacity hover:opacity-80 cursor-pointer"
+          aria-label="Go to home"
+        >
+          <h1 className="text-white text-base font-semibold leading-5 truncate">
             {displayLevel} German Level
           </h1>
-          <p className="text-white/70 text-xs leading-4 font-['Inter'] truncate">
+          <p className="text-white/70 text-xs leading-4 truncate">
             B1 level is minimum for German jobs
           </p>
-        </div>
+        </Link>
 
         {/* Right side items */}
         <div className="flex items-center gap-3 shrink-0">

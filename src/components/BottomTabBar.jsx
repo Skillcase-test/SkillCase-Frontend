@@ -187,10 +187,11 @@ export default function BottomTabBar() {
             aggregate on practice and job-screening steps on Jobs; A1/A2 users
             see your-level progress on practice, words learnt on Guided German
             and course status (videos done) on German Classes. */}
-        <Link
-          to={isB1 ? "/" : "/learn-german"}
-          onClick={hapticLight}
-          className="relative flex flex-col items-center justify-center w-36 h-full transition-opacity hover:opacity-90 overflow-visible"
+        {/* Center — the arch + flag is a static label, not a nav button: the
+            ring mirrors the active top-switcher tab, so there is no separate
+            destination for it. */}
+        <div
+          className="relative flex flex-col items-center justify-center w-36 h-full overflow-visible"
           title={
             isB1
               ? mode === "jobs"
@@ -284,7 +285,7 @@ export default function BottomTabBar() {
               </>
             )}
           </div>
-        </Link>
+        </div>
 
         {/* Coins */}
         <div className="w-14 flex flex-col items-center justify-center gap-0.5 p-1.5">

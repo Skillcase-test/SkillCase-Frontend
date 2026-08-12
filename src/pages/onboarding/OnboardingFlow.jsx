@@ -679,16 +679,10 @@ const OnboardingFlow = () => {
 
   return (
     <div
-      className={`w-full overflow-x-hidden flex justify-center items-center bg-gray-100 sm:p-4 md:min-h-screen ${
-        step === 1
-          ? "min-h-[100vh] sm:min-h-[100vh]"
-          : "min-h-[calc(100vh-55px)] sm:min-h-[calc(100vh-72px)]"
-      }`}
+      className="w-full overflow-x-hidden flex justify-center items-center bg-gray-100 sm:p-4 md:min-h-screen min-h-[100vh]"
     >
       <div
-        className={`w-full max-w-[600px] sm:h-[844px] md:max-w-[1000px] md:h-[650px] bg-white relative overflow-hidden sm:rounded-[40px] sm:shadow-2xl flex flex-col md:flex-row md:rounded-[45px] ${
-          step === 1 ? "h-[100vh]" : "h-[calc(100vh-55px)]"
-        }`}
+        className="w-full max-w-[600px] sm:h-[844px] md:max-w-[1000px] md:h-[650px] bg-white relative overflow-hidden sm:rounded-[40px] sm:shadow-2xl flex flex-col md:flex-row md:rounded-[45px] h-[100vh]"
       >
         <AnimatePresence mode="wait">
           {step === 1 && (

@@ -361,7 +361,7 @@ export default function ExamSpeakingResults() {
         </div>
       ) : reviewBlockIndex === null ? (
         /* ================= REVIEW ANSWER INDEX LIST VIEW ================= */
-        <div className="flex-1 w-full overflow-y-auto px-4 py-6 flex flex-col gap-3 pb-36">
+        <div className="flex-1 w-full overflow-y-auto px-4 py-6 flex flex-col gap-3 pb-24">
           <div className="flex flex-col items-start gap-1 pb-2">
             <h3 className="text-sky-950 text-base font-semibold">
               Speaking Review

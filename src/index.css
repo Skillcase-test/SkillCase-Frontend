@@ -91,15 +91,24 @@ body {
 }
 
 /* Learn German lesson-only viewport helper. The lesson screens no longer
-   render the app navbar, so they fill the full viewport (minus the notch
-   safe area) instead of reserving 55px for the removed header. */
+   render the app navbar, so they fill the whole viewport instead of
+   reserving 55px for the removed header. We must NOT subtract
+   env(safe-area-inset-top) from the height: the flow is anchored to the top
+   of the viewport, so subtracting the notch inset would leave a white strip
+   of exactly that size at the bottom on fullscreen/cutout devices (the app
+   runs Fullscreen.activateImmersiveMode()). Notch clearance is handled
+   per-screen via padding instead (e.g. the floating lesson header). Do NOT
+   add a padding-top: env(safe-area-inset-top) to this container: the
+   conversation screen already pads its content by
+   calc(49px + env(safe-area-inset-top)) for the floating header, so a
+   container-level inset would double-pad it. */
 .lg-screen-height {
-  height: calc(100dvh - env(safe-area-inset-top, 0px));
+  height: 100vh;
 }
 
-@supports not (height: 100svh) {
+@supports (height: 100dvh) {
   .lg-screen-height {
-    height: calc(100dvh - env(safe-area-inset-top, 0px));
+    height: 100dvh;
   }
 }
 
