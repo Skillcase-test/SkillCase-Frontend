@@ -752,7 +752,7 @@ export default function HighLevelDashboard() {
             title="App Data"
             subtitle="App activity totals · as of yesterday"
           />
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
             <MetricTile
               label="Total Users"
               value={approxNumber(appSummary.total_users)}
@@ -776,12 +776,6 @@ export default function HighLevelDashboard() {
               value={approxNumber(appSummary.mau)}
               sub="Monthly active · as of yesterday"
               icon={Activity}
-            />
-            <MetricTile
-              label="Avg Session"
-              value={approxDuration(appSummary.avg_session_duration_seconds)}
-              sub="Per session · as of yesterday"
-              icon={Timer}
             />
           </div>
 
