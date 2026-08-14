@@ -1,7 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import api from "../../../../../api/axios";
-
-const STORAGE_KEY = "maya_tts_muted";
+import { isTTSMuted, setTTSMuted } from "./ttsMutePreference";
 
 // Blob cache: text -> Blob (persists for the lifetime of the module)
 const _mayaTTSCache = new Map();
@@ -11,8 +10,9 @@ const MAYA_TTS_MAX_ITEMS = 120;
 // Module-level audio tracking
 let _currentAudio = null;
 let _currentObjectUrl = null;
-let _currentAbortController = null;
-let _lastPlayedText = null;
+// Monotonic token — a pending speak() whose token is stale has been superseded
+// (by a newer speak, a stop, or navigation) and must never start playing.
+let _speakToken = 0;
 
 function normalizeText(text) {
   if (typeof text !== "string") return "";
@@ -64,11 +64,12 @@ function getMayaTTSBlob(text, config = {}) {
 }
 
 function revokeCurrentAudio() {
-  if (_currentAbortController) {
-    _currentAbortController.abort();
-    _currentAbortController = null;
-  }
   if (_currentAudio) {
+    // Detach handlers before teardown: clearing `src` makes the element fire a
+    // stray `error` event asynchronously, which would otherwise land after the
+    // next screen's audio has started and tear *that* one down instead.
+    _currentAudio.onended = null;
+    _currentAudio.onerror = null;
     _currentAudio.pause();
     _currentAudio.src = "";
     _currentAudio = null;
@@ -93,9 +94,7 @@ export async function preloadMayaTTSText(text) {
 
 export default function useMayaTTS() {
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isMuted, setIsMuted] = useState(
-    () => localStorage.getItem(STORAGE_KEY) === "true",
-  );
+  const [isMuted, setIsMuted] = useState(() => isTTSMuted());
 
   const isMutedRef = useRef(isMuted);
   isMutedRef.current = isMuted;
@@ -112,6 +111,7 @@ export default function useMayaTTS() {
 
   useEffect(() => {
     const handler = () => {
+      _speakToken++;
       revokeCurrentAudio();
       if (mountedRef.current) setIsSpeaking(false);
     };
@@ -120,6 +120,7 @@ export default function useMayaTTS() {
   }, []);
 
   const stop = useCallback(() => {
+    _speakToken++;
     revokeCurrentAudio();
     if (mountedRef.current) setIsSpeaking(false);
   }, []);
@@ -129,28 +130,27 @@ export default function useMayaTTS() {
     _currentObjectUrl = url;
     const audio = new Audio(url);
     _currentAudio = audio;
-    audio.onended = () => {
+    // Only act if this element is still the one in charge — a superseded
+    // element's events must not tear down its replacement.
+    const finish = () => {
+      if (_currentAudio !== audio) return;
       revokeCurrentAudio();
       if (mountedRef.current) setIsSpeaking(false);
     };
-    audio.onerror = () => {
-      revokeCurrentAudio();
-      if (mountedRef.current) setIsSpeaking(false);
-    };
-    audio.play().catch(() => {
-      revokeCurrentAudio();
-      if (mountedRef.current) setIsSpeaking(false);
-    });
+    audio.onended = finish;
+    audio.onerror = finish;
+    audio.play().catch(finish);
   }, []);
 
-  const speak = useCallback(async (text, forcePlay = false) => {
+  const speak = useCallback(async (text) => {
     if (!text || isMutedRef.current) return;
 
-    // Skip auto-play if it's the exact same text as the last playback
-    if (!forcePlay && text === _lastPlayedText) return;
-    _lastPlayedText = text;
+    const token = ++_speakToken;
 
-    // Cancel any in-flight request and stop current audio
+    // Stop any currently playing audio (does not cancel in-flight fetches —
+    // those must always be left to resolve so a later caller for the same
+    // text isn't left waiting on a request that was torn down out from
+    // under it)
     revokeCurrentAudio();
 
     // Cache hit: play instantly
@@ -162,21 +162,19 @@ export default function useMayaTTS() {
     }
 
     // Fetch from API
-    const abortController = new AbortController();
-    _currentAbortController = abortController;
     if (mountedRef.current) setIsSpeaking(true);
 
     try {
-      const blob = await getMayaTTSBlob(normalizedText, {
-        signal: abortController.signal,
-      });
+      const blob = await getMayaTTSBlob(normalizedText);
 
-      if (isMutedRef.current || abortController.signal.aborted || !mountedRef.current) {
+      // Superseded while the fetch was in flight — whoever won owns the state.
+      if (token !== _speakToken) return;
+
+      if (isMutedRef.current || !mountedRef.current) {
         if (mountedRef.current) setIsSpeaking(false);
         return;
       }
 
-      _currentAbortController = null;
       _playBlob(blob);
     } catch (err) {
       if (
@@ -186,6 +184,7 @@ export default function useMayaTTS() {
       ) {
         return;
       }
+      if (token !== _speakToken) return;
       revokeCurrentAudio();
       if (mountedRef.current) setIsSpeaking(false);
     }
@@ -194,7 +193,7 @@ export default function useMayaTTS() {
   const toggleMute = useCallback(() => {
     setIsMuted((prev) => {
       const next = !prev;
-      localStorage.setItem(STORAGE_KEY, String(next));
+      setTTSMuted(next);
       if (next) {
         revokeCurrentAudio();
         if (mountedRef.current) setIsSpeaking(false);

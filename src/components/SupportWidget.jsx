@@ -62,17 +62,23 @@ export default function SupportWidget() {
   const modalFileInputRef = useRef(null);
   const commentFileInputRefs = useRef({});
 
-  // Check if we are on landing page, learn german home, or job screening home
+  // Check if we are on landing page, learn german home, job screening home, or
+  // the scholarship hub. Hub only — never the exam/result screens, where a
+  // support drawer would sit on top of a timed, proctored attempt.
   const showSupport =
     location.pathname === "/" ||
     location.pathname === "/learn-german" ||
-    location.pathname === "/job-screening";
+    location.pathname === "/job-screening" ||
+    location.pathname === "/scholarship";
 
   // Position dynamically to avoid overlapping the bottom tab bar
   const hasSwitcher =
     location.pathname === "/" ||
     location.pathname === "/learn-german" ||
-    location.pathname === "/video-courses";
+    location.pathname === "/video-courses" ||
+    // No top switcher on /scholarship, but it does have the bottom tab bar, so
+    // it needs the same raised offset to clear it.
+    location.pathname === "/scholarship";
   const widgetBottomStyle = hasSwitcher
     ? "bottom-[92px] md:bottom-[96px]"
     : "bottom-[24px]";

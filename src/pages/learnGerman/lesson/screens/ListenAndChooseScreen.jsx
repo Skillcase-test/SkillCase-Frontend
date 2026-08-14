@@ -44,18 +44,18 @@ export default function ListenAndChooseScreen({
     >
       <ProgressBar progressRatio={progressRatio} title={title} level={level} />
 
-      <div className="absolute left-0 top-12 z-10 flex items-center pl-2">
+      <div className="absolute left-0 right-0 top-2 z-10 flex items-center pl-2 pr-4">
         <motion.img
           layoutId="mayaMascot"
-          className="w-[90px] z-10 drop-shadow-md"
+          className="w-[90px] shrink-0 z-10 drop-shadow-md"
           src={mayaLooking}
         />
         <motion.div
           layoutId="mayaDialog"
-          className="px-4 py-2 bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.08)] z-0 ml-2 relative flex items-center border border-gray-100"
+          className="flex-1 px-4 py-2 bg-white rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.08)] z-0 ml-2 relative flex items-center border border-gray-100"
         >
           <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rotate-45 border-l border-b border-gray-100" />
-          <div className="max-w-[180px] pr-2">
+          <div className="flex-1 pr-2">
             <MayaDialogueBubble
               text={screen?.dialogue || "Okay, now listen and answer."}
             />
@@ -63,7 +63,7 @@ export default function ListenAndChooseScreen({
         </motion.div>
       </div>
 
-      <div className="w-full flex-1 mt-35 bg-white rounded-tl-3xl rounded-tr-3xl flex flex-col items-center px-4 pt-4 z-20 shadow-[0_-4px_15px_rgba(0,0,0,0.03)] relative safe-bottom-pad">
+      <div className="w-full flex-1 mt-26 bg-white rounded-tl-3xl rounded-tr-3xl flex flex-col items-center px-4 pt-4 z-20 shadow-[0_-4px_15px_rgba(0,0,0,0.03)] relative safe-bottom-pad">
         <div className="w-full flex-1 min-h-0 flex flex-col justify-between max-w-[360px] mx-auto">
           <div className="w-full flex flex-col items-center gap-6">
             <div className="flex flex-col items-center gap-3">

@@ -5,7 +5,11 @@ import { getLGMode, setLGMode } from "../api/learnGermanApi";
 import { trackClarityEvent } from "../observability/clarity";
 import { hapticLight } from "../utils/haptics";
 import { isB1PracticeLevel } from "../utils/b1Progress";
-import { getSwitcherBlendColor } from "../utils/shellRoutes";
+import { syncModeIntoRedux } from "../utils/lgMode";
+import {
+  getSwitcherBlendColor,
+  isScholarshipRoute,
+} from "../utils/shellRoutes";
 import bookImg from "../assets/book.webp";
 import mayaSmilingImg from "../assets/onboarding/mayaSmiling.webp";
 import classImg from "../assets/class.webp";
@@ -52,6 +56,11 @@ export default function TopModeSwitcher({ isTourActive = false }) {
   // below (white on white pages, sky-blue on learn-german / job-screening).
   const blendColor = getSwitcherBlendColor(location.pathname);
 
+  // Scholarship hub: static single-tab switcher stating the context. The
+  // exam chrome is route-scoped so the switcher renders regardless of the
+  // user's saved mode (they may have switched to practice meanwhile).
+  const isScholarship = isScholarshipRoute(location.pathname);
+
   const activeTab = isB1
     ? location.pathname.startsWith("/job-screening")
       ? "jobs"
@@ -62,9 +71,13 @@ export default function TopModeSwitcher({ isTourActive = false }) {
         ? "courses"
         : "practice";
 
+  // Mirror the mode onto the redux user too: destination screens gate on it and
+  // would bounce us back if they read the pre-switch value.
   const syncMode = (mode) => {
     localStorage.setItem("lg_preferred_mode", mode);
+    syncModeIntoRedux(mode);
   };
+
 
   // Keep localStorage in sync with the route. The active tab itself is always
   // derived from the route, so this only ever *writes* "learn" (mirroring the
@@ -195,7 +208,18 @@ export default function TopModeSwitcher({ isTourActive = false }) {
           aria-label="Learning mode"
           className="flex items-end gap-1.5 sm:gap-2"
         >
-          {isB1 ? (
+          {isScholarship ? (
+            <SwitcherTab
+              active={true}
+              onClick={() => {}}
+              image={bookImg}
+              line1="Scholarship"
+              line2="Exam"
+              showLeftNotch={true}
+              showRightNotch={true}
+              blendColor={blendColor}
+            />
+          ) : isB1 ? (
             <>
               <SwitcherTab
                 active={activeTab === "practice"}

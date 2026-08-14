@@ -3,8 +3,9 @@ import { useSelector } from "react-redux";
 import { images } from "../assets/images.js";
 import { isB1PracticeLevel } from "../utils/b1Progress";
 import { hapticLight, hapticMedium } from "../utils/haptics";
-import { Gem, Gift } from "lucide-react";
+import { Gem, Gift, GraduationCap } from "lucide-react";
 import { isPremiumUser, isTrialActive, trialDaysLeft } from "../utils/premium";
+import { isScholarshipRoute } from "../utils/shellRoutes";
 
 export default function Navbar({ disableNavigation = false }) {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -32,6 +33,12 @@ export default function Navbar({ disableNavigation = false }) {
       </header>
     );
   }
+  // Scholarship exam hub gets its own navy chrome (exam-only context) — the
+  // mode switcher tab states "Scholarship Exam" regardless of saved mode.
+  if (isScholarshipRoute(location.pathname)) {
+    return <ScholarshipNavbar disableNavigation={disableNavigation} />;
+  }
+
   // B1/B2 users own the mode switcher (Exam & Practice / Jobs): their saved
   // mode may stay job_screening while they browse the practice hub, so the
   // white job-screening chrome must be path-based for them, not mode-based.
@@ -182,6 +189,84 @@ export default function Navbar({ disableNavigation = false }) {
                 </div>
               )}
 
+              {renderAvatar()}
+            </>
+          ) : (
+            <Link
+              to="/login"
+              className="bg-[#edb843] text-[#002856] px-4 py-1.5 rounded-lg hover:bg-[#d4a53c] transition font-semibold text-xs"
+            >
+              Get Started
+            </Link>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function ScholarshipNavbar({ disableNavigation = false }) {
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+
+  const renderAvatar = () => (
+    <Link to="/profile" id="profile-nav-link" className="flex-shrink-0">
+      {user?.profile_pic_url ? (
+        <img
+          src={user.profile_pic_url}
+          alt="Profile"
+          className="w-8 h-8 rounded-full object-cover"
+        />
+      ) : (
+        <svg viewBox="0 0 100 100" className="w-8 h-8 rounded-full" fill="none">
+          <circle cx="50" cy="50" r="50" fill="#D1D5DB" />
+          <circle cx="50" cy="38" r="16" fill="#9CA3AF" />
+          <ellipse cx="50" cy="78" rx="28" ry="20" fill="#9CA3AF" />
+        </svg>
+      )}
+    </Link>
+  );
+
+  return (
+    <header
+      className={`bg-[#002856] sticky top-0 z-50 ${
+        disableNavigation ? "pointer-events-none" : ""
+      }`}
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+      aria-disabled={disableNavigation}
+    >
+      <div className="h-16 w-full max-w-7xl mx-auto px-4 flex items-center justify-between gap-3">
+        {/* Brand title — tappable, returns to the scholarship hub */}
+        <Link
+          to="/scholarship"
+          onClick={hapticLight}
+          className="min-w-0 flex items-center gap-2 transition-opacity hover:opacity-80 cursor-pointer"
+          aria-label="Go to Scholarship Exam"
+        >
+          <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+            <GraduationCap className="w-4 h-4 text-[#edb843]" />
+          </span>
+          <span className="flex flex-col justify-center min-w-0">
+            <h1 className="text-white text-base font-semibold leading-5 truncate">
+              Scholarship Exam
+            </h1>
+            <p className="text-white/70 text-xs leading-4 truncate">
+              One attempt • Results announced later
+            </p>
+          </span>
+        </Link>
+
+        {/* Right side items */}
+        <div className="flex items-center gap-3 shrink-0">
+          {isAuthenticated ? (
+            <>
+              {["admin", "super_admin"].includes(user?.role) && (
+                <Link
+                  to="/admin/scholarship-exam"
+                  className="bg-white/10 text-white px-3 py-1.5 rounded-lg hover:bg-white/20 transition font-semibold text-xs"
+                >
+                  Admin
+                </Link>
+              )}
               {renderAvatar()}
             </>
           ) : (

@@ -24,6 +24,8 @@ const RULES = [
   [/^\/video-courses?(?:\/|$)/, "learning", "video_courses"],
 
   [/^\/exam/, "exam", "exam"],
+  // Standalone scholarship exam funnel — hub, take and result screens.
+  [/^\/scholarship/, "exam", "scholarship_exam"],
 
   [/^\/test/, "exam", "legacy_exam"],
   [/^\/news/, "news", "news"],

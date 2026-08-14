@@ -142,9 +142,30 @@ export default function NewLessonFlow() {
     useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentlySpeakingText, setCurrentlySpeakingText] = useState("");
+  const [currentlySpeakingKey, setCurrentlySpeakingKey] = useState(null);
   const currentSpeakAudioRef = useRef(null);
   // Cache for German TTS blobs keyed by text — avoids repeat API calls
   const currentSpeakObjectUrlRef = useRef(null);
+  // Monotonic token — a pending speakWord whose token is stale was superseded
+  // (newer tap, or navigation) and must never start playing.
+  const speakTokenRef = useRef(0);
+  // Tear down the current speakWord audio. Handlers are detached first because
+  // clearing `src` makes the element fire a stray `error` event asynchronously,
+  // which would otherwise reset the state of whatever started playing since.
+  const stopSpeakAudio = () => {
+    speakTokenRef.current++;
+    if (currentSpeakAudioRef.current) {
+      currentSpeakAudioRef.current.onended = null;
+      currentSpeakAudioRef.current.onerror = null;
+      currentSpeakAudioRef.current.pause();
+      currentSpeakAudioRef.current.src = "";
+      currentSpeakAudioRef.current = null;
+    }
+    if (currentSpeakObjectUrlRef.current) {
+      URL.revokeObjectURL(currentSpeakObjectUrlRef.current);
+      currentSpeakObjectUrlRef.current = null;
+    }
+  };
   const lastPersistedScreenRef = useRef(0);
   const completionPersistPromiseRef = useRef(null);
   const completionResultRef = useRef({
@@ -241,15 +262,7 @@ export default function NewLessonFlow() {
       if (tapGuideDelayTimerRef.current) {
         window.clearTimeout(tapGuideDelayTimerRef.current);
       }
-      if (currentSpeakAudioRef.current) {
-        currentSpeakAudioRef.current.pause();
-        currentSpeakAudioRef.current.src = "";
-        currentSpeakAudioRef.current = null;
-      }
-      if (currentSpeakObjectUrlRef.current) {
-        URL.revokeObjectURL(currentSpeakObjectUrlRef.current);
-        currentSpeakObjectUrlRef.current = null;
-      }
+      stopSpeakAudio();
     };
   }, [trackModuleAbandoned]);
 
@@ -920,13 +933,10 @@ export default function NewLessonFlow() {
     // Stop Maya TTS
     window.dispatchEvent(new CustomEvent("mayaTTSStop"));
     // Stop any speakWord audio
-    if (currentSpeakAudioRef.current) {
-      currentSpeakAudioRef.current.pause();
-      currentSpeakAudioRef.current.src = "";
-      currentSpeakAudioRef.current = null;
-    }
+    stopSpeakAudio();
     setIsSpeaking(false);
     setCurrentlySpeakingText("");
+    setCurrentlySpeakingKey(null);
     hapticLight();
 
     if (
@@ -1135,33 +1145,31 @@ export default function NewLessonFlow() {
   // AWS Polly TTS
   
 
-  const speakWord = async (text) => {
+  const speakWord = async (text, opts) => {
+    const key = opts && typeof opts === "object" ? (opts.key ?? null) : null;
     hapticMedium();
     // Cancel any currently playing speakWord audio before starting a new one
-    if (currentSpeakAudioRef.current) {
-      currentSpeakAudioRef.current.pause();
-      currentSpeakAudioRef.current.src = "";
-      currentSpeakAudioRef.current = null;
-    }
-    if (currentSpeakObjectUrlRef.current) {
-      URL.revokeObjectURL(currentSpeakObjectUrlRef.current);
-      currentSpeakObjectUrlRef.current = null;
-    }
+    stopSpeakAudio();
+    const token = speakTokenRef.current;
     setIsSpeaking(true);
     setCurrentlySpeakingText(text);
+    setCurrentlySpeakingKey(key);
 
     try {
       const blob = await getGermanTTSBlob(text);
+      // Superseded while the fetch was in flight — whoever won owns the state.
+      if (token !== speakTokenRef.current) return;
       const audioUrl = URL.createObjectURL(blob);
       currentSpeakObjectUrlRef.current = audioUrl;
       const audio = new Audio(audioUrl);
       currentSpeakAudioRef.current = audio;
       const cleanupAudio = () => {
+        // Only act if this element is still the one in charge.
+        if (currentSpeakAudioRef.current !== audio) return;
         setIsSpeaking(false);
         setCurrentlySpeakingText("");
-        if (currentSpeakAudioRef.current === audio) {
-          currentSpeakAudioRef.current = null;
-        }
+        setCurrentlySpeakingKey(null);
+        currentSpeakAudioRef.current = null;
         if (currentSpeakObjectUrlRef.current === audioUrl) {
           URL.revokeObjectURL(audioUrl);
           currentSpeakObjectUrlRef.current = null;
@@ -1171,16 +1179,18 @@ export default function NewLessonFlow() {
       audio.onerror = cleanupAudio;
       audio.play();
     } catch (err) {
+      if (token !== speakTokenRef.current) return;
       console.error("TTS playback failed, falling back to browser synthesis", err);
       if ("speechSynthesis" in window) {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = "de-DE";
-        utterance.onend = () => { setIsSpeaking(false); setCurrentlySpeakingText(""); };
-        utterance.onerror = () => { setIsSpeaking(false); setCurrentlySpeakingText(""); };
+        utterance.onend = () => { setIsSpeaking(false); setCurrentlySpeakingText(""); setCurrentlySpeakingKey(null); };
+        utterance.onerror = () => { setIsSpeaking(false); setCurrentlySpeakingText(""); setCurrentlySpeakingKey(null); };
         window.speechSynthesis.speak(utterance);
       } else {
         setIsSpeaking(false);
         setCurrentlySpeakingText("");
+        setCurrentlySpeakingKey(null);
       }
     }
   };
@@ -1589,7 +1599,7 @@ export default function NewLessonFlow() {
                     canGoPrev={resolvePrevIndex(screenIndex) >= 0}
                     speakWord={speakWord}
                     isSpeaking={isSpeaking}
-                    currentlySpeakingText={currentlySpeakingText}
+                    currentlySpeakingKey={currentlySpeakingKey}
                     progressRatio={progressRatio}
                     title={lessonData.title}
                     level={lessonData.proficiency_level}

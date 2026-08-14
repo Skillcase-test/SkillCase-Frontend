@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
 import WaveformIcon from "./shared/WaveformIcon";
 import { hapticMedium, hapticHeavy } from "../../../../utils/haptics";
 import { resolveAssetUrl } from "../../../../utils/imageUtils";
+import { isTTSMuted } from "./shared/ttsMutePreference";
 
 // Derive the set of correct option indices for a screen.
 // Supports both:
@@ -38,7 +39,7 @@ export default function ConversationScreen({
   canGoPrev = false,
   speakWord,
   isSpeaking,
-  currentlySpeakingText = "",
+  currentlySpeakingKey = null,
   showCompletedFallback = false,
   onCompletedFallbackClick,
   floatingHeader = false,
@@ -63,7 +64,15 @@ export default function ConversationScreen({
     }
   }, [screen, conversationHistory, selectedOption]);
 
-  const renderCharacterBubble = (msgScreen, isPast) => {
+  // Auto-speak the current turn's dialogue, respecting the mute preference
+  useEffect(() => {
+    const dialogue = screen?.characterDialogue || screen?.dialogue;
+    if (!dialogue || isTTSMuted()) return;
+    speakWord(dialogue, { key: `current-${currentScreenIndex}` });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentScreenIndex]);
+
+  const renderCharacterBubble = (msgScreen, isPast, bubbleKey) => {
     const dialogue = msgScreen.characterDialogue || msgScreen.dialogue;
     const meaning = msgScreen.englishMeaning;
     const hasImage = !!msgScreen.characterImage;
@@ -99,12 +108,12 @@ export default function ConversationScreen({
               {dialogue && (
                 <button
                   onClick={() => {
-                    if (!isSpeaking) speakWord(dialogue, true);
+                    if (!isSpeaking) speakWord(dialogue, { key: bubbleKey });
                   }}
                   className="text-blue-950 shrink-0 hover:opacity-70 transition-opacity overflow-hidden"
                 >
                   <WaveformIcon
-                    isPlaying={isSpeaking && currentlySpeakingText === dialogue}
+                    isPlaying={isSpeaking && currentlySpeakingKey === bubbleKey}
                     className="w-5 h-5"
                   />
                 </button>
@@ -167,14 +176,14 @@ export default function ConversationScreen({
           {conversationHistory.map(
             ({ screen: pastScreen, screenIndex: pastIdx }, idx) => (
               <React.Fragment key={`history-${idx}`}>
-                {renderCharacterBubble(pastScreen, true)}
+                {renderCharacterBubble(pastScreen, true, `history-${pastIdx}`)}
                 {renderUserPastBubble(pastScreen, pastIdx)}
               </React.Fragment>
             ),
           )}
 
           {/* Current Turn Character Bubble */}
-          {renderCharacterBubble(screen, false)}
+          {renderCharacterBubble(screen, false, `current-${currentScreenIndex}`)}
 
           {!isCurrentTurnCommitted ? (
             <motion.div

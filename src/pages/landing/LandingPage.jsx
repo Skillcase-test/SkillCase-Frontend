@@ -94,14 +94,22 @@ export default function LandingPage() {
     !isB1User &&
     (user?.german_preference === "3" ||
       user?.lg_preferred_mode === "job_screening");
+  // Scholarship candidates live in the exam funnel until they opt into a
+  // learning/practicing mode — the practice hub is not their home screen.
+  // Keyed on the mode only: german_preference is analytics data, and once a
+  // candidate switches to practice their mode is the single source of truth.
+  const isScholarshipUser =
+    (lgMode || user?.lg_preferred_mode) === "scholarship";
 
   useEffect(() => {
-    if (isJobScreening) {
+    if (isScholarshipUser) {
+      navigate("/scholarship", { replace: true });
+    } else if (isJobScreening) {
       navigate("/job-screening", { replace: true });
     } else if (prefersLearnMode) {
       navigate("/learn-german", { replace: true });
     }
-  }, [navigate, isJobScreening, prefersLearnMode]);
+  }, [navigate, isJobScreening, prefersLearnMode, isScholarshipUser]);
 
   useEffect(() => {
     const active = showA1MigrationModal || showSwitchConfirm || isUpgrading;

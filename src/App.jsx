@@ -15,13 +15,7 @@ import {
   useNavigate,
   Navigate,
 } from "react-router-dom";
-import {
-  Lock,
-  Phone,
-  LogOut,
-  Loader2,
-  CreditCard,
-} from "lucide-react";
+import { Lock, Phone, LogOut, Loader2, CreditCard } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 import LandingPage from "./pages/landing/LandingPage";
 import NewNavbar from "./components/NewNavbar";
@@ -43,7 +37,11 @@ import { useDispatch, useSelector } from "react-redux";
 import SupportWidget from "./components/SupportWidget";
 import api from "./api/axios";
 import { isB1PracticeLevel } from "./utils/b1Progress";
-import { isShellRoute, isPaymentRoute } from "./utils/shellRoutes";
+import {
+  isShellRoute,
+  isPaymentRoute,
+  isScholarshipRoute,
+} from "./utils/shellRoutes";
 import { hasPremiumAccess } from "./utils/premium";
 import { setUser, logout } from "./redux/auth/authSlice";
 
@@ -58,7 +56,10 @@ const syncPreferredModeCache = (user) => {
     user.lg_preferred_mode ||
     (String(user.german_preference) === "3" ? "job_screening" : "");
 
-  if (!["learn", "practice", "job_screening"].includes(serverMode)) return;
+  if (
+    !["learn", "practice", "job_screening", "scholarship"].includes(serverMode)
+  )
+    return;
 
   localStorage.setItem("lg_preferred_mode", serverMode);
   window.dispatchEvent(
@@ -131,8 +132,8 @@ const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const UpgradePlanPage = lazy(() => import("./pages/payments/UpgradePlanPage"));
 const TrialOfferPage = lazy(() => import("./pages/payments/TrialOfferPage"));
 const ManagePlanPage = lazy(() => import("./pages/payments/ManagePlanPage"));
-const TransactionHistoryPage = lazy(() =>
-  import("./pages/payments/TransactionHistoryPage"),
+const TransactionHistoryPage = lazy(
+  () => import("./pages/payments/TransactionHistoryPage"),
 );
 const ConversationSelect = lazy(() => import("./pages/ConversationSelect"));
 const ConversationPlayer = lazy(() => import("./pages/ConversationPlayer"));
@@ -201,6 +202,15 @@ const A1TestQuestions = lazy(() => import("./pages/a1/test/A1TestQuestions"));
 const ExamLobby = lazy(() => import("./pages/exam/ExamLobby"));
 const ExamPage = lazy(() => import("./pages/exam/ExamPage"));
 const ExamResult = lazy(() => import("./pages/exam/ExamResult"));
+const ScholarshipHome = lazy(
+  () => import("./pages/scholarship/ScholarshipHome"),
+);
+const ScholarshipResult = lazy(
+  () => import("./pages/scholarship/ScholarshipResult"),
+);
+const ScholarshipExamPage = lazy(
+  () => import("./pages/scholarship/ScholarshipExamPage"),
+);
 const NewsHome = lazy(() => import("./pages/news/NewsHome"));
 const NewsPage = lazy(() => import("./pages/news/NewsPage"));
 const PublicInterviewPage = lazy(
@@ -404,6 +414,10 @@ function AppContent() {
     () =>
       /^\/exam\/[^/]+\/take$/.test(location.pathname) ||
       /^\/interview\/[^/]+$/.test(location.pathname) ||
+      // Scholarship exam only: a pull reloads the whole app, which restarts the
+      // exam screen mid-attempt and drops any answer still waiting on its
+      // debounce. The hub keeps pull-to-refresh — it has something to refresh.
+      /^\/scholarship\/[^/]+\/take$/.test(location.pathname) ||
       location.pathname.startsWith("/news") ||
       location.pathname.startsWith("/learn-german/lesson") ||
       location.pathname.startsWith("/video-course/") ||
@@ -953,13 +967,14 @@ function AppContent() {
   return (
     <div
       ref={containerRef}
-      className="relative overflow-x-hidden w-full min-h-screen"
+      className="relative overflow-x-hidden w-full min-h-screen flex flex-col"
     >
       <PullToRefreshIndicator
         pullProgress={pullProgress}
         isRefreshing={isRefreshing}
       />
       <div
+        className="flex-1 flex flex-col"
         style={
           pullDistance > 0
             ? { transform: `translateY(${pullDistance}px)` }
@@ -969,9 +984,7 @@ function AppContent() {
               }
         }
       >
-        <AppReviewPromptModal
-          blocked={maintenanceOpen || otaState !== null}
-        />
+        <AppReviewPromptModal blocked={maintenanceOpen || otaState !== null} />
         <OtaUpdateModal
           otaState={maintenanceOpen ? null : otaState}
           otaProgress={otaProgress}
@@ -1173,17 +1186,11 @@ function AppContent() {
                   />
                   <Route
                     path="/start-now"
-                    element={lazyScreen(
-                      <StartNowLanding />,
-                      "Loading...",
-                    )}
+                    element={lazyScreen(<StartNowLanding />, "Loading...")}
                   />
                   <Route
                     path="/start-now/cart"
-                    element={lazyScreen(
-                      <StartNowCart />,
-                      "Loading...",
-                    )}
+                    element={lazyScreen(<StartNowCart />, "Loading...")}
                   />
                   <Route
                     path="/thank-you"
@@ -1213,18 +1220,12 @@ function AppContent() {
                   />
                   <Route
                     path="/job-screening"
-                    element={lazyScreen(
-                      <JobScreening />,
-                      "Loading Jobs...",
-                    )}
+                    element={lazyScreen(<JobScreening />, "Loading Jobs...")}
                   />
                   {/* A1/A2 locked jobs teaser — B1/B2 redirect to the pipeline */}
                   <Route
                     path="/jobs"
-                    element={lazyScreen(
-                      <JobsLockedPage />,
-                      "Loading Jobs...",
-                    )}
+                    element={lazyScreen(<JobsLockedPage />, "Loading Jobs...")}
                   />
                   <Route
                     path="/continue"
@@ -1270,17 +1271,11 @@ function AppContent() {
                   />
                   <Route
                     path="/trial-offer"
-                    element={lazyScreen(
-                      <TrialOfferPage />,
-                      "Loading Trial...",
-                    )}
+                    element={lazyScreen(<TrialOfferPage />, "Loading Trial...")}
                   />
                   <Route
                     path="/profile/manage-plan"
-                    element={lazyScreen(
-                      <ManagePlanPage />,
-                      "Loading Plan...",
-                    )}
+                    element={lazyScreen(<ManagePlanPage />, "Loading Plan...")}
                   />
                   <Route
                     path="/profile/transactions"
@@ -1551,6 +1546,34 @@ function AppContent() {
                     element={lazyScreen(<ExamResult />, "Loading Result...")}
                   />
 
+                  {/* Scholarship Exam (standalone funnel) */}
+                  <Route
+                    path="/scholarship"
+                    element={lazyScreen(
+                      <ScholarshipHome />,
+                      "Loading Scholarship Exam...",
+                    )}
+                  />
+                  <Route
+                    path="/scholarship/:testId/take"
+                    element={
+                      <Suspense
+                        fallback={
+                          <RouteScreenSkeleton title="Loading Exam..." />
+                        }
+                      >
+                        <ScholarshipExamPage />
+                      </Suspense>
+                    }
+                  />
+                  <Route
+                    path="/scholarship/:testId/result"
+                    element={lazyScreen(
+                      <ScholarshipResult />,
+                      "Loading Result...",
+                    )}
+                  />
+
                   {/* News Module */}
                   <Route
                     path="/news"
@@ -1805,17 +1828,11 @@ function AppContent() {
                   />
                   <Route
                     path="/notes"
-                    element={lazyScreen(
-                      <NotesListPage />,
-                      "Loading Notes...",
-                    )}
+                    element={lazyScreen(<NotesListPage />, "Loading Notes...")}
                   />
                   <Route
                     path="/notes/:noteId"
-                    element={lazyScreen(
-                      <NotePreviewPage />,
-                      "Loading Note...",
-                    )}
+                    element={lazyScreen(<NotePreviewPage />, "Loading Note...")}
                   />
                   <Route
                     path="/video-courses/:courseId"
@@ -1823,18 +1840,22 @@ function AppContent() {
                   />
                   <Route
                     path="/video-course/:videoId"
-                    element={lazyScreen(<VideoPlayerPage />, "Loading Video...")}
+                    element={lazyScreen(
+                      <VideoPlayerPage />,
+                      "Loading Video...",
+                    )}
                   />
 
                   <Route
                     path="/b1admin"
-
                     element={lazyScreen(<B1AdminPage />, "Loading B1 Admin...")}
                   />
                 </Routes>
 
                 <ConditionalBottomTabBar />
-                <ConditionalFooter />
+                <div className="mt-auto">
+                  <ConditionalFooter />
+                </div>
                 <SupportWidget />
               </B1ProductTour>
             </A2ProductTour>
@@ -1887,6 +1908,7 @@ function ConditionalFooter() {
     location.pathname.startsWith("/admin") ||
     // New app-shell screens carry the floating bottom tab bar instead.
     location.pathname === "/" ||
+    location.pathname.startsWith("/scholarship") ||
     location.pathname.startsWith("/video-courses");
 
   if (hideFooter) return null;
@@ -1935,14 +1957,17 @@ function ConditionalTopSwitcher() {
   // away with the page (only the navbar is sticky). B1/B2 users have the
   // Exam & Practice + Jobs tabs, so their switcher renders on the practice
   // home AND the job-screening pipeline lobby — flipping between the two
-  // modes is the whole point of their two-tab switcher. The focused
+  // modes is the whole point of their two-tab switcher. The scholarship hub
+  // renders the single-tab "Scholarship Exam" switcher variant. The focused
   // interview / terms flows keep their own chrome.
   const isB1 = isB1PracticeLevel(user?.user_prof_level);
-  const showSwitcher = isB1
-    ? location.pathname === "/" || location.pathname === "/job-screening"
-    : location.pathname === "/" ||
-      location.pathname === "/learn-german" ||
-      location.pathname === "/video-courses";
+  const showSwitcher = isScholarshipRoute(location.pathname)
+    ? location.pathname === "/scholarship"
+    : isB1
+      ? location.pathname === "/" || location.pathname === "/job-screening"
+      : location.pathname === "/" ||
+        location.pathname === "/learn-german" ||
+        location.pathname === "/video-courses";
 
   if (!showSwitcher) return null;
 

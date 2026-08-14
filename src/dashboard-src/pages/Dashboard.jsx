@@ -19,6 +19,9 @@ const TrustPageManagement = lazy(() => import("./TrustPageManagement"));
 const SendNotification = lazy(() => import("./notification/send"));
 const TermsManager = lazy(() => import("./TermsManager"));
 const AdminExamManager = lazy(() => import("./exam/AdminExamManager"));
+const AdminScholarshipManager = lazy(() =>
+  import("./exam/scholarship"),
+);
 const AdminBatchManager = lazy(() => import("./exam/AdminBatchManager"));
 const InterviewToolsPositionsPage = lazy(
   () => import("../../pages/interviewTools/InterviewToolsPositionsPage"),
@@ -829,6 +832,12 @@ export default function Dashboard() {
         module: "batch",
       },
       {
+        key: "scholarship-exam",
+        label: "Scholarship Exam",
+        path: "/admin/scholarship-exam",
+        module: "scholarship_exam",
+      },
+      {
         key: "landing",
         label: "Landing Page",
         path: "/admin/landing",
@@ -1319,6 +1328,14 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "batch")}>
                     <AdminBatchManager />
+                  </Guard>
+                }
+              />
+              <Route
+                path="scholarship-exam"
+                element={
+                  <Guard allowed={hasPermission(me, "scholarship_exam")}>
+                    <AdminScholarshipManager />
                   </Guard>
                 }
               />

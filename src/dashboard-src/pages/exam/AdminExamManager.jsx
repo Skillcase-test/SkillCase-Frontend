@@ -67,7 +67,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 // QUESTION TYPE DEFINITIONS
-const QUESTION_TYPES = [
+// eslint-disable-next-line react-refresh/only-export-components
+export const QUESTION_TYPES = [
   { value: "mcq_single", label: "MCQ — Single Answer" },
   { value: "mcq_multi", label: "MCQ — Multiple Answers" },
   { value: "true_false", label: "Richtig / Falsch" },
@@ -86,7 +87,8 @@ const QUESTION_TYPES = [
   { value: "image_block", label: "🖼️ Image Block" },
 ];
 
-function getDefaultData(type) {
+// eslint-disable-next-line react-refresh/only-export-components
+export function getDefaultData(type) {
   switch (type) {
     case "mcq_single":
       return { question: "", options: ["", ""], correct: "" };
@@ -152,7 +154,8 @@ function getDefaultData(type) {
   }
 }
 
-function normalizeQuestionData(type, rawData) {
+// eslint-disable-next-line react-refresh/only-export-components
+export function normalizeQuestionData(type, rawData) {
   let data = rawData;
 
   if (typeof data === "string") {
@@ -1952,7 +1955,7 @@ function CompositeQuestionForm({ data, onChange }) {
 }
 
 // QUESTION FORM ROUTER
-function QuestionFormBuilder({ type, data, onChange, onOptionFileChange, onQuestionImageFileChange, onImageBlockFileChange }) {
+export function QuestionFormBuilder({ type, data, onChange, onOptionFileChange, onQuestionImageFileChange, onImageBlockFileChange }) {
   switch (type) {
     case "mcq_single":
       return <MCQSingleForm data={data} onChange={onChange} onOptionFileChange={onOptionFileChange} onQuestionImageFileChange={onQuestionImageFileChange} />;

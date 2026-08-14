@@ -305,3 +305,47 @@ describe("B1/B2 shell — BottomTabBar", () => {
     expect(localStorage.getItem("lg_preferred_mode")).toBe("job_screening");
   });
 });
+
+describe("BottomTabBar — scholarship variant", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPathname = "/scholarship";
+    mockUser = { user_prof_level: "A1", coins: 42 };
+    localStorage.clear();
+    mockGetStreak.mockResolvedValue({ currentStreak: 7 });
+  });
+
+  it("keeps the five-slot layout but only Home is live on the scholarship hub", async () => {
+    render(<BottomTabBar />);
+
+    // Home is a live link back to the exam hub (labelled "Home", not "Exam")
+    const home = screen.getByRole("link", { name: /Home/ });
+    expect(home).toHaveAttribute("href", "/scholarship");
+    expect(home).toHaveTextContent("Home");
+    expect(home).not.toHaveTextContent("Exam");
+
+    // Jobs is rendered but NOT a link/button (greyed out, not clickable)
+    expect(screen.getByText("Jobs")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Jobs/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Jobs/ })).not.toBeInTheDocument();
+
+    // Streak is rendered but NOT a button (locked)
+    expect(await screen.findByText("7 days")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /days/ })).not.toBeInTheDocument();
+
+    // Coins are rendered greyed out with the user's balance
+    expect(screen.getByText("42")).toBeInTheDocument();
+
+    // Center chip still identifies the exam
+    expect(screen.getByAltText("Scholarship Exam")).toBeInTheDocument();
+  });
+
+  it("renders the full navigation on a normal shell route (contrast check)", async () => {
+    mockPathname = "/";
+    render(<BottomTabBar />);
+
+    expect(screen.getByRole("link", { name: /Home/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Jobs/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /days/ })).toBeInTheDocument();
+  });
+});

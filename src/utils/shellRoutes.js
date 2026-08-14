@@ -4,13 +4,22 @@
  * flashcards, interview, terms, video player, notes, profile steps, news,
  * stories …) has its own in-page header/back navigation and renders without
  * the shell chrome.
+ *
+ * "/scholarship" is the standalone scholarship-exam hub: it reuses the same
+ * shell but with exam-only chrome (single-tab switcher, exam progress ring).
  */
 export const SHELL_ROUTES = [
   "/", // Landing (Exam & Practice / Job Preparation)
   "/learn-german", // Guided Learning home
   "/video-courses", // German Classes select
   "/job-screening", // Job-screening lobby (B1/B2)
+  "/scholarship", // Scholarship exam hub
 ];
+
+/** True on the scholarship hub or any of its child routes (take/result). */
+export function isScholarshipRoute(pathname = "") {
+  return pathname === "/scholarship" || pathname.startsWith("/scholarship/");
+}
 
 export function isShellRoute(pathname = "") {
   return SHELL_ROUTES.includes(pathname);

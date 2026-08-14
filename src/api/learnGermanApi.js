@@ -24,10 +24,12 @@ export const getLGMode = () =>
     "SHORT_PRIVATE",
   );
 
-export const setLGMode = (mode) =>
+// `level` is optional and used by the scholarship flow when a candidate leaves
+// the exam funnel and picks the proficiency level they want to learn at.
+export const setLGMode = (mode, level) =>
   api.post(
     "/user/lg-mode",
-    { mode },
+    level ? { mode, level } : { mode },
     { meta: { invalidateCacheTags: [LEARN_GERMAN_MODE_CACHE_TAG] } },
   );
 
