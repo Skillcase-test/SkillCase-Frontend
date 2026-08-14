@@ -91,15 +91,7 @@ export default function ExamCards() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="col-span-3 flex items-center justify-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin text-[#002856]" />
-      </div>
-    );
-  }
-
-  if (exams.length === 0) return null;
+  if (loading || exams.length === 0) return null;
 
   return (
     <>

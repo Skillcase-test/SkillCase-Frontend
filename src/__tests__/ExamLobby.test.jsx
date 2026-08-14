@@ -62,14 +62,14 @@ describe('ExamLobby', () => {
     vi.clearAllMocks();
   });
 
-  test('shows loading spinner initially', () => {
+  test('shows loading skeleton initially', () => {
     getExamInfo.mockReturnValueOnce(new Promise(() => {})); // never resolves
 
     renderLobby();
 
-    // Spinner should be present before resolution
-    const spinner = document.querySelector('svg.animate-spin');
-    expect(spinner).toBeTruthy();
+    // Skeleton should be present before resolution
+    const skeleton = document.querySelector('[aria-label="Loading exam"]');
+    expect(skeleton).toBeTruthy();
   });
 
   test('shows error message on API failure', async () => {

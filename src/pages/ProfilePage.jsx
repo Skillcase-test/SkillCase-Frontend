@@ -702,8 +702,23 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="w-8 h-8 border-3 border-[#002856] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-slate-50 max-w-lg mx-auto flex flex-col p-4 gap-4">
+        <div className="bg-white rounded-2xl p-6 shadow-sm flex items-center gap-4 animate-pulse">
+          <div className="w-16 h-16 rounded-full bg-slate-200" />
+          <div className="flex-1 flex flex-col gap-2">
+            <div className="h-5 w-36 bg-slate-200 rounded" />
+            <div className="h-3.5 w-24 bg-slate-100 rounded" />
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-6 shadow-sm flex flex-col gap-3 animate-pulse">
+          <div className="h-4 w-28 bg-slate-200 rounded" />
+          <div className="h-8 w-full bg-slate-100 rounded-xl" />
+        </div>
+        <div className="bg-white rounded-2xl p-4 shadow-sm flex flex-col gap-3 animate-pulse">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-10 w-full bg-slate-50 rounded-lg" />
+          ))}
+        </div>
       </div>
     );
   }

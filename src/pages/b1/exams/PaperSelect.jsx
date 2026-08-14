@@ -71,8 +71,22 @@ export default function PaperSelect() {
 
   if (loading) {
     return (
-      <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
+      <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen bg-white flex flex-col p-4">
+        <div className="h-6 w-32 bg-slate-200 rounded mb-6 animate-pulse" />
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="p-4 rounded-xl border border-slate-100 bg-slate-50 animate-pulse flex items-center justify-between"
+            >
+              <div className="flex flex-col gap-1.5">
+                <div className="h-4 w-28 bg-slate-200 rounded" />
+                <div className="h-3 w-40 bg-slate-100 rounded" />
+              </div>
+              <div className="h-8 w-20 bg-slate-200 rounded-lg" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

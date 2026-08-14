@@ -640,6 +640,34 @@ function LockedCardContent({ mod, displayId }) {
   );
 }
 
+function LearnGermanTimelineSkeleton() {
+  return (
+    <>
+      {[0, 1, 2].map((idx) => {
+        const isLeft = idx % 2 === 0;
+        return (
+          <div
+            key={idx}
+            className={`w-full flex ${
+              isLeft ? "justify-start pl-2" : "justify-end pr-2"
+            } relative`}
+          >
+            {idx < 2 && (
+              <RoadSegment direction={isLeft ? "left-to-right" : "right-to-left"} />
+            )}
+            <div className="w-[200px] h-[210px] px-2.5 pt-2.5 pb-3 bg-white/70 backdrop-blur-sm rounded-[20px] shadow-sm border border-white/60 flex flex-col items-center gap-2.5 animate-pulse">
+              <div className="w-full h-28 bg-slate-200/80 rounded-[10px]" />
+              <div className="h-3 w-16 bg-slate-200/80 rounded-full" />
+              <div className="h-4 w-28 bg-slate-200/80 rounded-md" />
+              <div className="h-8 w-full bg-slate-200/80 rounded-full mt-auto" />
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 // --- Timeline animation helpers (module-level, no component deps) ---
 
 function waitMs(ms) {
@@ -1214,9 +1242,7 @@ export default function LearnGermanHome() {
         {/* Dynamic Zigzag Module List */}
         <div className="w-full flex flex-col gap-12 relative z-10">
           {loading ? (
-            <div className="text-center text-slate-500 font-medium py-8">
-              Loading modules...
-            </div>
+            <LearnGermanTimelineSkeleton />
           ) : modules.length === 0 ? (
             <div className="text-center text-slate-500 font-medium py-8">
               No modules available.

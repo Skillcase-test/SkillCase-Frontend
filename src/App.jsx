@@ -18,6 +18,7 @@ import {
 import { Lock, Phone, LogOut, Loader2, CreditCard } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 import LandingPage from "./pages/landing/LandingPage";
+import OnboardingFlow from "./pages/onboarding/OnboardingFlow";
 import NewNavbar from "./components/NewNavbar";
 import PaywallBlocker from "./components/PaywallBlocker";
 import GuideSpotlight from "./components/GuideSpotlight";
@@ -33,6 +34,8 @@ import PremiumActivatedModal from "./components/PremiumActivatedModal";
 import TrialCountdownModal from "./components/TrialCountdownModal";
 import TrialEndedModal from "./components/TrialEndedModal";
 import PullToRefreshIndicator from "./components/PullToRefreshIndicator";
+import AppSplashScreen from "./components/common/AppSplashScreen";
+import { SplashScreen } from "@capacitor/splash-screen";
 import { useDispatch, useSelector } from "react-redux";
 import SupportWidget from "./components/SupportWidget";
 import api from "./api/axios";
@@ -226,7 +229,6 @@ const JobScreeningTermsSignPage = lazy(
   () => import("./pages/terms/JobScreeningTermsSignPage"),
 );
 const Dashboard = lazy(() => import("./dashboard-src/pages/Dashboard"));
-const OnboardingFlow = lazy(() => import("./pages/onboarding/OnboardingFlow"));
 const LearnGermanHome = lazy(
   () => import("./pages/learnGerman/LearnGermanHome"),
 );
@@ -345,7 +347,12 @@ function AppContent() {
   const dispatch = useDispatch();
   const { token, user, isAuthenticated } = useSelector((state) => state.auth);
   const location = useLocation();
-  const [authBootstrapping, setAuthBootstrapping] = useState(Boolean(token));
+  const [authBootstrapping, setAuthBootstrapping] = useState(Boolean(token && !user));
+
+  useEffect(() => {
+    // Hide the native Capacitor splash screen smoothly once the web view has mounted
+    SplashScreen.hide({ fadeOutDuration: 250 }).catch(() => {});
+  }, []);
 
   const navigate = useNavigate();
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
@@ -786,7 +793,7 @@ function AppContent() {
         return;
       }
 
-      if (active) setAuthBootstrapping(true);
+      if (active && !user) setAuthBootstrapping(true);
       try {
         const res = await api.post("/user/me");
         if (!active) return;
@@ -908,17 +915,13 @@ function AppContent() {
     return () => clearInterval(timer);
   }, [checkHealth]);
 
-  if (token && authBootstrapping) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">
-        Loading your account...
-      </div>
-    );
+  if (token && !user && authBootstrapping) {
+    return <AppSplashScreen message="Hi, I am Maya." />;
   }
 
-  // Redirect to signup if not authenticated and trying to access protected route
+  // Redirect to onboarding if not authenticated and trying to access protected route
   if (!isAuthenticated && !isPublicRoute) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/onboarding" replace />;
   }
 
   const isB1User =
@@ -1098,7 +1101,16 @@ function AppContent() {
                     path="/login"
                     element={<Navigate to="/onboarding" replace />}
                   />
-                  <Route path="/" element={<LandingPage />} />
+                  <Route
+                    path="/"
+                    element={
+                      isAuthenticated ? (
+                        <LandingPage />
+                      ) : (
+                        <Navigate to="/onboarding" replace />
+                      )
+                    }
+                  />
                   <Route
                     path="/test/:prof_level"
                     element={lazyScreen(<TestSelect />, "Loading Tests...")}
@@ -1213,10 +1225,7 @@ function AppContent() {
                   />
                   <Route
                     path="/onboarding"
-                    element={lazyScreen(
-                      <OnboardingFlow />,
-                      "Loading Onboarding...",
-                    )}
+                    element={<OnboardingFlow />}
                   />
                   <Route
                     path="/job-screening"

@@ -368,8 +368,18 @@ export default function NewsArticleReader() {
 
   if (loading) {
     return (
-      <div className="w-full max-w-md mx-auto min-h-screen flex items-center justify-center bg-white shadow-sm">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
+      <div className="w-full max-w-md mx-auto min-h-screen bg-white shadow-sm flex flex-col">
+        <div className="px-4 py-3 border-b border-zinc-100 flex items-center gap-2 animate-pulse">
+          <div className="h-4 w-12 bg-slate-200 rounded" />
+          <div className="h-4 w-40 bg-slate-200 rounded" />
+        </div>
+        <div className="w-full h-48 bg-slate-200 animate-pulse" />
+        <div className="p-4 flex flex-col gap-3 animate-pulse">
+          <div className="h-6 w-3/4 bg-slate-200 rounded" />
+          <div className="h-4 w-full bg-slate-100 rounded" />
+          <div className="h-4 w-5/6 bg-slate-100 rounded" />
+          <div className="h-4 w-4/6 bg-slate-100 rounded" />
+        </div>
       </div>
     );
   }

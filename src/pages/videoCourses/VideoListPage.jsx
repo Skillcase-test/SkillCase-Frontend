@@ -106,8 +106,19 @@ export default function VideoListPage() {
       </div>
 
       {loading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
+        <div className="px-4 py-2 flex flex-col gap-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="w-full p-3 bg-white rounded-xl border border-zinc-200 flex items-center gap-3 animate-pulse"
+            >
+              <div className="w-24 h-16 rounded-lg bg-slate-200 shrink-0" />
+              <div className="flex-1 flex flex-col gap-2">
+                <div className="h-4 w-3/4 bg-slate-200 rounded" />
+                <div className="h-3 w-1/2 bg-slate-100 rounded" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : shown.length === 0 ? (
         <p className="text-center text-slate-400 py-12 text-sm">

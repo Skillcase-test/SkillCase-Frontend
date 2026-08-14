@@ -520,8 +520,17 @@ export default function VideoPlayerPage() {
 
   if (loading) {
     return (
-      <div className="w-full max-w-md mx-auto min-h-screen flex items-center justify-center bg-white shadow-sm">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
+      <div className="w-full max-w-md mx-auto min-h-screen bg-white shadow-sm flex flex-col">
+        <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between animate-pulse">
+          <div className="h-4 w-16 bg-slate-200 rounded" />
+          <div className="h-4 w-32 bg-slate-200 rounded" />
+        </div>
+        <div className="w-full aspect-video bg-slate-200 animate-pulse" />
+        <div className="p-4 flex flex-col gap-3 animate-pulse">
+          <div className="h-5 w-3/4 bg-slate-200 rounded" />
+          <div className="h-3.5 w-1/2 bg-slate-100 rounded" />
+          <div className="h-24 w-full bg-slate-50 rounded-xl mt-2" />
+        </div>
       </div>
     );
   }

@@ -103,11 +103,13 @@ export default function ScholarshipHome() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-        <p className="text-xs text-gray-400 font-medium mt-3">
-          Loading your exam...
-        </p>
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center pt-8 px-4">
+        <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-sm border border-slate-100 animate-pulse flex flex-col items-center gap-4">
+          <div className="w-24 h-24 rounded-full bg-slate-200" />
+          <div className="h-6 w-48 bg-slate-200 rounded-lg" />
+          <div className="h-4 w-64 bg-slate-100 rounded" />
+          <div className="w-full h-12 bg-slate-200 rounded-xl mt-4" />
+        </div>
       </div>
     );
   }

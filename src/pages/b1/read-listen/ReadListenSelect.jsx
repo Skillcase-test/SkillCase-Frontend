@@ -17,6 +17,7 @@ export default function ReadListenSelect() {
     article: { completed: 0, total: 0 },
     video: { completed: 0, total: 0 },
   });
+  const [loading, setLoading] = useState(true);
   const { locked: usageLocked } = useUsageLimitModule("B1", "reading");
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export default function ReadListenSelect() {
 
     const fetchCounts = async () => {
       try {
+        setLoading(true);
         const [newsRes, articleRes, videoRes] = await Promise.all([
           getB1ReadingChapters("news"),
           getB1ReadingChapters("article"),
@@ -47,6 +49,8 @@ export default function ReadListenSelect() {
         });
       } catch (err) {
         console.error("Error fetching B1 counts:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -127,7 +131,9 @@ export default function ReadListenSelect() {
                 </span>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-2">
-                {counts.news.total > 0 && (
+                {loading ? (
+                  <div className="w-12 h-5 bg-slate-100 rounded-[40px] animate-pulse shrink-0" />
+                ) : counts.news.total > 0 && (
                   <div className="px-2 bg-green-700/10 rounded-[40px] border border-green-700/20 flex justify-center items-center shrink-0">
                     <span className="text-center text-green-700 text-xs font-medium leading-5">
                       {counts.news.completed}/{counts.news.total}
@@ -163,7 +169,9 @@ export default function ReadListenSelect() {
                 </span>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-2">
-                {counts.article.total > 0 && (
+                {loading ? (
+                  <div className="w-12 h-5 bg-slate-100 rounded-[40px] animate-pulse shrink-0" />
+                ) : counts.article.total > 0 && (
                   <div className="px-2 bg-amber-100/60 rounded-[40px] border border-orange-400/20 flex justify-center items-center shrink-0">
                     <span className="text-center text-orange-500 text-xs font-medium leading-5">
                       {counts.article.completed}/{counts.article.total}
@@ -199,7 +207,9 @@ export default function ReadListenSelect() {
                 </span>
               </div>
               <div className="flex items-center gap-2 shrink-0 ml-2">
-                {counts.video.total > 0 && (
+                {loading ? (
+                  <div className="w-12 h-5 bg-slate-100 rounded-[40px] animate-pulse shrink-0" />
+                ) : counts.video.total > 0 && (
                   <div className="px-2 bg-amber-100/60 rounded-[40px] border border-orange-400/20 flex justify-center items-center shrink-0">
                     <span className="text-center text-orange-500 text-xs font-medium leading-5">
                       {counts.video.completed}/{counts.video.total}

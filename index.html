@@ -59,11 +59,47 @@
     <link rel="icon" type="image/svg+xml" href="/s.webp" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Skillcase</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap"
+    />
+    <meta name="theme-color" content="#ffffff" />
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        min-height: 100%;
+        background-color: #ffffff;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #root {
+        width: 100%;
+        min-height: 100vh;
+      }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/microsoft-cognitiveservices-speech-sdk@latest/distrib/browser/microsoft.cognitiveservices.speech.sdk.bundle-min.js"></script>
   </head>
-  <body>
+  <body style="margin:0;padding:0;background-color:#ffffff;">
     <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1254088988549816&ev=PageView&noscript=1" /></noscript>
-    <div id="root"></div>
+    <div id="root">
+      <div style="position:fixed;inset:0;background:linear-gradient(to bottom, #001D4A, #1A4B9F);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding-top:max(env(safe-area-inset-top),4rem);padding-bottom:max(env(safe-area-inset-bottom),0px);overflow:hidden;z-index:99999;font-family:system-ui,-apple-system,sans-serif;-webkit-user-select:none;user-select:none;">
+        <div style="position:absolute;width:500px;height:500px;left:-120px;top:320px;background:rgba(255,255,255,0.1);border-radius:9999px;filter:blur(40px);pointer-events:none;"></div>
+        <div style="position:absolute;width:320px;height:320px;right:-60px;top:420px;background:rgba(255,255,255,0.15);border-radius:9999px;filter:blur(40px);pointer-events:none;"></div>
+        <div style="position:relative;z-index:10;display:flex;flex-direction:column;align-items:center;">
+          <img src="/white_mainlogo.webp" alt="Skillcase" style="height:120px;object-fit:contain;" />
+        </div>
+        <div style="position:relative;z-index:10;width:100%;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;">
+          <div style="margin-bottom:12px;position:relative;background:white;padding:12px 24px;border-radius:16px;box-shadow:0 10px 25px rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center;max-width:85%;">
+            <span style="color:black;font-size:15px;font-weight:600;text-align:center;line-height:1.2;">Hi, I am Maya.</span>
+            <div style="position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:10px solid white;"></div>
+          </div>
+          <img src="/mayaStanding.webp" alt="Maya" style="width:75%;max-width:280px;object-fit:contain;display:block;" />
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

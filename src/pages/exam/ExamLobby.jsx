@@ -49,8 +49,17 @@ export default function ExamLobby() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
+      <div
+        className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col p-4"
+        aria-label="Loading exam"
+      >
+        <div className="h-6 w-32 bg-slate-200 rounded mb-6 animate-pulse" />
+        <div className="w-full bg-slate-50 rounded-2xl p-6 border border-slate-100 animate-pulse flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-slate-200" />
+          <div className="h-5 w-48 bg-slate-200 rounded" />
+          <div className="h-3.5 w-64 bg-slate-100 rounded" />
+          <div className="w-full h-12 bg-slate-200 rounded-xl mt-4" />
+        </div>
       </div>
     );
   }

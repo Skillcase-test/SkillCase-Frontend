@@ -116,8 +116,16 @@ export default function ChapterSelectTemplate({
         id={showTourIds ? "A1-chapter-list" : undefined}
       >
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <RefreshCw className="w-7 h-7 animate-spin text-[#002856]" />
+          <div className="space-y-3" aria-label="Loading chapters">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-white border border-[#dbdbdb] rounded-xl px-3 py-5 flex items-center justify-between animate-pulse"
+              >
+                <div className="h-4 w-36 bg-slate-200 rounded" />
+                <div className="h-6 w-20 bg-slate-200 rounded-full" />
+              </div>
+            ))}
           </div>
         ) : error ? (
           <div className="text-center py-20 text-red-500">{error}</div>

@@ -291,13 +291,33 @@ const JobScreening = () => {
 
   if (loading || redirecting) {
     return (
-      <div className="w-full min-h-screen bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] flex items-center justify-center flex-col gap-3">
-        <div className="w-10 h-10 border-[3.5px] border-[#002856] border-t-transparent rounded-full animate-spin" />
-        <span className="text-slate-550 text-xs font-semibold">
-          {redirecting
-            ? "Taking you to your dashboard..."
-            : "Loading dashboard..."}
-        </span>
+      <div
+        className={`w-full ${pipelineMinHeightClass} bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] pt-6 pb-28 px-4 flex flex-col items-center overflow-y-auto`}
+      >
+        <div className="w-full max-w-md flex flex-col items-center gap-6">
+          <div className="w-full bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-sm border border-white/60 animate-pulse flex flex-col items-center gap-3">
+            <div className="h-6 w-48 bg-slate-200 rounded-lg" />
+            <div className="h-3.5 w-64 bg-slate-100 rounded" />
+            <div className="w-full h-2.5 bg-slate-200 rounded-full mt-2" />
+          </div>
+          <div className="w-full flex flex-col gap-3">
+            {[0, 1, 2, 3].map((idx) => (
+              <div
+                key={idx}
+                className="w-full bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-white/60 animate-pulse flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-8 h-8 rounded-full bg-slate-200" />
+                  <div className="flex flex-col gap-1.5">
+                    <div className="h-4 w-32 bg-slate-200 rounded" />
+                    <div className="h-3 w-48 bg-slate-100 rounded" />
+                  </div>
+                </div>
+                <div className="w-5 h-5 rounded-full bg-slate-200" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

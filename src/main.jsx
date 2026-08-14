@@ -61,6 +61,7 @@ import * as Sentry from "@sentry/react";
 import { initSentry } from "./observability/sentry";
 import AppErrorFallback from "./components/AppErrorFallback";
 import { initializeTelemetry } from "./telemetry";
+import AppSplashScreen from "./components/common/AppSplashScreen";
 import { UsageLimitProvider } from "./hooks/useUsageLimits";
 
 initializeTelemetry();
@@ -77,7 +78,7 @@ root.render(
         )}
       >
         <Provider store={store}>
-          <PersistGate loading={null} persistor={persistor}>
+          <PersistGate loading={<AppSplashScreen message="Hi, I am Maya." />} persistor={persistor}>
               <UsageLimitProvider>
                 <App />
               </UsageLimitProvider>

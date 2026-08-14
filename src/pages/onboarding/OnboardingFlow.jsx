@@ -874,7 +874,7 @@ const OnboardingFlow = () => {
               key="splash"
               initial={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-gradient-to-b from-[#001D4A] to-[#1A4B9F] flex flex-col items-center pt-24 pb-0 md:pt-12"
+              className="absolute inset-0 bg-gradient-to-b from-[#002856] to-[#1A4B9F] flex flex-col items-center pt-24 pb-0 md:pt-12"
             >
               <div className="absolute w-[600px] h-[600px] -left-[100px] top-[400px] bg-white/10 rounded-full blur-sm" />
               <div className="absolute w-[300px] h-[300px] -right-[50px] top-[500px] bg-white/20 rounded-full blur-sm" />
