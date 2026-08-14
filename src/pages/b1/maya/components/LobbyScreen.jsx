@@ -143,7 +143,7 @@ export default function LobbyScreen({ onStartCall, isConnecting, error }) {
       <div className="w-full max-w-md px-4 py-3 bg-white flex justify-between items-center z-10">
         <button
           onClick={() => navigate(-1)}
-          className="flex justify-center items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer border-0 bg-transparent text-[#0b0f19] text-sm font-semibold font-sans leading-6"
+          className="flex justify-center items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer border-0 bg-transparent text-[#0b0f19] text-sm font-semibold leading-6"
         >
           <ChevronLeft size={16} className="text-black" />
           <span>Back</span>
@@ -153,7 +153,7 @@ export default function LobbyScreen({ onStartCall, isConnecting, error }) {
             setShowDiagnostics(true);
             toggleDiagVolumeMeter(true);
           }}
-          className="text-neutral-500 text-sm font-semibold font-sans leading-6 hover:text-[#002856] transition-colors cursor-pointer border-0 bg-transparent"
+          className="text-neutral-500 text-sm font-semibold leading-6 hover:text-[#002856] transition-colors cursor-pointer border-0 bg-transparent"
         >
           Talk to Maya
         </button>
@@ -173,10 +173,10 @@ export default function LobbyScreen({ onStartCall, isConnecting, error }) {
             </div>
           </div>
           <div className="flex flex-col justify-start items-center gap-2">
-            <h1 className="text-center text-sky-950 text-3xl font-semibold font-sans leading-9">
+            <h1 className="text-center text-sky-950 text-3xl font-semibold leading-9">
               Maya
             </h1>
-            <p className="text-center text-sky-950 text-base font-semibold font-sans leading-5">
+            <p className="text-center text-sky-950 text-base font-semibold leading-5">
               AI German Tutor
             </p>
           </div>
@@ -184,7 +184,7 @@ export default function LobbyScreen({ onStartCall, isConnecting, error }) {
       </div>
 
       <div className="w-full max-w-md px-4 py-20 flex flex-col justify-start items-center gap-6">
-        <p className="w-56 text-center text-black/50 text-xs font-normal font-sans leading-5">
+        <p className="w-56 text-center text-black/50 text-xs font-normal leading-5">
           Have a real conversation in German and get instant feedback
         </p>
 
@@ -203,7 +203,7 @@ export default function LobbyScreen({ onStartCall, isConnecting, error }) {
               onStartCall();
             }}
             disabled={isConnecting}
-            className="w-full px-4 py-3 bg-green-700 hover:bg-green-800 active:scale-98 text-white rounded-lg shadow-[0px_1px_2px_rgba(10,13,18,0.05)] flex justify-center items-center gap-3 overflow-hidden cursor-pointer transition-all border-0 font-sans font-semibold text-base"
+            className="w-full px-4 py-3 bg-green-700 hover:bg-green-800 active:scale-98 text-white rounded-lg shadow-[0px_1px_2px_rgba(10,13,18,0.05)] flex justify-center items-center gap-3 overflow-hidden cursor-pointer transition-all border-0 font-semibold text-base"
           >
             {isConnecting ? (
               <div className="w-5 h-5 rounded-full border-[2.5px] border-white/30 border-t-white animate-spin" />
@@ -217,7 +217,7 @@ export default function LobbyScreen({ onStartCall, isConnecting, error }) {
 
           <button
             onClick={() => navigate(-1)}
-            className="w-full px-4 py-3 hover:bg-slate-50 text-blue-950 text-base font-semibold font-sans leading-6 rounded-lg flex justify-center items-center cursor-pointer transition-colors"
+            className="w-full px-4 py-3 hover:bg-slate-50 text-blue-950 text-base font-semibold leading-6 rounded-lg flex justify-center items-center cursor-pointer transition-colors"
           >
             Cancel
           </button>

@@ -48,7 +48,7 @@ export default function ManagePlanPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#002856] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#002856] flex flex-col ">
       {/* Header */}
       <div className="px-4 py-2.5 flex items-center gap-3">
         <button
@@ -153,7 +153,7 @@ export default function ManagePlanPage() {
 
       {/* Cancel Premium Confirmation Modal */}
       {showCancel && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 select-none font-sans">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 select-none ">
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}

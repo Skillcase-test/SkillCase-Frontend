@@ -1101,7 +1101,7 @@ export function InvoiceViewTab({
                     setSummaryMonthDetail(null);
                     setCandidatesSearch("");
                   }}
-                  className="h-8 w-8 rounded-full p-0 flex items-center justify-center border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 shadow-none font-sans font-normal"
+                  className="h-8 w-8 rounded-full p-0 flex items-center justify-center border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 shadow-none font-normal"
                 >
                   ✕
                 </ControlButton>
@@ -1267,7 +1267,7 @@ export function InvoiceViewTab({
                     setSummaryUnbookedDetail(null);
                     setCandidatesSearch("");
                   }}
-                  className="h-8 w-8 rounded-full p-0 flex items-center justify-center border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 shadow-none font-sans font-normal"
+                  className="h-8 w-8 rounded-full p-0 flex items-center justify-center border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 shadow-none font-normal"
                 >
                   ✕
                 </ControlButton>

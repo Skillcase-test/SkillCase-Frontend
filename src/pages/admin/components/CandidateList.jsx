@@ -27,7 +27,7 @@ const CandidateList = ({
   onClearDates,
 }) => {
   return (
-    <div className="flex flex-col h-full bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden font-sans">
+    <div className="flex flex-col h-full bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden ">
       {/* Search Header */}
       <div className="p-3 border-b border-slate-100 bg-white">
         <div className="flex flex-col lg:flex-row lg:items-end gap-2.5">

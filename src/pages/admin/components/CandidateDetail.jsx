@@ -656,7 +656,7 @@ const CandidateDetail = ({
     .toUpperCase();
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm flex flex-col h-full overflow-hidden font-sans">
+    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm flex flex-col h-full overflow-hidden ">
       {/* Header bar */}
       <div className="p-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
         <div className="flex items-center gap-3">
@@ -808,7 +808,7 @@ const CandidateDetail = ({
               Documents & Submissions
             </h4>
 
-            <div className="grid grid-cols-2 gap-2 font-sans">
+            <div className="grid grid-cols-2 gap-2 ">
               {candidate.resumeDownloadUrl ? (
                 <div className="flex flex-col gap-1">
                   <a
@@ -1050,7 +1050,7 @@ const CandidateDetail = ({
           </details>
 
           {/* Customize Document Checklist (Collapsible Accordion) */}
-          <details className="group border border-slate-200 rounded-2xl bg-white shadow-[0_2px_8px_rgba(0,40,86,0.03)] shrink-0 font-sans">
+          <details className="group border border-slate-200 rounded-2xl bg-white shadow-[0_2px_8px_rgba(0,40,86,0.03)] shrink-0 ">
             <summary className="p-4 text-xs font-bold text-slate-600 cursor-pointer select-none flex items-center justify-between hover:bg-slate-50/30">
               <span className="flex items-center gap-1.5 flex-wrap">
                 <FileText className="w-3.5 h-3.5 text-slate-400" />
@@ -2616,7 +2616,7 @@ const CandidateDetail = ({
                                                     }
                                                     placeholder="Provide brief details about the role..."
                                                     rows={2}
-                                                    className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50 font-sans"
+                                                    className="border border-slate-200 rounded p-1 text-[10px] w-full bg-slate-50/50 "
                                                   />
                                                 </div>
                                               </div>
@@ -3337,7 +3337,7 @@ const CandidateDetail = ({
                                               }
                                               placeholder="Provide brief details about the role..."
                                               rows={2}
-                                              className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20 font-sans"
+                                              className="border border-slate-200 rounded-lg p-2 text-xs bg-slate-50/20 "
                                             />
                                           </div>
 

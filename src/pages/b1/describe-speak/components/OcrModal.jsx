@@ -63,7 +63,7 @@ export default function OcrModal({ onClose, onUpload }) {
         )}
 
         <div className="w-full flex flex-col justify-start items-center gap-3">
-          <h3 className="text-center text-[#002856] text-base font-semibold font-sans leading-5">
+          <h3 className="text-center text-[#002856] text-base font-semibold leading-5">
             Upload Handwritten Image
           </h3>
         </div>
@@ -126,10 +126,10 @@ export default function OcrModal({ onClose, onUpload }) {
                   <Upload className="w-5 h-5" />
                 </div>
                 <div className="flex flex-col justify-start items-center gap-1 text-center">
-                  <span className="text-[#002856] text-xs font-semibold font-sans">
+                  <span className="text-[#002856] text-xs font-semibold ">
                     Tap to upload
                   </span>
-                  <span className="text-slate-400 text-[10px] font-normal font-sans">
+                  <span className="text-slate-400 text-[10px] font-normal ">
                     Supported files: JPG, PNG, PDF
                   </span>
                 </div>
@@ -142,7 +142,7 @@ export default function OcrModal({ onClose, onUpload }) {
           <button
             onClick={handleUploadClick}
             disabled={!selectedFile || isUploading}
-            className={`w-full py-3 rounded-lg flex justify-center items-center gap-1.5 transition-all duration-200 font-sans text-sm font-semibold ${
+            className={`w-full py-3 rounded-lg flex justify-center items-center gap-1.5 transition-all duration-200 text-sm font-semibold ${
               selectedFile && !isUploading
                 ? "bg-[#002856] hover:bg-[#001c3d] text-white shadow-sm cursor-pointer"
                 : "bg-neutral-200 text-neutral-400 cursor-not-allowed border border-zinc-400/50"
@@ -155,7 +155,7 @@ export default function OcrModal({ onClose, onUpload }) {
             type="button"
             onClick={onClose}
             disabled={isUploading}
-            className="w-full py-3 rounded-lg border border-zinc-200 hover:bg-slate-50 flex justify-center items-center gap-1.5 transition-all duration-200 text-[#002856] text-sm font-semibold font-sans cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 rounded-lg border border-zinc-200 hover:bg-slate-50 flex justify-center items-center gap-1.5 transition-all duration-200 text-[#002856] text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
           </button>

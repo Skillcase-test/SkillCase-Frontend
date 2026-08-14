@@ -103,7 +103,7 @@ export default function UpgradePlanPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#002856] flex flex-col font-sans">
+    <div className="min-h-screen bg-[#002856] flex flex-col ">
       {/* Header */}
       <div className="px-4 py-2.5 flex items-center gap-3">
         <button

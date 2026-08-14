@@ -245,7 +245,7 @@ function EuropassResumeTemplate({ data }) {
 
   return (
     <div
-      className="resume-content-wrapper flex font-sans text-black relative items-stretch h-full"
+      className="resume-content-wrapper flex text-black relative items-stretch h-full"
       style={{
         // Background gradient removed for PDF compatibility
         // Preview uses simple fallback, PDF uses print-bg classes

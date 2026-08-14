@@ -55,7 +55,7 @@ export default function JobsLockedPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans">
+    <div className="min-h-screen bg-white flex flex-col ">
       {/* Header — same treatment as the SupportWidget screen */}
       <div className="self-stretch px-4 pt-2.5 pb-5 bg-white inline-flex justify-start items-center gap-3">
         <button

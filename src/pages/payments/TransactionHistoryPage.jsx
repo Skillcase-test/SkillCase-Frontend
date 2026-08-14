@@ -60,7 +60,7 @@ export default function TransactionHistoryPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans">
+    <div className="min-h-screen bg-white flex flex-col ">
       {/* Header */}
       <div className="px-4 py-2.5 flex items-center gap-3">
         <button

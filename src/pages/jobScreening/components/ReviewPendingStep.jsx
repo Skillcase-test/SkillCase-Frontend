@@ -121,7 +121,7 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
 
   if (isRejected) {
     return (
-      <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
+      <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative ">
         {/* Sub-Header bar */}
         <div className="w-full flex items-center justify-between mb-4">
           <button
@@ -202,7 +202,7 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
   }
 
   return (
-    <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
+    <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative ">
       {/* Sub-Header bar */}
       <div className="w-full flex items-center justify-between mb-4">
         <button

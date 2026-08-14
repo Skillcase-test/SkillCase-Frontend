@@ -110,14 +110,14 @@ export default function InterviewToolsReviewPage({
 
   if (!detail) {
     return (
-      <div className="rounded-2xl bg-white p-12 text-center text-sm font-bold text-slate-500 shadow-sm uppercase tracking-widest font-sans">
+      <div className="rounded-2xl bg-white p-12 text-center text-sm font-bold text-slate-500 shadow-sm uppercase tracking-widest ">
         Loading candidate review...
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6 ">
       <div className="flex items-center justify-between">
         <button
           type="button"

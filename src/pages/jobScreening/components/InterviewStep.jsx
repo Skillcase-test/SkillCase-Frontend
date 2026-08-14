@@ -39,7 +39,7 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
 
   if (isInterviewCompleted) {
     return (
-      <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
+      <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative ">
         {/* Sub-Header bar */}
         <div className="w-full flex items-center justify-between mb-4">
           <button
@@ -179,7 +179,7 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
 
   if (hasInterview) {
     return (
-      <div className="w-full bg-white flex flex-col items-center justify-center py-12 min-h-[300px] font-sans">
+      <div className="w-full bg-white flex flex-col items-center justify-center py-12 min-h-[300px] ">
         <div className="w-8 h-8 border-2 border-[#002856] border-t-transparent rounded-full animate-spin" />
         <span className="text-[#002856] text-xs font-semibold mt-3">
           Redirecting to interview...
@@ -189,7 +189,7 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
   }
 
   return (
-    <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
+    <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative ">
       {/* Sub-Header bar */}
       <div className="w-full flex items-center justify-between mb-4">
         <button

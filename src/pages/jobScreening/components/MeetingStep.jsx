@@ -122,7 +122,7 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
   if (isTraining) {
     if (isFailed) {
       return (
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm/30 p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full font-sans">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm/30 p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full ">
           <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center text-red-600 mx-auto mb-5">
             <AlertCircle className="w-7 h-7" />
           </div>
@@ -158,7 +158,7 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
 
     if (!isScheduled) {
       return (
-        <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative font-sans">
+        <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative ">
           <div className="w-full flex items-center justify-between mb-4">
             <button
               onClick={onBack}
@@ -291,7 +291,7 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
 
     // Scheduled view for training
     return (
-      <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative font-sans">
+      <div className="w-full bg-white text-[#002856] flex flex-col items-start justify-start relative ">
         <div className="w-full flex items-center justify-between mb-4">
           <button
             onClick={onBack}
@@ -427,7 +427,7 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
   // Recruiter interview original view
   if (isFailed) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm/30 p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full font-sans">
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm/30 p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full ">
         <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center text-red-600 mx-auto mb-5">
           <AlertCircle className="w-7 h-7" />
         </div>
@@ -462,7 +462,7 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
 
   if (!isScheduled) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm/30 p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full font-sans">
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm/30 p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full ">
         <div className="w-14 h-14 rounded-full bg-blue-50/50 flex items-center justify-center text-[#002856] mx-auto mb-5 animate-pulse">
           <Calendar className="w-7 h-7" />
         </div>
@@ -502,7 +502,7 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
   });
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm/30 p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full font-sans">
+    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm/30 p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full ">
       <div className="w-14 h-14 rounded-full bg-blue-50/50 flex items-center justify-center text-[#002856] mx-auto mb-5">
         <Calendar className="w-7 h-7" />
       </div>

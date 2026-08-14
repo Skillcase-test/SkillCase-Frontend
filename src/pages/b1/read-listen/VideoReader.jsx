@@ -650,7 +650,7 @@ export default function VideoReader() {
                         textAnchor="middle"
                         fill="currentColor"
                         stroke="none"
-                        className="font-sans font-bold"
+                        className="font-bold"
                       >
                         10
                       </text>
@@ -682,7 +682,7 @@ export default function VideoReader() {
                         textAnchor="middle"
                         fill="currentColor"
                         stroke="none"
-                        className="font-sans font-bold"
+                        className="font-bold"
                       >
                         10
                       </text>

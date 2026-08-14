@@ -14,7 +14,7 @@ export default function PremiumActivatedModal({ open, onClose, onGoHome }) {
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs select-none font-sans">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs select-none ">
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}

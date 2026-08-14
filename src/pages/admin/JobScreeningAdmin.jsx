@@ -629,7 +629,7 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
   };
 
   return (
-    <div className="flex flex-col gap-6 h-full font-sans">
+    <div className="flex flex-col gap-6 h-full ">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-slate-100 pb-4">
         <div>
           <div className="flex items-center gap-2">

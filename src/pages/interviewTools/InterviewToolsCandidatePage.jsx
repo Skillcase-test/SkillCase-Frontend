@@ -39,7 +39,7 @@ function PositionEventLog({ positionId }) {
   }, [positionId]);
 
   return (
-    <div className="space-y-4 font-sans">
+    <div className="space-y-4 ">
       <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <button
           type="button"

@@ -37,7 +37,7 @@ const WelcomeStep = ({ onComplete }) => {
   };
 
   return (
-    <div className="w-full min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] sm:min-h-0 sm:max-w-md mx-auto rounded-none sm:rounded-3xl bg-gradient-to-b from-[#0b2545] to-[#134074] text-white p-6 sm:p-8 flex flex-col items-center justify-center text-center sm:shadow-2xl sm:border sm:border-[#1d4e89]/30 relative overflow-hidden font-sans">
+    <div className="w-full min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)] sm:min-h-0 sm:max-w-md mx-auto rounded-none sm:rounded-3xl bg-gradient-to-b from-[#0b2545] to-[#134074] text-white p-6 sm:p-8 flex flex-col items-center justify-center text-center sm:shadow-2xl sm:border sm:border-[#1d4e89]/30 relative overflow-hidden ">
       {/* Decorative ambient glows */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl -z-10" />
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-blue-400/5 rounded-full blur-3xl -z-10" />

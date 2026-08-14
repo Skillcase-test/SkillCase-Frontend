@@ -113,10 +113,10 @@ export default function CallScreen({
             />
           </div>
           <div className="flex flex-col justify-center items-start">
-            <span className="text-neutral-900 text-sm font-semibold font-sans">
+            <span className="text-neutral-900 text-sm font-semibold ">
               Maya
             </span>
-            <span className="text-neutral-500 text-[10px] font-medium font-sans leading-3">
+            <span className="text-neutral-500 text-[10px] font-medium leading-3">
               German Tutor
             </span>
           </div>
@@ -125,7 +125,7 @@ export default function CallScreen({
         <div className="flex justify-start items-center gap-1.5">
           <div className="px-2 py-0.5 bg-green-700/10 rounded-full border border-green-700/10 flex items-center justify-center gap-1.5">
             <div className="w-1.5 h-1.5 bg-green-700 rounded-full animate-pulse" />
-            <span className="text-green-700 text-xs font-medium font-sans leading-5">
+            <span className="text-green-700 text-xs font-medium leading-5">
               Live
             </span>
           </div>
@@ -169,7 +169,7 @@ export default function CallScreen({
                 />
               </div>
               <div className="p-3 bg-[#E4EFFF] rounded-tr-xl rounded-bl-xl rounded-br-xl max-w-[65%]">
-                <p className="text-black text-xs font-normal font-sans leading-relaxed m-0">
+                <p className="text-black text-xs font-normal leading-relaxed m-0">
                   {msg.text}
                 </p>
                 {msg.topics && msg.topics.length > 0 && (
@@ -197,7 +197,7 @@ export default function CallScreen({
               className="flex justify-end items-start gap-3 w-full animate-[fadeSlide_0.25s_ease]"
             >
               <div className="p-3 bg-[#F5F5F5] rounded-tl-xl rounded-bl-xl rounded-br-xl max-w-[65%]">
-                <p className="text-black text-xs font-normal font-sans leading-relaxed m-0">
+                <p className="text-black text-xs font-normal leading-relaxed m-0">
                   {msg.text}
                 </p>
               </div>
@@ -213,7 +213,7 @@ export default function CallScreen({
                 isUserSpeaking ? "user-avatar-speaking" : ""
               }`}
             >
-              <p className="text-black text-xs font-normal font-sans leading-relaxed m-0">
+              <p className="text-black text-xs font-normal leading-relaxed m-0">
                 {liveTranscript || pendingUserTranscript || "Sprechen..."}
               </p>
             </div>
@@ -253,7 +253,7 @@ export default function CallScreen({
       {/* Control Actions Panel */}
       <div className="w-full max-w-md px-4 py-20 flex flex-col justify-start items-center gap-3 shrink-0 bg-white">
         {/* Status indicator (Speaking / Listening) */}
-        <div className="w-56 text-center text-black/50 text-xs font-normal font-sans leading-5">
+        <div className="w-56 text-center text-black/50 text-xs font-normal leading-5">
           {stateLabel}
         </div>
 
@@ -276,7 +276,7 @@ export default function CallScreen({
           <button
             onClick={onEndCall}
             disabled={isEnding}
-            className={`px-6 py-3.5 rounded-lg shadow-[inset_0px_0px_0px_1px_rgba(10,13,18,0.18)] outline outline-offset-[-2px] outline-white/10 flex justify-center items-center gap-2 overflow-hidden transition-all border-0 font-semibold text-white text-base font-sans leading-6 ${
+            className={`px-6 py-3.5 rounded-lg shadow-[inset_0px_0px_0px_1px_rgba(10,13,18,0.18)] outline outline-offset-[-2px] outline-white/10 flex justify-center items-center gap-2 overflow-hidden transition-all border-0 font-semibold text-white text-base leading-6 ${
               isEnding
                 ? "bg-red-400 cursor-not-allowed opacity-80"
                 : "bg-red-500 hover:bg-red-600 active:scale-98 cursor-pointer"

@@ -766,7 +766,7 @@ export default function WiseClassesDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 lg:p-8 font-sans">
+    <div className="min-h-screen bg-slate-50 p-6 lg:p-8 ">
       <div className="mx-auto max-w-7xl">
         {/* Header & Filter Card */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm mb-5">

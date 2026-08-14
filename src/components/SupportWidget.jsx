@@ -412,7 +412,7 @@ export default function SupportWidget() {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 280 }}
-              className="relative w-full max-w-md h-full bg-white shadow-2xl flex flex-col z-10 font-sans overflow-hidden"
+              className="relative w-full max-w-md h-full bg-white shadow-2xl flex flex-col z-10 overflow-hidden"
             >
               {/* Figma Header */}
               <div className="px-4 pt-4 pb-3 bg-white flex items-center justify-start gap-3 shrink-0">
@@ -937,7 +937,7 @@ export default function SupportWidget() {
 
       {/* Upload Modal (Matching ProfilePage.jsx Upload Modal) */}
       {uploadModalOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 select-none font-sans">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 select-none ">
           <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 flex flex-col items-center gap-5 relative animate-in fade-in zoom-in-95 duration-150">
             <button
               type="button"
@@ -1003,7 +1003,7 @@ export default function SupportWidget() {
 
       {/* Attachment Preview Modal (Matching ProfilePage.jsx Document Preview Modal) */}
       {attachmentPreviewModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 select-none font-sans">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 select-none ">
           <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 flex flex-col items-center gap-5 relative animate-in fade-in zoom-in-95 duration-150">
             <button
               type="button"

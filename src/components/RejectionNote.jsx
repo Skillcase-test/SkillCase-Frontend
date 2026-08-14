@@ -26,7 +26,7 @@ const RejectionNote = ({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="relative w-full p-4 bg-gradient-to-b from-amber-50 via-amber-50/90 to-amber-100/50 rounded-2xl border border-amber-200/80 shadow-[0_4px_16px_rgba(217,119,6,0.08)] flex flex-col gap-3 text-left overflow-hidden font-sans"
+      className="relative w-full p-4 bg-gradient-to-b from-amber-50 via-amber-50/90 to-amber-100/50 rounded-2xl border border-amber-200/80 shadow-[0_4px_16px_rgba(217,119,6,0.08)] flex flex-col gap-3 text-left overflow-hidden "
     >
       {/* Subtle paper tape accent at the top center */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-14 h-2 bg-amber-200/40 rounded-b-sm pointer-events-none" />

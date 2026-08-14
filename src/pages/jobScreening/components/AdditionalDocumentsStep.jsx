@@ -348,7 +348,7 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
   // View state 1: Under Review Screen
   if (isShowReviewScreen) {
     return (
-      <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
+      <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative ">
         {/* Sub-Header bar */}
         <div className="w-full flex items-center justify-between mb-4">
           <button
@@ -516,7 +516,7 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
 
   // View state 2: Upload Documents Form view
   return (
-    <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative font-sans">
+    <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative ">
       {/* Sub-Header bar */}
       <div className="w-full flex items-center justify-between mb-4">
         <button

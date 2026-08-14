@@ -164,7 +164,7 @@ export default function SkillcaseInterviewToolsPositionsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between font-sans">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between ">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
             Skillcase Interviews
@@ -208,7 +208,7 @@ export default function SkillcaseInterviewToolsPositionsPage({
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm font-sans">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ">
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead className="bg-slate-50 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">

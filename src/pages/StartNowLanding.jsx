@@ -61,7 +61,7 @@ export default function StartNowLanding() {
   }, []);
 
   return (
-    <div className="font-sans bg-white min-h-screen relative overflow-x-hidden selection:bg-[#F9C53D] selection:text-[#002856]">
+    <div className="bg-white min-h-screen relative overflow-x-hidden selection:bg-[#F9C53D] selection:text-[#002856]">
       {/* 1. Custom Isolated Navigation Bar */}
       <nav className="bg-white shadow-xs border-b border-slate-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

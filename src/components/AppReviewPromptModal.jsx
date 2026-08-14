@@ -214,7 +214,7 @@ export default function AppReviewPromptModal({ blocked = false }) {
       <AnimatePresence>
         {visible && (
           <div
-            className="fixed inset-0 z-9999 flex items-center justify-center p-4 backdrop-blur-xs select-none font-sans"
+            className="fixed inset-0 z-9999 flex items-center justify-center p-4 backdrop-blur-xs select-none "
             style={{
               background:
                 "radial-gradient(circle, rgba(15, 23, 42, 0.65) 0%, rgba(2, 6, 23, 0.95) 100%)",

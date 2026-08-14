@@ -56,7 +56,7 @@ const FillDetailsStep = ({ progress, onComplete, onBack }) => {
   };
 
   return (
-    <div className="w-full bg-white text-slate-900 flex flex-col justify-start items-start font-sans">
+    <div className="w-full bg-white text-slate-900 flex flex-col justify-start items-start ">
       {/* Header Navigation */}
       <div className="w-full flex flex-col justify-start items-start gap-2.5">
         <div className="self-stretch inline-flex justify-between items-center">

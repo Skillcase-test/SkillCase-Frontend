@@ -78,7 +78,7 @@ function ToggleSwitch({ checked, onChange, disabled }) {
 
 function PageCard({ title, description, children, actions }) {
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-6 ">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -101,7 +101,7 @@ function PageCard({ title, description, children, actions }) {
 
 function TableWrapper({ children }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm font-sans">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ">
       <div className="overflow-x-auto">
         <table className="min-w-full">{children}</table>
       </div>
@@ -370,7 +370,7 @@ function AccountsPage() {
   }, []);
 
   return (
-    <div className="space-y-8 font-sans">
+    <div className="space-y-8 ">
       <PageCard
         title="Recruiter Accounts"
         description="Manage partner recruiter accounts and their shared profile assignments."
@@ -902,7 +902,7 @@ function AccountProfilesPage() {
   }
 
   return (
-    <div className="space-y-8 font-sans">
+    <div className="space-y-8 ">
       <PageCard
         title={`Profiles for Account #${accountId}`}
         description="Manage assigned candidate profiles for this partner."
@@ -1285,7 +1285,7 @@ function LibraryPage() {
   }
 
   return (
-    <div className="space-y-8 font-sans">
+    <div className="space-y-8 ">
       <PageCard
         title="Shared Profile Library"
         description="Manage all master profiles that can be assigned to recruiter accounts."
@@ -1658,7 +1658,7 @@ function ProfileFormPage({ mode }) {
     mode === "edit" ? "Edit Shared Profile" : "Create Shared Profile";
 
   return (
-    <div className="space-y-8 font-sans pb-12">
+    <div className="space-y-8 pb-12">
       <PageCard
         title={title}
         description={

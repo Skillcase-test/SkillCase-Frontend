@@ -60,7 +60,7 @@ const OfferLetterStep = ({ progress, onComplete }) => {
 
   if (!hasOffer) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm/30 p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full font-sans">
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm/30 p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full ">
         <div className="w-14 h-14 rounded-full bg-blue-50/50 flex items-center justify-center text-[#002856] mx-auto mb-5 animate-pulse">
           <FileDown className="w-7 h-7" />
         </div>
@@ -99,7 +99,7 @@ const OfferLetterStep = ({ progress, onComplete }) => {
   }
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm/30 p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full font-sans">
+    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm/30 p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full ">
       <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 mx-auto mb-5">
         <Award className="w-7 h-7" />
       </div>

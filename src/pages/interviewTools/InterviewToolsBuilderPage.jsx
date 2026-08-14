@@ -146,7 +146,7 @@ function VideoRecorderModal({ title, description, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/95 p-4 flex items-center justify-center font-sans">
+    <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/95 p-4 flex items-center justify-center ">
       <div className="w-full max-w-4xl rounded-xl bg-white p-8">
         <div className="flex items-start justify-between">
           <div>
@@ -271,7 +271,7 @@ function InlinePreview({ form, questions }) {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50 p-6 lg:p-12 font-sans w-full">
+    <div className="flex-1 overflow-y-auto bg-slate-50 p-6 lg:p-12 w-full">
       <div className="mx-auto max-w-4xl bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[600px] flex flex-col relative">
          
          <div className="bg-slate-900 px-6 py-4 flex items-center justify-between text-white shrink-0">
@@ -686,7 +686,7 @@ export default function InterviewToolsBuilderPage({
 
   // --- TAB RENDERS ---
   const renderBasicsTab = () => (
-    <div className="flex-1 overflow-y-auto bg-slate-50 w-full font-sans pb-24">
+    <div className="flex-1 overflow-y-auto bg-slate-50 w-full pb-24">
       <div className="max-w-4xl mx-auto py-10 px-6 space-y-10">
         
         <section className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
@@ -815,7 +815,7 @@ export default function InterviewToolsBuilderPage({
      const activeQ = questions.find(q => q.local_id === activeQuestionId);
 
      return (
-       <div className="flex-1 flex overflow-hidden w-full bg-white font-sans">
+       <div className="flex-1 flex overflow-hidden w-full bg-white ">
           {/* Active Sidebar Layout */}
           <div className="w-80 border-r border-slate-200 bg-slate-50/50 flex flex-col shrink-0 h-full overflow-y-auto md:flex">
              <div className="p-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-slate-50 z-10">
@@ -925,7 +925,7 @@ export default function InterviewToolsBuilderPage({
   }
 
   return (
-    <div className="h-full min-h-0 bg-slate-50 flex flex-col font-sans text-slate-900 relative">
+    <div className="h-full min-h-0 bg-slate-50 flex flex-col text-slate-900 relative">
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0 shadow-sm relative z-10">
          <div className="flex items-center space-x-6">
             <button onClick={() => setActivePage("interview-tools-positions")} className="text-slate-500 hover:bg-slate-100 p-2 rounded-full transition">
