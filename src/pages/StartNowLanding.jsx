@@ -5,6 +5,7 @@ import { fetchTrustPageContent } from "../api/trustPageApi";
 import { getCartIds, onCartChanged } from "../utils/startNowCart";
 
 // Modular sub-component imports
+import PromoBanner from "./startNow/PromoBanner";
 import HeroSection from "./startNow/HeroSection";
 import CandidateGrid from "./startNow/CandidateGrid";
 import CandidateMarquee from "./startNow/CandidateMarquee";
@@ -28,6 +29,7 @@ export default function StartNowLanding() {
     screenshots: [],
     faqs: [],
     cart_blocks: [],
+    banner: null,
   });
   const [loading, setLoading] = useState(true);
   const [cartCount, setCartCount] = useState(() => getCartIds().length);
@@ -95,6 +97,9 @@ export default function StartNowLanding() {
           </div>
         </div>
       </nav>
+
+      {/* 0. Admin-driven Announcement Banner (dismissible, dynamic colors) — below header, above hero */}
+      <PromoBanner banner={data.banner} />
 
       {/* Main Content Layout */}
       {loading ? (

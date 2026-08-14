@@ -16,6 +16,8 @@ import {
   Save,
   Sparkles,
   AlertTriangle,
+  Megaphone,
+  X,
 } from "lucide-react";
 import {
   DndContext,
@@ -49,6 +51,7 @@ import {
   saveScreenshot,
   deleteScreenshot,
   saveHeroContent,
+  saveBanner,
   saveFaq,
   deleteFaq,
   saveCartBlock,
@@ -56,10 +59,67 @@ import {
   reorderCartBlocks,
 } from "../../api/trustPageApi";
 
+function ColorInput({ label, value, onChange }) {
+  return (
+    <div>
+      <label className="text-xs text-gray-500 font-bold block mb-1">
+        {label}
+      </label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={/^#[0-9a-fA-F]{6}$/.test(value || "") ? value : "#002856"}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-11 h-10 rounded-lg border border-gray-200 cursor-pointer p-1 bg-white shrink-0"
+        />
+        <input
+          type="text"
+          value={value || ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="#002856"
+          className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#004E92] focus:border-transparent transition"
+        />
+      </div>
+    </div>
+  );
+}
+
+function ToggleRow({ checked, onChange, title, subtitle }) {
+  return (
+    <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 flex items-center justify-between gap-3">
+      <div>
+        <p className="text-sm font-semibold text-gray-800">{title}</p>
+        <p className="text-xs text-gray-500 mt-0.5">{subtitle}</p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
+          checked ? "bg-emerald-500" : "bg-gray-300"
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+            checked ? "translate-x-5" : ""
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
 // Sortable row for the Service Cart Blocks stored list (drag to reorder)
 function SortableCartBlockRow({ block, onEdit, onDelete }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: block.id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: block.id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -137,6 +197,7 @@ export default function TrustPageManagement() {
     screenshots: [],
     faqs: [],
     cart_blocks: [],
+    banner: null,
   });
 
   const [heroForm, setHeroForm] = useState({
@@ -144,6 +205,17 @@ export default function TrustPageManagement() {
     subheading: "",
     description: "",
     cta_text: "",
+  });
+
+  const [bannerForm, setBannerForm] = useState({
+    message: "",
+    highlight_text: "",
+    background_color: "#002856",
+    text_color: "#FFFFFF",
+    highlight_bg_color: "#F9C53D",
+    highlight_text_color: "#002856",
+    is_active: false,
+    is_dismissible: true,
   });
 
   const [faqForm, setFaqForm] = useState({
@@ -228,7 +300,9 @@ export default function TrustPageManagement() {
 
   const cartBlockSensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   // Fetch all trust page content
@@ -243,6 +317,19 @@ export default function TrustPageManagement() {
             subheading: res.data.hero.subheading || "",
             description: res.data.hero.description || "",
             cta_text: res.data.hero.cta_text || "",
+          });
+        }
+        if (res.data.banner) {
+          const b = res.data.banner;
+          setBannerForm({
+            message: b.message || "",
+            highlight_text: b.highlight_text || "",
+            background_color: b.background_color || "#002856",
+            text_color: b.text_color || "#FFFFFF",
+            highlight_bg_color: b.highlight_bg_color || "#F9C53D",
+            highlight_text_color: b.highlight_text_color || "#002856",
+            is_active: !!b.is_active,
+            is_dismissible: b.is_dismissible !== false,
           });
         }
         setLoading(false);
@@ -273,13 +360,31 @@ export default function TrustPageManagement() {
     }
   };
 
+  // Submit Top Banner
+  const handleBannerSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      await saveBanner(bannerForm);
+      alert("Top banner updated successfully!");
+      loadContent();
+    } catch (err) {
+      console.error("Failed to save banner:", err);
+      alert("Error saving the top banner.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Submit FAQ Content
   const handleFaqSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
       await saveFaq(faqForm, faqForm.id);
-      alert(faqForm.id ? "FAQ updated successfully!" : "FAQ created successfully!");
+      alert(
+        faqForm.id ? "FAQ updated successfully!" : "FAQ created successfully!",
+      );
       setFaqForm({ id: null, question: "", answer: "", display_order: 0 });
       loadContent();
     } catch (err) {
@@ -319,7 +424,11 @@ export default function TrustPageManagement() {
         },
         cartBlockForm.id,
       );
-      alert(cartBlockForm.id ? "Cart block updated successfully!" : "Cart block created successfully!");
+      alert(
+        cartBlockForm.id
+          ? "Cart block updated successfully!"
+          : "Cart block created successfully!",
+      );
       setCartBlockForm({
         id: null,
         title: "",
@@ -353,7 +462,8 @@ export default function TrustPageManagement() {
   };
 
   const handleCartBlockDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this cart block?")) return;
+    if (!window.confirm("Are you sure you want to delete this cart block?"))
+      return;
     try {
       await deleteCartBlock(id);
       loadContent();
@@ -369,7 +479,10 @@ export default function TrustPageManagement() {
     setData((prev) => {
       const oldIndex = prev.cart_blocks.findIndex((b) => b.id === active.id);
       const newIndex = prev.cart_blocks.findIndex((b) => b.id === over.id);
-      return { ...prev, cart_blocks: arrayMove(prev.cart_blocks, oldIndex, newIndex) };
+      return {
+        ...prev,
+        cart_blocks: arrayMove(prev.cart_blocks, oldIndex, newIndex),
+      };
     });
     setCartBlocksHasChanges(true);
   };
@@ -402,7 +515,8 @@ export default function TrustPageManagement() {
         headers: { "Content-Type": file.type },
       });
 
-      const bucketUrl = "https://skillcase-payment-docs.s3.ap-south-1.amazonaws.com";
+      const bucketUrl =
+        "https://skillcase-payment-docs.s3.ap-south-1.amazonaws.com";
       const fileUrl = res.data.downloadUrl || `${bucketUrl}/${key}`;
 
       setUploadProgress("");
@@ -421,13 +535,20 @@ export default function TrustPageManagement() {
     setSaving(true);
 
     // Enforce max 4 grid candidates limit
-    const isChangingToGrid = candidateForm.section_type === "grid" && 
-      (!candidateForm.id || data.candidates.find(c => c.id === candidateForm.id)?.section_type !== "grid");
-    
+    const isChangingToGrid =
+      candidateForm.section_type === "grid" &&
+      (!candidateForm.id ||
+        data.candidates.find((c) => c.id === candidateForm.id)?.section_type !==
+          "grid");
+
     if (isChangingToGrid) {
-      const gridCount = data.candidates.filter(c => c.section_type === "grid").length;
+      const gridCount = data.candidates.filter(
+        (c) => c.section_type === "grid",
+      ).length;
       if (gridCount >= 4) {
-        alert("You can only have up to 4 candidates in the Grid section. To add a new one, please delete an existing grid candidate first.");
+        alert(
+          "You can only have up to 4 candidates in the Grid section. To add a new one, please delete an existing grid candidate first.",
+        );
         setSaving(false);
         return;
       }
@@ -823,7 +944,8 @@ export default function TrustPageManagement() {
                 <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 rotate-180" />
               </div>
               <div className="px-4 py-3.5 text-slate-600 text-[10px] leading-relaxed bg-slate-50/20 whitespace-pre-line">
-                {faqForm.answer || "Accordion answer details description text..."}
+                {faqForm.answer ||
+                  "Accordion answer details description text..."}
               </div>
             </div>
           </div>
@@ -865,13 +987,56 @@ export default function TrustPageManagement() {
               )}
               <div className="flex items-baseline gap-1">
                 <span className="font-extrabold text-lg text-[#002856]">
-                  ₹{cartBlockForm.price ? Number(cartBlockForm.price).toLocaleString("en-IN") : "0"}
+                  ₹
+                  {cartBlockForm.price
+                    ? Number(cartBlockForm.price).toLocaleString("en-IN")
+                    : "0"}
                 </span>
                 {cartBlockForm.show_gst_badge && (
                   <span className="text-xs text-slate-400">+ GST</span>
                 )}
               </div>
             </div>
+          </div>
+        );
+      case "banner":
+        return (
+          <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs flex flex-col gap-4 text-left">
+            <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest">
+              Live Preview
+            </p>
+            <div
+              className="rounded-xl overflow-hidden shadow-md w-full"
+              style={{ backgroundColor: bannerForm.background_color }}
+            >
+              <div className="relative flex items-center justify-center flex-wrap gap-x-2 gap-y-1 px-8 py-4 text-center">
+                <span
+                  className="text-[11px] sm:text-xs font-medium leading-snug"
+                  style={{ color: bannerForm.text_color }}
+                >
+                  {bannerForm.message || "Banner message preview..."}
+                </span>
+                {bannerForm.highlight_text && (
+                  <span
+                    className="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold"
+                    style={{
+                      backgroundColor: bannerForm.highlight_bg_color,
+                      color: bannerForm.highlight_text_color,
+                    }}
+                  >
+                    {bannerForm.highlight_text}
+                  </span>
+                )}
+                {bannerForm.is_dismissible !== false && (
+                  <X className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-white/80" />
+                )}
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-400">
+              {bannerForm.is_active
+                ? "Live on the /start-now page above the navigation bar."
+                : "Currently hidden — enable below to publish."}
+            </p>
           </div>
         );
       default:
@@ -910,6 +1075,7 @@ export default function TrustPageManagement() {
       <div className="flex border-b border-gray-200 mb-6 overflow-x-auto gap-4">
         {[
           { id: "hero", label: "Hero Section" },
+          { id: "banner", label: "Top Banner" },
           { id: "candidates", label: "Candidates" },
           { id: "learning", label: "Learning Stack" },
           { id: "videos", label: "Videos" },
@@ -952,7 +1118,7 @@ export default function TrustPageManagement() {
                 <h3 className="font-extrabold text-[#004E92] text-sm">
                   Edit Hero Section Text
                 </h3>
-                
+
                 <div>
                   <label className="text-xs text-gray-500 font-bold block mb-1">
                     Hero Title *
@@ -1047,7 +1213,7 @@ export default function TrustPageManagement() {
               <div className="bg-[#001836] p-8 rounded-3xl text-left text-white border border-slate-800 shadow-xl flex flex-col gap-6 justify-between min-h-[380px] relative overflow-hidden">
                 {/* Background watermarked image */}
                 <div className="absolute inset-0 bg-[url('/hero.webp')] bg-cover bg-center opacity-10 z-0 pointer-events-none" />
-                
+
                 <div className="relative z-10 flex-1 flex flex-col justify-between">
                   <div>
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block mb-4 border-b border-slate-800 pb-2">
@@ -1072,6 +1238,119 @@ export default function TrustPageManagement() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* 0.5. TOP BANNER TAB */}
+        {activeTab === "banner" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <form
+              onSubmit={handleBannerSubmit}
+              className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xs flex flex-col gap-4"
+            >
+              <h3 className="font-extrabold text-[#004E92] text-sm">
+                Announcement Banner
+              </h3>
+
+              <ToggleRow
+                checked={bannerForm.is_active}
+                onChange={(v) => setBannerForm({ ...bannerForm, is_active: v })}
+                title="Enable banner"
+                subtitle="Show this banner on the /start-now page above the navigation bar."
+              />
+
+              <ToggleRow
+                checked={bannerForm.is_dismissible}
+                onChange={(v) =>
+                  setBannerForm({ ...bannerForm, is_dismissible: v })
+                }
+                title="Allow dismissal"
+                subtitle="Visitors can close the banner with the X icon (hidden permanently for them)."
+              />
+
+              <div>
+                <label className="text-xs text-gray-500 font-bold block mb-1">
+                  Banner Message *
+                </label>
+                <textarea
+                  required
+                  rows={2}
+                  value={bannerForm.message}
+                  onChange={(e) =>
+                    setBannerForm({ ...bannerForm, message: e.target.value })
+                  }
+                  className={`${inputCls} resize-none`}
+                  placeholder="e.g. Admissions open for the October batch —"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-500 font-bold block mb-1">
+                  Highlight Text (optional)
+                </label>
+                <input
+                  type="text"
+                  value={bannerForm.highlight_text}
+                  onChange={(e) =>
+                    setBannerForm({
+                      ...bannerForm,
+                      highlight_text: e.target.value,
+                    })
+                  }
+                  className={inputCls}
+                  placeholder="e.g. Limited Seats Left"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Rendered as a colored chip. If it appears in the message it is
+                  highlighted inline, otherwise it is appended.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <ColorInput
+                  label="Background Color"
+                  value={bannerForm.background_color}
+                  onChange={(v) =>
+                    setBannerForm({ ...bannerForm, background_color: v })
+                  }
+                />
+                <ColorInput
+                  label="Text Color"
+                  value={bannerForm.text_color}
+                  onChange={(v) =>
+                    setBannerForm({ ...bannerForm, text_color: v })
+                  }
+                />
+                <ColorInput
+                  label="Highlight Background"
+                  value={bannerForm.highlight_bg_color}
+                  onChange={(v) =>
+                    setBannerForm({ ...bannerForm, highlight_bg_color: v })
+                  }
+                />
+                <ColorInput
+                  label="Highlight Text"
+                  value={bannerForm.highlight_text_color}
+                  onChange={(v) =>
+                    setBannerForm({ ...bannerForm, highlight_text_color: v })
+                  }
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={saving || !bannerForm.message.trim()}
+                className="w-full bg-[#004E92] hover:bg-blue-900 text-white font-bold text-xs py-3 rounded-xl disabled:opacity-50 transition"
+              >
+                {saving ? "Saving..." : "Save Banner"}
+              </button>
+            </form>
+            <div className="flex flex-col gap-3">
+              <h3 className="font-extrabold text-[#002856] text-xs uppercase tracking-wider">
+                Live Banner Preview
+              </h3>
+              {renderLivePreview()}
             </div>
           </div>
         )}
@@ -1263,7 +1542,6 @@ export default function TrustPageManagement() {
 
             {/* Bottom Section: Stored list */}
             <div className="flex flex-col gap-8 border-t border-gray-100 pt-6">
-              
               {/* Grid Candidates sub-section */}
               <div className="flex flex-col gap-3">
                 <div className="flex justify-between items-center">
@@ -1271,7 +1549,11 @@ export default function TrustPageManagement() {
                     Stored Grid Candidates
                   </h3>
                   <span className="text-xs font-semibold px-2.5 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-100">
-                    {data.candidates.filter((c) => c.section_type === "grid").length} / 4 Slots Used
+                    {
+                      data.candidates.filter((c) => c.section_type === "grid")
+                        .length
+                    }{" "}
+                    / 4 Slots Used
                   </span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1316,7 +1598,8 @@ export default function TrustPageManagement() {
                         </div>
                       </div>
                     ))}
-                  {data.candidates.filter((c) => c.section_type === "grid").length === 0 && (
+                  {data.candidates.filter((c) => c.section_type === "grid")
+                    .length === 0 && (
                     <div className="col-span-full py-8 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-2xl">
                       No grid candidates added yet. Add one above!
                     </div>
@@ -1371,14 +1654,14 @@ export default function TrustPageManagement() {
                         </div>
                       </div>
                     ))}
-                  {data.candidates.filter((c) => c.section_type === "marquee").length === 0 && (
+                  {data.candidates.filter((c) => c.section_type === "marquee")
+                    .length === 0 && (
                     <div className="col-span-full py-8 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-2xl">
                       No scrolling marquee candidates added yet. Add one above!
                     </div>
                   )}
                 </div>
               </div>
-
             </div>
           </div>
         )}
@@ -2102,7 +2385,7 @@ export default function TrustPageManagement() {
                 <h3 className="font-extrabold text-[#004E92] text-sm">
                   {faqForm.id ? "Edit FAQ" : "Add FAQ"}
                 </h3>
-                
+
                 <div>
                   <label className="text-xs text-gray-500 font-bold block mb-1">
                     Question *
@@ -2163,7 +2446,12 @@ export default function TrustPageManagement() {
                     <button
                       type="button"
                       onClick={() =>
-                        setFaqForm({ id: null, question: "", answer: "", display_order: 0 })
+                        setFaqForm({
+                          id: null,
+                          question: "",
+                          answer: "",
+                          display_order: 0,
+                        })
                       }
                       className="border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-xs font-bold transition hover:bg-gray-50"
                     >
@@ -2190,7 +2478,7 @@ export default function TrustPageManagement() {
               <h3 className="font-extrabold text-[#002856] text-sm">
                 Stored FAQs ({data.faqs ? data.faqs.length : 0})
               </h3>
-              
+
               {!data.faqs || data.faqs.length === 0 ? (
                 <p className="text-slate-400 text-xs py-4 text-center">
                   No FAQs stored yet. Create one above.
@@ -2259,7 +2547,10 @@ export default function TrustPageManagement() {
                     required
                     value={cartBlockForm.title}
                     onChange={(e) =>
-                      setCartBlockForm({ ...cartBlockForm, title: e.target.value })
+                      setCartBlockForm({
+                        ...cartBlockForm,
+                        title: e.target.value,
+                      })
                     }
                     className={inputCls}
                     placeholder="e.g. End-to-End Germany Program"
@@ -2273,7 +2564,10 @@ export default function TrustPageManagement() {
                     rows={3}
                     value={cartBlockForm.description}
                     onChange={(e) =>
-                      setCartBlockForm({ ...cartBlockForm, description: e.target.value })
+                      setCartBlockForm({
+                        ...cartBlockForm,
+                        description: e.target.value,
+                      })
                     }
                     className={`${inputCls} resize-none`}
                     placeholder="Language Training, Interview Preparation, Job Placement..."
@@ -2291,7 +2585,10 @@ export default function TrustPageManagement() {
                       step="1"
                       value={cartBlockForm.price}
                       onChange={(e) =>
-                        setCartBlockForm({ ...cartBlockForm, price: e.target.value })
+                        setCartBlockForm({
+                          ...cartBlockForm,
+                          price: e.target.value,
+                        })
                       }
                       className={inputCls}
                       placeholder="72000"
@@ -2305,7 +2602,10 @@ export default function TrustPageManagement() {
                       type="text"
                       value={cartBlockForm.urgency_badge_text}
                       onChange={(e) =>
-                        setCartBlockForm({ ...cartBlockForm, urgency_badge_text: e.target.value })
+                        setCartBlockForm({
+                          ...cartBlockForm,
+                          urgency_badge_text: e.target.value,
+                        })
                       }
                       className={inputCls}
                       placeholder="Only 3 seats left!"
@@ -2318,18 +2618,25 @@ export default function TrustPageManagement() {
                       type="checkbox"
                       checked={cartBlockForm.is_recommended}
                       onChange={(e) =>
-                        setCartBlockForm({ ...cartBlockForm, is_recommended: e.target.checked })
+                        setCartBlockForm({
+                          ...cartBlockForm,
+                          is_recommended: e.target.checked,
+                        })
                       }
                       className="rounded border-gray-300 text-[#004E92] focus:ring-[#004E92]"
                     />
-                    Mark as Recommended (only one block can be recommended at a time)
+                    Mark as Recommended (only one block can be recommended at a
+                    time)
                   </label>
                   <label className="flex items-center gap-2 text-xs font-bold text-gray-600 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={cartBlockForm.show_gst_badge}
                       onChange={(e) =>
-                        setCartBlockForm({ ...cartBlockForm, show_gst_badge: e.target.checked })
+                        setCartBlockForm({
+                          ...cartBlockForm,
+                          show_gst_badge: e.target.checked,
+                        })
                       }
                       className="rounded border-gray-300 text-[#004E92] focus:ring-[#004E92]"
                     />
@@ -2425,7 +2732,8 @@ export default function TrustPageManagement() {
                 </DndContext>
               )}
               <p className="text-[10px] text-slate-400">
-                Drag blocks using the grip icon to reorder them, then click "Save Order" to persist changes.
+                Drag blocks using the grip icon to reorder them, then click
+                "Save Order" to persist changes.
               </p>
             </div>
           </div>

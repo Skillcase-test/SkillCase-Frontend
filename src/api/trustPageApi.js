@@ -76,6 +76,10 @@ export const deleteScreenshot = (id) =>
 export const saveHeroContent = (data) =>
   api.post("/admin/trust-page/hero", data);
 
+// Admin: Announcement banner (singleton — upsert)
+export const saveBanner = (data) =>
+  api.put("/admin/trust-page/banner", data);
+
 // Admin: FAQs CRUD
 export const saveFaq = (data, id = null) => {
   if (id) {

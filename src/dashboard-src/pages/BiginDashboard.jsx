@@ -224,6 +224,18 @@ function number(val, digits = 0) {
   });
 }
 
+function formatDaysToHoursMins(daysValue, short = false) {
+  if (daysValue == null || Number.isNaN(Number(daysValue))) return "—";
+  const totalMinutes = Math.round(Number(daysValue) * 24 * 60);
+  if (totalMinutes < 0) return "—";
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  if (short) {
+    return `${hours}h ${mins}m`;
+  }
+  return `${hours} hrs ${mins} mins`;
+}
+
 function toIso(date) {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -437,6 +449,7 @@ function KpiTile({
   breakdown,
   breakdownFormat,
   onClick,
+  valueClassName = "text-2xl",
 }) {
   return (
     <div
@@ -463,7 +476,9 @@ function KpiTile({
         {label}
       </p>
       <div className="mt-2.5 flex items-baseline justify-between gap-2">
-        <h3 className="text-2xl font-bold text-slate-900">{value}</h3>
+        <h3 className={cx("font-bold text-slate-900", valueClassName)}>
+          {value}
+        </h3>
         <TrendBadge current={current} previous={previous} invert={invert} />
       </div>
       {previous != null && (
@@ -498,7 +513,11 @@ async function fetchAllCandidates(apiFn, params) {
   let offset = 0;
   let total = Infinity;
   while (offset < total) {
-    const { data } = await apiFn({ ...params, limit: EXPORT_PAGE_SIZE, offset });
+    const { data } = await apiFn({
+      ...params,
+      limit: EXPORT_PAGE_SIZE,
+      offset,
+    });
     all = all.concat(data.candidates || []);
     total = data.total || 0;
     offset += EXPORT_PAGE_SIZE;
@@ -582,7 +601,14 @@ function CandidatesModal({
         bucket,
         search: debouncedSearch || undefined,
       });
-      const headers = ["Name", "Phone", "Pipeline", "Stage", "Owner", "Created"];
+      const headers = [
+        "Name",
+        "Phone",
+        "Pipeline",
+        "Stage",
+        "Owner",
+        "Created",
+      ];
       const rows = all.map((r) => [
         r.deal_name || "",
         r.phone || "",
@@ -592,7 +618,9 @@ function CandidatesModal({
         r.created_time ? istDate(r.created_time) : "",
       ]);
       const csv = [headers, ...rows]
-        .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+        .map((r) =>
+          r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","),
+        )
         .join("\n");
       const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
       const a = document.createElement("a");
@@ -685,16 +713,16 @@ function CandidatesModal({
                     </td>
                     {isSuperAdmin && (
                       <td className="py-2 pr-3 tabular-nums text-slate-600">
-                      {row.phone ? (
-                        <a
-                          href={`tel:${row.phone}`}
-                          className="hover:text-indigo-600"
-                        >
-                          {row.phone}
-                        </a>
-                      ) : (
-                        "—"
-                      )}
+                        {row.phone ? (
+                          <a
+                            href={`tel:${row.phone}`}
+                            className="hover:text-indigo-600"
+                          >
+                            {row.phone}
+                          </a>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                     )}
                     <td className="py-2 pr-3 text-slate-600">{row.stage}</td>
@@ -1036,17 +1064,18 @@ function DashboardBody({
         />
         {showAvgDaysToFirstMove && (
           <KpiTile
-            label="Avg Days to First Movement"
+            label="Avg Time to First Movement"
+            valueClassName="text-lg"
             value={
               summary.avg_days_to_first_move != null
-                ? number(summary.avg_days_to_first_move, 1)
+                ? formatDaysToHoursMins(summary.avg_days_to_first_move)
                 : "—"
             }
             current={summary.avg_days_to_first_move}
             previous={prevSummary?.avg_days_to_first_move}
             previousValue={
               prevSummary?.avg_days_to_first_move != null
-                ? number(prevSummary.avg_days_to_first_move, 1)
+                ? formatDaysToHoursMins(prevSummary.avg_days_to_first_move)
                 : "—"
             }
             invert
@@ -1057,7 +1086,9 @@ function DashboardBody({
                 b1b2: breakdown.summary.b1b2.avg_days_to_first_move,
               }
             }
-            breakdownFormat={(v) => (v != null ? number(v, 1) : "—")}
+            breakdownFormat={(v) =>
+              v != null ? formatDaysToHoursMins(v, true) : "—"
+            }
           />
         )}
       </div>
@@ -1407,7 +1438,9 @@ function WeeklySnapshotView({
         r.stage_at_comparison || "",
       ]);
       const csv = [headers, ...rows]
-        .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
+        .map((r) =>
+          r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","),
+        )
         .join("\n");
       const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
       const a = document.createElement("a");
@@ -1574,16 +1607,16 @@ function WeeklySnapshotView({
                     </td>
                     {isSuperAdmin && (
                       <td className="py-2 tabular-nums text-slate-600">
-                      {row.phone ? (
-                        <a
-                          href={`tel:${row.phone}`}
-                          className="hover:text-indigo-600"
-                        >
-                          {row.phone}
-                        </a>
-                      ) : (
-                        "—"
-                      )}
+                        {row.phone ? (
+                          <a
+                            href={`tel:${row.phone}`}
+                            className="hover:text-indigo-600"
+                          >
+                            {row.phone}
+                          </a>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                     )}
                   </tr>
@@ -1613,10 +1646,7 @@ export default function BiginDashboard({ isSuperAdmin = false }) {
 
   const defaults = useMemo(() => defaultDateRange(), []);
   const today = useMemo(() => istDate(new Date().toISOString()), []);
-  const createdLeadDefaults = useMemo(
-    () => defaultWeeklyRange(today),
-    [today],
-  );
+  const createdLeadDefaults = useMemo(() => defaultWeeklyRange(today), [today]);
   const currentMonthStr = today.slice(0, 7);
   const asOfMonth = params.get("running_as_of_month") || currentMonthStr;
   const isPastAsOf = asOfMonth !== currentMonthStr;
@@ -1643,7 +1673,8 @@ export default function BiginDashboard({ isSuperAdmin = false }) {
     const cursor = new Date(`${currentMonthStr}-01T00:00:00`);
     for (let i = 0; i < 12; i++) {
       const monthStr = toIso(cursor).slice(0, 7);
-      if (i > 0 && earliest && `${monthStr}-01` < earliest.slice(0, 7) + "-01") break;
+      if (i > 0 && earliest && `${monthStr}-01` < earliest.slice(0, 7) + "-01")
+        break;
       options.push({ value: monthStr, label: monthLabel(monthStr) });
       cursor.setMonth(cursor.getMonth() - 1);
     }
@@ -1662,8 +1693,7 @@ export default function BiginDashboard({ isSuperAdmin = false }) {
     : "all";
   const dateFrom = params.get("date_from") || defaults.from;
   const dateTo = params.get("date_to") || defaults.to;
-  const createdFrom =
-    params.get("created_from") || createdLeadDefaults.from;
+  const createdFrom = params.get("created_from") || createdLeadDefaults.from;
   const createdTo = params.get("created_to") || createdLeadDefaults.to;
 
   const update = (key, value) => {
@@ -1946,7 +1976,9 @@ export default function BiginDashboard({ isSuperAdmin = false }) {
                           : "text-slate-600 hover:bg-slate-50 cursor-pointer"
                       }`}
                     >
-                      {isPastAsOf ? `As of ${monthLabel(asOfMonth)}` : "As of Month"}
+                      {isPastAsOf
+                        ? `As of ${monthLabel(asOfMonth)}`
+                        : "As of Month"}
                     </button>
                   </div>
                   {runningMode === "month" && (
