@@ -87,6 +87,16 @@ export default function Navbar({ disableNavigation = false }) {
     </Link>
   );
 
+  const isJobScreeningContext =
+    location.pathname.startsWith("/job-screening") ||
+    (isB1User &&
+      (user?.german_preference === "3" ||
+        user?.lg_preferred_mode === "job_screening" ||
+        cachedMode === "job_screening") &&
+      cachedMode !== "practice");
+
+  const brandHref = isB1User && isJobScreeningContext ? "/job-screening" : "/";
+
   return (
     <header
       className={`bg-[#002856] sticky top-0 z-50 ${
@@ -96,9 +106,9 @@ export default function Navbar({ disableNavigation = false }) {
       aria-disabled={disableNavigation}
     >
       <div className="h-16 w-full max-w-7xl mx-auto px-4 flex items-center justify-between gap-3">
-        {/* Level title — tappable brand entry, same as the old logo: goes home */}
+        {/* Level title — tappable brand entry, goes home or to current active hub */}
         <Link
-          to="/"
+          to={brandHref}
           onClick={hapticLight}
           className="min-w-0 flex flex-col justify-center transition-opacity hover:opacity-80 cursor-pointer"
           aria-label="Go to home"

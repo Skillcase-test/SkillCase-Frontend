@@ -352,3 +352,29 @@ describe("BottomTabBar — scholarship variant", () => {
     expect(screen.getByRole("button", { name: /days/ })).toBeInTheDocument();
   });
 });
+
+describe("B1/B2 shell — NewNavbar brand link context awareness", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPathname = "/";
+    mockUser = { user_prof_level: "B1" };
+    localStorage.clear();
+  });
+
+  it("links to /job-screening when a B1 user is on the job-screening pipeline", () => {
+    mockPathname = "/job-screening";
+    render(<NewNavbar />);
+
+    const brandLink = screen.getByRole("link", { name: /German Level/i });
+    expect(brandLink).toHaveAttribute("href", "/job-screening");
+  });
+
+  it("links to / when a B1 user is on practice hub", () => {
+    mockPathname = "/";
+    localStorage.setItem("lg_preferred_mode", "practice");
+    render(<NewNavbar />);
+
+    const brandLink = screen.getByRole("link", { name: /German Level/i });
+    expect(brandLink).toHaveAttribute("href", "/");
+  });
+});
