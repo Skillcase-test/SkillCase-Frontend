@@ -105,13 +105,13 @@ const getPostLoginRoute = (user) => {
 };
 
 const TopSection = React.memo(({ mascot, tooltip }) => (
-  <div className="h-[42%] relative flex items-end px-4 pb-8 md:h-full md:w-[45%] md:flex md:items-end md:pb-0 md:px-6">
+  <div className="h-[42%] relative flex items-end px-4 pb-8 md:h-full md:w-[45%] md:flex md:items-end md:justify-center md:pb-0 md:px-8 md:bg-[#E5F0FF]">
     <img
       src={mascot}
       alt="Maya"
-      className="h-[85%] w-[45%] object-contain object-bottom md:h-[80%] md:w-[220px]"
+      className="h-[85%] w-[45%] object-contain object-bottom md:h-[72%] md:max-h-[560px] md:w-auto md:max-w-[340px]"
     />
-    <div className="relative bg-white px-5 py-4 rounded-2xl shadow-sm mb-12 ml-2 w-[50%] md:mb-24 md:ml-2 md:w-[200px]">
+    <div className="relative bg-white px-5 py-4 rounded-2xl shadow-sm mb-12 ml-2 w-[50%] md:mb-36 md:ml-4 md:w-[260px] md:shadow-md">
       <p className="text-black text-[15px] font-medium leading-tight">
         <TypewriterText text={tooltip} speed={30} onCharacter={hapticLight} />
       </p>
@@ -134,13 +134,13 @@ const Step8TopSection = React.memo(({ germanStatus, mayaFull }) => {
       : "Wonderful! You already know some German. Would you like to practice German or continue learning it.";
 
   return (
-    <div className="h-[50%] relative flex items-end px-4 pb-4 md:h-full md:w-[45%] md:flex md:items-end md:pb-0 md:px-6">
+    <div className="h-[50%] relative flex items-end px-4 pb-4 md:h-full md:w-[45%] md:flex md:items-end md:justify-center md:pb-0 md:px-8 md:bg-[#E5F0FF]">
       <img
         src={mayaFull}
         alt="Maya"
-        className="h-[95%] w-[45%] object-contain object-bottom md:h-[80%] md:w-[220px]"
+        className="h-[95%] w-[45%] object-contain object-bottom md:h-[78%] md:max-h-[580px] md:w-auto md:max-w-[340px]"
       />
-      <div className="absolute right-4 top-[15%] bg-white px-4 py-4 rounded-2xl shadow-sm w-[50%] z-10 md:relative md:right-auto md:top-auto md:w-[200px] md:mb-24 md:ml-2">
+      <div className="absolute right-4 top-[15%] bg-white px-4 py-4 rounded-2xl shadow-sm w-[50%] z-10 md:relative md:right-auto md:top-auto md:w-[260px] md:mb-36 md:ml-4 md:shadow-md">
         <p className="text-black text-[14px] font-medium leading-snug">
           <TypewriterText text={text} speed={30} onCharacter={hapticLight} />
         </p>
@@ -161,6 +161,7 @@ const OnboardingFlow = () => {
   const [step, setStep] = useState(1);
   const [phoneNumber, setPhoneNumber] = useState("");
   const [otp, setOtp] = useState("");
+  const [otpArray, setOtpArray] = useState(["", "", "", "", "", ""]);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [occupation, setOccupation] = useState("");
@@ -255,8 +256,13 @@ const OnboardingFlow = () => {
       .get({ otp: { transport: ["sms"] }, signal: ac.signal })
       .then((credential) => {
         const code = credential.code;
-        setOtp(code);
-        handleVerifyOTP(code);
+        if (code) {
+          const arr = code.split("").slice(0, 6);
+          while (arr.length < 6) arr.push("");
+          setOtpArray(arr);
+          setOtp(code);
+          handleVerifyOTP(code);
+        }
       })
       .catch(() => {});
 
@@ -277,6 +283,9 @@ const OnboardingFlow = () => {
         listenerHandle = await SmsPlugin.addListener("smsReceived", (data) => {
           const code = extractOtp(data?.message || "");
           if (code) {
+            const arr = code.split("").slice(0, 6);
+            while (arr.length < 6) arr.push("");
+            setOtpArray(arr);
             setOtp(code);
             handleVerifyOTP(code);
           }
@@ -319,6 +328,7 @@ const OnboardingFlow = () => {
         lg_onboarding_step: 3,
       });
       setOtp("");
+      setOtpArray(["", "", "", "", "", ""]);
       setResendSeconds(OTP_RESEND_SECONDS);
       setStep(3);
       trackFlowAction("onboarding", "learner_onboarding", "otp_sent", {
@@ -351,7 +361,7 @@ const OnboardingFlow = () => {
 
   // Screen 3 → 4 (new user) or Home (returning user)
   const handleVerifyOTP = async (otpOverride) => {
-    const code = otpOverride ?? otp;
+    const code = otpOverride ?? otpArray.join("");
     if (code.length !== 6) {
       trackFlowAction(
         "onboarding",
@@ -409,6 +419,57 @@ const OnboardingFlow = () => {
       setError(err.response?.data?.msg || "Invalid OTP. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOtpChange = (i, val, target) => {
+    const digits = val.replace(/\D/g, "");
+    if (digits.length > 1) {
+      // Pasted or autofilled sequence of digits
+      const newArr = ["", "", "", "", "", ""];
+      for (let k = 0; k < 6; k++) {
+        if (digits[k]) newArr[k] = digits[k];
+      }
+      setOtpArray(newArr);
+      const full = newArr.join("");
+      setOtp(full);
+      if (full.length === 6) {
+        target.blur();
+        handleVerifyOTP(full);
+      }
+      return;
+    }
+
+    const newArr = [...otpArray];
+    newArr[i] = digits;
+    setOtpArray(newArr);
+    const full = newArr.join("");
+    setOtp(full);
+
+    if (digits) {
+      if (i < 5) {
+        target.nextSibling?.focus();
+      } else if (newArr.every((d) => d !== "") && full.length === 6) {
+        target.blur();
+        handleVerifyOTP(full);
+      }
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData?.getData("text") || "";
+    const digits = (extractOtp(pasted) || pasted.replace(/\D/g, "")).slice(0, 6);
+    if (digits) {
+      const newArr = ["", "", "", "", "", ""];
+      for (let k = 0; k < 6; k++) {
+        if (digits[k]) newArr[k] = digits[k];
+      }
+      setOtpArray(newArr);
+      setOtp(digits);
+      if (digits.length === 6) {
+        handleVerifyOTP(digits);
+      }
     }
   };
 
@@ -752,7 +813,9 @@ const OnboardingFlow = () => {
   };
 
   const isPhoneValid = INDIAN_MOBILE_PHONE_REGEX.test(phoneNumber);
-  const isOtpValid = otp.length === 6;
+  const isOtpValid =
+    otpArray.every((d) => Boolean(d) && d.length === 1) &&
+    otpArray.join("").length === 6;
   const isNameValid = firstName.length > 0 && lastName.length > 0;
   const isOccupationValid = occupation !== "";
   const isStatusValid = germanStatus !== "";
@@ -843,7 +906,7 @@ const OnboardingFlow = () => {
             hapticLight();
             handleBack();
           }}
-          className="w-1/3 h-[48px] rounded-lg border-2 border-zinc-200 bg-white text-[#1E3A8A] text-[16px] font-semibold shadow-sm active:scale-[0.98] transition-all"
+          className="w-1/3 h-[48px] rounded-lg border-2 border-zinc-200 bg-white text-[#1E3A8A] text-[16px] font-semibold shadow-sm active:scale-[0.98] transition-all cursor-pointer hover:bg-zinc-50"
         >
           Back
         </button>
@@ -856,7 +919,7 @@ const OnboardingFlow = () => {
         disabled={disabled || loading}
         className={`flex-1 h-[48px] rounded-lg text-[16px] font-semibold transition-all ${
           !disabled && !loading
-            ? "bg-gradient-to-r from-amber-200 to-amber-300 text-[#1E3A8A] shadow-md active:scale-[0.98] border border-[#eec139]"
+            ? "bg-gradient-to-r from-amber-200 to-amber-300 text-[#1E3A8A] shadow-md active:scale-[0.98] border border-[#eec139] cursor-pointer hover:brightness-105"
             : "bg-[#E5E5E5] text-[#A3A3A3] cursor-not-allowed"
         }`}
       >
@@ -866,34 +929,47 @@ const OnboardingFlow = () => {
   );
 
   return (
-    <div className="w-full overflow-x-hidden flex justify-center items-center bg-gray-100 sm:p-4 md:min-h-screen min-h-[100vh]">
-      <div className="w-full max-w-[600px] sm:h-[844px] md:max-w-[1000px] md:h-[650px] bg-white relative overflow-hidden sm:rounded-[40px] sm:shadow-2xl flex flex-col md:flex-row md:rounded-[45px] h-[100vh]">
+    <div className="w-full h-[100vh] min-h-[100vh] overflow-x-hidden flex justify-center items-center bg-white">
+      <div className="w-full h-full bg-white relative overflow-hidden flex flex-col md:flex-row">
         <AnimatePresence mode="wait">
           {step === 1 && (
             <motion.div
               key="splash"
               initial={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-gradient-to-b from-[#002856] to-[#1A4B9F] flex flex-col items-center pt-24 pb-0 md:pt-12"
+              className="absolute inset-0 bg-gradient-to-b from-[#002856] to-[#1A4B9F] flex flex-col items-center justify-between pt-16 pb-0 overflow-hidden select-none"
+              style={{
+                paddingTop: "max(env(safe-area-inset-top), 4rem)",
+                paddingBottom: "max(env(safe-area-inset-bottom), 0px)",
+              }}
             >
-              <div className="absolute w-[600px] h-[600px] -left-[100px] top-[400px] bg-white/10 rounded-full blur-sm" />
-              <div className="absolute w-[300px] h-[300px] -right-[50px] top-[500px] bg-white/20 rounded-full blur-sm" />
-              <img
-                src={whiteLogo}
-                alt="Skillcase"
-                className="h-60 z-10 -mt-26 md:h-48 md:-mt-10"
-              />
-              <div className="flex-1 w-full flex flex-col items-center justify-end relative z-10">
-                <div className="mb-2 relative bg-white px-6 py-3 rounded-2xl shadow-xl">
-                  <span className="text-black text-[15px] font-medium">
+              {/* Ambient background glow orbs */}
+              <div className="absolute w-[500px] h-[500px] -left-[120px] top-[320px] bg-white/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute w-[320px] h-[320px] -right-[60px] top-[420px] bg-white/15 rounded-full blur-2xl pointer-events-none" />
+
+              {/* Top Logo */}
+              <div className="relative z-10 flex flex-col items-center">
+                <img
+                  src={whiteLogo}
+                  alt="Skillcase"
+                  className="h-32 sm:h-40 md:h-44 object-contain drop-shadow-md"
+                />
+              </div>
+
+              {/* Center/Bottom Mascot & Speech bubble */}
+              <div className="relative z-10 w-full flex-1 flex flex-col items-center justify-end">
+                <div className="mb-3 relative bg-white px-6 py-3 rounded-2xl shadow-xl flex items-center justify-center max-w-[85%]">
+                  <span className="text-black text-[15px] font-semibold text-center leading-tight">
                     Hi, I am Maya.
                   </span>
-                  <div className="absolute -bottom-[8px] left-[100px] -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[10px] border-t-white" />
+                  <div className="absolute -bottom-[8px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[10px] border-t-white" />
                 </div>
+
+                {/* Mascot Image */}
                 <img
                   src={mayaStanding}
                   alt="Maya"
-                  className="w-[80%] max-w-[280px] object-contain object-bottom md:max-w-[220px]"
+                  className="w-[75%] max-w-[260px] sm:max-w-[280px] md:max-w-[300px] object-contain object-bottom"
                 />
               </div>
             </motion.div>
@@ -908,56 +984,63 @@ const OnboardingFlow = () => {
               className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
             >
               <TopSection mascot={mayaWave} tooltip="Welcome to Skillcase" />
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-16 md:justify-center">
-                <div className="flex-1 md:flex-initial md:mb-8">
-                  <h2 className="text-black text-[16px] font-medium mb-6">
-                    Enter your 10 digit phone number
-                  </h2>
-                  <div className="flex min-w-0 gap-3 h-[48px]">
-                    <div className="w-[64px] h-full rounded-lg border border-zinc-300 flex items-center justify-center bg-white">
-                      <span className="text-[#9CA3AF] font-semibold text-[16px]">
-                        +91
-                      </span>
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:mt-0 md:shadow-none md:px-16 md:py-12 md:justify-center md:overflow-y-auto">
+                <div className="w-full max-w-[400px] mx-auto flex flex-col flex-1 md:justify-center">
+                  <div className="flex-1 md:flex-initial md:mb-8">
+                    <h2 className="text-black text-[16px] font-medium mb-6">
+                      Enter your 10 digit phone number
+                    </h2>
+                    <div className="flex min-w-0 gap-3 h-[48px]">
+                      <div className="w-[64px] h-full rounded-lg border border-zinc-300 flex items-center justify-center bg-white">
+                        <span className="text-[#9CA3AF] font-semibold text-[16px]">
+                          +91
+                        </span>
+                      </div>
+                      <input
+                        ref={phoneInputRef}
+                        type="tel"
+                        autoFocus
+                        value={phoneNumber}
+                        onChange={(e) => {
+                          const val = e.target.value
+                            .replace(/\D/g, "")
+                            .slice(0, 10);
+                          setPhoneNumber(val);
+                          if (val.length === 10) {
+                            phoneInputRef.current?.blur();
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && isPhoneValid && !loading) {
+                            handleSendOTP();
+                          }
+                        }}
+                        placeholder="XXXXX-XXXXX"
+                        className="min-w-0 flex-1 h-full rounded-lg border border-zinc-300 px-4 text-black font-semibold text-[16px] placeholder:text-zinc-200 focus:outline-none focus:border-[#1E76F3] focus:ring-[0.5px] focus:ring-[#1E76F3] transition-all"
+                      />
                     </div>
-                    <input
-                      ref={phoneInputRef}
-                      type="tel"
-                      autoFocus
-                      value={phoneNumber}
-                      onChange={(e) => {
-                        const val = e.target.value
-                          .replace(/\D/g, "")
-                          .slice(0, 10);
-                        setPhoneNumber(val);
-                        if (val.length === 10) {
-                          phoneInputRef.current?.blur();
-                        }
-                      }}
-                      placeholder="XXXXX-XXXXX"
-                      className="min-w-0 flex-1 h-full rounded-lg border border-zinc-300 px-4 text-black font-semibold text-[16px] placeholder:text-zinc-200 focus:outline-none focus:border-[#1E76F3] focus:ring-[0.5px] focus:ring-[#1E76F3] transition-all"
-                    />
                   </div>
-                </div>
-                {error && (
-                  <p className="text-red-500 text-[13px] font-medium mt-2 mb-1">
-                    {error}
-                  </p>
-                )}
-                <div className="mt-auto mb-4 md:mt-0 md:mb-0">
-                  <button
-                    onClick={() => {
-                      hapticLight();
-                      handleSendOTP();
-                    }}
-                    disabled={!isPhoneValid || loading}
-                    className={`w-full h-[48px] rounded-lg text-[16px] font-semibold transition-all ${
-                      isPhoneValid && !loading
-                        ? "bg-gradient-to-r from-amber-200 to-amber-300 text-black shadow-md active:scale-[0.98] border border-[#eec139]"
-                        : "bg-[#E5E5E5] text-[#A3A3A3] cursor-not-allowed"
-                    }`}
-                  >
-                    {loading ? "Sending..." : "Send OTP"}
-                  </button>
+                  {error && (
+                    <p className="text-red-500 text-[13px] font-medium mt-2 mb-1">
+                      {error}
+                    </p>
+                  )}
+                  <div className="mt-auto mb-4 md:mt-0 md:mb-0">
+                    <button
+                      onClick={() => {
+                        hapticLight();
+                        handleSendOTP();
+                      }}
+                      disabled={!isPhoneValid || loading}
+                      className={`w-full h-[48px] rounded-lg text-[16px] font-semibold transition-all ${
+                        isPhoneValid && !loading
+                          ? "bg-gradient-to-r from-amber-200 to-amber-300 text-black shadow-md active:scale-[0.98] border border-[#eec139] cursor-pointer hover:brightness-105"
+                          : "bg-[#E5E5E5] text-[#A3A3A3] cursor-not-allowed"
+                      }`}
+                    >
+                      {loading ? "Sending..." : "Send OTP"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -972,87 +1055,85 @@ const OnboardingFlow = () => {
               className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
             >
               <TopSection mascot={mayaSmiling} tooltip="Enter your OTP." />
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-16 md:justify-center">
-                <div className="flex-1 md:flex-initial md:mb-8">
-                  <h2 className="text-black text-[16px] font-medium mb-6">
-                    Enter the 6 digit OTP
-                  </h2>
-                  <div className="flex justify-between gap-2 mb-4">
-                    {[...Array(6)].map((_, i) => (
-                      <input
-                        key={i}
-                        type="tel"
-                        maxLength="1"
-                        autoFocus={i === 0}
-                        value={otp[i] || ""}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/\D/g, "");
-                          if (val) {
-                            const newOtp = otp.split("");
-                            newOtp[i] = val;
-                            const newOtpStr = newOtp.join("");
-                            setOtp(newOtpStr);
-                            if (i < 5) {
-                              e.target.nextSibling?.focus();
-                            } else if (newOtpStr.length === 6) {
-                              e.target.blur();
-                              handleVerifyOTP(newOtpStr);
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:mt-0 md:shadow-none md:px-16 md:py-12 md:justify-center md:overflow-y-auto">
+                <div className="w-full max-w-[400px] mx-auto flex flex-col flex-1 md:justify-center">
+                  <div className="flex-1 md:flex-initial md:mb-8">
+                    <h2 className="text-black text-[16px] font-medium mb-6">
+                      Enter the 6 digit OTP
+                    </h2>
+                    <div className="flex justify-between gap-2 mb-4">
+                      {[...Array(6)].map((_, i) => (
+                        <input
+                          key={i}
+                          type="tel"
+                          maxLength="1"
+                          autoFocus={i === 0}
+                          value={otpArray[i] || ""}
+                          onPaste={handleOtpPaste}
+                          onChange={(e) =>
+                            handleOtpChange(i, e.target.value, e.target)
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Backspace") {
+                              if (!otpArray[i] && i > 0) {
+                                e.target.previousSibling?.focus();
+                                const nextArr = [...otpArray];
+                                nextArr[i - 1] = "";
+                                setOtpArray(nextArr);
+                                setOtp(nextArr.join(""));
+                              }
+                            } else if (e.key === "Enter") {
+                              if (isOtpValid && !loading) {
+                                handleVerifyOTP(otpArray.join(""));
+                              }
                             }
-                          } else {
-                            const newOtp = otp.split("");
-                            newOtp[i] = "";
-                            setOtp(newOtp.join(""));
-                          }
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Backspace" && !otp[i] && i > 0) {
-                            e.target.previousSibling?.focus();
-                          }
-                        }}
-                        className="w-[14%] aspect-square rounded-lg border border-zinc-300 text-center text-xl font-bold text-[#111827] focus:outline-none focus:border-[#1E76F3] focus:ring-[0.5px] focus:ring-[#1E76F3] transition-all shadow-sm"
-                      />
-                    ))}
+                          }}
+                          className="w-[14%] aspect-square rounded-lg border border-zinc-300 text-center text-xl font-bold text-[#111827] focus:outline-none focus:border-[#1E76F3] focus:ring-[0.5px] focus:ring-[#1E76F3] transition-all shadow-sm"
+                        />
+                      ))}
+                    </div>
+                    <button
+                      onClick={handleResendOTP}
+                      disabled={resendSeconds > 0 || loading}
+                      className={`text-[12px] font-medium underline transition-colors cursor-pointer ${
+                        resendSeconds > 0 || loading
+                          ? "text-zinc-400 cursor-not-allowed"
+                          : "text-[#1E3A8A] hover:text-blue-800"
+                      }`}
+                    >
+                      {resendSeconds > 0
+                        ? `Resend OTP in ${resendSeconds}s`
+                        : "Resend OTP"}
+                    </button>
                   </div>
-                  <button
-                    onClick={handleResendOTP}
-                    disabled={resendSeconds > 0 || loading}
-                    className={`text-[12px] font-medium underline transition-colors ${
-                      resendSeconds > 0 || loading
-                        ? "text-zinc-400 cursor-not-allowed"
-                        : "text-[#1E3A8A]"
-                    }`}
-                  >
-                    {resendSeconds > 0
-                      ? `Resend OTP in ${resendSeconds}s`
-                      : "Resend OTP"}
-                  </button>
-                </div>
-                {error && (
-                  <p className="text-red-500 text-[13px] font-medium mt-2 mb-1">
-                    {error}
-                  </p>
-                )}
-                <div className="flex flex-col gap-4 mt-auto mb-4 md:mt-0 md:mb-0">
-                  <button
-                    onClick={() => {
-                      hapticLight();
-                      handleVerifyOTP();
-                    }}
-                    disabled={!isOtpValid || loading}
-                    className={`w-full h-[48px] rounded-lg text-[16px] font-semibold  transition-all ${
-                      isOtpValid && !loading
-                        ? "bg-gradient-to-r from-amber-200 to-amber-300 text-[#1E3A8A] shadow-md active:scale-[0.98] border border-[#eec139]"
-                        : "bg-[#E5E5E5] text-[#A3A3A3] cursor-not-allowed"
-                    }`}
-                  >
-                    {loading ? "Verifying..." : "Enter"}
-                  </button>
-                  <button
-                    onClick={() => setStep(2)}
-                    className="w-full h-[48px] rounded-lg border border-zinc-200 bg-white text-[#1E3A8A] text-[16px] font-semibold  shadow-sm active:scale-[0.98] transition-all"
-                  >
-                    Edit phone number
-                  </button>
+                  {error && (
+                    <p className="text-red-500 text-[13px] font-medium mt-2 mb-1">
+                      {error}
+                    </p>
+                  )}
+                  <div className="flex flex-col gap-4 mt-auto mb-4 md:mt-0 md:mb-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        hapticLight();
+                        handleVerifyOTP(otpArray.join(""));
+                      }}
+                      disabled={!isOtpValid || loading}
+                      className={`w-full h-[48px] rounded-lg text-[16px] font-semibold transition-all ${
+                        isOtpValid && !loading
+                          ? "bg-gradient-to-r from-amber-200 to-amber-300 text-[#1E3A8A] shadow-md active:scale-[0.98] border border-[#eec139] cursor-pointer hover:brightness-105"
+                          : "bg-[#E5E5E5] text-[#A3A3A3] cursor-not-allowed"
+                      }`}
+                    >
+                      {loading ? "Verifying..." : "Enter"}
+                    </button>
+                    <button
+                      onClick={() => setStep(2)}
+                      className="w-full h-[48px] rounded-lg border border-zinc-200 bg-white text-[#1E3A8A] text-[16px] font-semibold shadow-sm active:scale-[0.98] transition-all cursor-pointer hover:bg-zinc-50"
+                    >
+                      Edit phone number
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -1070,49 +1151,51 @@ const OnboardingFlow = () => {
                 mascot={mayaSmiling}
                 tooltip="What shall I call you?"
               />
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-16 md:justify-center">
-                <div className="flex-1 md:flex-initial md:mb-8">
-                  <h2 className="text-black text-[16px] font-medium mb-6">
-                    Enter your name
-                  </h2>
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <label className="block text-[#737373] text-[12px] font-medium mb-1">
-                        First name
-                      </label>
-                      <input
-                        type="text"
-                        autoFocus
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") lastNameRef.current?.focus();
-                        }}
-                        className="w-full h-[48px] rounded-lg border border-zinc-300 px-4 text-black font-semibold text-[16px] focus:outline-none focus:border-[#1E76F3] focus:ring-[0.5px] focus:ring-[#1E76F3] shadow-sm transition-all"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-[#737373] text-[12px] font-medium  mb-1">
-                        Last name
-                      </label>
-                      <input
-                        ref={lastNameRef}
-                        type="text"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && firstName && lastName)
-                            handleNameSubmit();
-                        }}
-                        className="w-full h-[48px] rounded-lg border border-zinc-300 px-4 text-black font-semibold text-[16px] focus:outline-none focus:border-[#1E76F3] focus:ring-[0.5px] focus:ring-[#1E76F3] shadow-sm transition-all"
-                      />
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:mt-0 md:shadow-none md:px-16 md:py-12 md:justify-center md:overflow-y-auto">
+                <div className="w-full max-w-[400px] mx-auto flex flex-col flex-1 md:justify-center">
+                  <div className="flex-1 md:flex-initial md:mb-8">
+                    <h2 className="text-black text-[16px] font-medium mb-6">
+                      Enter your name
+                    </h2>
+                    <div className="flex gap-3">
+                      <div className="flex-1">
+                        <label className="block text-[#737373] text-[12px] font-medium mb-1">
+                          First name
+                        </label>
+                        <input
+                          type="text"
+                          autoFocus
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") lastNameRef.current?.focus();
+                          }}
+                          className="w-full h-[48px] rounded-lg border border-zinc-300 px-4 text-black font-semibold text-[16px] focus:outline-none focus:border-[#1E76F3] focus:ring-[0.5px] focus:ring-[#1E76F3] shadow-sm transition-all"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-[#737373] text-[12px] font-medium  mb-1">
+                          Last name
+                        </label>
+                        <input
+                          ref={lastNameRef}
+                          type="text"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && firstName && lastName)
+                              handleNameSubmit();
+                          }}
+                          className="w-full h-[48px] rounded-lg border border-zinc-300 px-4 text-black font-semibold text-[16px] focus:outline-none focus:border-[#1E76F3] focus:ring-[0.5px] focus:ring-[#1E76F3] shadow-sm transition-all"
+                        />
+                      </div>
                     </div>
                   </div>
+                  <BottomActions
+                    onNext={handleNameSubmit}
+                    disabled={!isNameValid}
+                  />
                 </div>
-                <BottomActions
-                  onNext={handleNameSubmit}
-                  disabled={!isNameValid}
-                />
               </div>
             </motion.div>
           )}
@@ -1126,59 +1209,61 @@ const OnboardingFlow = () => {
               className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
             >
               <TopSection mascot={mayaSmiling} tooltip="What do you do?" />
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-5 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-12 md:justify-center">
-                <div className="flex-1 md:flex-initial md:mb-8">
-                  <h2 className="text-black text-[16px] font-medium mb-4">
-                    Select your current occupation
-                  </h2>
-                  <div className="flex flex-col gap-3 w-full pb-2 mt-2">
-                    {[
-                      { id: "B", label: "Professional nurse", icon: nurseIcon },
-                      {
-                        id: "A",
-                        label: "Student (learning nursing)",
-                        icon: studentIcon,
-                      },
-                      {
-                        id: "C",
-                        label: "Healthcare support staff",
-                        icon: supportIcon,
-                      },
-                      { id: "D", label: "Other", icon: otherIcon },
-                    ].map((occ) => (
-                      <button
-                        key={occ.id}
-                        onClick={() => selectOccupation(occ.label)}
-                        className={`relative w-full h-[70px] px-2 rounded-[16px] border text-left flex items-center transition-all ${
-                          occupation === occ.label
-                            ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
-                            : "border-zinc-300 bg-white hover:bg-zinc-50"
-                        }`}
-                      >
-                        <div className="absolute left-4 bottom-0 w-[64px] h-[64px] overflow-hidden pointer-events-none">
-                          <img
-                            src={occ.icon}
-                            alt="Occupation icon"
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                        <span
-                          className={`pl-[94px] pr-2 text-[14px] leading-tight font-medium transition-colors ${
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-5 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:mt-0 md:shadow-none md:px-16 md:py-12 md:justify-center md:overflow-y-auto">
+                <div className="w-full max-w-[400px] mx-auto flex flex-col flex-1 md:justify-center">
+                  <div className="flex-1 md:flex-initial md:mb-8">
+                    <h2 className="text-black text-[16px] font-medium mb-4">
+                      Select your current occupation
+                    </h2>
+                    <div className="flex flex-col gap-3 w-full pb-2 mt-2">
+                      {[
+                        { id: "B", label: "Professional nurse", icon: nurseIcon },
+                        {
+                          id: "A",
+                          label: "Student (learning nursing)",
+                          icon: studentIcon,
+                        },
+                        {
+                          id: "C",
+                          label: "Healthcare support staff",
+                          icon: supportIcon,
+                        },
+                        { id: "D", label: "Other", icon: otherIcon },
+                      ].map((occ) => (
+                        <button
+                          key={occ.id}
+                          onClick={() => selectOccupation(occ.label)}
+                          className={`relative w-full h-[70px] px-2 rounded-[16px] border text-left flex items-center transition-all cursor-pointer ${
                             occupation === occ.label
-                              ? "text-[#1E76F3]"
-                              : "text-[#1F2430]"
+                              ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
+                              : "border-zinc-300 bg-white hover:bg-zinc-50"
                           }`}
                         >
-                          {occ.label}
-                        </span>
-                      </button>
-                    ))}
+                          <div className="absolute left-4 bottom-0 w-[64px] h-[64px] overflow-hidden pointer-events-none">
+                            <img
+                              src={occ.icon}
+                              alt="Occupation icon"
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                          <span
+                            className={`pl-[94px] pr-2 text-[14px] leading-tight font-medium transition-colors ${
+                              occupation === occ.label
+                                ? "text-[#1E76F3]"
+                                : "text-[#1F2430]"
+                            }`}
+                          >
+                            {occ.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                  <BottomActions
+                    onNext={handleOccupationSubmit}
+                    disabled={!isOccupationValid}
+                  />
                 </div>
-                <BottomActions
-                  onNext={handleOccupationSubmit}
-                  disabled={!isOccupationValid}
-                />
               </div>
             </motion.div>
           )}
@@ -1195,62 +1280,64 @@ const OnboardingFlow = () => {
                 mascot={mayaSmiling}
                 tooltip="What is your current German level?"
               />
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-12 md:justify-center">
-                <div className="flex-1 md:flex-initial md:mb-8">
-                  <h2 className="text-black text-[16px] font-medium mb-4">
-                    Select your German level
-                  </h2>
-                  <div className="flex flex-col gap-3 w-full pb-2 mt-2">
-                    {[
-                      { id: "A", label: "Yet to start (no knowledge)" },
-                      { id: "B", label: "I am learning German" },
-                      { id: "C", label: "I have completed learning German" },
-                      {
-                        id: "D",
-                        label: "I am here for the scholarship exam",
-                        scholarship: true,
-                      },
-                    ].map((status) => (
-                      <button
-                        key={status.id}
-                        onClick={() => selectGermanStatus(status.label)}
-                        className={`w-full p-3 rounded-xl border text-left flex items-center gap-4 transition-all ${
-                          germanStatus === status.label
-                            ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
-                            : "border-zinc-300 bg-white hover:bg-zinc-50"
-                        }`}
-                      >
-                        <div
-                          className={`w-8 h-8 rounded shrink-0 flex items-center justify-center font-bold transition-colors ${
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:mt-0 md:shadow-none md:px-16 md:py-12 md:justify-center md:overflow-y-auto">
+                <div className="w-full max-w-[400px] mx-auto flex flex-col flex-1 md:justify-center">
+                  <div className="flex-1 md:flex-initial md:mb-8">
+                    <h2 className="text-black text-[16px] font-medium mb-4">
+                      Select your German level
+                    </h2>
+                    <div className="flex flex-col gap-3 w-full pb-2 mt-2">
+                      {[
+                        { id: "A", label: "Yet to start (no knowledge)" },
+                        { id: "B", label: "I am learning German" },
+                        { id: "C", label: "I have completed learning German" },
+                        {
+                          id: "D",
+                          label: "I am here for the scholarship exam",
+                          scholarship: true,
+                        },
+                      ].map((status) => (
+                        <button
+                          key={status.id}
+                          onClick={() => selectGermanStatus(status.label)}
+                          className={`w-full p-3 rounded-xl border text-left flex items-center gap-4 transition-all cursor-pointer ${
                             germanStatus === status.label
-                              ? "bg-blue-100 text-[#1E76F3]"
-                              : "bg-black/5 text-gray-500"
+                              ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
+                              : "border-zinc-300 bg-white hover:bg-zinc-50"
                           }`}
                         >
-                          {status.id}
-                        </div>
-                        <span
-                          className={`text-[14px] font-semibold  transition-colors ${
-                            germanStatus === status.label
-                              ? "text-[#1E76F3]"
-                              : "text-[#111827]"
-                          }`}
-                        >
-                          {status.label}
-                        </span>
-                      </button>
-                    ))}
+                          <div
+                            className={`w-8 h-8 rounded shrink-0 flex items-center justify-center font-bold transition-colors ${
+                              germanStatus === status.label
+                                ? "bg-blue-100 text-[#1E76F3]"
+                                : "bg-black/5 text-gray-500"
+                            }`}
+                          >
+                            {status.id}
+                          </div>
+                          <span
+                            className={`text-[14px] font-semibold  transition-colors ${
+                              germanStatus === status.label
+                                ? "text-[#1E76F3]"
+                                : "text-[#111827]"
+                            }`}
+                          >
+                            {status.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                  <BottomActions
+                    onNext={handleGermanStatusSubmit}
+                    disabled={!isStatusValid}
+                    nextText={
+                      germanStatus === "I am here for the scholarship exam"
+                        ? "Continue to Exam"
+                        : "Next"
+                    }
+                  />
                 </div>
-                <BottomActions
-                  onNext={handleGermanStatusSubmit}
-                  disabled={!isStatusValid}
-                  nextText={
-                    germanStatus === "I am here for the scholarship exam"
-                      ? "Continue to Exam"
-                      : "Next"
-                  }
-                />
               </div>
             </motion.div>
           )}
@@ -1267,82 +1354,84 @@ const OnboardingFlow = () => {
                 mascot={mayaSmiling}
                 tooltip="What is your current German level?"
               />
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-3 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-10 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-12 md:justify-center">
-                <div className="flex-1 md:flex-initial md:mb-8">
-                  <h2 className="text-black text-[16px] font-medium mb-4">
-                    Select your German level
-                  </h2>
-                  <div className="flex flex-col gap-3 w-full pb-2 mt-2">
-                    {[
-                      {
-                        level: 1,
-                        label: "A1 - Beginner\n(I know a few words)",
-                      },
-                      {
-                        level: 2,
-                        label:
-                          "A2 - Elementary\n(I understand basic sentences)",
-                      },
-                      {
-                        level: 3,
-                        label:
-                          "B1 - Intermediate\n(I can have simple conversations)",
-                      },
-                      {
-                        level: 4,
-                        label:
-                          "B2 - Upper Intermediate\n(I can speak fairly confidently)",
-                      },
-                    ]
-                      .filter(
-                        (lvl) =>
-                          germanStatus !== "I have completed learning German" ||
-                          lvl.level >= 3,
-                      )
-                      .map((lvl) => {
-                        const [title, desc] = lvl.label.split("\n");
-                        return (
-                          <button
-                            key={lvl.level}
-                            onClick={() => selectGermanLevel(lvl.label)}
-                            className={`w-full p-3 rounded-xl border text-left flex items-center gap-4 transition-all ${
-                              germanLevel === lvl.label
-                                ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
-                                : "border-zinc-300 bg-white hover:bg-zinc-50"
-                            }`}
-                          >
-                            <LevelBars level={lvl.level} />
-                            <div className="flex flex-col">
-                              <span
-                                className={`text-[14px] font-semibold transition-colors ${
-                                  germanLevel === lvl.label
-                                    ? "text-[#1E76F3]"
-                                    : "text-[#111827]"
-                                }`}
-                              >
-                                {title}
-                              </span>
-                              {desc && (
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-3 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-10 md:h-full md:w-[55%] md:rounded-none md:mt-0 md:shadow-none md:px-16 md:py-12 md:justify-center md:overflow-y-auto">
+                <div className="w-full max-w-[400px] mx-auto flex flex-col flex-1 md:justify-center">
+                  <div className="flex-1 md:flex-initial md:mb-8">
+                    <h2 className="text-black text-[16px] font-medium mb-4">
+                      Select your German level
+                    </h2>
+                    <div className="flex flex-col gap-3 w-full pb-2 mt-2">
+                      {[
+                        {
+                          level: 1,
+                          label: "A1 - Beginner\n(I know a few words)",
+                        },
+                        {
+                          level: 2,
+                          label:
+                            "A2 - Elementary\n(I understand basic sentences)",
+                        },
+                        {
+                          level: 3,
+                          label:
+                            "B1 - Intermediate\n(I can have simple conversations)",
+                        },
+                        {
+                          level: 4,
+                          label:
+                            "B2 - Upper Intermediate\n(I can speak fairly confidently)",
+                        },
+                      ]
+                        .filter(
+                          (lvl) =>
+                            germanStatus !== "I have completed learning German" ||
+                            lvl.level >= 3,
+                        )
+                        .map((lvl) => {
+                          const [title, desc] = lvl.label.split("\n");
+                          return (
+                            <button
+                              key={lvl.level}
+                              onClick={() => selectGermanLevel(lvl.label)}
+                              className={`w-full p-3 rounded-xl border text-left flex items-center gap-4 transition-all cursor-pointer ${
+                                germanLevel === lvl.label
+                                  ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
+                                  : "border-zinc-300 bg-white hover:bg-zinc-50"
+                              }`}
+                            >
+                              <LevelBars level={lvl.level} />
+                              <div className="flex flex-col">
                                 <span
-                                  className={`text-[12px] font-normal transition-colors ${
+                                  className={`text-[14px] font-semibold transition-colors ${
                                     germanLevel === lvl.label
-                                      ? "text-[#1E76F3]/80"
-                                      : "text-zinc-500"
+                                      ? "text-[#1E76F3]"
+                                      : "text-[#111827]"
                                   }`}
                                 >
-                                  {desc}
+                                  {title}
                                 </span>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
+                                {desc && (
+                                  <span
+                                    className={`text-[12px] font-normal transition-colors ${
+                                      germanLevel === lvl.label
+                                        ? "text-[#1E76F3]/80"
+                                        : "text-zinc-500"
+                                    }`}
+                                  >
+                                    {desc}
+                                  </span>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                    </div>
                   </div>
+                  <BottomActions
+                    onNext={handleGermanLevelSubmit}
+                    disabled={!isLevelValid}
+                  />
                 </div>
-                <BottomActions
-                  onNext={handleGermanLevelSubmit}
-                  disabled={!isLevelValid}
-                />
               </div>
             </motion.div>
           )}
@@ -1360,88 +1449,90 @@ const OnboardingFlow = () => {
                 mayaFull={mayaFull}
               />
 
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-18 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-12 md:justify-center">
-                <div className="flex-1 md:flex-initial md:mb-8">
-                  <h2 className="text-black text-[16px] font-medium mb-4">
-                    Select your preference
-                  </h2>
-                  <div className="flex flex-col gap-3 w-full pb-2 mt-2">
-                    {[
-                      {
-                        id: "A",
-                        label:
-                          germanStatus === "Yet to start (no knowledge)"
-                            ? "Continue learning German"
-                            : "Practice my German",
-                        recommended:
-                          germanStatus === "Yet to start (no knowledge)",
-                      },
-                      {
-                        id: "B",
-                        label:
-                          germanStatus === "Yet to start (no knowledge)"
-                            ? "Practice my German"
-                            : "Continue learning German",
-                        recommended:
-                          germanStatus !== "Yet to start (no knowledge)",
-                      },
-                    ].map((pref) => {
-                      const prefCode =
-                        pref.label === "Continue learning German" ? "1" : "2";
-                      const isSelected = preference === prefCode;
-                      return (
-                        <button
-                          key={pref.id}
-                          onClick={() => {
-                            // Always store numeric codes, not label text
-                            selectPreference(prefCode);
-                          }}
-                          className={`w-full p-3 rounded-xl border text-left flex items-center gap-4 transition-all ${
-                            isSelected
-                              ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
-                              : "border-zinc-300 bg-white hover:bg-zinc-50"
-                          }`}
-                        >
-                          <div
-                            className={`w-8 h-8 rounded shrink-0 flex items-center justify-center font-bold transition-colors ${
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-18 md:h-full md:w-[55%] md:rounded-none md:mt-0 md:shadow-none md:px-16 md:py-12 md:justify-center md:overflow-y-auto">
+                <div className="w-full max-w-[400px] mx-auto flex flex-col flex-1 md:justify-center">
+                  <div className="flex-1 md:flex-initial md:mb-8">
+                    <h2 className="text-black text-[16px] font-medium mb-4">
+                      Select your preference
+                    </h2>
+                    <div className="flex flex-col gap-3 w-full pb-2 mt-2">
+                      {[
+                        {
+                          id: "A",
+                          label:
+                            germanStatus === "Yet to start (no knowledge)"
+                              ? "Continue learning German"
+                              : "Practice my German",
+                          recommended:
+                            germanStatus === "Yet to start (no knowledge)",
+                        },
+                        {
+                          id: "B",
+                          label:
+                            germanStatus === "Yet to start (no knowledge)"
+                              ? "Practice my German"
+                              : "Continue learning German",
+                          recommended:
+                            germanStatus !== "Yet to start (no knowledge)",
+                        },
+                      ].map((pref) => {
+                        const prefCode =
+                          pref.label === "Continue learning German" ? "1" : "2";
+                        const isSelected = preference === prefCode;
+                        return (
+                          <button
+                            key={pref.id}
+                            onClick={() => {
+                              // Always store numeric codes, not label text
+                              selectPreference(prefCode);
+                            }}
+                            className={`w-full p-3 rounded-xl border text-left flex items-center gap-4 transition-all cursor-pointer ${
                               isSelected
-                                ? "bg-blue-100 text-[#1E76F3]"
-                                : "bg-black/5 text-gray-500"
+                                ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
+                                : "border-zinc-300 bg-white hover:bg-zinc-50"
                             }`}
                           >
-                            {pref.id}
-                          </div>
-                          <div className="flex-1 flex flex-wrap items-center gap-2">
-                            <span
-                              className={`text-[14px] font-semibold  transition-colors ${
-                                isSelected ? "text-[#1E76F3]" : "text-[#111827]"
+                            <div
+                              className={`w-8 h-8 rounded shrink-0 flex items-center justify-center font-bold transition-colors ${
+                                isSelected
+                                  ? "bg-blue-100 text-[#1E76F3]"
+                                  : "bg-black/5 text-gray-500"
                               }`}
                             >
-                              {pref.label}
-                            </span>
-                            {pref.recommended && (
-                              <div className="px-2 py-1 bg-blue-100 rounded-full flex items-center justify-center">
-                                <span className="text-[#1E76F3] text-[11px] font-bold ">
-                                  Recommended
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </button>
-                      );
-                    })}
+                              {pref.id}
+                            </div>
+                            <div className="flex-1 flex flex-wrap items-center gap-2">
+                              <span
+                                className={`text-[14px] font-semibold  transition-colors ${
+                                  isSelected ? "text-[#1E76F3]" : "text-[#111827]"
+                                }`}
+                              >
+                                {pref.label}
+                              </span>
+                              {pref.recommended && (
+                                <div className="px-2 py-1 bg-blue-100 rounded-full flex items-center justify-center">
+                                  <span className="text-[#1E76F3] text-[11px] font-bold ">
+                                    Recommended
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
+                  {error && (
+                    <p className="text-red-500 text-[13px] font-medium mt-2 mb-1">
+                      {error}
+                    </p>
+                  )}
+                  <BottomActions
+                    onNext={handlePreferenceSubmit}
+                    disabled={!isPreferenceValid || loading}
+                    nextText="Next"
+                  />
                 </div>
-                {error && (
-                  <p className="text-red-500 text-[13px] font-medium mt-2 mb-1">
-                    {error}
-                  </p>
-                )}
-                <BottomActions
-                  onNext={handlePreferenceSubmit}
-                  disabled={!isPreferenceValid || loading}
-                  nextText="Next"
-                />
               </div>
             </motion.div>
           )}
@@ -1459,66 +1550,68 @@ const OnboardingFlow = () => {
                 tooltip="Since you already have intermediate or advanced German skills, which path would you like to take?"
               />
 
-              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-10 md:h-full md:w-[55%] md:rounded-none md:rounded-r-[45px] md:mt-0 md:shadow-none md:px-12 md:py-12 md:justify-center">
-                <div className="flex-1 md:flex-initial md:mb-8">
-                  <h2 className="text-black text-[16px] font-medium mb-4">
-                    Choose your pathway
-                  </h2>
-                  <div className="flex flex-col gap-3 w-full pb-2 mt-2">
-                    {[
-                      {
-                        id: "A",
-                        code: "2",
-                        title: "Practice my German",
-                      },
-                      {
-                        id: "B",
-                        code: "3",
-                        title: "Apply for a job",
-                      },
-                    ].map((opt) => {
-                      const isSelected = preference === opt.code;
-                      return (
-                        <button
-                          key={opt.id}
-                          onClick={() => setPreference(opt.code)}
-                          className={`w-full p-3 rounded-xl border text-left flex items-center gap-4 transition-all ${
-                            isSelected
-                              ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
-                              : "border-zinc-300 bg-white hover:bg-zinc-50"
-                          }`}
-                        >
-                          <div
-                            className={`w-8 h-8 rounded shrink-0 flex items-center justify-center font-bold transition-colors ${
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-10 md:h-full md:w-[55%] md:rounded-none md:mt-0 md:shadow-none md:px-16 md:py-12 md:justify-center md:overflow-y-auto">
+                <div className="w-full max-w-[400px] mx-auto flex flex-col flex-1 md:justify-center">
+                  <div className="flex-1 md:flex-initial md:mb-8">
+                    <h2 className="text-black text-[16px] font-medium mb-4">
+                      Choose your pathway
+                    </h2>
+                    <div className="flex flex-col gap-3 w-full pb-2 mt-2">
+                      {[
+                        {
+                          id: "A",
+                          code: "2",
+                          title: "Practice my German",
+                        },
+                        {
+                          id: "B",
+                          code: "3",
+                          title: "Apply for a job",
+                        },
+                      ].map((opt) => {
+                        const isSelected = preference === opt.code;
+                        return (
+                          <button
+                            key={opt.id}
+                            onClick={() => setPreference(opt.code)}
+                            className={`w-full p-3 rounded-xl border text-left flex items-center gap-4 transition-all cursor-pointer ${
                               isSelected
-                                ? "bg-blue-100 text-[#1E76F3]"
-                                : "bg-black/5 text-gray-500"
+                                ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
+                                : "border-zinc-300 bg-white hover:bg-zinc-50"
                             }`}
                           >
-                            {opt.id}
-                          </div>
-                          <span
-                            className={`text-[14px] font-semibold transition-colors ${
-                              isSelected ? "text-[#1E76F3]" : "text-[#111827]"
-                            }`}
-                          >
-                            {opt.title}
-                          </span>
-                        </button>
-                      );
-                    })}
+                            <div
+                              className={`w-8 h-8 rounded shrink-0 flex items-center justify-center font-bold transition-colors ${
+                                isSelected
+                                  ? "bg-blue-100 text-[#1E76F3]"
+                                  : "bg-black/5 text-gray-500"
+                              }`}
+                            >
+                              {opt.id}
+                            </div>
+                            <span
+                              className={`text-[14px] font-semibold transition-colors ${
+                                isSelected ? "text-[#1E76F3]" : "text-[#111827]"
+                              }`}
+                            >
+                              {opt.title}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
+                  {error && (
+                    <p className="text-red-500 text-[13px] font-medium mt-2 mb-1">
+                      {error}
+                    </p>
+                  )}
+                  <BottomActions
+                    onNext={handleB1B2PreferenceSubmit}
+                    disabled={!preference || loading}
+                    nextText="Finish Onboarding"
+                  />
                 </div>
-                {error && (
-                  <p className="text-red-500 text-[13px] font-medium mt-2 mb-1">
-                    {error}
-                  </p>
-                )}
-                <BottomActions
-                  onNext={handleB1B2PreferenceSubmit}
-                  disabled={!preference || loading}
-                  nextText="Finish Onboarding"
-                />
               </div>
             </motion.div>
           )}

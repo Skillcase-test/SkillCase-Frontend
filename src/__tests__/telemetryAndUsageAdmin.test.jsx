@@ -61,6 +61,7 @@ import StreakCelebrationModal from "../components/StreakCelebrationModal";
 import DailyGoalModal from "../pages/learnGerman/DailyGoalModal";
 import DailyGoalCompletedModal from "../pages/learnGerman/DailyGoalCompletedModal";
 import BottomTabBar from "../components/BottomTabBar";
+import OnboardingFlow from "../pages/onboarding/OnboardingFlow";
 
 describe("Telemetry & Modal Events Verification", () => {
   beforeEach(() => {
@@ -323,5 +324,37 @@ describe("Telemetry & Modal Events Verification", () => {
         { entityId: "jobs" }
       );
     });
+  });
+
+  describe("OnboardingFlow Layout & Interactions", () => {
+    it("renders splash step initially with Maya and Skillcase logo matching AppSplashScreen", () => {
+      render(
+        <MemoryRouter>
+          <OnboardingFlow />
+        </MemoryRouter>
+      );
+
+      expect(screen.getByAltText("Skillcase")).toBeInTheDocument();
+      expect(screen.getByText(/Hi, I am Maya/i)).toBeInTheDocument();
+    });
+
+    it("advances to phone step and allows typing phone and sending OTP", async () => {
+      render(
+        <MemoryRouter>
+          <OnboardingFlow />
+        </MemoryRouter>
+      );
+
+      const phoneInput = await screen.findByPlaceholderText(
+        "XXXXX-XXXXX",
+        {},
+        { timeout: 4000 }
+      );
+      expect(phoneInput).toBeInTheDocument();
+
+      fireEvent.change(phoneInput, { target: { value: "9876543210" } });
+      const sendOtpBtn = screen.getByText("Send OTP");
+      expect(sendOtpBtn).not.toBeDisabled();
+    }, 10000);
   });
 });
