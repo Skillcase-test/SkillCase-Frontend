@@ -298,26 +298,49 @@ function SwitcherTab({
       role="tab"
       onClick={onClick}
       aria-selected={active}
-      style={active ? { backgroundColor: blendColor } : undefined}
-      className={`relative flex-1 px-1.5 sm:px-2.5 flex items-center justify-center gap-1.5 transition-colors duration-200 cursor-pointer select-none ${
+      className={`relative flex-1 px-1.5 sm:px-2.5 flex items-center justify-center gap-1.5 cursor-pointer select-none ${
         active
-          ? "rounded-t-lg h-14 rounded-b-none -mb-[2px] z-10"
-          : "bg-white/10 rounded-lg h-12 hover:bg-white/15 mb-2"
+          ? "h-14 -mb-[2px] z-10"
+          : "bg-white/10 rounded-lg h-12 hover:bg-white/15 mb-2 transition-colors duration-150"
       }`}
     >
-      {/* Concave bottom-left notch using ultra-smooth 24px Cubic Bezier SVG with dynamic route fill color */}
-      {active && showLeftNotch && (
-        <span className="absolute -left-[23.5px] -bottom-[2px] w-6 h-[26px] pointer-events-none z-20">
-          <svg
-            viewBox="0 0 24 26"
-            className="w-full h-full"
-            shapeRendering="geometricPrecision"
-          >
-            <path
-              d="M 0,26 L 24,26 L 24,0 C 24,14 14,24 0,24 L 0,26 Z"
-              fill={blendColor}
-            />
-          </svg>
+      {/* Atomic Active Background + Left/Right Shoulders */}
+      {active && (
+        <span
+          className="absolute inset-0 rounded-t-lg pointer-events-none -z-1"
+          style={{ backgroundColor: blendColor }}
+        >
+          {/* Left Notch - synchronously bundled with active background */}
+          {showLeftNotch && (
+            <span className="absolute -left-[23.5px] bottom-0 w-6 h-[26px] pointer-events-none">
+              <svg
+                viewBox="0 0 24 26"
+                className="w-full h-full block"
+                shapeRendering="geometricPrecision"
+              >
+                <path
+                  d="M 0,26 L 24,26 L 24,0 C 24,14 14,24 0,24 L 0,26 Z"
+                  fill={blendColor}
+                />
+              </svg>
+            </span>
+          )}
+
+          {/* Right Notch - synchronously bundled with active background */}
+          {showRightNotch && (
+            <span className="absolute -right-[23.5px] bottom-0 w-6 h-[26px] pointer-events-none">
+              <svg
+                viewBox="0 0 24 26"
+                className="w-full h-full block"
+                shapeRendering="geometricPrecision"
+              >
+                <path
+                  d="M 24,26 L 0,26 L 0,0 C 0,14 10,24 24,24 L 24,26 Z"
+                  fill={blendColor}
+                />
+              </svg>
+            </span>
+          )}
         </span>
       )}
 
@@ -325,12 +348,12 @@ function SwitcherTab({
         src={image}
         alt=""
         aria-hidden="true"
-        className={`w-7 h-7 sm:w-9 sm:h-6 object-contain shrink-0 ${
+        className={`relative z-10 w-7 h-7 sm:w-9 sm:h-6 object-contain shrink-0 ${
           active ? "" : "opacity-80"
         }`}
       />
       <div
-        className={`flex flex-col ${
+        className={`relative z-10 flex flex-col ${
           line2 ? "text-left" : "text-center"
         } text-[10px] sm:text-xs leading-[11px] ${
           active ? "text-[#002856] font-bold" : "text-white/90 font-medium"
@@ -339,22 +362,6 @@ function SwitcherTab({
         <span>{line1}</span>
         {line2 ? <span>{line2}</span> : null}
       </div>
-
-      {/* Concave bottom-right notch using ultra-smooth 24px Cubic Bezier SVG with dynamic route fill color */}
-      {active && showRightNotch && (
-        <span className="absolute -right-[23.5px] -bottom-[2px] w-6 h-[26px] pointer-events-none z-20">
-          <svg
-            viewBox="0 0 24 26"
-            className="w-full h-full"
-            shapeRendering="geometricPrecision"
-          >
-            <path
-              d="M 24,26 L 0,26 L 0,0 C 0,14 10,24 24,24 L 24,26 Z"
-              fill={blendColor}
-            />
-          </svg>
-        </span>
-      )}
     </button>
   );
 }

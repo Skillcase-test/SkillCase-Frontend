@@ -1194,53 +1194,8 @@ export default function LearnGermanHome() {
         transition={{ type: "spring", stiffness: 100, damping: 15 }}
         className="w-full max-w-[400px] mx-auto relative z-10 flex flex-col items-center px-6"
       >
-        {/* Top Arc Progress Section */}
-        <div className="w-full mb-6 mt-4 relative flex flex-col items-center">
-          <div
-            onClick={() => navigate("/learn-german/recap")}
-            className="w-full p-4 bg-white rounded-2xl inline-flex flex-col justify-start items-start gap-2.5 shadow-lg border border-[#efefef] cursor-pointer hover:scale-[1.01] active:scale-[0.99] transition-all"
-          >
-            <div className="self-stretch flex flex-col justify-start items-start gap-2">
-              <div className="self-stretch inline-flex justify-between items-center px-1">
-                <div className="w-48 justify-start text-blue-950 text-base font-normal">
-                  German words learnt
-                </div>
-                <div className="text-right justify-start text-blue-950 text-base font-semibold">
-                  {vocabProgress.learnedWords}
-                </div>
-              </div>
-              <div className="self-stretch h-[18px] bg-[#505050] rounded-full relative overflow-visible border border-[#303030] p-[2px] flex items-center">
-                <motion.div
-                  className={`h-full rounded-full bg-gradient-to-r from-[#F9786F] to-[#FFD475] `}
-                  initial={
-                    fromSwitcher
-                      ? { width: 0 }
-                      : { width: `${Math.min(100, Math.max(0, progress))}%` }
-                  }
-                  animate={{
-                    width: `${Math.min(100, Math.max(0, progress))}%`,
-                  }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 70,
-                    damping: 10,
-                    delay: 0.3,
-                  }}
-                />
-                <div className="absolute right-[-4px] size-8 bg-white rounded-full shadow-[0px_2px_5px_0px_rgba(0,0,0,0.20)] flex items-center justify-center select-none overflow-hidden border border-gray-100">
-                  <img
-                    src={germanFlag}
-                    alt="German Flag"
-                    className="w-6 h-6 object-cover rounded-full"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Dynamic Zigzag Module List */}
-        <div className="w-full flex flex-col gap-12 relative z-10">
+        <div className="w-full flex flex-col gap-12 relative z-10 pt-4">
           {loading ? (
             <LearnGermanTimelineSkeleton />
           ) : modules.length === 0 ? (
