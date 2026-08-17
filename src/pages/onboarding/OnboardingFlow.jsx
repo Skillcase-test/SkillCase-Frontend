@@ -1463,8 +1463,7 @@ const OnboardingFlow = () => {
                             germanStatus === "Yet to start (no knowledge)"
                               ? "Continue learning German"
                               : "Practice my German",
-                          recommended:
-                            germanStatus === "Yet to start (no knowledge)",
+                          recommended: true,
                         },
                         {
                           id: "B",
@@ -1472,8 +1471,7 @@ const OnboardingFlow = () => {
                             germanStatus === "Yet to start (no knowledge)"
                               ? "Practice my German"
                               : "Continue learning German",
-                          recommended:
-                            germanStatus !== "Yet to start (no knowledge)",
+                          recommended: false,
                         },
                       ].map((pref) => {
                         const prefCode =
