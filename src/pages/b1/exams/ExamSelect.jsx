@@ -61,7 +61,10 @@ export default function ExamSelect() {
   return (
     <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden relative">
       {/* Back Navigation Bar */}
-      <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
+      <div
+        className="self-stretch px-4 pb-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white"
+        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+      >
         <div className="self-stretch inline-flex justify-between items-center">
           <button
             onClick={() => navigate("/")}

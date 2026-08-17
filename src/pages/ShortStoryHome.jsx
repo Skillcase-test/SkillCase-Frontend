@@ -49,7 +49,10 @@ const ShortStoryHome = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Back Navigation */}
-      <div className="px-4 py-2.5">
+      <div
+        className="px-4 pb-2.5"
+        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+      >
         <div className="flex items-center justify-between">
           <button
             onClick={() => navigate("/")}

@@ -745,7 +745,10 @@ export default function A1Flashcard() {
   if (showTestPrompt) {
     return (
       <div className="min-h-screen bg-white flex flex-col">
-        <div className="px-4 py-2.5">
+        <div
+          className="px-4 pb-2.5"
+          style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+        >
           <div className="flex items-center justify-between">
             <button
               onClick={() => navigate("/a1/flashcard")}
@@ -836,7 +839,10 @@ export default function A1Flashcard() {
 
     return (
       <div className="min-h-screen bg-white flex flex-col">
-        <div className="px-4 py-3 border-b border-[#efefef] bg-white sticky top-0 z-10">
+        <div
+          className="px-4 pb-3 border-b border-[#efefef] bg-white sticky top-0 z-10"
+          style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+        >
           <div className="flex items-center justify-between mb-2">
             <button
               onClick={() => {
@@ -1324,7 +1330,10 @@ export default function A1Flashcard() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col relative">
-      <div className="px-4 py-2.5">
+      <div
+        className="px-4 pb-2.5"
+        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+      >
         <div className="flex items-center justify-between">
           <button
             onClick={() => navigate("/a1/flashcard")}

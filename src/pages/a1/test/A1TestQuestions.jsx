@@ -309,7 +309,10 @@ export default function A1TestQuestions() {
 
     return (
       <div className="min-h-screen bg-white flex flex-col">
-        <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
+        <div
+          className="px-4 pb-3 border-b border-[#E5E7EB] flex items-center justify-between"
+          style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+        >
           <button
             onClick={() => navigate(`/a1/test/${topicId}`)}
             className="flex items-center gap-2 text-sm font-semibold"
@@ -388,7 +391,10 @@ export default function A1TestQuestions() {
   if (showFailedReview && result && !result.passed) {
     return (
       <div className="min-h-screen bg-white flex flex-col">
-        <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
+        <div
+          className="px-4 pb-3 border-b border-[#E5E7EB] flex items-center justify-between"
+          style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+        >
           <button
             onClick={() => setShowFailedReview(false)}
             className="flex items-center gap-2 text-sm font-semibold"
@@ -778,7 +784,10 @@ export default function A1TestQuestions() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
+      <div
+        className="px-4 pb-3 border-b border-[#E5E7EB] flex items-center justify-between"
+        style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+      >
         <button
           onClick={() => navigate(`/a1/test/${topicId}`)}
           className="flex items-center gap-2"

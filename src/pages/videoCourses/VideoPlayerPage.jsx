@@ -521,7 +521,10 @@ export default function VideoPlayerPage() {
   if (loading) {
     return (
       <div className="w-full max-w-md mx-auto min-h-screen bg-white shadow-sm flex flex-col">
-        <div className="px-4 py-3 border-b border-zinc-100 flex items-center justify-between animate-pulse">
+        <div
+          className="px-4 pb-3 border-b border-zinc-100 flex items-center justify-between animate-pulse"
+          style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+        >
           <div className="h-4 w-16 bg-slate-200 rounded" />
           <div className="h-4 w-32 bg-slate-200 rounded" />
         </div>
@@ -544,8 +547,11 @@ export default function VideoPlayerPage() {
   }
 
   return (
-    <div      className="w-full max-w-md mx-auto min-h-[100dvh] lg:min-h-[100dvh] bg-white flex flex-col shadow-sm relative">
-      <div className="self-stretch px-4 py-2.5 flex justify-between items-center bg-white">
+    <div className="w-full max-w-md mx-auto min-h-[100dvh] lg:min-h-[100dvh] bg-white flex flex-col shadow-sm relative">
+      <div
+        className="self-stretch px-4 pb-2.5 flex justify-between items-center bg-white"
+        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+      >
         <button
           onClick={() => navigate(`/video-courses/${video.course_id || ""}`)}
           className="px-0.5 flex items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"

@@ -244,7 +244,10 @@ export default function ConversationPlayer() {
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Header */}
       <div className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div
+          className="max-w-4xl mx-auto px-4 pb-4 flex items-center justify-between"
+          style={{ paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))" }}
+        >
           <button
             onClick={() => {
               hapticLight();

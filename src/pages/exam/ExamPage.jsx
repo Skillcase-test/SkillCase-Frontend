@@ -921,7 +921,10 @@ export default function ExamPage() {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col" aria-label="Loading exam page">
         {/* Sticky Exam Header */}
-        <div className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 py-3 shadow-xs">
+        <div
+          className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 pb-3 shadow-xs"
+          style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+        >
           <div className="max-w-4xl mx-auto flex items-center justify-between animate-pulse">
             <div className="h-6 w-32 bg-slate-200 rounded-md" />
             <div className="h-8 w-24 bg-slate-200 rounded-full" />
@@ -1020,7 +1023,10 @@ export default function ExamPage() {
     <div className="min-h-screen bg-white flex flex-col">
       <div className="sticky z-40" style={{ top: `${navbarOffset - 10}px` }}>
         {/* Top Bar */}
-        <div className="bg-white border-b border-gray-200 px-4 py-2.5 flex items-center justify-between">
+        <div
+          className="bg-white border-b border-gray-200 px-4 pb-2.5 flex items-center justify-between"
+          style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+        >
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowNavDrawer(true)}

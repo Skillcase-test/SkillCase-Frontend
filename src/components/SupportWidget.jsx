@@ -415,7 +415,10 @@ export default function SupportWidget() {
               className="relative w-full max-w-md h-full bg-white shadow-2xl flex flex-col z-10 overflow-hidden"
             >
               {/* Figma Header */}
-              <div className="px-4 pt-4 pb-3 bg-white flex items-center justify-start gap-3 shrink-0">
+              <div
+                className="px-4 pb-3 bg-white flex items-center justify-start gap-3 shrink-0"
+                style={{ paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))" }}
+              >
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}

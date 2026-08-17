@@ -62,7 +62,10 @@ export default function TransactionHistoryPage() {
   return (
     <div className="min-h-screen bg-white flex flex-col ">
       {/* Header */}
-      <div className="px-4 py-2.5 flex items-center gap-3">
+      <div
+        className="px-4 pb-2.5 flex items-center gap-3"
+        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+      >
         <button
           onClick={() => navigate(-1)}
           className="size-7 flex items-center justify-center rounded-md border-2 border-black/40 text-black hover:bg-slate-50 transition-colors cursor-pointer"

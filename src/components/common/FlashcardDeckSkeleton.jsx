@@ -4,7 +4,10 @@ export default function FlashcardDeckSkeleton({ title = "Flashcards" }) {
   return (
     <div className="min-h-screen bg-white flex flex-col relative" aria-label="Loading flashcards">
       {/* Top Navbar */}
-      <div className="px-4 py-2.5">
+      <div
+        className="px-4 pb-2.5"
+        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+      >
         <div className="flex items-center justify-between animate-pulse">
           <div className="h-4 w-16 bg-slate-200 rounded" />
           <div className="h-4 w-28 bg-slate-200 rounded" />

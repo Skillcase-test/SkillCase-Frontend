@@ -756,7 +756,10 @@ export default function A1ListeningContent() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="px-4 py-3 flex items-center justify-between border-b border-[#E5E7EB] gap-2">
+      <div
+        className="px-4 pb-3 flex items-center justify-between border-b border-[#E5E7EB] gap-2"
+        style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+      >
         <button
           onClick={() => navigate("/a1/listening")}
           className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"

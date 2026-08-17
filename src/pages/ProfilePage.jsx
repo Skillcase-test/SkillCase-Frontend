@@ -704,7 +704,10 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen bg-black/5 pb-12" aria-label="Loading profile">
         {/* Top Bar Sub-Header Skeleton */}
-        <div className="bg-white border-b border-slate-200 sticky top-0 z-30">
+        <div
+          className="bg-white border-b border-slate-200 sticky top-0 z-30"
+          style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+        >
           <div className="max-w-xl mx-auto px-4 h-12 flex items-center justify-start gap-3 animate-pulse">
             <div className="w-7 h-7 rounded-md bg-slate-200" />
             <div className="h-5 w-20 bg-slate-200 rounded" />
@@ -786,7 +789,10 @@ export default function ProfilePage() {
       {activeTab === "profile" ? (
         <>
           {/* Top Bar Sub-Header for Profile */}
-          <div className="bg-white border-b border-slate-200 sticky top-0 z-30">
+          <div
+            className="bg-white border-b border-slate-200 sticky top-0 z-30"
+            style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+          >
             <div className="max-w-xl mx-auto px-4 h-12 flex items-center justify-start gap-3">
               <button
                 onClick={() => navigate(-1)}

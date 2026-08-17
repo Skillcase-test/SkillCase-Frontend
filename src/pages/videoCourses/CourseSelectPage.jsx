@@ -42,7 +42,10 @@ export default function CourseSelectPage() {
     // min-h-screen so the loading spinner's flex-1 has a height to fill, and
     // pb-28 so the last course card clears the fixed 80px bottom tab bar.
     <div className="w-full max-w-md mx-auto bg-white flex flex-col min-h-screen pb-28">
-      <div className="self-stretch px-4 py-2.5 flex justify-center items-center bg-white">
+      <div
+        className="self-stretch px-4 pb-2.5 flex justify-center items-center bg-white"
+        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+      >
         <span className="text-neutral-500 text-sm font-semibold leading-6">
           German Classes
         </span>

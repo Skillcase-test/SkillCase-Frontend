@@ -50,7 +50,10 @@ export default function ManagePlanPage() {
   return (
     <div className="min-h-screen bg-[#002856] flex flex-col ">
       {/* Header */}
-      <div className="px-4 py-2.5 flex items-center gap-3">
+      <div
+        className="px-4 pb-2.5 flex items-center gap-3"
+        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+      >
         <button
           onClick={() => navigate(-1)}
           className="size-7 flex items-center justify-center rounded-md border-2 border-white/40 text-white hover:bg-white/10 transition-colors cursor-pointer"

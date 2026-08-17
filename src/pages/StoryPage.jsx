@@ -115,7 +115,8 @@ const StoryPage = () => {
         <Link
           to="/stories"
           onClick={hapticLight}
-          className="absolute top-4 left-4 bg-white/80 backdrop-blur p-2 rounded-full shadow-sm z-10 hover:bg-white transition"
+          className="absolute left-4 bg-white/80 backdrop-blur p-2 rounded-full shadow-sm z-10 hover:bg-white transition"
+          style={{ top: "calc(1rem + env(safe-area-inset-top, 0px))" }}
         >
           <ChevronLeft className="w-5 h-5" />
         </Link>

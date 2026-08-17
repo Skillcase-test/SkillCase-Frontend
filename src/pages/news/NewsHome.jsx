@@ -87,7 +87,10 @@ export default function NewsHome() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="w-full bg-white border-b border-gray-200 shrink-0 z-[1000] relative">
-        <div className="px-4 py-2.5 max-w-3xl mx-auto">
+        <div
+          className="px-4 pb-2.5 max-w-3xl mx-auto"
+          style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+        >
           <div className="flex items-center justify-between">
             <button
               onClick={() => navigate("/")}

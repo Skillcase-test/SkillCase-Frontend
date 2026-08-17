@@ -245,7 +245,10 @@ export default function A1GrammarPractice() {
   if (isCompleted && !isReviewMode && showExplanation) {
     return (
       <div className="min-h-screen bg-white flex flex-col">
-        <div className="px-4 py-3 flex items-center border-b border-[#E5E7EB]">
+        <div
+          className="px-4 pb-3 flex items-center border-b border-[#E5E7EB]"
+          style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+        >
           <button
             onClick={() => navigate("/a1/grammar")}
             className="flex items-center gap-2 text-sm font-semibold"
@@ -292,7 +295,10 @@ export default function A1GrammarPractice() {
   if (isReviewMode) {
     return (
       <div className="min-h-screen bg-white flex flex-col">
-        <div className="px-4 py-3 flex items-center justify-between gap-3 border-b border-[#E5E7EB]">
+        <div
+          className="px-4 pb-3 flex items-center justify-between gap-3 border-b border-[#E5E7EB]"
+          style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+        >
           <button
             onClick={() => navigate("/a1/grammar")}
             className="flex items-center gap-2"
@@ -561,7 +567,10 @@ export default function A1GrammarPractice() {
   // PRACTICE VIEW
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <div className="px-4 py-3 flex items-center justify-between border-b border-[#E5E7EB]">
+      <div
+        className="px-4 pb-3 flex items-center justify-between border-b border-[#E5E7EB]"
+        style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+      >
         <button
           onClick={() => navigate("/a1/grammar")}
           className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"

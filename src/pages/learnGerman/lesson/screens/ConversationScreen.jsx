@@ -165,10 +165,9 @@ export default function ConversationScreen({
           floatingHeader ? "" : "pt-4"
         }`}
         style={
-          // The floating progress header sits flush at the top (like every
-          // other in-page header), so the content only needs to clear its
-          // height (~65px incl. the back button).
-          floatingHeader ? { paddingTop: "65px" } : {}
+          floatingHeader
+            ? { paddingTop: "calc(65px + env(safe-area-inset-top, 0px))" }
+            : {}
         }
       >
         <div className="flex flex-col justify-start items-start w-full max-w-[500px] mx-auto">

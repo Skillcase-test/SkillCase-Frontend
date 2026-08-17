@@ -369,7 +369,10 @@ export default function NewsArticleReader() {
   if (loading) {
     return (
       <div className="w-full max-w-md mx-auto min-h-screen bg-white shadow-sm flex flex-col">
-        <div className="px-4 py-3 border-b border-zinc-100 flex items-center gap-2 animate-pulse">
+        <div
+          className="px-4 pb-3 border-b border-zinc-100 flex items-center gap-2 animate-pulse"
+          style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+        >
           <div className="h-4 w-12 bg-slate-200 rounded" />
           <div className="h-4 w-40 bg-slate-200 rounded" />
         </div>
@@ -400,7 +403,10 @@ export default function NewsArticleReader() {
       <Toaster position="top-center" />
 
       {/* Back & Module Title navigation bar */}
-      <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
+      <div
+        className="self-stretch px-4 pb-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white"
+        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+      >
         <div className="self-stretch inline-flex justify-between items-center">
           <button
             onClick={() => navigate(`/b1/read-listen/list/${content.module}/${content.chapter_id || "unassigned"}`)}

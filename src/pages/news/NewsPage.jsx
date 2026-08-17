@@ -72,7 +72,10 @@ export default function NewsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f7fb] py-4">
+    <div
+      className="min-h-screen bg-[#f5f7fb] pb-4"
+      style={{ paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))" }}
+    >
       <div className="max-w-2xl mx-auto px-4">
         <button
           type="button"

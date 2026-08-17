@@ -76,7 +76,10 @@ export default function A2TestLevel() {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="px-4 py-3 flex items-center border-b border-[#E5E7EB]">
+      <div
+        className="px-4 pb-3 flex items-center border-b border-[#E5E7EB]"
+        style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+      >
         <div className="flex w-full justify-between items-center">
           <button
             onClick={() => navigate("/a2/test")}

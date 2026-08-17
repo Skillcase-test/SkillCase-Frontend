@@ -298,19 +298,17 @@ function SwitcherTab({
       role="tab"
       onClick={onClick}
       aria-selected={active}
+      style={active ? { backgroundColor: blendColor } : undefined}
       className={`relative flex-1 px-1.5 sm:px-2.5 flex items-center justify-center gap-1.5 cursor-pointer select-none ${
         active
-          ? "h-14 -mb-[2px] z-10"
+          ? "h-14 -mb-[2px] z-10 rounded-t-lg"
           : "bg-white/10 rounded-lg h-12 hover:bg-white/15 mb-2 transition-colors duration-150"
       }`}
     >
-      {/* Atomic Active Background + Left/Right Shoulders */}
+      {/* Left/Right Shoulders attached to active tab */}
       {active && (
-        <span
-          className="absolute inset-0 rounded-t-lg pointer-events-none -z-1"
-          style={{ backgroundColor: blendColor }}
-        >
-          {/* Left Notch - synchronously bundled with active background */}
+        <>
+          {/* Left Notch */}
           {showLeftNotch && (
             <span className="absolute -left-[23.5px] bottom-0 w-6 h-[26px] pointer-events-none">
               <svg
@@ -341,7 +339,7 @@ function SwitcherTab({
               </svg>
             </span>
           )}
-        </span>
+        </>
       )}
 
       <img

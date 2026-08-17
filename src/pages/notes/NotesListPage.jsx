@@ -56,7 +56,10 @@ export default function NotesListPage() {
 
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col shadow-sm">
-      <div className="self-stretch px-4 py-2.5 flex justify-between items-center bg-white border-b border-zinc-100">
+      <div
+        className="self-stretch px-4 pb-2.5 flex justify-between items-center bg-white border-b border-zinc-100"
+        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+      >
         <button
           onClick={() => navigate("/")}
           className="px-0.5 flex items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"

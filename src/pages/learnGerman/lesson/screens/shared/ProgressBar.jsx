@@ -32,16 +32,15 @@ export default function ProgressBar({
 
   return (
     <div
-      className={`w-full pr-4 pl-2 pt-2.5 pb-2.5 bg-[#F4F8FF] border-b border-slate-200 shadow-sm/20 shrink-0 z-20 ${
+      className={`w-full pr-4 pl-2 pb-2.5 bg-[#F4F8FF] border-b border-slate-200 shadow-sm/20 shrink-0 z-20 ${
         floating
           ? "fixed left-1/2 -translate-x-1/2 max-w-[500px]"
           : "relative"
       }`}
-      style={
-        // Flush with the top edge, same as every other in-page header (e.g.
-        // the B1 exam headers) — no safe-area offset above it.
-        floating ? { top: 0 } : {}
-      }
+      style={{
+        paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))",
+        ...(floating ? { top: 0 } : {}),
+      }}
     >
       <div className="flex justify-between items-center gap-2">
         <div className="flex items-center min-w-0 flex-1">

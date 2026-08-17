@@ -293,7 +293,10 @@ export default function ExamWritingWorkspace() {
   return (
     <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden relative">
       {/* Navigation bar */}
-      <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 bg-white shrink-0 z-10">
+      <div
+        className="self-stretch px-4 pb-2.5 flex flex-col justify-start items-start gap-2.5 bg-white shrink-0 z-10"
+        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+      >
         <div className="self-stretch inline-flex justify-between items-center">
           <button
             onClick={() => navigate(`/b1/exams/papers/${paperId}/dashboard`)}

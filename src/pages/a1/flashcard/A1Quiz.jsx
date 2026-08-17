@@ -142,7 +142,10 @@ export default function A1Quiz({ setId, quizType, onComplete, onSkip }) {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <div className="px-4 py-3 border-b flex items-center justify-between">
+      <div
+        className="px-4 pb-3 border-b flex items-center justify-between"
+        style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+      >
         <span className="text-sm font-semibold text-gray-600">
           {quizType === "mini" ? "Mini Quiz" : "Final Quiz"}
         </span>

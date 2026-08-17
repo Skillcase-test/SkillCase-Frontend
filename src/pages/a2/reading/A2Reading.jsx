@@ -458,7 +458,10 @@ export default function A2Reading() {
         </div>
       )}
       {/* Header */}
-      <div className="px-4 py-2.5 flex items-center justify-between border-b border-gray-100">
+      <div
+        className="px-4 pb-2.5 flex items-center justify-between border-b border-gray-100"
+        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+      >
         <button
           onClick={() => navigate("/a2/reading")}
           className="flex items-center gap-2 text-sm font-semibold"

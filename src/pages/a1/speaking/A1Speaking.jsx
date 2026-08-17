@@ -282,7 +282,10 @@ export default function A1Speaking() {
   };
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <div className="px-4 py-2.5 flex items-center justify-between">
+      <div
+        className="px-4 pb-2.5 flex items-center justify-between"
+        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+      >
         <button
           onClick={() => navigate("/a1/speaking")}
           className="flex items-center gap-2 text-sm font-semibold"

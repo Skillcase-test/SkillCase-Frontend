@@ -284,7 +284,10 @@ export default function ExamResult() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white px-4 py-3 flex items-center border-b border-gray-200 sticky top-0 z-10">
+      <div
+        className="bg-white px-4 pb-3 flex items-center border-b border-gray-200 sticky top-0 z-10"
+        style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+      >
         <button
           onClick={() => navigate("/")}
           className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
