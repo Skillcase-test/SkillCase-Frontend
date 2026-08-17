@@ -49,12 +49,29 @@ export default function TopModeSwitcher({ isTourActive = false }) {
     };
   }, []);
 
+  const [isJobWelcome, setIsJobWelcome] = useState(false);
+
+  useEffect(() => {
+    const handleJobWelcome = (e) => {
+      setIsJobWelcome(Boolean(e?.detail?.isWelcome));
+    };
+    window.addEventListener("jobScreeningWelcome", handleJobWelcome);
+    return () => {
+      window.removeEventListener("jobScreeningWelcome", handleJobWelcome);
+    };
+  }, []);
+
   const tourActive = isTourActive || localTourActive;
 
   // Exact page-top color of the current shell page. The active tab + its
   // concave notch are filled with this color so the tab melts into the page
-  // below (white on white pages, sky-blue on learn-german / job-screening).
-  const blendColor = getSwitcherBlendColor(location.pathname);
+  // below (white on white pages, sky-blue on learn-german / job-screening,
+  // dark navy on the job-screening welcome screen).
+  const baseBlendColor = getSwitcherBlendColor(location.pathname);
+  const blendColor =
+    location.pathname === "/job-screening" && isJobWelcome
+      ? "#002856"
+      : baseBlendColor;
 
   // Scholarship hub: static single-tab switcher stating the context. The
   // exam chrome is route-scoped so the switcher renders regardless of the
@@ -370,7 +387,11 @@ function SwitcherTab({
         className={`relative z-10 flex flex-col ${
           line2 ? "text-left" : "text-center"
         } text-[10px] sm:text-xs leading-[11px] ${
-          active ? "text-[#002856] font-bold" : "text-white/90 font-medium"
+          active
+            ? blendColor === "#002856"
+              ? "text-white font-bold"
+              : "text-[#002856] font-bold"
+            : "text-white/90 font-medium"
         }`}
       >
         <span>{line1}</span>

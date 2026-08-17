@@ -116,13 +116,17 @@ const JobScreening = () => {
   const [loading, setLoading] = useState(true);
   const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState("");
-  const [isExecutingStep, setIsExecutingStep] = useState(false);
+  const [isExecutingStep, setIsExecutingStep] = useState(() =>
+    Boolean(new URLSearchParams(location.search).get("step")),
+  );
   const [agreementLoading, setAgreementLoading] = useState(false);
   const [agreementError, setAgreementError] = useState("");
 
   const [welcomeAnimationState, setWelcomeAnimationState] = useState("idle");
   const [finalProgressData, setFinalProgressData] = useState(null);
-  const [executingStepId, setExecutingStepId] = useState(null);
+  const [executingStepId, setExecutingStepId] = useState(
+    () => new URLSearchParams(location.search).get("step") || null,
+  );
   // Holds the just-finished step's id while its lobby checkmark animates in;
   // the actual advance into nextStepId happens once that animation completes,
   // so the candidate always sees the lobby update before moving on.
@@ -132,6 +136,48 @@ const JobScreening = () => {
   const activeStepRef = useRef(null);
   const activeStepContainerRef = useRef(null);
   const welcomeTimeoutIdsRef = useRef([]);
+
+  // Sync isExecutingStep with URL query param `?step=`
+  useEffect(() => {
+    const search = new URLSearchParams(location.search);
+    const stepParam = search.get("step");
+    if (stepParam) {
+      setExecutingStepId(stepParam);
+      setIsExecutingStep(true);
+    } else if (!stepParam && isExecutingStep) {
+      setIsExecutingStep(false);
+      setExecutingStepId(null);
+    }
+  }, [location.search]);
+
+  // Broadcast welcome state to TopModeSwitcher so the active tab matches the page color
+  useEffect(() => {
+    const search = new URLSearchParams(location.search);
+    const isWelcome =
+      progress?.current_step_id === "welcome" &&
+      welcomeAnimationState === "idle" &&
+      finalProgressData === null &&
+      !isExecutingStep &&
+      !search.get("step");
+    window.dispatchEvent(
+      new CustomEvent("jobScreeningWelcome", {
+        detail: { isWelcome },
+      }),
+    );
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent("jobScreeningWelcome", {
+          detail: { isWelcome: false },
+        }),
+      );
+    };
+  }, [
+    progress?.current_step_id,
+    welcomeAnimationState,
+    finalProgressData,
+    isExecutingStep,
+    location.search,
+  ]);
 
   useEffect(() => {
     const stepId = progress?.current_step_id;
@@ -341,6 +387,12 @@ const JobScreening = () => {
   const steps = progress?.steps_config || [];
   const currentStepId = progress?.current_step_id || "welcome";
 
+  const handleExitStep = () => {
+    setIsExecutingStep(false);
+    setExecutingStepId(null);
+    navigate("/job-screening", { replace: true });
+  };
+
   const handleStepComplete = (updatedData, shouldExitStep = true) => {
     trackFeatureEvent("job_screening", "step_completed", {
       entityType: "funnel_step",
@@ -353,6 +405,7 @@ const JobScreening = () => {
     if (shouldExitStep) {
       setIsExecutingStep(false);
       setExecutingStepId(null);
+      navigate("/job-screening", { replace: true });
 
       // Skip the extra tap: once a step finishes and the next one unlocks,
       // show the lobby (with the just-finished step's checkmark animating in)
@@ -430,11 +483,13 @@ const JobScreening = () => {
           setProgress(data.data);
           setExecutingStepId(targetStepId);
           setIsExecutingStep(true);
+          navigate(`/job-screening?step=${targetStepId}`);
         }
       } catch (err) {
         console.error("Error checking review status:", err);
         setExecutingStepId(targetStepId);
         setIsExecutingStep(true);
+        navigate(`/job-screening?step=${targetStepId}`);
       } finally {
         setReviewCheckStepId(null);
       }
@@ -487,6 +542,7 @@ const JobScreening = () => {
     } else {
       setExecutingStepId(targetStepId);
       setIsExecutingStep(true);
+      navigate(`/job-screening?step=${targetStepId}`);
     }
   };
 
@@ -548,6 +604,9 @@ const JobScreening = () => {
               const { data: progressRes } = await getProgress();
               if (progressRes?.success) {
                 setProgress(progressRes.data);
+                setIsExecutingStep(false);
+                setExecutingStepId(null);
+                setSearchParams({});
               }
             } else {
               trackFlowAction(
@@ -556,7 +615,9 @@ const JobScreening = () => {
                 "payment_verify",
                 "failed",
               );
-              toast.error("Payment verification failed");
+              toast.error(
+                verifyRes.data?.message || "Payment verification failed",
+              );
             }
           } catch (err) {
             trackFlowAction(
@@ -565,8 +626,10 @@ const JobScreening = () => {
               "payment_verify",
               "failed",
             );
-            console.error("Verification error:", err);
-            toast.error("Failed to verify payment");
+            console.error("Payment verification error:", err);
+            toast.error(
+              err.response?.data?.message || "Payment verification failed",
+            );
           } finally {
             setPaymentLoading(false);
           }
@@ -617,10 +680,7 @@ const JobScreening = () => {
           <ProfileCompletionStep
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => {
-              setIsExecutingStep(false);
-              setExecutingStepId(null);
-            }}
+            onBack={handleExitStep}
           />
         );
       case "interview_attempt":
@@ -628,10 +688,7 @@ const JobScreening = () => {
           <InterviewStep
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => {
-              setIsExecutingStep(false);
-              setExecutingStepId(null);
-            }}
+            onBack={handleExitStep}
           />
         );
       case "registration_form":
@@ -646,10 +703,7 @@ const JobScreening = () => {
           <ReviewPendingStep
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => {
-              setIsExecutingStep(false);
-              setExecutingStepId(null);
-            }}
+            onBack={handleExitStep}
           />
         );
       case "additional_documents":
@@ -657,10 +711,7 @@ const JobScreening = () => {
           <AdditionalDocumentsStep
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => {
-              setIsExecutingStep(false);
-              setExecutingStepId(null);
-            }}
+            onBack={handleExitStep}
           />
         );
       case "interview_training":
@@ -669,10 +720,7 @@ const JobScreening = () => {
             type="training"
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => {
-              setIsExecutingStep(false);
-              setExecutingStepId(null);
-            }}
+            onBack={handleExitStep}
           />
         );
       case "recruiter_status":
@@ -680,10 +728,7 @@ const JobScreening = () => {
           <RecruiterStatusStep
             progress={progress}
             onComplete={handleStepComplete}
-            onBack={() => {
-              setIsExecutingStep(false);
-              setExecutingStepId(null);
-            }}
+            onBack={handleExitStep}
           />
         );
       default:
@@ -720,22 +765,19 @@ const JobScreening = () => {
             </div>
           </div>
 
-          {/* Program Details */}
-          <div className="w-full bg-slate-50 rounded-2xl p-4 border border-slate-100 text-left flex flex-col gap-2.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-              Refundable Placement Deposit
-            </span>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-slate-500 font-semibold">
-                Security Deposit Amount
+          {/* Pricing & Refund Note */}
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-extrabold text-[#002856]">
+                ₹4,999
               </span>
-              <span className="text-lg font-bold text-slate-800">
-                10,000 INR
+              <span className="text-xs font-medium text-slate-500">
+                (Refundable)
               </span>
             </div>
-            <p className="text-[10px] text-slate-400 font-medium leading-relaxed">
-              This amount is fully refundable upon completing your onboarding
-              training or securing a placement with our recruiters.
+            <p className="text-xs text-slate-500 max-w-xs leading-relaxed">
+              100% refundable upon completing your onboarding and recruiter
+              process.
             </p>
           </div>
 
@@ -778,11 +820,15 @@ const JobScreening = () => {
   if (
     currentStepId === "welcome" &&
     welcomeAnimationState === "idle" &&
-    finalProgressData === null
+    finalProgressData === null &&
+    !isExecutingStep
   ) {
     return (
       <div
-        className={`${pipelineMinHeightClass} bg-linear-to-b from-[#002856] to-[#134074] w-full flex flex-col justify-center items-center pb-24`}
+        className={`${pipelineMinHeightClass} bg-linear-to-b from-[#002856] to-[#134074] w-full flex flex-col justify-center items-center pt-2 sm:pt-3 px-4 overflow-y-auto`}
+        style={{
+          paddingBottom: "calc(6rem + env(safe-area-inset-bottom, 0px))",
+        }}
       >
         <AnimatePresence mode="wait">
           <motion.div
@@ -791,7 +837,7 @@ const JobScreening = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ duration: 0.2 }}
-            className="w-full"
+            className="w-full flex flex-col items-center"
           >
             {renderActiveStepComponent()}
           </motion.div>
@@ -800,17 +846,21 @@ const JobScreening = () => {
     );
   }
 
-  // 2. Active Step Execution screen
+  // 2. Active Step Execution screen (clean standalone full-screen layout with safe area padding)
   if (isExecutingStep) {
     return (
       <div
         ref={activeStepContainerRef}
-        className={`${pipelineMinHeightClass} bg-white w-full flex flex-col items-center overflow-y-auto pb-24`}
+        className="min-h-screen bg-white w-full flex flex-col items-center overflow-y-auto"
+        style={{
+          paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))",
+          paddingBottom: "calc(2rem + env(safe-area-inset-bottom, 0px))",
+        }}
       >
-        <div className="w-full max-w-md py-4 px-4">
+        <div className="w-full max-w-md px-4">
           <AnimatePresence mode="wait">
             <motion.div
-              key={currentStepId}
+              key={executingStepId || currentStepId}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}

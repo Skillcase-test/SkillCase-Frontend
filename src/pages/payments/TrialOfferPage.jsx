@@ -223,7 +223,7 @@ export default function TrialOfferPage() {
                   onClick={goLater}
                   className="self-stretch px-4 py-3 rounded-lg inline-flex justify-center items-center text-white text-base font-semibold cursor-pointer transition-colors hover:bg-white/5"
                 >
-                  May be later
+                  Maybe later
                 </button>
               </div>
               <p className="w-72 text-center text-white/50 text-xs font-medium">

@@ -1941,6 +1941,12 @@ function ConditionalNav() {
   const queryParams = new URLSearchParams(location.search);
   const isJobScreening = queryParams.get("source") === "job_screening";
   const path = location.pathname;
+  const isExecutingJobStep =
+    path === "/job-screening" && queryParams.has("step");
+
+  if (isExecutingJobStep) {
+    return null;
+  }
 
   // The app shell (navy navbar + top switcher) only lives on the four hub
   // screens. Every learning / applying screen has its own in-page header and
@@ -1971,8 +1977,11 @@ function ConditionalNav() {
 function ConditionalTopSwitcher() {
   const location = useLocation();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const isExecutingJobStep =
+    location.pathname === "/job-screening" &&
+    new URLSearchParams(location.search).has("step");
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated || isExecutingJobStep) return null;
 
   // The mode switcher lives on the three primary shell screens and scrolls
   // away with the page (only the navbar is sticky). B1/B2 users have the
@@ -1998,8 +2007,11 @@ function ConditionalTopSwitcher() {
 function ConditionalBottomTabBar() {
   const location = useLocation();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const isExecutingJobStep =
+    location.pathname === "/job-screening" &&
+    new URLSearchParams(location.search).has("step");
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated || isExecutingJobStep) return null;
 
   // The bottom tab bar lives on the four hub screens (shell routes) only —
   // never on learning / applying screens or the focused interview / terms

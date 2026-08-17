@@ -64,16 +64,20 @@ export default function SupportWidget() {
   const commentFileInputRefs = useRef({});
 
   // Check if we are on landing page, learn german home, job screening home, or
-  // the scholarship hub. Hub only — never the exam/result screens, where a
-  // support drawer would sit on top of a timed, proctored attempt.
+  // the scholarship hub. Hub only — never the exam/result screens or focused step flows.
+  const isExecutingJobStep =
+    location.pathname === "/job-screening" &&
+    new URLSearchParams(location.search).has("step");
+
   const showSupport =
-    location.pathname === "/" ||
-    location.pathname === "/learn-german" ||
-    location.pathname === "/job-screening" ||
-    location.pathname === "/scholarship";
+    (location.pathname === "/" ||
+      location.pathname === "/learn-german" ||
+      location.pathname === "/job-screening" ||
+      location.pathname === "/scholarship") &&
+    !isExecutingJobStep;
 
   // Position dynamically to avoid overlapping the bottom tab bar
-  const hasBottomBar = isShellRoute(location.pathname);
+  const hasBottomBar = isShellRoute(location.pathname) && !isExecutingJobStep;
   const widgetBottom = hasBottomBar
     ? "calc(5.75rem + env(safe-area-inset-bottom, 0px))"
     : "calc(1.5rem + env(safe-area-inset-bottom, 0px))";

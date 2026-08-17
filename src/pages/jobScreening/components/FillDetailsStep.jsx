@@ -14,25 +14,48 @@ const FillDetailsStep = ({ progress, onComplete, onBack }) => {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!fullname.trim()) {
-      trackFlowAction("job_screening", "candidate_details", "validation", "blocked", { validation_code: "name_required" });
+      trackFlowAction(
+        "job_screening",
+        "candidate_details",
+        "validation",
+        "blocked",
+        { validation_code: "name_required" },
+      );
       setError("Full name is required");
       return;
     }
     if (!email.trim()) {
-      trackFlowAction("job_screening", "candidate_details", "validation", "blocked", { validation_code: "email_required" });
+      trackFlowAction(
+        "job_screening",
+        "candidate_details",
+        "validation",
+        "blocked",
+        { validation_code: "email_required" },
+      );
       setError("Email address is required");
       return;
     }
     // Simple email validation regex
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      trackFlowAction("job_screening", "candidate_details", "validation", "blocked", { validation_code: "email_invalid" });
+      trackFlowAction(
+        "job_screening",
+        "candidate_details",
+        "validation",
+        "blocked",
+        { validation_code: "email_invalid" },
+      );
       setError("Please enter a valid email address");
       return;
     }
 
     try {
-      trackFlowAction("job_screening", "candidate_details", "submit", "started");
+      trackFlowAction(
+        "job_screening",
+        "candidate_details",
+        "submit",
+        "started",
+      );
       setLoading(true);
       setError("");
       const { data } = await submitCandidateDetails({
@@ -40,10 +63,20 @@ const FillDetailsStep = ({ progress, onComplete, onBack }) => {
         email: email.trim(),
       });
       if (data?.success) {
-        trackFlowAction("job_screening", "candidate_details", "submit", "success");
+        trackFlowAction(
+          "job_screening",
+          "candidate_details",
+          "submit",
+          "success",
+        );
         onComplete(data.data);
       } else {
-        trackFlowAction("job_screening", "candidate_details", "submit", "failed");
+        trackFlowAction(
+          "job_screening",
+          "candidate_details",
+          "submit",
+          "failed",
+        );
         setError("Failed to save details");
       }
     } catch (err) {
@@ -142,7 +175,7 @@ const FillDetailsStep = ({ progress, onComplete, onBack }) => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@company.com"
+              placeholder="johndoe@gmail.com"
               className="w-full px-3.5 py-2.5 bg-white rounded-lg border border-slate-300 shadow-sm focus:outline-none focus:border-[#002856] text-slate-800 text-base font-normal transition-all"
               required
             />
