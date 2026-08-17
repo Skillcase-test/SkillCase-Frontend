@@ -10,6 +10,7 @@ import {
   hapticMedium,
   hapticHeavy,
 } from "../../../../utils/haptics";
+import { trackFeatureEvent } from "../../../../telemetry/events";
 
 const COIN_URL =
   "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778500742/Coin_1_kjblsa.svg";
@@ -88,6 +89,17 @@ export default function LevelCompleteModal({
   vocabWordCount = 0,
 }) {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    trackFeatureEvent("learning", "level_complete_modal_presented", {
+      entityId: completedLessonId,
+      attributes: {
+        coins_awarded: coinsAwarded,
+        streak_updated: streakUpdated,
+        vocab_word_count: vocabWordCount,
+      },
+    });
+  }, [completedLessonId, coinsAwarded, streakUpdated, vocabWordCount]);
 
   const handleNext = async () => {
     if (onContinue) {

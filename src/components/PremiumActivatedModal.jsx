@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, X } from "lucide-react";
 import diamond from "../assets/diamond.webp";
+import { trackFeatureEvent } from "../telemetry/events";
 
 const PREMIUM_FEATURES = [
   "Streak Challenges",
@@ -11,6 +13,22 @@ const PREMIUM_FEATURES = [
 ];
 
 export default function PremiumActivatedModal({ open, onClose, onGoHome }) {
+  useEffect(() => {
+    if (open) {
+      trackFeatureEvent("payments", "premium_activated_modal_presented");
+    }
+  }, [open]);
+
+  const handleClose = () => {
+    trackFeatureEvent("payments", "premium_activated_modal_dismissed");
+    onClose?.();
+  };
+
+  const handleGoHome = () => {
+    trackFeatureEvent("payments", "premium_activated_modal_dismissed");
+    onGoHome?.();
+  };
+
   return (
     <AnimatePresence>
       {open && (
@@ -24,7 +42,7 @@ export default function PremiumActivatedModal({ open, onClose, onGoHome }) {
           >
             {/* Close Button */}
             <button
-              onClick={onClose}
+              onClick={handleClose}
               aria-label="Close"
               className="absolute top-2.5 right-2.5 size-7 rounded-full bg-white/50 hover:bg-white/70 flex items-center justify-center text-slate-800 transition-colors cursor-pointer"
             >
@@ -81,7 +99,7 @@ export default function PremiumActivatedModal({ open, onClose, onGoHome }) {
             {/* Actions */}
             <div className="flex flex-col items-center gap-2">
               <button
-                onClick={onGoHome}
+                onClick={handleGoHome}
                 className="w-full px-4 py-3 bg-white rounded-lg text-blue-950 text-base font-semibold hover:bg-slate-100 active:scale-[0.99] transition-all cursor-pointer"
               >
                 Go to home

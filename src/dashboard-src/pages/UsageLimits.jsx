@@ -16,10 +16,10 @@ import {
   adminSetUserGroupOverride,
 } from "../../api/usageLimitApi";
 import { ControlDropdown } from "../payments-admin/components/controls";
+import { isModuleVisibleForUser } from "../../utils/usageLimitModules";
 
-// 'ALL' modules don't exist anymore (learn_german is per-level now) — every
-// module in MODULE_REGISTRY lives under one of these three.
 const LEVEL_ORDER = ["A1", "A2", "B1"];
+const CARD_LEVEL_ORDER = ["A1", "A2", "B1", "ALL"];
 
 // Mirrors backend util/usageLimits.js isUsageLimitEligible — cosmetic only
 // (the server stays the authority), just so the admin can see at a glance
@@ -73,13 +73,10 @@ function Countdown({ resetAt }) {
 // The three rolling windows can all be armed on the same module at once —
 // e.g. 20/day AND 100/week AND 500/month — each counting the same usage
 // but locking out on its own independent schedule.
-// TEMP TESTING: hints reflect the shrunk minute-based intervals set in
-// backend util/usageLimits.js periodInterval() for manual testing. Revert
-// both together before shipping.
 const PERIOD_DEFS = [
-  { key: "day", label: "Per day", hint: "locks for 1 minute once reached (testing)" },
-  { key: "week", label: "Per week", hint: "locks for 2 minutes once reached (testing)" },
-  { key: "month", label: "Per month", hint: "locks for 3 minutes once reached (testing)" },
+  { key: "day", label: "Per day", hint: "locks for 24 hours once reached" },
+  { key: "week", label: "Per week", hint: "locks for 7 days once reached" },
+  { key: "month", label: "Per month", hint: "locks for 30 days once reached" },
 ];
 
 // What "1" actually means for each module — spelled out in the sentence and
@@ -98,6 +95,7 @@ const MODULE_UNIT_INFO = {
   conversation: "conversations completed",
   learn_german: "guided lessons completed",
   story: "stories completed",
+  video_courses: "videos watched",
 };
 
 // Plain on/off switch, same visual language as JobScreeningAdmin's toggles.
@@ -715,7 +713,7 @@ function GlobalTab({ canEdit }) {
         editingGroupId={editingGroup?.group_id}
       />
 
-      {LEVEL_ORDER.filter((lvl) => grouped[lvl]?.length).map((level) => (
+      {CARD_LEVEL_ORDER.filter((lvl) => grouped[lvl]?.length).map((level) => (
         <div
           key={level}
           className="bg-white rounded-2xl border border-slate-200/80 p-5"
@@ -1181,7 +1179,12 @@ function UserOverridesTab({ canEdit }) {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
               {(detail?.modules || [])
-                .filter((m) => m.level === selectedUser.current_profeciency_level)
+                .filter((m) =>
+                  isModuleVisibleForUser(
+                    m,
+                    selectedUser.current_profeciency_level,
+                  ),
+                )
                 .map((m) => {
                 const key = rowKey(m.level, m.module_key);
                 const globalCfg =

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Flame } from "lucide-react";
 import ModalPortal from "./common/ModalPortal";
+import { trackFeatureEvent } from "../telemetry/events";
 
 const StreakCelebrationModal = ({
   showStreakCelebration,
@@ -14,6 +15,9 @@ const StreakCelebrationModal = ({
   useEffect(() => {
     if (showStreakCelebration) {
       setIsVisible(true);
+      trackFeatureEvent("streak", "celebration_presented", {
+        attributes: { streak: streakInfo?.currentStreak },
+      });
       // Small delay to trigger entry animation after render
       setTimeout(() => setAnimate(true), 10);
       
@@ -21,8 +25,20 @@ const StreakCelebrationModal = ({
       if (!audioRef.current) {
         audioRef.current = new Audio('/sounds/success-notification.mp3');
       }
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {}); // Ignore autoplay errors
+      if (audioRef.current && typeof audioRef.current.play === "function") {
+        // Rewind: the element is reused across celebrations, so without this a
+        // second celebration in the same session starts from the end and is
+        // silent.
+        try {
+          audioRef.current.currentTime = 0;
+        } catch {
+          // Some environments throw before metadata loads; the sound is cosmetic.
+        }
+        const promise = audioRef.current.play();
+        if (promise && typeof promise.catch === "function") {
+          promise.catch(() => {});
+        }
+      }
     } else {
       setAnimate(false);
       setTimeout(() => setIsVisible(false), 300);

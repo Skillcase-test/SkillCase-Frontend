@@ -89,6 +89,9 @@ const SAFE_ATTRIBUTE_KEYS = new Set([
   "component", "state", "status", "validation_code", "trigger", "poll_type",
   "asset_type", "tour_version", "sdk_state", "result_type", "surface",
   "native_event", "queue_depth", "drop_count",
+  // Monetisation, usage-limit and streak surfaces.
+  "days_left", "limit_value", "reset_in_minutes", "streak", "streak_updated",
+  "coins_awarded", "vocab_word_count",
 ]);
 
 const state = {

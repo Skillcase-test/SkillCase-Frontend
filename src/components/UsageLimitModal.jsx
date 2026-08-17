@@ -9,6 +9,7 @@ import timerImg from "../assets/timer.webp";
 import { useAutopayCheckout } from "../hooks/useAutopayCheckout";
 import { useUsageLimits } from "../hooks/useUsageLimits";
 import { switchLGMode } from "../utils/lgMode";
+import { trackFeatureEvent } from "../telemetry/events";
 
 function formatCountdown(resetAt) {
   const ms = new Date(resetAt).getTime() - Date.now();
@@ -59,6 +60,12 @@ export default function UsageLimitModal() {
   const { refresh } = useUsageLimits();
 
   const close = () => {
+    if (event?.module_key) {
+      trackFeatureEvent("usage_limits", "modal_dismissed", {
+        entityId: event.module_key,
+        attributes: { level: event.level },
+      });
+    }
     setEvent(null);
     setExpired(false);
   };
@@ -94,6 +101,12 @@ export default function UsageLimitModal() {
   // any payment flow — payment only opens once the trial is claimed or
   // skipped.
   const openUpgrade = () => {
+    if (event?.module_key) {
+      trackFeatureEvent("usage_limits", "upgrade_clicked", {
+        entityId: event.module_key,
+        attributes: { level: event.level },
+      });
+    }
     if (user && !user.trial_taken) {
       navigate("/trial-offer", { state: { from: "/" } });
       return;
@@ -104,7 +117,26 @@ export default function UsageLimitModal() {
   useEffect(() => {
     const onUsageLimitHit = (e) => {
       setExpired(false);
-      setEvent(e.detail || null);
+      const detail = e.detail || null;
+      setEvent(detail);
+      if (detail?.module_key) {
+        // reset_in_minutes rather than the raw reset_at timestamp: the telemetry
+        // sanitizer treats "2026-08-17"-shaped digit runs as a phone number and
+        // redacts them, and a relative number is the more useful metric anyway.
+        const resetMs = detail.reset_at
+          ? new Date(detail.reset_at).getTime() - Date.now()
+          : NaN;
+        trackFeatureEvent("usage_limits", "modal_presented", {
+          entityId: detail.module_key,
+          attributes: {
+            level: detail.level,
+            limit_value: detail.limit_value,
+            reset_in_minutes: Number.isFinite(resetMs)
+              ? Math.max(0, Math.round(resetMs / 60000))
+              : null,
+          },
+        });
+      }
     };
     window.addEventListener("skillcase:usage-limit", onUsageLimitHit);
     return () =>

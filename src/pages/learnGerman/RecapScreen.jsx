@@ -7,6 +7,7 @@ import ProgressBar from "./lesson/screens/shared/ProgressBar";
 import WaveformIcon from "./lesson/screens/shared/WaveformIcon";
 import { getGermanTTSBlob } from "./lesson/ttsCache";
 import { hapticMedium } from "../../utils/haptics";
+import { trackLearningEvent, trackFeatureEvent } from "../../telemetry/events";
 
 export default function RecapScreen() {
   const { chapterId } = useParams();
@@ -42,6 +43,11 @@ export default function RecapScreen() {
 
   const speakWord = async (text) => {
     hapticMedium();
+    trackLearningEvent("media_played", {
+      module: "recap",
+      entityId: text,
+      mediaState: "playing",
+    });
     if (currentSpeakAudioRef.current) {
       currentSpeakAudioRef.current.pause();
       currentSpeakAudioRef.current.src = "";
@@ -118,14 +124,6 @@ export default function RecapScreen() {
     fetchData();
   }, [chapterId]);
 
-  if (loading) {
-    return (
-      <div className="w-full min-h-screen bg-gradient-to-b from-blue-100 to-sky-100 flex justify-center items-center">
-        <span className="text-blue-950 font-semibold">Loading Recap...</span>
-      </div>
-    );
-  }
-
   const isGlobal = !chapterId;
   const pageTitle = isGlobal ? "German words learned" : data?.title || "Recap";
 
@@ -148,6 +146,27 @@ export default function RecapScreen() {
       })();
 
   const mainCount = isGlobal ? data?.learnedWords || 0 : vocabList.length;
+
+  useEffect(() => {
+    if (!loading && data) {
+      trackFeatureEvent("learning", "recap_viewed", {
+        entityId: chapterId || "global",
+        total: mainCount,
+      });
+    }
+  }, [loading, data, chapterId, mainCount]);
+
+  // Every hook must run before this early return, otherwise the hook count
+  // changes when `loading` flips false ("Rendered more hooks than during the
+  // previous render"). The derivations above are all optional-chained, so they
+  // are safe to evaluate while data is still null.
+  if (loading) {
+    return (
+      <div className="w-full min-h-screen bg-gradient-to-b from-blue-100 to-sky-100 flex justify-center items-center">
+        <span className="text-blue-950 font-semibold">Loading Recap...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full min-h-screen bg-[#D3E5FF] flex flex-col items-center">

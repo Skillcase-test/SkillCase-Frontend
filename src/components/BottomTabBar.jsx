@@ -20,6 +20,7 @@ import germanFlagImg from "../assets/recapGermanFlag.webp";
 import bookImg from "../assets/book.webp";
 import { isScholarshipRoute } from "../utils/shellRoutes";
 import { syncModeIntoRedux } from "../utils/lgMode";
+import { trackFeatureEvent } from "../telemetry/events";
 
 const COIN_IMG_URL =
   "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778500742/Coin_1_kjblsa.svg";
@@ -137,7 +138,10 @@ export default function BottomTabBar() {
         {/* Home */}
         <Link
           to="/"
-          onClick={hapticLight}
+          onClick={() => {
+            hapticLight();
+            trackFeatureEvent("navigation", "bottom_tab_clicked", { entityId: "home" });
+          }}
           className={`w-14 flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-lg transition-colors ${
             isHome ? "bg-[#f4f4f6]" : "hover:bg-stone-500/5"
           }`}
@@ -165,6 +169,7 @@ export default function BottomTabBar() {
           to={jobsHref}
           onClick={() => {
             hapticLight();
+            trackFeatureEvent("navigation", "bottom_tab_clicked", { entityId: "jobs" });
             if (isB1) {
               localStorage.setItem("lg_preferred_mode", "job_screening");
               localStorage.setItem("lg_mode_switched_at", String(Date.now()));
@@ -201,10 +206,6 @@ export default function BottomTabBar() {
         {/* Center — mode-aware progress arch. B1/B2 users see their B1
             aggregate on practice and job-screening steps on Jobs; A1/A2 users
             see your-level progress on practice, words learnt on Guided German
-            and course status (videos done) on German Classes. */}
-        {/* Center — mode-aware progress arch. B1/B2 users see their B1
-            aggregate on practice and job-screening steps on Jobs; A1/A2 users
-            see your-level progress on practice, words learnt on Guided German
             and course status (videos done) on German Classes. Tapping "German words
             learnt" in Guided German mode opens the vocabulary recap screen. */}
         <button
@@ -213,6 +214,7 @@ export default function BottomTabBar() {
           onClick={() => {
             if (mode === "learn") {
               hapticLight();
+              trackFeatureEvent("navigation", "bottom_tab_clicked", { entityId: "recap" });
               navigate("/learn-german/recap");
             }
           }}
@@ -334,6 +336,7 @@ export default function BottomTabBar() {
           type="button"
           onClick={() => {
             hapticLight();
+            trackFeatureEvent("navigation", "bottom_tab_clicked", { entityId: "streak" });
             if (location.pathname === "/") {
               window.dispatchEvent(new CustomEvent("openLeaderboard"));
             } else {

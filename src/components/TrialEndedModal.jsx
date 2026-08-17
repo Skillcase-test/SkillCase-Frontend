@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
@@ -12,6 +12,7 @@ import {
   isTrialActive,
   isTrialEndedDismissed,
 } from "../utils/premium";
+import { trackFeatureEvent } from "../telemetry/events";
 
 const PREMIUM_FEATURES = [
   "Streak Challenges",
@@ -62,18 +63,26 @@ export default function TrialEndedModal() {
   const [loading, setLoading] = useState(false);
   const [closed, setClosed] = useState(false);
 
-  if (
-    closed ||
-    !user ||
-    isPremiumUser(user) ||
-    isTrialActive(user) ||
-    !hasTakenTrial(user) ||
-    isTrialEndedDismissed(user)
-  ) {
+  const shouldShow =
+    !closed &&
+    user &&
+    !isPremiumUser(user) &&
+    !isTrialActive(user) &&
+    hasTakenTrial(user) &&
+    !isTrialEndedDismissed(user);
+
+  useEffect(() => {
+    if (shouldShow) {
+      trackFeatureEvent("payments", "trial_ended_presented");
+    }
+  }, [shouldShow]);
+
+  if (!shouldShow) {
     return null;
   }
 
   const dismiss = async () => {
+    trackFeatureEvent("payments", "trial_ended_dismissed");
     setLoading(true);
     try {
       const { data } = await api.post("/user/dismiss-trial-ended");
@@ -87,6 +96,11 @@ export default function TrialEndedModal() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleUpgrade = () => {
+    trackFeatureEvent("payments", "trial_ended_upgrade_clicked");
+    navigate("/profile/upgrade");
   };
 
   return (
@@ -153,7 +167,7 @@ export default function TrialEndedModal() {
           <div className="self-stretch flex flex-col justify-center items-center gap-2">
             <motion.button
               type="button"
-              onClick={() => navigate("/profile/upgrade")}
+              onClick={handleUpgrade}
               whileTap={{ scale: 0.985 }}
               className="self-stretch px-4 py-3 bg-[#002856] hover:bg-[#001f42] active:bg-[#001f42] rounded-lg shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] outline-offset-[-2px] outline-white/10 inline-flex justify-center items-center gap-1.5 overflow-hidden text-white text-base font-semibold cursor-pointer transition-colors"
             >

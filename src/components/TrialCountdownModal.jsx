@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
@@ -6,6 +6,7 @@ import { Check, Gem, Phone, X } from "lucide-react";
 import mayaSad from "../assets/onboarding/mayaSad.webp";
 import timerImg from "../assets/timer.webp";
 import { isPremiumUser, isTrialActive, trialDaysLeft } from "../utils/premium";
+import { trackFeatureEvent } from "../telemetry/events";
 
 // Per-user "last dismissed" day (local calendar date). Dismissing the modal
 // only silences it for the rest of that day, so it comes back once a day as
@@ -79,8 +80,21 @@ export default function TrialCountdownModal() {
     }
   }, [user, dismissedToday]);
 
+  const daysLeft = user ? trialDaysLeft(user) : 0;
+
+  useEffect(() => {
+    if (shouldShow) {
+      trackFeatureEvent("payments", "trial_countdown_presented", {
+        attributes: { days_left: daysLeft },
+      });
+    }
+  }, [shouldShow, daysLeft]);
+
   // Dismisses the modal for today only — it may open again tomorrow.
   const dismissToday = () => {
+    trackFeatureEvent("payments", "trial_countdown_dismissed", {
+      attributes: { days_left: daysLeft },
+    });
     try {
       localStorage.setItem(dismissedKey(user.user_id), todayStr());
     } catch {
@@ -90,8 +104,6 @@ export default function TrialCountdownModal() {
   };
 
   if (!shouldShow) return null;
-
-  const daysLeft = trialDaysLeft(user);
 
   return (
     <div
@@ -165,6 +177,9 @@ export default function TrialCountdownModal() {
             <motion.button
               type="button"
               onClick={() => {
+                trackFeatureEvent("payments", "trial_countdown_upgrade_clicked", {
+                  attributes: { days_left: daysLeft },
+                });
                 dismissToday();
                 navigate("/profile/upgrade");
               }}

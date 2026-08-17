@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import germanFlag from "../../assets/onboarding/germanFlag.webp";
+import { trackFeatureEvent } from "../../telemetry/events";
 
 const COIN_URL =
   "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778500742/Coin_1_kjblsa.svg";
@@ -49,9 +51,21 @@ export function markDailyGoalCompletedShown(userId) {
 export default function DailyGoalModal({ isOpen, onClose, nextLesson, userId, vocabWordCount = 0 }) {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (isOpen) {
+      trackFeatureEvent("learning", "daily_goal_presented", {
+        entityId: nextLesson?.lesson_id,
+        attributes: { vocab_word_count: vocabWordCount },
+      });
+    }
+  }, [isOpen, nextLesson?.lesson_id, vocabWordCount]);
+
   if (!isOpen) return null;
 
   const handleContinue = () => {
+    trackFeatureEvent("learning", "daily_goal_started", {
+      entityId: nextLesson?.lesson_id,
+    });
     onClose();
     if (nextLesson?.lesson_id) {
       navigate(`/learn-german/lesson/${nextLesson.lesson_id}`);
