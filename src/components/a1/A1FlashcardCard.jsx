@@ -30,6 +30,8 @@ export default function A1FlashcardCard({
         style={{
           boxShadow: isFrontCard ? "0 10px 25px -4px rgba(0,0,0,0.12)" : "none",
           backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
+          willChange: "transform",
           transform:
             isFrontCard && isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
           transition: "transform 0.5s ease-in-out",
@@ -126,6 +128,8 @@ export default function A1FlashcardCard({
             backgroundColor: "#ebaf44",
             boxShadow: "0 10px 25px -4px rgba(0,0,0,0.12)",
             backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            willChange: "transform",
             transform: isFlipped ? "rotateY(0deg)" : "rotateY(-180deg)",
             transition: "transform 0.5s ease-in-out",
           }}

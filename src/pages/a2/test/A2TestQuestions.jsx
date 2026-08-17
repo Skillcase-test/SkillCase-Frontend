@@ -18,6 +18,7 @@ import {
   getTestProgress,
 } from "../../../api/a2Api";
 import api from "../../../api/axios";
+import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
 import QuestionRenderer from "../../../components/a2/QuestionRenderer";
 import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
 import { useLearningQuestionJourney } from "../../../telemetry/learning";
@@ -165,11 +166,7 @@ export default function A2TestQuestions() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
-    );
+    return <ExerciseLayoutSkeleton variant="quiz" title="Test Assessment" />;
   }
 
   // REVIEW MODE: Show questions grouped by sets

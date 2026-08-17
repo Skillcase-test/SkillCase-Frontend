@@ -57,6 +57,14 @@
 body {
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
+  -webkit-overflow-scrolling: touch;
+}
+
+.gpu-layer {
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* UTILITY CLASSES */

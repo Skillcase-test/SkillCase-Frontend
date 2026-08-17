@@ -22,6 +22,8 @@ const A2FlashcardCard = ({
           backgroundColor: bgColor,
           boxShadow: "4px 4px 36px 0px rgba(0,0,0,0.1)",
           backfaceVisibility: "hidden",
+          WebkitBackfaceVisibility: "hidden",
+          willChange: "transform",
           transform: isFrontCard && isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
           transition: "transform 0.5s ease-in-out",
         }}
@@ -75,6 +77,8 @@ const A2FlashcardCard = ({
             backgroundColor: "#edb843",
             boxShadow: "4px 4px 36px 0px rgba(0,0,0,0.1)",
             backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            willChange: "transform",
             transform: isFlipped ? "rotateY(0deg)" : "rotateY(-180deg)",
             transition: "transform 0.5s ease-in-out",
           }}

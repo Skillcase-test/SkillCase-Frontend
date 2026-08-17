@@ -22,6 +22,7 @@ import {
   saveListeningProgress,
   checkListeningAnswers,
 } from "../../../api/a2Api";
+import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
 import {
   DndContext,
   closestCenter,
@@ -623,11 +624,7 @@ export default function A2ListeningContent() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
-    );
+    return <ExerciseLayoutSkeleton variant="listening" title="Listening Practice" />;
   }
 
   if (content.length === 0) {

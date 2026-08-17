@@ -28,6 +28,7 @@ import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import FlashcardDeckSkeleton from "../../../components/common/FlashcardDeckSkeleton";
 import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
 import { useFlashcardTelemetry } from "../../../telemetry/learning";
 import { useUsageLimits } from "../../../hooks/useUsageLimits";
@@ -720,11 +721,7 @@ export default function A1Flashcard() {
   const isPassed = completedTests.has(currentCard + 1);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
-    );
+    return <FlashcardDeckSkeleton title={chapterName || "Flashcards"} />;
   }
 
   if (!flashcardSet.length) {

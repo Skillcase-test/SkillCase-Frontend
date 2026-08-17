@@ -24,6 +24,7 @@ import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import UmlautKeyboard from "../../../components/b1/UmlautKeyboard";
 import { useUsageLimits } from "../../../hooks/useUsageLimits";
+import FlashcardDeckSkeleton from "../../../components/common/FlashcardDeckSkeleton";
 
 import {
   DndContext,
@@ -1022,6 +1023,10 @@ export default function B1Flashcard() {
     setShowStreakCelebration(true);
   }, []);
 
+  if (loading) {
+    return <FlashcardDeckSkeleton title={chapterName || "Flashcards"} />;
+  }
+
   // TEST PROMPT VIEW
   if (showTestPrompt) {
     return (
@@ -1614,15 +1619,8 @@ export default function B1Flashcard() {
         id="flashcard-container"
         className="flex flex-col items-center justify-center px-4 py-10 relative overflow-hidden -mb-2"
       >
-        {loading ? (
-          <div className="w-[280px] h-[430px] bg-white rounded-[20px] shadow-lg animate-pulse flex flex-col items-center justify-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-gray-200" />
-            <div className="w-40 h-4 rounded bg-gray-200" />
-            <div className="w-32 h-3 rounded bg-gray-100" />
-          </div>
-        ) : (
-          <B1FlashcardDeck
-            flashcardSet={flashcardSet}
+        <B1FlashcardDeck
+          flashcardSet={flashcardSet}
             currentCard={currentCard}
             totalCards={totalCards}
             isFlipped={isFlipped}
@@ -1638,7 +1636,6 @@ export default function B1Flashcard() {
             isLoadingAudio={isLoadingAudio}
             onSpeak={handleSpeak}
           />
-        )}
       </div>
       <div className="flex items-center justify-center gap-2 pb-8 z-10">
         <button

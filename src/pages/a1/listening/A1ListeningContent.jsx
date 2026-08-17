@@ -45,6 +45,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import KaraokeSubtitles from "../../../components/a2/KaraokeSubtitles";
 import A2AudioPlayer from "../../../components/a2/A2AudioPlayer";
+import QuestionRenderer from "../../../components/a2/QuestionRenderer";
+import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
 
 import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
@@ -728,11 +730,7 @@ export default function A1ListeningContent() {
   })();
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
-    );
+    return <ExerciseLayoutSkeleton variant="listening" title="Listening Practice" />;
   }
 
   if (content.length === 0) {

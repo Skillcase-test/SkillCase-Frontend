@@ -21,6 +21,7 @@ import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
 import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
+import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
 import { useLearningQuestionJourney } from "../../../telemetry/learning";
 import { trackLearningEvent } from "../../../telemetry/events";
 import { useUsageLimitGate } from "../../../hooks/useUsageLimits";
@@ -240,11 +241,7 @@ export default function A2GrammarPractice() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
-    );
+    return <ExerciseLayoutSkeleton variant="grammar" title={topic?.title || "Grammar Practice"} />;
   }
 
   // COMPLETED STATE - Show review option

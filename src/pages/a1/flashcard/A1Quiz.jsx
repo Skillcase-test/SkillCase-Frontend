@@ -6,6 +6,7 @@ import {
   generateFinalQuiz,
   submitFlashcardQuiz,
 } from "../../../api/a1Api";
+import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
 
 export default function A1Quiz({ setId, quizType, onComplete, onSkip }) {
   const [questions, setQuestions] = useState([]);
@@ -77,11 +78,7 @@ export default function A1Quiz({ setId, quizType, onComplete, onSkip }) {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
-    );
+    return <ExerciseLayoutSkeleton variant="quiz" title="Quiz" />;
   }
 
   if (!questions.length) {
