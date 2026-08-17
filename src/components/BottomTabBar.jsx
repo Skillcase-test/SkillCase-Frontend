@@ -202,11 +202,25 @@ export default function BottomTabBar() {
             aggregate on practice and job-screening steps on Jobs; A1/A2 users
             see your-level progress on practice, words learnt on Guided German
             and course status (videos done) on German Classes. */}
-        {/* Center — the arch + flag is a static label, not a nav button: the
-            ring mirrors the active top-switcher tab, so there is no separate
-            destination for it. */}
-        <div
-          className="relative flex flex-col items-center justify-center w-36 h-full overflow-visible"
+        {/* Center — mode-aware progress arch. B1/B2 users see their B1
+            aggregate on practice and job-screening steps on Jobs; A1/A2 users
+            see your-level progress on practice, words learnt on Guided German
+            and course status (videos done) on German Classes. Tapping "German words
+            learnt" in Guided German mode opens the vocabulary recap screen. */}
+        <button
+          type="button"
+          disabled={mode !== "learn"}
+          onClick={() => {
+            if (mode === "learn") {
+              hapticLight();
+              navigate("/learn-german/recap");
+            }
+          }}
+          className={`relative flex flex-col items-center justify-center w-36 h-full overflow-visible border-none bg-transparent ${
+            mode === "learn"
+              ? "cursor-pointer active:scale-95 transition-transform"
+              : "cursor-default"
+          }`}
           title={
             isB1
               ? mode === "jobs"
@@ -300,7 +314,7 @@ export default function BottomTabBar() {
               </>
             )}
           </div>
-        </div>
+        </button>
 
         {/* Coins */}
         <div className="w-14 flex flex-col items-center justify-center gap-0.5 p-1.5">

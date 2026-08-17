@@ -233,7 +233,10 @@ describe("B1/B2 shell — BottomTabBar", () => {
 
     expect(screen.getByText("words learnt")).toBeInTheDocument();
     expect(screen.queryByText("progress")).not.toBeInTheDocument();
-    expect(screen.getByTitle("German words learnt")).toBeInTheDocument();
+    const vocabBtn = screen.getByTitle("German words learnt");
+    expect(vocabBtn).toBeInTheDocument();
+    fireEvent.click(vocabBtn);
+    expect(mockNavigate).toHaveBeenCalledWith("/learn-german/recap");
     await vi.waitFor(() => {
       expect(mockGetVocab).toHaveBeenCalled();
     });

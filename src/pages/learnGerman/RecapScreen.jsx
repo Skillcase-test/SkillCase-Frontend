@@ -164,7 +164,10 @@ export default function RecapScreen() {
       {/* Main Container */}
       <div
         ref={containerRef}
-        className="w-full max-w-[500px] flex-1 flex flex-col px-5 pt-8 pb-32 overflow-y-auto"
+        className="w-full max-w-[500px] flex-1 flex flex-col px-5 pt-8 overflow-y-auto"
+        style={{
+          paddingBottom: "calc(7rem + env(safe-area-inset-bottom, 0px))",
+        }}
       >
         {/* Top Hero Section */}
         <div className="w-full flex flex-col items-center gap-4 mb-8">
@@ -268,10 +271,15 @@ export default function RecapScreen() {
       </div>
 
       {/* Bottom Button Bar */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[500px] h-22 px-3 pt-2 pb-4 bg-white rounded-tl-[40px] rounded-tr-[40px] shadow-[0px_-1px_25px_0px_rgba(0,0,0,0.25)] flex items-center justify-center z-10 border-t border-slate-100">
+      <div
+        className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[500px] px-4 pt-3 bg-white rounded-tl-[32px] rounded-tr-[32px] shadow-[0px_-1px_25px_0px_rgba(0,0,0,0.15)] flex items-center justify-center z-10 border-t border-slate-100"
+        style={{
+          paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))",
+        }}
+      >
         <button
           onClick={() => navigate("/learn-german")}
-          className="w-full py-4 bg-gradient-to-r from-blue-900 to-blue-950 text-white rounded-[40px] shadow-[0px_3px_8px_0px_rgba(0,0,0,0.25)] font-semibold text-center hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
+          className="w-full py-3.5 bg-gradient-to-r from-blue-900 to-blue-950 text-white rounded-full shadow-[0px_3px_8px_0px_rgba(0,0,0,0.25)] font-semibold text-center hover:opacity-95 active:scale-[0.98] transition-all cursor-pointer"
         >
           Okay
         </button>

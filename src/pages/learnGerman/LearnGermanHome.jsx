@@ -9,12 +9,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Check, Lock, X } from "lucide-react";
-import germanFlag from "../../assets/onboarding/germanFlag.webp";
 import mayaThumbsup from "../../assets/onboarding/mayaThumbsup.webp";
 import {
   getLGMode,
   getLessonsList,
-  getVocabProgress,
   invalidateLearnGermanProgressCache,
   trackLearnGermanVisit,
 } from "../../api/learnGermanApi";
@@ -716,11 +714,6 @@ export default function LearnGermanHome() {
     "learn_german",
   );
   const [modules, setModules] = useState([]);
-  const [vocabProgress, setVocabProgress] = useState({
-    totalWords: 0,
-    learnedWords: 0,
-    progressRatio: 0,
-  });
   const [loading, setLoading] = useState(true);
   const [showDailyGoal, setShowDailyGoal] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -829,10 +822,6 @@ export default function LearnGermanHome() {
             completedLessonId ?? completedLessonOverrideRef.current,
           ),
         );
-        const vocabRes = await getVocabProgress();
-        if (vocabRes.data) {
-          setVocabProgress(vocabRes.data);
-        }
       } catch (err) {
         console.error("Failed to load modules:", err);
       } finally {
@@ -982,11 +971,9 @@ export default function LearnGermanHome() {
       setVocabWordCount(Number(location.state?.vocabWordCount) || 0);
       // Mark that the animation will own scrolling — suppress auto-scroll
       hasPendingAnimRef.current = true;
-      let willShowModal = false;
       // Only show the "daily goal completed" modal once per day.
       if (shouldShowDailyGoalCompleted(user?.user_id)) {
         markDailyGoalCompletedShown(user?.user_id);
-        willShowModal = true;
         setShowCompleted(true);
         setStreakUpdated(streakFlag);
         setCoinsAwarded(awardedCoins);
@@ -1029,10 +1016,6 @@ export default function LearnGermanHome() {
     navigate,
     user?.user_id,
   ]);
-
-  const progress = useMemo(() => {
-    return Math.round((vocabProgress.progressRatio || 0) * 100);
-  }, [vocabProgress.progressRatio]);
 
   // First incomplete lesson with content — shown as the goal in both modals
   const nextLesson = useMemo(() => {

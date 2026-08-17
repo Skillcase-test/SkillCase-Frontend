@@ -106,6 +106,20 @@ const getPipelineMinHeightClass = (user = {}) =>
     ? "min-h-[calc(100vh-124px)] lg:min-h-[calc(100vh-124px)]"
     : "min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)]";
 
+// `?step=` is candidate-supplied (bookmark, shared link, hand-typed), so it is
+// honoured only for a step the lobby itself would open: the server's current
+// step, or one it reports as pending/review. Anything else — an unknown id, a
+// locked step, a step already completed — falls back to the lobby. Without this
+// the step switch hits its `default:` branch and paints a dead-end "Unknown
+// step" card with the navbar, switcher, tab bar and support widget all hidden
+// by the same `?step` predicate, leaving no way back.
+const isStepReachable = (stepId, progress) => {
+  if (!stepId || !progress) return false;
+  if (stepId === progress.current_step_id) return true;
+  const step = (progress.steps_config || []).find((s) => s.id === stepId);
+  return step?.status === "pending" || step?.status === "review";
+};
+
 const JobScreening = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -137,18 +151,34 @@ const JobScreening = () => {
   const activeStepContainerRef = useRef(null);
   const welcomeTimeoutIdsRef = useRef([]);
 
-  // Sync isExecutingStep with URL query param `?step=`
+  // Sync isExecutingStep with URL query param `?step=`, but only for a step the
+  // candidate is actually allowed to open (see isStepReachable). Validation has
+  // to wait for `progress`, so this effect also re-runs when progress lands —
+  // hence lastStepParamRef: the clear-to-lobby branch must fire only when the
+  // URL itself changed, never on a progress refetch (which happens right after
+  // a step completes, while the next step is being opened in-place).
+  const lastStepParamRef = useRef(
+    new URLSearchParams(location.search).get("step"),
+  );
   useEffect(() => {
-    const search = new URLSearchParams(location.search);
-    const stepParam = search.get("step");
-    if (stepParam) {
-      setExecutingStepId(stepParam);
-      setIsExecutingStep(true);
-    } else if (!stepParam && isExecutingStep) {
-      setIsExecutingStep(false);
-      setExecutingStepId(null);
+    const stepParam = new URLSearchParams(location.search).get("step");
+    const paramChanged = lastStepParamRef.current !== stepParam;
+    lastStepParamRef.current = stepParam;
+    if (!stepParam) {
+      if (paramChanged) {
+        setIsExecutingStep(false);
+        setExecutingStepId(null);
+      }
+      return;
     }
-  }, [location.search]);
+    if (!progress) return;
+    if (!isStepReachable(stepParam, progress)) {
+      navigate("/job-screening", { replace: true });
+      return;
+    }
+    setExecutingStepId(stepParam);
+    setIsExecutingStep(true);
+  }, [location.search, progress, navigate]);
 
   // Broadcast welcome state to TopModeSwitcher so the active tab matches the page color
   useEffect(() => {
@@ -606,7 +636,7 @@ const JobScreening = () => {
                 setProgress(progressRes.data);
                 setIsExecutingStep(false);
                 setExecutingStepId(null);
-                setSearchParams({});
+                navigate("/job-screening", { replace: true });
               }
             } else {
               trackFlowAction(
@@ -769,7 +799,7 @@ const JobScreening = () => {
           <div className="flex flex-col items-center gap-2">
             <div className="flex items-baseline gap-1">
               <span className="text-3xl font-extrabold text-[#002856]">
-                ₹4,999
+                ₹10,000
               </span>
               <span className="text-xs font-medium text-slate-500">
                 (Refundable)
@@ -909,9 +939,6 @@ const JobScreening = () => {
   const totalStepsCount = visibleSteps.length;
   const progressPercent =
     totalStepsCount > 0 ? (completedStepsCount / totalStepsCount) * 100 : 0;
-  const activeStepIndex = visibleSteps.findIndex(
-    (s) => s.id === displayCurrentStepId,
-  );
   const activeStep = displaySteps.find((s) => s.id === displayCurrentStepId);
 
   // 3. Central Job Progress Timeline screen (Progress Lobby)
