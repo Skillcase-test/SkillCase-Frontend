@@ -29,6 +29,9 @@ export default function A1FlashcardDeck({
   const dragStartRef = useRef(null);
   const dragOffsetRef = useRef(0);
   const isDraggingRef = useRef(false);
+  const hasDraggedRef = useRef(false);
+  const touchStartTimeRef = useRef(0);
+  const lastFlipTimeRef = useRef(0);
 
   // Only visual state triggers re-render for CSS transforms
   const [dragOffsetVisual, setDragOffsetVisual] = useState(0);
@@ -38,37 +41,56 @@ export default function A1FlashcardDeck({
     dragStartRef.current = null;
     dragOffsetRef.current = 0;
     isDraggingRef.current = false;
+    hasDraggedRef.current = false;
     setDragOffsetVisual(0);
     setIsDraggingVisual(false);
   }, []);
 
+  const triggerFlip = useCallback(() => {
+    const now = Date.now();
+    if (now - lastFlipTimeRef.current < 250) return;
+    lastFlipTimeRef.current = now;
+    onCardClick();
+  }, [onCardClick]);
+
   const handleDragStart = useCallback(
     (e) => {
       if (swipeDirection) return;
+      touchStartTimeRef.current = Date.now();
       const x = e.type === "mousedown" ? e.clientX : e.touches[0].clientX;
       dragStartRef.current = x;
       dragOffsetRef.current = 0;
-      isDraggingRef.current = true;
-      setIsDraggingVisual(true);
+      hasDraggedRef.current = false;
+      isDraggingRef.current = false;
       setDragOffsetVisual(0);
     },
     [swipeDirection],
   );
 
   const handleDragMove = useCallback((e) => {
-    if (!isDraggingRef.current || dragStartRef.current === null) return;
+    if (dragStartRef.current === null) return;
     const currentX = e.type === "mousemove" ? e.clientX : e.touches[0].clientX;
     const offset = currentX - dragStartRef.current;
     dragOffsetRef.current = offset;
-    setDragOffsetVisual(offset);
+
+    // Only engage visual drag state if finger has actually moved past jitter threshold (10px)
+    if (Math.abs(offset) > 10) {
+      hasDraggedRef.current = true;
+      if (!isDraggingRef.current) {
+        isDraggingRef.current = true;
+        setIsDraggingVisual(true);
+      }
+      setDragOffsetVisual(offset);
+    }
   }, []);
 
   const handleDragEnd = useCallback(() => {
-    if (!isDraggingRef.current || dragStartRef.current === null) return;
+    if (dragStartRef.current === null) return;
 
     const offset = dragOffsetRef.current;
+    const duration = Date.now() - touchStartTimeRef.current;
 
-    if (Math.abs(offset) > 80) {
+    if (Math.abs(offset) > 75) {
       if (offset > 0) {
         resetDrag();
         onSwipeRight();
@@ -83,7 +105,12 @@ export default function A1FlashcardDeck({
         }
       }
     } else {
+      const wasTap =
+        !hasDraggedRef.current && Math.abs(offset) < 15 && duration < 500;
       resetDrag();
+      if (wasTap) {
+        triggerFlip();
+      }
     }
   }, [
     currentCard,
@@ -92,13 +119,8 @@ export default function A1FlashcardDeck({
     shouldOpenTestPrompt,
     onTestPromptTrigger,
     resetDrag,
+    triggerFlip,
   ]);
-
-  const handleCardClick = useCallback(() => {
-    if (!isDraggingRef.current && Math.abs(dragOffsetRef.current) < 10) {
-      onCardClick();
-    }
-  }, [onCardClick]);
 
   return (
     <div
@@ -182,9 +204,8 @@ export default function A1FlashcardDeck({
               transition:
                 isDraggingVisual && isFrontCard
                   ? "none"
-                  : "transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+                  : "all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
               transformStyle: "preserve-3d",
-              willChange: "transform",
             }}
             onMouseDown={isFrontCard ? handleDragStart : undefined}
             onMouseMove={isFrontCard ? handleDragMove : undefined}
@@ -194,7 +215,7 @@ export default function A1FlashcardDeck({
             onTouchMove={isFrontCard ? handleDragMove : undefined}
             onTouchEnd={isFrontCard ? handleDragEnd : undefined}
             onTouchCancel={isFrontCard ? handleDragEnd : undefined}
-            onClick={isFrontCard ? handleCardClick : undefined}
+            onClick={isFrontCard ? triggerFlip : undefined}
           >
             {position >= 1 && cardData && (
               <A1FlashcardCard

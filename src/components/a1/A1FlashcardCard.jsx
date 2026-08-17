@@ -26,7 +26,7 @@ export default function A1FlashcardCard({
     <>
       {/* FRONT FACE - image layout when present, centered text layout when missing */}
       <div
-        className="absolute inset-0 w-full h-full rounded-[24px] overflow-hidden flex flex-col bg-white"
+        className="absolute inset-0 w-full h-full rounded-[24px] overflow-hidden flex flex-col bg-white select-none"
         style={{
           boxShadow: isFrontCard ? "0 10px 25px -4px rgba(0,0,0,0.12)" : "none",
           backfaceVisibility: "hidden",
@@ -35,16 +35,21 @@ export default function A1FlashcardCard({
           transform:
             isFrontCard && isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
           transition: "transform 0.5s ease-in-out",
+          pointerEvents: isFrontCard ? (isFlipped ? "none" : "auto") : "none",
+          zIndex: isFlipped ? 1 : 2,
         }}
       >
         {hasImage ? (
           <>
             {/* Top Half: Image Container */}
-            <div className="h-1/2 w-full relative overflow-hidden bg-gray-100 flex items-center justify-center">
+            <div className="h-1/2 w-full relative overflow-hidden bg-gray-100 flex items-center justify-center pointer-events-none">
               <img
                 src={cardData.front_image_url}
                 alt={cardData.word_de}
-                className="w-full h-full object-cover"
+                loading="eager"
+                decoding="async"
+                draggable={false}
+                className="w-full h-full object-cover pointer-events-none select-none"
               />
             </div>
 
@@ -55,6 +60,9 @@ export default function A1FlashcardCard({
               </p>
               <button
                 onClick={(e) => callSpeak(cardData.word_de, "de-DE", e, "word")}
+                onTouchStart={(e) => e.stopPropagation()}
+                onTouchEnd={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
                 disabled={isLoadingAudio || isSpeaking}
                 className={`w-11 h-11 flex items-center justify-center rounded-full transition-all duration-300 mb-5 ${
                   isSpeaking && activeSpeech === "word"
@@ -91,6 +99,9 @@ export default function A1FlashcardCard({
             </p>
             <button
               onClick={(e) => callSpeak(cardData.word_de, "de-DE", e, "word")}
+              onTouchStart={(e) => e.stopPropagation()}
+              onTouchEnd={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
               disabled={isLoadingAudio || isSpeaking}
               className={`w-12 h-12 flex items-center justify-center rounded-full transition-all duration-300 mb-6 ${
                 isSpeaking && activeSpeech === "word"
@@ -123,7 +134,7 @@ export default function A1FlashcardCard({
       {/* BACK FACE - Golden Dictionary Style */}
       {isFrontCard && (
         <div
-          className="absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 overflow-hidden"
+          className="absolute inset-0 w-full h-full rounded-[24px] flex flex-col items-center justify-center p-4 overflow-hidden select-none"
           style={{
             backgroundColor: "#ebaf44",
             boxShadow: "0 10px 25px -4px rgba(0,0,0,0.12)",
@@ -132,6 +143,8 @@ export default function A1FlashcardCard({
             willChange: "transform",
             transform: isFlipped ? "rotateY(0deg)" : "rotateY(-180deg)",
             transition: "transform 0.5s ease-in-out",
+            pointerEvents: isFlipped ? "auto" : "none",
+            zIndex: isFlipped ? 2 : 1,
           }}
         >
           {/* Meaning Section */}
@@ -145,6 +158,9 @@ export default function A1FlashcardCard({
             onClick={(e) =>
               callSpeak(cardData.meaning_en, "en-US", e, "meaning")
             }
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
             disabled={isLoadingAudio || isSpeaking}
             className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 mb-4 ${
               isSpeaking && activeSpeech === "meaning"
@@ -173,6 +189,9 @@ export default function A1FlashcardCard({
             onClick={(e) =>
               callSpeak(cardData.sample_sentence_de, "de-DE", e, "sentence")
             }
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
             disabled={isLoadingAudio || isSpeaking}
             className={`w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 mb-5 ${
               isSpeaking && activeSpeech === "sentence"

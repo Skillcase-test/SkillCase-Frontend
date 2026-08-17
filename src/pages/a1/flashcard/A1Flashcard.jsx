@@ -309,6 +309,24 @@ export default function A1Flashcard() {
     return () => cancelSpeech();
   }, [cancelSpeech]);
 
+  // Prefetch upcoming card images asynchronously so next flips and deck advances never stall the main thread
+  useEffect(() => {
+    if (!flashcardSet.length) return;
+    const preloadAheadCount = 4;
+    for (
+      let i = currentCard;
+      i <= Math.min(currentCard + preloadAheadCount, flashcardSet.length - 1);
+      i += 1
+    ) {
+      const imgUrl = flashcardSet[i]?.front_image_url;
+      if (imgUrl) {
+        const img = new Image();
+        img.decoding = "async";
+        img.src = imgUrl;
+      }
+    }
+  }, [flashcardSet, currentCard]);
+
   useEffect(() => {
     if (!user?.user_id) return;
     api

@@ -197,6 +197,16 @@ export default function TopModeSwitcher({ isTourActive = false }) {
     }
   };
 
+  const handlePreload = (mode) => {
+    if (mode === "learn") {
+      import("../pages/learnGerman/LearnGermanHome");
+    } else if (mode === "jobs") {
+      import("../pages/jobScreening/JobScreening");
+    } else if (mode === "courses") {
+      import("../pages/videoCourses/CourseSelectPage");
+    }
+  };
+
   return (
     <div
       id="bottom-mode-switcher"
@@ -234,6 +244,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
               <SwitcherTab
                 active={activeTab === "jobs"}
                 onClick={() => handleSwitch("jobs")}
+                onPreload={() => handlePreload("jobs")}
                 image={bagImg}
                 line1="German Jobs"
                 line2=""
@@ -257,6 +268,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
               <SwitcherTab
                 active={activeTab === "learn"}
                 onClick={() => handleSwitch("learn")}
+                onPreload={() => handlePreload("learn")}
                 image={mayaSmilingImg}
                 line1="Guided"
                 line2="German"
@@ -267,6 +279,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
               <SwitcherTab
                 active={activeTab === "courses"}
                 onClick={() => handleSwitch("courses")}
+                onPreload={() => handlePreload("courses")}
                 image={classImg}
                 line1="German"
                 line2="Classes"
@@ -285,6 +298,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
 function SwitcherTab({
   active,
   onClick,
+  onPreload,
   image,
   line1,
   line2,
@@ -297,6 +311,8 @@ function SwitcherTab({
       type="button"
       role="tab"
       onClick={onClick}
+      onPointerEnter={onPreload}
+      onTouchStart={onPreload}
       aria-selected={active}
       style={active ? { backgroundColor: blendColor } : undefined}
       className={`relative flex-1 px-1.5 sm:px-2.5 flex items-center justify-center gap-1.5 cursor-pointer select-none ${

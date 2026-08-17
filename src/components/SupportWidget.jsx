@@ -30,6 +30,7 @@ import {
 } from "../api/supportApi";
 import toast from "react-hot-toast";
 import { trackFeatureEvent } from "../telemetry/events";
+import { isShellRoute } from "../utils/shellRoutes";
 
 const MAX_COMMENT_IMAGE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_COMMENT_IMAGE_TYPES = new Set([
@@ -72,16 +73,10 @@ export default function SupportWidget() {
     location.pathname === "/scholarship";
 
   // Position dynamically to avoid overlapping the bottom tab bar
-  const hasSwitcher =
-    location.pathname === "/" ||
-    location.pathname === "/learn-german" ||
-    location.pathname === "/video-courses" ||
-    // No top switcher on /scholarship, but it does have the bottom tab bar, so
-    // it needs the same raised offset to clear it.
-    location.pathname === "/scholarship";
-  const widgetBottomStyle = hasSwitcher
-    ? "bottom-[92px] md:bottom-[96px]"
-    : "bottom-[24px]";
+  const hasBottomBar = isShellRoute(location.pathname);
+  const widgetBottom = hasBottomBar
+    ? "calc(5.75rem + env(safe-area-inset-bottom, 0px))"
+    : "calc(1.5rem + env(safe-area-inset-bottom, 0px))";
 
   const fetchTickets = async (silent = false) => {
     if (!silent) setLoadingTickets(true);
@@ -365,7 +360,8 @@ export default function SupportWidget() {
       {/* Floating Trigger Button */}
       {!hideFloatingButton && (
         <div
-          className={`fixed right-5 ${widgetBottomStyle} z-[99] transition-all duration-300`}
+          className="fixed right-5 z-[99] transition-all duration-300"
+          style={{ bottom: widgetBottom }}
         >
           <Motion.button
             id="support-widget-trigger"

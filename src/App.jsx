@@ -470,6 +470,9 @@ function AppContent() {
   useEffect(() => {
     const preloadTopHeavyScreens = () => {
       if (document.visibilityState !== "visible") return;
+      import("./pages/learnGerman/LearnGermanHome");
+      import("./pages/jobScreening/JobScreening");
+      import("./pages/videoCourses/CourseSelectPage");
       import("./pages/flashcard/FlashCard");
       import("./pages/a2/flashcard/A2Flashcard");
       import("./pages/a1/listening/A1ListeningContent");
@@ -1876,15 +1879,24 @@ function AppContent() {
 }
 
 function RouteScreenSkeleton({ title }) {
+  const location = useLocation();
+  const isLearnGerman = location.pathname.startsWith("/learn-german");
+  const isJobScreening = location.pathname.startsWith("/job-screening");
+  const bgClass = isLearnGerman
+    ? "bg-gradient-to-b from-blue-100 to-sky-100"
+    : isJobScreening
+      ? "bg-gradient-to-b from-[#e0f2fe] to-white"
+      : "bg-[#f6f8fc]";
+
   return (
-    <div className="min-h-screen bg-[#f6f8fc] px-4 py-6">
+    <div className={`min-h-screen ${bgClass} px-4 py-6`}>
       <div className="max-w-4xl mx-auto">
         <p className="text-sm text-slate-500 mb-4">{title}</p>
         <div className="space-y-3 animate-pulse">
-          <div className="h-6 w-56 bg-slate-200 rounded" />
-          <div className="h-40 bg-slate-200 rounded-2xl" />
-          <div className="h-40 bg-slate-200 rounded-2xl" />
-          <div className="h-6 w-40 bg-slate-200 rounded" />
+          <div className="h-6 w-56 bg-slate-200/80 rounded" />
+          <div className="h-40 bg-slate-200/80 rounded-2xl" />
+          <div className="h-40 bg-slate-200/80 rounded-2xl" />
+          <div className="h-6 w-40 bg-slate-200/80 rounded" />
         </div>
       </div>
     </div>
