@@ -92,7 +92,10 @@ export default function CallEndedScreen({
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col items-center justify-center px-6 py-8 relative overflow-hidden w-full">
+    <div
+      className="min-h-[100dvh] flex flex-col items-center justify-center px-6 pb-8 relative overflow-hidden w-full"
+      style={{ paddingTop: "calc(2rem + env(safe-area-inset-top, 0px))" }}
+    >
       <div className="absolute top-[-10%] left-[-15%] w-[60%] aspect-square rounded-full bg-[#002856]/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-15%] w-[60%] aspect-square rounded-full bg-[#edb843]/10 blur-[120px] pointer-events-none" />
 

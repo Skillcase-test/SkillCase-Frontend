@@ -140,7 +140,10 @@ export default function LobbyScreen({ onStartCall, isConnecting, error }) {
 
   return (
     <div className="min-h-[100dvh] bg-white flex flex-col justify-start items-center overflow-hidden w-full">
-      <div className="w-full max-w-md px-4 py-3 bg-white flex justify-between items-center z-10">
+      <div
+        className="w-full max-w-md px-4 pb-3 bg-white flex justify-between items-center z-10"
+        style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+      >
         <button
           onClick={() => navigate(-1)}
           className="flex justify-center items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer border-0 bg-transparent text-[#0b0f19] text-sm font-semibold leading-6"

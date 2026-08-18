@@ -103,7 +103,10 @@ export default function CallScreen({
     <div className="h-[100dvh] max-h-[100dvh] bg-white flex flex-col justify-start items-center overflow-hidden w-full">
       <style dangerouslySetInnerHTML={{ __html: styles }} />
       {/* Top Header Bar */}
-      <div className="w-full max-w-md px-4 py-2 bg-white border-b border-black/5 flex justify-between items-center shrink-0">
+      <div
+        className="w-full max-w-md px-4 pb-2 bg-white border-b border-black/5 flex justify-between items-center shrink-0"
+        style={{ paddingTop: "calc(0.5rem + env(safe-area-inset-top, 0px))" }}
+      >
         <div className="flex justify-start items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-b from-sky-950 to-sky-700 rounded-full overflow-hidden flex items-center justify-center relative shadow-inner transition-all duration-300">
             <img
