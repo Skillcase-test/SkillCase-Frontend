@@ -438,7 +438,7 @@ function AppContent() {
     window.location.reload();
   }, []);
 
-  const { pullProgress, pullDistance, isRefreshing, containerProps } =
+  const { pullProgress, isRefreshing, containerProps, contentRef } =
     usePullToRefresh(
       refreshWholeApp,
       Capacitor.isNativePlatform() && !disablePullToRefresh && !maintenanceOpen,
@@ -980,17 +980,7 @@ function AppContent() {
         pullProgress={pullProgress}
         isRefreshing={isRefreshing}
       />
-      <div
-        className="flex-1 flex flex-col"
-        style={
-          pullDistance > 0
-            ? { transform: `translateY(${pullDistance}px)` }
-            : {
-                transition:
-                  "transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
-              }
-        }
-      >
+      <div ref={contentRef} className="flex-1 flex flex-col">
         <AppReviewPromptModal blocked={maintenanceOpen || otaState !== null} />
         <OtaUpdateModal
           otaState={maintenanceOpen ? null : otaState}

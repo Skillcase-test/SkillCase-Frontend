@@ -3,6 +3,7 @@ import { MicVAD, utils as vadUtils } from "@ricky0123/vad-web";
 import ortWasmMjsUrl from "../assets/vad/ort-wasm-simd-threaded.mjs?url";
 import ortWasmUrl from "../assets/vad/ort-wasm-simd-threaded.wasm?url";
 import api from "../api/axios";
+import loadSpeechSDK from "../utils/loadSpeechSDK";
 import { captureTelemetryError } from "../telemetry";
 import { trackFeatureEvent } from "../telemetry/events";
 
@@ -171,9 +172,9 @@ export default function useB1MayaVAD() {
   const startLiveTranscription = useCallback(async () => {
     stopLiveTranscription();
 
-    const SpeechSDK = window.SpeechSDK;
+    const SpeechSDK = await loadSpeechSDK();
     if (!SpeechSDK) {
-      console.warn("[B1Maya] SpeechSDK global is not available.");
+      console.warn("[B1Maya] SpeechSDK is not available.");
       return;
     }
 
@@ -836,6 +837,11 @@ export default function useB1MayaVAD() {
       getAzureToken().catch((err) => {
         console.warn("[B1Maya] prefetch token failed:", err.message);
       });
+
+      // Warm the Speech SDK here too — it is no longer a blocking script in
+      // index.html, so start its download alongside VAD init and the session
+      // POST rather than on the user's first utterance.
+      void loadSpeechSDK();
 
       await createVad(permissionStream);
       const res = await api.post("/b1-maya/start");
