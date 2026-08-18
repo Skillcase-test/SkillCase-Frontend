@@ -19,7 +19,10 @@ import {
   HeartCrack,
   Heart,
 } from "lucide-react";
+import { useSelector } from "react-redux";
 import ModalPortal from "./common/ModalPortal";
+import { getTopStreakLeaderboard } from "../api/streakApi";
+import { trackFeatureEvent } from "../telemetry/events";
 
 
 function LoadingState() {
@@ -813,15 +816,66 @@ function RankRow({
   );
 }
 
-export default function StreakLeaderboardModal({
-  open,
-  onClose,
-  loading,
-  error,
-  leaderboard = [],
-  myRank,
-  currentUserId,
-}) {
+export default function StreakLeaderboardModal(props) {
+  const isControlled = props.open !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const [internalLoading, setInternalLoading] = useState(false);
+  const [internalError, setInternalError] = useState("");
+  const [internalData, setInternalData] = useState({
+    leaderboard: [],
+    myRank: null,
+  });
+  const authUser = useSelector((state) => state.auth?.user);
+
+  useEffect(() => {
+    if (isControlled) return;
+
+    const handleOpen = () => {
+      setInternalOpen(true);
+      setInternalLoading(true);
+      setInternalError("");
+      trackFeatureEvent("streak", "leaderboard_opened");
+      getTopStreakLeaderboard()
+        .then((res) => {
+          setInternalData({
+            leaderboard: res?.leaderboard || [],
+            myRank: res?.myRank || null,
+          });
+        })
+        .catch((err) => {
+          console.error("Failed to fetch streak leaderboard:", err);
+          setInternalError("Could not load leaderboard. Please try later.");
+        })
+        .finally(() => {
+          setInternalLoading(false);
+        });
+    };
+
+    window.addEventListener("openLeaderboard", handleOpen);
+    document.addEventListener("openLeaderboard", handleOpen);
+    return () => {
+      window.removeEventListener("openLeaderboard", handleOpen);
+      document.removeEventListener("openLeaderboard", handleOpen);
+    };
+  }, [isControlled]);
+
+  const open = isControlled ? props.open : internalOpen;
+  const onClose = isControlled
+    ? props.onClose
+    : () => {
+        setInternalOpen(false);
+        trackFeatureEvent("streak", "leaderboard_closed");
+      };
+  const loading = isControlled ? props.loading : internalLoading;
+  const error = isControlled ? props.error : internalError;
+  const leaderboard = isControlled
+    ? props.leaderboard
+    : internalData.leaderboard;
+  const myRank = isControlled ? props.myRank : internalData.myRank;
+  const currentUserId = isControlled
+    ? props.currentUserId
+    : (authUser?.user_id || authUser?.id);
+
   const shouldReduceMotion = useReducedMotion();
   
   const effectiveMyRank = myRank;

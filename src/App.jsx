@@ -30,6 +30,7 @@ import OtaUpdateModal from "./components/OtaUpdateModal";
 import AppReviewPromptModal from "./components/AppReviewPromptModal";
 import MaintenanceModal from "./components/MaintenanceModal";
 import UsageLimitModal from "./components/UsageLimitModal";
+import StreakLeaderboardModal from "./components/StreakLeaderboardModal";
 import PremiumActivatedModal from "./components/PremiumActivatedModal";
 import TrialCountdownModal from "./components/TrialCountdownModal";
 import TrialEndedModal from "./components/TrialEndedModal";
@@ -1032,6 +1033,7 @@ function AppContent() {
         />
         <MaintenanceModal open={maintenanceOpen} onRetry={checkHealth} />
         <UsageLimitModal />
+        <StreakLeaderboardModal />
 
         {/* Free-trial lifecycle modals — countdown while <= 2 days remain,
             trial-ended once it expires (one-time dismissal). Hub screens only:

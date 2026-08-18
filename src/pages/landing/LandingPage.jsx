@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import FeatureCardsGrid from "./components/FeatureCardsGrid";
-import StreakLeaderboardModal from "../../components/StreakLeaderboardModal";
 import { AlertTriangle, Sparkles } from "lucide-react";
 import {
   getA1MigrationStatus,
@@ -11,6 +10,7 @@ import {
 import A1MigrationModal from "../../components/a1/A1MigrationModal";
 import ModalPortal from "../../components/common/ModalPortal";
 import { isB1PracticeLevel } from "../../utils/b1Progress";
+import { trackFeatureEvent } from "../../telemetry/events";
 
 function getTodayISTKey() {
   const formatter = new Intl.DateTimeFormat("en-CA", {
@@ -57,13 +57,6 @@ export default function LandingPage() {
   const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
   const [switchingToNew, setSwitchingToNew] = useState(false);
   const [isUpgrading, setIsUpgrading] = useState(false);
-  const [showLeaderboardModal, setShowLeaderboardModal] = useState(false);
-  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
-  const [leaderboardError, setLeaderboardError] = useState("");
-  const [leaderboardData, setLeaderboardData] = useState({
-    leaderboard: [],
-    myRank: null,
-  });
   const switchTimeoutRef = useRef(null);
 
   const location = useLocation();
@@ -125,25 +118,8 @@ export default function LandingPage() {
 
   const handleOpenLeaderboard = useCallback(() => {
     if (!user?.user_id) return;
-    setLeaderboardLoading(true);
-    setLeaderboardError("");
-    import("../../api/streakApi").then(({ getTopStreakLeaderboard }) => {
-      getTopStreakLeaderboard()
-        .then((data) => {
-          setLeaderboardData({
-            leaderboard: data?.leaderboard || [],
-            myRank: data?.myRank || null,
-          });
-          setShowLeaderboardModal(true);
-        })
-        .catch((err) => {
-          console.error("Failed to fetch streak leaderboard:", err);
-          setLeaderboardError("Could not load leaderboard. Please try later.");
-        })
-        .finally(() => {
-          setLeaderboardLoading(false);
-        });
-    });
+    window.dispatchEvent(new CustomEvent("openLeaderboard"));
+    document.dispatchEvent(new CustomEvent("openLeaderboard"));
   }, [user?.user_id]);
 
   // 1. Passive Auto-Open (Only on Saturday)
@@ -190,21 +166,6 @@ export default function LandingPage() {
     localStorage.setItem(seenKey, "1");
     navigate(location.pathname, { replace: true, state: {} });
   }, [location.state?.justOnboarded, user?.user_id, navigate, location.pathname]);
-
-  // 2. Global Event Listener from Navbar
-  useEffect(() => {
-    const listen = () => handleOpenLeaderboard();
-    document.addEventListener("openLeaderboard", listen);
-    return () => document.removeEventListener("openLeaderboard", listen);
-  }, [handleOpenLeaderboard]);
-
-  // 3. Location State Drop-in from Navbar (if they were on another page)
-  useEffect(() => {
-    if (location.state?.openLeaderboard && user?.user_id) {
-      navigate(location.pathname, { replace: true, state: {} });
-      handleOpenLeaderboard();
-    }
-  }, [handleOpenLeaderboard, location, user, navigate]);
 
   useEffect(() => {
     if (!user?.user_id) return;
@@ -360,16 +321,6 @@ export default function LandingPage() {
         onClose={() => setShowA1MigrationModal(false)}
         onOptIn={handleSwitchToNew}
         onLegacyContinue={handleContinueOld}
-      />
-
-      <StreakLeaderboardModal
-        open={showLeaderboardModal}
-        onClose={() => setShowLeaderboardModal(false)}
-        loading={leaderboardLoading}
-        error={leaderboardError}
-        leaderboard={leaderboardData.leaderboard}
-        myRank={leaderboardData.myRank}
-        currentUserId={user?.user_id}
       />
 
       {showSwitchConfirm && (

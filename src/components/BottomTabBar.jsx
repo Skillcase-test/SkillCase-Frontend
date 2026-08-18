@@ -337,11 +337,8 @@ export default function BottomTabBar() {
           onClick={() => {
             hapticLight();
             trackFeatureEvent("navigation", "bottom_tab_clicked", { entityId: "streak" });
-            if (location.pathname === "/") {
-              window.dispatchEvent(new CustomEvent("openLeaderboard"));
-            } else {
-              navigate("/", { state: { openLeaderboard: true } });
-            }
+            window.dispatchEvent(new CustomEvent("openLeaderboard"));
+            document.dispatchEvent(new CustomEvent("openLeaderboard"));
           }}
           className="w-14 flex flex-col items-center justify-center gap-0.5 p-1.5 cursor-pointer hover:bg-stone-500/5 rounded-2xl transition-colors"
           title="Streak leaderboard"
