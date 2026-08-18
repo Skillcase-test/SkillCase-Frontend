@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { completeWelcome } from "../../../api/jobScreeningApi";
+import { completeWelcome, markStepNoteViewed } from "../../../api/jobScreeningApi";
 import { Plane, Database, RefreshCw } from "lucide-react";
 import mayaThumbsup from "../../../assets/onboarding/mayaThumbsup.webp";
 import { trackFlowAction } from "../../../telemetry/flow";
+import RejectionNote from "../../../components/RejectionNote";
 
-const WelcomeStep = ({ onComplete }) => {
+const WelcomeStep = ({ progress, onComplete }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -101,6 +102,16 @@ const WelcomeStep = ({ onComplete }) => {
           You are just few steps away from getting placed in Germany
         </p>
       </div>
+
+      {progress?.step_notes?.welcome?.message && (
+        <div className="w-full max-w-xs mb-4 text-left">
+          <RejectionNote
+            message={progress.step_notes.welcome.message}
+            viewedAt={progress.step_notes.welcome.viewed_at}
+            onView={() => markStepNoteViewed("welcome")}
+          />
+        </div>
+      )}
 
       {/* Benefits grid */}
       <div className="w-full flex items-center justify-center gap-4 py-2 mb-4">

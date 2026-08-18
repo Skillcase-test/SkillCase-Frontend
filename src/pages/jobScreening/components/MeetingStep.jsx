@@ -11,9 +11,10 @@ import {
   MessageSquare,
   UserCheck,
 } from "lucide-react";
-import { getProgress } from "../../../api/jobScreeningApi";
+import { getProgress, markStepNoteViewed } from "../../../api/jobScreeningApi";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { trackFlowAction } from "../../../telemetry/flow";
+import RejectionNote from "../../../components/RejectionNote";
 
 const MeetingStep = ({ type, progress, onComplete, onBack }) => {
   const [loading, setLoading] = useState(false);
@@ -240,6 +241,16 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
             </div>
           </div>
 
+          {progress?.step_notes?.interview_training?.message && (
+            <div className="w-full mb-6 text-left">
+              <RejectionNote
+                message={progress.step_notes.interview_training.message}
+                viewedAt={progress.step_notes.interview_training.viewed_at}
+                onView={() => markStepNoteViewed("interview_training")}
+              />
+            </div>
+          )}
+
           <div className="w-full bg-white rounded-2xl border border-slate-200/80 flex items-center gap-3.5 shadow-sm text-left mb-6">
             <img
               src={mayaShocked}
@@ -304,6 +315,16 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
             Job Progress
           </span>
         </div>
+
+        {progress?.step_notes?.interview_training?.message && (
+          <div className="w-full mb-4 text-left">
+            <RejectionNote
+              message={progress.step_notes.interview_training.message}
+              viewedAt={progress.step_notes.interview_training.viewed_at}
+              onView={() => markStepNoteViewed("interview_training")}
+            />
+          </div>
+        )}
 
         <div className="w-full px-5 pt-8 pb-5 bg-gradient-to-b from-[#e0f2fe] to-[#f0f9ff] rounded-2xl border border-white/20 flex flex-col items-center gap-6">
           <div className="w-12 h-12 bg-blue-950 rounded-xl flex items-center justify-center text-white shrink-0">
@@ -439,6 +460,15 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
           are here to support your growth. Reach out to Skillcase support at
           +919731462667 to receive detailed feedback and guidance on next steps.
         </p>
+        {progress?.step_notes?.recruiter_interview?.message && (
+          <div className="w-full max-w-sm mb-4 text-left">
+            <RejectionNote
+              message={progress.step_notes.recruiter_interview.message}
+              viewedAt={progress.step_notes.recruiter_interview.viewed_at}
+              onView={() => markStepNoteViewed("recruiter_interview")}
+            />
+          </div>
+        )}
         <a
           href="tel:+919731462667"
           className="mb-6 w-full sm:max-w-xs h-11 bg-[#002856] text-white hover:bg-[#003975] rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 active:scale-[0.99] transition-all shadow-sm cursor-pointer mx-auto"
@@ -474,6 +504,15 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
           Google Meet link for you. Please check back in a few minutes or click
           the refresh button below to sync updates.
         </p>
+        {progress?.step_notes?.recruiter_interview?.message && (
+          <div className="w-full max-w-sm mb-6 text-left">
+            <RejectionNote
+              message={progress.step_notes.recruiter_interview.message}
+              viewedAt={progress.step_notes.recruiter_interview.viewed_at}
+              onView={() => markStepNoteViewed("recruiter_interview")}
+            />
+          </div>
+        )}
         <button
           onClick={handleRefresh}
           disabled={loading}
@@ -513,6 +552,16 @@ const MeetingStep = ({ type, progress, onComplete, onBack }) => {
       <p className="text-zinc-500 text-xs sm:text-sm max-w-sm mx-auto leading-relaxed mb-6">
         Connect live with our hiring recruiters for final job evaluations.
       </p>
+
+      {progress?.step_notes?.recruiter_interview?.message && (
+        <div className="w-full max-w-sm mb-6 text-left">
+          <RejectionNote
+            message={progress.step_notes.recruiter_interview.message}
+            viewedAt={progress.step_notes.recruiter_interview.viewed_at}
+            onView={() => markStepNoteViewed("recruiter_interview")}
+          />
+        </div>
+      )}
 
       {scheduleImage ? (
         <div className="w-full flex justify-center mb-6">

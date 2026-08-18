@@ -9,6 +9,7 @@ import {
 import {
   getProgress,
   markInterviewRejectionViewed,
+  markStepNoteViewed,
 } from "../../../api/jobScreeningApi";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { motion } from "framer-motion";
@@ -131,75 +132,87 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
             <ArrowLeft className="w-4 h-4" />
             <span>Back</span>
           </button>
-          <span className="text-slate-400 text-sm font-semibold">
-            Job Progress
-          </span>
-        </div>
-
-        {/* Red Rejected Card block */}
-        <div className="w-full px-5 pt-10 pb-5 bg-gradient-to-b from-red-50 to-red-100/50 rounded-2xl border border-red-200/30 flex flex-col items-center gap-4">
-          {/* Rejected Icon */}
-          <div className="w-12 h-12 bg-red-600 rounded-xl flex items-center justify-center text-white shrink-0">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-
-          {/* Heading */}
-          <div className="text-center w-full">
-            <h2 className="text-red-700 text-2xl font-bold tracking-tight">
-              Interview review failed
-            </h2>
-            <p className="text-red-700/80 text-xs sm:text-sm font-medium mt-2 max-w-[280px] mx-auto leading-relaxed">
-              Unfortunately, your Skillcase video interview did not pass our
-              review. We are here to support your growth. Reach out to Skillcase
-              support to receive detailed feedback and guidance on next steps.
-            </p>
-          </div>
-
-          {progress?.interview_rejection_message && (
-            <RejectionNote
-              message={progress.interview_rejection_message}
-              viewedAt={progress.interview_candidate_viewed_at}
-              onView={handleMarkInterviewRejectionViewed}
-            />
-          )}
-
-          {/* Call Support Action */}
-          <a
-            href="tel:+919731462667"
-            className="w-full h-12 bg-[#002856] hover:bg-[#07192f] text-white rounded-xl font-bold text-sm sm:text-base transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer border-none"
-          >
-            Call Skillcase Support
-          </a>
-
-          {error && (
-            <div className="w-full flex items-start gap-2.5 text-red-500 text-xs font-semibold p-3 bg-red-50/50 rounded-xl border border-red-100 text-left">
-              <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Refresh Status Button */}
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="w-full h-12 bg-white hover:bg-slate-50 text-[#002856] border border-[#002856] rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm cursor-pointer"
-          >
-            {refreshing ? (
-              <>
-                <RefreshCw className="animate-spin w-4 h-4 text-[#002856]" />
-                <span>Syncing status...</span>
-              </>
-            ) : (
-              <>
-                <RefreshCw className="w-4 h-4 text-[#002856]" />
-                <span>Refresh status</span>
-              </>
-            )}
-          </button>
-        </div>
+        <span className="text-slate-400 text-sm font-semibold">
+          Job Progress
+        </span>
       </div>
-    );
-  }
+
+      {progress?.interview_rejection_message && (
+        <div className="w-full mb-4 text-left">
+          <RejectionNote
+            message={progress.interview_rejection_message}
+            viewedAt={progress.interview_candidate_viewed_at}
+            onView={handleMarkInterviewRejectionViewed}
+          />
+        </div>
+      )}
+
+      {progress?.step_notes?.review_pending?.message && (
+        <div className="w-full mb-4 text-left">
+          <RejectionNote
+            message={progress.step_notes.review_pending.message}
+            viewedAt={progress.step_notes.review_pending.viewed_at}
+            onView={() => markStepNoteViewed("review_pending")}
+          />
+        </div>
+      )}
+
+      {/* Red Rejected Card block */}
+      <div className="w-full px-5 pt-10 pb-5 bg-gradient-to-b from-red-50 to-red-100/50 rounded-2xl border border-red-200/30 flex flex-col items-center gap-4">
+        {/* Rejected Icon */}
+        <div className="w-12 h-12 bg-red-600 rounded-xl flex items-center justify-center text-white shrink-0">
+          <AlertCircle className="w-6 h-6" />
+        </div>
+
+        {/* Heading */}
+        <div className="text-center w-full">
+          <h2 className="text-red-700 text-2xl font-bold tracking-tight">
+            Interview review failed
+          </h2>
+          <p className="text-red-700/80 text-xs sm:text-sm font-medium mt-2 max-w-[280px] mx-auto leading-relaxed">
+            Unfortunately, your Skillcase video interview did not pass our
+            review. We are here to support your growth. Reach out to Skillcase
+            support to receive detailed feedback and guidance on next steps.
+          </p>
+        </div>
+
+        {/* Call Support Action */}
+        <a
+          href="tel:+919731462667"
+          className="w-full h-12 bg-[#002856] hover:bg-[#07192f] text-white rounded-xl font-bold text-sm sm:text-base transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer border-none"
+        >
+          Call Skillcase Support
+        </a>
+
+        {error && (
+          <div className="w-full flex items-start gap-2.5 text-red-500 text-xs font-semibold p-3 bg-red-50/50 rounded-xl border border-red-100 text-left">
+            <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Refresh Status Button */}
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="w-full h-12 bg-white hover:bg-slate-50 text-[#002856] border border-[#002856] rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm cursor-pointer"
+        >
+          {refreshing ? (
+            <>
+              <RefreshCw className="animate-spin w-4 h-4 text-[#002856]" />
+              <span>Syncing status...</span>
+            </>
+          ) : (
+            <>
+              <RefreshCw className="w-4 h-4 text-[#002856]" />
+              <span>Refresh status</span>
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative ">
@@ -216,6 +229,16 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
           Job Progress
         </span>
       </div>
+
+      {progress?.step_notes?.review_pending?.message && (
+        <div className="w-full mb-4 text-left">
+          <RejectionNote
+            message={progress.step_notes.review_pending.message}
+            viewedAt={progress.step_notes.review_pending.viewed_at}
+            onView={() => markStepNoteViewed("review_pending")}
+          />
+        </div>
+      )}
 
       {/* Blue Review Card block */}
       <div className="w-full px-5 pt-8 pb-5 bg-gradient-to-b from-[#e0f2fe] to-[#f0f9ff] rounded-2xl border border-white/20 flex flex-col items-center gap-6">

@@ -15,6 +15,7 @@ import {
   deleteAdditionalDoc,
   refreshAdditionalDocs,
   markAdditionalDocViewed,
+  markStepNoteViewed,
 } from "../../../api/jobScreeningApi";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { motion } from "framer-motion";
@@ -409,6 +410,16 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
             </p>
           </div>
 
+          {progress?.step_notes?.additional_documents?.message && (
+            <div className="w-full my-4 text-left">
+              <RejectionNote
+                message={progress.step_notes.additional_documents.message}
+                viewedAt={progress.step_notes.additional_documents.viewed_at}
+                onView={() => markStepNoteViewed("additional_documents")}
+              />
+            </div>
+          )}
+
           {/* Timeline checklist */}
           <div className="w-full flex flex-col pl-4 mt-2">
             {/* Step 1: Sent for review (done) */}
@@ -563,6 +574,16 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
         }
         return null;
       })}
+
+      {progress?.step_notes?.additional_documents?.message && (
+        <div className="w-full mb-4">
+          <RejectionNote
+            message={progress.step_notes.additional_documents.message}
+            viewedAt={progress.step_notes.additional_documents.viewed_at}
+            onView={() => markStepNoteViewed("additional_documents")}
+          />
+        </div>
+      )}
 
       {/* Checklist cards */}
       <div className="w-full flex flex-col gap-4 mb-6">

@@ -13,6 +13,7 @@ import {
   uploadProfileDocs,
   getProgress,
   markProfileRejectionViewed,
+  markStepNoteViewed,
 } from "../../../api/jobScreeningApi";
 import { trackFlowAction } from "../../../telemetry/flow";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
@@ -353,6 +354,16 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
             </p>
           </div>
 
+          {progress?.step_notes?.profile_completion?.message && (
+            <div className="w-full my-4 text-left">
+              <RejectionNote
+                message={progress.step_notes.profile_completion.message}
+                viewedAt={progress.step_notes.profile_completion.viewed_at}
+                onView={() => markStepNoteViewed("profile_completion")}
+              />
+            </div>
+          )}
+
           {/* Timeline checklist */}
           <div className="w-full flex flex-col pl-4 mt-2">
             {/* Step 1: Send for review (done) */}
@@ -496,6 +507,16 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
             message={progress?.profile_rejection_reason}
             viewedAt={progress?.profile_rejection_viewed_at}
             onView={handleMarkProfileRejectionViewed}
+          />
+        </div>
+      )}
+
+      {progress?.step_notes?.profile_completion?.message && (
+        <div className="w-full mb-6">
+          <RejectionNote
+            message={progress.step_notes.profile_completion.message}
+            viewedAt={progress.step_notes.profile_completion.viewed_at}
+            onView={() => markStepNoteViewed("profile_completion")}
           />
         </div>
       )}

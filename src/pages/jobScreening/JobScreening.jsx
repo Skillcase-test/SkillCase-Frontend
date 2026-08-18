@@ -704,7 +704,12 @@ const JobScreening = () => {
     const stepToRender = executingStepId || currentStepId;
     switch (stepToRender) {
       case "welcome":
-        return <WelcomeStep onComplete={handleWelcomeComplete} />;
+        return (
+          <WelcomeStep
+            progress={progress}
+            onComplete={handleWelcomeComplete}
+          />
+        );
       case "profile_completion":
         return (
           <ProfileCompletionStep

@@ -22,6 +22,7 @@ import {
   skipRecruiterStatus,
   downloadOfferLetter,
   markRecruiterRejectionViewed,
+  markStepNoteViewed,
 } from "../../../api/jobScreeningApi";
 import shocked from "../../../assets/onboarding/mayaShocked.webp";
 import { toast } from "react-hot-toast";
@@ -491,6 +492,16 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
               interview opportunities.
             </p>
           </div>
+
+          {progress?.step_notes?.recruiter_status?.message && (
+            <div className="w-full text-left">
+              <RejectionNote
+                message={progress.step_notes.recruiter_status.message}
+                viewedAt={progress.step_notes.recruiter_status.viewed_at}
+                onView={() => markStepNoteViewed("recruiter_status")}
+              />
+            </div>
+          )}
 
           {/* Cards List */}
           <div className="w-full flex flex-col gap-4">

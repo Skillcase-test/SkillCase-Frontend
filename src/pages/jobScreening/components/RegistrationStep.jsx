@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileSignature, ArrowRight, RefreshCw } from "lucide-react";
-import { checkAgreement, startAgreement, getProgress } from "../../../api/jobScreeningApi";
+import { checkAgreement, startAgreement, getProgress, markStepNoteViewed } from "../../../api/jobScreeningApi";
 import { trackFlowAction } from "../../../telemetry/flow";
+import RejectionNote from "../../../components/RejectionNote";
 
 const RegistrationStep = ({ progress, onComplete }) => {
   const navigate = useNavigate();
@@ -60,7 +61,63 @@ const RegistrationStep = ({ progress, onComplete }) => {
     }
   };
 
-  const hasAgreement = !!(progress?.assigned_agreement_title || progress?.assigned_agreement_template_id || progress?.globalSettings?.default_agreement_template_id);
+  const isAgreementCompleted =
+    progress?.steps_config?.find((s) => s.id === "registration_form")?.status ===
+    "completed";
+
+  if (isAgreementCompleted) {
+    return (
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-8 flex flex-col items-center justify-center text-center w-full">
+        {/* Success Icon */}
+        <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 mb-4">
+          <FileSignature className="w-6 h-6" />
+        </div>
+
+        <h2 className="text-xl sm:text-2xl font-extrabold text-[#002856] tracking-tight mb-1.5">
+          Agreement Signed
+        </h2>
+        <p className="text-zinc-500 text-xs sm:text-sm max-w-md leading-relaxed mb-5">
+          Your candidate agreement has been verified and signed.
+        </p>
+
+        {progress?.step_notes?.registration_form?.message && (
+          <div className="w-full max-w-md mb-5 text-left">
+            <RejectionNote
+              message={progress.step_notes.registration_form.message}
+              viewedAt={progress.step_notes.registration_form.viewed_at}
+              onView={() => markStepNoteViewed("registration_form")}
+            />
+          </div>
+        )}
+
+        {/* Info Block */}
+        <div className="w-full sm:max-w-xs bg-slate-50/30 border border-slate-100 rounded-2xl p-4 mb-5 text-left">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+            Signed Document
+          </span>
+          <span className="text-xs sm:text-sm font-bold text-[#002856] truncate block">
+            {progress?.assigned_agreement_title || "Candidate Agreement"}
+          </span>
+        </div>
+
+        {/* Action Button */}
+        <button
+          type="button"
+          onClick={() => onComplete?.(progress)}
+          className="w-full max-w-xs h-11 bg-[#002856] text-white hover:bg-[#003975] rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 active:scale-[0.99] transition-all shadow-sm cursor-pointer"
+        >
+          <span>Continue</span>
+          <ArrowRight className="w-4 h-4 text-white" />
+        </button>
+      </div>
+    );
+  }
+
+  const hasAgreement = !!(
+    progress?.assigned_agreement_title ||
+    progress?.assigned_agreement_template_id ||
+    progress?.globalSettings?.default_agreement_template_id
+  );
 
   if (!hasAgreement) {
     return (
@@ -80,6 +137,16 @@ const RegistrationStep = ({ progress, onComplete }) => {
           Our team is preparing your candidate agreement.
           We will notify you here once it is ready for signature.
         </p>
+
+        {progress?.step_notes?.registration_form?.message && (
+          <div className="w-full max-w-md mb-6 text-left">
+            <RejectionNote
+              message={progress.step_notes.registration_form.message}
+              viewedAt={progress.step_notes.registration_form.viewed_at}
+              onView={() => markStepNoteViewed("registration_form")}
+            />
+          </div>
+        )}
 
         {/* Refresh button */}
         <button
@@ -112,6 +179,16 @@ const RegistrationStep = ({ progress, onComplete }) => {
       <p className="text-zinc-500 text-xs sm:text-sm max-w-md leading-relaxed mb-5">
         We have generated your candidate agreement. Please review and sign it directly inside the app.
       </p>
+
+      {progress?.step_notes?.registration_form?.message && (
+        <div className="w-full max-w-md mb-5 text-left">
+          <RejectionNote
+            message={progress.step_notes.registration_form.message}
+            viewedAt={progress.step_notes.registration_form.viewed_at}
+            onView={() => markStepNoteViewed("registration_form")}
+          />
+        </div>
+      )}
 
       {/* Info Block */}
       <div className="w-full sm:max-w-xs bg-slate-50/30 border border-slate-100 rounded-2xl p-4 mb-5 text-left">

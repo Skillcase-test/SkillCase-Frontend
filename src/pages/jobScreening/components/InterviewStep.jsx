@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { RefreshCw, ArrowLeft, Check, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { getProgress } from "../../../api/jobScreeningApi";
+import { getProgress, markStepNoteViewed } from "../../../api/jobScreeningApi";
 import FillDetailsStep from "./FillDetailsStep";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { trackFlowAction } from "../../../telemetry/flow";
+import RejectionNote from "../../../components/RejectionNote";
 
 const InterviewStep = ({ progress, onComplete, onBack }) => {
   const navigate = useNavigate();
@@ -53,6 +54,16 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
             Job Progress
           </span>
         </div>
+
+        {progress?.step_notes?.interview_attempt?.message && (
+          <div className="w-full mb-4 text-left">
+            <RejectionNote
+              message={progress.step_notes.interview_attempt.message}
+              viewedAt={progress.step_notes.interview_attempt.viewed_at}
+              onView={() => markStepNoteViewed("interview_attempt")}
+            />
+          </div>
+        )}
 
         {/* Blue Review Card block */}
         <div className="w-full px-5 pt-8 pb-5 bg-gradient-to-b from-[#e0f2fe] to-[#f0f9ff] rounded-2xl border border-white/20 flex flex-col items-center gap-6">
@@ -214,6 +225,16 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
           assess your communication skills.
         </p>
       </div>
+
+      {progress?.step_notes?.interview_attempt?.message && (
+        <div className="w-full mb-4 text-left">
+          <RejectionNote
+            message={progress.step_notes.interview_attempt.message}
+            viewedAt={progress.step_notes.interview_attempt.viewed_at}
+            onView={() => markStepNoteViewed("interview_attempt")}
+          />
+        </div>
+      )}
 
       {/* Document/Interview Card */}
       <div className="w-full p-4 bg-white rounded-2xl border border-slate-200 flex flex-col gap-3.5 text-left">

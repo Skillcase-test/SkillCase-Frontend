@@ -48,6 +48,9 @@ export const markInterviewRejectionViewed = () =>
 export const markRecruiterRejectionViewed = (accountId) =>
   api.post(`/job-screening/recruiter-interviews/${accountId}/view-rejection`);
 
+export const markStepNoteViewed = (stepId) =>
+  api.post(`/job-screening/step-notes/${stepId}/view`);
+
 export const skipRecruiterStatus = () =>
   api.post("/job-screening/skip-recruiter-status");
 
