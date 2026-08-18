@@ -66,9 +66,61 @@ export function useActionsInvoices(state) {
     }
   }
 
+  async function handleBulkGenerateInvoices(items) {
+    if (!Array.isArray(items) || !items.length) return null;
+    try {
+      const res = await paymentsAdminApi.generateInvoicesBulk({ items });
+      const { generated_count, skipped_count } = res.data || {};
+      if (setNotice) {
+        setNotice(
+          `Generated ${generated_count || 0} invoice draft(s)${
+            skipped_count ? ` (${skipped_count} skipped)` : ""
+          }`,
+        );
+      }
+      await loadTabData();
+      return res.data;
+    } catch (err) {
+      setError(
+        err?.response?.data?.msg ||
+          err?.message ||
+          "Bulk invoice generation failed",
+      );
+      throw err;
+    }
+  }
+
+  async function handleBulkSendInvoices(invoiceIds) {
+    if (!Array.isArray(invoiceIds) || !invoiceIds.length) return null;
+    try {
+      const res = await paymentsAdminApi.sendInvoicesBulk({
+        invoice_ids: invoiceIds,
+      });
+      const { sent_count, skipped_count } = res.data || {};
+      if (setNotice) {
+        setNotice(
+          `Sent ${sent_count || 0} invoice(s)${
+            skipped_count ? ` (${skipped_count} skipped)` : ""
+          }`,
+        );
+      }
+      await loadTabData();
+      return res.data;
+    } catch (err) {
+      setError(
+        err?.response?.data?.msg ||
+          err?.message ||
+          "Bulk invoice sending failed",
+      );
+      throw err;
+    }
+  }
+
   return {
     handleGenerateInvoice,
+    handleBulkGenerateInvoices,
     handleSendInvoice,
+    handleBulkSendInvoices,
     handleCancelInvoice,
   };
 }
