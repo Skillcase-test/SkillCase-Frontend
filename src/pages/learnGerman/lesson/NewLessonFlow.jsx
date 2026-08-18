@@ -17,7 +17,10 @@ import { hapticLight, hapticMedium, hapticHeavy } from "../../../utils/haptics";
 import { trackAppAnalyticsEvent } from "../../../utils/appAnalytics";
 import { recordEvent } from "../../../telemetry";
 import { setClarityTag, trackClarityEvent } from "../../../observability/clarity";
-import { preloadMayaTTSText } from "./screens/shared/useMayaTTS";
+import {
+  preloadMayaTTSText,
+  resetLastPlayedDialogue,
+} from "./screens/shared/useMayaTTS";
 import { useUsageLimitGate } from "../../../hooks/useUsageLimits";
 import {
   getGermanTTSBlob,
@@ -263,8 +266,17 @@ export default function NewLessonFlow() {
         window.clearTimeout(tapGuideDelayTimerRef.current);
       }
       stopSpeakAudio();
+      resetLastPlayedDialogue();
     };
   }, [trackModuleAbandoned]);
+
+  useEffect(() => {
+    const handler = () => {
+      stopSpeakAudio();
+    };
+    window.addEventListener("germanTTSStop", handler);
+    return () => window.removeEventListener("germanTTSStop", handler);
+  }, []);
 
   useEffect(() => {
     lessonAnalyticsRef.current.lastScreenIndex = screenIndex;
@@ -301,6 +313,7 @@ export default function NewLessonFlow() {
     moduleAbandonedTrackedRef.current = false;
 
     // Reset lesson state on route change
+    resetLastPlayedDialogue();
     setScreenIndex(0);
     setLevelComplete(false);
     setQuizState("idle");
@@ -1148,6 +1161,10 @@ export default function NewLessonFlow() {
   const speakWord = async (text, opts) => {
     const key = opts && typeof opts === "object" ? (opts.key ?? null) : null;
     hapticMedium();
+    // Stop any currently playing Maya audio
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("mayaTTSStop"));
+    }
     // Cancel any currently playing speakWord audio before starting a new one
     stopSpeakAudio();
     const token = speakTokenRef.current;

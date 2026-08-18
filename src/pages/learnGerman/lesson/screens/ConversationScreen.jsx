@@ -1,10 +1,14 @@
-import React, { useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { ArrowLeft, CheckCircle2, VolumeX, XCircle } from "lucide-react";
 import WaveformIcon from "./shared/WaveformIcon";
-import { hapticMedium, hapticHeavy } from "../../../../utils/haptics";
+import { hapticMedium, hapticHeavy, hapticLight } from "../../../../utils/haptics";
 import { resolveAssetUrl } from "../../../../utils/imageUtils";
-import { isTTSMuted } from "./shared/ttsMutePreference";
+import {
+  isTTSMuted,
+  setTTSMuted,
+  subscribeTTSMute,
+} from "./shared/ttsMutePreference";
 
 // Derive the set of correct option indices for a screen.
 // Supports both:
@@ -54,6 +58,13 @@ export default function ConversationScreen({
   const currentSelectionFromHistory =
     conversationSelections[currentScreenIndex];
   const isCurrentTurnCommitted = currentSelectionFromHistory !== undefined;
+  const [isMuted, setIsMuted] = useState(() => isTTSMuted());
+
+  useEffect(() => {
+    return subscribeTTSMute((muted) => {
+      setIsMuted(muted);
+    });
+  }, []);
 
   // Auto-scroll to bottom when new history or options appear
   useEffect(() => {
@@ -72,11 +83,28 @@ export default function ConversationScreen({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentScreenIndex]);
 
+  const handleBubbleAudioClick = (dialogue, bubbleKey) => {
+    hapticLight();
+    if (isMuted) {
+      setTTSMuted(false);
+      speakWord(dialogue, { key: bubbleKey });
+    } else if (isSpeaking && currentlySpeakingKey === bubbleKey) {
+      setTTSMuted(true);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("mayaTTSStop"));
+      }
+    } else {
+      speakWord(dialogue, { key: bubbleKey });
+    }
+  };
+
   const renderCharacterBubble = (msgScreen, isPast, bubbleKey) => {
     const dialogue = msgScreen.characterDialogue || msgScreen.dialogue;
     const meaning = msgScreen.englishMeaning;
     const hasImage = !!msgScreen.characterImage;
     const img = msgScreen.characterImage;
+    const isThisBubbleSpeaking =
+      isSpeaking && currentlySpeakingKey === bubbleKey;
 
     return (
       <motion.div
@@ -107,15 +135,26 @@ export default function ConversationScreen({
               </div>
               {dialogue && (
                 <button
-                  onClick={() => {
-                    if (!isSpeaking) speakWord(dialogue, { key: bubbleKey });
-                  }}
-                  className="text-blue-950 shrink-0 hover:opacity-70 transition-opacity overflow-hidden"
+                  onClick={() => handleBubbleAudioClick(dialogue, bubbleKey)}
+                  className="text-blue-950 shrink-0 hover:opacity-70 active:scale-90 transition-all overflow-hidden p-0.5"
+                  aria-label={
+                    isMuted
+                      ? "Unmute conversation audio"
+                      : isThisBubbleSpeaking
+                        ? "Mute conversation audio"
+                        : "Play conversation audio"
+                  }
                 >
-                  <WaveformIcon
-                    isPlaying={isSpeaking && currentlySpeakingKey === bubbleKey}
-                    className="w-5 h-5"
-                  />
+                  {isMuted ? (
+                    <VolumeX className="w-4 h-4 text-gray-400" />
+                  ) : (
+                    <WaveformIcon
+                      isPlaying={isThisBubbleSpeaking}
+                      className="w-5 h-5"
+                      color="bg-blue-950"
+                      iconColor="text-blue-950"
+                    />
+                  )}
                 </button>
               )}
             </div>

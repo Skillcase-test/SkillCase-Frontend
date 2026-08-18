@@ -94,6 +94,7 @@ export default function LessonScenarioScreen({
               <div className="absolute left-[-6px] top-1/2 -translate-y-1/2 w-4 h-4 bg-white rotate-45" />
               <AnimatePresence mode="wait">
                 <MayaDialogueBubble
+                  key={`scenario-dialog-${dialogueIndex}`}
                   text={dialogues[dialogueIndex] || "..."}
                   onDone={onDialogueDone}
                 />

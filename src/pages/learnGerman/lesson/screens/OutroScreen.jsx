@@ -44,7 +44,10 @@ export default function OutroScreen({ screen, progressRatio, title, level }) {
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.2 }}
               >
-                <MayaDialogueBubble text={dialogues[dialogueIndex]} />
+                <MayaDialogueBubble
+                  text={dialogues[dialogueIndex]}
+                  skipSuppression
+                />
               </motion.div>
               </AnimatePresence>
             {/* triangle pointer pointing down toward Maya */}
