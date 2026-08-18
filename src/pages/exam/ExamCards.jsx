@@ -120,7 +120,7 @@ export default function ExamCards() {
           !isWindowClosed;
 
         let statusBadge = null;
-        let cardBg = "bg-gradient-to-br from-[#002856] to-[#004080]";
+        let cardBg = "bg-gradient-to-br from-[#002856] to-[#1E5CA2]";
 
         if (isNotYetOpen) {
           statusBadge = <CountdownTimer targetDate={exam.available_from} />;

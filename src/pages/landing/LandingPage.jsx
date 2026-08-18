@@ -2,6 +2,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import FeatureCardsGrid from "./components/FeatureCardsGrid";
+import DemoClassSection from "./components/DemoClassSection";
+import SalaryInfoCard from "./components/SalaryInfoCard";
+import TalkToTeamSection from "./components/TalkToTeamSection";
+import { useLandingSections } from "../../hooks/useLandingSections";
 import { AlertTriangle, Sparkles } from "lucide-react";
 import {
   getA1MigrationStatus,
@@ -49,6 +53,15 @@ function LandingFeatureCardsSkeleton() {
 export default function LandingPage() {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+  const rawLevel = (user?.user_prof_level || "A1").toUpperCase();
+  const contentLevel = isB1PracticeLevel(rawLevel)
+    ? "B1"
+    : ["A1", "A2", "B1", "B2"].includes(rawLevel)
+      ? rawLevel
+      : "A1";
+  const { sections } = useLandingSections(contentLevel);
+  const isPaidUser = Boolean(user?.is_paid);
+  const showLandingSections = !isPaidUser;
 
   const [showA1MigrationModal, setShowA1MigrationModal] = useState(false);
   const [migrationStatus, setMigrationStatus] = useState(null);
@@ -312,6 +325,20 @@ export default function LandingPage() {
           <LandingFeatureCardsSkeleton />
         ) : (
           <FeatureCardsGrid useRevampA1={isRevampA1User} />
+        )}
+
+        {showLandingSections && (
+          <div className="space-y-4 mt-4">
+            {sections?.demo_class && sections.demo_class.is_visible !== false && (
+              <DemoClassSection data={sections.demo_class} />
+            )}
+            {sections?.salary_info && sections.salary_info.is_visible !== false && (
+              <SalaryInfoCard data={sections.salary_info} />
+            )}
+            {sections?.talk_to_team && sections.talk_to_team.is_visible !== false && (
+              <TalkToTeamSection data={sections.talk_to_team} />
+            )}
+          </div>
         )}
       </main>
 

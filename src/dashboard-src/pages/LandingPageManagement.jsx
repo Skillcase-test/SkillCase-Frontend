@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Save, Upload, Link2, Copy, Eye, EyeOff } from "lucide-react";
+import mayaFull from "../../assets/onboarding/mayaFull.webp";
 import {
   fetchAdminSectionsByLevel,
   saveDemoClass,
@@ -200,46 +201,58 @@ function ActionButtons({ onSave, onCopy, saving, copying, otherLevel }) {
 
 // ---- Inline Previews ----
 
+function formatDemoDate(dateStr) {
+  if (!dateStr) return "";
+  if (dateStr.toLowerCase() === "today") {
+    try {
+      return new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Kolkata",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(new Date());
+    } catch {
+      return dateStr;
+    }
+  }
+  return dateStr;
+}
+
 function DemoPreview({ d }) {
+  const rawDate = d.check_item_1 || "Today";
+  const formattedDate = formatDemoDate(rawDate);
+  const timing = d.check_item_2 || "7PM - 7:30 PM";
+
+  const dateSubtitle =
+    d.subtitle && !d.check_item_1
+      ? d.subtitle
+      : formattedDate && timing
+        ? `${formattedDate} | ${timing}`
+        : formattedDate || timing || "11 June 2026 | 7PM - 7:30 PM";
+
   return (
-    <div className="rounded-xl overflow-hidden border border-gray-200">
-      <div className="flex min-h-[140px]">
-        <div className="bg-[#002856] p-4 w-[55%]">
-          <p className="text-white font-semibold text-sm leading-snug mb-1">
-            {d.heading}
+    <div className="w-full px-4 pt-1 pb-0 bg-gradient-to-r from-[#002856] to-[#1E5CA2] rounded-2xl shadow-sm overflow-hidden flex items-end justify-between gap-3">
+      <div className="flex-1 flex flex-col justify-between py-1 pb-4 min-w-0">
+        <div className="flex flex-col gap-1.5">
+          <p className="text-white text-sm font-bold leading-snug">
+            {d.heading || "Free German language demo"}
           </p>
-          <p className="text-white text-xs opacity-70 mb-2">{d.subtitle}</p>
-          <div className="flex flex-wrap gap-3 mb-3">
-            {[d.check_item_1, d.check_item_2].map((item, i) => (
-              <span
-                key={i}
-                className="flex items-center gap-1 text-white text-xs opacity-80"
-              >
-                <span className="w-3.5 h-3.5 rounded-full bg-[#003D83] flex items-center justify-center text-[#edb843] font-bold text-[9px]">
-                  ✓
-                </span>
-                {item}
-              </span>
-            ))}
-          </div>
-          <div className="bg-[#F9C235] text-white text-xs text-center rounded-lg py-1 px-2 mb-1">
-            {d.button_text}
-          </div>
-          <p className="text-[#edb843] text-[10px] text-center">
-            {d.badge_text}
+          <p className="text-white/80 text-xs font-normal leading-normal">
+            {dateSubtitle}
           </p>
         </div>
-        <div className="w-[45%] bg-gray-100 flex items-center justify-center">
-          {d.image_url ? (
-            <img
-              src={d.image_url}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <span className="text-gray-400 text-xs">No image set</span>
-          )}
+        <div className="mt-3.5">
+          <span className="inline-flex items-center justify-center px-4 py-2 bg-[#EDB843] text-[#002856] text-xs font-bold rounded-lg shadow-sm">
+            Register Now
+          </span>
         </div>
+      </div>
+      <div className="w-20 sm:w-24 h-24 sm:h-28 relative flex items-start justify-center shrink-0 self-end overflow-hidden">
+        <img
+          src={mayaFull}
+          alt="Maya"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-auto h-[175%] max-w-none object-contain select-none pointer-events-none"
+        />
       </div>
     </div>
   );
@@ -329,7 +342,7 @@ function HiddenPreview({ sectionLabel, level }) {
 }
 
 // ---- Constants ----
-const LEVEL_TABS = ["A1", "A2"];
+const LEVEL_TABS = ["A1", "A2", "B1", "B2"];
 const SECTION_TABS = [
   { id: "demo_class", label: "Demo Class" },
   { id: "salary_info", label: "Salary Info" },
@@ -340,9 +353,19 @@ const SECTION_TABS = [
 export default function LandingPageManagement() {
   const [activeLevel, setActiveLevel] = useState("A1");
   const [activeSection, setActiveSection] = useState("demo_class");
-  // Store data per level: { A1: { demo_class: {}, ... }, A2: { demo_class: {}, ... } }
-  const [allData, setAllData] = useState({ A1: null, A2: null });
-  const [loadingLevel, setLoadingLevel] = useState({ A1: false, A2: false });
+  // Store data per level: { A1: { demo_class: {}, ... }, A2: { demo_class: {}, ... }, B1: ..., B2: ... }
+  const [allData, setAllData] = useState({
+    A1: null,
+    A2: null,
+    B1: null,
+    B2: null,
+  });
+  const [loadingLevel, setLoadingLevel] = useState({
+    A1: false,
+    A2: false,
+    B1: false,
+    B2: false,
+  });
   const [saving, setSaving] = useState(false);
   const [copying, setCopying] = useState(false);
 
@@ -537,61 +560,34 @@ export default function LandingPageManagement() {
                   isVisible={dc.is_visible}
                   onChange={(v) => set("demo_class", "is_visible", v)}
                 />
-                <FieldRow label="Heading">
+                <FieldRow label="Title">
                   <TextInput
                     value={dc.heading}
                     onChange={(v) => set("demo_class", "heading", v)}
-                    placeholder="Free Demo Class..."
+                    placeholder="Free German language demo"
                   />
                 </FieldRow>
-                <FieldRow label="Subtitle">
-                  <TextareaInput
-                    value={dc.subtitle}
-                    onChange={(v) => set("demo_class", "subtitle", v)}
-                  />
-                </FieldRow>
-                <FieldRow label="Check Item 1 (e.g. Today)">
+                <FieldRow label="Date (e.g. Today or 11 June 2026)">
                   <TextInput
                     value={dc.check_item_1}
                     onChange={(v) => set("demo_class", "check_item_1", v)}
-                    placeholder="Today"
+                    placeholder="Today (auto-formats to current IST date)"
                   />
                 </FieldRow>
-                <FieldRow label="Check Item 2 (e.g. 9:00 PM)">
+                <FieldRow label="Timing (e.g. 7PM - 7:30 PM)">
                   <TextInput
                     value={dc.check_item_2}
                     onChange={(v) => set("demo_class", "check_item_2", v)}
-                    placeholder="9:00 PM"
+                    placeholder="7PM - 7:30 PM"
                   />
                 </FieldRow>
-                <FieldRow label="Button Text">
-                  <TextInput
-                    value={dc.button_text}
-                    onChange={(v) => set("demo_class", "button_text", v)}
-                  />
-                </FieldRow>
-                <FieldRow label="Button Link">
+                <FieldRow label="Registration Link">
                   <TextInput
                     value={dc.button_link}
                     onChange={(v) => set("demo_class", "button_link", v)}
-                    placeholder="https://..."
+                    placeholder="https://luma.com/..."
                   />
                 </FieldRow>
-                <FieldRow label="Badge Text (below button)">
-                  <TextInput
-                    value={dc.badge_text}
-                    onChange={(v) => set("demo_class", "badge_text", v)}
-                  />
-                </FieldRow>
-                <ImageInput
-                  label="Section Image"
-                  value={dc.image_url}
-                  onChange={(v) => set("demo_class", "image_url", v)}
-                  onUpload={(file) =>
-                    uploadSectionImage("demo_class", activeLevel, file)
-                  }
-                />
-
               </SectionCard>
             )}
 
@@ -659,7 +655,6 @@ export default function LandingPageManagement() {
                     uploadSectionImage("salary_info", activeLevel, file)
                   }
                 />
-
               </SectionCard>
             )}
 
@@ -729,7 +724,6 @@ export default function LandingPageManagement() {
                     uploadSectionImage("talk_to_team", activeLevel, file)
                   }
                 />
-
               </SectionCard>
             )}
           </div>
@@ -745,19 +739,28 @@ export default function LandingPageManagement() {
             <div className="sticky top-4">
               {activeSection === "demo_class" &&
                 (dc.is_visible === false ? (
-                  <HiddenPreview sectionLabel="Demo Class" level={activeLevel} />
+                  <HiddenPreview
+                    sectionLabel="Demo Class"
+                    level={activeLevel}
+                  />
                 ) : (
                   <DemoPreview d={dc} />
                 ))}
               {activeSection === "salary_info" &&
                 (si.is_visible === false ? (
-                  <HiddenPreview sectionLabel="Salary Info" level={activeLevel} />
+                  <HiddenPreview
+                    sectionLabel="Salary Info"
+                    level={activeLevel}
+                  />
                 ) : (
                   <SalaryPreview d={si} />
                 ))}
               {activeSection === "talk_to_team" &&
                 (tt.is_visible === false ? (
-                  <HiddenPreview sectionLabel="Talk to Team" level={activeLevel} />
+                  <HiddenPreview
+                    sectionLabel="Talk to Team"
+                    level={activeLevel}
+                  />
                 ) : (
                   <TalkPreview d={tt} />
                 ))}
