@@ -6,10 +6,8 @@ import { trackClarityEvent } from "../observability/clarity";
 import { hapticLight } from "../utils/haptics";
 import { isB1PracticeLevel } from "../utils/b1Progress";
 import { syncModeIntoRedux } from "../utils/lgMode";
-import {
-  getSwitcherBlendColor,
-  isScholarshipRoute,
-} from "../utils/shellRoutes";
+import { isScholarshipRoute, getSwitcherBlendColor } from "../utils/shellRoutes";
+import { useFeatureFlags } from "../hooks/useFeatureFlags";
 import bookImg from "../assets/book.webp";
 import mayaSmilingImg from "../assets/onboarding/mayaSmiling.webp";
 import classImg from "../assets/class.webp";
@@ -31,6 +29,8 @@ export default function TopModeSwitcher({ isTourActive = false }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
+  const { isFeatureEnabled } = useFeatureFlags();
+  const showGermanClasses = isFeatureEnabled("german_classes");
   // B1/B2 users get a two-tab switcher: Exam & Practice + Jobs. The Jobs tab
   // is the gateway into the job-screening pipeline (and back via practice).
   const isB1 = isB1PracticeLevel(user?.user_prof_level);
@@ -293,17 +293,19 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 showRightNotch={activeTab === "learn"}
                 blendColor={blendColor}
               />
-              <SwitcherTab
-                active={activeTab === "courses"}
-                onClick={() => handleSwitch("courses")}
-                onPreload={() => handlePreload("courses")}
-                image={classImg}
-                line1="German"
-                line2="Classes"
-                showLeftNotch={activeTab === "courses"}
-                showRightNotch={activeTab === "courses"}
-                blendColor={blendColor}
-              />
+              {showGermanClasses && (
+                <SwitcherTab
+                  active={activeTab === "courses"}
+                  onClick={() => handleSwitch("courses")}
+                  onPreload={() => handlePreload("courses")}
+                  image={classImg}
+                  line1="German"
+                  line2="Classes"
+                  showLeftNotch={activeTab === "courses"}
+                  showRightNotch={activeTab === "courses"}
+                  blendColor={blendColor}
+                />
+              )}
             </>
           )}
         </div>

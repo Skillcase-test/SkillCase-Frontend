@@ -24,6 +24,17 @@ vi.mock("../observability/clarity", () => ({
 vi.mock("../utils/haptics", () => ({
   hapticLight: vi.fn(),
 }));
+// German Classes is behind the german_classes feature flag. This file covers
+// scholarship chrome, not flag gating (see FeatureFlags.test.jsx), so pin the
+// flag on and keep asserting the full tab set.
+vi.mock("../hooks/useFeatureFlags", () => ({
+  useFeatureFlags: () => ({
+    flags: { german_classes: true },
+    loading: false,
+    isFeatureEnabled: (key) => key === "german_classes",
+    refreshFlags: vi.fn(),
+  }),
+}));
 
 // ─── shellRoutes pure helpers ───────────────────────────────────────────────
 import {
@@ -113,7 +124,7 @@ describe("TopModeSwitcher — scholarship variant", () => {
     );
 
     // user is null → not B1 → the three-tab (Exam & Practice / Guided German /
-    // German Classes) layout renders.
+    // German Classes) layout renders, with german_classes flagged on above.
     await waitFor(() => {
       expect(screen.getAllByRole("tab")).toHaveLength(3);
     });

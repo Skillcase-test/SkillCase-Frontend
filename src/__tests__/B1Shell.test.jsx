@@ -37,6 +37,15 @@ vi.mock("../api/streakApi", () => ({
   getStreakData: (...args) => mockGetStreak(...args),
 }));
 
+vi.mock("../hooks/useFeatureFlags", () => ({
+  useFeatureFlags: () => ({
+    flags: { german_classes: true },
+    loading: false,
+    isFeatureEnabled: (key) => key === "german_classes",
+    refreshFlags: vi.fn(),
+  }),
+}));
+
 vi.mock("../observability/clarity", () => ({
   trackClarityEvent: vi.fn(),
 }));

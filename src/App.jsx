@@ -47,6 +47,7 @@ import {
   isScholarshipRoute,
 } from "./utils/shellRoutes";
 import { hasPremiumAccess } from "./utils/premium";
+import { useFeatureFlags } from "./hooks/useFeatureFlags";
 import { setUser, logout } from "./redux/auth/authSlice";
 
 if (typeof global === "undefined") {
@@ -965,6 +966,15 @@ function AppContent() {
     return <Navigate to="/job-screening" replace />;
   }
 
+  const FeatureFlagGated = ({ featureKey, redirectTo = "/", children }) => {
+    const { isFeatureEnabled, loading } = useFeatureFlags();
+    if (loading) return null;
+    if (!isFeatureEnabled(featureKey)) {
+      return <Navigate to={redirectTo} replace />;
+    }
+    return children;
+  };
+
   const lazyScreen = (element, title) => (
     <Suspense fallback={<RouteScreenSkeleton title={title} />}>
       {element}
@@ -1825,29 +1835,49 @@ function AppContent() {
                   {/* Video Courses & Notes */}
                   <Route
                     path="/video-courses"
-                    element={lazyScreen(
-                      <CourseSelectPage />,
-                      "Loading Courses...",
-                    )}
+                    element={
+                      <FeatureFlagGated featureKey="german_classes" redirectTo="/">
+                        {lazyScreen(
+                          <CourseSelectPage />,
+                          "Loading Courses...",
+                        )}
+                      </FeatureFlagGated>
+                    }
                   />
                   <Route
                     path="/notes"
-                    element={lazyScreen(<NotesListPage />, "Loading Notes...")}
+                    element={
+                      <FeatureFlagGated featureKey="german_classes" redirectTo="/">
+                        {lazyScreen(<NotesListPage />, "Loading Notes...")}
+                      </FeatureFlagGated>
+                    }
                   />
                   <Route
                     path="/notes/:noteId"
-                    element={lazyScreen(<NotePreviewPage />, "Loading Note...")}
+                    element={
+                      <FeatureFlagGated featureKey="german_classes" redirectTo="/">
+                        {lazyScreen(<NotePreviewPage />, "Loading Note...")}
+                      </FeatureFlagGated>
+                    }
                   />
                   <Route
                     path="/video-courses/:courseId"
-                    element={lazyScreen(<VideoListPage />, "Loading Videos...")}
+                    element={
+                      <FeatureFlagGated featureKey="german_classes" redirectTo="/">
+                        {lazyScreen(<VideoListPage />, "Loading Videos...")}
+                      </FeatureFlagGated>
+                    }
                   />
                   <Route
                     path="/video-course/:videoId"
-                    element={lazyScreen(
-                      <VideoPlayerPage />,
-                      "Loading Video...",
-                    )}
+                    element={
+                      <FeatureFlagGated featureKey="german_classes" redirectTo="/">
+                        {lazyScreen(
+                          <VideoPlayerPage />,
+                          "Loading Video...",
+                        )}
+                      </FeatureFlagGated>
+                    }
                   />
 
                   <Route
