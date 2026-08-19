@@ -44,7 +44,10 @@ vi.mock("../api/streakApi", () => ({
 }));
 
 vi.mock("../api/axios", () => ({
-  default: { post: vi.fn().mockResolvedValue({ data: { user: {} } }) },
+  default: {
+    post: vi.fn().mockResolvedValue({ data: { user: {} } }),
+    get: vi.fn().mockResolvedValue({ data: { flags: {} } }),
+  },
 }));
 
 vi.mock("../api/learnGermanApi", () => ({

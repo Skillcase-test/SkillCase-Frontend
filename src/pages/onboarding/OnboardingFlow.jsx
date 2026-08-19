@@ -8,6 +8,7 @@ import { loginSuccess } from "../../redux/auth/authSlice";
 import { hapticLight } from "../../utils/haptics";
 import { setClarityTag, trackClarityEvent } from "../../observability/clarity";
 import { trackFlowAction, useFlowJourney } from "../../telemetry/flow";
+import { getPublicFeatureFlags } from "../../api/featureFlagApi";
 
 // Extracts first 6-digit sequence from SMS text
 function extractOtp(smsText) {
@@ -171,9 +172,27 @@ const OnboardingFlow = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [resendSeconds, setResendSeconds] = useState(0);
+  const [scholarshipOpen, setScholarshipOpen] = useState(false);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  // Fails closed: a failed fetch hides the option, matching the server gate.
+  useEffect(() => {
+    let cancelled = false;
+    getPublicFeatureFlags()
+      .then((res) => {
+        if (!cancelled) {
+          setScholarshipOpen(Boolean(res?.data?.flags?.scholarship_onboarding));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setScholarshipOpen(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const phoneInputRef = useRef(null);
   const lastNameRef = useRef(null);
@@ -1291,11 +1310,15 @@ const OnboardingFlow = () => {
                         { id: "A", label: "Yet to start (no knowledge)" },
                         { id: "B", label: "I am learning German" },
                         { id: "C", label: "I have completed learning German" },
-                        {
-                          id: "D",
-                          label: "I am here for the scholarship exam",
-                          scholarship: true,
-                        },
+                        ...(scholarshipOpen
+                          ? [
+                              {
+                                id: "D",
+                                label: "I am here for the scholarship exam",
+                                scholarship: true,
+                              },
+                            ]
+                          : []),
                       ].map((status) => (
                         <button
                           key={status.id}

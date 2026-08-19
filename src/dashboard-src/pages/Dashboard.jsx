@@ -112,8 +112,6 @@ const B1ExamsManage = lazy(() => import("./b1/exams/manage"));
 const VideoCourseAdd = lazy(() => import("./videoCourses/add"));
 const VideoCourseManage = lazy(() => import("./videoCourses/manage"));
 
-const NotesAdd = lazy(() => import("./notes/add"));
-const NotesManage = lazy(() => import("./notes/manage"));
 
 function hasPermission(me, moduleKey, action = "view") {
   if (!me) return false;
@@ -465,7 +463,6 @@ function ContentModuleTree({
   a2Modules,
   b1Modules = [],
   videoModules = [],
-  notesModules = [],
   extraItems = [],
   onLinkClick,
 }) {
@@ -475,7 +472,6 @@ function ContentModuleTree({
     a2Modules.length > 0 ||
     b1Modules.length > 0 ||
     videoModules.length > 0 ||
-    notesModules.length > 0 ||
     extraItems.length > 0;
   const [open, setOpen] = useState(false);
 
@@ -492,10 +488,7 @@ function ContentModuleTree({
     const matchesVideo = videoModules.some((m) =>
       location.pathname.startsWith(m.basePath),
     );
-    const matchesNotes = notesModules.some((m) =>
-      location.pathname.startsWith(m.basePath),
-    );
-    if (matchesA1 || matchesA2 || matchesB1 || matchesVideo || matchesNotes) {
+    if (matchesA1 || matchesA2 || matchesB1 || matchesVideo) {
       setOpen(true);
     }
     if (extraItems.some((item) => location.pathname.startsWith(item.path))) {
@@ -507,7 +500,6 @@ function ContentModuleTree({
     a2Modules,
     b1Modules,
     videoModules,
-    notesModules,
     extraItems,
   ]);
 
@@ -555,14 +547,6 @@ function ContentModuleTree({
             />
           )}
           {videoModules.map((module) => (
-            <ModuleItem
-              key={module.key}
-              module={module}
-              onLinkClick={onLinkClick}
-              standalone
-            />
-          ))}
-          {notesModules.map((module) => (
             <ModuleItem
               key={module.key}
               module={module}
@@ -1034,16 +1018,6 @@ export default function Dashboard() {
         ]
       : [];
 
-    const notesModules = hasPermission(me, "notes_content", "manage")
-      ? [
-          {
-            key: "notes",
-            label: "Notes",
-            basePath: "/admin/notes",
-          },
-        ]
-      : [];
-
     const superAdmin =
       me.role === "super_admin"
         ? [
@@ -1081,7 +1055,6 @@ export default function Dashboard() {
       a2Modules,
       b1Modules,
       videoCoursesModules,
-      notesModules,
       extraContentItems,
       superAdmin,
     };
@@ -1186,7 +1159,6 @@ export default function Dashboard() {
                 a2Modules={sections.a2Modules}
                 b1Modules={sections.b1Modules}
                 videoModules={sections.videoCoursesModules}
-                notesModules={sections.notesModules}
                 extraItems={sections.extraContentItems}
               />
               <SidebarSection title="Super Admin" items={sections.superAdmin} />
@@ -1219,7 +1191,6 @@ export default function Dashboard() {
                 a2Modules={sections.a2Modules}
                 b1Modules={sections.b1Modules}
                 videoModules={sections.videoCoursesModules}
-                notesModules={sections.notesModules}
                 extraItems={sections.extraContentItems}
                 onLinkClick={closeMobileSidebar}
               />
@@ -1459,6 +1430,10 @@ export default function Dashboard() {
                     <FeatureFlagsAdmin
                       canEdit={
                         hasPermission(me, "feature_flags", "edit") ||
+                        me?.role === "super_admin"
+                      }
+                      canManageContent={
+                        hasPermission(me, "notes_content", "manage") ||
                         me?.role === "super_admin"
                       }
                     />
@@ -1795,35 +1770,7 @@ export default function Dashboard() {
                 }
               />
 
-              {/* Notes Routes */}
-              <Route
-                path="notes/add"
-                element={
-                  <Guard
-                    allowed={hasPermission(
-                      me,
-                      "notes_content",
-                      "manage",
-                    )}
-                  >
-                    <NotesAdd />
-                  </Guard>
-                }
-              />
-              <Route
-                path="notes/manage"
-                element={
-                  <Guard
-                    allowed={hasPermission(
-                      me,
-                      "notes_content",
-                      "manage",
-                    )}
-                  >
-                    <NotesManage />
-                  </Guard>
-                }
-              />
+              {/* Notes are administered from the Feature Flags panel. */}
 
               <Route
                 path="access"

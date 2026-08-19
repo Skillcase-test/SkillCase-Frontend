@@ -6,6 +6,11 @@ import api from "./axios";
 export const getMyFeatureFlags = () => api.get("/features/my-flags");
 
 /**
+ * Learner API: Global-only flags, readable without a token (onboarding).
+ */
+export const getPublicFeatureFlags = () => api.get("/features/public-flags");
+
+/**
  * Admin API: List all feature flag configurations and summary stats.
  */
 export const adminGetFeatureFlags = () => api.get("/admin/feature-flags");

@@ -25,6 +25,14 @@ vi.mock("../api/learnGermanApi", () => ({
   setLGMode: vi.fn().mockResolvedValue({ data: { success: true } }),
 }));
 
+vi.mock("../hooks/useUsageLimits", () => ({
+  useUsageLimits: () => ({ eligible: false, getState: () => null }),
+}));
+
+vi.mock("../pages/exam/ExamCards", () => ({ default: () => null }));
+
+import FeatureCardsGrid from "../pages/landing/components/FeatureCardsGrid";
+
 function renderWithStore(ui, { initialState = {}, route = "/" } = {}) {
   const store = configureStore({
     reducer: {
@@ -235,6 +243,111 @@ describe("FeatureFlagsAdmin Control Panel", () => {
     await waitFor(() => {
       expect(screen.getByText("Paid Cohort Rule")).toBeInTheDocument();
       expect(screen.getByText("Free Cohort (Disabled)")).toBeInTheDocument();
+    });
+  });
+});
+
+describe("FeatureFlagsAdmin — global_only features", () => {
+  const globalOnlyFeature = {
+    feature_key: "scholarship_onboarding",
+    name: "Scholarship Exam Onboarding",
+    description: 'Shows the "I am here for the scholarship exam" option during onboarding',
+    eligible_levels: ["ALL"],
+    global_enabled: true,
+    paid_enabled: false,
+    unpaid_enabled: false,
+    global_only: true,
+    total_overrides: 0,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    featureFlagApi.adminGetFeatureFlags.mockResolvedValue({
+      data: { features: [globalOnlyFeature] },
+    });
+    featureFlagApi.adminGetFeatureUsers.mockResolvedValue({
+      data: {
+        feature: globalOnlyFeature,
+        stats: { total_eligible: 150 },
+        pagination: { page: 1, limit: 25, total: 1, total_pages: 1 },
+        users: [
+          {
+            user_id: "usr_1",
+            fullname: "Rahul Sharma",
+            level: "A1",
+            is_paid: true,
+            override_status: null,
+            effective_status: true,
+            effective_reason: "global_on",
+          },
+        ],
+      },
+    });
+    featureFlagApi.adminUpdateFeatureConfig.mockResolvedValue({
+      data: { feature: { ...globalOnlyFeature, global_enabled: false } },
+    });
+  });
+
+  it("hides cohort cards, stats and the per-student table", async () => {
+    renderWithStore(<FeatureFlagsAdmin />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Global Feature Release")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("Paid Students Cohort")).not.toBeInTheDocument();
+    expect(screen.queryByText("Free / Unpaid Students Cohort")).not.toBeInTheDocument();
+    expect(screen.queryByText("Rahul Sharma")).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/Search by student name/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Eligible Students")).not.toBeInTheDocument();
+  });
+
+  it("saves only global_enabled, never the cohort fields", async () => {
+    renderWithStore(<FeatureFlagsAdmin />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Save Rollout Rules")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Save Rollout Rules"));
+
+    await waitFor(() => {
+      expect(featureFlagApi.adminUpdateFeatureConfig).toHaveBeenCalledWith(
+        "scholarship_onboarding",
+        { global_enabled: true }
+      );
+    });
+  });
+});
+
+describe("FeatureCardsGrid — study_notes gating", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _resetFlagsCache();
+  });
+
+  it("hides the Study Notes card when study_notes is off", async () => {
+    featureFlagApi.getMyFeatureFlags.mockResolvedValue({
+      data: { flags: { study_notes: false } },
+    });
+
+    renderWithStore(<FeatureCardsGrid />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Flashcards")).toBeInTheDocument();
+    });
+    expect(screen.queryByText("Study Notes")).not.toBeInTheDocument();
+  });
+
+  it("shows the Study Notes card when study_notes is on", async () => {
+    featureFlagApi.getMyFeatureFlags.mockResolvedValue({
+      data: { flags: { study_notes: true } },
+    });
+
+    renderWithStore(<FeatureCardsGrid />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Study Notes")).toBeInTheDocument();
     });
   });
 });

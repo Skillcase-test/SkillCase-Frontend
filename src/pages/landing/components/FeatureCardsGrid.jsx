@@ -8,6 +8,7 @@ import FeatureStatusChip from "../../../components/ui/FeatureStatusChip";
 import { hapticLight } from "../../../utils/haptics";
 import { isB1PracticeLevel } from "../../../utils/b1Progress";
 import { useUsageLimits } from "../../../hooks/useUsageLimits";
+import { useFeatureFlags } from "../../../hooks/useFeatureFlags";
 
 /* Feature Cards */
 
@@ -48,6 +49,7 @@ const studyNotesFeature = {
 
 export default function FeatureCardsGrid({ useRevampA1 = false }) {
   const { user } = useSelector((state) => state.auth);
+  const { isFeatureEnabled } = useFeatureFlags();
   const profLevel = user?.user_prof_level || "A1";
 
   const normalizedProfLevel = profLevel.toLowerCase();
@@ -296,7 +298,7 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
         : useRevampA1
           ? a1RevampFeatures
           : a1Features),
-    ...(user?.notes_enabled ? [studyNotesFeature] : []),
+    ...(isFeatureEnabled("study_notes") ? [studyNotesFeature] : []),
   ];
 
   const getTourId = (id) => {

@@ -51,14 +51,3 @@ export const deleteNoteAdmin = (noteId) =>
   api.delete(`/admin/notes/${noteId}`, {
     meta: { invalidateCacheTags: [NOTES_CACHE_TAG] },
   });
-
-export const getStudentList = ({ search, page, limit } = {}) => {
-  const params = {};
-  if (search) params.search = search;
-  if (page) params.page = page;
-  if (limit) params.limit = limit;
-  return api.get("/admin/notes/students", { params });
-};
-
-export const toggleStudentNotesAccess = (userId, enabled) =>
-  api.put(`/user/${userId}/notes-enabled`, { enabled });
