@@ -55,9 +55,12 @@ export default function JobsLockedPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col ">
-      {/* Header — same treatment as the SupportWidget screen */}
-      <div className="self-stretch px-4 pt-2.5 pb-5 bg-white inline-flex justify-start items-center gap-3">
+    <div className="min-h-screen bg-white flex flex-col">
+      {/* Header — with consistent safe area inset top */}
+      <div
+        className="self-stretch px-4 pb-4 bg-white inline-flex justify-start items-center gap-3 border-b border-slate-100 sticky top-0 z-20"
+        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+      >
         <button
           type="button"
           onClick={goBack}
@@ -69,7 +72,10 @@ export default function JobsLockedPage() {
         <div className="text-blue-950 text-base font-semibold">Jobs</div>
       </div>
 
-      <div className="flex-1 px-4 pt-6 pb-4 bg-black/5 flex flex-col justify-start items-start gap-9">
+      <div
+        className="flex-1 px-4 pt-6 bg-black/5 flex flex-col justify-start items-start gap-9"
+        style={{ paddingBottom: "calc(2rem + env(safe-area-inset-bottom, 0px))" }}
+      >
         {/* Eligibility gate card */}
         <div className="self-stretch px-4 pt-6 pb-4 relative bg-white rounded-xl flex flex-col justify-start items-start gap-2.5">
           {/* Notification badge (decorative) */}

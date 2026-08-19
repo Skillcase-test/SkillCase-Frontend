@@ -16,21 +16,6 @@ import ModalPortal from "../../components/common/ModalPortal";
 import { isB1PracticeLevel } from "../../utils/b1Progress";
 import { trackFeatureEvent } from "../../telemetry/events";
 
-function getTodayISTKey() {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  return formatter.format(new Date());
-}
-
-function getLeaderboardSeenKey(userId, dayKey) {
-  return `streak_leaderboard_seen:${userId}:${dayKey}`;
-}
-
-
 function LandingFeatureCardsSkeleton() {
   return (
     <section className="px-4 py-3" aria-label="Loading feature cards">
@@ -128,57 +113,6 @@ export default function LandingPage() {
       window.dispatchEvent(new CustomEvent("lgTourEnd"));
     };
   }, [showA1MigrationModal, showSwitchConfirm, isUpgrading]);
-
-  const handleOpenLeaderboard = useCallback(() => {
-    if (!user?.user_id) return;
-    window.dispatchEvent(new CustomEvent("openLeaderboard"));
-    document.dispatchEvent(new CustomEvent("openLeaderboard"));
-  }, [user?.user_id]);
-
-  // 1. Passive Auto-Open (Only on Saturday)
-  // Guard includes migrationStatusLoading so we never open while the A1 migration
-  // modal is still in-flight (avoids dual-modal overlap).
-  useEffect(() => {
-    if (
-      prefersLearnMode ||
-      !user?.user_id ||
-      migrationStatusLoading ||
-      showA1MigrationModal ||
-      showSwitchConfirm ||
-      isUpgrading
-    )
-      return;
-
-    const isSaturday = new Date().getDay() === 6;
-    if (!isSaturday) return;
-
-    const dayKey = getTodayISTKey();
-    const seenKey = getLeaderboardSeenKey(user.user_id, dayKey);
-    if (localStorage.getItem(seenKey) === "1") return;
-
-    handleOpenLeaderboard();
-    localStorage.setItem(seenKey, "1");
-  }, [
-    handleOpenLeaderboard,
-    prefersLearnMode,
-    user?.user_id,
-    migrationStatusLoading,
-    showA1MigrationModal,
-    showSwitchConfirm,
-    isUpgrading,
-  ]);
-
-  // 1a. Suppress Saturday auto-open for users who just completed onboarding.
-  // OnboardingFlow sets location.state.justOnboarded when navigating to "/".
-  // We pre-mark today's seenKey so the auto-open won't fire for them this Saturday,
-  // then clear the navigation state so a page refresh doesn't repeat the suppression.
-  useEffect(() => {
-    if (!location.state?.justOnboarded || !user?.user_id) return;
-    const dayKey = getTodayISTKey();
-    const seenKey = getLeaderboardSeenKey(user.user_id, dayKey);
-    localStorage.setItem(seenKey, "1");
-    navigate(location.pathname, { replace: true, state: {} });
-  }, [location.state?.justOnboarded, user?.user_id, navigate, location.pathname]);
 
   useEffect(() => {
     if (!user?.user_id) return;
