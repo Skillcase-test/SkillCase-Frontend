@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { setUser, logout } from "../redux/auth/authSlice";
 import { resetArticleEducation } from "../utils/articleUtils";
 import { isTrialActive, trialDaysLeft } from "../utils/premium";
+import { stableFile } from "../utils/stableFile";
 import api from "../api/axios";
 import { trackFeatureEvent } from "../telemetry/events";
 import {
@@ -634,7 +635,7 @@ export default function ProfilePage() {
     setUploadModal({ open: true, docType, docTitle });
   };
 
-  const handleModalFileSelect = (e) => {
+  const handleModalFileSelect = async (e) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
@@ -655,7 +656,12 @@ export default function ProfilePage() {
       return;
     }
 
-    setSelectedFileForUpload(selectedFile);
+    try {
+      setSelectedFileForUpload(await stableFile(selectedFile));
+    } catch {
+      setSelectedFileForUpload(null);
+      showToast("Couldn't read that file. Please select it again.", "error");
+    }
   };
 
   const handleModalSubmit = () => {

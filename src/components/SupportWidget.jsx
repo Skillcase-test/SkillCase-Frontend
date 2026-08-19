@@ -28,6 +28,7 @@ import {
   addTicketComment,
   uploadCommentImage,
 } from "../api/supportApi";
+import { stableFile } from "../utils/stableFile";
 import toast from "react-hot-toast";
 import { trackFeatureEvent } from "../telemetry/events";
 import { isShellRoute } from "../utils/shellRoutes";
@@ -130,7 +131,7 @@ export default function SupportWidget() {
     };
   }, [isOpen]);
 
-  const handleModalFileSelect = (e) => {
+  const handleModalFileSelect = async (e) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       if (!selectedFile.type.startsWith("image/")) {
@@ -155,7 +156,11 @@ export default function SupportWidget() {
         toast.error("Maximum file size is 5MB");
         return;
       }
-      setTempSelectedFile(selectedFile);
+      try {
+        setTempSelectedFile(await stableFile(selectedFile));
+      } catch {
+        toast.error("Couldn't read that file. Please select it again.");
+      }
     }
   };
 
@@ -245,7 +250,7 @@ export default function SupportWidget() {
     }
   };
 
-  const handleCommentImageSelect = (ticketId, e) => {
+  const handleCommentImageSelect = async (ticketId, e) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
@@ -258,14 +263,23 @@ export default function SupportWidget() {
       return;
     }
 
+    let stable;
+    try {
+      stable = await stableFile(selectedFile);
+    } catch {
+      toast.error("Couldn't read that image. Please select it again.");
+      e.target.value = "";
+      return;
+    }
+
     const reader = new FileReader();
     reader.onloadend = () => {
       setCommentImageDrafts((prev) => ({
         ...prev,
-        [ticketId]: { file: selectedFile, preview: reader.result },
+        [ticketId]: { file: stable, preview: reader.result },
       }));
     };
-    reader.readAsDataURL(selectedFile);
+    reader.readAsDataURL(stable);
     e.target.value = "";
   };
 

@@ -20,6 +20,7 @@ import {
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { motion } from "framer-motion";
 import { trackFlowAction } from "../../../telemetry/flow";
+import { stableFile } from "../../../utils/stableFile";
 import RejectionNote from "../../../components/RejectionNote";
 
 const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
@@ -78,7 +79,7 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
     }
   };
 
-  const handleFileChange = (e, docId, allowedExtensions) => {
+  const handleFileChange = async (e, docId, allowedExtensions) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -125,10 +126,29 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
       return;
     }
 
+    let stable;
+    try {
+      stable = await stableFile(file);
+    } catch {
+      trackFlowAction(
+        "job_screening",
+        "job_screening_funnel",
+        "additional_credential_rejected",
+        {
+          step: "additional_documents",
+          entityId: docId,
+          validationCode: "file_unreadable",
+          assetType: "additional_credential",
+        },
+      );
+      setError("Couldn't read that file. Please select it again.");
+      return;
+    }
+
     setError("");
     setSelectedFiles((prev) => ({
       ...prev,
-      [docId]: file,
+      [docId]: stable,
     }));
     trackFlowAction(
       "job_screening",

@@ -16,6 +16,7 @@ import {
   markStepNoteViewed,
 } from "../../../api/jobScreeningApi";
 import { trackFlowAction } from "../../../telemetry/flow";
+import { stableFile } from "../../../utils/stableFile";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { motion } from "framer-motion";
 import RejectionNote from "../../../components/RejectionNote";
@@ -34,7 +35,7 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
   const hasServerResume = !!progress?.resume_url;
   const hasServerCert = !!progress?.lang_cert_url;
 
-  const handleFileChange = (e, type) => {
+  const handleFileChange = async (e, type) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -71,11 +72,29 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
       return;
     }
 
+    let stable;
+    try {
+      stable = await stableFile(file);
+    } catch {
+      trackFlowAction(
+        "job_screening",
+        "job_screening_funnel",
+        "credential_rejected",
+        {
+          step: "profile_completion",
+          assetType: type,
+          validationCode: "file_unreadable",
+        },
+      );
+      setError("Couldn't read that file. Please select it again.");
+      return;
+    }
+
     setError("");
     if (type === "resume") {
-      setSelectedResume(file);
+      setSelectedResume(stable);
     } else {
-      setSelectedCert(file);
+      setSelectedCert(stable);
     }
     trackFlowAction(
       "job_screening",
