@@ -36,7 +36,7 @@ export default function FeatureStatusChip({ state }) {
   return (
     <div className="w-full md:w-32 p-1 bg-black/5 rounded-md flex flex-col justify-start items-start gap-2.5">
       <div className="self-stretch flex flex-col justify-start items-start gap-px">
-        <span className="self-stretch whitespace-nowrap text-black/50 text-[6px] md:text-[8px] font-medium leading-[7.80px] md:leading-[10px]">
+        <span className="self-stretch whitespace-nowrap text-black/50 text-[5px] md:text-[8px] font-medium leading-[7.80px] md:leading-[10px]">
           Free Plan - Daily limit
         </span>
         <div className="self-stretch inline-flex justify-start items-center gap-1.5">
@@ -46,7 +46,7 @@ export default function FeatureStatusChip({ state }) {
               style={{ width: `${pct}%` }}
             />
           </div>
-          <span className="text-black/80 text-[6px] md:text-[8px] font-medium leading-[7.80px] md:leading-[10px]">
+          <span className="text-black/80 text-[5px] md:text-[8px] font-medium leading-[7.80px] md:leading-[10px]">
             {used}/{limit}
           </span>
         </div>

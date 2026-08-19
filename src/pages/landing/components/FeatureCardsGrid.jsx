@@ -46,7 +46,6 @@ const studyNotesFeature = {
   enabled: true,
 };
 
-
 export default function FeatureCardsGrid({ useRevampA1 = false }) {
   const { user } = useSelector((state) => state.auth);
   const profLevel = user?.user_prof_level || "A1";
@@ -369,7 +368,9 @@ function FeatureCard({
   moduleInfo,
 }) {
   const { eligible, getState } = useUsageLimits();
-  const moduleState = moduleInfo ? getState(moduleInfo.level, moduleInfo.module_key) : null;
+  const moduleState = moduleInfo
+    ? getState(moduleInfo.level, moduleInfo.module_key)
+    : null;
   const isLocked = Boolean(moduleState?.locked);
 
   const clickable = enabled && !isLocked;
@@ -437,8 +438,8 @@ function FeatureCard({
       </div>
 
       {/* Content */}
-      <div className="p-1.5 pb-1.5 flex-1 flex flex-col justify-start items-start gap-1.5">
-        <h3 className="text-xs md:text-xl font-medium text-black mb-1">
+      <div className="p-1.5 pb-1.5 flex-1 flex flex-col justify-start items-start">
+        <h3 className="text-[10px] md:text-xl font-medium text-black mb-1">
           {title}
         </h3>
         {comingSoon ? (
