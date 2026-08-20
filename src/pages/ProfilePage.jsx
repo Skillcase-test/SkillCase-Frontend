@@ -1258,7 +1258,10 @@ export default function ProfilePage() {
         /* Your Documents View */
         <>
           {/* Sub-Header for Your Documents with Back Arrow */}
-          <div className="bg-white border-b border-slate-200 sticky top-0 z-30">
+          <div
+            className="bg-white border-b border-slate-200 sticky top-0 z-30"
+            style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+          >
             <div className="max-w-xl mx-auto px-4 h-12 flex items-center justify-start gap-3">
               <button
                 onClick={() => setActiveTab("profile")}

@@ -1,7 +1,9 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
+import { setUser } from "../redux/auth/authSlice";
+import api from "../api/axios";
 import { getStreakData } from "../api/streakApi";
 import { getVocabProgress, setLGMode } from "../api/learnGermanApi";
 import { hapticLight } from "../utils/haptics";
@@ -41,11 +43,43 @@ const STREAK_IMG_URL =
  * page).
  */
 export default function BottomTabBar() {
+  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const location = useLocation();
   const navigate = useNavigate();
-  const [streak, setStreak] = useState(0);
+  const [streak, setStreak] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem("last_rendered_streak");
+      return stored !== null ? Number(stored) : 0;
+    } catch {
+      return 0;
+    }
+  });
   const [progressRatio, setProgressRatio] = useState(0);
+
+  // Sync fresh user profile / coins from database into Redux
+  const syncUserProfile = useCallback(() => {
+    if (!user?.user_id) return;
+    api
+      .post("/user/me")
+      .then((res) => {
+        if (res.data?.user) {
+          dispatch(setUser(res.data.user));
+        }
+      })
+      .catch(() => {});
+  }, [user?.user_id, dispatch]);
+
+  useEffect(() => {
+    syncUserProfile();
+    const handleSync = () => syncUserProfile();
+    window.addEventListener("lgLessonComplete", handleSync);
+    window.addEventListener("skillcase:coins-updated", handleSync);
+    return () => {
+      window.removeEventListener("lgLessonComplete", handleSync);
+      window.removeEventListener("skillcase:coins-updated", handleSync);
+    };
+  }, [syncUserProfile, location.pathname]);
 
   // B1/B2 users see their aggregate B1 practice progress in the center arch
   // (flashcards + reading/news/articles/videos + describe-speak + exams);
@@ -74,7 +108,17 @@ export default function BottomTabBar() {
     let cancelled = false;
     getStreakData()
       .then((data) => {
-        if (!cancelled) setStreak(data.currentStreak || 0);
+        if (!cancelled) {
+          const nextStreak = data?.currentStreak || 0;
+          try {
+            const stored = sessionStorage.getItem("last_rendered_streak");
+            if (stored === null) {
+              sessionStorage.setItem("last_rendered_streak", String(nextStreak));
+              setStreakToRender(nextStreak);
+            }
+          } catch {}
+          setStreak(nextStreak);
+        }
       })
       .catch(() => {});
 

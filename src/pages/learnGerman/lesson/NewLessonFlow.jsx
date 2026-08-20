@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { AnimatePresence, LayoutGroup } from "framer-motion";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { setUser } from "../../../redux/auth/authSlice";
 import {
   PointerSensor,
   TouchSensor,
@@ -118,6 +120,8 @@ const TapGuideOverlay = ({ rect, onClick }) => {
 };
 
 export default function NewLessonFlow() {
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   // :chapterId is the numeric lesson_id from the dynamic lessons table
   const { chapterId } = useParams();
@@ -573,6 +577,14 @@ export default function NewLessonFlow() {
         }
         setStreakUpdated(result.streakUpdated);
         setCoinsAwarded(result.coinsAwarded);
+        if (result.coinsAwarded > 0 && user) {
+          dispatch(
+            setUser({
+              ...user,
+              coins: (Number(user.coins) || 0) + Number(result.coinsAwarded),
+            }),
+          );
+        }
         trackClarityEvent("lg_lesson_completed", {
           lg_funnel: "lesson",
           lg_lesson_id: chapterId,
@@ -581,8 +593,9 @@ export default function NewLessonFlow() {
           lg_coins_awarded: result.coinsAwarded,
           lg_streak_updated: result.streakUpdated,
         }, "lg_lesson_completed");
-        // Notify Navbar to re-fetch progress ring + coins immediately
+        // Notify Navbar and BottomTabBar to re-fetch progress ring + coins immediately
         window.dispatchEvent(new CustomEvent("lgLessonComplete"));
+        window.dispatchEvent(new CustomEvent("skillcase:coins-updated"));
         return result;
       })
       .catch((err) => {
@@ -594,12 +607,14 @@ export default function NewLessonFlow() {
     return completionPersistPromiseRef.current;
   }, [
     chapterId,
+    dispatch,
     emitLessonAnalyticsEvent,
     isReviewMode,
     lessonData?.proficiency_level,
     lessonData?.screens,
     lessonData?.title,
     screenIndex,
+    user,
   ]);
 
   const navigateToLearnGermanHome = useCallback(async ({ autoStartNext = false } = {}) => {

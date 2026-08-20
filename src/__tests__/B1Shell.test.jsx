@@ -17,6 +17,7 @@ vi.mock("react-router-dom", () => ({
 }));
 
 vi.mock("react-redux", () => ({
+  useDispatch: () => vi.fn(),
   useSelector: (selector) =>
     selector({ auth: { user: mockUser, isAuthenticated: true } }),
 }));
