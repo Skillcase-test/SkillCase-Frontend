@@ -109,14 +109,6 @@ export const getLandingSteps = (onSkip) => [
 
 export const getFlashcardSelectSteps = () => [
   {
-    element: "#chapter-list",
-    popover: {
-      title: "Learning Chapters",
-      description: "Each chapter includes topic-wise flashcards.",
-      side: "bottom",
-    },
-  },
-  {
     element: "#first-chapter",
     popover: {
       title: "Try This Chapter",
@@ -142,14 +134,6 @@ export const getFlashcardPracticeSteps = () => [
 ];
 
 export const getPronounceSelectSteps = () => [
-  {
-    element: "#pronounce-list",
-    popover: {
-      title: "Pronunciation Exercises",
-      description: "Practice speaking German with these audio exercises.",
-      side: "bottom",
-    },
-  },
   {
     element: "#first-pronounce",
     popover: {

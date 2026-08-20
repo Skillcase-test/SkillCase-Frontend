@@ -984,7 +984,7 @@ function AppContent() {
   return (
     <div
       ref={containerRef}
-      className="relative overflow-x-hidden w-full min-h-screen flex flex-col"
+      className="relative overflow-x-clip w-full min-h-screen flex flex-col"
     >
       <PullToRefreshIndicator
         pullProgress={pullProgress}
@@ -1057,7 +1057,7 @@ function AppContent() {
                   position="top-right"
                   containerStyle={{ zIndex: 100000 }}
                 />
-                <ConditionalNav />
+                <AppHeaderShell />
                 <ConditionalTopSwitcher />
                 {isPaywallLocked && !isPaymentRoute(location.pathname) && (
                   <PaywallBlocker
@@ -1958,6 +1958,27 @@ function ConditionalFooter() {
   return <Footer />;
 }
 
+function AppHeaderShell() {
+  const location = useLocation();
+  const { user } = useSelector((state) => state.auth);
+  const isWhiteHeader =
+    location.pathname === "/login" ||
+    location.pathname === "/signup" ||
+    (location.pathname.startsWith("/job-screening") &&
+      !isB1PracticeLevel(user?.user_prof_level));
+
+  return (
+    <div
+      className={`sticky top-0 z-50 w-full ${
+        isWhiteHeader ? "bg-white" : "bg-[#002856]"
+      }`}
+    >
+      <ConditionalNav />
+      {/* <ConditionalTopSwitcher /> */}
+    </div>
+  );
+}
+
 function ConditionalNav() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -2005,8 +2026,8 @@ function ConditionalTopSwitcher() {
 
   if (!isAuthenticated || isExecutingJobStep) return null;
 
-  // The mode switcher lives on the three primary shell screens and scrolls
-  // away with the page (only the navbar is sticky). B1/B2 users have the
+  // The mode switcher lives on the primary shell screens and stays fixed
+  // together with the navbar at the top of the viewport. B1/B2 users have the
   // Exam & Practice + Jobs tabs, so their switcher renders on the practice
   // home AND the job-screening pipeline lobby — flipping between the two
   // modes is the whole point of their two-tab switcher. The scholarship hub

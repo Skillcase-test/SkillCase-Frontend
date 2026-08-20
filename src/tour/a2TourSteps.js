@@ -114,15 +114,6 @@ export const getA2LandingSteps = (onSkip) => [
 // ========== FLASHCARD TOUR ==========
 export const getA2FlashcardSelectSteps = () => [
   {
-    element: "#a2-chapter-list",
-    popover: {
-      title: `${ICONS.book} Learning Chapters`,
-      description:
-        "Each chapter covers a specific topic with vocabulary flashcards. Your progress is tracked per chapter.",
-      side: "bottom",
-    },
-  },
-  {
     element: "#a2-first-chapter",
     isTapStep: true,
     popover: {
@@ -151,15 +142,6 @@ export const getA2FlashcardPracticeSteps = () => [
 
 // ========== GRAMMAR TOUR ==========
 export const getA2GrammarSelectSteps = () => [
-  {
-    element: "#a2-chapter-list",
-    popover: {
-      title: `${ICONS.grammar} Grammar Chapters`,
-      description:
-        "Each chapter covers a specific grammar topic. Your progress is tracked per chapter.",
-      side: "bottom",
-    },
-  },
   {
     element: "#a2-first-chapter",
     isTapStep: true,
@@ -197,15 +179,6 @@ export const getA2GrammarExplanationSteps = () => [
 
 // ========== LISTENING TOUR (combined layout) ==========
 export const getA2ListeningSelectSteps = () => [
-  {
-    element: "#a2-chapter-list",
-    popover: {
-      title: `${ICONS.headphones} Listening Chapters`,
-      description:
-        "Each chapter has audio exercises to improve your comprehension. Your progress is tracked per chapter.",
-      side: "bottom",
-    },
-  },
   {
     element: "#a2-first-chapter",
     isTapStep: true,
@@ -266,15 +239,6 @@ export const getA2ListeningAfterSubtitleSteps = () => [
 // ========== SPEAKING TOUR ==========
 export const getA2SpeakingSelectSteps = () => [
   {
-    element: "#a2-chapter-list",
-    popover: {
-      title: `${ICONS.mic} Speaking Chapters`,
-      description:
-        "Each chapter has speaking exercises to practice pronunciation. Your progress is tracked per chapter.",
-      side: "bottom",
-    },
-  },
-  {
     element: "#a2-first-chapter",
     isTapStep: true,
     popover: {
@@ -301,15 +265,6 @@ export const getA2SpeakingCardSteps = () => [
 
 // ========== READING TOUR ==========
 export const getA2ReadingSelectSteps = () => [
-  {
-    element: "#a2-chapter-list",
-    popover: {
-      title: `${ICONS.bookOpen} Reading Chapters`,
-      description:
-        "Each chapter has reading texts and comprehension exercises. Your progress is tracked per chapter.",
-      side: "bottom",
-    },
-  },
   {
     element: "#a2-first-chapter",
     isTapStep: true,

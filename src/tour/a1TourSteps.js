@@ -113,14 +113,6 @@ export const getA1LandingSteps = (onSkip) => [
 
 export const getA1FlashcardSelectSteps = () => [
   {
-    element: "#A1-chapter-list",
-    popover: {
-      title: `${ICONS.book} Flashcard Chapters`,
-      description: "Your flashcard progress is tracked chapter-wise.",
-      side: "bottom",
-    },
-  },
-  {
     element: "#A1-first-chapter",
     isTapStep: true,
     popover: {
@@ -147,14 +139,6 @@ export const getA1FlashcardPracticeSteps = () => [
 ];
 
 export const getA1GrammarSelectSteps = () => [
-  {
-    element: "#A1-chapter-list",
-    popover: {
-      title: `${ICONS.grammar} Grammar Chapters`,
-      description: "Choose a chapter to start grammar learning.",
-      side: "bottom",
-    },
-  },
   {
     element: "#A1-first-chapter",
     isTapStep: true,
@@ -189,14 +173,6 @@ export const getA1GrammarExplanationSteps = () => [
 ];
 
 export const getA1ListeningSelectSteps = () => [
-  {
-    element: "#A1-chapter-list",
-    popover: {
-      title: `${ICONS.headphones} Listening Chapters`,
-      description: "Each chapter contains listening tasks and question sets.",
-      side: "bottom",
-    },
-  },
   {
     element: "#A1-first-chapter",
     isTapStep: true,
@@ -253,14 +229,6 @@ export const getA1ListeningAfterSubtitleSteps = () => [
 
 export const getA1SpeakingSelectSteps = () => [
   {
-    element: "#A1-chapter-list",
-    popover: {
-      title: `${ICONS.mic} Speaking Chapters`,
-      description: "Open a chapter and practice pronunciation card by card.",
-      side: "bottom",
-    },
-  },
-  {
     element: "#A1-first-chapter",
     isTapStep: true,
     popover: {
@@ -285,14 +253,6 @@ export const getA1SpeakingCardSteps = () => [
 ];
 
 export const getA1ReadingSelectSteps = () => [
-  {
-    element: "#A1-chapter-list",
-    popover: {
-      title: `${ICONS.bookOpen} Reading Chapters`,
-      description: "Choose a chapter and practice reading comprehension.",
-      side: "bottom",
-    },
-  },
   {
     element: "#A1-first-chapter",
     isTapStep: true,

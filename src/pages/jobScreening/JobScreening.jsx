@@ -141,10 +141,6 @@ const JobScreening = () => {
   const [executingStepId, setExecutingStepId] = useState(
     () => new URLSearchParams(location.search).get("step") || null,
   );
-  // Holds the just-finished step's id while its lobby checkmark animates in;
-  // the actual advance into nextStepId happens once that animation completes,
-  // so the candidate always sees the lobby update before moving on.
-  const [pendingAutoAdvance, setPendingAutoAdvance] = useState(null);
   const [reviewCheckStepId, setReviewCheckStepId] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const activeStepRef = useRef(null);
@@ -272,29 +268,9 @@ const JobScreening = () => {
       if (data?.success) {
         setProgress(data.data);
 
-        // Returning from an external page (interview submission, agreement
-        // signing) after finishing a step is still a same-session continuation
-        // from the candidate's perspective, even though it's a fresh mount —
-        // show the lobby + checkmark animation, then auto-advance, same as if
-        // they'd finished the step without leaving.
         const justCompletedStepId = location.state?.justCompletedStepId;
         if (justCompletedStepId) {
           navigate(location.pathname, { replace: true, state: null });
-          const justCompletedStep = data.data?.steps_config?.find(
-            (s) => s.id === justCompletedStepId,
-          );
-          const nextStepId = data.data?.current_step_id;
-          if (
-            justCompletedStep?.status === "completed" &&
-            nextStepId &&
-            nextStepId !== justCompletedStepId
-          ) {
-            setPendingAutoAdvance({
-              completedStepId: justCompletedStepId,
-              nextStepId,
-              progressData: data.data,
-            });
-          }
         }
       } else {
         setError("Failed to load progress settings");
@@ -436,27 +412,7 @@ const JobScreening = () => {
       setIsExecutingStep(false);
       setExecutingStepId(null);
       navigate("/job-screening", { replace: true });
-
-      // Skip the extra tap: once a step finishes and the next one unlocks,
-      // show the lobby (with the just-finished step's checkmark animating in)
-      // and open the next step once that animation completes.
-      const nextStepId = updatedData?.current_step_id;
-      if (nextStepId && nextStepId !== completedStepId) {
-        setPendingAutoAdvance({
-          completedStepId,
-          nextStepId,
-          progressData: updatedData,
-        });
-      }
     }
-  };
-
-  const handleAutoAdvanceCheckmarkComplete = (stepId) => {
-    setPendingAutoAdvance((current) => {
-      if (!current || current.completedStepId !== stepId) return current;
-      handleStartStep(current.nextStepId, current.progressData);
-      return null;
-    });
   };
 
   const handleWelcomeComplete = (updatedData) => {
@@ -464,9 +420,7 @@ const JobScreening = () => {
     setWelcomeAnimationState("welcome_active");
 
     // Just long enough for the full-screen-welcome-to-lobby transition to
-    // settle before the welcome step's checkmark starts animating in. The
-    // actual advance into the next step is triggered by that checkmark
-    // animation's onAnimationComplete below, not by a guessed duration here.
+    // settle before the welcome step's checkmark starts animating in.
     const t1 = setTimeout(() => {
       setWelcomeAnimationState("welcome_complete");
     }, 350);
@@ -478,9 +432,6 @@ const JobScreening = () => {
     if (welcomeAnimationState !== "welcome_complete") return;
     setWelcomeAnimationState("idle");
     setProgress(finalProgressData);
-    if (finalProgressData?.current_step_id) {
-      handleStartStep(finalProgressData.current_step_id, finalProgressData);
-    }
   };
 
   const handleStartStep = async (stepId, progressOverride) => {
@@ -1058,10 +1009,7 @@ const JobScreening = () => {
                           onAnimationComplete={
                             step.id === "welcome"
                               ? handleWelcomeCheckmarkComplete
-                              : pendingAutoAdvance?.completedStepId === step.id
-                                ? () =>
-                                    handleAutoAdvanceCheckmarkComplete(step.id)
-                                : undefined
+                              : undefined
                           }
                           className="w-3.5 h-3.5 stroke-3 text-white"
                           viewBox="0 0 24 24"

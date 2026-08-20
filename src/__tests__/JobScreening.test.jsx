@@ -155,7 +155,7 @@ describe("JobScreening — auto-advance into the next unlocked step", () => {
     mockLocationState = null;
   });
 
-  test("finishing a step opens the newly-unlocked step immediately, without a manual tap", async () => {
+  test("finishing a step returns to the lobby without auto-opening the newly-unlocked step", async () => {
     getProgress.mockResolvedValue({
       data: {
         success: true,
@@ -214,14 +214,15 @@ describe("JobScreening — auto-advance into the next unlocked step", () => {
     });
     fireEvent.click(finishButton);
 
-    // No further click needed — the newly-unlocked step should open on its own.
+    // Returns to the lobby without auto-opening the next step
     await waitFor(() => {
-      expect(screen.getByText("MOCK_ADDITIONAL_DOCUMENTS")).toBeInTheDocument();
+      expect(screen.getByText("Your job progress")).toBeInTheDocument();
     });
+    expect(screen.queryByText("MOCK_ADDITIONAL_DOCUMENTS")).not.toBeInTheDocument();
     expect(screen.queryByText("MOCK_PROFILE_COMPLETION")).not.toBeInTheDocument();
   });
 
-  test("auto-advancing into a navigate-away step (interview) uses the freshly-completed data, not stale state", async () => {
+  test("starting a navigate-away step (interview) uses the freshly-completed data", async () => {
     getProgress.mockResolvedValue({
       data: {
         success: true,
@@ -285,6 +286,16 @@ describe("JobScreening — auto-advance into the next unlocked step", () => {
     fireEvent.click(finishButton);
 
     await waitFor(() => {
+      expect(screen.getByText("Your job progress")).toBeInTheDocument();
+    });
+
+    // Start the interview step manually from the lobby
+    const interviewStartBtn = await screen.findByRole("button", {
+      name: /start this step/i,
+    });
+    fireEvent.click(interviewStartBtn);
+
+    await waitFor(() => {
       expect(mockNavigate).toHaveBeenCalledWith(
         "/job-screening/interview/brand-new-slug",
         expect.objectContaining({
@@ -296,7 +307,7 @@ describe("JobScreening — auto-advance into the next unlocked step", () => {
     });
   });
 
-  test("finishing the welcome animation auto-advances into the next step (regression: the animation's own state change must not cancel its own completion timer)", async () => {
+  test("finishing the welcome animation transitions to the lobby with Welcome marked complete without auto-advancing into the next step", async () => {
     getProgress.mockResolvedValue({
       data: {
         success: true,
@@ -341,9 +352,7 @@ describe("JobScreening — auto-advance into the next unlocked step", () => {
       });
       fireEvent.click(finishWelcomeButton);
 
-      // Only the idle -> welcome_active -> welcome_complete hop (350ms) is
-      // timer-based now; the actual advance is triggered by the checkmark's
-      // onAnimationComplete (mocked to fire on mount), asserted below.
+      // Settle the welcome transition into the lobby
       await act(async () => {
         await vi.advanceTimersByTimeAsync(400);
       });
@@ -352,12 +361,13 @@ describe("JobScreening — auto-advance into the next unlocked step", () => {
     }
 
     await waitFor(() => {
-      expect(screen.getByText("MOCK_PROFILE_COMPLETION")).toBeInTheDocument();
+      expect(screen.getByText("Your job progress")).toBeInTheDocument();
     });
+    expect(screen.queryByText("MOCK_PROFILE_COMPLETION")).not.toBeInTheDocument();
     expect(screen.queryByText("MOCK_WELCOME")).not.toBeInTheDocument();
   });
 
-  test("returning from an external page (interview submission, agreement signing) after finishing a step still auto-advances", async () => {
+  test("returning from an external page (interview submission, agreement signing) after finishing a step stays in the lobby and clears router state", async () => {
     mockLocationState = { justCompletedStepId: "interview_attempt" };
 
     getProgress.mockResolvedValue({
@@ -388,13 +398,14 @@ describe("JobScreening — auto-advance into the next unlocked step", () => {
     render(<JobScreening />);
 
     await waitFor(() => {
-      expect(
-        screen.getByText("MOCK_ADDITIONAL_DOCUMENTS"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Your job progress")).toBeInTheDocument();
     });
+    expect(
+      screen.queryByText("MOCK_ADDITIONAL_DOCUMENTS"),
+    ).not.toBeInTheDocument();
 
     // The router state must be consumed (cleared) so a page refresh on
-    // /job-screening doesn't replay this same auto-advance indefinitely.
+    // /job-screening doesn't replay indefinitely.
     expect(mockNavigate).toHaveBeenCalledWith("/job-screening", {
       replace: true,
       state: null,

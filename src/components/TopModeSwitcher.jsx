@@ -6,7 +6,10 @@ import { trackClarityEvent } from "../observability/clarity";
 import { hapticLight } from "../utils/haptics";
 import { isB1PracticeLevel } from "../utils/b1Progress";
 import { syncModeIntoRedux } from "../utils/lgMode";
-import { isScholarshipRoute, getSwitcherBlendColor } from "../utils/shellRoutes";
+import {
+  isScholarshipRoute,
+  getSwitcherBlendColor,
+} from "../utils/shellRoutes";
 import { useFeatureFlags } from "../hooks/useFeatureFlags";
 import bookImg from "../assets/book.webp";
 import mayaSmilingImg from "../assets/onboarding/mayaSmiling.webp";
@@ -94,7 +97,6 @@ export default function TopModeSwitcher({ isTourActive = false }) {
     localStorage.setItem("lg_preferred_mode", mode);
     syncModeIntoRedux(mode);
   };
-
 
   // Keep localStorage in sync with the route. The active tab itself is always
   // derived from the route, so this only ever *writes* "learn" (mirroring the
@@ -336,41 +338,38 @@ function SwitcherTab({
       style={active ? { backgroundColor: blendColor } : undefined}
       className={`relative flex-1 px-1.5 sm:px-2.5 flex items-center justify-center gap-1.5 cursor-pointer select-none ${
         active
-          ? "h-14 -mb-[2px] z-10 rounded-t-lg"
-          : "bg-white/10 rounded-lg h-12 hover:bg-white/15 mb-2 transition-colors duration-150"
+          ? "h-[53px] -mb-[1px] z-10 rounded-t-xl"
+          : "bg-white/10 rounded-lg h-11 hover:bg-white/15 mb-2 transition-colors duration-150"
       }`}
     >
       {/* Left/Right Shoulders attached to active tab */}
       {active && (
         <>
-          {/* Left Notch */}
+          {/* Left Notch — pure continuous 16x21 curve with 1px layer overlap */}
           {showLeftNotch && (
-            <span className="absolute -left-[23.5px] bottom-0 w-6 h-[26px] pointer-events-none">
+            <span className="absolute -left-[15.5px] bottom-0 w-4 h-[21px] pointer-events-none">
               <svg
-                viewBox="0 0 24 26"
+                viewBox="0 0 16 21"
                 className="w-full h-full block"
                 shapeRendering="geometricPrecision"
               >
                 <path
-                  d="M 0,26 L 24,26 L 24,0 C 24,14 14,24 0,24 L 0,26 Z"
+                  d="M 0,21 C 8,21 16,13 16,0 L 16,21 Z"
                   fill={blendColor}
                 />
               </svg>
             </span>
           )}
 
-          {/* Right Notch - synchronously bundled with active background */}
+          {/* Right Notch — pure continuous 16x21 curve with 1px layer overlap */}
           {showRightNotch && (
-            <span className="absolute -right-[23.5px] bottom-0 w-6 h-[26px] pointer-events-none">
+            <span className="absolute -right-[15.5px] bottom-0 w-4 h-[21px] pointer-events-none">
               <svg
-                viewBox="0 0 24 26"
+                viewBox="0 0 16 21"
                 className="w-full h-full block"
                 shapeRendering="geometricPrecision"
               >
-                <path
-                  d="M 24,26 L 0,26 L 0,0 C 0,14 10,24 24,24 L 24,26 Z"
-                  fill={blendColor}
-                />
+                <path d="M 16,21 C 8,21 0,13 0,0 L 0,21 Z" fill={blendColor} />
               </svg>
             </span>
           )}

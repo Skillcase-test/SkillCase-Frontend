@@ -113,15 +113,6 @@ export const getB1LandingSteps = (onSkip) => [
 
 export const getB1FlashcardSelectSteps = () => [
   {
-    element: "#b1-chapter-list",
-    popover: {
-      title: `${ICONS.book} Vocabulary Chapters`,
-      description:
-        "Pick any vocabulary chapter from the list to start matching cards.",
-      side: "bottom",
-    },
-  },
-  {
     element: "#b1-first-chapter",
     isTapStep: true,
     popover: {
@@ -150,14 +141,6 @@ export const getB1FlashcardPracticeSteps = () => [
 ];
 
 export const getB1DescribeSpeakSelectSteps = () => [
-  {
-    element: "#b1-describe-speak-chapter-list",
-    popover: {
-      title: `${ICONS.mic} Describe & Speak Topics`,
-      description: "Choose a topic to describe.",
-      side: "bottom",
-    },
-  },
   {
     element: "#b1-describe-speak-first-chapter",
     isTapStep: true,
@@ -251,14 +234,6 @@ export const getB1ReadListenSelectSteps = () => [
 ];
 
 export const getB1ExamsSelectSteps = () => [
-  {
-    element: "#b1-exams-list-container",
-    popover: {
-      title: `${ICONS.fileText} Practice Exam Papers`,
-      description: "Choose a practice exam type to begin mock papers.",
-      side: "bottom",
-    },
-  },
   {
     element: "#b1-exam-first-item",
     popover: {

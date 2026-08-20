@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { motion } from "framer-motion";
 import { getStreakData } from "../api/streakApi";
 import { getVocabProgress, setLGMode } from "../api/learnGermanApi";
 import { hapticLight } from "../utils/haptics";
@@ -118,11 +119,107 @@ export default function BottomTabBar() {
     };
   }, [location.pathname, isB1, mode, level]);
 
+  // Production live arrival tracking: detects if coins or streak increased while away
+  const currentCoins = Number(user?.coins) || 0;
+  const currentStreak = Number(streak) || 0;
+
+  const [coinsToRender, setCoinsToRender] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem("last_rendered_coins");
+      if (stored !== null) {
+        return Number(stored);
+      }
+      sessionStorage.setItem("last_rendered_coins", String(currentCoins));
+      return currentCoins;
+    } catch {
+      return currentCoins;
+    }
+  });
+
+  const [streakToRender, setStreakToRender] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem("last_rendered_streak");
+      if (stored !== null) {
+        return Number(stored);
+      }
+      sessionStorage.setItem("last_rendered_streak", String(currentStreak));
+      return currentStreak;
+    } catch {
+      return currentStreak;
+    }
+  });
+
+  useEffect(() => {
+    if (currentCoins !== coinsToRender) {
+      setCoinsToRender(currentCoins);
+      try {
+        sessionStorage.setItem("last_rendered_coins", String(currentCoins));
+      } catch {}
+    }
+  }, [currentCoins, coinsToRender]);
+
+  useEffect(() => {
+    if (currentStreak !== streakToRender) {
+      setStreakToRender(currentStreak);
+      try {
+        sessionStorage.setItem("last_rendered_streak", String(currentStreak));
+      } catch {}
+    }
+  }, [currentStreak, streakToRender]);
+
+  // Adaptive Word Vault completion animation
+  const [vaultAnimationState, setVaultAnimationState] = useState({
+    active: false,
+    words: [],
+    count: 0,
+    isFullAnimation: false,
+  });
+
+  useEffect(() => {
+    if (mode !== "learn") return;
+    try {
+      const raw = sessionStorage.getItem("lg_recent_completed_lesson");
+      if (raw) {
+        sessionStorage.removeItem("lg_recent_completed_lesson");
+        const parsed = JSON.parse(raw);
+        const hasSeenFull = localStorage.getItem("lg_vault_flyin_seen") === "true";
+        const count = parsed.count || parsed.words?.length || 4;
+        const words =
+          parsed.words && parsed.words.length > 0
+            ? parsed.words
+            : [
+                { word: "Hallo", trans: "Hello" },
+                { word: "Danke", trans: "Thanks" },
+                { word: "Katze", trans: "Cat" },
+                { word: "Wasser", trans: "Water" },
+              ];
+
+        setVaultAnimationState({
+          active: true,
+          words,
+          count,
+          isFullAnimation: !hasSeenFull,
+        });
+
+        if (!hasSeenFull) {
+          localStorage.setItem("lg_vault_flyin_seen", "true");
+        }
+
+        const timer = setTimeout(() => {
+          setVaultAnimationState((prev) => ({ ...prev, active: false }));
+        }, !hasSeenFull ? 2600 : 1800);
+
+        return () => clearTimeout(timer);
+      }
+    } catch {}
+  }, [mode, location.pathname]);
+
   // Scholarship hub: same five-slot layout as the normal bar (Home | Jobs |
   // center ring | Coins | Streak), but only Home (the exam hub) is live —
   // everything else is greyed out and not clickable until the candidate moves
   // into learning/practicing mode. Rendered after every hook so the hook order
-  // stays unconditional.
+  // stays unconditional — /scholarship is a shell route, so this same instance
+  // re-renders when the candidate navigates to another shell screen.
   if (isScholarshipRoute(location.pathname)) {
     return <ScholarshipBottomBar user={user} streak={streak} />;
   }
@@ -203,11 +300,7 @@ export default function BottomTabBar() {
           </span>
         </Link>
 
-        {/* Center — mode-aware progress arch. B1/B2 users see their B1
-            aggregate on practice and job-screening steps on Jobs; A1/A2 users
-            see your-level progress on practice, words learnt on Guided German
-            and course status (videos done) on German Classes. Tapping "German words
-            learnt" in Guided German mode opens the vocabulary recap screen. */}
+        {/* Center — mode-aware progress arch with adaptive Word Vault absorb animation */}
         <button
           type="button"
           disabled={mode !== "learn"}
@@ -237,8 +330,30 @@ export default function BottomTabBar() {
                     : "Your A1 progress"
           }
         >
+          {/* Flying Word Chips Stream / Compact Badge */}
+          {mode === "learn" && (
+            <WordVaultFlyInAnimation
+              active={vaultAnimationState.active}
+              words={vaultAnimationState.words}
+              count={vaultAnimationState.count}
+              isFullAnimation={vaultAnimationState.isFullAnimation}
+            />
+          )}
+
           {/* Sleek Arch SVG (Solid White Interior + 4px Track + 4px Royal Blue Arc) */}
-          <div className="absolute -top-7 left-1/2 -translate-x-1/2 w-36 h-12 overflow-visible pointer-events-none flex items-center justify-center drop-shadow-[0px_-3px_6px_rgba(0,0,0,0.03)]">
+          <motion.div
+            animate={
+              vaultAnimationState.active
+                ? { scale: [1, 1.15, 0.95, 1.05, 1], y: [0, -4, 1, 0] }
+                : { scale: 1, y: 0 }
+            }
+            transition={{
+              duration: 0.7,
+              delay: vaultAnimationState.isFullAnimation ? 0.8 : 0.1,
+              ease: "easeOut",
+            }}
+            className="absolute -top-7 left-1/2 -translate-x-1/2 w-36 h-12 overflow-visible pointer-events-none flex items-center justify-center drop-shadow-[0px_-3px_6px_rgba(0,0,0,0.03)]"
+          >
             <svg
               className="w-36 h-14 overflow-visible"
               viewBox="0 0 140 48"
@@ -270,14 +385,31 @@ export default function BottomTabBar() {
                 strokeWidth="4"
                 strokeLinecap="round"
                 strokeDasharray="125.6"
-                strokeDashoffset={125.6 * (1 - progressRatio)}
-                className="transition-all duration-500 ease-out"
+                strokeDashoffset={
+                  125.6 *
+                  (1 -
+                    Math.min(
+                      1,
+                      progressRatio + (vaultAnimationState.active ? 0.18 : 0),
+                    ))
+                }
+                className="transition-all duration-700 ease-out"
               />
             </svg>
-          </div>
-          <img
+          </motion.div>
+          <motion.img
             src={germanFlagImg}
             alt="German Flag"
+            animate={
+              vaultAnimationState.active
+                ? { scale: [1, 1.25, 0.9, 1.1, 1], rotate: [0, -8, 8, -4, 0] }
+                : { scale: 1, rotate: 0 }
+            }
+            transition={{
+              duration: 0.7,
+              delay: vaultAnimationState.isFullAnimation ? 0.8 : 0.1,
+              ease: "easeOut",
+            }}
             className="w-8 h-5 object-contain rounded drop-shadow-xs -mt-3 mb-0.5 z-10"
             loading="lazy"
           />
@@ -296,8 +428,12 @@ export default function BottomTabBar() {
               )
             ) : mode === "learn" ? (
               <>
-                <span>German</span>
-                <span>words learnt</span>
+                <span className={vaultAnimationState.active ? "text-blue-600 font-bold" : ""}>
+                  German
+                </span>
+                <span className={vaultAnimationState.active ? "text-blue-600 font-bold" : ""}>
+                  words learnt
+                </span>
               </>
             ) : mode === "courses" ? (
               <>
@@ -318,42 +454,227 @@ export default function BottomTabBar() {
           </div>
         </button>
 
-        {/* Coins */}
-        <div className="w-14 flex flex-col items-center justify-center gap-0.5 p-1.5">
-          <img
-            src={COIN_IMG_URL}
-            alt="Coins"
-            className="w-6 h-6 object-contain drop-shadow-[0px_1px_4px_rgba(0,0,0,0.4)]"
-            loading="lazy"
-          />
-          <span className="w-12 text-center text-[10px] font-medium leading-3 text-stone-500">
-            {user?.coins || 0}
-          </span>
-        </div>
+        {/* Coins — animated speedometer count-up & pop */}
+        <SpeedometerCounter
+          value={coinsToRender}
+          iconUrl={COIN_IMG_URL}
+          iconAlt="Coins"
+          iconClass="w-6 h-6 object-contain drop-shadow-[0px_1px_4px_rgba(0,0,0,0.4)]"
+          highlightColor="text-sky-950"
+          defaultColor="text-stone-500"
+        />
 
-        {/* Streak — tap opens the leaderboard (Stacked 2 Lines) */}
-        <button
-          type="button"
+        {/* Streak — animated speedometer count-up & pop, tap opens leaderboard */}
+        <SpeedometerCounter
+          id="streak-widget"
+          value={streakToRender}
+          suffix=" days"
+          iconUrl={STREAK_IMG_URL}
+          iconAlt="Streak"
+          iconClass="w-6 h-6 object-contain"
+          highlightColor="text-sky-950"
+          defaultColor="text-stone-500"
+          isButton={true}
+          title="Streak leaderboard"
           onClick={() => {
             hapticLight();
             trackFeatureEvent("navigation", "bottom_tab_clicked", { entityId: "streak" });
             window.dispatchEvent(new CustomEvent("openLeaderboard"));
             document.dispatchEvent(new CustomEvent("openLeaderboard"));
           }}
-          className="w-14 flex flex-col items-center justify-center gap-0.5 p-1.5 cursor-pointer hover:bg-stone-500/5 rounded-2xl transition-colors"
-          title="Streak leaderboard"
-        >
-          <img
-            src={STREAK_IMG_URL}
-            alt="Streak"
-            className="w-6 h-6 object-contain"
-            loading="lazy"
-          />
-          <div className="flex flex-col items-center text-center text-[10px] font-medium leading-[12px] text-stone-500">
-            <span>{streak} days</span>
-          </div>
-        </button>
+        />
       </div>
+    </div>
+  );
+}
+
+/**
+ * Speedometer / Rolling Number Counter with Hold-Scale & Settle Animation
+ */
+function SpeedometerCounter({
+  id,
+  value = 0,
+  suffix = "",
+  highlightColor = "text-sky-950",
+  defaultColor = "text-stone-500",
+  iconUrl,
+  iconAlt,
+  iconClass = "w-6 h-6 object-contain",
+  onClick,
+  isButton = false,
+  title,
+}) {
+  const [displayValue, setDisplayValue] = useState(value);
+  const [isCounting, setIsCounting] = useState(false);
+  const prevValueRef = useRef(value);
+  const animFrameRef = useRef(null);
+
+  useEffect(() => {
+    const startValue = displayValue;
+    const endValue = value;
+    if (startValue === endValue) return;
+
+    if (endValue > startValue) {
+      setIsCounting(true);
+
+      const startTime = performance.now();
+      const duration = 1600;
+
+      const step = (currentTime) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeOut = 1 - Math.pow(1 - progress, 2.2);
+        const currentInt = Math.round(startValue + (endValue - startValue) * easeOut);
+
+        setDisplayValue(currentInt);
+
+        if (progress < 1) {
+          animFrameRef.current = requestAnimationFrame(step);
+        } else {
+          setDisplayValue(endValue);
+          prevValueRef.current = endValue;
+          setIsCounting(false);
+        }
+      };
+
+      animFrameRef.current = requestAnimationFrame(step);
+
+      return () => {
+        if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      };
+    } else {
+      setDisplayValue(endValue);
+      prevValueRef.current = endValue;
+      setIsCounting(false);
+    }
+  }, [value]);
+
+  const content = (
+    <motion.div
+      animate={
+        isCounting
+          ? { scale: 1.2, y: -3 }
+          : { scale: 1, y: 0 }
+      }
+      transition={{
+        type: "spring",
+        stiffness: 380,
+        damping: isCounting ? 16 : 24,
+      }}
+      className="flex flex-col items-center justify-center gap-0.5"
+    >
+      <motion.img
+        src={iconUrl}
+        alt={iconAlt}
+        className={iconClass}
+        loading="lazy"
+        animate={isCounting ? { rotate: [0, -8, 8, -4, 0] } : { rotate: 0 }}
+        transition={
+          isCounting
+            ? { repeat: Infinity, duration: 0.6, ease: "easeInOut" }
+            : { duration: 0.3 }
+        }
+      />
+      <span
+        className={`w-14 text-center text-[10px] leading-3 transition-colors duration-200 ${
+          isCounting ? `${highlightColor} font-bold` : defaultColor
+        }`}
+      >
+        {displayValue}
+        {suffix}
+      </span>
+    </motion.div>
+  );
+
+  if (isButton) {
+    return (
+      <button
+        type="button"
+        id={id}
+        onClick={onClick}
+        className="w-14 flex flex-col items-center justify-center p-1.5 cursor-pointer hover:bg-stone-500/5 rounded-2xl transition-colors select-none"
+        title={title}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div id={id} className="w-14 flex flex-col items-center justify-center p-1.5 select-none">
+      {content}
+    </div>
+  );
+}
+
+/**
+ * Word Vault Fly-In Stream — glowing word chips swooping down into the German words vault arch
+ */
+function WordVaultFlyInAnimation({
+  active,
+  words = [],
+  count = 4,
+  isFullAnimation = false,
+}) {
+  if (!active) return null;
+
+  return (
+    <div className="absolute inset-0 pointer-events-none z-30 overflow-visible flex items-center justify-center">
+      {/* Floating Badge above Arch */}
+      <motion.div
+        initial={{ opacity: 0, y: -45, scale: 0.8 }}
+        animate={{
+          opacity: [0, 1, 1, 0],
+          y: [-45, -55, -55, -60],
+          scale: [0.8, 1, 1, 0.9],
+        }}
+        transition={{
+          duration: isFullAnimation ? 2.2 : 1.6,
+          times: [0, 0.2, 0.75, 1],
+          ease: "easeOut",
+        }}
+        className="absolute px-2.5 py-0.5 rounded-full bg-gradient-to-r from-[#002856] to-[#1E5CA2] text-white font-bold text-[10px] shadow-md border border-sky-300/30 backdrop-blur-xs flex items-center gap-1 whitespace-nowrap"
+      >
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+        <span>+{count} words added</span>
+      </motion.div>
+
+      {/* Floating Word Pills (Only on First-Time Full Animation) */}
+      {isFullAnimation &&
+        words.map((item, index) => {
+          const total = words.length || 1;
+          const startX = (index - (total - 1) / 2) * 55;
+          const startY = -170 - (index % 2) * 35;
+          const delay = index * 0.22;
+
+          return (
+            <motion.div
+              key={`${item.word}-${index}`}
+              initial={{
+                x: startX,
+                y: startY,
+                opacity: 0,
+                scale: 0.7,
+              }}
+              animate={{
+                x: [startX, startX * 0.45, 0],
+                y: [startY, startY * 0.4, -8],
+                opacity: [0, 1, 1, 0.9, 0],
+                scale: [0.7, 1.08, 0.95, 0.35, 0],
+              }}
+              transition={{
+                duration: 1.35,
+                delay,
+                ease: "easeInOut",
+                times: [0, 0.2, 0.6, 0.85, 1],
+              }}
+              className="absolute px-2.5 py-1 rounded-full bg-gradient-to-r from-[#002856] to-[#1E5CA2] text-white font-semibold text-[11px] shadow-[0px_6px_18px_rgba(0,40,86,0.35)] border border-sky-300/30 flex items-center gap-1.5 backdrop-blur-sm select-none whitespace-nowrap"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+              <span className="font-bold">{item.word}</span>
+            </motion.div>
+          );
+        })}
     </div>
   );
 }

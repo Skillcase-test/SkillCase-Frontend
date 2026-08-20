@@ -591,8 +591,40 @@ export default function NewLessonFlow() {
 
   const navigateToLearnGermanHome = useCallback(async ({ autoStartNext = false } = {}) => {
     const completionResult = await persistComplete();
-    const fromScreens = (lessonData?.screens || []).filter((s) => s.type === "vocab").length;
-    const vocabCount = fromScreens > 0 ? fromScreens : (lessonData?.vocab_words?.length || 0);
+    // Grammar screens carry a word/meaning pair too, so they stand in when a
+    // lesson has no vocab screens at all.
+    const wordsOfType = (type) =>
+      (lessonData?.screens || [])
+        .filter((s) => s.type === type && (s.german || s.word || s.german_word))
+        .map((s) => ({
+          word: s.german || s.word || s.german_word,
+          trans: s.english || s.translation || s.meaning || "",
+        }));
+
+    const vocabWords = wordsOfType("vocab");
+    const lessonWords = vocabWords.length > 0 ? vocabWords : wordsOfType("grammar");
+    const completedWords = lessonWords.slice(0, 4);
+
+    const vocabCount = lessonWords.length > 0 ? lessonWords.length : (lessonData?.vocab_words?.length || 4);
+
+    try {
+      sessionStorage.setItem(
+        "lg_recent_completed_lesson",
+        JSON.stringify({
+          words: completedWords.length > 0 ? completedWords : [
+            { word: "Hallo", trans: "Hello" },
+            { word: "Danke", trans: "Thanks" },
+            { word: "Katze", trans: "Cat" },
+            { word: "Wasser", trans: "Water" },
+          ],
+          count: vocabCount,
+          timestamp: Date.now(),
+        })
+      );
+    } catch {
+      // safe storage fallback
+    }
+
     navigate("/learn-german", {
       state: {
         fromLessonComplete: true,
