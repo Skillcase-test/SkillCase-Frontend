@@ -117,7 +117,7 @@ export default function Navbar({ disableNavigation = false }) {
             {displayLevel} German Level
           </h1>
           <p className="text-white/70 text-xs leading-4 truncate">
-            B1 level is minimum for German jobs
+            German for Career Growth
           </p>
         </Link>
 

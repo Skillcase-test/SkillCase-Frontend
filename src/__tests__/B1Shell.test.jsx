@@ -153,23 +153,41 @@ describe("B1/B2 shell — TopModeSwitcher", () => {
     ).toHaveAttribute("aria-selected", "false");
   });
 
+  // The blend fill moved onto the seamless rail path, which only paints once
+  // the switcher has measured itself — jsdom reports every rect as 0x0.
+  const stubRects = () =>
+    vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue({
+      width: 360,
+      height: 60,
+      left: 0,
+      right: 360,
+      top: 0,
+      bottom: 60,
+    });
+
   it("fills the active tab with the sky-blue page-top color on /job-screening so it blends", () => {
     mockPathname = "/job-screening";
-    render(<TopModeSwitcher />);
+    const rects = stubRects();
+    const { container } = render(<TopModeSwitcher />);
 
     // Lobby top is from-[#e0f2fe] → the active German Jobs tab melts into it
-    expect(screen.getByRole("tab", { name: /german jobs/i })).toHaveStyle({
-      backgroundColor: "#e0f2fe",
-    });
+    expect(container.querySelector("svg path")).toHaveAttribute(
+      "fill",
+      "#e0f2fe",
+    );
+    rects.mockRestore();
   });
 
   it("keeps the active tab white on the white practice hub", () => {
     mockPathname = "/";
-    render(<TopModeSwitcher />);
+    const rects = stubRects();
+    const { container } = render(<TopModeSwitcher />);
 
-    expect(
-      screen.getByRole("tab", { name: /job preparation/i }),
-    ).toHaveStyle({ backgroundColor: "#ffffff" });
+    expect(container.querySelector("svg path")).toHaveAttribute(
+      "fill",
+      "#ffffff",
+    );
+    rects.mockRestore();
   });
 });
 

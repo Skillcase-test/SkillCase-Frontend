@@ -4,6 +4,16 @@ import { configure } from '@testing-library/react';
 // 48 files render in parallel; the 1s default waitFor budget flakes under that load.
 configure({ asyncUtilTimeout: 5000 });
 
+// jsdom doesn't implement ResizeObserver either; components that measure
+// themselves (TopModeSwitcher's rail) construct one during layout.
+if (!globalThis.ResizeObserver) {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 // jsdom doesn't implement window.matchMedia — several UI libraries
 // (react-hot-toast, etc.) call it during render.
 if (!window.matchMedia) {
