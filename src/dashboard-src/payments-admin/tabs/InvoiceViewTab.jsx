@@ -23,7 +23,9 @@ export function InvoiceViewTab({
   selectedInvoicePaymentId,
   selectedEnrollment,
   handleGenerateInvoice,
+  handleBulkGenerateInvoices,
   handleSendInvoice,
+  handleBulkSendInvoices,
   handleCancelInvoice,
   invoicePaymentRows = [],
   invoiceRows = [],
@@ -58,6 +60,11 @@ export function InvoiceViewTab({
   const [isCancelling, setIsCancelling] = useState(false);
   const [isLoadingPdf, setIsLoadingPdf] = useState(false);
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState([]);
+  const [selectedPendingIds, setSelectedPendingIds] = useState([]);
+  const [isBulkGenerating, setIsBulkGenerating] = useState(false);
+  const [isBulkSending, setIsBulkSending] = useState(false);
+  const [bulkSummaryModal, setBulkSummaryModal] = useState(null);
+  const [confirmActionModal, setConfirmActionModal] = useState(null);
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
   const [localError, setLocalError] = useState("");
 
@@ -373,23 +380,34 @@ export function InvoiceViewTab({
     }
   };
 
-  const handleQuickSend = async (row) => {
-    if (
-      !window.confirm(
-        `Are you sure you want to send draft invoice ${row.draft_invoice_number} to ${row.student_name}?`,
-      )
-    ) {
-      return;
-    }
-    setSendingId(row.booked_amount_id);
-    setLocalError("");
-    try {
-      await handleSendInvoice(row.draft_invoice_id);
-    } catch (err) {
-      alert(err?.response?.data?.msg || "Failed to send invoice");
-    } finally {
-      setSendingId(null);
-    }
+  const handleQuickSend = (row) => {
+    setConfirmActionModal({
+      title: "Confirm Invoice Email Dispatch",
+      description: `Are you sure you want to send invoice ${row.draft_invoice_number || ""} to ${row.student_name}?`,
+      warning: `An official tax invoice PDF will be emailed to ${row.student_email || "the candidate"}.`,
+      confirmText: "Send Invoice",
+      confirmVariant: "primary",
+      items: [
+        {
+          name: row.student_name,
+          email: row.student_email,
+          amount: formatInrFromPaise(row.amount_paise),
+          invoiceNumber: row.draft_invoice_number,
+        },
+      ],
+      onConfirm: async () => {
+        setConfirmActionModal(null);
+        setSendingId(row.booked_amount_id);
+        setLocalError("");
+        try {
+          await handleSendInvoice(row.draft_invoice_id);
+        } catch (err) {
+          alert(err?.response?.data?.msg || "Failed to send invoice");
+        } finally {
+          setSendingId(null);
+        }
+      },
+    });
   };
 
   const handleClosePreview = () => {
@@ -424,7 +442,29 @@ export function InvoiceViewTab({
     }
   };
 
-  const handleConfirmAndSend = async () => {
+  const handlePromptConfirmSend = () => {
+    if (!draftInvoice?.invoice_id) return;
+    setConfirmActionModal({
+      title: "Confirm Invoice Email Dispatch",
+      description: `Are you sure you want to send invoice ${draftInvoice.invoice_number || ""} to ${draftInvoice.student_name || "the candidate"}?`,
+      warning: `An official tax invoice PDF will be emailed to ${draftInvoice.student_email || "the candidate"}.`,
+      confirmText: "Send Invoice",
+      confirmVariant: "primary",
+      items: [
+        {
+          name: draftInvoice.student_name,
+          email: draftInvoice.student_email,
+          invoiceNumber: draftInvoice.invoice_number,
+        },
+      ],
+      onConfirm: async () => {
+        setConfirmActionModal(null);
+        await executeConfirmAndSend();
+      },
+    });
+  };
+
+  const executeConfirmAndSend = async () => {
     if (!draftInvoice?.invoice_id) return;
     setSendingId(draftInvoice.invoice_id);
     setLocalError("");
@@ -500,17 +540,226 @@ export function InvoiceViewTab({
   });
 
   const toggleInvoiceSelection = (invoiceId) => {
-    setSelectedInvoiceIds((current) => current.includes(invoiceId)
-      ? current.filter((id) => id !== invoiceId)
-      : [...current, invoiceId]);
+    setSelectedInvoiceIds((current) =>
+      current.includes(invoiceId)
+        ? current.filter((id) => id !== invoiceId)
+        : [...current, invoiceId],
+    );
+  };
+
+  const togglePendingSelection = (bookedAmountId) => {
+    setSelectedPendingIds((current) =>
+      current.includes(bookedAmountId)
+        ? current.filter((id) => id !== bookedAmountId)
+        : [...current, bookedAmountId],
+    );
+  };
+
+  const handlePromptBulkGenerate = () => {
+    if (!selectedPendingIds.length || isBulkGenerating || isBulkSending) return;
+    const selectedRows = filteredPending.filter((r) =>
+      selectedPendingIds.includes(r.booked_amount_id),
+    );
+    if (!selectedRows.length) return;
+
+    setConfirmActionModal({
+      title: "Confirm Bulk Invoice Generation",
+      description: `You are about to generate draft invoices for ${selectedRows.length} candidate(s).`,
+      warning:
+        "This will calculate GST breakdowns and assign official sequential invoice numbers (INV/YY-YY/XXXX).",
+      confirmText: `Generate ${selectedRows.length} Invoices`,
+      confirmVariant: "primary",
+      items: selectedRows.map((r) => ({
+        name: r.student_name,
+        email: r.student_email,
+        amount: formatInrFromPaise(r.amount_paise),
+        month: formatMonthYearName(r.target_year, r.target_month),
+      })),
+      onConfirm: () => {
+        setConfirmActionModal(null);
+        executeBulkGenerate(selectedRows);
+      },
+    });
+  };
+
+  const executeBulkGenerate = async (selectedRows) => {
+    const items = selectedRows.map((r) => ({
+      enrollment_id: r.enrollment_id,
+      booked_amount_id: r.booked_amount_id,
+      year: r.target_year,
+      month: r.target_month,
+    }));
+
+    setIsBulkGenerating(true);
+    setLocalError("");
+    try {
+      const res = await handleBulkGenerateInvoices(items);
+      if (res) {
+        setSelectedPendingIds([]);
+        if (res.skipped_count > 0) {
+          setBulkSummaryModal({
+            title: "Bulk Invoice Generation Summary",
+            successCount: res.generated_count,
+            skipped: res.skipped,
+          });
+        }
+      }
+    } catch (err) {
+      setLocalError(
+        err?.response?.data?.msg ||
+          err?.message ||
+          "Failed to generate invoices in bulk",
+      );
+    } finally {
+      setIsBulkGenerating(false);
+    }
+  };
+
+  const handlePromptBulkSendPending = () => {
+    if (!selectedPendingIds.length || isBulkGenerating || isBulkSending) return;
+    const selectedRows = filteredPending.filter((r) =>
+      selectedPendingIds.includes(r.booked_amount_id),
+    );
+    if (!selectedRows.length) return;
+
+    const missingDraftRows = selectedRows.filter((r) => !r.draft_invoice_id);
+    const warningMsg =
+      missingDraftRows.length > 0
+        ? `Official invoice emails with PDF attachments will be sent to all ${selectedRows.length} candidate(s). ${missingDraftRows.length} candidate(s) without existing drafts will be automatically generated first.`
+        : `Official invoice emails with PDF attachments will be sent immediately to all ${selectedRows.length} candidate(s).`;
+
+    setConfirmActionModal({
+      title: "Confirm Bulk Invoice Email Dispatch",
+      description: `You are about to dispatch invoices to ${selectedRows.length} candidate(s).`,
+      warning: warningMsg,
+      confirmText: `Send ${selectedRows.length} Invoices`,
+      confirmVariant: "primary",
+      items: selectedRows.map((r) => ({
+        name: r.student_name,
+        email: r.student_email,
+        amount: formatInrFromPaise(r.amount_paise),
+        month: formatMonthYearName(r.target_year, r.target_month),
+        invoiceNumber: r.draft_invoice_number || "Draft will be generated",
+      })),
+      onConfirm: () => {
+        setConfirmActionModal(null);
+        executeBulkSendPending(selectedRows);
+      },
+    });
+  };
+
+  const executeBulkSendPending = async (selectedRows) => {
+    const missingDraftRows = selectedRows.filter((r) => !r.draft_invoice_id);
+    let invoiceIdsToSend = selectedRows
+      .filter((r) => r.draft_invoice_id)
+      .map((r) => r.draft_invoice_id);
+
+    setIsBulkSending(true);
+    setLocalError("");
+    try {
+      if (missingDraftRows.length > 0) {
+        const generateItems = missingDraftRows.map((r) => ({
+          enrollment_id: r.enrollment_id,
+          booked_amount_id: r.booked_amount_id,
+          year: r.target_year,
+          month: r.target_month,
+        }));
+        const genRes = await handleBulkGenerateInvoices(generateItems);
+        if (genRes?.invoices) {
+          const newIds = genRes.invoices.map((inv) => inv.invoice_id);
+          invoiceIdsToSend = [...invoiceIdsToSend, ...newIds];
+        }
+      }
+
+      if (!invoiceIdsToSend.length) {
+        setLocalError("No valid invoices could be prepared for sending");
+        return;
+      }
+
+      const sendRes = await handleBulkSendInvoices(invoiceIdsToSend);
+      if (sendRes) {
+        setSelectedPendingIds([]);
+        if (sendRes.skipped_count > 0) {
+          setBulkSummaryModal({
+            title: "Bulk Invoice Send Summary",
+            successCount: sendRes.sent_count,
+            skipped: sendRes.skipped,
+          });
+        }
+      }
+    } catch (err) {
+      setLocalError(
+        err?.response?.data?.msg ||
+          err?.message ||
+          "Failed to send invoices in bulk",
+      );
+    } finally {
+      setIsBulkSending(false);
+    }
+  };
+
+  const handlePromptBulkSendFromSentTable = () => {
+    if (!selectedInvoiceIds.length || isBulkSending) return;
+    const selectedRows = filteredSent.filter((r) =>
+      selectedInvoiceIds.includes(r.invoice_id),
+    );
+    if (!selectedRows.length) return;
+
+    setConfirmActionModal({
+      title: "Confirm Bulk Invoice Email Dispatch",
+      description: `You are about to send ${selectedRows.length} invoice(s) via email.`,
+      warning: `Official invoice emails with PDF attachments will be sent to all ${selectedRows.length} candidate(s).`,
+      confirmText: `Send ${selectedRows.length} Invoices`,
+      confirmVariant: "primary",
+      items: selectedRows.map((r) => ({
+        name: r.student_name,
+        email: r.student_email,
+        amount: formatInrFromPaise(r.invoice_payload_json?.amount_paise || 0),
+        invoiceNumber: r.invoice_number,
+      })),
+      onConfirm: () => {
+        setConfirmActionModal(null);
+        executeBulkSendSent(selectedInvoiceIds);
+      },
+    });
+  };
+
+  const executeBulkSendSent = async (invoiceIds) => {
+    setIsBulkSending(true);
+    setLocalError("");
+    try {
+      const res = await handleBulkSendInvoices(invoiceIds);
+      if (res) {
+        setSelectedInvoiceIds([]);
+        if (res.skipped_count > 0) {
+          setBulkSummaryModal({
+            title: "Bulk Invoice Send Summary",
+            successCount: res.sent_count,
+            skipped: res.skipped,
+          });
+        }
+      }
+    } catch (err) {
+      setLocalError(
+        err?.response?.data?.msg ||
+          err?.message ||
+          "Failed to send invoices in bulk",
+      );
+    } finally {
+      setIsBulkSending(false);
+    }
   };
 
   const handleBulkInvoiceDownload = async () => {
     if (!selectedInvoiceIds.length || isBulkDownloading) return;
     setIsBulkDownloading(true);
     try {
-      const response = await paymentsAdminApi.downloadInvoicesBulk(selectedInvoiceIds);
-      const url = URL.createObjectURL(new Blob([response.data], { type: "application/zip" }));
+      const response = await paymentsAdminApi.downloadInvoicesBulk(
+        selectedInvoiceIds,
+      );
+      const url = URL.createObjectURL(
+        new Blob([response.data], { type: "application/zip" }),
+      );
       const link = document.createElement("a");
       link.href = url;
       link.download = "skillcase_invoices.zip";
@@ -540,18 +789,71 @@ export function InvoiceViewTab({
     <div className="space-y-6">
       <div className="space-y-3">
         <div className="flex items-center justify-between border-b pb-2 border-slate-200">
-          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
-            Pending Invoices
-          </h3>
-          <span className="rounded-full bg-amber-50 border border-amber-200/50 px-3 py-1 text-xs font-bold text-amber-800 shadow-sm">
-            {filteredPending.length} pending
-          </span>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+              Pending Invoices
+            </h3>
+            <span className="rounded-full bg-amber-50 border border-amber-200/50 px-3 py-1 text-xs font-bold text-amber-800 shadow-sm">
+              {filteredPending.length} pending
+            </span>
+          </div>
+          {canManageInvoices && filteredPending.length > 0 && (
+            <div className="flex items-center gap-2">
+              <ControlButton
+                onClick={handlePromptBulkGenerate}
+                disabled={
+                  !selectedPendingIds.length ||
+                  isBulkGenerating ||
+                  isBulkSending
+                }
+                variant="secondary"
+                className="h-8 rounded-lg px-3 text-xs border-slate-300 font-semibold active:scale-95 transition-all duration-150"
+              >
+                {isBulkGenerating
+                  ? "Generating..."
+                  : `Generate Selected (${selectedPendingIds.length})`}
+              </ControlButton>
+              <ControlButton
+                onClick={handlePromptBulkSendPending}
+                disabled={
+                  !selectedPendingIds.length ||
+                  isBulkGenerating ||
+                  isBulkSending
+                }
+                variant="primary"
+                className="h-8 rounded-lg px-3.5 text-xs bg-[#002856] hover:bg-[#002860] text-white border-none font-semibold shadow-sm active:scale-95 transition-all duration-150"
+              >
+                {isBulkSending
+                  ? "Sending..."
+                  : `Send Selected (${selectedPendingIds.length})`}
+              </ControlButton>
+            </div>
+          )}
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="border-b bg-slate-50 text-left text-xs uppercase text-slate-500 font-semibold">
+                {canManageInvoices ? (
+                  <th className="px-3 py-3 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={
+                        filteredPending.length > 0 &&
+                        selectedPendingIds.length === filteredPending.length
+                      }
+                      onChange={() =>
+                        setSelectedPendingIds(
+                          selectedPendingIds.length === filteredPending.length
+                            ? []
+                            : filteredPending.map((r) => r.booked_amount_id),
+                        )
+                      }
+                      className="h-4 w-4 rounded border-slate-300"
+                    />
+                  </th>
+                ) : null}
                 <th className="px-3 py-3">Student details</th>
                 <th className="px-2 py-3">Amount Booked</th>
                 <th className="px-2 py-3">Linked Payments</th>
@@ -562,7 +864,7 @@ export function InvoiceViewTab({
               {filteredPending.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={4}
+                    colSpan={canManageInvoices ? 5 : 4}
                     className="px-3 py-8 text-center text-slate-500 text-xs"
                   >
                     All booked payments for this month have been invoiced, or no
@@ -579,6 +881,20 @@ export function InvoiceViewTab({
                         : "bg-slate-50/60 hover:bg-slate-50/50"
                     }
                   >
+                    {canManageInvoices ? (
+                      <td className="px-3 py-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedPendingIds.includes(
+                            r.booked_amount_id,
+                          )}
+                          onChange={() =>
+                            togglePendingSelection(r.booked_amount_id)
+                          }
+                          className="h-4 w-4 rounded border-slate-300"
+                        />
+                      </td>
+                    ) : null}
                     <td className="px-3 py-3">
                       <div className="font-semibold text-slate-800">
                         {r.student_name}
@@ -676,15 +992,29 @@ export function InvoiceViewTab({
             <span className="rounded-full bg-emerald-50 border border-emerald-200/50 px-3 py-1 text-xs font-bold text-emerald-800 shadow-sm">
               {filteredSent.length} invoices
             </span>
+            {canManageInvoices && selectedInvoiceIds.length > 0 ? (
+              <ControlButton
+                onClick={handlePromptBulkSendFromSentTable}
+                disabled={isBulkSending}
+                variant="primary"
+                className="h-8 rounded-lg px-3 text-xs bg-[#002856] hover:bg-[#002860] text-white border-none font-semibold shadow-sm active:scale-95 transition-all duration-150"
+              >
+                {isBulkSending
+                  ? "Sending..."
+                  : `Send Selected (${selectedInvoiceIds.length})`}
+              </ControlButton>
+            ) : null}
             {canDownloadInvoices ? (
-            <ControlButton
-              onClick={handleBulkInvoiceDownload}
-              disabled={!selectedInvoiceIds.length || isBulkDownloading}
-              variant="secondary"
-              className="h-8 rounded-lg px-3 text-xs border-slate-200"
-            >
-              {isBulkDownloading ? "Preparing ZIP..." : `Download Selected (${selectedInvoiceIds.length})`}
-            </ControlButton>
+              <ControlButton
+                onClick={handleBulkInvoiceDownload}
+                disabled={!selectedInvoiceIds.length || isBulkDownloading}
+                variant="secondary"
+                className="h-8 rounded-lg px-3 text-xs border-slate-200"
+              >
+                {isBulkDownloading
+                  ? "Preparing ZIP..."
+                  : `Download Selected (${selectedInvoiceIds.length})`}
+              </ControlButton>
             ) : null}
           </div>
         </div>
@@ -1057,7 +1387,7 @@ export function InvoiceViewTab({
                     <ControlButton
                       id="confirm-send-invoice-btn"
                       variant="primary"
-                      onClick={handleConfirmAndSend}
+                      onClick={handlePromptConfirmSend}
                       disabled={isSending || isCancelling}
                       className="bg-[#002856] hover:bg-[#002860] border-none text-white active:scale-95 transition-all duration-150 font-semibold"
                     >
@@ -1394,6 +1724,143 @@ export function InvoiceViewTab({
                 className="border-slate-200 text-slate-600 hover:bg-slate-50 active:scale-95 transition-all duration-150"
               >
                 Close
+              </ControlButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Operations Summary Modal */}
+      {bulkSummaryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 animate-fade">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl space-y-4">
+            <h4 className="text-base font-bold text-slate-800">
+              {bulkSummaryModal.title}
+            </h4>
+            <p className="text-sm text-slate-600">
+              Successfully processed:{" "}
+              <strong className="text-emerald-700 font-bold">
+                {bulkSummaryModal.successCount}
+              </strong>
+            </p>
+            {Array.isArray(bulkSummaryModal.skipped) &&
+              bulkSummaryModal.skipped.length > 0 && (
+                <div className="space-y-1.5 max-h-60 overflow-y-auto rounded-xl border border-amber-200 bg-amber-50/50 p-3 text-xs">
+                  <div className="font-semibold text-amber-800 mb-1">
+                    Skipped / Attention Required (
+                    {bulkSummaryModal.skipped.length}):
+                  </div>
+                  {bulkSummaryModal.skipped.map((s, idx) => (
+                    <div
+                      key={idx}
+                      className="border-b border-amber-100 last:border-none pb-1 mb-1 text-slate-700"
+                    >
+                      <span className="font-semibold text-slate-800">
+                        {s.student_name ||
+                          s.invoice_number ||
+                          `Item #${idx + 1}`}
+                        :{" "}
+                      </span>
+                      <span className="text-rose-600">{s.reason}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            <div className="flex justify-end pt-2">
+              <ControlButton
+                onClick={() => setBulkSummaryModal(null)}
+                variant="primary"
+                className="h-9 px-4 rounded-lg text-xs bg-slate-900 hover:bg-slate-800 text-white font-semibold"
+              >
+                Close
+              </ControlButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Confirmation Modal */}
+      {confirmActionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 transition-all duration-200">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4 animate-fade">
+            <div className="flex items-start justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h4 className="text-base font-bold text-slate-900">
+                  {confirmActionModal.title}
+                </h4>
+                <p className="text-xs text-slate-500 mt-1">
+                  {confirmActionModal.description}
+                </p>
+              </div>
+            </div>
+
+            {confirmActionModal.warning && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-xs text-amber-800 font-medium leading-relaxed">
+                {confirmActionModal.warning}
+              </div>
+            )}
+
+            {Array.isArray(confirmActionModal.items) &&
+              confirmActionModal.items.length > 0 && (
+                <div className="space-y-1.5 max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-xs">
+                  <div className="font-semibold text-slate-700 mb-1.5 flex justify-between items-center">
+                    <span>Selected Items ({confirmActionModal.items.length}):</span>
+                  </div>
+                  {confirmActionModal.items.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className="border-b border-slate-200/60 last:border-none pb-1.5 mb-1.5 flex justify-between items-center text-slate-700"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <div className="font-semibold text-slate-800 truncate">
+                          {item.name || `Item #${idx + 1}`}
+                        </div>
+                        {item.email && (
+                          <div className="text-[11px] text-slate-500 truncate">
+                            {item.email}
+                          </div>
+                        )}
+                        {item.invoiceNumber && (
+                          <div className="text-[10px] font-mono text-indigo-600">
+                            {item.invoiceNumber}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-right shrink-0">
+                        {item.amount && (
+                          <div className="font-semibold text-slate-800">
+                            {item.amount}
+                          </div>
+                        )}
+                        {item.month && (
+                          <div className="text-[10px] text-slate-500">
+                            {item.month}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+            <div className="border-t border-slate-100 pt-3 flex justify-end gap-2">
+              <ControlButton
+                onClick={() => setConfirmActionModal(null)}
+                variant="secondary"
+                className="h-9 px-4 rounded-lg text-xs border-slate-200 text-slate-600 hover:bg-slate-50 active:scale-95 transition-all duration-150 font-medium"
+              >
+                Cancel
+              </ControlButton>
+              <ControlButton
+                onClick={confirmActionModal.onConfirm}
+                variant="primary"
+                className={`h-9 px-4 rounded-lg text-xs font-semibold text-white active:scale-95 transition-all duration-150 ${
+                  confirmActionModal.confirmVariant === "danger"
+                    ? "bg-rose-600 hover:bg-rose-700"
+                    : "bg-[#002856] hover:bg-[#002860]"
+                }`}
+              >
+                {confirmActionModal.confirmText || "Confirm"}
               </ControlButton>
             </div>
           </div>

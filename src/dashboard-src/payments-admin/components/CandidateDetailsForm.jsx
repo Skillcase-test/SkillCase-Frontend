@@ -190,12 +190,22 @@ function parseStatusLogs(rawLogs) {
       if (payload.dropped_from_month && payload.dropped_from_year) {
         effectiveStr = "(Effective " + String(payload.dropped_from_month).padStart(2, "0") + "/" + payload.dropped_from_year + ")";
       }
-    } else if (log.event_type === "admin.enrollment_undropped") {
+    } else if (
+      log.event_type === "admin.enrollment_undropped" ||
+      log.event_type === "payment.marked_undropped_automatically"
+    ) {
       fromStatus = "Dropped";
       toStatus = "Active";
       currentState = "Active";
       if (payload.undropped_from_month && payload.undropped_from_year) {
-        effectiveStr = "(Effective " + String(payload.undropped_from_month).padStart(2, "0") + "/" + payload.undropped_from_year + ")";
+        effectiveStr =
+          "(Effective " +
+          String(payload.undropped_from_month).padStart(2, "0") +
+          "/" +
+          payload.undropped_from_year +
+          ")";
+      } else {
+        effectiveStr = "(Auto Undrop / Resumed via Payment)";
       }
     } else if (log.event_type === "payment.marked_on_hold_automatically_60days") {
       if (currentState === "Pending") {

@@ -313,8 +313,19 @@ export function CreatePaymentLinkModal({
                               onClick={() => handleSelectCandidate(c)}
                               className="block w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-slate-50 text-slate-700 transition"
                             >
-                              <div className="font-semibold text-slate-800">
-                                {c.student_name || c.label}
+                              <div className="flex items-center justify-between gap-1.5">
+                                <span className="font-semibold text-slate-800">
+                                  {c.student_name || c.label}
+                                </span>
+                                {c.lifecycle_state === "dropped" || c.status === "archived" ? (
+                                  <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700 shrink-0">
+                                    Dropped
+                                  </span>
+                                ) : c.lifecycle_state === "on_hold" ? (
+                                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 shrink-0">
+                                    On Hold
+                                  </span>
+                                ) : null}
                               </div>
                               <div className="text-slate-400 mt-0.5">
                                 {candidatePhoneLabel(c)}{" "}

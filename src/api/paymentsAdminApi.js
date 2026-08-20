@@ -114,7 +114,11 @@ export const paymentsAdminApi = {
 
   generateInvoice: (payload) =>
     api.post("/admin/payments/invoices/generate", payload),
+  generateInvoicesBulk: (payload) =>
+    api.post("/admin/payments/invoices/bulk-generate", payload),
   sendInvoice: (payload) => api.post("/admin/payments/invoices/send", payload),
+  sendInvoicesBulk: (payload) =>
+    api.post("/admin/payments/invoices/bulk-send", payload),
   deleteInvoice: (invoiceId) =>
     api.delete(`/admin/payments/invoices/${invoiceId}`),
   getInvoicePdf: (invoiceId) =>
