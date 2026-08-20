@@ -17,13 +17,31 @@ import { hapticLight } from "../../../../../utils/haptics";
  *   onDone    — optional callback fired when typewriter finishes
  *   className — forwarded to the text element
  */
-export default function MayaDialogueBubble({ text, onDone, className = "" }) {
+export default function MayaDialogueBubble({
+  text,
+  onDone,
+  className = "",
+  skipSuppression = false,
+}) {
   const { speak, stop, isSpeaking, isMuted, toggleMute } = useMayaTTS();
 
   useEffect(() => {
-    if (text) speak(text);
+    if (text) speak(text, { skipSuppression });
     return () => stop();
-  }, [text]); // stable useCallback refs — intentionally excluded from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, skipSuppression]); // stable useCallback refs — intentionally excluded from deps
+
+  const handleAudioButtonClick = (e) => {
+    e.stopPropagation();
+    hapticLight();
+    if (isMuted) {
+      toggleMute(text);
+    } else if (isSpeaking) {
+      toggleMute();
+    } else {
+      speak(text, { force: true });
+    }
+  };
 
   return (
     <>
@@ -41,15 +59,17 @@ export default function MayaDialogueBubble({ text, onDone, className = "" }) {
         />
       </span>
 
-      {/* Mute toggle — absolute to the parent bubble's relative container */}
+      {/* Mute toggle / play button — absolute to the parent bubble's relative container */}
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          hapticLight();
-          toggleMute();
-        }}
+        onClick={handleAudioButtonClick}
         className="absolute top-1 right-1 w-5 h-5 flex items-center justify-center active:scale-90 transition-transform"
-        aria-label={isMuted ? "Unmute Maya" : "Mute Maya"}
+        aria-label={
+          isMuted
+            ? "Unmute Maya"
+            : isSpeaking
+              ? "Mute Maya"
+              : "Play Maya Audio"
+        }
       >
         {isMuted ? (
           <VolumeX className="w-4 h-4 text-gray-400" />

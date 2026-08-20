@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from "react";
 import api from "../../../../../api/axios";
-import { isTTSMuted, setTTSMuted } from "./ttsMutePreference";
+import { isTTSMuted, setTTSMuted, subscribeTTSMute } from "./ttsMutePreference";
 
 // Blob cache: text -> Blob (persists for the lifetime of the module)
 const _mayaTTSCache = new Map();
@@ -13,6 +13,13 @@ let _currentObjectUrl = null;
 // Monotonic token — a pending speak() whose token is stale has been superseded
 // (by a newer speak, a stop, or navigation) and must never start playing.
 let _speakToken = 0;
+
+// Tracks the last played dialogue text across screen transitions
+let _lastPlayedDialogueText = null;
+
+export function resetLastPlayedDialogue() {
+  _lastPlayedDialogueText = null;
+}
 
 function normalizeText(text) {
   if (typeof text !== "string") return "";
@@ -110,6 +117,18 @@ export default function useMayaTTS() {
   }, []);
 
   useEffect(() => {
+    return subscribeTTSMute((muted) => {
+      isMutedRef.current = muted;
+      if (mountedRef.current) {
+        setIsMuted(muted);
+        if (muted) {
+          setIsSpeaking(false);
+        }
+      }
+    });
+  }, []);
+
+  useEffect(() => {
     const handler = () => {
       _speakToken++;
       revokeCurrentAudio();
@@ -142,65 +161,84 @@ export default function useMayaTTS() {
     audio.play().catch(finish);
   }, []);
 
-  const speak = useCallback(async (text) => {
-    if (!text || isMutedRef.current) return;
+  const speak = useCallback(
+    async (text, opts = {}) => {
+      const { force = false, skipSuppression = false } = opts;
+      if (!text) return;
 
-    const token = ++_speakToken;
+      const normalizedText = normalizeText(text);
+      if (!normalizedText) return;
 
-    // Stop any currently playing audio (does not cancel in-flight fetches —
-    // those must always be left to resolve so a later caller for the same
-    // text isn't left waiting on a request that was torn down out from
-    // under it)
-    revokeCurrentAudio();
-
-    // Cache hit: play instantly
-    const normalizedText = normalizeText(text);
-    if (_mayaTTSCache.has(normalizedText)) {
-      if (mountedRef.current) setIsSpeaking(true);
-      _playBlob(_mayaTTSCache.get(normalizedText));
-      return;
-    }
-
-    // Fetch from API
-    if (mountedRef.current) setIsSpeaking(true);
-
-    try {
-      const blob = await getMayaTTSBlob(normalizedText);
-
-      // Superseded while the fetch was in flight — whoever won owns the state.
-      if (token !== _speakToken) return;
-
-      if (isMutedRef.current || !mountedRef.current) {
-        if (mountedRef.current) setIsSpeaking(false);
+      // Duplicate suppression: if this text is identical to the last played
+      // dialogue and this is an auto-play (not manual click / forced), skip.
+      if (!force && !skipSuppression && normalizedText === _lastPlayedDialogueText) {
         return;
       }
 
-      _playBlob(blob);
-    } catch (err) {
-      if (
-        err?.name === "AbortError" ||
-        err?.name === "CanceledError" ||
-        err?.code === "ERR_CANCELED"
-      ) {
-        return;
-      }
-      if (token !== _speakToken) return;
+      if (isMutedRef.current) return;
+
+      const token = ++_speakToken;
+
+      // Stop any other audio playing (including German speech)
       revokeCurrentAudio();
-      if (mountedRef.current) setIsSpeaking(false);
-    }
-  }, [_playBlob]);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("germanTTSStop"));
+      }
 
-  const toggleMute = useCallback(() => {
-    setIsMuted((prev) => {
-      const next = !prev;
+      _lastPlayedDialogueText = normalizedText;
+
+      // Cache hit: play instantly
+      if (_mayaTTSCache.has(normalizedText)) {
+        if (mountedRef.current) setIsSpeaking(true);
+        _playBlob(_mayaTTSCache.get(normalizedText));
+        return;
+      }
+
+      // Fetch from API
+      if (mountedRef.current) setIsSpeaking(true);
+
+      try {
+        const blob = await getMayaTTSBlob(normalizedText);
+
+        // Superseded while the fetch was in flight — whoever won owns the state.
+        if (token !== _speakToken) return;
+
+        if (isMutedRef.current || !mountedRef.current) {
+          if (mountedRef.current) setIsSpeaking(false);
+          return;
+        }
+
+        _playBlob(blob);
+      } catch (err) {
+        if (
+          err?.name === "AbortError" ||
+          err?.name === "CanceledError" ||
+          err?.code === "ERR_CANCELED"
+        ) {
+          return;
+        }
+        if (token !== _speakToken) return;
+        revokeCurrentAudio();
+        if (mountedRef.current) setIsSpeaking(false);
+      }
+    },
+    [_playBlob],
+  );
+
+  const toggleMute = useCallback(
+    (currentTextToPlay = null) => {
+      const next = !isMutedRef.current;
       setTTSMuted(next);
       if (next) {
         revokeCurrentAudio();
         if (mountedRef.current) setIsSpeaking(false);
+      } else if (currentTextToPlay) {
+        speak(currentTextToPlay, { force: true });
       }
       return next;
-    });
-  }, []);
+    },
+    [speak],
+  );
 
   return { speak, stop, isSpeaking, isMuted, toggleMute };
 }
