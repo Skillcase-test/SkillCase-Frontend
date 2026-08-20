@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Link,
   Navigate,
@@ -1380,44 +1380,71 @@ function LibraryPage() {
                     <div className="flex flex-wrap justify-end gap-2">
                       {String(p.source || "").endsWith("_php") ||
                       String(p.source || "") === "job_screening" ? (
-                        <ActionButton
-                          variant="primary"
-                          disabled={Boolean(addingLocal[p.profile_uid || p.id])}
-                          onClick={async () => {
-                            const key = p.profile_uid || p.id;
-                            const sourceValue = String(p.source || source);
-                            const sourceProfileId =
-                              sourceValue === "job_screening"
-                                ? p.source_profile_id || p.id
-                                : Number(p.source_profile_id || p.id || 0);
-                            if (!sourceProfileId) return;
-                            try {
-                              setAddingLocal((prev) => ({
-                                ...prev,
-                                [key]: true,
-                              }));
-                              await exploreCandidatesAdminApi.addBridgeProfileToLocal(
-                                sourceProfileId,
-                                sourceValue,
-                              );
-                              window.alert("Profile added to local library");
-                            } catch (error) {
-                              window.alert(
-                                error?.response?.data?.message ||
-                                  "Could not add profile to local library",
-                              );
-                            } finally {
-                              setAddingLocal((prev) => ({
-                                ...prev,
-                                [key]: false,
-                              }));
-                            }
-                          }}
-                        >
-                          {addingLocal[p.profile_uid || p.id]
-                            ? "Adding..."
-                            : "Add to Local"}
-                        </ActionButton>
+                        p.is_in_local ? (
+                          <button
+                            type="button"
+                            disabled
+                            title="Already added to local library"
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-xs font-bold text-slate-400 cursor-not-allowed shadow-sm"
+                          >
+                            Added to Local
+                          </button>
+                        ) : (
+                          <ActionButton
+                            variant="primary"
+                            disabled={Boolean(addingLocal[p.profile_uid || p.id])}
+                            onClick={async () => {
+                              const key = p.profile_uid || p.id;
+                              const sourceValue = String(p.source || source);
+                              const sourceProfileId =
+                                sourceValue === "job_screening"
+                                  ? p.source_profile_id || p.id
+                                  : Number(p.source_profile_id || p.id || 0);
+                              if (!sourceProfileId) return;
+                              try {
+                                setAddingLocal((prev) => ({
+                                  ...prev,
+                                  [key]: true,
+                                }));
+                                await exploreCandidatesAdminApi.addBridgeProfileToLocal(
+                                  sourceProfileId,
+                                  sourceValue,
+                                );
+                                setProfiles((prev) =>
+                                  prev.map((item) =>
+                                    (item.profile_uid || item.id) === key
+                                      ? { ...item, is_in_local: true }
+                                      : item,
+                                  ),
+                                );
+                                window.alert("Profile added to local library");
+                              } catch (error) {
+                                if (error?.response?.status === 409) {
+                                  setProfiles((prev) =>
+                                    prev.map((item) =>
+                                      (item.profile_uid || item.id) === key
+                                        ? { ...item, is_in_local: true }
+                                        : item,
+                                    ),
+                                  );
+                                }
+                                window.alert(
+                                  error?.response?.data?.message ||
+                                    "Could not add profile to local library",
+                                );
+                              } finally {
+                                setAddingLocal((prev) => ({
+                                  ...prev,
+                                  [key]: false,
+                                }));
+                              }
+                            }}
+                          >
+                            {addingLocal[p.profile_uid || p.id]
+                              ? "Adding..."
+                              : "Add to Local"}
+                          </ActionButton>
+                        )
                       ) : null}
                       {String(p.source || "") === "main_php" ||
                       String(p.source || "") === "job_screening" ? (
@@ -1524,12 +1551,431 @@ function LibraryPage() {
   );
 }
 
+function DynamicDropdownField({
+  label,
+  field,
+  value,
+  options = [],
+  onChange,
+  onAddOption,
+  onUpdateOption,
+  onDeleteOption,
+  readOnly = false,
+  placeholder,
+}) {
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [editingVal, setEditingVal] = useState("");
+  const [loadingAction, setLoadingAction] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    function handleOutside(event) {
+      if (wrapRef.current && !wrapRef.current.contains(event.target)) {
+        setOpen(false);
+        setEditingId(null);
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleOutside);
+      return () => document.removeEventListener("mousedown", handleOutside);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === "Escape" && open) {
+        setOpen(false);
+        setEditingId(null);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
+
+  const optionValues = options.map((o) =>
+    typeof o === "string" ? o : o.option_value,
+  );
+  const hasCurrentValueInOptions = !value || optionValues.includes(value);
+
+  const filteredOptions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return options;
+    return options.filter((opt) => {
+      const val = typeof opt === "string" ? opt : opt.option_value;
+      return String(val || "").toLowerCase().includes(q);
+    });
+  }, [options, searchQuery]);
+
+  const exactMatchExists = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return options.some((opt) => {
+      const val = typeof opt === "string" ? opt : opt.option_value;
+      return String(val || "").trim().toLowerCase() === q;
+    });
+  }, [options, searchQuery]);
+
+  const handleAdd = async (e) => {
+    if (e) e.stopPropagation();
+    const trimmed = searchQuery.trim();
+    if (!trimmed) return;
+    setLoadingAction(true);
+    try {
+      await onAddOption(field, trimmed);
+      onChange(trimmed);
+      setSearchQuery("");
+      setOpen(false);
+    } catch (err) {
+      window.alert(err?.response?.data?.message || "Failed to add option");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleUpdate = async (e, id) => {
+    if (e) e.stopPropagation();
+    const trimmed = editingVal.trim();
+    if (!trimmed) return;
+    setLoadingAction(true);
+    try {
+      await onUpdateOption(id, trimmed);
+      const targetOpt = options.find((o) => o.id === id);
+      if (targetOpt && value === targetOpt.option_value) {
+        onChange(trimmed);
+      }
+      setEditingId(null);
+      setEditingVal("");
+    } catch (err) {
+      window.alert(err?.response?.data?.message || "Failed to update option");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleDelete = async (e, id, optVal) => {
+    if (e) e.stopPropagation();
+    if (!window.confirm(`Delete "${optVal}" from global options?`)) return;
+    setLoadingAction(true);
+    try {
+      await onDeleteOption(id);
+      if (value === optVal) {
+        onChange("");
+      }
+    } catch (err) {
+      window.alert(err?.response?.data?.message || "Failed to delete option");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const displayPlaceholder = placeholder || `Select ${label.toLowerCase()}...`;
+
+  return (
+    <div className="space-y-1 relative" ref={wrapRef}>
+      <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+        {label}
+      </label>
+
+      <div className="relative">
+        <button
+          type="button"
+          disabled={readOnly}
+          onClick={() => {
+            setOpen((v) => !v);
+            setEditingId(null);
+          }}
+          className={`w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-left flex items-center justify-between outline-none transition focus:border-slate-400 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 ${
+            open ? "border-slate-400" : ""
+          }`}
+          style={{ outline: "none", boxShadow: "none" }}
+        >
+          <span
+            className={`truncate ${
+              value ? "text-slate-900 font-medium" : "text-slate-400"
+            }`}
+          >
+            {value || displayPlaceholder}
+          </span>
+          <svg
+            className={`w-4 h-4 text-slate-400 shrink-0 ml-2 transition-transform duration-200 ${
+              open ? "transform rotate-180 text-slate-600" : ""
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
+
+        {open && !readOnly && (
+          <div className="absolute left-0 right-0 top-full mt-1.5 z-50 rounded-xl border border-slate-200 bg-white shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+            <div className="p-2.5 bg-slate-50 border-b border-slate-200">
+              <div className="flex items-center gap-1.5 bg-white rounded-lg border border-slate-300 px-2.5 py-1.5 focus-within:border-slate-400 transition">
+                <svg
+                  className="w-4 h-4 text-slate-400 shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder={`Search or add new ${label.toLowerCase()}...`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      if (searchQuery.trim() && !exactMatchExists) {
+                        handleAdd(e);
+                      }
+                    }
+                  }}
+                  className="w-full text-xs text-slate-800 placeholder-slate-400 outline-none focus:outline-none focus:ring-0 border-0 ring-0 bg-transparent"
+                  style={{ outline: "none", boxShadow: "none" }}
+                />
+                {searchQuery.trim() && !exactMatchExists && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleAdd(e)}
+                    disabled={loadingAction}
+                    className="shrink-0 bg-[#083262] hover:bg-[#052243] text-white px-2 py-0.5 rounded text-xs font-semibold transition"
+                  >
+                    + Add
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="max-h-56 overflow-y-auto p-1.5 space-y-1">
+              {value ? (
+                <div
+                  onClick={() => {
+                    onChange("");
+                    setOpen(false);
+                  }}
+                  className="flex items-center px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-800 cursor-pointer transition"
+                >
+                  <span className="italic">-- Clear selection --</span>
+                </div>
+              ) : null}
+
+              {!hasCurrentValueInOptions && value && (
+                <div
+                  onClick={() => setOpen(false)}
+                  className="flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-semibold bg-[#083262]/5 text-[#083262] border border-[#083262]/20 cursor-pointer"
+                >
+                  <span className="truncate">{value} (Current)</span>
+                  <svg
+                    className="w-4 h-4 text-[#083262]"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2.5"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+              )}
+
+              {filteredOptions.length === 0 ? (
+                <div className="p-3 text-center text-xs text-slate-400">
+                  {searchQuery.trim() ? (
+                    <div>
+                      No matching option.
+                      <div className="mt-1">
+                        <button
+                          type="button"
+                          onClick={(e) => handleAdd(e)}
+                          className="font-bold text-[#083262] hover:underline"
+                        >
+                          Add &quot;{searchQuery.trim()}&quot; as new {label}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    "No options available. Type above to create one."
+                  )}
+                </div>
+              ) : (
+                filteredOptions.map((opt) => {
+                  const optId = typeof opt === "object" ? opt.id : opt;
+                  const optVal =
+                    typeof opt === "object" ? opt.option_value : opt;
+                  const isSelected = String(value) === String(optVal);
+                  const isEditing = editingId === optId;
+
+                  if (isEditing) {
+                    return (
+                      <div
+                        key={optId}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 p-1.5 rounded-lg bg-slate-50 border border-slate-300 text-xs"
+                      >
+                        <input
+                          autoFocus
+                          type="text"
+                          value={editingVal}
+                          onChange={(e) => setEditingVal(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleUpdate(e, optId);
+                            } else if (e.key === "Escape") {
+                              setEditingId(null);
+                            }
+                          }}
+                          className="flex-1 rounded border border-slate-300 px-2 py-1 text-xs text-slate-800 outline-none focus:outline-none focus:ring-0 bg-white focus:border-slate-500"
+                          style={{ outline: "none", boxShadow: "none" }}
+                        />
+                        <button
+                          type="button"
+                          disabled={loadingAction || !editingVal.trim()}
+                          onClick={(e) => handleUpdate(e, optId)}
+                          className="text-emerald-700 font-bold hover:underline px-1 py-0.5 text-xs"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingId(null);
+                            setEditingVal("");
+                          }}
+                          className="text-slate-400 hover:text-slate-600 px-1 py-0.5 text-xs"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={optId}
+                      onClick={() => {
+                        onChange(optVal);
+                        setOpen(false);
+                      }}
+                      className={`group flex items-center justify-between px-2.5 py-2 rounded-lg text-xs cursor-pointer transition ${
+                        isSelected
+                          ? "bg-[#083262]/10 text-[#083262] font-semibold"
+                          : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate pr-2">
+                        {isSelected && (
+                          <svg
+                            className="w-3.5 h-3.5 text-[#083262] shrink-0"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2.5"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                        <span className="truncate">{optVal}</span>
+                      </div>
+
+                      <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0 transition-opacity">
+                        <button
+                          type="button"
+                          title="Edit option name"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingId(optId);
+                            setEditingVal(optVal);
+                          }}
+                          className="p-1 rounded hover:bg-slate-200 text-slate-500 hover:text-[#083262] transition"
+                        >
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          title="Delete option"
+                          onClick={(e) => handleDelete(e, optId, optVal)}
+                          className="p-1 rounded hover:bg-rose-100 text-slate-400 hover:text-rose-600 transition"
+                        >
+                          <svg
+                            className="w-3.5 h-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="px-3 py-1.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+              <span>{options.length} options</span>
+              <span>Press Esc to close</span>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ProfileFormPage({ mode }) {
   const navigate = useNavigate();
   const { profileId } = useParams();
   const [searchParams] = useSearchParams();
   const accountId = searchParams.get("accountId") || "";
   const [form, setForm] = useState(initialProfileForm);
+  const [fieldOptions, setFieldOptions] = useState({
+    qualification: [],
+    experience: [],
+    specialization: [],
+  });
   const [videos, setVideos] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [newVideo, setNewVideo] = useState({
@@ -1551,6 +1997,40 @@ function ProfileFormPage({ mode }) {
   const [videoInputKey, setVideoInputKey] = useState(0);
   const isMainPhpReadOnly =
     mode === "edit" && String(profileId || "").startsWith("main_php:");
+
+  const loadFieldOptions = async () => {
+    try {
+      const res = await exploreCandidatesAdminApi.getFieldOptions();
+      setFieldOptions(
+        res.data.data || {
+          qualification: [],
+          experience: [],
+          specialization: [],
+        },
+      );
+    } catch (e) {
+      console.warn("Failed to load field options:", e.message);
+    }
+  };
+
+  useEffect(() => {
+    loadFieldOptions();
+  }, []);
+
+  const handleAddOption = async (fieldName, optionValue) => {
+    await exploreCandidatesAdminApi.addFieldOption(fieldName, optionValue);
+    await loadFieldOptions();
+  };
+
+  const handleUpdateOption = async (id, optionValue) => {
+    await exploreCandidatesAdminApi.updateFieldOption(id, optionValue);
+    await loadFieldOptions();
+  };
+
+  const handleDeleteOption = async (id) => {
+    await exploreCandidatesAdminApi.deleteFieldOption(id);
+    await loadFieldOptions();
+  };
 
   const normalizeDateForInput = (value) => {
     if (!value) return "";
@@ -1690,16 +2170,14 @@ function ProfileFormPage({ mode }) {
             ["countrycode", "Country code"],
             ["phone", "Phone"],
             ["expected_level", "Expected level"],
-            ["qualification", "Qualification"],
-            ["experience", "Experience"],
-            ["language", "Language"],
           ].map(([field, label]) => (
             <div key={field} className="space-y-1">
               <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
                 {label}
               </label>
               <input
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
+                disabled={isMainPhpReadOnly}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition disabled:bg-slate-100 disabled:text-slate-500"
                 placeholder={`Enter ${label.toLowerCase()}`}
                 value={form[field] || ""}
                 onChange={(e) =>
@@ -1708,6 +2186,57 @@ function ProfileFormPage({ mode }) {
               />
             </div>
           ))}
+
+          <DynamicDropdownField
+            label="Qualification"
+            field="qualification"
+            value={form.qualification || ""}
+            options={fieldOptions.qualification || []}
+            onChange={(val) => setForm((v) => ({ ...v, qualification: val }))}
+            onAddOption={handleAddOption}
+            onUpdateOption={handleUpdateOption}
+            onDeleteOption={handleDeleteOption}
+            readOnly={isMainPhpReadOnly}
+          />
+
+          <DynamicDropdownField
+            label="Experience"
+            field="experience"
+            value={form.experience || ""}
+            options={fieldOptions.experience || []}
+            onChange={(val) => setForm((v) => ({ ...v, experience: val }))}
+            onAddOption={handleAddOption}
+            onUpdateOption={handleUpdateOption}
+            onDeleteOption={handleDeleteOption}
+            readOnly={isMainPhpReadOnly}
+          />
+
+          <DynamicDropdownField
+            label="Specialization"
+            field="specialization"
+            value={form.specialization || ""}
+            options={fieldOptions.specialization || []}
+            onChange={(val) => setForm((v) => ({ ...v, specialization: val }))}
+            onAddOption={handleAddOption}
+            onUpdateOption={handleUpdateOption}
+            onDeleteOption={handleDeleteOption}
+            readOnly={isMainPhpReadOnly}
+          />
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Language
+            </label>
+            <input
+              disabled={isMainPhpReadOnly}
+              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition disabled:bg-slate-100 disabled:text-slate-500"
+              placeholder="Enter language"
+              value={form.language || ""}
+              onChange={(e) =>
+                setForm((v) => ({ ...v, language: e.target.value }))
+              }
+            />
+          </div>
 
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">

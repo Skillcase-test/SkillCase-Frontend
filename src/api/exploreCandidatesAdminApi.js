@@ -245,4 +245,17 @@ export const exploreCandidatesAdminApi = {
 
   listRecruiterLoginEvents: (params = {}) =>
     api.get("/admin/explore-candidates/recruiter-login-events", { params }),
+
+  getFieldOptions: () => api.get("/admin/explore-candidates/field-options"),
+  addFieldOption: (fieldName, optionValue) =>
+    api.post("/admin/explore-candidates/field-options", {
+      field_name: fieldName,
+      option_value: optionValue,
+    }),
+  updateFieldOption: (id, optionValue) =>
+    api.patch(`/admin/explore-candidates/field-options/${id}`, {
+      option_value: optionValue,
+    }),
+  deleteFieldOption: (id) =>
+    api.delete(`/admin/explore-candidates/field-options/${id}`),
 };
