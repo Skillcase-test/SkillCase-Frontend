@@ -21,6 +21,7 @@ vi.mock("react-router-dom", () => ({
 
 vi.mock("react-redux", () => ({
   useSelector: (selector) => selector({ auth: { user: mockUser } }),
+  useDispatch: () => vi.fn(),
 }));
 
 const mockSetLGMode = vi.fn().mockResolvedValue({ data: {} });

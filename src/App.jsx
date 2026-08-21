@@ -949,6 +949,8 @@ function AppContent() {
 
   const isJobScreeningAllowedRoute =
     location.pathname.startsWith("/job-screening") ||
+    location.pathname.startsWith("/exam") ||
+    location.pathname.startsWith("/scholarship") ||
     location.pathname === "/profile" ||
     location.pathname.startsWith("/admin") ||
     // Billing is never mode-specific — screening candidates must be able to
@@ -1949,6 +1951,8 @@ function ConditionalFooter() {
     location.pathname === "/jobs" ||
     location.pathname.startsWith("/interview") ||
     location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/exam") ||
+    location.pathname.startsWith("/b1/exams") ||
     // New app-shell screens carry the floating bottom tab bar instead.
     location.pathname === "/" ||
     location.pathname.startsWith("/scholarship") ||

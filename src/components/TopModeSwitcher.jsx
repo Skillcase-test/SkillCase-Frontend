@@ -317,11 +317,11 @@ export default function TopModeSwitcher({ isTourActive = false }) {
         </svg>
       )}
 
-      <div className="relative w-full max-w-7xl mx-auto px-3 sm:px-4">
+      <div className="relative w-full max-w-7xl mx-auto px-2 sm:px-2">
         <div
           role="tablist"
           aria-label="Learning mode"
-          className="flex items-end gap-4"
+          className="flex items-end gap-2"
         >
           {isScholarship ? (
             <SwitcherTab
@@ -362,7 +362,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 tabRef={activeTab === "practice" ? activeTabRef : undefined}
                 onClick={() => handleSwitch("practice")}
                 image={bookImg}
-                line1="Exam &"
+                line1="German"
                 line2="Practice"
                 blendColor={blendColor}
               />

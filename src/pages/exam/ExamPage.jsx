@@ -580,7 +580,6 @@ export default function ExamPage() {
   const [showNavDrawer, setShowNavDrawer] = useState(false);
   const [examClosed, setExamClosed] = useState(false);
   const [closedReason, setClosedReason] = useState("");
-  const [navbarOffset, setNavbarOffset] = useState(64);
 
   // Sentence ordering state
   const [orderedWords, setOrderedWords] = useState({});
@@ -760,31 +759,6 @@ export default function ExamPage() {
       if (backHandler) backHandler.remove();
     };
   }, [examClosed]);
-
-  useEffect(() => {
-    const updateNavbarOffset = () => {
-      const navEl = document.querySelector("nav");
-      if (!navEl) {
-        setNavbarOffset(64);
-        return;
-      }
-      const height = navEl.offsetHeight;
-      setNavbarOffset(Number.isFinite(height) && height > 0 ? height : 64);
-    };
-
-    updateNavbarOffset();
-    let resizeObserver;
-    const navEl = document.querySelector("nav");
-    if (navEl && "ResizeObserver" in window) {
-      resizeObserver = new ResizeObserver(updateNavbarOffset);
-      resizeObserver.observe(navEl);
-    }
-    window.addEventListener("resize", updateNavbarOffset);
-    return () => {
-      window.removeEventListener("resize", updateNavbarOffset);
-      if (resizeObserver) resizeObserver.disconnect();
-    };
-  }, []);
 
   // ---- WARNING HANDLER ----
   const triggerWarning = useCallback(
@@ -1021,7 +995,7 @@ export default function ExamPage() {
   // ---- RENDER ----
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <div className="sticky z-40" style={{ top: `${navbarOffset - 10}px` }}>
+      <div className="sticky top-0 z-40 bg-white shadow-xs">
         {/* Top Bar */}
         <div
           className="bg-white border-b border-gray-200 px-4 pb-2.5 flex items-center justify-between"
@@ -1123,7 +1097,7 @@ export default function ExamPage() {
                     className="rounded-xl px-3 pt-2 pb-2 bg-gray-50 border border-gray-200 mb-1"
                   >
                     <div
-                      className="font-normal leading-relaxed text-base whitespace-pre-wrap break-words break-all"
+                      className="font-normal leading-relaxed text-base whitespace-pre-wrap break-words"
                       style={{
                         color: "#111827",
                         WebkitTextFillColor: "#111827",

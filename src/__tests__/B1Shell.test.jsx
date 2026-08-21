@@ -108,7 +108,7 @@ describe("B1/B2 shell — TopModeSwitcher", () => {
     render(<TopModeSwitcher />);
 
     expect(
-      screen.getByRole("tab", { name: /exam.*practice/i }),
+      screen.getByRole("tab", { name: /german.*practice/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("tab", { name: /guided.*german/i }),
