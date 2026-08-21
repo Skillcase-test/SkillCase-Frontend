@@ -246,6 +246,11 @@ export const exploreCandidatesAdminApi = {
   listRecruiterLoginEvents: (params = {}) =>
     api.get("/admin/explore-candidates/recruiter-login-events", { params }),
 
+  listAccessRequests: (params = {}) =>
+    api.get("/admin/explore-candidates/access-requests", { params }),
+  reviewAccessRequest: (id, payload) =>
+    api.post(`/admin/explore-candidates/access-requests/${id}/review`, payload),
+
   getFieldOptions: () => api.get("/admin/explore-candidates/field-options"),
   addFieldOption: (fieldName, optionValue) =>
     api.post("/admin/explore-candidates/field-options", {

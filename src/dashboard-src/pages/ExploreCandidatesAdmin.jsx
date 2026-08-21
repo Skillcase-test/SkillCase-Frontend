@@ -375,9 +375,14 @@ function AccountsPage() {
         title="Recruiter Accounts"
         description="Manage partner recruiter accounts and their shared profile assignments."
         actions={
-          <Link to="/admin/explore-candidates/library">
-            <SecondaryButton>Library</SecondaryButton>
-          </Link>
+          <>
+            <Link to="/admin/explore-candidates/access-requests">
+              <SecondaryButton>Access Requests</SecondaryButton>
+            </Link>
+            <Link to="/admin/explore-candidates/library">
+              <SecondaryButton>Library</SecondaryButton>
+            </Link>
+          </>
         }
       >
         <div className="grid gap-4 md:grid-cols-4 items-end">
@@ -2960,6 +2965,288 @@ function ProfileFormPage({ mode }) {
   );
 }
 
+const ACCESS_REQUEST_STATUS_FILTERS = [
+  { key: "", label: "All" },
+  { key: "pending", label: "Pending" },
+  { key: "approved", label: "Approved" },
+  { key: "declined", label: "Declined" },
+];
+
+const ACCESS_REQUEST_STATUS_STYLES = {
+  pending: "bg-amber-100 text-amber-800",
+  approved: "bg-green-100 text-green-800",
+  declined: "bg-rose-100 text-rose-700",
+};
+
+function formatIstDateTime(value) {
+  return value
+    ? new Date(value).toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "-";
+}
+
+function AccessRequestsPage() {
+  const [requests, setRequests] = useState([]);
+  const [counts, setCounts] = useState({
+    pending: 0,
+    approved: 0,
+    declined: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [reviewing, setReviewing] = useState(null);
+
+  async function load() {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await exploreCandidatesAdminApi.listAccessRequests({
+        status: statusFilter,
+        search: appliedSearch,
+      });
+      setRequests(res?.data?.data || []);
+      setCounts(
+        res?.data?.counts || { pending: 0, approved: 0, declined: 0 },
+      );
+    } catch (err) {
+      setRequests([]);
+      setError(
+        err?.response?.data?.message || "Could not load access requests",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, [statusFilter, appliedSearch]);
+
+  async function review(request, action) {
+    let note = null;
+    if (action === "decline") {
+      const input = window.prompt(
+        `Decline platform access for "${request.email}"?${
+          request.account_id
+            ? "\n\nTheir linked recruiter account will be deactivated."
+            : ""
+        }\n\nOptional note (leave blank for none):`,
+        "",
+      );
+      if (input === null) return;
+      note = input.trim();
+    } else {
+      const override = request.status === "declined";
+      const confirmed = window.confirm(
+        `${override ? "Override the decline and approve" : "Approve"} access for "${request.email}"?\n\nTheir recruiter account will be ${
+          override ? "re-activated" : "created"
+        } and they can sign in with an email code.`,
+      );
+      if (!confirmed) return;
+    }
+    setReviewing({ id: request.id, action });
+    try {
+      await exploreCandidatesAdminApi.reviewAccessRequest(request.id, {
+        action,
+        note,
+      });
+      await load();
+    } catch (err) {
+      window.alert(
+        err?.response?.data?.message || "Could not update access request",
+      );
+    } finally {
+      setReviewing(null);
+    }
+  }
+
+  const busy = reviewing !== null;
+
+  return (
+    <div className="space-y-8 ">
+      <PageCard
+        title="Recruiter Access Requests"
+        description="Review sign-in requests from new recruiters. Approving creates their recruiter account; declining revokes access."
+        actions={
+          <Link to="/admin/explore-candidates">
+            <SecondaryButton>Accounts</SecondaryButton>
+          </Link>
+        }
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          {ACCESS_REQUEST_STATUS_FILTERS.map((filter) => (
+            <button
+              key={filter.key}
+              type="button"
+              onClick={() => setStatusFilter(filter.key)}
+              className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-bold transition shadow-sm cursor-pointer ${
+                statusFilter === filter.key
+                  ? "border-[#083262] bg-[#083262] text-white"
+                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              {filter.label}
+              <span
+                className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                  statusFilter === filter.key
+                    ? "bg-white/20 text-white"
+                    : "bg-slate-100 text-slate-700"
+                }`}
+              >
+                {filter.key
+                  ? counts[filter.key] ?? 0
+                  : counts.pending + counts.approved + counts.declined}
+              </span>
+            </button>
+          ))}
+          <div className="ml-auto flex items-center gap-2">
+            <input
+              className="w-64 rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
+              placeholder="Search by email"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") setAppliedSearch(searchInput.trim());
+              }}
+            />
+            <ActionButton onClick={() => setAppliedSearch(searchInput.trim())}>
+              Search
+            </ActionButton>
+            {appliedSearch ? (
+              <ActionButton
+                onClick={() => {
+                  setSearchInput("");
+                  setAppliedSearch("");
+                }}
+              >
+                Clear
+              </ActionButton>
+            ) : null}
+          </div>
+        </div>
+      </PageCard>
+
+      <div className="space-y-4">
+        {loading ? (
+          <div className="text-sm text-slate-500 px-1">
+            Loading access requests...
+          </div>
+        ) : error ? (
+          <div className="text-sm text-rose-600 px-1">{error}</div>
+        ) : (
+          <TableWrapper>
+            <TableHead>
+              <tr>
+                <th className="px-6 py-4">Email</th>
+                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-4">Requests</th>
+                <th className="px-6 py-4">Last Requested (IST)</th>
+                <th className="px-6 py-4">Review</th>
+                <th className="px-6 py-4 text-right">Actions</th>
+              </tr>
+            </TableHead>
+            <TableBody>
+              {!requests.length ? (
+                <tr>
+                  <td className="px-6 py-5 text-slate-500" colSpan={6}>
+                    No access requests found.
+                  </td>
+                </tr>
+              ) : (
+                requests.map((request) => (
+                  <tr
+                    key={request.id}
+                    className="hover:bg-slate-50 transition-colors"
+                  >
+                    <td className="px-6 py-5 align-top">
+                      <div className="font-bold text-slate-900">
+                        {request.email}
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 align-top">
+                      <span
+                        className={`inline-flex rounded-md px-2.5 py-1 text-xs font-bold capitalize ${
+                          ACCESS_REQUEST_STATUS_STYLES[request.status] ||
+                          "bg-slate-100 text-slate-700"
+                        }`}
+                      >
+                        {request.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-5 align-top">
+                      {request.request_count || 0}
+                    </td>
+                    <td className="px-6 py-5 align-top">
+                      {formatIstDateTime(request.last_requested_at)}
+                    </td>
+                    <td className="px-6 py-5 align-top">
+                      {request.reviewed_by ? (
+                        <div className="space-y-0.5">
+                          <div>{request.reviewed_by}</div>
+                          <div className="text-xs text-slate-500">
+                            {formatIstDateTime(request.reviewed_at)}
+                          </div>
+                          {request.review_note ? (
+                            <div className="text-xs italic text-slate-500">
+                              &ldquo;{request.review_note}&rdquo;
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td className="px-6 py-5 align-top">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        {request.status !== "approved" ? (
+                          <ActionButton
+                            variant="primary"
+                            disabled={busy}
+                            onClick={() => review(request, "approve")}
+                          >
+                            {reviewing?.id === request.id &&
+                            reviewing?.action === "approve" ? (
+                              <Spinner size="sm" />
+                            ) : null}
+                            {request.status === "declined"
+                              ? "Approve (Override)"
+                              : "Approve"}
+                          </ActionButton>
+                        ) : null}
+                        {request.status !== "declined" ? (
+                          <ActionButton
+                            variant="danger"
+                            disabled={busy}
+                            onClick={() => review(request, "decline")}
+                          >
+                            {reviewing?.id === request.id &&
+                            reviewing?.action === "decline" ? (
+                              <Spinner size="sm" />
+                            ) : null}
+                            {request.status === "approved"
+                              ? "Revoke Access"
+                              : "Decline"}
+                          </ActionButton>
+                        ) : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </TableBody>
+          </TableWrapper>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ExploreCandidatesAdmin() {
   return (
     <Routes>
@@ -2969,6 +3256,7 @@ export default function ExploreCandidatesAdmin() {
         element={<AccountProfilesPage />}
       />
       <Route path="library" element={<LibraryPage />} />
+      <Route path="access-requests" element={<AccessRequestsPage />} />
       <Route path="profiles/new" element={<ProfileFormPage mode="create" />} />
       <Route
         path="profiles/:profileId/edit"
