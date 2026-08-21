@@ -164,6 +164,200 @@ function ActionButton({ children, variant = "default", ...props }) {
   );
 }
 
+// Manage the sub accounts of one main account: create brand-new logins (email only),
+// reconfigure existing accounts into subs (with the data-loss warning), or detach.
+function SubAccountsModal({ parent, accounts, onClose, onChanged }) {
+  const [newEmail, setNewEmail] = useState("");
+  const [attachId, setAttachId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  if (!parent) return null;
+
+  const subs = accounts.filter((a) => a.parent_account_id === parent.id);
+  const attachCandidates = accounts.filter(
+    (a) => a.id !== parent.id && a.parent_account_id !== parent.id,
+  );
+
+  async function run(action) {
+    setError("");
+    setBusy(true);
+    try {
+      await action();
+      await onChanged();
+    } catch (err) {
+      window.alert(err?.response?.data?.message || "Something went wrong");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4">
+      <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">Sub Accounts</h3>
+            <p className="text-xs font-medium text-slate-500">
+              Main account: {parent.email}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="text-xl leading-none text-slate-500 hover:text-slate-900"
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="flex-1 space-y-6 overflow-y-auto p-6">
+          {error ? (
+            <div className="rounded-lg bg-rose-50 px-3 py-2 text-xs font-bold text-rose-700">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold text-slate-800">
+              Current Sub Accounts ({subs.length})
+            </h4>
+            {!subs.length ? (
+              <p className="text-xs font-medium text-slate-500">
+                No sub accounts yet.
+              </p>
+            ) : (
+              <div className="divide-y divide-slate-100 rounded-xl border border-slate-200">
+                {subs.map((sub) => (
+                  <div
+                    key={sub.id}
+                    className="flex items-center justify-between gap-3 px-4 py-3"
+                  >
+                    <span className="text-sm font-bold text-slate-800">
+                      {sub.email}
+                    </span>
+                    <ActionButton
+                      variant="danger"
+                      disabled={busy}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Detach "${sub.email}" from "${parent.email}"?\n\nIt becomes a standalone account with an empty workspace. Its pre-sub shortlists and scheduled calls become visible again.`,
+                          )
+                        ) {
+                          run(() =>
+                            exploreCandidatesAdminApi.detachSubAccount(
+                              parent.id,
+                              sub.id,
+                            ),
+                          );
+                        }
+                      }}
+                    >
+                      Detach
+                    </ActionButton>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="text-sm font-bold text-slate-800">Add New Sub Account</h4>
+            <p className="text-xs font-medium text-slate-500">
+              Creates a fresh login under this main account. Sign-in is by email code
+              only -- no password.
+            </p>
+            <div className="flex gap-2">
+              <input
+                className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
+                placeholder="new.user@company.com"
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+              />
+              <PrimaryButton
+                disabled={busy || !newEmail.trim()}
+                onClick={() => {
+                  const email = newEmail.trim().toLowerCase();
+                  if (!email) return;
+                  run(async () => {
+                    await exploreCandidatesAdminApi.createSubAccount(
+                      parent.id,
+                      email,
+                    );
+                    setNewEmail("");
+                  });
+                }}
+              >
+                {busy && <Spinner size="sm" />}
+                Add
+              </PrimaryButton>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="text-sm font-bold text-slate-800">
+              Attach Existing Account
+            </h4>
+            <p className="text-xs font-medium text-slate-500">
+              Reconfigure an existing account into a sub of this one. Its own shared
+              profiles are removed; it sees this workspace instead.
+            </p>
+            <div className="flex gap-2">
+              <select
+                className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
+                value={attachId}
+                onChange={(e) => setAttachId(e.target.value)}
+              >
+                <option value="">Select an account...</option>
+                {attachCandidates.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.email}
+                    {a.parent_account_id
+                      ? ` (currently sub of ${a.parent_email})`
+                      : ""}
+                  </option>
+                ))}
+              </select>
+              <PrimaryButton
+                disabled={busy || !attachId}
+                onClick={() => {
+                  const candidate = accounts.find(
+                    (a) => String(a.id) === String(attachId),
+                  );
+                  if (!candidate) return;
+                  const profileCount = candidate.total_profiles || 0;
+                  if (
+                    !window.confirm(
+                      `Reconfigure "${candidate.email}" as a sub account of "${parent.email}"?\n\n` +
+                        `- Its ${profileCount} assigned shared profile${profileCount === 1 ? "" : "s"} will be removed\n` +
+                        `- It will see exactly what ${parent.email} sees: same candidates, same statuses, same history\n` +
+                        `- Its own past shortlists and scheduled calls are hidden while attached and restored if detached later\n\n` +
+                        `Continue?`,
+                    )
+                  ) {
+                    return;
+                  }
+                  run(() =>
+                    exploreCandidatesAdminApi.attachSubAccount(
+                      parent.id,
+                      candidate.id,
+                    ),
+                  );
+                }}
+              >
+                {busy && <Spinner size="sm" />}
+                Attach
+              </PrimaryButton>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function formatRecruitmentStageLabel(stage) {
   const map = {
     in_process: "In Process",
@@ -327,9 +521,9 @@ function AccountsPage() {
   const [loginEvents, setLoginEvents] = useState([]);
   const [savingAccount, setSavingAccount] = useState(false);
   const [toggling, setToggling] = useState({});
+  const [subModalAccount, setSubModalAccount] = useState(null);
   const [form, setForm] = useState({
     email: "",
-    password: "",
     partner_logo_file: null,
     status: 1,
   });
@@ -385,7 +579,7 @@ function AccountsPage() {
           </>
         }
       >
-        <div className="grid gap-4 md:grid-cols-4 items-end">
+        <div className="grid gap-4 md:grid-cols-3 items-end">
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
               Email
@@ -396,19 +590,6 @@ function AccountsPage() {
               value={form.email}
               onChange={(e) =>
                 setForm((v) => ({ ...v, email: e.target.value }))
-              }
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-              Password
-            </label>
-            <input
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:border-[#083262] focus:ring-1 focus:ring-[#083262] outline-none transition"
-              placeholder="Enter password"
-              value={form.password}
-              onChange={(e) =>
-                setForm((v) => ({ ...v, password: e.target.value }))
               }
             />
           </div>
@@ -429,18 +610,25 @@ function AccountsPage() {
             />
           </div>
           <PrimaryButton
-            disabled={savingAccount || !form.email || !form.password}
+            disabled={savingAccount || !form.email}
             onClick={async () => {
               setSavingAccount(true);
-              await exploreCandidatesAdminApi.upsertAccount(form);
-              setForm({
-                email: "",
-                password: "",
-                partner_logo_file: null,
-                status: 1,
-              });
-              await load();
-              setSavingAccount(false);
+              try {
+                await exploreCandidatesAdminApi.upsertAccount(form);
+                setForm({
+                  email: "",
+                  partner_logo_file: null,
+                  status: 1,
+                });
+                await load();
+              } catch (error) {
+                window.alert(
+                  error?.response?.data?.message ||
+                    "Could not save account",
+                );
+              } finally {
+                setSavingAccount(false);
+              }
             }}
           >
             {savingAccount && <Spinner size="sm" />}
@@ -458,16 +646,18 @@ function AccountsPage() {
             <TableHead>
               <tr>
                 <th className="px-6 py-4">Email</th>
+                <th className="px-6 py-4">Type</th>
                 <th className="px-6 py-4">Profiles</th>
                 <th className="px-6 py-4 text-center">Mask Contacts</th>
-                <th className="px-6 py-4 text-center">Force Password</th>
                 <th className="px-6 py-4 text-center">Force Terms</th>
                 <th className="px-6 py-4 text-center">Shared Account</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </TableHead>
             <TableBody>
-              {accounts.map((account) => (
+              {accounts.map((account) => {
+                const isSub = Boolean(account.parent_account_id);
+                return (
                 <tr
                   key={account.id}
                   className="hover:bg-slate-50 transition-colors"
@@ -478,6 +668,20 @@ function AccountsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-5 align-top">
+                    {isSub ? (
+                      <span
+                        className="inline-flex rounded-md bg-blue-50 px-2.5 py-1 text-xs font-bold text-[#083262] border border-blue-100"
+                        title={`Shares the workspace of ${account.parent_email || ""}`}
+                      >
+                        Sub of {account.parent_email || "?"}
+                      </span>
+                    ) : (
+                      <span className="inline-flex rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                        Main
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-5 align-top">
                     <span className="inline-flex rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
                       {account.total_profiles || 0} Shared Profiles
                     </span>
@@ -486,7 +690,7 @@ function AccountsPage() {
                     <div className="flex justify-center items-center gap-2">
                       <ToggleSwitch
                         checked={Boolean(account.mask_contacts_enabled)}
-                        disabled={toggling[`mask-${account.id}`]}
+                        disabled={isSub || toggling[`mask-${account.id}`]}
                         onChange={async (val) => {
                           setToggling((prev) => ({
                             ...prev,
@@ -511,34 +715,8 @@ function AccountsPage() {
                   <td className="px-6 py-5 align-top">
                     <div className="flex justify-center items-center gap-2">
                       <ToggleSwitch
-                        checked={Boolean(account.force_password_change)}
-                        disabled={toggling[`force-${account.id}`]}
-                        onChange={async (val) => {
-                          setToggling((prev) => ({
-                            ...prev,
-                            [`force-${account.id}`]: true,
-                          }));
-                          await exploreCandidatesAdminApi.updateAccountSettings(
-                            account.id,
-                            {
-                              force_password_change: val,
-                            },
-                          );
-                          await load();
-                          setToggling((prev) => ({
-                            ...prev,
-                            [`force-${account.id}`]: false,
-                          }));
-                        }}
-                      />
-                      {toggling[`force-${account.id}`] && <Spinner size="sm" />}
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 align-top">
-                    <div className="flex justify-center items-center gap-2">
-                      <ToggleSwitch
                         checked={Boolean(account.force_terms_acceptance)}
-                        disabled={toggling[`terms-${account.id}`]}
+                        disabled={isSub || toggling[`terms-${account.id}`]}
                         onChange={async (val) => {
                           setToggling((prev) => ({
                             ...prev,
@@ -564,7 +742,7 @@ function AccountsPage() {
                     <div className="flex justify-center items-center gap-2">
                       <ToggleSwitch
                         checked={Boolean(account.prompt_individual_email)}
-                        disabled={toggling[`shared-${account.id}`]}
+                        disabled={isSub || toggling[`shared-${account.id}`]}
                         onChange={async (val) => {
                           setToggling((prev) => ({
                             ...prev,
@@ -590,7 +768,21 @@ function AccountsPage() {
                   </td>
                   <td className="px-6 py-5 align-top">
                     <div className="flex flex-wrap justify-end gap-2">
+                      {!isSub ? (
+                        <ActionButton
+                          onClick={() => setSubModalAccount(account)}
+                        >
+                          Sub Accounts
+                          {account.total_sub_accounts > 0
+                            ? ` (${account.total_sub_accounts})`
+                            : ""}
+                        </ActionButton>
+                      ) : null}
                       <ActionButton
+                        disabled={isSub}
+                        title={
+                          isSub ? "Managed by the main account" : undefined
+                        }
                         onClick={() =>
                           navigate(
                             `/admin/explore-candidates/accounts/${account.id}/profiles`,
@@ -600,6 +792,8 @@ function AccountsPage() {
                         Manage Profiles
                       </ActionButton>
                       <ActionButton
+                        disabled={isSub}
+                        title={isSub ? "Managed by the main account" : undefined}
                         onClick={async () => {
                           const nextEmail = window.prompt(
                             "Enter updated recruiter email",
@@ -632,6 +826,8 @@ function AccountsPage() {
                         Edit Email
                       </ActionButton>
                       <ActionButton
+                        disabled={isSub}
+                        title={isSub ? "Managed by the main account" : undefined}
                         onClick={async () => {
                           const input = document.createElement("input");
                           input.type = "file";
@@ -660,22 +856,6 @@ function AccountsPage() {
                         Update Logo
                       </ActionButton>
                       <ActionButton
-                        onClick={async () => {
-                          const res =
-                            await exploreCandidatesAdminApi.resetAccountPassword(
-                              account.id,
-                            );
-                          const generated =
-                            res?.data?.data?.generated_password || "";
-                          if (generated && navigator.clipboard?.writeText) {
-                            await navigator.clipboard.writeText(generated);
-                          }
-                          window.alert(`New password copied: ${generated}`);
-                        }}
-                      >
-                        Reset Password
-                      </ActionButton>
-                      <ActionButton
                         variant="danger"
                         onClick={async () => {
                           if (
@@ -683,10 +863,17 @@ function AccountsPage() {
                               `Delete recruiter account "${account.email}"?\n\nThis will permanently remove the account and all profile assignments.`,
                             )
                           ) {
-                            await exploreCandidatesAdminApi.deleteAccount(
-                              account.id,
-                            );
-                            await load();
+                            try {
+                              await exploreCandidatesAdminApi.deleteAccount(
+                                account.id,
+                              );
+                              await load();
+                            } catch (error) {
+                              window.alert(
+                                error?.response?.data?.message ||
+                                  "Could not delete account",
+                              );
+                            }
                           }
                         }}
                       >
@@ -695,7 +882,8 @@ function AccountsPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </TableBody>
           </TableWrapper>
         )}
@@ -759,6 +947,15 @@ function AccountsPage() {
           </TableWrapper>
         )}
       </div>
+
+      {subModalAccount ? (
+        <SubAccountsModal
+          parent={subModalAccount}
+          accounts={accounts}
+          onClose={() => setSubModalAccount(null)}
+          onChanged={load}
+        />
+      ) : null}
     </div>
   );
 }
@@ -3147,7 +3344,7 @@ function AccessRequestsPage() {
                 <th className="px-6 py-4">Status</th>
                 <th className="px-6 py-4">Requests</th>
                 <th className="px-6 py-4">Last Requested (IST)</th>
-                <th className="px-6 py-4">Review</th>
+                <th className="px-6 py-4">Reviewed By</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
             </TableHead>

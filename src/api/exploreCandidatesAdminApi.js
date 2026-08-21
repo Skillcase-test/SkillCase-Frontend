@@ -69,10 +69,10 @@ export const exploreCandidatesAdminApi = {
     api.delete(`/admin/explore-candidates/library-profiles/${encodeURIComponent(profileUid)}`),
 
   listAccounts: () => api.get("/admin/explore-candidates/accounts"),
+  // Accounts are email-only now: sign-in is OTP, no user-facing password exists.
   upsertAccount: (payload) => {
     const formData = new FormData();
     formData.append("email", payload.email || "");
-    formData.append("password", payload.password || "");
     formData.append("status", String(payload.status ?? 1));
     if (payload.partner_logo_file instanceof File) {
       formData.append("partner_logo_file", payload.partner_logo_file);
@@ -82,9 +82,17 @@ export const exploreCandidatesAdminApi = {
     }
     return api.post("/admin/explore-candidates/accounts", formData);
   },
+  createSubAccount: (accountId, email) =>
+    api.post(`/admin/explore-candidates/accounts/${accountId}/sub-accounts`, { email }),
+  attachSubAccount: (accountId, subAccountId) =>
+    api.post(
+      `/admin/explore-candidates/accounts/${accountId}/sub-accounts/${subAccountId}`,
+    ),
+  detachSubAccount: (accountId, subAccountId) =>
+    api.delete(
+      `/admin/explore-candidates/accounts/${accountId}/sub-accounts/${subAccountId}`,
+    ),
   deleteAccount: (accountId) => api.delete(`/admin/explore-candidates/accounts/${accountId}`),
-  resetAccountPassword: (accountId) =>
-    api.post(`/admin/explore-candidates/accounts/${accountId}/reset-password`),
   updateAccountSettings: (accountId, payload) =>
     api.patch(`/admin/explore-candidates/accounts/${accountId}/settings`, payload),
   updateAccountIdentity: (accountId, payload = {}) => {
