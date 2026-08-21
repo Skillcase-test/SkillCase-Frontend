@@ -358,15 +358,6 @@ export default function TopModeSwitcher({ isTourActive = false }) {
           ) : (
             <>
               <SwitcherTab
-                active={activeTab === "practice"}
-                tabRef={activeTab === "practice" ? activeTabRef : undefined}
-                onClick={() => handleSwitch("practice")}
-                image={bookImg}
-                line1="German"
-                line2="Practice"
-                blendColor={blendColor}
-              />
-              <SwitcherTab
                 active={activeTab === "learn"}
                 tabRef={activeTab === "learn" ? activeTabRef : undefined}
                 onClick={() => handleSwitch("learn")}
@@ -374,6 +365,15 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 image={mayaSmilingImg}
                 line1="Guided"
                 line2="German"
+                blendColor={blendColor}
+              />
+              <SwitcherTab
+                active={activeTab === "practice"}
+                tabRef={activeTab === "practice" ? activeTabRef : undefined}
+                onClick={() => handleSwitch("practice")}
+                image={bookImg}
+                line1="German"
+                line2="Practice"
                 blendColor={blendColor}
               />
               {showGermanClasses && (
