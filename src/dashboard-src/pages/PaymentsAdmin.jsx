@@ -707,6 +707,7 @@ export default function PaymentsAdmin() {
                   setEditDraft: state.setEditDraft,
                   handleFinalize: actions.handleFinalize,
                   handleSendAgreement: actions.handleSendAgreement,
+                  handleGenerateDetailsLink: actions.handleGenerateDetailsLink,
                   handleDeleteCandidate: actions.handleDeleteCandidate,
                   handleTagRecruitment: actions.handleTagRecruitment,
                   allSortBy: state.allSortBy,

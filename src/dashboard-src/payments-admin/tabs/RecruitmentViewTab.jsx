@@ -10,6 +10,7 @@ export function RecruitmentViewTab({
   setEditDraft,
   handleFinalize,
   handleSendAgreement,
+  handleGenerateDetailsLink,
   handleDeleteCandidate,
   savingEnrollmentId,
   sendingAgreementEnrollmentId,
@@ -473,7 +474,7 @@ export function RecruitmentViewTab({
                                     View
                                   </ActionChip>
                                 )}
-                                {r.agreement_signing_url && (
+                                {r.agreement_signing_url ? (
                                   <ActionChip
                                     onClick={() =>
                                       handleCopyLink(
@@ -490,6 +491,16 @@ export function RecruitmentViewTab({
                                     {copiedEnrollmentId === r.enrollment_id
                                       ? "Copied"
                                       : "Copy Link"}
+                                  </ActionChip>
+                                ) : (
+                                  <ActionChip
+                                    onClick={() => handleGenerateDetailsLink?.(r)}
+                                    disabled={isSending}
+                                    title="Agreement was signed via job screening, so this link skips the document and opens the details form."
+                                  >
+                                    {isSending
+                                      ? "Generating..."
+                                      : "Generate Details Link"}
                                   </ActionChip>
                                 )}
                               </div>
@@ -518,7 +529,7 @@ export function RecruitmentViewTab({
                                     View
                                   </ActionChip>
                                 )}
-                                {r.agreement_signing_url && (
+                                {r.agreement_signing_url ? (
                                   <ActionChip
                                     onClick={() =>
                                       handleCopyLink(
@@ -535,6 +546,16 @@ export function RecruitmentViewTab({
                                     {copiedEnrollmentId === r.enrollment_id
                                       ? "Copied"
                                       : "Copy Link"}
+                                  </ActionChip>
+                                ) : (
+                                  <ActionChip
+                                    onClick={() => handleGenerateDetailsLink?.(r)}
+                                    disabled={isSending}
+                                    title="Agreement was signed via job screening, so this link skips the document and opens the details form."
+                                  >
+                                    {isSending
+                                      ? "Generating..."
+                                      : "Generate Details Link"}
                                   </ActionChip>
                                 )}
                               </div>

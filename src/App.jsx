@@ -949,6 +949,10 @@ function AppContent() {
 
   const isJobScreeningAllowedRoute =
     location.pathname.startsWith("/job-screening") ||
+    // Recruitment enrollments reuse /terms/sign for the agreement + details
+    // wizard; a screening candidate enrolled by an admin must still be able
+    // to open it instead of being bounced back into the pipeline.
+    location.pathname.startsWith("/terms/sign") ||
     location.pathname.startsWith("/exam") ||
     location.pathname.startsWith("/scholarship") ||
     location.pathname === "/profile" ||

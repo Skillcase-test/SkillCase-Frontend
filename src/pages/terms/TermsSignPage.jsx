@@ -1976,7 +1976,7 @@ export default function TermsSignPage() {
           
           <button
             type="button"
-            onClick={() => { window.location.href = "https://skillcase.in"; }}
+            onClick={() => { window.location.href = "https://learner.skillcase.in"; }}
             className="mt-8 w-full py-3 rounded-full bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm transition-colors shadow-md shadow-slate-900/10"
           >
             Go to Skillcase
