@@ -36,6 +36,12 @@ const AD_SET_OPTIONS = [
   { value: "App Install", label: "App Install" },
 ];
 
+const COMPANY_OPTIONS = [
+  { value: "", label: "-- Select Profession / Company --" },
+  { value: "Nurse", label: "Nurse" },
+  { value: "Physiotherapist", label: "Physiotherapist" },
+];
+
 // Custom dropdown (button + chevron + option list) — same pattern used across
 // the app (e.g. the language selector on the video player). The selected value
 // is synced to a hidden form input so the submission payload stays identical
@@ -138,9 +144,11 @@ function CustomDropdown({
 export default function InternalLeadForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [companyName, setCompanyName] = useState("");
   const [languageLevel, setLanguageLevel] = useState("");
   const [adSet, setAdSet] = useState("");
   const [formErrors, setFormErrors] = useState({
+    companyName: false,
     languageLevel: false,
     adSet: false,
   });
@@ -153,14 +161,15 @@ export default function InternalLeadForm() {
     // Custom dropdowns have no native <select> to enforce `required`, so
     // mirror the original validation here — an empty selection blocks submit.
     const nextErrors = {
+      companyName: !companyName,
       languageLevel: !languageLevel,
       adSet: !adSet,
     };
-    if (nextErrors.languageLevel || nextErrors.adSet) {
+    if (nextErrors.companyName || nextErrors.languageLevel || nextErrors.adSet) {
       setFormErrors(nextErrors);
       return;
     }
-    setFormErrors({ languageLevel: false, adSet: false });
+    setFormErrors({ companyName: false, languageLevel: false, adSet: false });
     setIsSubmitting(true);
 
     try {
@@ -227,9 +236,10 @@ export default function InternalLeadForm() {
           <button
             onClick={() => {
               formRef.current?.reset();
+              setCompanyName("");
               setLanguageLevel("");
               setAdSet("");
-              setFormErrors({ languageLevel: false, adSet: false });
+              setFormErrors({ companyName: false, languageLevel: false, adSet: false });
               setSubmitSuccess(false);
             }}
             className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-[#002856] text-white font-bold text-xs rounded-xl hover:bg-[#001e40] transition-colors cursor-pointer"
@@ -265,6 +275,11 @@ export default function InternalLeadForm() {
             <input type="hidden" name="CONTACTCF1" value="Candidate" />
 
             {/* Hidden inputs carry the custom dropdown values for Bigin + Pabbly */}
+            <input
+              type="hidden"
+              name="Accounts.Account Name"
+              value={companyName}
+            />
             <input type="hidden" name="CONTACTCF4" value={languageLevel} />
             <input type="hidden" name="CONTACTCF8" value={adSet} />
 
@@ -291,17 +306,24 @@ export default function InternalLeadForm() {
               <label className={labelClass}>
                 Company Name <span className="text-rose-500">*</span>
               </label>
-              <div className="relative">
-                <Building2 className={iconClass} />
-                <input
-                  type="text"
-                  name="Accounts.Account Name"
-                  required
-                  maxLength="200"
-                  className={inputClass}
-                  placeholder="Enter company name"
-                />
-              </div>
+              <CustomDropdown
+                options={COMPANY_OPTIONS}
+                value={companyName}
+                onChange={(val) => {
+                  setCompanyName(val);
+                  if (val) {
+                    setFormErrors((prev) => ({ ...prev, companyName: false }));
+                  }
+                }}
+                placeholder="-- Select Profession / Company --"
+                icon={Building2}
+                invalid={formErrors.companyName}
+              />
+              {formErrors.companyName && (
+                <p className="mt-1.5 text-[10px] font-semibold text-rose-500">
+                  Please select a company/profession
+                </p>
+              )}
             </div>
 
             {/* Mobile */}

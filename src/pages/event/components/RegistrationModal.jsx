@@ -7,6 +7,14 @@ import { useSelector } from "react-redux";
 import api from "../../../api/axios.js";
 import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
 
+const LANGUAGE_LEVEL_OPTIONS = [
+  "Yet to learn",
+  "A1",
+  "A2",
+  "B1",
+  "B2",
+];
+
 export default function RegistrationModal({
   event,
   isOpen,
@@ -15,7 +23,12 @@ export default function RegistrationModal({
   instanceDate,
 }) {
   const { user } = useSelector((state) => state.auth);
-  const [formData, setFormData] = useState({ name: "", email: "", phone: "" });
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    language_level: "",
+  });
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(null);
@@ -28,6 +41,8 @@ export default function RegistrationModal({
         name: user.username || "",
         email: "",
         phone: user.number || "",
+        language_level:
+          user.language_level || user.current_profeciency_level || "",
       });
     }
   }, [user]);
@@ -88,6 +103,11 @@ export default function RegistrationModal({
       return;
     }
 
+    if (!formData.language_level) {
+      setError("Please select your German language level");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -100,6 +120,7 @@ export default function RegistrationModal({
         event_title: event.title,
         is_featured: event.is_featured,
         instance_date: instanceDate || null,
+        language_level: formData.language_level,
       });
       setSuccess(true);
       onSuccess?.();
@@ -213,6 +234,27 @@ export default function RegistrationModal({
                 {phoneError && (
                   <p className="text-red-600 text-sm mt-1">{phoneError}</p>
                 )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  German Language Level *
+                </label>
+                <select
+                  name="language_level"
+                  value={formData.language_level}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#163B72] bg-white text-gray-700"
+                >
+                  <option value="" disabled>
+                    Select German Language Level
+                  </option>
+                  {LANGUAGE_LEVEL_OPTIONS.map((level) => (
+                    <option key={level} value={level}>
+                      {level}
+                    </option>
+                  ))}
+                </select>
               </div>
               {error && <p className="text-red-600 text-sm">{error}</p>}
               <button

@@ -33,6 +33,7 @@ export default function EventRegistrations() {
       "Name",
       "Email",
       "Phone",
+      "Language Level",
       "Registered At",
       "Confirmation Sent",
       "User ID",
@@ -42,6 +43,7 @@ export default function EventRegistrations() {
       reg.name,
       reg.email,
       reg.phone,
+      reg.language_level || "-",
       new Date(reg.registered_at).toLocaleString(),
       reg.confirmation_sent ? "Yes" : "No",
       reg.user_id || "Guest",
@@ -107,6 +109,9 @@ export default function EventRegistrations() {
                 Phone
               </th>
               <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">
+                Language Level
+              </th>
+              <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">
                 Registered At
               </th>
               <th className="text-left px-6 py-4 text-sm font-semibold text-gray-700">
@@ -120,7 +125,7 @@ export default function EventRegistrations() {
           <tbody className="divide-y divide-gray-200">
             {registrations.length === 0 ? (
               <tr>
-                <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
                   No registrations yet
                 </td>
               </tr>
@@ -135,6 +140,9 @@ export default function EventRegistrations() {
                   </td>
                   <td className="px-6 py-4 text-gray-600">{reg.email}</td>
                   <td className="px-6 py-4 text-gray-600">{reg.phone}</td>
+                  <td className="px-6 py-4 text-gray-600">
+                    {reg.language_level || "-"}
+                  </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {new Date(reg.registered_at).toLocaleString()}
                   </td>
@@ -146,7 +154,7 @@ export default function EventRegistrations() {
                           : "bg-red-100 text-red-800"
                       }`}
                     >
-                      {reg.confirmation_sent ? "✅ Yes" : "❌ No"}
+                      {reg.confirmation_sent ? "Yes" : "No"}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
