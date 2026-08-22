@@ -22,6 +22,8 @@ const CandidateList = ({
   endDate,
   proficiencyLevel,
   onProficiencyLevelChange,
+  sortBy,
+  onSortChange,
   onStartDateChange,
   onEndDateChange,
   onClearDates,
@@ -45,6 +47,21 @@ const CandidateList = ({
           </div>
 
           <div className="flex flex-wrap items-end gap-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                Sort By
+              </span>
+              <select
+                value={sortBy}
+                onChange={(e) => onSortChange(e.target.value)}
+                className="h-8 min-w-24 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600 outline-none transition focus:border-[#083262] focus:ring-2 focus:ring-[#083262]/10"
+              >
+                <option value="activity_desc">Last Updated</option>
+                <option value="created_desc">Created (Newest)</option>
+                <option value="created_asc">Created (Oldest)</option>
+              </select>
+            </label>
+
             <label className="flex flex-col gap-1">
               <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
                 Proficiency

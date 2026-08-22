@@ -64,6 +64,7 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [statusFilter, setStatusFilter] = useState("total");
+  const [sortBy, setSortBy] = useState("activity_desc");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [proficiencyLevel, setProficiencyLevel] = useState("");
@@ -112,7 +113,7 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
     }
   };
 
-  // Adjust viewport height to eliminate double scrollbars, only when JobScreeningAdmin is mounted
+  // Lock the viewport height only on desktop; on mobile let the page scroll naturally
   useEffect(() => {
     const mainEl = document.querySelector("main");
     const outerEl = mainEl?.closest(".min-h-screen");
@@ -120,24 +121,36 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
     if (mainEl && outerEl) {
       const originalMainClass = mainEl.className;
       const originalOuterClass = outerEl.className;
+      const desktop = window.matchMedia("(min-width: 1024px)");
 
-      mainEl.classList.remove("min-h-[calc(100vh-24px)]");
-      mainEl.classList.add(
-        "h-[calc(100vh-79px)]",
-        "lg:h-[calc(100vh-96px)]",
-        "overflow-hidden",
-        "flex",
-        "flex-col",
-      );
+      const applyLayout = () => {
+        if (!desktop.matches) {
+          mainEl.className = originalMainClass;
+          outerEl.className = originalOuterClass;
+          return;
+        }
+        mainEl.classList.remove("min-h-[calc(100vh-24px)]");
+        mainEl.classList.add(
+          "h-[calc(100vh-79px)]",
+          "lg:h-[calc(100vh-96px)]",
+          "overflow-hidden",
+          "flex",
+          "flex-col",
+        );
 
-      outerEl.classList.remove("min-h-screen");
-      outerEl.classList.add(
-        "h-[calc(100vh-55px)]",
-        "lg:h-[calc(100vh-72px)]",
-        "overflow-hidden",
-      );
+        outerEl.classList.remove("min-h-screen");
+        outerEl.classList.add(
+          "h-[calc(100vh-55px)]",
+          "lg:h-[calc(100vh-72px)]",
+          "overflow-hidden",
+        );
+      };
+
+      applyLayout();
+      desktop.addEventListener("change", applyLayout);
 
       return () => {
+        desktop.removeEventListener("change", applyLayout);
         mainEl.className = originalMainClass;
         outerEl.className = originalOuterClass;
       };
@@ -166,6 +179,7 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
         startDate,
         endDate,
         proficiencyLevel,
+        sortBy,
       );
       if (res.data?.success) {
         setCandidates(res.data.data || []);
@@ -184,10 +198,15 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
 
   useEffect(() => {
     fetchList();
-  }, [page, appliedSearch, statusFilter, startDate, endDate, proficiencyLevel]);
+  }, [page, appliedSearch, statusFilter, startDate, endDate, proficiencyLevel, sortBy]);
 
   const handleSummaryFilter = (filter) => {
     setStatusFilter(filter);
+    setPage(1);
+  };
+
+  const handleSortChange = (value) => {
+    setSortBy(value);
     setPage(1);
   };
 
@@ -825,6 +844,8 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
                   setProficiencyLevel(value);
                   setPage(1);
                 }}
+                sortBy={sortBy}
+                onSortChange={handleSortChange}
                 onStartDateChange={(value) => {
                   setStartDate(value);
                   setPage(1);
