@@ -261,7 +261,8 @@ export const exploreCandidatesAdminApi = {
 
   // Recruiter job postings -- admin can view them and manage candidate assignment
   // only; creating/editing/closing stays with the recruiter.
-  listAllJobs: () => api.get("/admin/explore-candidates/jobs"),
+  listAllJobs: (params = {}) =>
+    api.get("/admin/explore-candidates/jobs", { params }),
   getJobAdminDetail: (jobId) =>
     api.get(`/admin/explore-candidates/jobs/${jobId}`),
   assignJobCandidates: (jobId, profileIds) =>
