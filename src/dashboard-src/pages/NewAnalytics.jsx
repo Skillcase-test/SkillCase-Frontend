@@ -56,6 +56,23 @@ const FILTERS = {
     ["app", "Mobile app"],
     ["web", "Web / PWA"],
   ],
+  trial_status: [
+    ["all", "Any trial state"],
+    ["on_trial", "On trial"],
+    ["expired", "Trial expired"],
+    ["none", "No trial"],
+  ],
+};
+
+const TRIAL_BADGES = {
+  on_trial: {
+    label: "On trial",
+    className: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+  },
+  expired: {
+    label: "Trial ended",
+    className: "bg-slate-100 text-slate-500 ring-slate-200",
+  },
 };
 
 const FEATURE_LABELS = {
@@ -660,6 +677,7 @@ function ModulePerformanceTable({
   rows = [],
   featureLabel,
   rangeLabel,
+  showFeature = false,
   onOpen,
 }) {
   const [showAll, setShowAll] = useState(false);
@@ -701,7 +719,11 @@ function ModulePerformanceTable({
       </div>
       {rows.length === 0 ? (
         <div className="border-t border-slate-100 px-7 py-10">
-          <EmptyState message="No module activity for this feature in the selected range." />
+          <EmptyState
+            message={`No module activity for ${
+              showFeature ? "any feature" : "this feature"
+            } in the selected range.`}
+          />
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -711,6 +733,11 @@ function ModulePerformanceTable({
                 <th className="px-7 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                   Lesson name
                 </th>
+                {showFeature && (
+                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    Feature
+                  </th>
+                )}
                 <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                   Level
                 </th>
@@ -730,6 +757,16 @@ function ModulePerformanceTable({
                       {row.module_label}
                     </span>
                   </td>
+                  {showFeature && (
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-lg border border-slate-100 px-2 py-0.5 text-[10px] font-bold ${getFeatureTheme(row.feature, false).iconBg}`}
+                      >
+                        {FEATURE_LABELS[row.feature] ||
+                          fallbackJourneyLabel(row.feature)}
+                      </span>
+                    </td>
+                  )}
                   <td className="px-4 py-3 text-xs font-semibold text-slate-500">
                     {LEVEL_LABELS[row.level] || row.level || "—"}
                   </td>
@@ -1266,13 +1303,20 @@ export default function NewAnalytics({ me }) {
     );
     const featureKeys = availableFeatures.map((f) => f.key);
     const rawFeature = params.get("feature");
-    const feature = featureKeys.includes(rawFeature)
-      ? rawFeature
-      : featureKeys[0] || "flashcards";
+    const feature =
+      rawFeature === "all" || featureKeys.includes(rawFeature)
+        ? rawFeature
+        : featureKeys[0] || "flashcards";
     const allowed = (key, fallback) => {
       const val = params.get(key) || fallback;
       return FILTERS[key].some(([o]) => o === val) ? val : fallback;
     };
+    const knownVersions = catalog?.app_versions || null;
+    const rawVersion = params.get("app_version") || "all";
+    const appVersion =
+      rawVersion === "all" || (knownVersions || []).includes(rawVersion)
+        ? rawVersion
+        : "all";
     // The journeys tab stays on a single day because a journey timeline is
     // stored per day. The features tab reads an inclusive window, defaulting
     // to that same single day so existing links keep working.
@@ -1299,6 +1343,8 @@ export default function NewAnalytics({ me }) {
       user_type: allowed("user_type", "all"),
       learner_stage: allowed("learner_stage", "all"),
       platform: allowed("platform", "all"),
+      app_version: appVersion,
+      trial_status: allowed("trial_status", "all"),
       page: Math.max(1, Number(params.get("page") || 1)),
       limit: [10, 20, 50].includes(Number(params.get("limit")))
         ? Number(params.get("limit"))
@@ -1378,6 +1424,7 @@ export default function NewAnalytics({ me }) {
       next.set("page", "1");
       if (
         nextTab === "features" &&
+        next.get("feature") !== "all" &&
         !catalog?.features?.some((f) => f.key === next.get("feature"))
       ) {
         next.set("feature", catalog?.features?.[0]?.key || "flashcards");
@@ -1428,6 +1475,8 @@ export default function NewAnalytics({ me }) {
             date: filters.date_to,
             page: filters.page,
             limit: filters.limit,
+            app_version: filters.app_version,
+            trial_status: filters.trial_status,
           });
     request
       .then((result) => {
@@ -1514,10 +1563,10 @@ export default function NewAnalytics({ me }) {
   );
 
   // Options converters for ControlDropdown
-  const featureDropdownOptions = visibleFeatures.map((f) => ({
-    value: f.key,
-    label: f.label,
-  }));
+  const featureDropdownOptions = [
+    { value: "all", label: "All Features" },
+    ...visibleFeatures.map((f) => ({ value: f.key, label: f.label })),
+  ];
 
   const levelDropdownOptions = (catalog?.levels || []).map((lvl) => ({
     value: lvl,
@@ -1543,6 +1592,16 @@ export default function NewAnalytics({ me }) {
     value: val,
     label: lbl,
   }));
+
+  const trialOptions = FILTERS.trial_status.map(([val, lbl]) => ({
+    value: val,
+    label: lbl,
+  }));
+
+  const versionOptions = [
+    { value: "all", label: "All versions" },
+    ...(catalog?.app_versions || []).map((v) => ({ value: v, label: `v${v}` })),
+  ];
 
   // Render
 
@@ -1603,8 +1662,8 @@ export default function NewAnalytics({ me }) {
           <div
             className={`grid gap-x-5 gap-y-4 px-7 py-6 ${
               tab === "features"
-                ? "grid-cols-1 sm:grid-cols-3 lg:grid-cols-7"
-                : "max-w-sm grid-cols-1"
+                ? "grid-cols-1 sm:grid-cols-3 lg:grid-cols-5"
+                : "max-w-4xl grid-cols-1 sm:grid-cols-3"
             }`}
           >
             {/* Calendar Day Control — a window on features, one day on journeys */}
@@ -1654,20 +1713,54 @@ export default function NewAnalytics({ me }) {
                 </div>
               </>
             ) : (
-              <div className="flex flex-col">
-                <label className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                  IST calendar day
-                </label>
-                <ControlInput
-                  type="date"
-                  aria-label="Calendar day select"
-                  max={catalog?.default_date}
-                  min={catalog?.available_from || undefined}
-                  value={filters.date_to}
-                  onChange={(e) => updateRange(e.target.value, e.target.value)}
-                  className="w-full text-sm font-semibold text-slate-700"
-                />
-              </div>
+              <>
+                <div className="flex flex-col">
+                  <label className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    IST calendar day
+                  </label>
+                  <ControlInput
+                    type="date"
+                    aria-label="Calendar day select"
+                    max={catalog?.default_date}
+                    min={catalog?.available_from || undefined}
+                    value={filters.date_to}
+                    onChange={(e) => updateRange(e.target.value, e.target.value)}
+                    className="w-full text-sm font-semibold text-slate-700"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <label
+                    htmlFor="analytics-trial-journeys"
+                    className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400"
+                  >
+                    Trial
+                  </label>
+                  <ControlDropdown
+                    id="analytics-trial-journeys"
+                    value={filters.trial_status}
+                    options={trialOptions}
+                    onChange={(v) => update("trial_status", v)}
+                    fixedMenu={true}
+                    className="w-full"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <label
+                    htmlFor="analytics-version-journeys"
+                    className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400"
+                  >
+                    App version
+                  </label>
+                  <ControlDropdown
+                    id="analytics-version-journeys"
+                    value={filters.app_version}
+                    options={versionOptions}
+                    onChange={(v) => update("app_version", v)}
+                    fixedMenu={true}
+                    className="w-full"
+                  />
+                </div>
+              </>
             )}
 
             {tab === "features" && (
@@ -1756,6 +1849,40 @@ export default function NewAnalytics({ me }) {
                     className="w-full"
                   />
                 </div>
+
+                <div className="flex flex-col">
+                  <label
+                    htmlFor="analytics-trial"
+                    className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400"
+                  >
+                    Trial
+                  </label>
+                  <ControlDropdown
+                    id="analytics-trial"
+                    value={filters.trial_status}
+                    options={trialOptions}
+                    onChange={(v) => update("trial_status", v)}
+                    fixedMenu={true}
+                    className="w-full"
+                  />
+                </div>
+
+                <div className="flex flex-col">
+                  <label
+                    htmlFor="analytics-app-version"
+                    className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400"
+                  >
+                    App version
+                  </label>
+                  <ControlDropdown
+                    id="analytics-app-version"
+                    value={filters.app_version}
+                    options={versionOptions}
+                    onChange={(v) => update("app_version", v)}
+                    fixedMenu={true}
+                    className="w-full"
+                  />
+                </div>
               </>
             )}
           </div>
@@ -1801,6 +1928,16 @@ export default function NewAnalytics({ me }) {
                 <Users className="h-3 w-3" />
                 Eligible = last seen on v{catalog.min_app_version}+ (older
                 builds cannot report)
+              </span>
+            )}
+            {catalog?.trial_status_note && (
+              <span
+                className="inline-flex items-center gap-1.5 text-[10px] text-slate-400"
+                title={catalog.trial_status_note}
+              >
+                <Clock3 className="h-3 w-3" />
+                Trial = the selected day falls inside the user&apos;s claim
+                window; blank means never claimed
               </span>
             )}
           </div>
@@ -1881,24 +2018,26 @@ export default function NewAnalytics({ me }) {
                 />
               </div>
 
-              {/* Conversion funnel */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
-                <div className="mb-6 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-base font-bold text-slate-900">
-                      Conversion Funnel
-                    </h2>
-                    <p className="mt-0.5 text-xs text-slate-400">
-                      Unique candidates reaching each semantic stage &middot;{" "}
-                      {formatRangeLabel(filters.date_from, filters.date_to)}
-                    </p>
+              {/* Conversion funnel — feature-specific stages, so hidden under All */}
+              {filters.feature !== "all" && metrics.funnel?.length > 0 && (
+                <div className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
+                  <div className="mb-6 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-base font-bold text-slate-900">
+                        Conversion Funnel
+                      </h2>
+                      <p className="mt-0.5 text-xs text-slate-400">
+                        Unique candidates reaching each semantic stage &middot;{" "}
+                        {formatRangeLabel(filters.date_from, filters.date_to)}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-500">
+                      {metrics.funnel.length} steps
+                    </span>
                   </div>
-                  <span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-500">
-                    {metrics.funnel?.length || 0} steps
-                  </span>
+                  <HorizontalFunnel rows={metrics.funnel} />
                 </div>
-                <HorizontalFunnel rows={metrics.funnel} />
-              </div>
+              )}
 
               {/* Per-module performance for the selected feature */}
               <ModulePerformanceTable
@@ -1908,6 +2047,7 @@ export default function NewAnalytics({ me }) {
                   filters.date_from,
                   filters.date_to,
                 )}
+                showFeature={filters.feature === "all"}
                 onOpen={openModuleUsers}
               />
 
@@ -2028,6 +2168,23 @@ export default function NewAnalytics({ me }) {
                               <p className="mt-0.5 text-[11px] text-slate-400">
                                 {user.phone || "—"}
                               </p>
+                              {(TRIAL_BADGES[user.trial_status] ||
+                                user.app_version) && (
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {TRIAL_BADGES[user.trial_status] && (
+                                    <span
+                                      className={`rounded px-1.5 py-0.5 text-[9px] font-bold ring-1 ${TRIAL_BADGES[user.trial_status].className}`}
+                                    >
+                                      {TRIAL_BADGES[user.trial_status].label}
+                                    </span>
+                                  )}
+                                  {user.app_version && (
+                                    <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold text-indigo-600 ring-1 ring-indigo-100">
+                                      v{user.app_version}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </td>
