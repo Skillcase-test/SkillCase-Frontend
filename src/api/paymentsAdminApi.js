@@ -22,6 +22,11 @@ export const paymentsAdminApi = {
     api.patch(`/admin/payments/enrollments/${enrollmentId}`, payload),
   sendAgreement: (enrollmentId) =>
     api.post(`/admin/payments/enrollments/${enrollmentId}/send-agreement`),
+  // Creates (or returns) an envelope pre-marked as signed for enrollments
+  // whose agreement was already completed via job screening, so the signing
+  // URL opens the details wizard directly instead of the document.
+  generateDetailsLink: (enrollmentId) =>
+    api.post(`/admin/payments/enrollments/${enrollmentId}/details-link`),
   getPaymentDocumentUploadUrl: (payload) =>
     api.post("/admin/payments/documents/upload-url", payload),
   getPaymentDocumentDownloadUrl: (key) =>

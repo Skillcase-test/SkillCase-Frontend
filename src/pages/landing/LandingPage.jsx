@@ -83,6 +83,8 @@ export default function LandingPage() {
   const isB1User = isB1PracticeLevel(user?.user_prof_level);
   const isJobScreening =
     !isB1User &&
+    lgMode !== "practice" &&
+    lgMode !== "learn" &&
     (user?.german_preference === "3" ||
       user?.lg_preferred_mode === "job_screening");
   // Scholarship candidates live in the exam funnel until they opt into a

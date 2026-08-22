@@ -51,6 +51,7 @@ export default function ExamLobby() {
     return (
       <div
         className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col p-4"
+        style={{ paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))" }}
         aria-label="Loading exam"
       >
         <div className="h-6 w-32 bg-slate-200 rounded mb-6 animate-pulse" />
@@ -70,10 +71,10 @@ export default function ExamLobby() {
         <ShieldAlert className="w-16 h-16 text-red-400 mb-4" />
         <p className="text-gray-700 text-lg font-medium mb-4">{error}</p>
         <button
-          onClick={() => navigate("/")}
-          className="px-6 py-2 bg-[#002856] text-white rounded-xl font-semibold"
+          onClick={() => navigate(-1)}
+          className="px-6 py-2 bg-[#002856] text-white rounded-xl font-semibold cursor-pointer"
         >
-          Go Home
+          Go Back
         </button>
       </div>
     );
@@ -88,10 +89,13 @@ export default function ExamLobby() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="px-4 py-3 flex items-center border-b border-gray-200">
+      <div
+        className="px-4 pb-3 flex items-center border-b border-gray-200 bg-white sticky top-0 z-20"
+        style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
+      >
         <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-sm font-semibold text-[#181d27] cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
           <span>Back</span>

@@ -316,6 +316,9 @@ const VideoPlayerPage = lazy(
 );
 const NotesListPage = lazy(() => import("./pages/notes/NotesListPage"));
 const NotePreviewPage = lazy(() => import("./pages/notes/NotePreviewPage"));
+const DeepLinkRedirect = lazy(
+  () => import("./pages/deepLink/DeepLinkRedirect"),
+);
 
 const MAX_RETRY_ATTEMPTS = 3;
 
@@ -349,7 +352,9 @@ function AppContent() {
   const dispatch = useDispatch();
   const { token, user, isAuthenticated } = useSelector((state) => state.auth);
   const location = useLocation();
-  const [authBootstrapping, setAuthBootstrapping] = useState(Boolean(token && !user));
+  const [authBootstrapping, setAuthBootstrapping] = useState(
+    Boolean(token && !user),
+  );
 
   useEffect(() => {
     // Hide the native Capacitor splash screen smoothly once the web view has mounted
@@ -949,6 +954,12 @@ function AppContent() {
 
   const isJobScreeningAllowedRoute =
     location.pathname.startsWith("/job-screening") ||
+    // Recruitment enrollments reuse /terms/sign for the agreement + details
+    // wizard; a screening candidate enrolled by an admin must still be able
+    // to open it instead of being bounced back into the pipeline.
+    location.pathname.startsWith("/terms/sign") ||
+    location.pathname.startsWith("/exam") ||
+    location.pathname.startsWith("/scholarship") ||
     location.pathname === "/profile" ||
     location.pathname.startsWith("/admin") ||
     // Billing is never mode-specific — screening candidates must be able to
@@ -1218,6 +1229,10 @@ function AppContent() {
                     element={lazyScreen(<FallbackPage />, "Loading...")}
                   />
                   <Route
+                    path="/redirect"
+                    element={lazyScreen(<DeepLinkRedirect />, "Redirecting...")}
+                  />
+                  <Route
                     path="/terms/sign/:token"
                     element={lazyScreen(<TermsSignPage />, "Loading Terms...")}
                   />
@@ -1228,10 +1243,7 @@ function AppContent() {
                       "Loading Document...",
                     )}
                   />
-                  <Route
-                    path="/onboarding"
-                    element={<OnboardingFlow />}
-                  />
+                  <Route path="/onboarding" element={<OnboardingFlow />} />
                   <Route
                     path="/job-screening"
                     element={lazyScreen(<JobScreening />, "Loading Jobs...")}
@@ -1836,18 +1848,21 @@ function AppContent() {
                   <Route
                     path="/video-courses"
                     element={
-                      <FeatureFlagGated featureKey="german_classes" redirectTo="/">
-                        {lazyScreen(
-                          <CourseSelectPage />,
-                          "Loading Courses...",
-                        )}
+                      <FeatureFlagGated
+                        featureKey="german_classes"
+                        redirectTo="/"
+                      >
+                        {lazyScreen(<CourseSelectPage />, "Loading Courses...")}
                       </FeatureFlagGated>
                     }
                   />
                   <Route
                     path="/notes"
                     element={
-                      <FeatureFlagGated featureKey="german_classes" redirectTo="/">
+                      <FeatureFlagGated
+                        featureKey="german_classes"
+                        redirectTo="/"
+                      >
                         {lazyScreen(<NotesListPage />, "Loading Notes...")}
                       </FeatureFlagGated>
                     }
@@ -1855,7 +1870,10 @@ function AppContent() {
                   <Route
                     path="/notes/:noteId"
                     element={
-                      <FeatureFlagGated featureKey="german_classes" redirectTo="/">
+                      <FeatureFlagGated
+                        featureKey="german_classes"
+                        redirectTo="/"
+                      >
                         {lazyScreen(<NotePreviewPage />, "Loading Note...")}
                       </FeatureFlagGated>
                     }
@@ -1863,7 +1881,10 @@ function AppContent() {
                   <Route
                     path="/video-courses/:courseId"
                     element={
-                      <FeatureFlagGated featureKey="german_classes" redirectTo="/">
+                      <FeatureFlagGated
+                        featureKey="german_classes"
+                        redirectTo="/"
+                      >
                         {lazyScreen(<VideoListPage />, "Loading Videos...")}
                       </FeatureFlagGated>
                     }
@@ -1871,11 +1892,11 @@ function AppContent() {
                   <Route
                     path="/video-course/:videoId"
                     element={
-                      <FeatureFlagGated featureKey="german_classes" redirectTo="/">
-                        {lazyScreen(
-                          <VideoPlayerPage />,
-                          "Loading Video...",
-                        )}
+                      <FeatureFlagGated
+                        featureKey="german_classes"
+                        redirectTo="/"
+                      >
+                        {lazyScreen(<VideoPlayerPage />, "Loading Video...")}
                       </FeatureFlagGated>
                     }
                   />
@@ -1949,6 +1970,8 @@ function ConditionalFooter() {
     location.pathname === "/jobs" ||
     location.pathname.startsWith("/interview") ||
     location.pathname.startsWith("/admin") ||
+    location.pathname.startsWith("/exam") ||
+    location.pathname.startsWith("/b1/exams") ||
     // New app-shell screens carry the floating bottom tab bar instead.
     location.pathname === "/" ||
     location.pathname.startsWith("/scholarship") ||

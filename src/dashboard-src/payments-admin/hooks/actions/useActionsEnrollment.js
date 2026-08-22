@@ -293,6 +293,62 @@ export function useActionsEnrollment(state) {
     }
   }
 
+  // For candidates whose agreement was already signed via job screening (so
+  // no envelope exists for the enrollment): create a details-only link. The
+  // backend marks the envelope signed up-front, so opening it skips the
+  // document and lands straight on the candidate-details wizard.
+  async function handleGenerateDetailsLink(row) {
+    const enrollmentId = row?.enrollment_id;
+    if (!enrollmentId) return;
+    const name = String(row?.student_name || "").trim();
+    const phone = row?.student_phone;
+    const email = String(row?.student_email || "").trim();
+    if (!name || name === "-") {
+      setError("candidate name is required before generating a details link");
+      return;
+    }
+    if (!isValidCandidatePhone(phone)) {
+      setError("candidate phone number is required before generating a details link");
+      return;
+    }
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setError("candidate email is required before generating a details link");
+      return;
+    }
+    const confirmed = window.confirm(
+      `Generate a details link for ${row.student_name || "this candidate"}? Their agreement is already signed, so the link opens the details form directly.`,
+    );
+    if (!confirmed) return;
+    setError("");
+    setNotice?.("");
+    setSendingAgreementEnrollmentId?.(enrollmentId);
+    try {
+      const res = await paymentsAdminApi.generateDetailsLink(enrollmentId);
+      const signingUrl =
+        res.data?.envelope?.signing_url || res.data?.signing_url || "";
+      if (signingUrl) {
+        try {
+          await navigator.clipboard.writeText(signingUrl);
+          setNotice?.("Details link copied to clipboard!");
+        } catch (clipErr) {
+          console.error("Clipboard copy failed:", clipErr);
+        }
+        setCopyLinkModal?.({
+          open: true,
+          url: signingUrl,
+          studentName: row.student_name || "Candidate",
+        });
+      } else {
+        setNotice?.("Details link generated.");
+      }
+      await loadTabData();
+    } catch (err) {
+      setError(err?.response?.data?.msg || "Could not generate details link");
+    } finally {
+      setSendingAgreementEnrollmentId?.("");
+    }
+  }
+
   async function handleTagRecruitment(enrollmentId, studentName) {
     if (!enrollmentId) return;
     const confirmed = window.confirm(
@@ -321,6 +377,7 @@ export function useActionsEnrollment(state) {
     handleSaveEnrollmentEdit,
     handleStartManualCandidate,
     handleSendAgreement,
+    handleGenerateDetailsLink,
     handleTagRecruitment,
   };
 }

@@ -2,7 +2,14 @@ import { useState, useEffect } from "react";
 import { ActionChip, ControlDropdown } from "../components/controls";
 import { StatCard } from "../components/common";
 import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
-import { ArrowUp, ArrowDown, ArrowUpDown, X, Trash2, Loader2 } from "lucide-react";
+import {
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+  X,
+  Trash2,
+  Loader2,
+} from "lucide-react";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 
 export function RecruitmentViewTab({
@@ -10,6 +17,7 @@ export function RecruitmentViewTab({
   setEditDraft,
   handleFinalize,
   handleSendAgreement,
+  handleGenerateDetailsLink,
   handleDeleteCandidate,
   savingEnrollmentId,
   sendingAgreementEnrollmentId,
@@ -305,11 +313,13 @@ export function RecruitmentViewTab({
                       <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
                         Dropped
                       </span>
-                    ) : r.status === "archived" || r.lifecycle_state === "archived" ? (
+                    ) : r.status === "archived" ||
+                      r.lifecycle_state === "archived" ? (
                       <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
                         Rejected
                       </span>
-                    ) : r.status === "refunded" || r.lifecycle_state === "refunded" ? (
+                    ) : r.status === "refunded" ||
+                      r.lifecycle_state === "refunded" ? (
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
                         Refunded
                       </span>
@@ -321,7 +331,8 @@ export function RecruitmentViewTab({
                       <span className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">
                         Completed
                       </span>
-                    ) : r.lifecycle_state === "active" || r.status === "finalized" ? (
+                    ) : r.lifecycle_state === "active" ||
+                      r.status === "finalized" ? (
                       <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
                         Active
                       </span>
@@ -351,9 +362,7 @@ export function RecruitmentViewTab({
                       >
                         Details
                       </ActionChip>
-                      <ActionChip
-                        onClick={() => setReceiptCandidate(r)}
-                      >
+                      <ActionChip onClick={() => setReceiptCandidate(r)}>
                         Receipt
                       </ActionChip>
                       {r.status !== "archived" &&
@@ -473,7 +482,7 @@ export function RecruitmentViewTab({
                                     View
                                   </ActionChip>
                                 )}
-                                {r.agreement_signing_url && (
+                                {r.agreement_signing_url ? (
                                   <ActionChip
                                     onClick={() =>
                                       handleCopyLink(
@@ -490,6 +499,18 @@ export function RecruitmentViewTab({
                                     {copiedEnrollmentId === r.enrollment_id
                                       ? "Copied"
                                       : "Copy Link"}
+                                  </ActionChip>
+                                ) : (
+                                  <ActionChip
+                                    onClick={() =>
+                                      handleGenerateDetailsLink?.(r)
+                                    }
+                                    disabled={isSending}
+                                    title="Agreement was signed via job screening, so this link skips the document and opens the details form."
+                                  >
+                                    {isSending
+                                      ? "Generating..."
+                                      : "Generate Link"}
                                   </ActionChip>
                                 )}
                               </div>
@@ -518,7 +539,7 @@ export function RecruitmentViewTab({
                                     View
                                   </ActionChip>
                                 )}
-                                {r.agreement_signing_url && (
+                                {r.agreement_signing_url ? (
                                   <ActionChip
                                     onClick={() =>
                                       handleCopyLink(
@@ -535,6 +556,18 @@ export function RecruitmentViewTab({
                                     {copiedEnrollmentId === r.enrollment_id
                                       ? "Copied"
                                       : "Copy Link"}
+                                  </ActionChip>
+                                ) : (
+                                  <ActionChip
+                                    onClick={() =>
+                                      handleGenerateDetailsLink?.(r)
+                                    }
+                                    disabled={isSending}
+                                    title="Agreement was signed via job screening, so this link skips the document and opens the details form."
+                                  >
+                                    {isSending
+                                      ? "Generating..."
+                                      : "Generate Details Link"}
                                   </ActionChip>
                                 )}
                               </div>
@@ -572,7 +605,9 @@ export function RecruitmentViewTab({
                           disabled={savingEnrollmentId === r.enrollment_id}
                           variant="success"
                         >
-                          {savingEnrollmentId === r.enrollment_id ? "Finalizing..." : "Finalize"}
+                          {savingEnrollmentId === r.enrollment_id
+                            ? "Finalizing..."
+                            : "Finalize"}
                         </ActionChip>
                       )}
                       <ActionChip
@@ -598,7 +633,7 @@ export function RecruitmentViewTab({
           </tbody>
         </table>
       </div>
-      
+
       {receiptCandidate && (
         <ReceiptPaymentsModal
           candidate={receiptCandidate}
@@ -621,7 +656,9 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
   const loadCandidatePayments = async () => {
     setLoading(true);
     try {
-      const res = await paymentsAdminApi.getCandidatePaymentsWithReceipts(candidate.enrollment_id);
+      const res = await paymentsAdminApi.getCandidatePaymentsWithReceipts(
+        candidate.enrollment_id,
+      );
       setPayments(res.data.rows || []);
     } catch (err) {
       console.error(err);
@@ -637,7 +674,7 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
       await paymentsAdminApi.generateReceipt({
         enrollment_id: candidate.enrollment_id,
         payment_id: paymentId,
-        state: candidate.notes?.state || "Karnataka"
+        state: candidate.notes?.state || "Karnataka",
       });
       await loadCandidatePayments();
     } catch (err) {
@@ -671,7 +708,11 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
   };
 
   const handleSend = async (receiptId) => {
-    if (!window.confirm(`Are you sure you want to send this receipt email to ${candidate.student_email}?`)) {
+    if (
+      !window.confirm(
+        `Are you sure you want to send this receipt email to ${candidate.student_email}?`,
+      )
+    ) {
       return;
     }
     setActionLoading(receiptId);
@@ -688,7 +729,9 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
   };
 
   const handleDeleteDraft = async (receiptId) => {
-    if (!window.confirm("Are you sure you want to delete this draft receipt?")) {
+    if (
+      !window.confirm("Are you sure you want to delete this draft receipt?")
+    ) {
       return;
     }
     setActionLoading(receiptId);
@@ -706,7 +749,6 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
       <div className="relative w-full max-w-4xl bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden flex flex-col max-h-[85vh]">
-        
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
           <div>
@@ -714,7 +756,11 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
               Receipt Generation
             </h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Candidate: <span className="font-semibold text-slate-700">{candidate.student_name}</span> ({candidate.student_email || "No Email"})
+              Candidate:{" "}
+              <span className="font-semibold text-slate-700">
+                {candidate.student_name}
+              </span>{" "}
+              ({candidate.student_email || "No Email"})
             </p>
           </div>
           <button
@@ -730,7 +776,9 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
-              <span className="text-sm text-slate-500 font-medium">Fetching transactions...</span>
+              <span className="text-sm text-slate-500 font-medium">
+                Fetching transactions...
+              </span>
             </div>
           ) : payments.length === 0 ? (
             <div className="text-center py-16 text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
@@ -753,10 +801,16 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
                   {payments.map((p) => {
                     const hasReceipt = !!p.receipt_id;
                     const isSent = p.receipt_status === "sent";
-                    const isLoading = !!actionLoading && (actionLoading === p.receipt_id || actionLoading === p.payment_id);
+                    const isLoading =
+                      !!actionLoading &&
+                      (actionLoading === p.receipt_id ||
+                        actionLoading === p.payment_id);
 
                     return (
-                      <tr key={p.payment_id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr
+                        key={p.payment_id}
+                        className="hover:bg-slate-50/50 transition-colors"
+                      >
                         <td className="px-4 py-3 font-medium text-slate-700">
                           {p.paid_at ? formatIstDateTime(p.paid_at) : "-"}
                         </td>
@@ -781,7 +835,9 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
                               </span>
                             )
                           ) : (
-                            <span className="text-slate-400 text-xs">No Receipt</span>
+                            <span className="text-slate-400 text-xs">
+                              No Receipt
+                            </span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">
@@ -806,7 +862,9 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
                                 {!isSent && (
                                   <>
                                     <ActionChip
-                                      onClick={() => handleGenerate(p.payment_id)}
+                                      onClick={() =>
+                                        handleGenerate(p.payment_id)
+                                      }
                                       variant="secondary"
                                     >
                                       Regenerate
@@ -818,7 +876,9 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
                                       Send
                                     </ActionChip>
                                     <button
-                                      onClick={() => handleDeleteDraft(p.receipt_id)}
+                                      onClick={() =>
+                                        handleDeleteDraft(p.receipt_id)
+                                      }
                                       className="p-1 rounded text-rose-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
                                       title="Delete Draft"
                                     >
@@ -846,7 +906,7 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
             </div>
           )}
         </div>
-        
+
         {/* Footer */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end">
           <button
@@ -856,9 +916,7 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
             Close
           </button>
         </div>
-
       </div>
     </div>
   );
 }
-

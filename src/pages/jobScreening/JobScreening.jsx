@@ -230,12 +230,25 @@ const JobScreening = () => {
   }, [isExecutingStep, executingStepId]);
 
   useEffect(() => {
-    if (progress && activeStepRef.current) {
+    if (progress && activeStepRef.current && !isExecutingStep) {
       const timeoutId = setTimeout(() => {
-        activeStepRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
+        const el = activeStepRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        // Target positioning: active card top sits around 70% from top of viewport
+        const targetTop = window.innerHeight * 0.7;
+        const delta = rect.top - targetTop;
+
+        const scrollContainer = el.closest(".overflow-y-auto");
+        if (
+          scrollContainer &&
+          scrollContainer !== document.documentElement &&
+          scrollContainer !== document.body
+        ) {
+          scrollContainer.scrollBy({ top: delta, behavior: "smooth" });
+        } else {
+          window.scrollBy({ top: delta, behavior: "smooth" });
+        }
       }, 300);
       return () => clearTimeout(timeoutId);
     }
@@ -811,9 +824,9 @@ const JobScreening = () => {
   ) {
     return (
       <div
-        className={`${pipelineMinHeightClass} bg-linear-to-b from-[#002856] to-[#134074] w-full flex flex-col justify-center items-center pt-2 sm:pt-3 px-4 overflow-y-auto`}
+        className={`${pipelineMinHeightClass} bg-linear-to-b from-[#002856] to-[#134074] w-full flex flex-col justify-start sm:justify-center items-center pt-2 sm:pt-3 px-4 overflow-y-auto`}
         style={{
-          paddingBottom: "calc(6rem + env(safe-area-inset-bottom, 0px))",
+          paddingBottom: "calc(9rem + env(safe-area-inset-bottom, 0px))",
         }}
       >
         <AnimatePresence mode="wait">
@@ -840,7 +853,7 @@ const JobScreening = () => {
         className="min-h-screen bg-white w-full flex flex-col items-center overflow-y-auto"
         style={{
           paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))",
-          paddingBottom: "calc(2rem + env(safe-area-inset-bottom, 0px))",
+          paddingBottom: "calc(3rem + env(safe-area-inset-bottom, 0px))",
         }}
       >
         <div className="w-full max-w-md px-4">
@@ -900,7 +913,10 @@ const JobScreening = () => {
   // 3. Central Job Progress Timeline screen (Progress Lobby)
   return (
     <div
-      className={`w-full ${pipelineMinHeightClass} bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] pt-6 pb-28 px-4 flex flex-col items-center overflow-y-auto`}
+      className={`w-full ${pipelineMinHeightClass} bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] pt-6 px-4 flex flex-col items-center overflow-y-auto`}
+      style={{
+        paddingBottom: "calc(9rem + env(safe-area-inset-bottom, 0px))",
+      }}
     >
       <div className="w-full max-w-md flex flex-col gap-6">
         {/* Header Block with Circular Progress Ring */}

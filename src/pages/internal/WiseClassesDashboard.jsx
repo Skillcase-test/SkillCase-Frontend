@@ -514,6 +514,16 @@ export default function WiseClassesDashboard() {
   const [attendanceModalSession, setAttendanceModalSession] = useState(null);
   const [notesJobRunning, setNotesJobRunning] = useState(false);
   const [notesJobSummary, setNotesJobSummary] = useState(null);
+  const [notesJobRanToday, setNotesJobRanToday] = useState(() => {
+    try {
+      return (
+        localStorage.getItem("wise_daily_notes_last_run_date") ===
+        toDateString(new Date())
+      );
+    } catch {
+      return false;
+    }
+  });
 
   const copyJoinLink = async (sessionId, joinUrl) => {
     try {
@@ -719,11 +729,17 @@ export default function WiseClassesDashboard() {
   }
 
   async function handleRunWiseNotesJob() {
+    if (notesJobRanToday || notesJobRunning) return;
     setNotesJobRunning(true);
     setError("");
     try {
       const summary = await wiseApi.post("/wise/daily-notes/run");
       setNotesJobSummary(summary);
+      const today = toDateString(new Date());
+      try {
+        localStorage.setItem("wise_daily_notes_last_run_date", today);
+      } catch {}
+      setNotesJobRanToday(true);
     } catch (e) {
       setError(
         e.response?.data?.detail ||
@@ -813,18 +829,35 @@ export default function WiseClassesDashboard() {
 
               <button
                 onClick={handleRunWiseNotesJob}
-                className="inline-flex items-center gap-2 rounded-xl border border-[#083262] bg-white px-4 py-2 text-sm font-bold text-[#083262] transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60 shrink-0 h-9 mt-4 cursor-pointer"
-                disabled={notesJobRunning}
+                className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold transition shrink-0 h-9 mt-4 ${
+                  notesJobRanToday
+                    ? "border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed"
+                    : "border-[#083262] bg-white text-[#083262] hover:bg-blue-50 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                }`}
+                disabled={notesJobRunning || notesJobRanToday}
+                title={
+                  notesJobRanToday
+                    ? "Daily notes job has already been executed for today"
+                    : "Trigger daily notes job for previous day sessions"
+                }
               >
-                <FileText
-                  className="w-4 h-4"
-                  style={
-                    notesJobRunning
-                      ? { animation: "spin 1s linear infinite" }
-                      : {}
-                  }
-                />
-                {notesJobRunning ? "Running Notes..." : "Run Notes Job"}
+                {notesJobRanToday ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                ) : (
+                  <FileText
+                    className="w-4 h-4"
+                    style={
+                      notesJobRunning
+                        ? { animation: "spin 1s linear infinite" }
+                        : {}
+                    }
+                  />
+                )}
+                {notesJobRunning
+                  ? "Running Notes..."
+                  : notesJobRanToday
+                    ? "Notes Run Today"
+                    : "Run Notes Job"}
               </button>
             </div>
           </div>

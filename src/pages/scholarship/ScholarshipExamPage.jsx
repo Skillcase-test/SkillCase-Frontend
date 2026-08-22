@@ -589,7 +589,6 @@ export default function ScholarshipExamPage() {
   const [examClosed, setExamClosed] = useState(false);
   const [closedReason, setClosedReason] = useState("");
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  const [navbarOffset, setNavbarOffset] = useState(64);
 
   // Sentence ordering state
   const [orderedWords, setOrderedWords] = useState({});
@@ -813,31 +812,6 @@ export default function ScholarshipExamPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examClosed]);
-
-  useEffect(() => {
-    const updateNavbarOffset = () => {
-      const navEl = document.querySelector("nav");
-      if (!navEl) {
-        setNavbarOffset(64);
-        return;
-      }
-      const height = navEl.offsetHeight;
-      setNavbarOffset(Number.isFinite(height) && height > 0 ? height : 64);
-    };
-
-    updateNavbarOffset();
-    let resizeObserver;
-    const navEl = document.querySelector("nav");
-    if (navEl && "ResizeObserver" in window) {
-      resizeObserver = new ResizeObserver(updateNavbarOffset);
-      resizeObserver.observe(navEl);
-    }
-    window.addEventListener("resize", updateNavbarOffset);
-    return () => {
-      window.removeEventListener("resize", updateNavbarOffset);
-      if (resizeObserver) resizeObserver.disconnect();
-    };
-  }, []);
 
   // ---- WARNING HANDLER ----
   const triggerWarning = useCallback(
@@ -1071,7 +1045,7 @@ export default function ScholarshipExamPage() {
   // ---- RENDER ----
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <div className="sticky z-40">
+      <div className="sticky top-0 z-40 bg-white shadow-xs">
         {/* Top Bar */}
         <div
           className="bg-white px-4 pb-2.5 flex items-center justify-between"
@@ -1182,7 +1156,7 @@ export default function ScholarshipExamPage() {
                     className="rounded-xl px-4 pt-3 pb-3 bg-white border border-[#e5e9f0] shadow-sm mb-1"
                   >
                     <div
-                      className="font-normal leading-relaxed text-base whitespace-pre-wrap break-words break-all"
+                      className="font-normal leading-relaxed text-base whitespace-pre-wrap break-words"
                       style={{
                         color: "#111827",
                         WebkitTextFillColor: "#111827",

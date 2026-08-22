@@ -128,7 +128,9 @@ describe("TopModeSwitcher — scholarship variant", () => {
     await waitFor(() => {
       expect(screen.getAllByRole("tab")).toHaveLength(3);
     });
-    expect(screen.getByText("Exam &")).toBeInTheDocument();
+    expect(
+      screen.getByRole("tab", { name: /german.*practice/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Guided")).toBeInTheDocument();
     expect(screen.getByText("Classes")).toBeInTheDocument();
   });

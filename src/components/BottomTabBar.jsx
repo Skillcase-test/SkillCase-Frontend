@@ -113,7 +113,10 @@ export default function BottomTabBar() {
           try {
             const stored = sessionStorage.getItem("last_rendered_streak");
             if (stored === null) {
-              sessionStorage.setItem("last_rendered_streak", String(nextStreak));
+              sessionStorage.setItem(
+                "last_rendered_streak",
+                String(nextStreak),
+              );
               setStreakToRender(nextStreak);
             }
           } catch {}
@@ -226,7 +229,8 @@ export default function BottomTabBar() {
       if (raw) {
         sessionStorage.removeItem("lg_recent_completed_lesson");
         const parsed = JSON.parse(raw);
-        const hasSeenFull = localStorage.getItem("lg_vault_flyin_seen") === "true";
+        const hasSeenFull =
+          localStorage.getItem("lg_vault_flyin_seen") === "true";
         const count = parsed.count || parsed.words?.length || 4;
         const words =
           parsed.words && parsed.words.length > 0
@@ -249,9 +253,12 @@ export default function BottomTabBar() {
           localStorage.setItem("lg_vault_flyin_seen", "true");
         }
 
-        const timer = setTimeout(() => {
-          setVaultAnimationState((prev) => ({ ...prev, active: false }));
-        }, !hasSeenFull ? 2600 : 1800);
+        const timer = setTimeout(
+          () => {
+            setVaultAnimationState((prev) => ({ ...prev, active: false }));
+          },
+          !hasSeenFull ? 2600 : 1800,
+        );
 
         return () => clearTimeout(timer);
       }
@@ -272,16 +279,18 @@ export default function BottomTabBar() {
 
   return (
     <div
-      className="fixed bottom-0 inset-x-0 z-[100] bg-white shadow-[0px_-1px_58px_0px_rgba(0,0,0,0.08)]"
+      className="fixed bottom-0 inset-x-0 z-[100] bg-white"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <div className="relative h-20 w-full max-w-7xl mx-auto px-4 pt-2 pb-4 flex items-center justify-between z-20">
+      <div className="relative h-18 w-full max-w-7xl mx-auto px-4 py-4 flex items-center justify-between z-20">
         {/* Home */}
         <Link
           to="/"
           onClick={() => {
             hapticLight();
-            trackFeatureEvent("navigation", "bottom_tab_clicked", { entityId: "home" });
+            trackFeatureEvent("navigation", "bottom_tab_clicked", {
+              entityId: "home",
+            });
           }}
           className={`w-14 flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-lg transition-colors ${
             isHome ? "bg-[#f4f4f6]" : "hover:bg-stone-500/5"
@@ -310,7 +319,9 @@ export default function BottomTabBar() {
           to={jobsHref}
           onClick={() => {
             hapticLight();
-            trackFeatureEvent("navigation", "bottom_tab_clicked", { entityId: "jobs" });
+            trackFeatureEvent("navigation", "bottom_tab_clicked", {
+              entityId: "jobs",
+            });
             if (isB1) {
               localStorage.setItem("lg_preferred_mode", "job_screening");
               localStorage.setItem("lg_mode_switched_at", String(Date.now()));
@@ -351,7 +362,9 @@ export default function BottomTabBar() {
           onClick={() => {
             if (mode === "learn") {
               hapticLight();
-              trackFeatureEvent("navigation", "bottom_tab_clicked", { entityId: "recap" });
+              trackFeatureEvent("navigation", "bottom_tab_clicked", {
+                entityId: "recap",
+              });
               navigate("/learn-german/recap");
             }
           }}
@@ -472,10 +485,18 @@ export default function BottomTabBar() {
               )
             ) : mode === "learn" ? (
               <>
-                <span className={vaultAnimationState.active ? "text-blue-600 font-bold" : ""}>
+                <span
+                  className={
+                    vaultAnimationState.active ? "text-blue-600 font-bold" : ""
+                  }
+                >
                   German
                 </span>
-                <span className={vaultAnimationState.active ? "text-blue-600 font-bold" : ""}>
+                <span
+                  className={
+                    vaultAnimationState.active ? "text-blue-600 font-bold" : ""
+                  }
+                >
                   words learnt
                 </span>
               </>
@@ -522,7 +543,9 @@ export default function BottomTabBar() {
           title="Streak leaderboard"
           onClick={() => {
             hapticLight();
-            trackFeatureEvent("navigation", "bottom_tab_clicked", { entityId: "streak" });
+            trackFeatureEvent("navigation", "bottom_tab_clicked", {
+              entityId: "streak",
+            });
             window.dispatchEvent(new CustomEvent("openLeaderboard"));
             document.dispatchEvent(new CustomEvent("openLeaderboard"));
           }}
@@ -568,7 +591,9 @@ function SpeedometerCounter({
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
         const easeOut = 1 - Math.pow(1 - progress, 2.2);
-        const currentInt = Math.round(startValue + (endValue - startValue) * easeOut);
+        const currentInt = Math.round(
+          startValue + (endValue - startValue) * easeOut,
+        );
 
         setDisplayValue(currentInt);
 
@@ -595,11 +620,7 @@ function SpeedometerCounter({
 
   const content = (
     <motion.div
-      animate={
-        isCounting
-          ? { scale: 1.2, y: -3 }
-          : { scale: 1, y: 0 }
-      }
+      animate={isCounting ? { scale: 1.2, y: -3 } : { scale: 1, y: 0 }}
       transition={{
         type: "spring",
         stiffness: 380,
@@ -645,7 +666,10 @@ function SpeedometerCounter({
   }
 
   return (
-    <div id={id} className="w-14 flex flex-col items-center justify-center p-1.5 select-none">
+    <div
+      id={id}
+      className="w-14 flex flex-col items-center justify-center p-1.5 select-none"
+    >
       {content}
     </div>
   );
@@ -742,7 +766,7 @@ function ScholarshipBottomBar({ user, streak }) {
       className="fixed bottom-0 inset-x-0 z-[100] bg-white shadow-[0px_-1px_58px_0px_rgba(0,0,0,0.08)]"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <div className="relative h-20 w-full max-w-7xl mx-auto px-4 pt-2 pb-4 flex items-center justify-between z-20">
+      <div className="relative h-16 w-full max-w-7xl mx-auto px-4 pt-2 pb-4 flex items-center justify-between z-20">
         {/* Home — back to the scholarship hub (the only live tab) */}
         <Link
           to="/scholarship"
@@ -767,7 +791,10 @@ function ScholarshipBottomBar({ user, streak }) {
         </Link>
 
         {/* Jobs — locked for scholarship candidates */}
-        <div className={lockedSlot} title="Available after the scholarship exam">
+        <div
+          className={lockedSlot}
+          title="Available after the scholarship exam"
+        >
           <img
             src={bagImg}
             alt="Jobs"
@@ -817,7 +844,10 @@ function ScholarshipBottomBar({ user, streak }) {
         </div>
 
         {/* Coins — locked for scholarship candidates */}
-        <div className={lockedSlot} title="Available after the scholarship exam">
+        <div
+          className={lockedSlot}
+          title="Available after the scholarship exam"
+        >
           <img
             src={COIN_IMG_URL}
             alt="Coins"
@@ -830,7 +860,10 @@ function ScholarshipBottomBar({ user, streak }) {
         </div>
 
         {/* Streak — locked for scholarship candidates */}
-        <div className={lockedSlot} title="Available after the scholarship exam">
+        <div
+          className={lockedSlot}
+          title="Available after the scholarship exam"
+        >
           <img
             src={STREAK_IMG_URL}
             alt="Streak"
