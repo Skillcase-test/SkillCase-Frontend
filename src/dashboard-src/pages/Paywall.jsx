@@ -32,6 +32,15 @@ function formatIst(value) {
   });
 }
 
+function formatTrialEnd(value) {
+  if (!value) return "";
+  return new Date(value).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 function Paywall() {
   const [students, setStudents] = useState([]);
   const [prospects, setProspects] = useState([]);
@@ -300,6 +309,7 @@ function Paywall() {
                     <th className="px-4 py-3 text-left">Student</th>
                     <th className="px-4 py-3 text-left">Phone</th>
                     <th className="px-4 py-3 text-center">Level</th>
+                    <th className="px-4 py-3 text-center">Trial Ends</th>
                     <th className="px-4 py-3 text-center">Autopay Status</th>
                     <th className="px-4 py-3 text-center">Paywall Active</th>
                     <th className="px-4 py-3 text-right">Actions</th>
@@ -308,14 +318,14 @@ function Paywall() {
                 <tbody className="text-sm divide-y divide-slate-100">
                   {loadingStudents ? (
                     <tr>
-                      <td colSpan="6" className="text-center py-12 text-slate-400">
+                      <td colSpan="7" className="text-center py-12 text-slate-400">
                         <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-500" />
                         Fetching directories...
                       </td>
                     </tr>
                   ) : students.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="text-center py-12 text-slate-400">
+                      <td colSpan="7" className="text-center py-12 text-slate-400">
                         No students found.
                       </td>
                     </tr>
@@ -336,6 +346,18 @@ function Paywall() {
                             {String(student.current_profeciency_level || "").toUpperCase() === "B1" &&
                               ` ${student.is_job_screening ? "Job Screening" : "Practice"}`}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          {student.trial_end_at ? (
+                            <span
+                              className="text-xs font-semibold text-amber-700"
+                              title={`Trial started: ${formatTrialEnd(student.trial_started_at) || "—"}`}
+                            >
+                              Ends {formatTrialEnd(student.trial_end_at)} IST
+                            </span>
+                          ) : (
+                            ""
+                          )}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-center">
                           {getAutopayBadge(student.autopay_status, student.autopay_enabled)}
