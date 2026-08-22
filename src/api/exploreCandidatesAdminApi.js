@@ -259,6 +259,18 @@ export const exploreCandidatesAdminApi = {
   reviewAccessRequest: (id, payload) =>
     api.post(`/admin/explore-candidates/access-requests/${id}/review`, payload),
 
+  // Recruiter job postings -- admin can view them and manage candidate assignment
+  // only; creating/editing/closing stays with the recruiter.
+  listAllJobs: () => api.get("/admin/explore-candidates/jobs"),
+  getJobAdminDetail: (jobId) =>
+    api.get(`/admin/explore-candidates/jobs/${jobId}`),
+  assignJobCandidates: (jobId, profileIds) =>
+    api.post(`/admin/explore-candidates/jobs/${jobId}/candidates`, {
+      profile_ids: profileIds,
+    }),
+  unassignJobCandidate: (jobId, profileId) =>
+    api.delete(`/admin/explore-candidates/jobs/${jobId}/candidates/${profileId}`),
+
   getFieldOptions: () => api.get("/admin/explore-candidates/field-options"),
   addFieldOption: (fieldName, optionValue) =>
     api.post("/admin/explore-candidates/field-options", {

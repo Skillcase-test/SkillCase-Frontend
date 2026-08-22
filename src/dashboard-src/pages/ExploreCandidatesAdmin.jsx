@@ -9,6 +9,10 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { exploreCandidatesAdminApi } from "../../api/exploreCandidatesAdminApi";
+import {
+  JobsAdminPage,
+  JobAssignPage,
+} from "./ExploreCandidatesJobsAdmin";
 
 const initialProfileForm = {
   fullname: "",
@@ -76,7 +80,7 @@ function ToggleSwitch({ checked, onChange, disabled }) {
   );
 }
 
-function PageCard({ title, description, children, actions }) {
+export function PageCard({ title, description, children, actions }) {
   return (
     <div className="space-y-6 ">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -99,7 +103,7 @@ function PageCard({ title, description, children, actions }) {
   );
 }
 
-function TableWrapper({ children }) {
+export function TableWrapper({ children }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ">
       <div className="overflow-x-auto">
@@ -109,7 +113,7 @@ function TableWrapper({ children }) {
   );
 }
 
-function TableHead({ children }) {
+export function TableHead({ children }) {
   return (
     <thead className="bg-slate-50 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 border-b border-slate-200">
       {children}
@@ -117,7 +121,7 @@ function TableHead({ children }) {
   );
 }
 
-function TableBody({ children }) {
+export function TableBody({ children }) {
   return (
     <tbody className="divide-y divide-slate-100 text-sm text-slate-700 font-medium">
       {children}
@@ -149,7 +153,7 @@ function SecondaryButton({ children, ...props }) {
   );
 }
 
-function ActionButton({ children, variant = "default", ...props }) {
+export function ActionButton({ children, variant = "default", ...props }) {
   const base =
     "inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer";
   const variants = {
@@ -570,6 +574,9 @@ function AccountsPage() {
         description="Manage partner recruiter accounts and their shared profile assignments."
         actions={
           <>
+            <Link to="/admin/explore-candidates/jobs">
+              <SecondaryButton>Jobs</SecondaryButton>
+            </Link>
             <Link to="/admin/explore-candidates/access-requests">
               <SecondaryButton>Access Requests</SecondaryButton>
             </Link>
@@ -649,6 +656,7 @@ function AccountsPage() {
                 <th className="px-6 py-4">Type</th>
                 <th className="px-6 py-4">Profiles</th>
                 <th className="px-6 py-4 text-center">Mask Contacts</th>
+                <th className="px-6 py-4 text-center">Job Posting</th>
                 <th className="px-6 py-4 text-center">Force Terms</th>
                 <th className="px-6 py-4 text-center">Shared Account</th>
                 <th className="px-6 py-4 text-right">Actions</th>
@@ -710,6 +718,40 @@ function AccountsPage() {
                         }}
                       />
                       {toggling[`mask-${account.id}`] && <Spinner size="sm" />}
+                    </div>
+                  </td>
+                  <td className="px-6 py-5 align-top">
+                    <div className="flex justify-center items-center gap-2">
+                      <ToggleSwitch
+                        checked={Boolean(account.job_posting_enabled)}
+                        disabled={isSub || toggling[`job-${account.id}`]}
+                        onChange={async (val) => {
+                          setToggling((prev) => ({
+                            ...prev,
+                            [`job-${account.id}`]: true,
+                          }));
+                          try {
+                            await exploreCandidatesAdminApi.updateAccountSettings(
+                              account.id,
+                              {
+                                job_posting_enabled: val,
+                              },
+                            );
+                            await load();
+                          } catch (error) {
+                            window.alert(
+                              error?.response?.data?.message ||
+                                "Could not update job posting setting",
+                            );
+                          } finally {
+                            setToggling((prev) => ({
+                              ...prev,
+                              [`job-${account.id}`]: false,
+                            }));
+                          }
+                        }}
+                      />
+                      {toggling[`job-${account.id}`] && <Spinner size="sm" />}
                     </div>
                   </td>
                   <td className="px-6 py-5 align-top">
@@ -3454,6 +3496,8 @@ export default function ExploreCandidatesAdmin() {
       />
       <Route path="library" element={<LibraryPage />} />
       <Route path="access-requests" element={<AccessRequestsPage />} />
+      <Route path="jobs" element={<JobsAdminPage />} />
+      <Route path="jobs/:jobId" element={<JobAssignPage />} />
       <Route path="profiles/new" element={<ProfileFormPage mode="create" />} />
       <Route
         path="profiles/:profileId/edit"
