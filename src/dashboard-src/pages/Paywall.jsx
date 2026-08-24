@@ -12,6 +12,9 @@ import {
   Activity,
   Calendar,
   RotateCcw,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { ControlDropdown } from "../payments-admin/components/controls";
 
@@ -27,15 +30,22 @@ const STATUS_TABS = [
   { value: "inactive", label: "Paywall Inactive" },
 ];
 
-const SORT_OPTIONS = [
-  { value: "default", label: "Default (Active Trials First)" },
-  { value: "created_desc", label: "Created (Newest)" },
-  { value: "created_asc", label: "Created (Oldest)" },
-  { value: "trial_expiry_desc", label: "Trial Expiry (Latest)" },
-  { value: "trial_expiry_asc", label: "Trial Expiry (Oldest)" },
-  { value: "score_desc", label: "Scores (Highest)" },
-  { value: "score_asc", label: "Scores (Lowest)" },
+const TRIAL_STATUS_TABS = [
+  { value: "all", label: "All" },
+  { value: "active", label: "Trial Active" },
+  { value: "expired", label: "Trial Expired" },
 ];
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
+
+function formatDateTime(value) {
+  if (!value) return "—";
+  return new Date(value).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
 
 function formatTrialEnd(value) {
   if (!value) return "—";
@@ -50,6 +60,7 @@ function Paywall() {
   const [students, setStudents] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [trialStatusFilter, setTrialStatusFilter] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [sortOption, setSortOption] = useState("default");
@@ -57,7 +68,7 @@ function Paywall() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [limit] = useState(10);
+  const [limit, setLimit] = useState(10);
 
   // Master system logs states
   const [masterLogs, setMasterLogs] = useState([]);
@@ -78,7 +89,7 @@ function Paywall() {
   // Fetch lists
   useEffect(() => {
     fetchStudents();
-  }, [page, searchQuery, statusFilter, startDate, endDate, sortOption]);
+  }, [page, limit, searchQuery, statusFilter, trialStatusFilter, startDate, endDate, sortOption]);
 
   useEffect(() => {
     fetchMasterLogs();
@@ -93,6 +104,7 @@ function Paywall() {
           limit,
           search: searchQuery,
           status: statusFilter,
+          trialStatus: trialStatusFilter !== "all" ? trialStatusFilter : undefined,
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           sort: sortOption !== "default" ? sortOption : undefined,
@@ -106,6 +118,11 @@ function Paywall() {
     } finally {
       setLoadingStudents(false);
     }
+  };
+
+  const handleLimitChange = (newLimit) => {
+    setLimit(Number(newLimit));
+    setPage(1);
   };
 
   const fetchMasterLogs = async () => {
@@ -133,6 +150,11 @@ function Paywall() {
     setPage(1);
   };
 
+  const handleTrialStatusFilterChange = (value) => {
+    setTrialStatusFilter(value);
+    setPage(1);
+  };
+
   const handleStartDateChange = (e) => {
     setStartDate(e.target.value);
     setPage(1);
@@ -143,9 +165,55 @@ function Paywall() {
     setPage(1);
   };
 
-  const handleSortChange = (value) => {
-    setSortOption(value);
+  const handleColumnSort = (column) => {
+    // Cycles: DESC -> ASC -> default
+    if (column === "score") {
+      if (sortOption === "score_desc") setSortOption("score_asc");
+      else if (sortOption === "score_asc") setSortOption("default");
+      else setSortOption("score_desc");
+    } else if (column === "created") {
+      if (sortOption === "created_desc") setSortOption("created_asc");
+      else if (sortOption === "created_asc") setSortOption("default");
+      else setSortOption("created_desc");
+    } else if (column === "activity") {
+      if (sortOption === "activity_desc") setSortOption("activity_asc");
+      else if (sortOption === "activity_asc") setSortOption("default");
+      else setSortOption("activity_desc");
+    } else if (column === "trial") {
+      if (sortOption === "trial_expiry_desc") setSortOption("trial_expiry_asc");
+      else if (sortOption === "trial_expiry_asc") setSortOption("default");
+      else setSortOption("trial_expiry_desc");
+    }
     setPage(1);
+  };
+
+  const renderSortIcon = (column) => {
+    let active = false;
+    let isAsc = false;
+    if (column === "score") {
+      active = sortOption === "score_desc" || sortOption === "score_asc";
+      isAsc = sortOption === "score_asc";
+    } else if (column === "created") {
+      active = sortOption === "created_desc" || sortOption === "created_asc";
+      isAsc = sortOption === "created_asc";
+    } else if (column === "activity") {
+      active = sortOption === "activity_desc" || sortOption === "activity_asc";
+      isAsc = sortOption === "activity_asc";
+    } else if (column === "trial") {
+      active = sortOption === "trial_expiry_desc" || sortOption === "trial_expiry_asc";
+      isAsc = sortOption === "trial_expiry_asc";
+    }
+
+    if (!active) {
+      return (
+        <ArrowUpDown className="w-3 h-3 text-slate-400 opacity-50 group-hover:opacity-100 transition-opacity ml-1 shrink-0" />
+      );
+    }
+    return isAsc ? (
+      <ArrowUp className="w-3 h-3 text-indigo-600 font-bold ml-1 shrink-0" />
+    ) : (
+      <ArrowDown className="w-3 h-3 text-indigo-600 font-bold ml-1 shrink-0" />
+    );
   };
 
   const handleResetDates = () => {
@@ -334,15 +402,23 @@ function Paywall() {
               ))}
             </div>
 
-            {/* Sorter */}
-            <ControlDropdown
-              aria-label="Sort students"
-              value={sortOption}
-              onChange={handleSortChange}
-              options={SORT_OPTIONS}
-              compact
-              className="w-48"
-            />
+            {/* Trial Status Toggle Tabs */}
+            <div className="inline-flex p-0.5 bg-slate-100 rounded-lg border border-slate-200/80 h-9 items-center">
+              {TRIAL_STATUS_TABS.map((tab) => (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => handleTrialStatusFilterChange(tab.value)}
+                  className={`h-7 px-2.5 rounded-md text-xs transition-all cursor-pointer ${
+                    trialStatusFilter === tab.value
+                      ? "bg-white shadow-2xs text-slate-900 font-semibold"
+                      : "text-slate-500 hover:text-slate-800 font-medium"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
             {/* Date Range */}
             <div className="flex items-center gap-2 h-9 bg-white border border-slate-200 rounded-lg px-2.5 text-xs text-slate-600">
@@ -384,8 +460,46 @@ function Paywall() {
                 <th className="px-3.5 py-2.5">Student</th>
                 <th className="px-3.5 py-2.5">Phone</th>
                 <th className="px-3.5 py-2.5 text-center">Level</th>
-                <th className="px-3.5 py-2.5 text-center">Score</th>
-                <th className="px-3.5 py-2.5 text-center">Trial Ends</th>
+                <th
+                  onClick={() => handleColumnSort("score")}
+                  className="px-3.5 py-2.5 text-center cursor-pointer select-none hover:bg-slate-100/80 transition-colors group"
+                  title="Click to sort by Score"
+                >
+                  <div className="inline-flex items-center justify-center">
+                    <span>Score</span>
+                    {renderSortIcon("score")}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleColumnSort("created")}
+                  className="px-3.5 py-2.5 text-center whitespace-nowrap cursor-pointer select-none hover:bg-slate-100/80 transition-colors group"
+                  title="Click to sort by Created At"
+                >
+                  <div className="inline-flex items-center justify-center">
+                    <span>Created At</span>
+                    {renderSortIcon("created")}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleColumnSort("activity")}
+                  className="px-3.5 py-2.5 text-center whitespace-nowrap cursor-pointer select-none hover:bg-slate-100/80 transition-colors group"
+                  title="Click to sort by Last Activity"
+                >
+                  <div className="inline-flex items-center justify-center">
+                    <span>Last Activity</span>
+                    {renderSortIcon("activity")}
+                  </div>
+                </th>
+                <th
+                  onClick={() => handleColumnSort("trial")}
+                  className="px-3.5 py-2.5 text-center whitespace-nowrap cursor-pointer select-none hover:bg-slate-100/80 transition-colors group"
+                  title="Click to sort by Trial Expiry"
+                >
+                  <div className="inline-flex items-center justify-center">
+                    <span>Trial Ends</span>
+                    {renderSortIcon("trial")}
+                  </div>
+                </th>
                 <th className="px-3.5 py-2.5 text-center">Autopay Status</th>
                 <th className="px-3.5 py-2.5 text-center">Paywall Active</th>
                 <th className="px-3.5 py-2.5 text-right">Actions</th>
@@ -394,14 +508,14 @@ function Paywall() {
             <tbody className="text-xs divide-y divide-slate-100 text-slate-700">
               {loadingStudents ? (
                 <tr>
-                  <td colSpan="8" className="text-center py-12 text-slate-400">
+                  <td colSpan="10" className="text-center py-12 text-slate-400">
                     <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-indigo-500" />
                     Loading students...
                   </td>
                 </tr>
               ) : students.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="text-center py-12 text-slate-400">
+                  <td colSpan="10" className="text-center py-12 text-slate-400">
                     No students found.
                   </td>
                 </tr>
@@ -427,6 +541,18 @@ function Paywall() {
                       <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-xs font-semibold">
                         {student.prospect_score != null ? student.prospect_score : 0}
                       </span>
+                    </td>
+                    <td className="px-3.5 py-2.5 whitespace-nowrap text-center text-slate-500 font-mono text-[11px]">
+                      {formatDateTime(student.created_at)}
+                    </td>
+                    <td className="px-3.5 py-2.5 whitespace-nowrap text-center text-slate-500 text-[11px]">
+                      {student.last_activity ? (
+                        <span className="font-medium text-slate-700">
+                          {formatDateTime(student.last_activity)}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap text-center text-slate-600">
                       {student.trial_end_at ? (
@@ -484,25 +610,54 @@ function Paywall() {
         </div>
 
         {/* Pagination */}
-        {!loadingStudents && totalPages > 1 && (
-          <div className="flex justify-between items-center mt-4 pt-3 border-t border-slate-100 text-xs">
-            <button
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="px-2.5 py-1 font-medium border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 transition-colors cursor-pointer"
-            >
-              Previous
-            </button>
-            <span className="text-slate-400 font-medium">
-              Page {page} of {totalPages}
-            </span>
-            <button
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => p + 1)}
-              className="px-2.5 py-1 font-medium border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 transition-colors cursor-pointer"
-            >
-              Next
-            </button>
+        {!loadingStudents && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 pt-3 border-t border-slate-100 text-xs">
+            {/* Page size selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-slate-400 font-medium">Show per page:</span>
+              <div className="inline-flex p-0.5 bg-slate-100 rounded-md border border-slate-200/80">
+                {PAGE_SIZE_OPTIONS.map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => handleLimitChange(size)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-medium transition-all cursor-pointer ${
+                      limit === size
+                        ? "bg-white shadow-2xs text-slate-900 font-bold"
+                        : "text-slate-500 hover:text-slate-800"
+                    }`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+              {totalCount > 0 && (
+                <span className="text-slate-400 font-normal ml-1">
+                  (Showing {Math.min(totalCount, (page - 1) * limit + 1)}–{Math.min(totalCount, page * limit)} of {totalCount})
+                </span>
+              )}
+            </div>
+
+            {/* Navigation buttons */}
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="px-2.5 py-1 font-medium border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 transition-colors cursor-pointer"
+              >
+                Previous
+              </button>
+              <span className="text-slate-400 font-medium px-1">
+                Page {page} of {Math.max(1, totalPages)}
+              </span>
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="px-2.5 py-1 font-medium border border-slate-200 rounded-md hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 transition-colors cursor-pointer"
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>
