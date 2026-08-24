@@ -16,10 +16,12 @@ import {
   SecondaryButton,
   ActionButton,
   ControlDropdown,
+  SearchInput,
 } from "../components/controls";
 import { ConfirmationModal } from "../components/ConfirmationModal";
 import { RecruitmentStatusModal } from "../components/RecruitmentStatusModal";
 import { CANDIDATE_SOURCES } from "../utils/constants";
+import { formatIstDateTime } from "../utils/formatters";
 
 export function AccountProfilesPage() {
   const { accountId } = useParams();
@@ -44,6 +46,35 @@ export function AccountProfilesPage() {
     onConfirm: null,
     loading: false,
   });
+
+  // Login Audit Log state (scoped to this account and its sub-accounts)
+  const [loginEvents, setLoginEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState("");
+  const [searchEventQuery, setSearchEventQuery] = useState("");
+  const [eventPage, setEventPage] = useState(1);
+  const [eventPageSize, setEventPageSize] = useState(10);
+
+  async function loadLoginEvents() {
+    setEventsLoading(true);
+    setEventsError("");
+    try {
+      const res = await exploreCandidatesAdminApi.listRecruiterLoginEvents({
+        accountId,
+        page: 1,
+        limit: 100,
+      });
+      setLoginEvents(res?.data?.data || []);
+    } catch (error) {
+      setLoginEvents([]);
+      setEventsError(
+        error?.response?.data?.message ||
+          "Could not load recruiter login events for this account",
+      );
+    } finally {
+      setEventsLoading(false);
+    }
+  }
 
   async function load() {
     setLoading(true);
@@ -90,7 +121,30 @@ export function AccountProfilesPage() {
 
   useEffect(() => {
     load();
+    loadLoginEvents();
   }, [accountId]);
+
+  // Filter login events
+  const filteredEvents = useMemo(() => {
+    const q = searchEventQuery.trim().toLowerCase();
+    if (!q) return loginEvents;
+    return loginEvents.filter(
+      (ev) =>
+        String(ev.recruiter_email || "").toLowerCase().includes(q) ||
+        String(ev.account_id || "").toLowerCase().includes(q) ||
+        String(ev.country_name || "").toLowerCase().includes(q) ||
+        String(ev.source || "").toLowerCase().includes(q),
+    );
+  }, [loginEvents, searchEventQuery]);
+
+  const totalEventPages = Math.max(
+    1,
+    Math.ceil(filteredEvents.length / eventPageSize),
+  );
+  const paginatedEvents = useMemo(() => {
+    const start = (eventPage - 1) * eventPageSize;
+    return filteredEvents.slice(start, start + eventPageSize);
+  }, [filteredEvents, eventPage, eventPageSize]);
 
   // Smart candidate search (auto detects phone vs name)
   useEffect(() => {
@@ -464,6 +518,98 @@ export function AccountProfilesPage() {
               onPageSizeChange={(sz) => {
                 setPageSize(sz);
                 setPage(1);
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Recruiter Login Audit Log (Scoped to this account & its sub-accounts) */}
+      <div className="space-y-4 pt-4 border-t border-slate-200">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
+          <div>
+            <h2 className="text-lg font-black text-slate-900">
+              Recruiter Login Audit Log ({filteredEvents.length})
+            </h2>
+            <p className="text-xs text-slate-500">
+              Sign-in history for this partner portal and its sub-accounts.
+            </p>
+          </div>
+          <div className="w-full sm:w-72">
+            <SearchInput
+              value={searchEventQuery}
+              onChange={setSearchEventQuery}
+              placeholder="Search audit log..."
+            />
+          </div>
+        </div>
+
+        {eventsLoading ? (
+          <div className="flex items-center justify-center py-8 text-slate-400 gap-2">
+            <Spinner size="sm" color="text-[#083262]" />
+            <span className="text-xs font-bold">Loading audit logs...</span>
+          </div>
+        ) : eventsError ? (
+          <div className="rounded-xl bg-rose-50 border border-rose-200 p-4 text-xs font-bold text-rose-700">
+            {eventsError}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <TableWrapper>
+              <TableHead>
+                <tr>
+                  <th className="px-6 py-3.5">Recruiter Email</th>
+                  <th className="px-6 py-3.5">Account ID</th>
+                  <th className="px-6 py-3.5">Source</th>
+                  <th className="px-6 py-3.5">Location</th>
+                  <th className="px-6 py-3.5 text-right">Login Time (IST)</th>
+                </tr>
+              </TableHead>
+              <TableBody>
+                {!filteredEvents.length ? (
+                  <tr>
+                    <td className="px-6 py-8 text-center text-slate-400" colSpan={5}>
+                      No login events found for this account.
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedEvents.map((event) => (
+                    <tr
+                      key={event.id}
+                      className="hover:bg-slate-50 transition-colors"
+                    >
+                      <td className="px-6 py-3.5 font-bold text-slate-900">
+                        {event.recruiter_email || "-"}
+                      </td>
+                      <td className="px-6 py-3.5 text-slate-500">
+                        #{event.account_id || "-"}
+                      </td>
+                      <td className="px-6 py-3.5 text-slate-500">
+                        {event.source || "portal"}
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <span className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                          {event.country_name || event.country_code || "Unknown"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3.5 text-right text-slate-500 font-medium">
+                        {formatIstDateTime(event.created_at)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </TableBody>
+            </TableWrapper>
+
+            <PaginationBar
+              page={eventPage}
+              pageSize={eventPageSize}
+              total={filteredEvents.length}
+              totalPages={totalEventPages}
+              onPageChange={setEventPage}
+              onPageSizeChange={(sz) => {
+                setEventPageSize(sz);
+                setEventPage(1);
               }}
             />
           </div>

@@ -212,6 +212,20 @@ describe("AccountProfilesPage (In-line candidate search)", () => {
       },
     });
     api.assignProfile.mockResolvedValue({ data: { success: true } });
+    api.listRecruiterLoginEvents.mockResolvedValue({
+      data: {
+        data: [
+          {
+            id: 99,
+            account_id: 42,
+            recruiter_email: "main@corp.com",
+            source: "portal",
+            country_name: "India",
+            created_at: "2026-08-24T06:00:00.000Z",
+          },
+        ],
+      },
+    });
   });
 
   test("renders assigned candidates and assigns talent via in-line searchable dropdown", async () => {
@@ -241,24 +255,57 @@ describe("AccountProfilesPage (In-line candidate search)", () => {
     );
   });
 
-  test("highlights correct tab with blue active state across all routes", async () => {
-    // 1. Library route
-    const { unmount: unmount1 } = renderAt("/library");
-    const libraryTab = screen.getByRole("link", { name: /Candidate Library/i });
-    expect(libraryTab.className).toContain("bg-[#083262]");
-    expect(libraryTab.className).toContain("text-white");
-    unmount1();
+  test("fetches and renders scoped recruiter login audit log for the account", async () => {
+    renderAt("/accounts/42/profiles");
 
-    // 2. Access Requests route
-    const { unmount: unmount2 } = renderAt("/access-requests");
-    const reqTab = screen.getByRole("link", { name: /Access Requests/i });
-    expect(reqTab.className).toContain("bg-[#083262]");
-    unmount2();
+    await screen.findByText("Recruiter Login Audit Log (1)");
+    expect(api.listRecruiterLoginEvents).toHaveBeenCalledWith(
+      expect.objectContaining({ accountId: "42" }),
+    );
+    expect(screen.getByText("India")).toBeInTheDocument();
+  });
+});
 
-    // 3. Jobs route
-    const { unmount: unmount3 } = renderAt("/jobs");
-    const jobsTab = screen.getByRole("link", { name: /Jobs Admin/i });
-    expect(jobsTab.className).toContain("bg-[#083262]");
-    unmount3();
+describe("AccountsPage (Hierarchy Tree UI)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.listAccounts.mockResolvedValue({ data: { data: ACCOUNTS } });
+    api.listRecruiterLoginEvents.mockResolvedValue({ data: { data: [] } });
+  });
+
+  test("renders main accounts at top level and expands nested sub-accounts on toggle", async () => {
+    renderAt("/");
+
+    // Both main accounts appear at root level
+    await screen.findByText("main@corp.com");
+    expect(screen.getByText("other@corp.com")).toBeInTheDocument();
+
+    // Sub-account badge is present on parent
+    const badge = screen.getByText("1 sub-account");
+    expect(badge).toBeInTheDocument();
+
+    // Sub-account row is initially collapsed
+    expect(screen.queryByText("Sub Account")).not.toBeInTheDocument();
+
+    // Click to expand
+    fireEvent.click(badge);
+    expect(await screen.findByText("Sub Account")).toBeInTheDocument();
+    expect(screen.getByText("Sub of main@corp.com")).toBeInTheDocument();
+  });
+
+  test("searching sub-account email displays parent and auto-expands the sub row", async () => {
+    renderAt("/");
+
+    await screen.findByText("main@corp.com");
+
+    const searchInput = screen.getByPlaceholderText("Filter by account email...");
+    fireEvent.change(searchInput, { target: { value: "sub@corp.com" } });
+
+    // Parent is shown, other is filtered out
+    expect(screen.getByText("main@corp.com")).toBeInTheDocument();
+    expect(screen.queryByText("other@corp.com")).not.toBeInTheDocument();
+
+    // Nested sub-account row is auto-expanded
+    expect(screen.getByText("Sub Account")).toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
@@ -10,6 +10,9 @@ import {
   Mail,
   Image,
   Sparkles,
+  ChevronDown,
+  ChevronRight,
+  CornerDownRight,
 } from "lucide-react";
 import { exploreCandidatesAdminApi } from "../../../api/exploreCandidatesAdminApi";
 import {
@@ -35,18 +38,13 @@ export function AccountsPage() {
   const navigate = useNavigate();
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [eventsLoading, setEventsLoading] = useState(true);
-  const [eventsError, setEventsError] = useState("");
-  const [loginEvents, setLoginEvents] = useState([]);
   const [savingAccount, setSavingAccount] = useState(false);
   const [toggling, setToggling] = useState({});
   const [subModalAccount, setSubModalAccount] = useState(null);
+  const [expandedAccountIds, setExpandedAccountIds] = useState({});
   const [searchAccountQuery, setSearchAccountQuery] = useState("");
-  const [searchEventQuery, setSearchEventQuery] = useState("");
   const [accountPage, setAccountPage] = useState(1);
   const [accountPageSize, setAccountPageSize] = useState(10);
-  const [eventPage, setEventPage] = useState(1);
-  const [eventPageSize, setEventPageSize] = useState(10);
   const [confirmModal, setConfirmModal] = useState({
     open: false,
     title: "",
@@ -67,8 +65,6 @@ export function AccountsPage() {
 
   async function load() {
     setLoading(true);
-    setEventsLoading(true);
-    setEventsError("");
     try {
       const accountsRes = await exploreCandidatesAdminApi.listAccounts();
       setAccounts(accountsRes?.data?.data || []);
@@ -77,61 +73,68 @@ export function AccountsPage() {
     } finally {
       setLoading(false);
     }
-
-    try {
-      const eventsRes =
-        await exploreCandidatesAdminApi.listRecruiterLoginEvents({
-          page: 1,
-          limit: 30,
-        });
-      setLoginEvents(eventsRes?.data?.data || []);
-    } catch (error) {
-      setLoginEvents([]);
-      setEventsError(
-        error?.response?.data?.message ||
-          "Could not load recruiter login events",
-      );
-    } finally {
-      setEventsLoading(false);
-    }
   }
 
   useEffect(() => {
     load();
   }, []);
 
-  // Filter accounts by email
-  const filteredAccounts = useMemo(() => {
+  const toggleExpand = (accountId) => {
+    setExpandedAccountIds((prev) => ({
+      ...prev,
+      [accountId]: !prev[accountId],
+    }));
+  };
+
+  // Group accounts into Main Accounts and their nested Sub-Accounts
+  const structuredAccounts = useMemo(() => {
+    const mainList = accounts.filter((a) => !a.parent_account_id);
+    const subMap = {};
+    accounts.forEach((a) => {
+      if (a.parent_account_id) {
+        if (!subMap[a.parent_account_id]) subMap[a.parent_account_id] = [];
+        subMap[a.parent_account_id].push(a);
+      }
+    });
+
+    return mainList.map((main) => ({
+      ...main,
+      subs: subMap[main.id] || [],
+    }));
+  }, [accounts]);
+
+  // Filter main accounts & nested subs with auto-expansion for matched subs
+  const filteredMainAccounts = useMemo(() => {
     const q = searchAccountQuery.trim().toLowerCase();
-    if (!q) return accounts;
-    return accounts.filter((a) =>
-      String(a.email || "").toLowerCase().includes(q) ||
-      String(a.parent_email || "").toLowerCase().includes(q),
-    );
-  }, [accounts, searchAccountQuery]);
+    if (!q) return structuredAccounts;
 
-  const totalAccountPages = Math.max(1, Math.ceil(filteredAccounts.length / accountPageSize));
-  const paginatedAccounts = useMemo(() => {
+    return structuredAccounts
+      .map((main) => {
+        const mainMatches = String(main.email || "").toLowerCase().includes(q);
+        const matchingSubs = (main.subs || []).filter((sub) =>
+          String(sub.email || "").toLowerCase().includes(q),
+        );
+
+        if (mainMatches || matchingSubs.length > 0) {
+          return {
+            ...main,
+            matchedViaSub: !mainMatches && matchingSubs.length > 0,
+            visibleSubs: mainMatches ? main.subs : matchingSubs,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  }, [structuredAccounts, searchAccountQuery]);
+
+  const totalAccountPages = Math.max(
+    1,
+    Math.ceil(filteredMainAccounts.length / accountPageSize),
+  );
+  const paginatedMainAccounts = useMemo(() => {
     const start = (accountPage - 1) * accountPageSize;
-    return filteredAccounts.slice(start, start + accountPageSize);
-  }, [filteredAccounts, accountPage, accountPageSize]);
-
-  // Filter login events
-  const filteredEvents = useMemo(() => {
-    const q = searchEventQuery.trim().toLowerCase();
-    if (!q) return loginEvents;
-    return loginEvents.filter((ev) =>
-      String(ev.recruiter_email || "").toLowerCase().includes(q) ||
-      String(ev.account_id || "").toLowerCase().includes(q) ||
-      String(ev.country_name || "").toLowerCase().includes(q),
-    );
-  }, [loginEvents, searchEventQuery]);
-
-  const totalEventPages = Math.max(1, Math.ceil(filteredEvents.length / eventPageSize));
-  const paginatedEvents = useMemo(() => {
-    const start = (eventPage - 1) * eventPageSize;
-    return filteredEvents.slice(start, start + eventPageSize);
-  }, [filteredEvents, eventPage, eventPageSize]);
+    return filteredMainAccounts.slice(start, start + accountPageSize);
+  }, [filteredMainAccounts, accountPage, accountPageSize]);
 
   // Stats calculation
   const totalAccounts = accounts.length;
@@ -250,10 +253,11 @@ export function AccountsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
           <div>
             <h2 className="text-lg font-black text-slate-900">
-              Partner Accounts ({filteredAccounts.length})
+              Partner Accounts ({filteredMainAccounts.length} Portals
+              {subAccounts > 0 ? ` · ${subAccounts} Sub-Accounts` : ""})
             </h2>
             <p className="text-xs text-slate-500">
-              Control candidate visibility, job posting access, and force terms.
+              Control candidate visibility, job posting access, and team hierarchy.
             </p>
           </div>
           <div className="w-full sm:w-72">
@@ -284,152 +288,180 @@ export function AccountsPage() {
               </tr>
             </TableHead>
             <TableBody>
-              {!filteredAccounts.length ? (
+              {!filteredMainAccounts.length ? (
                 <tr>
                   <td className="px-6 py-10 text-center text-slate-400" colSpan={7}>
                     No recruiter accounts found.
                   </td>
                 </tr>
               ) : (
-                paginatedAccounts.map((account) => {
-                  const isSub = Boolean(account.parent_account_id);
+                paginatedMainAccounts.map((account) => {
+                  const subs = account.visibleSubs || account.subs || [];
+                  const hasSubs = subs.length > 0;
+                  const isExpanded = Boolean(
+                    expandedAccountIds[account.id] ||
+                      (searchAccountQuery.trim() && account.matchedViaSub),
+                  );
+
                   return (
-                    <tr
-                      key={account.id}
-                      className="hover:bg-slate-50 transition-colors"
-                    >
-                      <td className="px-6 py-4.5 align-middle">
-                        <div className="font-bold text-slate-900">
-                          {account.email}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4.5 align-middle">
-                        {isSub ? (
-                          <span
-                            className="inline-flex rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-bold text-[#083262] border border-blue-100"
-                            title={`Shares the workspace of ${account.parent_email || ""}`}
-                          >
-                            Sub of {account.parent_email || "?"}
-                          </span>
-                        ) : (
+                    <Fragment key={account.id}>
+                      {/* Main Account Row */}
+                      <tr className="hover:bg-slate-50 transition-colors group">
+                        <td className="px-6 py-4.5 align-middle">
+                          <div className="flex items-center gap-2">
+                            {hasSubs ? (
+                              <button
+                                type="button"
+                                onClick={() => toggleExpand(account.id)}
+                                className="flex h-6 w-6 items-center justify-center rounded-lg hover:bg-slate-200/70 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
+                                title={
+                                  isExpanded
+                                    ? "Collapse sub-accounts"
+                                    : "Expand sub-accounts"
+                                }
+                              >
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4 text-[#083262]" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                              </button>
+                            ) : (
+                              <div className="w-6 shrink-0" />
+                            )}
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900">
+                                {account.email}
+                              </span>
+                              {hasSubs && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpand(account.id)}
+                                  className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-[#083262] border border-blue-100 hover:bg-blue-100 transition cursor-pointer"
+                                >
+                                  {subs.length} sub-{subs.length === 1 ? "account" : "accounts"}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4.5 align-middle">
                           <span className="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
                             Main Portal
                           </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4.5 align-middle">
-                        <span className="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
-                          {account.total_profiles || 0} Shared
-                        </span>
-                      </td>
-                      <td className="px-6 py-4.5 align-middle">
-                        <div className="flex justify-center items-center gap-1.5">
-                          <ToggleSwitch
-                            checked={Boolean(account.mask_contacts_enabled)}
-                            disabled={isSub || toggling[`mask-${account.id}`]}
-                            onChange={async (val) => {
-                              setToggling((prev) => ({
-                                ...prev,
-                                [`mask-${account.id}`]: true,
-                              }));
-                              try {
-                                await exploreCandidatesAdminApi.updateAccountSettings(
-                                  account.id,
-                                  {
-                                    mask_contacts_enabled: val,
-                                  },
-                                );
-                                await load();
-                                toast.success("Mask contacts setting updated");
-                              } catch (err) {
-                                toast.error(err?.response?.data?.message || "Could not update setting");
-                              } finally {
+                        </td>
+                        <td className="px-6 py-4.5 align-middle">
+                          <span className="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                            {account.total_profiles || 0} Shared
+                          </span>
+                        </td>
+                        <td className="px-6 py-4.5 align-middle">
+                          <div className="flex justify-center items-center gap-1.5">
+                            <ToggleSwitch
+                              checked={Boolean(account.mask_contacts_enabled)}
+                              disabled={toggling[`mask-${account.id}`]}
+                              onChange={async (val) => {
                                 setToggling((prev) => ({
                                   ...prev,
-                                  [`mask-${account.id}`]: false,
+                                  [`mask-${account.id}`]: true,
                                 }));
-                              }
-                            }}
-                          />
-                          {toggling[`mask-${account.id}`] && (
-                            <Spinner size="sm" color="text-[#083262]" />
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4.5 align-middle">
-                        <div className="flex justify-center items-center gap-1.5">
-                          <ToggleSwitch
-                            checked={Boolean(account.job_posting_enabled)}
-                            disabled={isSub || toggling[`job-${account.id}`]}
-                            onChange={async (val) => {
-                              setToggling((prev) => ({
-                                ...prev,
-                                [`job-${account.id}`]: true,
-                              }));
-                              try {
-                                await exploreCandidatesAdminApi.updateAccountSettings(
-                                  account.id,
-                                  {
-                                    job_posting_enabled: val,
-                                  },
-                                );
-                                await load();
-                                toast.success("Job posting setting updated");
-                              } catch (error) {
-                                toast.error(
-                                  error?.response?.data?.message ||
-                                    "Could not update job posting setting",
-                                );
-                              } finally {
+                                try {
+                                  await exploreCandidatesAdminApi.updateAccountSettings(
+                                    account.id,
+                                    {
+                                      mask_contacts_enabled: val,
+                                    },
+                                  );
+                                  await load();
+                                  toast.success("Mask contacts setting updated");
+                                } catch (err) {
+                                  toast.error(err?.response?.data?.message || "Could not update setting");
+                                } finally {
+                                  setToggling((prev) => ({
+                                    ...prev,
+                                    [`mask-${account.id}`]: false,
+                                  }));
+                                }
+                              }}
+                            />
+                            {toggling[`mask-${account.id}`] && (
+                              <Spinner size="sm" color="text-[#083262]" />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4.5 align-middle">
+                          <div className="flex justify-center items-center gap-1.5">
+                            <ToggleSwitch
+                              checked={Boolean(account.job_posting_enabled)}
+                              disabled={toggling[`job-${account.id}`]}
+                              onChange={async (val) => {
                                 setToggling((prev) => ({
                                   ...prev,
-                                  [`job-${account.id}`]: false,
+                                  [`job-${account.id}`]: true,
                                 }));
-                              }
-                            }}
-                          />
-                          {toggling[`job-${account.id}`] && (
-                            <Spinner size="sm" color="text-[#083262]" />
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4.5 align-middle">
-                        <div className="flex justify-center items-center gap-1.5">
-                          <ToggleSwitch
-                            checked={Boolean(account.force_terms_acceptance)}
-                            disabled={isSub || toggling[`terms-${account.id}`]}
-                            onChange={async (val) => {
-                              setToggling((prev) => ({
-                                ...prev,
-                                [`terms-${account.id}`]: true,
-                              }));
-                              try {
-                                await exploreCandidatesAdminApi.updateAccountSettings(
-                                  account.id,
-                                  {
-                                    force_terms_acceptance: val,
-                                  },
-                                );
-                                await load();
-                                toast.success("Terms setting updated");
-                              } catch (err) {
-                                toast.error(err?.response?.data?.message || "Could not update setting");
-                              } finally {
+                                try {
+                                  await exploreCandidatesAdminApi.updateAccountSettings(
+                                    account.id,
+                                    {
+                                      job_posting_enabled: val,
+                                    },
+                                  );
+                                  await load();
+                                  toast.success("Job posting setting updated");
+                                } catch (error) {
+                                  toast.error(
+                                    error?.response?.data?.message ||
+                                      "Could not update job posting setting",
+                                  );
+                                } finally {
+                                  setToggling((prev) => ({
+                                    ...prev,
+                                    [`job-${account.id}`]: false,
+                                  }));
+                                }
+                              }}
+                            />
+                            {toggling[`job-${account.id}`] && (
+                              <Spinner size="sm" color="text-[#083262]" />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4.5 align-middle">
+                          <div className="flex justify-center items-center gap-1.5">
+                            <ToggleSwitch
+                              checked={Boolean(account.force_terms_acceptance)}
+                              disabled={toggling[`terms-${account.id}`]}
+                              onChange={async (val) => {
                                 setToggling((prev) => ({
                                   ...prev,
-                                  [`terms-${account.id}`]: false,
+                                  [`terms-${account.id}`]: true,
                                 }));
-                              }
-                            }}
-                          />
-                          {toggling[`terms-${account.id}`] && (
-                            <Spinner size="sm" color="text-[#083262]" />
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4.5 align-middle">
-                        <div className="flex flex-wrap justify-end gap-1.5">
-                          {!isSub && (
+                                try {
+                                  await exploreCandidatesAdminApi.updateAccountSettings(
+                                    account.id,
+                                    {
+                                      force_terms_acceptance: val,
+                                    },
+                                  );
+                                  await load();
+                                  toast.success("Terms setting updated");
+                                } catch (err) {
+                                  toast.error(err?.response?.data?.message || "Could not update setting");
+                                } finally {
+                                  setToggling((prev) => ({
+                                    ...prev,
+                                    [`terms-${account.id}`]: false,
+                                  }));
+                                }
+                              }}
+                            />
+                            {toggling[`terms-${account.id}`] && (
+                              <Spinner size="sm" color="text-[#083262]" />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4.5 align-middle">
+                          <div className="flex flex-wrap justify-end gap-1.5">
                             <ActionButton
                               onClick={() => setSubModalAccount(account)}
                             >
@@ -438,138 +470,241 @@ export function AccountsPage() {
                                 ? ` (${account.total_sub_accounts})`
                                 : ""}
                             </ActionButton>
-                          )}
-                          <ActionButton
-                            disabled={isSub}
-                            title={
-                              isSub ? "Managed by the main account" : undefined
-                            }
-                            onClick={() =>
-                              navigate(
-                                `/admin/explore-candidates/accounts/${account.id}/profiles`,
-                              )
-                            }
-                          >
-                            Manage Profiles
-                          </ActionButton>
-                          <ActionButton
-                            disabled={isSub}
-                            title={
-                              isSub ? "Managed by the main account" : undefined
-                            }
-                            onClick={() => {
-                              setConfirmModal({
-                                open: true,
-                                title: "Edit Recruiter Email",
-                                description: "Enter updated email address for this partner portal.",
-                                variant: "primary",
-                                confirmText: "Save Email",
-                                input: true,
-                                inputLabel: "Recruiter Email",
-                                inputPlaceholder: "recruiter@partner.com",
-                                defaultValue: account.email || "",
-                                onConfirm: async (nextEmail) => {
-                                  if (
-                                    !nextEmail ||
-                                    nextEmail.trim().toLowerCase() ===
-                                      String(account.email || "")
-                                        .trim()
-                                        .toLowerCase()
-                                  ) {
-                                    setConfirmModal((v) => ({ ...v, open: false }));
-                                    return;
-                                  }
-                                  setConfirmModal((v) => ({ ...v, loading: true }));
+                            <ActionButton
+                              onClick={() =>
+                                navigate(
+                                  `/admin/explore-candidates/accounts/${account.id}/profiles`,
+                                )
+                              }
+                            >
+                              Manage Profiles
+                            </ActionButton>
+                            <ActionButton
+                              onClick={() => {
+                                setConfirmModal({
+                                  open: true,
+                                  title: "Edit Recruiter Email",
+                                  description: "Enter updated email address for this partner portal.",
+                                  variant: "primary",
+                                  confirmText: "Save Email",
+                                  input: true,
+                                  inputLabel: "Recruiter Email",
+                                  inputPlaceholder: "recruiter@partner.com",
+                                  defaultValue: account.email || "",
+                                  onConfirm: async (nextEmail) => {
+                                    if (
+                                      !nextEmail ||
+                                      nextEmail.trim().toLowerCase() ===
+                                        String(account.email || "")
+                                          .trim()
+                                          .toLowerCase()
+                                    ) {
+                                      setConfirmModal((v) => ({ ...v, open: false }));
+                                      return;
+                                    }
+                                    setConfirmModal((v) => ({ ...v, loading: true }));
+                                    try {
+                                      await exploreCandidatesAdminApi.updateAccountIdentity(
+                                        account.id,
+                                        {
+                                          email: nextEmail.trim(),
+                                        },
+                                      );
+                                      await load();
+                                      toast.success("Recruiter email updated");
+                                      setConfirmModal((v) => ({ ...v, open: false, loading: false }));
+                                    } catch (error) {
+                                      toast.error(
+                                        error?.response?.data?.message ||
+                                          "Could not update recruiter email",
+                                      );
+                                      setConfirmModal((v) => ({ ...v, loading: false }));
+                                    }
+                                  },
+                                });
+                              }}
+                            >
+                              Edit
+                            </ActionButton>
+                            <ActionButton
+                              onClick={async () => {
+                                const input = document.createElement("input");
+                                input.type = "file";
+                                input.accept = "image/*";
+                                input.onchange = async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
                                   try {
                                     await exploreCandidatesAdminApi.updateAccountIdentity(
                                       account.id,
                                       {
-                                        email: nextEmail.trim(),
+                                        partner_logo_file: file,
                                       },
                                     );
                                     await load();
-                                    toast.success("Recruiter email updated");
-                                    setConfirmModal((v) => ({ ...v, open: false, loading: false }));
+                                    toast.success("Partner logo updated");
                                   } catch (error) {
                                     toast.error(
                                       error?.response?.data?.message ||
-                                        "Could not update recruiter email",
+                                        "Could not update partner logo",
                                     );
-                                    setConfirmModal((v) => ({ ...v, loading: false }));
                                   }
-                                },
-                              });
-                            }}
+                                };
+                                input.click();
+                              }}
+                            >
+                              Logo
+                            </ActionButton>
+                            <ActionButton
+                              variant="danger"
+                              onClick={() => {
+                                setConfirmModal({
+                                  open: true,
+                                  title: "Delete Recruiter Account",
+                                  description: `Delete recruiter account "${account.email}"?\n\nThis will permanently remove the account and all profile assignments.`,
+                                  variant: "danger",
+                                  confirmText: "Delete Account",
+                                  onConfirm: async () => {
+                                    setConfirmModal((v) => ({ ...v, loading: true }));
+                                    try {
+                                      await exploreCandidatesAdminApi.deleteAccount(
+                                        account.id,
+                                      );
+                                      await load();
+                                      toast.success("Recruiter account deleted");
+                                      setConfirmModal((v) => ({ ...v, open: false, loading: false }));
+                                    } catch (error) {
+                                      toast.error(
+                                        error?.response?.data?.message ||
+                                          "Could not delete account",
+                                      );
+                                      setConfirmModal((v) => ({ ...v, loading: false }));
+                                    }
+                                  },
+                                });
+                              }}
+                            >
+                              Delete
+                            </ActionButton>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* Nested Sub-Account Rows */}
+                      {isExpanded &&
+                        subs.map((sub) => (
+                          <tr
+                            key={sub.id}
+                            className="bg-slate-50/70 border-t border-slate-100 hover:bg-blue-50/40 transition-colors"
                           >
-                            Edit
-                          </ActionButton>
-                          <ActionButton
-                            disabled={isSub}
-                            title={
-                              isSub ? "Managed by the main account" : undefined
-                            }
-                            onClick={async () => {
-                              const input = document.createElement("input");
-                              input.type = "file";
-                              input.accept = "image/*";
-                              input.onchange = async (e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                try {
-                                  await exploreCandidatesAdminApi.updateAccountIdentity(
-                                    account.id,
-                                    {
-                                      partner_logo_file: file,
-                                    },
-                                  );
-                                  await load();
-                                  toast.success("Partner logo updated");
-                                } catch (error) {
-                                  toast.error(
-                                    error?.response?.data?.message ||
-                                      "Could not update partner logo",
-                                  );
-                                }
-                              };
-                              input.click();
-                            }}
-                          >
-                            Logo
-                          </ActionButton>
-                          <ActionButton
-                            variant="danger"
-                            onClick={() => {
-                              setConfirmModal({
-                                open: true,
-                                title: "Delete Recruiter Account",
-                                description: `Delete recruiter account "${account.email}"?\n\nThis will permanently remove the account and all profile assignments.`,
-                                variant: "danger",
-                                confirmText: "Delete Account",
-                                onConfirm: async () => {
-                                  setConfirmModal((v) => ({ ...v, loading: true }));
-                                  try {
-                                    await exploreCandidatesAdminApi.deleteAccount(
-                                      account.id,
-                                    );
-                                    await load();
-                                    toast.success("Recruiter account deleted");
-                                    setConfirmModal((v) => ({ ...v, open: false, loading: false }));
-                                  } catch (error) {
-                                    toast.error(
-                                      error?.response?.data?.message ||
-                                        "Could not delete account",
-                                    );
-                                    setConfirmModal((v) => ({ ...v, loading: false }));
-                                  }
-                                },
-                              });
-                            }}
-                          >
-                            Delete
-                          </ActionButton>
-                        </div>
-                      </td>
-                    </tr>
+                            <td className="px-6 py-3.5 align-middle pl-12">
+                              <div className="flex items-center gap-2">
+                                <CornerDownRight className="h-4 w-4 text-[#083262] shrink-0" />
+                                <span className="font-semibold text-slate-800 text-xs">
+                                  {sub.email}
+                                </span>
+                                <span className="inline-flex rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 border border-purple-100">
+                                  Sub Account
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-3.5 align-middle">
+                              <span className="text-xs text-slate-500 font-medium italic">
+                                Sub of {account.email}
+                              </span>
+                            </td>
+                            <td className="px-6 py-3.5 align-middle">
+                              <span className="text-xs text-slate-500 font-medium">
+                                {account.total_profiles || 0} Shared (Inherited)
+                              </span>
+                            </td>
+                            <td
+                              className="px-6 py-3.5 align-middle text-center text-xs text-slate-400"
+                              title="Inherited from main portal"
+                            >
+                              —
+                            </td>
+                            <td
+                              className="px-6 py-3.5 align-middle text-center text-xs text-slate-400"
+                              title="Inherited from main portal"
+                            >
+                              —
+                            </td>
+                            <td
+                              className="px-6 py-3.5 align-middle text-center text-xs text-slate-400"
+                              title="Inherited from main portal"
+                            >
+                              —
+                            </td>
+                            <td className="px-6 py-3.5 align-middle">
+                              <div className="flex flex-wrap justify-end gap-1.5">
+                                <ActionButton
+                                  onClick={() => {
+                                    setConfirmModal({
+                                      open: true,
+                                      title: "Detach Sub-Account",
+                                      description: `Detach "${sub.email}" from parent "${account.email}"?\n\nIt will become an independent standalone recruiter account.`,
+                                      variant: "warning",
+                                      confirmText: "Detach Account",
+                                      onConfirm: async () => {
+                                        setConfirmModal((v) => ({ ...v, loading: true }));
+                                        try {
+                                          await exploreCandidatesAdminApi.detachSubAccount(
+                                            account.id,
+                                            sub.id,
+                                          );
+                                          await load();
+                                          toast.success("Sub-account detached successfully");
+                                          setConfirmModal((v) => ({ ...v, open: false, loading: false }));
+                                        } catch (err) {
+                                          toast.error(
+                                            err?.response?.data?.message ||
+                                              "Could not detach sub-account",
+                                          );
+                                          setConfirmModal((v) => ({ ...v, loading: false }));
+                                        }
+                                      },
+                                    });
+                                  }}
+                                >
+                                  Detach
+                                </ActionButton>
+                                <ActionButton
+                                  variant="danger"
+                                  onClick={() => {
+                                    setConfirmModal({
+                                      open: true,
+                                      title: "Delete Sub-Account",
+                                      description: `Delete sub-account "${sub.email}"?\n\nThis will permanently delete this sub-account login.`,
+                                      variant: "danger",
+                                      confirmText: "Delete Sub-Account",
+                                      onConfirm: async () => {
+                                        setConfirmModal((v) => ({ ...v, loading: true }));
+                                        try {
+                                          await exploreCandidatesAdminApi.deleteAccount(
+                                            sub.id,
+                                          );
+                                          await load();
+                                          toast.success("Sub-account deleted");
+                                          setConfirmModal((v) => ({ ...v, open: false, loading: false }));
+                                        } catch (error) {
+                                          toast.error(
+                                            error?.response?.data?.message ||
+                                              "Could not delete sub-account",
+                                          );
+                                          setConfirmModal((v) => ({ ...v, loading: false }));
+                                        }
+                                      },
+                                    });
+                                  }}
+                                >
+                                  Delete
+                                </ActionButton>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </Fragment>
                   );
                 })
               )}
@@ -580,7 +715,7 @@ export function AccountsPage() {
         <PaginationBar
           page={accountPage}
           pageSize={accountPageSize}
-          total={filteredAccounts.length}
+          total={filteredMainAccounts.length}
           totalPages={totalAccountPages}
           onPageChange={setAccountPage}
           onPageSizeChange={(sz) => {
@@ -588,98 +723,6 @@ export function AccountsPage() {
             setAccountPage(1);
           }}
         />
-      </div>
-
-      {/* Recruiter Login Audit Log */}
-      <div className="space-y-4 pt-4 border-t border-slate-200">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-1">
-          <div>
-            <h2 className="text-lg font-black text-slate-900">
-              Recruiter Login Audit Log
-            </h2>
-            <p className="text-xs text-slate-500">
-              Recent sign-in events across all active partner recruiter portals.
-            </p>
-          </div>
-          <div className="w-full sm:w-72">
-            <SearchInput
-              value={searchEventQuery}
-              onChange={setSearchEventQuery}
-              placeholder="Search audit log..."
-            />
-          </div>
-        </div>
-
-        {eventsLoading ? (
-          <div className="flex items-center justify-center py-8 text-slate-400 gap-2">
-            <Spinner size="sm" color="text-[#083262]" />
-            <span className="text-xs font-bold">Loading audit logs...</span>
-          </div>
-        ) : eventsError ? (
-          <div className="rounded-xl bg-rose-50 border border-rose-200 p-4 text-xs font-bold text-rose-700">
-            {eventsError}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <TableWrapper>
-              <TableHead>
-                <tr>
-                  <th className="px-6 py-3.5">Recruiter Email</th>
-                  <th className="px-6 py-3.5">Account ID</th>
-                  <th className="px-6 py-3.5">Source</th>
-                  <th className="px-6 py-3.5">Location</th>
-                  <th className="px-6 py-3.5 text-right">Login Time (IST)</th>
-                </tr>
-              </TableHead>
-              <TableBody>
-                {!filteredEvents.length ? (
-                  <tr>
-                    <td className="px-6 py-8 text-center text-slate-400" colSpan={5}>
-                      No login events matching search.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedEvents.map((event) => (
-                    <tr
-                      key={event.id}
-                      className="hover:bg-slate-50 transition-colors"
-                    >
-                      <td className="px-6 py-3.5 font-bold text-slate-900">
-                        {event.recruiter_email || "-"}
-                      </td>
-                      <td className="px-6 py-3.5 text-slate-500">
-                        #{event.account_id || "-"}
-                      </td>
-                      <td className="px-6 py-3.5 text-slate-500">
-                        {event.source || "portal"}
-                      </td>
-                      <td className="px-6 py-3.5">
-                        <span className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                          {event.country_name || event.country_code || "Unknown"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3.5 text-right text-slate-500 font-medium">
-                        {formatIstDateTime(event.created_at)}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </TableBody>
-            </TableWrapper>
-
-            <PaginationBar
-              page={eventPage}
-              pageSize={eventPageSize}
-              total={filteredEvents.length}
-              totalPages={totalEventPages}
-              onPageChange={setEventPage}
-              onPageSizeChange={(sz) => {
-                setEventPageSize(sz);
-                setEventPage(1);
-              }}
-            />
-          </div>
-        )}
       </div>
 
       {subModalAccount && (
