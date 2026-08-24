@@ -16,9 +16,15 @@ import {
 import { ControlDropdown } from "../payments-admin/components/controls";
 
 const STATUS_FILTER_OPTIONS = [
-  { value: "all", label: "All Status" },
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
+  { value: "all", label: "All" },
+  { value: "active", label: "Paywall Active" },
+  { value: "inactive", label: "Paywall Inactive" },
+];
+
+const STATUS_TABS = [
+  { value: "all", label: "All" },
+  { value: "active", label: "Paywall Active" },
+  { value: "inactive", label: "Paywall Inactive" },
 ];
 
 const SORT_OPTIONS = [
@@ -310,15 +316,23 @@ function Paywall() {
               <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-slate-400" />
             </div>
 
-            {/* Status Filter */}
-            <ControlDropdown
-              aria-label="Paywall status filter"
-              value={statusFilter}
-              onChange={handleStatusFilterChange}
-              options={STATUS_FILTER_OPTIONS}
-              compact
-              className="w-32"
-            />
+            {/* Paywall Status Toggle Tabs */}
+            <div className="inline-flex p-0.5 bg-slate-100 rounded-lg border border-slate-200/80 h-9 items-center">
+              {STATUS_TABS.map((tab) => (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => handleStatusFilterChange(tab.value)}
+                  className={`h-7 px-2.5 rounded-md text-xs transition-all cursor-pointer ${
+                    statusFilter === tab.value
+                      ? "bg-white shadow-2xs text-slate-900 font-semibold"
+                      : "text-slate-500 hover:text-slate-800 font-medium"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
             {/* Sorter */}
             <ControlDropdown
