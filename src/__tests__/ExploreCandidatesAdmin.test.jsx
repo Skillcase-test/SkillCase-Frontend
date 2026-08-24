@@ -22,6 +22,9 @@ const api = vi.hoisted(() => ({
   listLibraryProfilesV2: vi.fn(),
   assignProfile: vi.fn(),
   getProfileRecruitmentStatus: vi.fn(),
+  getFieldOptions: vi.fn(),
+  convertEuropassResume: vi.fn(),
+  generateEuropassPdf: vi.fn(),
 }));
 
 vi.mock("../api/exploreCandidatesAdminApi", () => ({
@@ -309,3 +312,127 @@ describe("AccountsPage (Hierarchy Tree UI)", () => {
     expect(screen.getByText("Sub Account")).toBeInTheDocument();
   });
 });
+
+describe("EuropassGenerator (ProfileFormPage)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.getFieldOptions.mockResolvedValue({
+      data: {
+        data: { qualification: [], experience: [], specialization: [] },
+      },
+    });
+    api.convertEuropassResume.mockResolvedValue({
+      data: {
+        data: {
+          personalInfo: {
+            fullName: "AARAV SHARMA",
+            email: "aarav@gmail.com",
+            phone: "+91 9876543210",
+            address: "DELHI, INDIA",
+          },
+          education: [
+            {
+              id: "edu-1",
+              degree: "BSC NURSING",
+              institution: "MANIPAL",
+              period: "2018 - 2022",
+              location: "DELHI, INDIA",
+              eqfLevel: "6",
+            },
+          ],
+          experience: [
+            {
+              id: "exp-1",
+              position: "ICU NURSE",
+              employer: "APOLLO",
+              period: "2022 - CURRENT",
+              location: "DELHI, INDIA",
+              responsibilities: ["Patient critical care"],
+            },
+          ],
+          skills: ["Patient Care", "Ventilator Management", "Communication"],
+          languageSkills: {
+            motherTongues: ["HINDI", "ENGLISH"],
+            otherLanguages: [
+              {
+                id: "lang-1",
+                language: "GERMAN",
+                listening: "B2",
+                reading: "B2",
+                spokenProduction: "B2",
+                spokenInteraction: "B2",
+                writing: "B2",
+              },
+            ],
+          },
+        },
+      },
+    });
+    api.generateEuropassPdf.mockResolvedValue({
+      data: new Uint8Array([37, 80, 68, 70]), // %PDF dummy
+    });
+  });
+
+  test("opens Europass modal from candidate form and triggers AI Progress template conversion", async () => {
+    renderAt("/profiles/new");
+
+    // "1-Click Europass Generator" button is rendered in Verification Documents section
+    const europassBtn = await screen.findByRole("button", {
+      name: /1-Click Europass Generator/i,
+    });
+    expect(europassBtn).toBeInTheDocument();
+
+    // Open modal
+    fireEvent.click(europassBtn);
+    expect(
+      screen.getByRole("heading", { name: /1-Click Europass/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Progress Template")).toBeInTheDocument();
+
+    // Trigger AI conversion
+    const convertBtn = screen.getByRole("button", { name: /Convert via AI/i });
+    fireEvent.click(convertBtn);
+
+    await waitFor(() =>
+      expect(api.convertEuropassResume).toHaveBeenCalled(),
+    );
+
+    // Verify Progress template UI elements render
+    expect(screen.getByText("AARAV SHARMA")).toBeInTheDocument();
+    expect(screen.getByText("BSC NURSING")).toBeInTheDocument();
+    expect(screen.getByText("ICU NURSE")).toBeInTheDocument();
+    expect(screen.getByText(/Understanding/i)).toBeInTheDocument();
+    expect(screen.getByText(/Speaking/i)).toBeInTheDocument();
+    expect(screen.getByText(/Writing/i)).toBeInTheDocument();
+    expect(screen.getByText("GERMAN")).toBeInTheDocument();
+
+    // Click "Attach to Candidate Profile"
+    const attachBtn = screen.getByRole("button", {
+      name: /Attach to Candidate Profile/i,
+    });
+    fireEvent.click(attachBtn);
+
+    await waitFor(() =>
+      expect(api.generateEuropassPdf).toHaveBeenCalled(),
+    );
+  });
+
+  test("blocks conversion when Upload New PDF is selected but no file chosen", async () => {
+    renderAt("/profiles/new");
+
+    const europassBtn = await screen.findByRole("button", {
+      name: /1-Click Europass Generator/i,
+    });
+    fireEvent.click(europassBtn);
+
+    // Switch to the "Upload New PDF" source without choosing a file
+    fireEvent.click(screen.getByRole("button", { name: /Upload New PDF/i }));
+
+    fireEvent.click(screen.getByRole("button", { name: /Convert via AI/i }));
+
+    // Give any accidental call a chance to flush
+    await new Promise((r) => setTimeout(r, 50));
+    expect(api.convertEuropassResume).not.toHaveBeenCalled();
+  });
+});
+

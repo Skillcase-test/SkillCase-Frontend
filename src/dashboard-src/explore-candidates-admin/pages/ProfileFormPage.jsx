@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Eye,
   Lock,
+  Sparkles,
 } from "lucide-react";
 import { exploreCandidatesAdminApi } from "../../../api/exploreCandidatesAdminApi";
 import {
@@ -30,6 +31,7 @@ import {
   DynamicDropdownField,
 } from "../components/controls";
 import { ConfirmationModal } from "../components/ConfirmationModal";
+import { EuropassGeneratorModal } from "../components/europass/EuropassGeneratorModal";
 import { INITIAL_PROFILE_FORM } from "../utils/constants";
 import {
   normalizeDateForInput,
@@ -91,6 +93,7 @@ export function ProfileFormPage({ mode }) {
     onConfirm: null,
     loading: false,
   });
+  const [europassModalOpen, setEuropassModalOpen] = useState(false);
 
   const isMainPhpReadOnly =
     mode === "edit" && String(profileId || "").startsWith("main_php:");
@@ -333,9 +336,22 @@ export function ProfileFormPage({ mode }) {
                 key={field}
                 className="space-y-2 rounded-2xl border border-slate-200 p-4 bg-slate-50/50"
               >
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
-                  {label}
-                </label>
+                <div className="flex items-center justify-between gap-2">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
+                    {label}
+                  </label>
+                  {field === "resume" && (
+                    <button
+                      type="button"
+                      onClick={() => setEuropassModalOpen(true)}
+                      disabled={isMainPhpReadOnly}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-[#083262] bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition cursor-pointer shadow-2xs disabled:opacity-50"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-[#083262]" />
+                      1-Click Europass Generator
+                    </button>
+                  )}
+                </div>
                 <input
                   disabled={isMainPhpReadOnly}
                   className="w-full text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-[#083262] file:text-white file:px-3 file:py-1.5 file:text-xs file:font-semibold hover:file:bg-[#052243] transition cursor-pointer disabled:opacity-50"
@@ -1089,6 +1105,19 @@ export function ProfileFormPage({ mode }) {
         onConfirm={confirmModal.onConfirm}
         onCancel={() => setConfirmModal({ open: false, title: "", description: "", onConfirm: null, loading: false })}
       />
+
+      {/* Mounted only while open so state re-seeds from the loaded profile each time */}
+      {europassModalOpen && (
+        <EuropassGeneratorModal
+          isOpen
+          onClose={() => setEuropassModalOpen(false)}
+          candidateForm={form}
+          currentResume={form.resume}
+          onAttach={(file) => {
+            setForm((v) => ({ ...v, resume: file }));
+          }}
+        />
+      )}
     </div>
   );
 }

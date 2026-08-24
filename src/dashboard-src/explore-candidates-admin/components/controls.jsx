@@ -260,15 +260,15 @@ export function PrimaryButton({ children, icon: Icon, loading = false, disabled 
   );
 }
 
-export function SecondaryButton({ children, icon: Icon, disabled = false, ...props }) {
+export function SecondaryButton({ children, icon: Icon, loading = false, disabled = false, ...props }) {
   return (
     <button
       type="button"
-      disabled={disabled}
+      disabled={disabled || loading}
       className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
       {...props}
     >
-      {Icon && <Icon className="h-4 w-4 text-slate-500" />}
+      {loading ? <Spinner size="sm" /> : Icon ? <Icon className="h-4 w-4 text-slate-500" /> : null}
       {children}
     </button>
   );
