@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
@@ -62,6 +62,7 @@ export function ProfileFormPage({ mode }) {
   const [searchParams] = useSearchParams();
   const accountId = searchParams.get("accountId") || "";
   const [form, setForm] = useState(INITIAL_PROFILE_FORM);
+  const [initialForm, setInitialForm] = useState(mode === "edit" ? null : INITIAL_PROFILE_FORM);
   const [fieldOptions, setFieldOptions] = useState({
     qualification: [],
     experience: [],
@@ -97,6 +98,25 @@ export function ProfileFormPage({ mode }) {
 
   const isMainPhpReadOnly =
     mode === "edit" && String(profileId || "").startsWith("main_php:");
+
+  const isDirty = useMemo(() => {
+    if (isMainPhpReadOnly) return false;
+    if (mode === "create") {
+      const hasFieldChange = Object.entries(form).some(([k, v]) => {
+        const init = INITIAL_PROFILE_FORM[k] || "";
+        if (v instanceof File) return true;
+        return String(v || "").trim() !== String(init || "").trim();
+      });
+      return hasFieldChange || createDocs.length > 0 || createVideos.length > 0;
+    }
+    // mode === "edit"
+    if (!initialForm) return false;
+    return Object.entries(form).some(([k, v]) => {
+      const init = initialForm[k] || "";
+      if (v instanceof File) return true;
+      return String(v || "").trim() !== String(init || "").trim();
+    });
+  }, [form, initialForm, mode, isMainPhpReadOnly, createDocs, createVideos]);
 
   const loadFieldOptions = async () => {
     try {
@@ -141,19 +161,109 @@ export function ProfileFormPage({ mode }) {
   }
 
   useEffect(() => {
-    if (mode !== "edit") return;
+    if (mode !== "edit") {
+      setInitialForm(INITIAL_PROFILE_FORM);
+      return;
+    }
     exploreCandidatesAdminApi.getProfileById(profileId).then((res) => {
       const data = res.data.data || {};
       const profile = data.profile || {};
-      setForm((v) => ({
-        ...v,
+      const loaded = {
+        ...INITIAL_PROFILE_FORM,
         ...profile,
         dob: normalizeDateForInput(profile.dob),
-      }));
+      };
+      setForm(loaded);
+      setInitialForm(loaded);
       setVideos(data.videos || []);
       setDocuments(data.documents || []);
     });
   }, [mode, profileId]);
+
+  const handleSaveProfile = async () => {
+    if (isMainPhpReadOnly || savingProfile) return;
+    if (!form.fullname || !String(form.fullname).trim()) {
+      toast.error("Full Name is required");
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const payload = {
+        fullname: form.fullname,
+        email: form.email,
+        countrycode: form.countrycode,
+        phone: form.phone,
+        dob: form.dob,
+        gender: form.gender,
+        expected_level: form.expected_level,
+        qualification: form.qualification,
+        experience: form.experience,
+        language: form.language,
+        specialization: form.specialization,
+        photo: form.photo,
+        resume: form.resume,
+        degcert: form.degcert,
+        workcert: form.workcert,
+        langcert: form.langcert,
+      };
+
+      let profile;
+      if (mode === "edit") {
+        const res = await exploreCandidatesAdminApi.updateProfile(
+          profileId,
+          payload,
+        );
+        profile = res.data.data;
+        setInitialForm({ ...form });
+      } else {
+        const res = await exploreCandidatesAdminApi.createProfile(payload);
+        profile = res.data.data;
+        for (const d of createDocs) {
+          if (!d.title || !d.file) continue;
+          await exploreCandidatesAdminApi.addProfileDocument(
+            profile.id,
+            {
+              title: d.title,
+              display_order: d.display_order || 0,
+              document_file_upload: d.file,
+            },
+          );
+        }
+        for (const v of createVideos) {
+          if (!v.title || !v.file) continue;
+          await exploreCandidatesAdminApi.addProfileVideo(
+            profile.id,
+            {
+              title: v.title,
+              display_order: v.display_order || 0,
+              video_file_upload: v.file,
+            },
+          );
+        }
+      }
+
+      if (accountId && profile?.id) {
+        await exploreCandidatesAdminApi.assignProfile(
+          accountId,
+          profile.id,
+          0,
+        );
+        toast.success("Profile saved and assigned successfully");
+        navigate(
+          `/admin/explore-candidates/accounts/${accountId}/profiles`,
+        );
+        return;
+      }
+      toast.success(mode === "edit" ? "Profile updated successfully" : "Profile created successfully");
+      navigate("/admin/explore-candidates/library");
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Could not save profile",
+      );
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   const title =
     mode === "edit" ? "Edit Candidate Profile" : "Create Candidate Profile";
@@ -430,100 +540,7 @@ export function ProfileFormPage({ mode }) {
           </div>
         </div>
 
-        {/* Submit Form Button */}
-        <div className="mt-8 flex justify-end border-t border-slate-200 pt-5">
-          <PrimaryButton
-            disabled={savingProfile || isMainPhpReadOnly || !form.fullname.trim()}
-            loading={savingProfile}
-            icon={Save}
-            onClick={async () => {
-              if (isMainPhpReadOnly) return;
-              setSavingProfile(true);
-              try {
-                const payload = {
-                  fullname: form.fullname,
-                  email: form.email,
-                  countrycode: form.countrycode,
-                  phone: form.phone,
-                  dob: form.dob,
-                  gender: form.gender,
-                  expected_level: form.expected_level,
-                  qualification: form.qualification,
-                  experience: form.experience,
-                  language: form.language,
-                  specialization: form.specialization,
-                  photo: form.photo,
-                  resume: form.resume,
-                  degcert: form.degcert,
-                  workcert: form.workcert,
-                  langcert: form.langcert,
-                };
 
-                let profile;
-                if (mode === "edit") {
-                  const res = await exploreCandidatesAdminApi.updateProfile(
-                    profileId,
-                    payload,
-                  );
-                  profile = res.data.data;
-                } else {
-                  const res =
-                    await exploreCandidatesAdminApi.createProfile(payload);
-                  profile = res.data.data;
-                  for (const d of createDocs) {
-                    if (!d.title || !d.file) continue;
-                    await exploreCandidatesAdminApi.addProfileDocument(
-                      profile.id,
-                      {
-                        title: d.title,
-                        display_order: d.display_order || 0,
-                        document_file_upload: d.file,
-                      },
-                    );
-                  }
-                  for (const v of createVideos) {
-                    if (!v.title || !v.file) continue;
-                    await exploreCandidatesAdminApi.addProfileVideo(
-                      profile.id,
-                      {
-                        title: v.title,
-                        display_order: v.display_order || 0,
-                        video_file_upload: v.file,
-                      },
-                    );
-                  }
-                }
-
-                if (accountId && profile?.id) {
-                  await exploreCandidatesAdminApi.assignProfile(
-                    accountId,
-                    profile.id,
-                    0,
-                  );
-                  toast.success("Profile saved and assigned successfully");
-                  navigate(
-                    `/admin/explore-candidates/accounts/${accountId}/profiles`,
-                  );
-                  return;
-                }
-                toast.success(mode === "edit" ? "Profile updated successfully" : "Profile created successfully");
-                navigate("/admin/explore-candidates/library");
-              } catch (error) {
-                toast.error(
-                  error?.response?.data?.message || "Could not save profile",
-                );
-              } finally {
-                setSavingProfile(false);
-              }
-            }}
-          >
-            {isMainPhpReadOnly
-              ? "Read-only Profile"
-              : mode === "edit"
-                ? "Save Changes"
-                : "Create Profile"}
-          </PrimaryButton>
-        </div>
       </PageCard>
 
       {/* Additional Documents Section */}
@@ -1117,6 +1134,39 @@ export function ProfileFormPage({ mode }) {
             setForm((v) => ({ ...v, resume: file }));
           }}
         />
+      )}
+
+      {/* Floating Save Changes Bar (appears only when unsaved changes exist) */}
+      {isDirty && !isMainPhpReadOnly && (
+        <div className="fixed bottom-6 inset-x-0 z-40 flex justify-center pointer-events-none px-4 animate-in slide-in-from-bottom-5 fade-in duration-200">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/95 px-5 py-3 shadow-2xl backdrop-blur-md ring-1 ring-slate-900/10">
+            <div className="flex items-center gap-2 pr-2 border-r border-slate-200">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <span className="text-xs font-bold text-slate-700">
+                {mode === "edit" ? "Unsaved changes" : "New profile data"}
+              </span>
+            </div>
+            {mode === "edit" && initialForm && (
+              <SecondaryButton
+                disabled={savingProfile}
+                onClick={() => {
+                  setForm({ ...initialForm });
+                  toast.success("Changes discarded");
+                }}
+              >
+                Discard
+              </SecondaryButton>
+            )}
+            <PrimaryButton
+              icon={Save}
+              disabled={savingProfile || !form.fullname?.trim()}
+              loading={savingProfile}
+              onClick={handleSaveProfile}
+            >
+              {mode === "edit" ? "Save Changes" : "Create Profile"}
+            </PrimaryButton>
+          </div>
+        </div>
       )}
     </div>
   );

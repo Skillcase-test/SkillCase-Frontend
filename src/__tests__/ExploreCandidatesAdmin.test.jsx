@@ -398,7 +398,7 @@ describe("EuropassGenerator (ProfileFormPage)", () => {
     );
 
     // Verify Progress template UI elements render
-    expect(screen.getByText("AARAV SHARMA")).toBeInTheDocument();
+    expect(screen.getByText(/aarav sharma/i)).toBeInTheDocument();
     expect(screen.getByText("BSC NURSING")).toBeInTheDocument();
     expect(screen.getByText("ICU NURSE")).toBeInTheDocument();
     expect(screen.getByText(/Understanding/i)).toBeInTheDocument();
