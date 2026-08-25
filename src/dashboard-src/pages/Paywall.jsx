@@ -17,11 +17,40 @@ import {
   ArrowDown,
 } from "lucide-react";
 import { ControlDropdown } from "../payments-admin/components/controls";
+import { StatCard } from "../payments-admin/components/common";
 
 const STATUS_FILTER_OPTIONS = [
   { value: "all", label: "All" },
   { value: "active", label: "Paywall Active" },
   { value: "inactive", label: "Paywall Inactive" },
+];
+
+const TIER_TABS = [
+  {
+    value: "all",
+    label: "All Users",
+    tone: "slate",
+    infoText: "Every student in the selected created-at date range.",
+  },
+  {
+    value: "paid",
+    label: "Paid Tier",
+    tone: "emerald",
+    infoText: "Students with an active autopay mandate.",
+  },
+  {
+    value: "trial",
+    label: "On Trial",
+    tone: "amber",
+    infoText:
+      "Students on a running free trial without an active autopay mandate.",
+  },
+  {
+    value: "free",
+    label: "Free Tier",
+    tone: "blue",
+    infoText: "Students who are neither paid nor on a running trial.",
+  },
 ];
 
 const STATUS_TABS = [
@@ -34,6 +63,12 @@ const TRIAL_STATUS_TABS = [
   { value: "all", label: "All" },
   { value: "active", label: "Trial Active" },
   { value: "expired", label: "Trial Expired" },
+];
+
+const AUTOPAY_STATUS_TABS = [
+  { value: "all", label: "All" },
+  { value: "active", label: "Autopay Active" },
+  { value: "inactive", label: "Autopay Inactive" },
 ];
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -59,8 +94,15 @@ function formatTrialEnd(value) {
 function Paywall() {
   const [students, setStudents] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [tierCounts, setTierCounts] = useState({
+    all: 0,
+    paid: 0,
+    trial: 0,
+    free: 0,
+  });
   const [statusFilter, setStatusFilter] = useState("all");
   const [trialStatusFilter, setTrialStatusFilter] = useState("all");
+  const [autopayStatusFilter, setAutopayStatusFilter] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [sortOption, setSortOption] = useState("default");
@@ -89,7 +131,17 @@ function Paywall() {
   // Fetch lists
   useEffect(() => {
     fetchStudents();
-  }, [page, limit, searchQuery, statusFilter, trialStatusFilter, startDate, endDate, sortOption]);
+  }, [
+    page,
+    limit,
+    searchQuery,
+    statusFilter,
+    trialStatusFilter,
+    autopayStatusFilter,
+    startDate,
+    endDate,
+    sortOption,
+  ]);
 
   useEffect(() => {
     fetchMasterLogs();
@@ -104,13 +156,19 @@ function Paywall() {
           limit,
           search: searchQuery,
           status: statusFilter,
-          trialStatus: trialStatusFilter !== "all" ? trialStatusFilter : undefined,
+          trialStatus:
+            trialStatusFilter !== "all" ? trialStatusFilter : undefined,
+          autopayStatus:
+            autopayStatusFilter !== "all" ? autopayStatusFilter : undefined,
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           sort: sortOption !== "default" ? sortOption : undefined,
         },
       });
       setStudents(response.data.students || []);
+      setTierCounts(
+        response.data.tiers || { all: 0, paid: 0, trial: 0, free: 0 },
+      );
       setTotalPages(response.data.pagination?.totalPages || 1);
       setTotalCount(response.data.pagination?.total || 0);
     } catch (err) {
@@ -152,6 +210,11 @@ function Paywall() {
 
   const handleTrialStatusFilterChange = (value) => {
     setTrialStatusFilter(value);
+    setPage(1);
+  };
+
+  const handleAutopayStatusFilterChange = (value) => {
+    setAutopayStatusFilter(value);
     setPage(1);
   };
 
@@ -200,7 +263,8 @@ function Paywall() {
       active = sortOption === "activity_desc" || sortOption === "activity_asc";
       isAsc = sortOption === "activity_asc";
     } else if (column === "trial") {
-      active = sortOption === "trial_expiry_desc" || sortOption === "trial_expiry_asc";
+      active =
+        sortOption === "trial_expiry_desc" || sortOption === "trial_expiry_asc";
       isAsc = sortOption === "trial_expiry_asc";
     }
 
@@ -227,7 +291,9 @@ function Paywall() {
     const nextStatus = !currentStatus;
     // Optimistic UI update
     setStudents((prev) =>
-      prev.map((s) => (s.user_id === studentId ? { ...s, paywall_active: nextStatus } : s))
+      prev.map((s) =>
+        s.user_id === studentId ? { ...s, paywall_active: nextStatus } : s,
+      ),
     );
 
     try {
@@ -240,7 +306,9 @@ function Paywall() {
       console.error("Error toggling paywall status:", err);
       // Revert optimistic update
       setStudents((prev) =>
-        prev.map((s) => (s.user_id === studentId ? { ...s, paywall_active: currentStatus } : s))
+        prev.map((s) =>
+          s.user_id === studentId ? { ...s, paywall_active: currentStatus } : s,
+        ),
       );
     }
   };
@@ -276,7 +344,9 @@ function Paywall() {
     setShowAuditModal(true);
     setLoadingAudit(true);
     try {
-      const response = await api.get(`/admin/paywall/students/${student.user_id}/audit-log`);
+      const response = await api.get(
+        `/admin/paywall/students/${student.user_id}/audit-log`,
+      );
       setAuditLogs(response.data.logs || []);
     } catch (err) {
       console.error("Error fetching audit logs:", err);
@@ -301,7 +371,9 @@ function Paywall() {
       classes = "bg-blue-50 text-blue-700 border border-blue-200";
     }
     return (
-      <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold ${classes}`}>
+      <span
+        className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold ${classes}`}
+      >
         {key}
       </span>
     );
@@ -353,102 +425,139 @@ function Paywall() {
       {/* Flat Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3 border-b border-slate-200">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Paywall Dashboard</h1>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+            Paywall Dashboard
+          </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Student access directories, autopay subscriptions, activity scores, and system audit logs.
+            Student access directories, autopay subscriptions, activity scores,
+            and system audit logs.
           </p>
         </div>
       </div>
 
       {/* Main Student Directory */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+        {/* Heading */}
+        <div className="flex items-center gap-2 mb-4">
+          <h2 className="text-base font-bold text-slate-800">
+            Students Directory
+          </h2>
+          {totalCount > 0 && (
+            <span className="text-xs font-medium text-slate-400">
+              ({totalCount})
+            </span>
+          )}
+        </div>
+
+        {/* Tier Summary Cards */}
+        <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {TIER_TABS.map((tab) => (
+            <StatCard
+              key={tab.value}
+              label={tab.label}
+              value={Number(tierCounts[tab.value] || 0).toLocaleString("en-IN")}
+              tone={tab.tone}
+              infoText={tab.infoText}
+            />
+          ))}
+        </div>
+
         {/* Toolbar */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-slate-800">Students Directory</h2>
-            {totalCount > 0 && (
-              <span className="text-xs font-medium text-slate-400">({totalCount})</span>
-            )}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          {/* Search */}
+          <div className="relative min-w-[200px] flex-1 sm:flex-initial sm:w-56">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              placeholder="Search student or phone..."
+              className="w-full h-9 pl-8 pr-3 border border-slate-200 rounded-lg text-xs bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:border-slate-400 transition-colors"
+            />
+            <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-slate-400" />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Search */}
-            <div className="relative min-w-[200px] flex-1 sm:flex-initial sm:w-56">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={handleSearchChange}
-                placeholder="Search student or phone..."
-                className="w-full h-9 pl-8 pr-3 border border-slate-200 rounded-lg text-xs bg-white text-slate-800 placeholder-slate-400 focus:outline-none focus:border-slate-400 transition-colors"
-              />
-              <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-slate-400" />
-            </div>
+          {/* Paywall Status Toggle Tabs */}
+          <div className="inline-flex p-0.5 bg-slate-100 rounded-lg border border-slate-200/80 h-9 items-center">
+            {STATUS_TABS.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => handleStatusFilterChange(tab.value)}
+                className={`h-7 px-1.5 rounded-md text-xs transition-all cursor-pointer ${
+                  statusFilter === tab.value
+                    ? "bg-white shadow-2xs text-slate-900 font-semibold"
+                    : "text-slate-500 hover:text-slate-800 font-medium"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-            {/* Paywall Status Toggle Tabs */}
-            <div className="inline-flex p-0.5 bg-slate-100 rounded-lg border border-slate-200/80 h-9 items-center">
-              {STATUS_TABS.map((tab) => (
-                <button
-                  key={tab.value}
-                  type="button"
-                  onClick={() => handleStatusFilterChange(tab.value)}
-                  className={`h-7 px-2.5 rounded-md text-xs transition-all cursor-pointer ${
-                    statusFilter === tab.value
-                      ? "bg-white shadow-2xs text-slate-900 font-semibold"
-                      : "text-slate-500 hover:text-slate-800 font-medium"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+          {/* Trial Status Toggle Tabs */}
+          <div className="inline-flex p-0.5 bg-slate-100 rounded-lg border border-slate-200/80 h-9 items-center">
+            {TRIAL_STATUS_TABS.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => handleTrialStatusFilterChange(tab.value)}
+                className={`h-7 px-1.5 rounded-md text-xs transition-all cursor-pointer ${
+                  trialStatusFilter === tab.value
+                    ? "bg-white shadow-2xs text-slate-900 font-semibold"
+                    : "text-slate-500 hover:text-slate-800 font-medium"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-            {/* Trial Status Toggle Tabs */}
-            <div className="inline-flex p-0.5 bg-slate-100 rounded-lg border border-slate-200/80 h-9 items-center">
-              {TRIAL_STATUS_TABS.map((tab) => (
-                <button
-                  key={tab.value}
-                  type="button"
-                  onClick={() => handleTrialStatusFilterChange(tab.value)}
-                  className={`h-7 px-2.5 rounded-md text-xs transition-all cursor-pointer ${
-                    trialStatusFilter === tab.value
-                      ? "bg-white shadow-2xs text-slate-900 font-semibold"
-                      : "text-slate-500 hover:text-slate-800 font-medium"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+          {/* Autopay Status Toggle Tabs */}
+          <div className="inline-flex p-0.5 bg-slate-100 rounded-lg border border-slate-200/80 h-9 items-center">
+            {AUTOPAY_STATUS_TABS.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => handleAutopayStatusFilterChange(tab.value)}
+                className={`h-7 px-1.5 rounded-md text-xs transition-all cursor-pointer ${
+                  autopayStatusFilter === tab.value
+                    ? "bg-white shadow-2xs text-slate-900 font-semibold"
+                    : "text-slate-500 hover:text-slate-800 font-medium"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-            {/* Date Range */}
-            <div className="flex items-center gap-2 h-9 bg-white border border-slate-200 rounded-lg px-2.5 text-xs text-slate-600">
-              <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span className="text-slate-400 font-medium">From:</span>
-              <input
-                type="date"
-                value={startDate}
-                onChange={handleStartDateChange}
-                className="bg-transparent border-0 border-none outline-none focus:outline-none focus:ring-0 text-slate-700 text-xs cursor-pointer p-0"
-                title="Created from (12:00 AM IST)"
-              />
-              <span className="text-slate-400 font-medium">To:</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={handleEndDateChange}
-                className="bg-transparent border-0 border-none outline-none focus:outline-none focus:ring-0 text-slate-700 text-xs cursor-pointer p-0"
-                title="Created to (11:59 PM IST)"
-              />
-              {(startDate || endDate) && (
-                <button
-                  onClick={handleResetDates}
-                  title="Clear dates"
-                  className="p-0.5 text-slate-400 hover:text-slate-600 transition-colors ml-0.5 cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+          {/* Date Range */}
+          <div className="flex items-center gap-2 h-9 bg-white border border-slate-200 rounded-lg px-2.5 text-xs text-slate-600">
+            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span className="text-slate-400 font-medium">From:</span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={handleStartDateChange}
+              className="bg-transparent border-0 border-none outline-none focus:outline-none focus:ring-0 text-slate-700 text-xs cursor-pointer p-0"
+              title="Created from (12:00 AM IST)"
+            />
+            <span className="text-slate-400 font-medium">To:</span>
+            <input
+              type="date"
+              value={endDate}
+              onChange={handleEndDateChange}
+              className="bg-transparent border-0 border-none outline-none focus:outline-none focus:ring-0 text-slate-700 text-xs cursor-pointer p-0"
+              title="Created to (11:59 PM IST)"
+            />
+            {(startDate || endDate) && (
+              <button
+                onClick={handleResetDates}
+                title="Clear dates"
+                className="p-0.5 text-slate-400 hover:text-slate-600 transition-colors ml-0.5 cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -521,7 +630,10 @@ function Paywall() {
                 </tr>
               ) : (
                 students.map((student) => (
-                  <tr key={student.user_id} className="hover:bg-slate-50/60 transition-colors">
+                  <tr
+                    key={student.user_id}
+                    className="hover:bg-slate-50/60 transition-colors"
+                  >
                     <td className="px-3.5 py-2.5 whitespace-nowrap">
                       <div className="font-semibold text-slate-900">
                         {student.fullname || student.username}
@@ -533,13 +645,17 @@ function Paywall() {
                     <td className="px-3.5 py-2.5 whitespace-nowrap text-center">
                       <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px] font-medium">
                         {student.current_profeciency_level || "A1"}
-                        {String(student.current_profeciency_level || "").toUpperCase() === "B1" &&
+                        {String(
+                          student.current_profeciency_level || "",
+                        ).toUpperCase() === "B1" &&
                           (student.is_job_screening ? " · Job" : " · Practice")}
                       </span>
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap text-center">
                       <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-xs font-semibold">
-                        {student.prospect_score != null ? student.prospect_score : 0}
+                        {student.prospect_score != null
+                          ? student.prospect_score
+                          : 0}
                       </span>
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap text-center text-slate-500 font-mono text-[11px]">
@@ -564,19 +680,31 @@ function Paywall() {
                       )}
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap text-center">
-                      {getAutopayBadge(student.autopay_status, student.autopay_enabled)}
+                      {getAutopayBadge(
+                        student.autopay_status,
+                        student.autopay_enabled,
+                      )}
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap text-center">
                       <button
                         type="button"
-                        onClick={() => handleTogglePaywall(student.user_id, student.paywall_active)}
+                        onClick={() =>
+                          handleTogglePaywall(
+                            student.user_id,
+                            student.paywall_active,
+                          )
+                        }
                         className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${
-                          student.paywall_active ? "bg-indigo-600" : "bg-slate-200"
+                          student.paywall_active
+                            ? "bg-indigo-600"
+                            : "bg-slate-200"
                         }`}
                       >
                         <span
                           className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                            student.paywall_active ? "translate-x-4.5" : "translate-x-1"
+                            student.paywall_active
+                              ? "translate-x-4.5"
+                              : "translate-x-1"
                           }`}
                         />
                       </button>
@@ -591,15 +719,16 @@ function Paywall() {
                         >
                           <History className="w-4 h-4" />
                         </button>
-                        {student.autopay_enabled && student.razorpay_subscription_id && (
-                          <button
-                            type="button"
-                            onClick={() => openCancelModal(student)}
-                            className="px-2 py-0.5 text-[11px] font-medium text-rose-600 border border-rose-200 rounded hover:bg-rose-50 transition-colors cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                        )}
+                        {student.autopay_enabled &&
+                          student.razorpay_subscription_id && (
+                            <button
+                              type="button"
+                              onClick={() => openCancelModal(student)}
+                              className="px-2 py-0.5 text-[11px] font-medium text-rose-600 border border-rose-200 rounded hover:bg-rose-50 transition-colors cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          )}
                       </div>
                     </td>
                   </tr>
@@ -633,7 +762,8 @@ function Paywall() {
               </div>
               {totalCount > 0 && (
                 <span className="text-slate-400 font-normal ml-1">
-                  (Showing {Math.min(totalCount, (page - 1) * limit + 1)}–{Math.min(totalCount, page * limit)} of {totalCount})
+                  (Showing {Math.min(totalCount, (page - 1) * limit + 1)}–
+                  {Math.min(totalCount, page * limit)} of {totalCount})
                 </span>
               )}
             </div>
@@ -671,7 +801,8 @@ function Paywall() {
               System Audit Logs
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Live log of paywall toggles, checkout registrations, and gateway updates.
+              Live log of paywall toggles, checkout registrations, and gateway
+              updates.
             </p>
           </div>
           <button
@@ -680,7 +811,9 @@ function Paywall() {
             disabled={loadingMasterLogs}
             className="px-2.5 py-1 text-xs border border-slate-200 rounded-md hover:bg-slate-50 text-slate-600 flex items-center gap-1.5 font-medium transition-colors cursor-pointer disabled:opacity-50"
           >
-            <RefreshCw className={`w-3 h-3 ${loadingMasterLogs ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`w-3 h-3 ${loadingMasterLogs ? "animate-spin" : ""}`}
+            />
             Refresh
           </button>
         </div>
@@ -713,13 +846,20 @@ function Paywall() {
                 </tr>
               ) : (
                 masterLogs.map((log) => (
-                  <tr key={log.log_id} className="hover:bg-slate-50/60 transition-colors">
+                  <tr
+                    key={log.log_id}
+                    className="hover:bg-slate-50/60 transition-colors"
+                  >
                     <td className="px-3.5 py-2.5 whitespace-nowrap text-slate-400 font-mono text-[11px]">
                       {log.created_at_ist}
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap">
-                      <div className="font-semibold text-slate-800">{log.student_name || "System"}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">{log.student_phone || "—"}</div>
+                      <div className="font-semibold text-slate-800">
+                        {log.student_name || "System"}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono">
+                        {log.student_phone || "—"}
+                      </div>
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap">
                       {getActionBadge(log.action_key)}
@@ -739,11 +879,17 @@ function Paywall() {
                     <td className="px-3.5 py-2.5 whitespace-nowrap">
                       {log.actor_name ? (
                         <div>
-                          <div className="font-semibold text-slate-800">{log.actor_name}</div>
-                          <div className="text-[10px] text-slate-400 capitalize">{log.actor_role}</div>
+                          <div className="font-semibold text-slate-800">
+                            {log.actor_name}
+                          </div>
+                          <div className="text-[10px] text-slate-400 capitalize">
+                            {log.actor_role}
+                          </div>
                         </div>
                       ) : (
-                        <span className="text-slate-400 capitalize">{log.actor_role || "system"}</span>
+                        <span className="text-slate-400 capitalize">
+                          {log.actor_role || "system"}
+                        </span>
                       )}
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap text-center font-mono text-[11px] text-slate-700">
@@ -790,7 +936,9 @@ function Paywall() {
                   <ShieldAlert className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">Cancel Autopay Subscription</h3>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Cancel Autopay Subscription
+                  </h3>
                   <p className="text-xs text-slate-500 mt-1">
                     Are you sure you want to cancel recurring autopay for{" "}
                     <span className="font-semibold text-slate-800">
@@ -799,7 +947,8 @@ function Paywall() {
                     ?
                   </p>
                   <p className="text-[11px] text-rose-600 mt-2 bg-rose-50 p-2 rounded border border-rose-100">
-                    This calls Razorpay to cancel future billing cycles immediately.
+                    This calls Razorpay to cancel future billing cycles
+                    immediately.
                   </p>
                 </div>
               </div>
@@ -836,10 +985,12 @@ function Paywall() {
             <header className="flex justify-between items-center px-5 py-3.5 border-b border-slate-200 bg-slate-50">
               <div>
                 <h3 className="text-base font-bold text-slate-900">
-                  Audit History: {selectedStudent.fullname || selectedStudent.username}
+                  Audit History:{" "}
+                  {selectedStudent.fullname || selectedStudent.username}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Database record of paywall events, changes, and authorizations.
+                  Database record of paywall events, changes, and
+                  authorizations.
                 </p>
               </div>
               <button
@@ -862,7 +1013,9 @@ function Paywall() {
                   Loading audit logs...
                 </div>
               ) : auditLogs.length === 0 ? (
-                <div className="text-center py-10 text-slate-400 text-xs">No logs found for this user.</div>
+                <div className="text-center py-10 text-slate-400 text-xs">
+                  No logs found for this user.
+                </div>
               ) : (
                 <div className="overflow-x-auto border border-slate-200 rounded-lg">
                   <table className="table-auto w-full text-left text-xs">
@@ -871,34 +1024,50 @@ function Paywall() {
                         <th className="px-3 py-2">Action Key</th>
                         <th className="px-3 py-2">Actor</th>
                         <th className="px-3 py-2">Changes (Old → New)</th>
-                        <th className="px-3 py-2 text-center">Subscription ID</th>
-                        <th className="px-3 py-2 text-right">Timestamp (IST)</th>
+                        <th className="px-3 py-2 text-center">
+                          Subscription ID
+                        </th>
+                        <th className="px-3 py-2 text-right">
+                          Timestamp (IST)
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-600">
                       {auditLogs.map((log) => (
                         <tr key={log.log_id} className="hover:bg-slate-50">
                           <td className="px-3 py-2 whitespace-nowrap">
-                            <span className="font-semibold text-slate-800">{log.action_key}</span>
+                            <span className="font-semibold text-slate-800">
+                              {log.action_key}
+                            </span>
                           </td>
                           <td className="px-3 py-2 whitespace-nowrap">
                             {log.actor_name ? (
                               <div>
-                                <div className="font-semibold text-slate-800">{log.actor_name}</div>
-                                <div className="text-[10px] text-slate-400 capitalize">{log.actor_role}</div>
+                                <div className="font-semibold text-slate-800">
+                                  {log.actor_name}
+                                </div>
+                                <div className="text-[10px] text-slate-400 capitalize">
+                                  {log.actor_role}
+                                </div>
                               </div>
                             ) : (
-                              <span className="text-slate-400 capitalize">{log.actor_role || "system"}</span>
+                              <span className="text-slate-400 capitalize">
+                                {log.actor_role || "system"}
+                              </span>
                             )}
                           </td>
                           <td className="px-3 py-2 max-w-xs font-mono text-[10px] break-all">
                             <div className="flex flex-col gap-0.5">
                               <div>
-                                <span className="text-slate-400 mr-1">Old:</span>
+                                <span className="text-slate-400 mr-1">
+                                  Old:
+                                </span>
                                 {JSON.stringify(log.old_value)}
                               </div>
                               <div>
-                                <span className="text-slate-400 mr-1">New:</span>
+                                <span className="text-slate-400 mr-1">
+                                  New:
+                                </span>
                                 {JSON.stringify(log.new_value)}
                               </div>
                             </div>

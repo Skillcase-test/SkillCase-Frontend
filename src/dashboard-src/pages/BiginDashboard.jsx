@@ -33,6 +33,7 @@ function MultiSelectOwner({
   selectedOwners = [],
   onChange,
   loading = false,
+  className = "w-40",
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -86,7 +87,7 @@ function MultiSelectOwner({
   }, [selectedOwners, owners]);
 
   return (
-    <div className="relative w-44" ref={dropdownRef}>
+    <div className={cx("relative", className)} ref={dropdownRef}>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -200,6 +201,13 @@ const PIPELINE_OPTIONS = [
   { value: "all", label: "Both pipelines" },
   { value: "b2c", label: "B2C Sales" },
   { value: "b1b2", label: "B1/B2 Sales" },
+];
+
+// Buckets records by their synced adset: only FB-Physiotherapists is Physiotherapists, everything else (blank adsets included) is Nurses.
+const PROFESSION_OPTIONS = [
+  { value: "all", label: "All Professions" },
+  { value: "nurses", label: "Nurses" },
+  { value: "physiotherapists", label: "Physiotherapists" },
 ];
 
 const VIEW_OPTIONS = [
@@ -1691,6 +1699,11 @@ export default function BiginDashboard({ isSuperAdmin = false }) {
   const pipeline = ["b2c", "b1b2", "all"].includes(params.get("pipeline"))
     ? params.get("pipeline")
     : "all";
+  const profession = PROFESSION_OPTIONS.some(
+    (opt) => opt.value === params.get("profession"),
+  )
+    ? params.get("profession")
+    : "all";
   const dateFrom = params.get("date_from") || defaults.from;
   const dateTo = params.get("date_to") || defaults.to;
   const createdFrom = params.get("created_from") || createdLeadDefaults.from;
@@ -1765,42 +1778,46 @@ export default function BiginDashboard({ isSuperAdmin = false }) {
   const activeApiFilters = useMemo(
     () => ({
       pipeline,
+      profession,
       owner,
       scope: "active",
       date_from: dateFrom,
       date_to: dateTo,
     }),
-    [pipeline, owner, dateFrom, dateTo],
+    [pipeline, profession, owner, dateFrom, dateTo],
   );
   const completeApiFilters = useMemo(
-    () => ({ pipeline, owner, scope: "active", all_time: "true" }),
-    [pipeline, owner],
+    () => ({ pipeline, profession, owner, scope: "active", all_time: "true" }),
+    [pipeline, profession, owner],
   );
   const todayApiFilters = useMemo(
     () => ({
       pipeline,
+      profession,
       owner,
       scope: "active",
       date_from: today,
       date_to: today,
     }),
-    [pipeline, owner, today],
+    [pipeline, profession, owner, today],
   );
   const thisMonthApiFilters = useMemo(
     () => ({
       pipeline,
+      profession,
       owner,
       scope: "active",
       date_from: startOfMonth,
       date_to: asOfPeriodEnd,
       ...(isPastAsOf && { as_of: asOfPeriodEnd }),
     }),
-    [pipeline, owner, startOfMonth, asOfPeriodEnd, isPastAsOf],
+    [pipeline, profession, owner, startOfMonth, asOfPeriodEnd, isPastAsOf],
   );
 
   const beforeMonthApiFilters = useMemo(
     () => ({
       pipeline,
+      profession,
       owner,
       scope: "active",
       date_from: "1970-01-01",
@@ -1808,16 +1825,25 @@ export default function BiginDashboard({ isSuperAdmin = false }) {
       closed_since: startOfMonth,
       ...(isPastAsOf && { as_of: asOfPeriodEnd }),
     }),
-    [pipeline, owner, dayBeforeMonth, startOfMonth, asOfPeriodEnd, isPastAsOf],
+    [
+      pipeline,
+      profession,
+      owner,
+      dayBeforeMonth,
+      startOfMonth,
+      asOfPeriodEnd,
+      isPastAsOf,
+    ],
   );
   const weeklySnapshotApiFilters = useMemo(
     () => ({
       pipeline,
+      profession,
       owner,
       created_from: createdFrom,
       created_to: createdTo,
     }),
-    [pipeline, owner, createdFrom, createdTo],
+    [pipeline, profession, owner, createdFrom, createdTo],
   );
 
   const primaryFilters =
@@ -1845,7 +1871,7 @@ export default function BiginDashboard({ isSuperAdmin = false }) {
   return (
     <div className="min-h-full bg-slate-50/60">
       <div className="mx-auto max-w-[1440px] space-y-6 p-5 sm:p-7 lg:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-7 py-4.5 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-6 py-3.5 shadow-xs">
           <div className="flex items-center gap-3">
             <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50">
               <BarChart3 className="h-4.5 w-4.5 text-indigo-500" />
@@ -1869,129 +1895,130 @@ export default function BiginDashboard({ isSuperAdmin = false }) {
             </div>
           </div>
 
-          {/* Two fixed rows: the core controls (row 1) never move regardless
-              of view; contextual controls (row 2) append into their own
-              reserved-height slot instead of shifting row 1 around. */}
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
-                {VIEW_OPTIONS.map((opt) => (
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
+              {VIEW_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => update("view", opt.value)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                    view === opt.value
+                      ? "bg-slate-900 text-white cursor-not-allowed"
+                      : "text-slate-600 hover:bg-slate-50 cursor-pointer"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {view === "active" && (
+              <div className="flex items-center gap-1.5">
+                <ControlInput
+                  type="date"
+                  aria-label="From date"
+                  max={dateTo}
+                  value={dateFrom}
+                  onChange={(e) => update("date_from", e.target.value)}
+                  className="h-9 text-xs"
+                />
+                <span className="text-xs text-slate-400">to</span>
+                <ControlInput
+                  type="date"
+                  aria-label="To date"
+                  min={dateFrom}
+                  value={dateTo}
+                  onChange={(e) => update("date_to", e.target.value)}
+                  className="h-9 text-xs"
+                />
+              </div>
+            )}
+
+            {view === "movement" && (
+              <div className="flex items-center gap-1.5">
+                <ControlInput
+                  type="date"
+                  aria-label="Created from"
+                  max={today}
+                  value={createdFrom}
+                  onChange={(e) =>
+                    handleCreatedDateChange("created_from", e.target.value)
+                  }
+                  className="h-9 text-xs"
+                />
+                <span className="text-xs text-slate-400">to</span>
+                <ControlInput
+                  type="date"
+                  aria-label="Created to"
+                  min={createdFrom}
+                  max={today}
+                  value={createdTo}
+                  onChange={(e) =>
+                    handleCreatedDateChange("created_to", e.target.value)
+                  }
+                  className="h-9 text-xs"
+                />
+              </div>
+            )}
+
+            {view === "running" && (
+              <>
+                <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
                   <button
-                    key={opt.value}
                     type="button"
-                    onClick={() => update("view", opt.value)}
+                    onClick={() => update("running_mode", "today")}
                     className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                      view === opt.value
+                      runningMode === "today"
                         ? "bg-slate-900 text-white cursor-not-allowed"
                         : "text-slate-600 hover:bg-slate-50 cursor-pointer"
                     }`}
                   >
-                    {opt.label}
+                    As of Today
                   </button>
-                ))}
-              </div>
-              <MultiSelectOwner
-                owners={owners}
-                selectedOwners={selectedOwners}
-                onChange={handleOwnerChange}
-              />
-              <ControlDropdown
-                value={pipeline}
-                options={PIPELINE_OPTIONS}
-                onChange={(v) => update("pipeline", v)}
-                className="w-44"
-              />
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => update("running_mode", "month")}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                      runningMode === "month"
+                        ? "bg-slate-900 text-white cursor-not-allowed"
+                        : "text-slate-600 hover:bg-slate-50 cursor-pointer"
+                    }`}
+                  >
+                    {isPastAsOf
+                      ? `As of ${monthLabel(asOfMonth)}`
+                      : "As of Month"}
+                  </button>
+                </div>
+                {runningMode === "month" && (
+                  <ControlDropdown
+                    value={asOfMonth}
+                    options={monthDropdownOptions}
+                    onChange={(v) => update("running_as_of_month", v)}
+                    className="w-36"
+                  />
+                )}
+              </>
+            )}
 
-            <div className="flex min-h-9 flex-wrap items-center gap-3">
-              {view === "active" && (
-                <>
-                  <ControlInput
-                    type="date"
-                    aria-label="From date"
-                    max={dateTo}
-                    value={dateFrom}
-                    onChange={(e) => update("date_from", e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                  <span className="text-slate-400">to</span>
-                  <ControlInput
-                    type="date"
-                    aria-label="To date"
-                    min={dateFrom}
-                    value={dateTo}
-                    onChange={(e) => update("date_to", e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </>
-              )}
-
-              {view === "movement" && (
-                <>
-                  <ControlInput
-                    type="date"
-                    aria-label="Created from"
-                    max={today}
-                    value={createdFrom}
-                    onChange={(e) =>
-                      handleCreatedDateChange("created_from", e.target.value)
-                    }
-                    className="h-9 text-sm"
-                  />
-                  <span className="text-slate-400">to</span>
-                  <ControlInput
-                    type="date"
-                    aria-label="Created to"
-                    min={createdFrom}
-                    max={today}
-                    value={createdTo}
-                    onChange={(e) =>
-                      handleCreatedDateChange("created_to", e.target.value)
-                    }
-                    className="h-9 text-sm"
-                  />
-                </>
-              )}
-
-              {view === "running" && (
-                <>
-                  <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
-                    <button
-                      type="button"
-                      onClick={() => update("running_mode", "today")}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                        runningMode === "today"
-                          ? "bg-slate-900 text-white cursor-not-allowed"
-                          : "text-slate-600 hover:bg-slate-50 cursor-pointer"
-                      }`}
-                    >
-                      As of Today
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => update("running_mode", "month")}
-                      className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
-                        runningMode === "month"
-                          ? "bg-slate-900 text-white cursor-not-allowed"
-                          : "text-slate-600 hover:bg-slate-50 cursor-pointer"
-                      }`}
-                    >
-                      {isPastAsOf
-                        ? `As of ${monthLabel(asOfMonth)}`
-                        : "As of Month"}
-                    </button>
-                  </div>
-                  {runningMode === "month" && (
-                    <ControlDropdown
-                      value={asOfMonth}
-                      options={monthDropdownOptions}
-                      onChange={(v) => update("running_as_of_month", v)}
-                      className="w-40"
-                    />
-                  )}
-                </>
-              )}
-            </div>
+            <MultiSelectOwner
+              owners={owners}
+              selectedOwners={selectedOwners}
+              onChange={handleOwnerChange}
+              className="w-40"
+            />
+            <ControlDropdown
+              value={pipeline}
+              options={PIPELINE_OPTIONS}
+              onChange={(v) => update("pipeline", v)}
+              className="w-40"
+            />
+            <ControlDropdown
+              value={profession}
+              options={PROFESSION_OPTIONS}
+              onChange={(v) => update("profession", v)}
+              className="w-40"
+            />
           </div>
         </div>
 
