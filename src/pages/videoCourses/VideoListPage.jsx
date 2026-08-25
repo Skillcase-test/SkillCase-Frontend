@@ -1,19 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  Check,
-  ChevronLeft,
-  Loader2,
-  PlayCircle,
-  Search,
-  X,
-} from "lucide-react";
+import { ChevronLeft, Loader2, PlayCircle, Search, X } from "lucide-react";
 import {
   getVideoCourse,
   searchVideoCourseVideos,
 } from "../../api/videoCourseApi";
 import { trackFeatureEvent } from "../../telemetry/events";
 import { useUsageLimitGate } from "../../hooks/useUsageLimits";
+import germanclassImg from "../../assets/images/germanclass.webp";
 
 const formatTime = (secs) => {
   const s = Math.floor(Number(secs) || 0);
@@ -21,6 +15,106 @@ const formatTime = (secs) => {
   const remSecs = s % 60;
   return `${m}:${String(remSecs).padStart(2, "0")}`;
 };
+
+function VideoCard({ video, courseId, navigate }) {
+  const duration = Number(video.video_duration) || 0;
+  const watchTime = Number(video.watch_time_seconds) || 0;
+  const percent = video.completed
+    ? 100
+    : duration > 0
+      ? Math.min(100, Math.round((watchTime / duration) * 100))
+      : 0;
+
+  return (
+    <div
+      onClick={() => {
+        trackFeatureEvent("video_courses", "video_opened", {
+          entityType: "course_video",
+          entityId: video.video_id,
+          attributes: { course_id: courseId },
+        });
+        navigate(`/video-course/${video.video_id}`);
+      }}
+      className="w-full p-2 bg-white rounded-lg border border-zinc-200 shadow-sm flex gap-3.5 items-center cursor-pointer hover:border-[#002856] transition-all"
+    >
+      {/* Left: 16:9 Thumbnail Image */}
+      <div className="w-28 aspect-video shrink-0 rounded-md bg-slate-100 overflow-hidden relative flex items-center justify-center">
+        {video.thumbnail_url ? (
+          <img
+            src={video.thumbnail_url}
+            alt={video.title}
+            loading="lazy"
+            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-200"
+          />
+        ) : (
+          <PlayCircle className="w-6 h-6 text-slate-400" />
+        )}
+      </div>
+
+      {/* Right: Content details */}
+      <div className="flex-1 min-w-0 flex flex-col gap-1">
+        <h2 className="text-slate-900 text-xs font-semibold leading-tight truncate text-left">
+          {video.title}
+        </h2>
+
+        {/* Short description if present */}
+        {video.short_description ? (
+          <p className="text-slate-500 text-[9px] font-normal line-clamp-1 leading-none text-left">
+            {video.short_description}
+          </p>
+        ) : null}
+
+        {/* Dynamic Progress Bar (Yellow in progress, Green at 100%) */}
+        <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden mt-0.5">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${
+              percent === 100 ? "bg-[#019035]" : "bg-amber-400"
+            }`}
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+
+        {/* Duration and Status */}
+        <div className="flex items-center justify-between mt-0.5">
+          <span className="text-neutral-500 text-[8px] font-medium">
+            Duration : {formatTime(duration)}
+          </span>
+
+          {video.completed ? (
+            <span className="px-2 py-0.5 bg-[#E6F4EA] text-[#137333] text-[8px] font-medium rounded-full inline-flex items-center justify-center leading-none">
+              watched
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 bg-[#FEF3C7] text-[#B45309] text-[8px] font-medium rounded-full inline-flex items-center justify-center leading-none">
+              Pending
+            </span>
+          )}
+        </div>
+
+        {/* Matched Timestamps if any */}
+        {video.matched_timestamps?.length > 0 && (
+          <div className="flex gap-1.5 overflow-x-auto pt-1 pb-0.5">
+            {video.matched_timestamps.map((t) => (
+              <button
+                key={t.timestamp_id}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(
+                    `/video-course/${video.video_id}?t=${t.time_seconds}`,
+                  );
+                }}
+                className="px-2 py-0.5 bg-slate-50 border border-zinc-200 hover:border-[#002856] hover:bg-sky-50 text-[#002856] text-[10px] font-medium rounded whitespace-nowrap shrink-0 cursor-pointer transition-colors"
+              >
+                {formatTime(t.time_seconds)} - {t.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function VideoListPage() {
   const { courseId } = useParams();
@@ -90,6 +184,7 @@ export default function VideoListPage() {
     const localMatches = videos.filter(
       (v) =>
         v.title?.toLowerCase().includes(q) ||
+        v.short_description?.toLowerCase().includes(q) ||
         v.description?.toLowerCase().includes(q),
     );
 
@@ -121,25 +216,23 @@ export default function VideoListPage() {
           </span>
         </button>
         <span className="text-neutral-500 text-sm font-semibold leading-6 truncate max-w-[60%]">
-          Video Classes
+          German Classes
         </span>
       </div>
 
       {/* Main Content Area */}
       <div className="flex-1 w-full overflow-y-auto pb-32">
-        {/* Course Thumbnail Hero Section */}
-        {course?.thumbnail_url && (
-          <div className="relative w-full aspect-[21/9] max-h-44 overflow-hidden bg-slate-100">
-            <img
-              src={course.thumbnail_url}
-              alt=""
-              className="w-full h-full object-cover object-top"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent" />
-          </div>
-        )}
+        {/* Course Thumbnail Hero Section with Static germanclass.webp */}
+        <div className="relative w-full aspect-[21/9] max-h-44 overflow-hidden bg-slate-100">
+          <img
+            src={germanclassImg}
+            alt="German Classes"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/30 to-transparent" />
+        </div>
 
-        {/* Course Title & Description (Figma Exact) */}
+        {/* Course Title & Description */}
         <div className="px-4 pt-3.5 pb-1 flex flex-col gap-0.5">
           <h1 className="text-slate-900 text-[17px] font-bold leading-6 tracking-tight">
             {course?.name || "German Course Level 1"}
@@ -149,14 +242,20 @@ export default function VideoListPage() {
           </p>
         </div>
 
-        {/* Video Cards List (Figma Exact Direct Layout) */}
+        {/* Video Cards List (Horizontal Card Layout) */}
         {loading ? (
-          <div className="px-4 py-3.5 flex flex-col gap-5">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="w-full flex flex-col gap-2 animate-pulse">
-                <div className="w-full aspect-video rounded-lg bg-slate-200" />
-                <div className="h-4.5 w-3/4 bg-slate-200 rounded" />
-                <div className="h-3 w-1/3 bg-slate-100 rounded" />
+          <div className="px-3 py-3.5 flex flex-col gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                className="w-full p-3 bg-white rounded-md border border-zinc-100 flex gap-3.5 items-center animate-pulse"
+              >
+                <div className="w-26 aspect-video rounded-md bg-slate-200 shrink-0" />
+                <div className="flex-1 flex flex-col gap-2">
+                  <div className="h-4 w-3/4 bg-slate-200 rounded" />
+                  <div className="h-2 w-full bg-slate-100 rounded" />
+                  <div className="h-3 w-1/2 bg-slate-100 rounded" />
+                </div>
               </div>
             ))}
           </div>
@@ -170,78 +269,14 @@ export default function VideoListPage() {
             </p>
           </div>
         ) : (
-          <div className="px-2 py-2 flex flex-col gap-5">
+          <div className="px-3 py-3 flex flex-col gap-3">
             {shown.map((video) => (
-              <div
+              <VideoCard
                 key={video.video_id}
-                onClick={() => {
-                  trackFeatureEvent("video_courses", "video_opened", {
-                    entityType: "course_video",
-                    entityId: video.video_id,
-                    attributes: { course_id: courseId },
-                  });
-                  navigate(`/video-course/${video.video_id}`);
-                }}
-                className="w-full flex flex-col gap-2 cursor-pointer group  border border-slate-100 px-2 py-2 rounded-md shadow-sm"
-              >
-                {/* Crisp 16:9 Thumbnail Image */}
-                <div className="w-full aspect-video rounded-md bg-slate-100 overflow-hidden relative flex items-center justify-center">
-                  {video.thumbnail_url ? (
-                    <img
-                      src={video.thumbnail_url}
-                      alt={video.title}
-                      loading="lazy"
-                      className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-200"
-                    />
-                  ) : (
-                    <PlayCircle className="w-10 h-10 text-slate-400" />
-                  )}
-                </div>
-
-                {/* Video Info Row (Figma Exact Typography) */}
-                <div className="flex flex-col gap-0.5 ml-2">
-                  <h2 className="text-slate-900 text-sm font-semibold leading-snug text-left group-hover:text-[#002856] transition-colors tracking-tight">
-                    {video.title}
-                  </h2>
-
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-slate-500 text-[10px] font-normal">
-                      {formatTime(video.video_duration)}
-                    </span>
-
-                    {video.completed ? (
-                      <span className="px-2 py-0.5 bg-[#E6F4EA] text-[#137333] text-[8px] font-medium rounded-full inline-flex items-center justify-center leading-none">
-                        watched
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 bg-[#FEF3C7] text-[#B45309] text-[8px] font-medium rounded-full inline-flex items-center justify-center leading-none">
-                        Pending
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Matched Timestamps if any */}
-                {video.matched_timestamps?.length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto pt-0.5 pb-0.5">
-                    {video.matched_timestamps.map((t) => (
-                      <button
-                        key={t.timestamp_id}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(
-                            `/video-course/${video.video_id}?t=${t.time_seconds}`,
-                          );
-                        }}
-                        className="px-2.5 py-1 bg-slate-50 border border-zinc-200 hover:border-[#002856] hover:bg-sky-50 text-[#002856] text-xs font-semibold rounded-lg whitespace-nowrap shrink-0 cursor-pointer transition-colors"
-                      >
-                        {formatTime(t.time_seconds)} - {t.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                video={video}
+                courseId={courseId}
+                navigate={navigate}
+              />
             ))}
           </div>
         )}
