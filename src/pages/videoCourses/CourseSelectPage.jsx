@@ -53,7 +53,9 @@ export default function CourseSelectPage() {
           {courses.map((course) => {
             const total = Number(course.video_count) || 0;
             const done = Number(course.completed_count) || 0;
+            const started = Number(course.started_count) || 0;
             const isCompleted = done >= total && total > 0;
+            const isInProgress = !isCompleted && (done > 0 || started > 0);
 
             return (
               <div
@@ -89,11 +91,15 @@ export default function CourseSelectPage() {
 
                     {isCompleted ? (
                       <span className="px-2 py-0.5 bg-[#E6F4EA] text-[#137333] text-[8px] font-medium rounded-full inline-flex items-center justify-center leading-none">
-                        watched
+                        Completed
+                      </span>
+                    ) : isInProgress ? (
+                      <span className="px-2 py-0.5 bg-[#FEF3C7] text-[#B45309] text-[8px] font-medium rounded-full inline-flex items-center justify-center leading-none">
+                        In Progress
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 bg-[#FEF3C7] text-[#B45309] text-[8px] font-medium rounded-full inline-flex items-center justify-center leading-none">
-                        Pending
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[8px] font-medium rounded-full inline-flex items-center justify-center leading-none">
+                        Not Started
                       </span>
                     )}
                   </div>
