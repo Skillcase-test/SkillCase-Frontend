@@ -108,6 +108,9 @@ export default function UsageLimitModal() {
       });
     }
     if (user && !user.trial_taken) {
+      // Close first — the modal renders app-wide and would otherwise sit
+      // on top of (and later X-navigate away from) the trial page.
+      close();
       navigate("/trial-offer", { state: { from: "/" } });
       return;
     }
