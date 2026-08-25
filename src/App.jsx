@@ -57,6 +57,12 @@ if (typeof global === "undefined") {
 const syncPreferredModeCache = (user) => {
   if (typeof window === "undefined" || !user) return;
 
+  // "courses" is a client-side-only mode — the /user/lg-mode whitelist can
+  // neither store nor return it, so a local German Classes selection must
+  // survive these DB-driven syncs instead of being flipped back to the old
+  // learn/practice preference on every /user/me.
+  if (localStorage.getItem("lg_preferred_mode") === "courses") return;
+
   const serverMode =
     user.lg_preferred_mode ||
     (String(user.german_preference) === "3" ? "job_screening" : "");

@@ -1067,6 +1067,13 @@ export default function LearnGermanHome() {
       !activeLessonRef.current
     )
       return;
+    // Arriving via the Home tab always lands at the top of the timeline —
+    // skip this one auto-scroll (ScrollToTop already reset the window). Any
+    // other entry keeps the normal resume-where-you-left-off behavior.
+    if (sessionStorage.getItem("lg_home_clicked")) {
+      sessionStorage.removeItem("lg_home_clicked");
+      return;
+    }
     // When the animation sequence is pending, it owns all scrolling
     if (hasPendingAnimRef.current) return;
     activeLessonRef.current.scrollIntoView({

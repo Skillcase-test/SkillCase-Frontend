@@ -275,7 +275,25 @@ export default function BottomTabBar() {
     return <ScholarshipBottomBar user={user} streak={streak} />;
   }
 
-  const isHome = location.pathname === "/";
+  // German Classes users land on /video-courses via Home (LandingPage
+  // redirect), so keep the Home tab highlighted across those routes too.
+  const isHome =
+    location.pathname === "/" ||
+    (user?.lg_preferred_mode === "courses" &&
+      (location.pathname.startsWith("/video-courses") ||
+        location.pathname.startsWith("/video-course/")));
+
+  // Route Home straight to the selected hub instead of "/" — going through
+  // LandingPage paints one frame of the practice hub (switcher flashes to
+  // Practice) before its redirect effect fires. Client-only "courses" mode
+  // included; B1 users keep the practice-hub home.
+  const cachedHomeMode = localStorage.getItem("lg_preferred_mode");
+  const homeDest =
+    !isB1 && cachedHomeMode === "courses"
+      ? "/video-courses"
+      : !isB1 && cachedHomeMode === "learn"
+        ? "/learn-german"
+        : "/";
 
   return (
     <div
@@ -285,12 +303,23 @@ export default function BottomTabBar() {
       <div className="relative h-18 w-full max-w-7xl mx-auto px-4 py-4 flex items-center justify-between z-20">
         {/* Home */}
         <Link
-          to="/"
-          onClick={() => {
+          to={homeDest}
+          onClick={(e) => {
             hapticLight();
             trackFeatureEvent("navigation", "bottom_tab_clicked", {
               entityId: "home",
             });
+            if (location.pathname === homeDest) {
+              // Already on the destination hub — the Link would be a no-op,
+              // so honor the tap by scrolling to the top manually instead.
+              e.preventDefault();
+              sessionStorage.removeItem("lg_home_clicked");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            } else if (homeDest === "/learn-german") {
+              // LearnGermanHome reads this once to skip its active-lesson
+              // auto-scroll, so Home lands at the top of the chapter list.
+              sessionStorage.setItem("lg_home_clicked", "1");
+            }
           }}
           className={`w-14 flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-lg transition-colors ${
             isHome ? "bg-[#f4f4f6]" : "hover:bg-stone-500/5"

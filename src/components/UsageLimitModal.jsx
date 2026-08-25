@@ -78,10 +78,10 @@ export default function UsageLimitModal() {
     // Learn German is special: "/" redirects straight back to
     // "/learn-german" for anyone whose saved preference is still "learn"
     // (see LandingPage.jsx's prefersLearnMode effect), which would bounce
-    // them right back into the same locked screen. Switch their mode to
-    // practice first — the same thing tapping "Practice" on the bottom
-    // switcher does — so "/" actually sticks.
-    if (event?.module_key === "learn_german") {
+    // them right back into the same locked screen. The same now applies to
+    // German Classes ("courses" persists via the mode switcher) — switch
+    // both to practice first, so "/" actually sticks.
+    if (event?.module_key === "learn_german" || event?.module_key === "video_courses") {
       switchLGMode("practice");
     }
     close();
