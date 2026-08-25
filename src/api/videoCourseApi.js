@@ -27,12 +27,13 @@ export const getVideoCourseVideos = (level) =>
     },
     "MEDIUM_PRIVATE",
   );
-// Debounced typing replays the same query often enough that a short cache
-// meaningfully cuts requests; it is still far below the progress TTL.
-export const searchVideoCourseVideos = (q) =>
+export const searchVideoCourseVideos = (q, course_id) =>
   api.cachedGet(
     "/video-courses/search",
-    { params: { q }, meta: { cacheTags: [VIDEO_COURSE_CACHE_TAG] } },
+    {
+      params: { q, ...(course_id ? { course_id } : {}) },
+      meta: { cacheTags: [VIDEO_COURSE_CACHE_TAG] },
+    },
     "SHORT_PRIVATE",
   );
 export const getVideoCourseVideo = (videoId) =>

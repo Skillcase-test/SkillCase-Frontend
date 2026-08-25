@@ -2,7 +2,8 @@
  * Frontend Tests — Video Course learner pages
  *
  * CourseSelectPage: renders the course grid + progress, navigates on click.
- * VideoPlayerPage:  renders video metadata/chapters, opens the chat drawer.
+ * VideoPlayerPage:  renders video metadata + description accordion, drives the
+ *                   settings-menu audio language, opens the chat drawer.
  */
 import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -187,7 +188,7 @@ describe("VideoPlayerPage", () => {
     });
   });
 
-  test("renders the video, its chapters and metadata", async () => {
+  test("renders the video, its metadata and description accordion", async () => {
     getVideoCourseVideo.mockResolvedValueOnce({
       data: {
         data: {
@@ -202,14 +203,20 @@ describe("VideoPlayerPage", () => {
     renderPlayer();
 
     expect(await screen.findByText("Greetings")).toBeInTheDocument();
-    expect(screen.getByText("0:30 - Intro")).toBeInTheDocument();
-    expect(screen.getByText("How to say hello")).toBeInTheDocument();
-    expect(screen.getByText("German Basics")).toBeInTheDocument();
     expect(screen.getByTestId("course-video")).toHaveAttribute(
       "src",
       "https://s3.example/signed.mp4",
     );
     expect(useUsageLimitGate).toHaveBeenCalledWith("ALL", "video_courses");
+
+    // The description lives in a collapsed accordion.
+    const descToggle = screen.getByText("Video Description");
+    const descDetails = descToggle.closest("details");
+    expect(descDetails.open).toBe(false);
+
+    fireEvent.click(descToggle);
+    expect(descDetails.open).toBe(true);
+    expect(screen.getByText("How to say hello")).toBeInTheDocument();
   });
 
   test("opens and closes the notes section", async () => {
@@ -307,6 +314,22 @@ describe("VideoPlayerPage", () => {
     expect(await screen.findByRole("button", { name: /Hindi/i })).toBeInTheDocument();
   });
 
+  // Audio language moved into the player's settings gear → "Audio language"
+  // submenu. This drives the full flow and returns the row's current value.
+  const chooseAudioLanguage = async (label) => {
+    await screen.findByText("Greetings");
+    fireEvent.click(screen.getByRole("button", { name: /settings/i }));
+    fireEvent.click(await screen.findByText("Audio language"));
+    fireEvent.click(await screen.findByRole("button", { name: new RegExp(`^${label}$`, "i") }));
+  };
+
+  const readAudioLanguageRow = async () => {
+    await screen.findByText("Greetings");
+    fireEvent.click(screen.getByRole("button", { name: /settings/i }));
+    const row = (await screen.findByText("Audio language")).closest("button");
+    return row.textContent;
+  };
+
   test("persists the chosen audio language across reloads", async () => {
     getVideoCourseVideo.mockResolvedValueOnce({
       data: {
@@ -322,10 +345,7 @@ describe("VideoPlayerPage", () => {
     });
 
     const { unmount } = renderPlayer();
-
-    const toggle = await screen.findByRole("button", { name: /English/i });
-    fireEvent.click(toggle);
-    fireEvent.click(await screen.findByRole("button", { name: /Hindi/i }));
+    await chooseAudioLanguage("Hindi");
 
     unmount();
     getVideoCourseVideo.mockResolvedValueOnce({
@@ -342,10 +362,11 @@ describe("VideoPlayerPage", () => {
     });
     renderPlayer();
 
-    expect(await screen.findByRole("button", { name: /Hindi/i })).toBeInTheDocument();
+    const row = await readAudioLanguageRow();
+    expect(row).toContain("Hindi");
   });
 
-  test("switches the audio language with the custom dropdown", async () => {
+  test("switches the audio language through the settings menu", async () => {
     getVideoCourseVideo.mockResolvedValueOnce({
       data: {
         data: {
@@ -360,17 +381,9 @@ describe("VideoPlayerPage", () => {
     });
 
     renderPlayer();
+    await chooseAudioLanguage("Hindi");
 
-    const langToggle = await screen.findByRole("button", { name: /English/i });
-    expect(langToggle.getAttribute("aria-expanded")).toBe("false");
-
-    fireEvent.click(langToggle);
-    expect(langToggle.getAttribute("aria-expanded")).toBe("true");
-
-    fireEvent.click(await screen.findByRole("button", { name: /Hindi/i }));
-
-    const toggleAfter = await screen.findByRole("button", { name: /Hindi/i });
-    expect(toggleAfter.getAttribute("aria-expanded")).toBe("false");
+    expect(await readAudioLanguageRow()).toContain("Hindi");
   });
 
   test("opens the chat drawer with suggested questions", async () => {
@@ -380,7 +393,9 @@ describe("VideoPlayerPage", () => {
 
     renderPlayer();
 
-    fireEvent.click(await screen.findByText("Ask about this video"));
+    fireEvent.click(
+      await screen.findByRole("button", { name: /ask anything about this video/i }),
+    );
 
     expect(await screen.findByText("Was bedeutet hallo?")).toBeInTheDocument();
     expect(trackFeatureEvent).toHaveBeenCalledWith(

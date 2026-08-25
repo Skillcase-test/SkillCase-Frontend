@@ -95,7 +95,25 @@ export default function Navbar({ disableNavigation = false }) {
         cachedMode === "job_screening") &&
       cachedMode !== "practice");
 
-  const brandHref = isB1User && isJobScreeningContext ? "/job-screening" : "/";
+  // Route the brand tap straight to the active hub — going through "/"
+  // paints one frame of the practice hub before LandingPage's redirect
+  // effect fires, which flashes the mode switcher to Practice.
+  let brandHref = "/";
+  if (isB1User && isJobScreeningContext) brandHref = "/job-screening";
+  else if (!isB1User && cachedMode === "courses") brandHref = "/video-courses";
+  else if (!isB1User && cachedMode === "learn") brandHref = "/learn-german";
+
+  const handleBrandClick = (e) => {
+    hapticLight();
+    if (location.pathname === brandHref) {
+      // Already on the destination hub — scroll to top instead of a no-op nav.
+      e.preventDefault();
+      sessionStorage.removeItem("lg_home_clicked");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (brandHref === "/learn-german") {
+      sessionStorage.setItem("lg_home_clicked", "1");
+    }
+  };
 
   return (
     <header
@@ -109,7 +127,7 @@ export default function Navbar({ disableNavigation = false }) {
         {/* Level title — tappable brand entry, goes home or to current active hub */}
         <Link
           to={brandHref}
-          onClick={hapticLight}
+          onClick={handleBrandClick}
           className="min-w-0 flex flex-col justify-center transition-opacity hover:opacity-80 cursor-pointer"
           aria-label="Go to home"
         >

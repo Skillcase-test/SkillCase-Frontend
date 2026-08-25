@@ -21,6 +21,7 @@ export default function VideoCourseAdd() {
   const [form, setForm] = useState({
     course_id: "",
     title: "",
+    short_description: "",
     description: "",
     proficiency_level: "A1",
     display_order: 0,
@@ -125,7 +126,8 @@ export default function VideoCourseAdd() {
       completeData.append("s3_key", s3_key);
       if (form.course_id) completeData.append("course_id", form.course_id);
       completeData.append("title", form.title);
-      completeData.append("description", form.description);
+      completeData.append("short_description", form.short_description || "");
+      completeData.append("description", form.description || "");
       completeData.append("proficiency_level", form.proficiency_level);
       completeData.append("display_order", form.display_order || 0);
       completeData.append("video_duration", videoDuration || 0);
@@ -144,6 +146,7 @@ export default function VideoCourseAdd() {
       setForm({
         course_id: form.course_id,
         title: "",
+        short_description: "",
         description: "",
         proficiency_level: form.proficiency_level,
         display_order: 0,
@@ -284,12 +287,26 @@ export default function VideoCourseAdd() {
 
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-              Description
+              Short Description (shown below video title in app & used in search)
+            </label>
+            <textarea
+              rows={2}
+              value={form.short_description}
+              onChange={setField("short_description")}
+              placeholder="Enter a brief summary (1-2 sentences) of the video..."
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+              Full Description (shown in video player accordion)
             </label>
             <textarea
               rows={3}
               value={form.description}
               onChange={setField("description")}
+              placeholder="Enter full video description, learning outcomes, etc..."
               className={inputClass}
             />
           </div>

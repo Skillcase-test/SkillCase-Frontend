@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Loader2, PlayCircle } from "lucide-react";
+import { Loader2, PlayCircle } from "lucide-react";
 import { getVideoCourses } from "../../api/videoCourseApi";
 import { trackFeatureEvent } from "../../telemetry/events";
 import { useUsageLimitGate } from "../../hooks/useUsageLimits";
@@ -39,78 +39,72 @@ export default function CourseSelectPage() {
   };
 
   return (
-    // min-h-screen so the loading spinner's flex-1 has a height to fill, and
-    // pb-28 so the last course card clears the fixed 80px bottom tab bar.
     <div className="w-full max-w-md mx-auto bg-white flex flex-col min-h-screen pb-28">
-      {/* No safe-area padding here: /video-courses is a shell route, so NewNavbar
-          above already consumes env(safe-area-inset-top). */}
-      <div className="self-stretch px-4 py-2.5 flex justify-center items-center bg-white">
-        <span className="text-neutral-500 text-sm font-semibold leading-6">
-          German Classes
-        </span>
-      </div>
-
       {loading ? (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center min-h-[50vh]">
           <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
         </div>
       ) : courses.length === 0 ? (
-        <p className="text-center text-slate-400 py-12 text-sm">
+        <p className="text-center text-slate-400 py-16 text-sm">
           No courses available yet.
         </p>
       ) : (
-        <div className="px-4 py-4 flex flex-col gap-3">
+        <div className="px-2 py-2 flex flex-col gap-5">
           {courses.map((course) => {
             const total = Number(course.video_count) || 0;
             const done = Number(course.completed_count) || 0;
-            const percent = total ? Math.round((done / total) * 100) : 0;
+            const started = Number(course.started_count) || 0;
+            const isCompleted = done >= total && total > 0;
+            const isInProgress = !isCompleted && (done > 0 || started > 0);
 
             return (
-              <button
+              <div
                 key={course.course_id}
                 onClick={() => openCourse(course)}
-                className="w-full p-3 bg-white rounded-xl border border-zinc-200 flex gap-3 items-center text-left cursor-pointer hover:border-[#002856] transition-all"
+                className="w-full flex flex-col gap-2 cursor-pointer group border border-slate-100 px-2 py-2 rounded-md shadow-sm"
               >
-                <div className="w-24 h-16 shrink-0 rounded-lg bg-slate-100 overflow-hidden flex items-center justify-center">
+                {/* Crisp 16:9 Thumbnail Image */}
+                <div className="w-full aspect-video rounded-md bg-slate-100 overflow-hidden relative flex items-center justify-center">
                   {course.thumbnail_url ? (
                     <img
                       src={course.thumbnail_url}
-                      alt=""
+                      alt={course.name}
                       loading="lazy"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-200"
                     />
                   ) : (
-                    <PlayCircle className="w-6 h-6 text-slate-400" />
+                    <PlayCircle className="w-10 h-10 text-slate-400" />
                   )}
                 </div>
-                <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-                  <span className="text-sky-950 text-sm font-semibold leading-5 truncate">
+
+                {/* Course Info Row */}
+                <div className="flex flex-col gap-0.5 ml-2">
+                  <h2 className="text-slate-900 text-sm font-semibold leading-snug text-left group-hover:text-[#002856] transition-colors tracking-tight">
                     {course.name}
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="px-2 py-0.5 bg-black/5 rounded-[40px] text-neutral-500 text-[10px] font-medium">
-                      {course.proficiency_level}
+                  </h2>
+
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-slate-500 text-[10px] font-normal">
+                      {total ? `${total} videos` : ""}
+                      {course.total_hours ? ` | ${course.total_hours} hours` : ""}
                     </span>
-                    <span className="px-2 py-0.5 bg-black/5 rounded-[40px] text-neutral-500 text-[10px] font-medium capitalize">
-                      {course.difficulty}
-                    </span>
-                    {course.total_hours ? (
-                      <span className="text-neutral-400 text-[10px] font-medium">
-                        {course.total_hours}h
+
+                    {isCompleted ? (
+                      <span className="px-2 py-0.5 bg-[#E6F4EA] text-[#137333] text-[8px] font-medium rounded-full inline-flex items-center justify-center leading-none">
+                        Completed
                       </span>
-                    ) : null}
+                    ) : isInProgress ? (
+                      <span className="px-2 py-0.5 bg-[#FEF3C7] text-[#B45309] text-[8px] font-medium rounded-full inline-flex items-center justify-center leading-none">
+                        In Progress
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-[8px] font-medium rounded-full inline-flex items-center justify-center leading-none">
+                        Not Started
+                      </span>
+                    )}
                   </div>
-                  <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#019035] rounded-full"
-                      style={{ width: `${percent}%` }}
-                    />
-                  </div>
-                  <span className="text-neutral-500 text-[10px] font-medium">
-                    {done}/{total} videos completed
-                  </span>
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>

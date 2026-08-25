@@ -1,9 +1,22 @@
 import { ChevronLeft, ChevronRight, RefreshCw, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { images } from "../../assets/images";
+
+const FEATURE_HEADER_IMAGES = {
+  flashcards: images.flashcards,
+  flashcard: images.flashcards,
+  grammar: images.grammar,
+  listening: images.speakToAI,
+  speaking: images.interview,
+  reading: images.vocabulary,
+  test: images.mockTest,
+  "mock test": images.mockTest,
+};
+
 export default function ChapterSelectTemplate({
   title,
   subtitle,
+  headerImage,
   chapters = [],
   loading = false,
   error = null,
@@ -14,6 +27,10 @@ export default function ChapterSelectTemplate({
   showTourIds = false,
 }) {
   const navigate = useNavigate();
+  const resolvedHeaderImage =
+    headerImage ||
+    FEATURE_HEADER_IMAGES[title?.toLowerCase()?.trim()] ||
+    images.headerBackground;
   const getChapterData = (chapter) => {
     if (!getProgress) return { completed: 0, total: 0 };
     const progress = getProgress(chapter);
@@ -54,7 +71,7 @@ export default function ChapterSelectTemplate({
       {/* Header Background Image */}
       <div className="relative h-[140px] w-full overflow-hidden">
         <img
-          src={images.headerBackground}
+          src={resolvedHeaderImage}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
         />

@@ -81,6 +81,13 @@ export default function LandingPage() {
   // their saved mode as job_screening while viewing the practice hub — only
   // non-B1 job candidates get force-redirected into the pipeline here.
   const isB1User = isB1PracticeLevel(user?.user_prof_level);
+
+  // German Classes is a client-side-only mode (the /user/lg-mode server
+  // whitelist has no such value) — selecting its tab persists "courses" in
+  // lg_preferred_mode, so Home lands back here instead of the practice hub.
+  const prefersCoursesMode =
+    !isB1User && (lgMode || user?.lg_preferred_mode) === "courses";
+
   const isJobScreening =
     !isB1User &&
     lgMode !== "practice" &&
@@ -99,10 +106,18 @@ export default function LandingPage() {
       navigate("/scholarship", { replace: true });
     } else if (isJobScreening) {
       navigate("/job-screening", { replace: true });
+    } else if (prefersCoursesMode) {
+      navigate("/video-courses", { replace: true });
     } else if (prefersLearnMode) {
       navigate("/learn-german", { replace: true });
     }
-  }, [navigate, isJobScreening, prefersLearnMode, isScholarshipUser]);
+  }, [
+    navigate,
+    isJobScreening,
+    prefersCoursesMode,
+    prefersLearnMode,
+    isScholarshipUser,
+  ]);
 
   useEffect(() => {
     const active = showA1MigrationModal || showSwitchConfirm || isUpgrading;

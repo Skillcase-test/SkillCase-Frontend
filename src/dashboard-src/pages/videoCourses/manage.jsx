@@ -209,7 +209,8 @@ export default function VideoCourseManage() {
       await updateVideoCourseVideo(editingVideo.video_id, {
         course_id: editingVideo.course_id || null,
         title: editingVideo.title,
-        description: editingVideo.description,
+        short_description: editingVideo.short_description || "",
+        description: editingVideo.description || "",
         proficiency_level: editingVideo.proficiency_level,
         display_order: editingVideo.display_order,
       });
@@ -446,19 +447,53 @@ export default function VideoCourseManage() {
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <input
-                value={editingVideo.title || ""}
-                onChange={(e) => setEditingVideo({ ...editingVideo, title: e.target.value })}
-                placeholder="Title"
-                className={inputClass}
-              />
-              <textarea
-                rows={2}
-                value={editingVideo.description || ""}
-                onChange={(e) => setEditingVideo({ ...editingVideo, description: e.target.value })}
-                placeholder="Description"
-                className={inputClass}
-              />
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Title
+                </label>
+                <input
+                  value={editingVideo.title || ""}
+                  onChange={(e) =>
+                    setEditingVideo({ ...editingVideo, title: e.target.value })
+                  }
+                  placeholder="Title"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Short Description (shown below video title in app & used in search)
+                </label>
+                <textarea
+                  rows={2}
+                  value={editingVideo.short_description || ""}
+                  onChange={(e) =>
+                    setEditingVideo({
+                      ...editingVideo,
+                      short_description: e.target.value,
+                    })
+                  }
+                  placeholder="Brief summary (1-2 sentences) of the video..."
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Full Description (shown in video player accordion)
+                </label>
+                <textarea
+                  rows={3}
+                  value={editingVideo.description || ""}
+                  onChange={(e) =>
+                    setEditingVideo({
+                      ...editingVideo,
+                      description: e.target.value,
+                    })
+                  }
+                  placeholder="Full video description..."
+                  className={inputClass}
+                />
+              </div>
               <label className="block text-xs font-semibold text-slate-600">
                 Replace thumbnail (optional)
                 <input

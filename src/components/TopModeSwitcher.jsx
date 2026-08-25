@@ -166,6 +166,9 @@ export default function TopModeSwitcher({ isTourActive = false }) {
         ) {
           return;
         }
+        // The DB can't represent "courses" (server whitelist has no such
+        // value), so a stored courses selection must survive this seed.
+        if (recentMode === "courses") return;
         if (isLearnPath(window.location.pathname)) {
           syncMode("learn");
           return;
@@ -214,6 +217,12 @@ export default function TopModeSwitcher({ isTourActive = false }) {
         lg_mode_source: activeTab,
         lg_switcher_route: location.pathname,
       });
+      // Persist locally (localStorage + redux) so the Home tap — "/" then
+      // LandingPage's redirect — returns to German Classes. Kept client-side
+      // only: /user/lg-mode whitelists learn/practice/job_screening/
+      // scholarship and would silently store "learn".
+      syncMode("courses");
+      localStorage.setItem("lg_mode_switched_at", String(Date.now()));
       navigate("/video-courses");
       return;
     }
