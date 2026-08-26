@@ -110,9 +110,9 @@ export const paymentsAdminApi = {
     api.get("/admin/payments/jodo/emandate-view", {
       params: { year, month, ...params },
     }),
-  exportEMandateView: (year, month) =>
+  exportEMandateView: (year, month, params = {}) =>
     api.get("/admin/payments/jodo/emandate-view/export", {
-      params: { year, month },
+      params: { year, month, ...params },
       responseType: "blob",
     }),
   linkJodoStudent: (payload) =>

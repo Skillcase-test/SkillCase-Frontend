@@ -176,6 +176,7 @@ export function usePaymentsAdminState() {
   const [emandateSearch, setEMandateSearch] = useState("");
   const [emandateSortBy, setEMandateSortBy] = useState("next_due_date");
   const [emandateSortOrder, setEMandateSortOrder] = useState("asc");
+  const [emandateAllTime, setEMandateAllTime] = useState(false);
   const [emandateSummary, setEMandateSummary] = useState({
     total_count: 0,
     due_amount_paise: 0,
@@ -484,6 +485,7 @@ export function usePaymentsAdminState() {
           search: debouncedEMandateSearch || undefined,
           sortBy: emandateSortBy,
           sortOrder: emandateSortOrder,
+          all: emandateAllTime || undefined,
         });
         if (controller.signal.aborted) return;
         setRows(res.data.rows || []);
@@ -622,6 +624,7 @@ export function usePaymentsAdminState() {
     tab === "emandate" ? debouncedEMandateSearch : null,
     tab === "emandate" ? emandateSortBy : null,
     tab === "emandate" ? emandateSortOrder : null,
+    tab === "emandate" ? emandateAllTime : null,
     tab === "rawlogs" ? debouncedRawSearch : null,
     tab === "rawlogs" ? rawEventTypeFilter : null,
     tab === "rawlogs" ? rawStatusFilter : null,
@@ -818,6 +821,8 @@ export function usePaymentsAdminState() {
     setEMandateSortBy,
     emandateSortOrder,
     setEMandateSortOrder,
+    emandateAllTime,
+    setEMandateAllTime,
     emandateSummary,
     allSummary,
     setAllSummary,

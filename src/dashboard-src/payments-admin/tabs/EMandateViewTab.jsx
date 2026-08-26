@@ -106,7 +106,7 @@ export function EMandateViewTab({
           {rows.length === 0 ? (
             <tr>
               <td colSpan={5} className="px-4 py-10 text-center text-sm font-medium text-slate-500">
-                No active e-mandates found for this month.
+                No active e-mandates found for the current filters.
               </td>
             </tr>
           ) : (

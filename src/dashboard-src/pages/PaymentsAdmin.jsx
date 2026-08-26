@@ -92,7 +92,12 @@ export default function PaymentsAdmin() {
     if (downloadingType) return;
     setDownloadingType("emandate");
     try {
-      const res = await paymentsAdminApi.exportEMandateView(state.year, state.month);
+      const res = await paymentsAdminApi.exportEMandateView(state.year, state.month, {
+        all: state.emandateAllTime || undefined,
+        search: state.emandateSearch || undefined,
+        sortBy: state.emandateSortBy,
+        sortOrder: state.emandateSortOrder,
+      });
       const url = URL.createObjectURL(new Blob([res.data], { type: res.headers["content-type"] }));
       const a = document.createElement("a");
       const disposition = res.headers["content-disposition"] || "";
@@ -340,19 +345,31 @@ export default function PaymentsAdmin() {
             label="Active Mandates"
             value={state.emandateSummary.total_count}
             tone="blue"
-            infoText="Students with an active Jodo auto-debit mandate who have an installment scheduled in the selected month."
+            infoText={
+              state.emandateAllTime
+                ? "Students with an active Jodo auto-debit mandate across all scheduled installments."
+                : "Students with an active Jodo auto-debit mandate who have an installment scheduled in the selected month."
+            }
           />
           <StatCard
-            label="Due This Month"
+            label={state.emandateAllTime ? "Total Due" : "Due This Month"}
             value={formatInrFromPaise(state.emandateSummary.due_amount_paise)}
             tone="amber"
-            infoText="Total amount still to be auto-debited for installments due in the selected month."
+            infoText={
+              state.emandateAllTime
+                ? "Total amount still to be auto-debited across all scheduled installments."
+                : "Total amount still to be auto-debited for installments due in the selected month."
+            }
           />
           <StatCard
-            label="Paid This Month"
+            label={state.emandateAllTime ? "Total Paid" : "Paid This Month"}
             value={formatInrFromPaise(state.emandateSummary.paid_amount_paise)}
             tone="emerald"
-            infoText="Total amount already auto-debited for installments due in the selected month."
+            infoText={
+              state.emandateAllTime
+                ? "Total amount already auto-debited across all installments."
+                : "Total amount already auto-debited for installments due in the selected month."
+            }
           />
         </div>
       ) : null}
@@ -597,6 +614,22 @@ export default function PaymentsAdmin() {
                         ) : null}
                       </div>
                     )}
+                    {state.tab === "emandate" && (
+                      <div className="flex flex-wrap items-center gap-4">
+                        <label className="inline-flex h-8 items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 cursor-pointer">
+                          <span>All time</span>
+                          <input
+                            type="checkbox"
+                            checked={state.emandateAllTime}
+                            onChange={(e) => {
+                              state.setCurrentPage(1);
+                              state.setEMandateAllTime(e.target.checked);
+                            }}
+                            className="h-3.5 w-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                          />
+                        </label>
+                      </div>
+                    )}
                     {state.tab === "recruitment" && (
                       <div className="flex flex-wrap items-center gap-4">
                         <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer">
@@ -630,7 +663,8 @@ export default function PaymentsAdmin() {
                           }
                           disabled={
                             (state.tab === "payments" && state.paymentAllTime) ||
-                            (state.tab === "recruitment" && state.recruitmentAllTime)
+                            (state.tab === "recruitment" && state.recruitmentAllTime) ||
+                            (state.tab === "emandate" && state.emandateAllTime)
                           }
                           className="w-24 h-9 text-xs"
                         >
@@ -647,7 +681,8 @@ export default function PaymentsAdmin() {
                           }
                           disabled={
                             (state.tab === "payments" && state.paymentAllTime) ||
-                            (state.tab === "recruitment" && state.recruitmentAllTime)
+                            (state.tab === "recruitment" && state.recruitmentAllTime) ||
+                            (state.tab === "emandate" && state.emandateAllTime)
                           }
                           className="w-32 h-9 text-xs"
                         >

@@ -31,6 +31,7 @@ export function usePaymentsAdminSelectors(state) {
     state.year,
     state.month,
     state.paymentAllTime,
+    state.emandateAllTime,
     state.paymentBookedOnly,
     state.paymentNotBookedOnly,
     state.paymentRecruitmentOnly,
