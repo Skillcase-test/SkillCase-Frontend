@@ -50,6 +50,7 @@ const PAYMENTS_TAB_OPTIONS = [
   { key: "tab_payments", label: "Payment View: Full Access" },
   { key: "tab_payments_view", label: "Payment View: View Only" },
   { key: "tab_payments_download", label: "Payment View: Download Only" },
+  { key: "tab_emandate", label: "EMandate View" },
   { key: "tab_rawlogs", label: "Raw Logs" },
   { key: "tab_invoice", label: "Invoice Send: Full Access" },
   { key: "tab_invoice_view", label: "Invoice Send: View Only" },

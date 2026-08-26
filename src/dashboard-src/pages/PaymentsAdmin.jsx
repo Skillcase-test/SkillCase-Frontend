@@ -88,6 +88,28 @@ export default function PaymentsAdmin() {
     }
   }
 
+  async function triggerEMandateExport() {
+    if (downloadingType) return;
+    setDownloadingType("emandate");
+    try {
+      const res = await paymentsAdminApi.exportEMandateView(state.year, state.month);
+      const url = URL.createObjectURL(new Blob([res.data], { type: res.headers["content-type"] }));
+      const a = document.createElement("a");
+      const disposition = res.headers["content-disposition"] || "";
+      const nameMatch = disposition.match(/filename="?([^"]+)"?/);
+      a.href = url;
+      a.download = nameMatch ? nameMatch[1] : "emandate_view.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("EMandate XLS export failed:", e);
+    } finally {
+      setDownloadingType(null);
+    }
+  }
+
   // While access is being resolved, show a minimal loading state
   if (state.accessLoading) {
     return (
@@ -155,6 +177,11 @@ export default function PaymentsAdmin() {
       state.setAllSearch,
       "Search candidate name/phone/email",
     ],
+    emandate: [
+      state.emandateSearch,
+      state.setEMandateSearch,
+      "Search name/phone/email",
+    ],
   };
   const [q, setQ, qph] = searchable[state.tab] || ["", () => {}, ""];
   const isDataTableTab = [
@@ -163,6 +190,7 @@ export default function PaymentsAdmin() {
     "fee",
     "discounts",
     "payments",
+    "emandate",
     "rawlogs",
     "invoice",
   ].includes(state.tab);
@@ -179,6 +207,8 @@ export default function PaymentsAdmin() {
     state.paymentActions.includes("manage") || state.paymentActions.includes("tab_invoice");
   const hasInvoiceDownloadAccess = hasInvoiceFullAccess ||
     state.paymentActions.includes("tab_invoice_download");
+  const canManageEMandate = state.adminRole === "super_admin" ||
+    state.paymentActions.includes("manage") || state.paymentActions.includes("tab_emandate");
 
   if (state.isImportingPayments) {
     return (
@@ -300,6 +330,29 @@ export default function PaymentsAdmin() {
             infoText="Money we expected this month but lost because students went on hold or were dropped."
             onDownload={() => triggerFeeExport("potential_lost")}
             downloading={downloadingType === "potential_lost"}
+          />
+        </div>
+      ) : null}
+
+      {state.tab === "emandate" ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <StatCard
+            label="Active Mandates"
+            value={state.emandateSummary.total_count}
+            tone="blue"
+            infoText="Students with an active Jodo auto-debit mandate who have an installment scheduled in the selected month."
+          />
+          <StatCard
+            label="Due This Month"
+            value={formatInrFromPaise(state.emandateSummary.due_amount_paise)}
+            tone="amber"
+            infoText="Total amount still to be auto-debited for installments due in the selected month."
+          />
+          <StatCard
+            label="Paid This Month"
+            value={formatInrFromPaise(state.emandateSummary.paid_amount_paise)}
+            tone="emerald"
+            infoText="Total amount already auto-debited for installments due in the selected month."
           />
         </div>
       ) : null}
@@ -661,7 +714,7 @@ export default function PaymentsAdmin() {
               </div>
             ) : state.loading ? (
               <TableSkeleton />
-            ) : !["fee", "discounts", "all", "month", "invoice", "payments"].includes(
+            ) : !["fee", "discounts", "all", "month", "invoice", "payments", "emandate"].includes(
                 state.tab,
               ) &&
               isDataTableTab &&
@@ -724,6 +777,10 @@ export default function PaymentsAdmin() {
                   setCurrentPage: state.setCurrentPage,
                   totalAmountPaise: state.paymentTotalAmountPaise,
                   canManagePayments: hasPaymentFullAccess,
+                  emandateSortBy: state.emandateSortBy,
+                  setEMandateSortBy: state.setEMandateSortBy,
+                  emandateSortOrder: state.emandateSortOrder,
+                  setEMandateSortOrder: state.setEMandateSortOrder,
                   monthSortBy: state.monthSortBy,
                   monthSortOrder: state.monthSortOrder,
                   setMonthSortBy: state.setMonthSortBy,
@@ -826,6 +883,16 @@ export default function PaymentsAdmin() {
                       </ControlButton>
                       ) : null}
                     </div>
+                  ) : null}
+                  {state.tab === "emandate" && canManageEMandate ? (
+                    <ControlButton
+                      onClick={triggerEMandateExport}
+                      disabled={downloadingType === "emandate"}
+                      variant="primary"
+                      className="h-9 px-3 text-xs"
+                    >
+                      {downloadingType === "emandate" ? "Downloading..." : "Download Excel"}
+                    </ControlButton>
                   ) : null}
                 </div>
               </div>

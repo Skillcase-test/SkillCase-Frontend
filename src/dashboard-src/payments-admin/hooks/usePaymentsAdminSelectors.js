@@ -18,6 +18,7 @@ export function usePaymentsAdminSelectors(state) {
     state.discountSearch,
     state.paymentSearch,
     state.rawSearch,
+    state.emandateSearch,
     state.allStatusFilter,
     state.allBatchFilter,
     state.allLeadOwnerFilter,

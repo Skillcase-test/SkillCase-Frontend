@@ -8,7 +8,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 // Ordered list of tab keys as they appear in the UI
 const PAYMENTS_TAB_ORDER = [
   "overall", "month", "all", "batch", "fee",
-  "discounts", "payments", "rawlogs", "invoice", "recruitment",
+  "discounts", "payments", "emandate", "rawlogs", "invoice", "recruitment",
 ];
 
 // Maps each UI tab key to its backend action_key stored in admin_user_permission
@@ -20,6 +20,7 @@ const PAYMENTS_ACTION_FOR_TAB = {
   fee:       "tab_fee",
   discounts: "tab_discounts",
   payments:  "tab_payments",
+  emandate:  "tab_emandate",
   rawlogs:   "tab_rawlogs",
   invoice:   "tab_invoice",
   recruitment: "tab_recruitment",
@@ -172,6 +173,16 @@ export function usePaymentsAdminState() {
   const [paymentTrainingOnly, setPaymentTrainingOnlyState] = useState(false);
   const [paymentTotalAmountPaise, setPaymentTotalAmountPaise] = useState(0);
   const [recruitmentAllTime, setRecruitmentAllTime] = useState(false);
+  const [emandateSearch, setEMandateSearch] = useState("");
+  const [emandateSortBy, setEMandateSortBy] = useState("next_due_date");
+  const [emandateSortOrder, setEMandateSortOrder] = useState("asc");
+  const [emandateSummary, setEMandateSummary] = useState({
+    total_count: 0,
+    due_amount_paise: 0,
+    paid_amount_paise: 0,
+    due_count: 0,
+    paid_count: 0,
+  });
 
   const setPaymentRecruitmentOnly = (val) => {
     setPaymentRecruitmentOnlyState(val);
@@ -257,6 +268,7 @@ export function usePaymentsAdminState() {
   const debouncedRawSearch = useDebounce(rawSearch, SEARCH_DEBOUNCE_MS);
   const debouncedBatchSearch = useDebounce(batchSearch, SEARCH_DEBOUNCE_MS);
   const debouncedEnrollmentSearchTerm = useDebounce(enrollmentSearchTerm, SEARCH_DEBOUNCE_MS);
+  const debouncedEMandateSearch = useDebounce(emandateSearch, SEARCH_DEBOUNCE_MS);
 
   async function refreshBatches() {
     try {
@@ -465,6 +477,26 @@ export function usePaymentsAdminState() {
         setRows(res.data.rows || []);
         setPaymentTotalAmountPaise(res.data.total_amount_paise || 0);
         setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
+      } else if (tab === "emandate") {
+        const res = await paymentsAdminApi.getEMandateView(year, month, {
+          page: currentPage,
+          limit: rowsPerPage,
+          search: debouncedEMandateSearch || undefined,
+          sortBy: emandateSortBy,
+          sortOrder: emandateSortOrder,
+        });
+        if (controller.signal.aborted) return;
+        setRows(res.data.rows || []);
+        setEMandateSummary(
+          res.data.summary || {
+            total_count: 0,
+            due_amount_paise: 0,
+            paid_amount_paise: 0,
+            due_count: 0,
+            paid_count: 0,
+          },
+        );
+        setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
       } else if (tab === "rawlogs") {
         const res = await paymentsAdminApi.getRawLogs({
           page: currentPage,
@@ -587,6 +619,9 @@ export function usePaymentsAdminState() {
     tab === "payments" ? paymentLinksOnly : null,
     tab === "payments" ? paymentIncludeRefunded : null,
     tab === "payments" ? paymentAmountInr : null,
+    tab === "emandate" ? debouncedEMandateSearch : null,
+    tab === "emandate" ? emandateSortBy : null,
+    tab === "emandate" ? emandateSortOrder : null,
     tab === "rawlogs" ? debouncedRawSearch : null,
     tab === "rawlogs" ? rawEventTypeFilter : null,
     tab === "rawlogs" ? rawStatusFilter : null,
@@ -626,6 +661,16 @@ export function usePaymentsAdminState() {
     setActiveBatchName("");
     setBatchSortBy("created_at");
     setBatchSortOrder("desc");
+    setEMandateSearch("");
+    setEMandateSortBy("next_due_date");
+    setEMandateSortOrder("asc");
+    setEMandateSummary({
+      total_count: 0,
+      due_amount_paise: 0,
+      paid_amount_paise: 0,
+      due_count: 0,
+      paid_count: 0,
+    });
     setRows([]);
     setInvoiceRows([]);
     setInvoicePaymentRows([]);
@@ -767,6 +812,13 @@ export function usePaymentsAdminState() {
     setMonthSortBy,
     monthSortOrder,
     setMonthSortOrder,
+    emandateSearch,
+    setEMandateSearch,
+    emandateSortBy,
+    setEMandateSortBy,
+    emandateSortOrder,
+    setEMandateSortOrder,
+    emandateSummary,
     allSummary,
     setAllSummary,
     cohortFilter,
@@ -822,21 +874,6 @@ export function usePaymentsAdminState() {
     setSummaryUnbookedRows,
     summaryUnbookedLoading,
     setSummaryUnbookedLoading,
-    summaryMonthsLimit,
-    setSummaryMonthsLimit,
-    summaryMonthDetail,
-    setSummaryMonthDetail,
-    summaryCandidatesRows,
-    setSummaryCandidatesRows,
-    summaryCandidatesLoading,
-    setSummaryCandidatesLoading,
-    handleViewSummaryMonthCandidates,
-    summaryUnbookedDetail,
-    setSummaryUnbookedDetail,
-    summaryUnbookedRows,
-    setSummaryUnbookedRows,
-    summaryUnbookedLoading,
-    setSummaryUnbookedLoading,
     monthSelectionModal,
     setMonthSelectionModal,
     handleViewSummaryMonthUnbooked,
@@ -853,7 +890,5 @@ export function usePaymentsAdminState() {
     loadTabData,
     paymentLinksOnly,
     setPaymentLinksOnly,
-    bookedSummaryUnbookedTotal,
-    setBookedSummaryUnbookedTotal,
   };
 }

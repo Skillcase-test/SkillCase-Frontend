@@ -711,6 +711,7 @@ export default function Dashboard() {
       "tab_payments",
       "tab_payments_view",
       "tab_payments_download",
+      "tab_emandate",
       "tab_invoice_view",
       "tab_invoice_download",
       "tab_rawlogs",

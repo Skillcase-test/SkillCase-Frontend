@@ -6,6 +6,7 @@ export const TABS = [
   { key: "fee", label: "Total Fee View" },
   { key: "discounts", label: "Discounts View" },
   { key: "payments", label: "Payment View" },
+  { key: "emandate", label: "EMandate View" },
   { key: "rawlogs", label: "Raw Logs" },
   { key: "invoice", label: "Invoice Send" },
   { key: "recruitment", label: "Recruitment View" },

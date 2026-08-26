@@ -106,6 +106,15 @@ export const paymentsAdminApi = {
     api.get(`/admin/payments/enrollments/${enrollmentId}/jodo`),
   getJodoMandateStatuses: () =>
     api.get("/admin/payments/jodo/mandate-status"),
+  getEMandateView: (year, month, params = {}) =>
+    api.get("/admin/payments/jodo/emandate-view", {
+      params: { year, month, ...params },
+    }),
+  exportEMandateView: (year, month) =>
+    api.get("/admin/payments/jodo/emandate-view/export", {
+      params: { year, month },
+      responseType: "blob",
+    }),
   linkJodoStudent: (payload) =>
     api.post("/admin/payments/jodo/mappings", payload),
   reprocessJodoEvent: (rawLogId) =>
