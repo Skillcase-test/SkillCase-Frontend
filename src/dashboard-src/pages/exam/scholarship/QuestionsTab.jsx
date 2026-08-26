@@ -199,13 +199,21 @@ function SortableQuestionRow({ q, qNum, onEdit, onDelete }) {
       >
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
           {dragHandle}
-          <ImageIcon className="w-4 h-4 text-violet-500 shrink-0" />
+          {q.question_data?.image_url ? (
+            <img
+              src={q.question_data.image_url}
+              alt={q.question_data?.alt || "Image block preview"}
+              className="w-10 h-10 object-cover rounded-lg border border-violet-200 shrink-0 shadow-xs"
+            />
+          ) : (
+            <ImageIcon className="w-4 h-4 text-violet-500 shrink-0" />
+          )}
           <div className="min-w-0">
             <span className="text-[11px] font-bold uppercase tracking-wider text-violet-600">
               Image Block
             </span>
             <p className="text-xs text-slate-500 truncate">
-              {q.question_data?.image_url ? "Image uploaded ✓" : "⚠ No image uploaded"}
+              {q.question_data?.alt || (q.question_data?.image_url ? "Image attached" : "No image uploaded")}
             </p>
           </div>
         </div>
@@ -235,11 +243,23 @@ function SortableQuestionRow({ q, qNum, onEdit, onDelete }) {
             {q.audio_url && (
               <Music className="w-3.5 h-3.5 text-purple-400 shrink-0" />
             )}
+            {q.question_data?.question_image && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                <ImageIcon className="w-2.5 h-2.5" /> Image
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-600 truncate">
             {questionLabel(q) || "—"}
           </p>
         </div>
+        {q.question_data?.question_image && (
+          <img
+            src={q.question_data.question_image}
+            alt=""
+            className="w-8 h-8 object-cover rounded-md border border-slate-200 shrink-0"
+          />
+        )}
       </div>
       <div className="flex items-center gap-1 shrink-0">
         <span className="text-[11px] text-slate-400 font-semibold mr-1">
@@ -380,6 +400,7 @@ export default function QuestionsTab() {
         </div>
 
         <QuestionFormBuilder
+          key={`${editingQuestionId || "new"}_${qForm.question_type}`}
           type={qForm.question_type}
           data={qForm.question_data}
           onChange={(newData) => setQForm({ ...qForm, question_data: newData })}

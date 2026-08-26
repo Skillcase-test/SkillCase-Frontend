@@ -1266,6 +1266,12 @@ function ImageBlockForm({ data, onChange, onFileChange }) {
   const [preview, setPreview] = useState(data.image_url || "");
   const [urlInput, setUrlInput] = useState(data.image_url || "");
 
+  useEffect(() => {
+    setPreview(data.image_url || "");
+    setUrlInput(data.image_url || "");
+    if (data.image_url) setMode("url");
+  }, [data.image_url]);
+
   const handleFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1378,8 +1384,16 @@ function ImageOptionInput({ value, onValueChange, onFileChange, placeholder }) {
   const isImage = value && typeof value === "object" && value.type === "image";
   const [mode, setMode] = useState(isImage ? "image" : "text");
   const [urlInput, setUrlInput] = useState(
-    isImage && !value.url.startsWith("blob:") ? value.url : "",
+    isImage && !value.url?.startsWith("blob:") ? value.url : "",
   );
+
+  useEffect(() => {
+    const isImg = value && typeof value === "object" && value.type === "image";
+    setMode(isImg ? "image" : "text");
+    if (isImg && !value.url?.startsWith("blob:")) {
+      setUrlInput(value.url || "");
+    }
+  }, [value]);
 
   const switchToText = () => {
     setMode("text");
@@ -1488,9 +1502,16 @@ function ImageOptionInput({ value, onValueChange, onFileChange, placeholder }) {
 // Shown in every question form to add an optional image above the question text.
 function QuestionImagePicker({ data, onChange, onFileChange }) {
   const [show, setShow] = useState(!!data.question_image);
-  const [mode, setMode] = useState("file");
+  const [mode, setMode] = useState(data.question_image ? "url" : "file");
   const [urlInput, setUrlInput] = useState(data.question_image || "");
   const [preview, setPreview] = useState(data.question_image || "");
+
+  useEffect(() => {
+    setShow(!!data.question_image);
+    setUrlInput(data.question_image || "");
+    setPreview(data.question_image || "");
+    if (data.question_image) setMode("url");
+  }, [data.question_image]);
 
   const handleFile = (e) => {
     const file = e.target.files?.[0];
