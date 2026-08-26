@@ -793,6 +793,7 @@ export default function PaymentsAdmin() {
                   openFeeBreakdown: actions.openFeeBreakdown,
                   openDiscountBreakdown: actions.openDiscountBreakdown,
                   setEditDraft: state.setEditDraft,
+                  setNotice: state.setNotice,
                   handleFinalize: actions.handleFinalize,
                   handleSendAgreement: actions.handleSendAgreement,
                   handleGenerateDetailsLink: actions.handleGenerateDetailsLink,

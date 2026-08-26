@@ -9,6 +9,7 @@ import {
   Edit,
   Send,
   Copy,
+  Check,
   ExternalLink,
   CheckCircle,
   Trash2,
@@ -19,6 +20,7 @@ import { LEAD_OWNER_OPTIONS } from "../utils/constants";
 export function MonthViewTab({
   rows,
   setEditDraft,
+  setNotice,
   handleFinalize,
   handleSendAgreement,
   handleDeleteCandidate,
@@ -58,8 +60,13 @@ export function MonthViewTab({
     };
   }, []);
 
-  const handleCopyLink = (enrollmentId, url) => {
+  const handleCopyLink = (enrollmentId, url, studentName) => {
     navigator.clipboard.writeText(url).then(() => {
+      setCopiedEnrollmentId(enrollmentId);
+      setNotice?.(`Agreement link for ${studentName || "candidate"} copied to clipboard!`);
+      setTimeout(() => setCopiedEnrollmentId(""), 2500);
+      setTimeout(() => setActiveActionMenuId(null), 600);
+    }).catch(() => {
       setCopiedEnrollmentId(enrollmentId);
       setTimeout(() => setCopiedEnrollmentId(""), 2000);
     });
@@ -333,15 +340,28 @@ export function MonthViewTab({
                             activeActionMenuId === r.enrollment_id ? null : r.enrollment_id,
                           )
                         }
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-sm transition-colors cursor-pointer"
+                        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold shadow-sm transition-colors cursor-pointer ${
+                          copiedEnrollmentId === r.enrollment_id
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                            : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                        }`}
                       >
-                        <span>Actions</span>
-                        <ChevronDown
-                          size={13}
-                          className={`transition-transform duration-150 ${
-                            activeActionMenuId === r.enrollment_id ? "rotate-180" : ""
-                          }`}
-                        />
+                        {copiedEnrollmentId === r.enrollment_id ? (
+                          <>
+                            <Check size={13} className="text-emerald-600" />
+                            <span>Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <span>Actions</span>
+                            <ChevronDown
+                              size={13}
+                              className={`transition-transform duration-150 ${
+                                activeActionMenuId === r.enrollment_id ? "rotate-180" : ""
+                              }`}
+                            />
+                          </>
+                        )}
                       </button>
 
                       {activeActionMenuId === r.enrollment_id && (
@@ -397,15 +417,22 @@ export function MonthViewTab({
                             <button
                               type="button"
                               onClick={() => {
-                                handleCopyLink(r.enrollment_id, r.agreement_signing_url);
-                                setActiveActionMenuId(null);
+                                handleCopyLink(r.enrollment_id, r.agreement_signing_url, r.student_name);
                               }}
-                              className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors text-left cursor-pointer"
+                              className={`flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium transition-colors text-left cursor-pointer ${
+                                copiedEnrollmentId === r.enrollment_id
+                                  ? "bg-emerald-50 text-emerald-700 font-semibold"
+                                  : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                              }`}
                             >
-                              <Copy size={13} className="text-slate-400" />
+                              {copiedEnrollmentId === r.enrollment_id ? (
+                                <Check size={13} className="text-emerald-600" />
+                              ) : (
+                                <Copy size={13} className="text-slate-400" />
+                              )}
                               <span>
                                 {copiedEnrollmentId === r.enrollment_id
-                                  ? "Link Copied!"
+                                  ? "Copied to Clipboard!"
                                   : "Copy Signing Link"}
                               </span>
                             </button>
