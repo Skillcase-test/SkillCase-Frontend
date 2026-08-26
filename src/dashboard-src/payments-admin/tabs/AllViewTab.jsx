@@ -1,7 +1,7 @@
 import { ActionChip, ControlDropdown } from "../components/controls";
 import { StatCard } from "../components/common";
 import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
-import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, Check } from "lucide-react";
 import { LEAD_OWNER_OPTIONS } from "../utils/constants";
 
 function lifecycleActionsForRow(row) {
@@ -23,6 +23,7 @@ const actionLabels = {
 
 export function AllViewTab({
   rows,
+  mandateStatuses,
   setEditDraft,
   allSummary,
   allStatusFilter,
@@ -260,7 +261,19 @@ export function AllViewTab({
             ) : (
               rows.map((r, idx) => (
                 <tr key={r.enrollment_id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
-                  <td className="px-3 py-3">{r.student_name || "-"}</td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium text-slate-800">{r.student_name || "-"}</span>
+                      {mandateStatuses?.[r.enrollment_id]?.status === "activated" && (
+                        <span
+                          className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs"
+                          title="eMandate Active"
+                        >
+                          <Check size={11} strokeWidth={3.5} />
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-2 py-2">
                     <span className="font-mono text-xs text-slate-700">
                       {r.notes?.candidate_id || "-"}
