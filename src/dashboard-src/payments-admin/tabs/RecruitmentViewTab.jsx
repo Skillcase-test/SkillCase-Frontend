@@ -1,13 +1,21 @@
-import { useState, useEffect } from "react";
-import { ActionChip, ControlDropdown } from "../components/controls";
+import { useState, useEffect, useRef } from "react";
+import { ControlDropdown } from "../components/controls";
 import { StatCard } from "../components/common";
 import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
 import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
-  X,
+  ChevronDown,
+  Edit,
+  Send,
+  Copy,
+  ExternalLink,
+  Link as LinkIcon,
+  CheckCircle,
   Trash2,
+  FileText,
+  X,
   Loader2,
 } from "lucide-react";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
@@ -37,6 +45,27 @@ export function RecruitmentViewTab({
 }) {
   const [copiedEnrollmentId, setCopiedEnrollmentId] = useState("");
   const [receiptCandidate, setReceiptCandidate] = useState(null);
+  const [activeActionMenuId, setActiveActionMenuId] = useState(null);
+  const actionMenuRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
+        setActiveActionMenuId(null);
+      }
+    }
+    function handleKeyDown(e) {
+      if (e.key === "Escape") {
+        setActiveActionMenuId(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   const handleCopyLink = (enrollmentId, url) => {
     navigator.clipboard.writeText(url).then(() => {
@@ -349,282 +378,238 @@ export function RecruitmentViewTab({
                     {r.last_paid_at ? formatIstDateTime(r.last_paid_at) : "-"}
                   </td>
                   <td className="px-2 py-2">
-                    <div className="flex gap-1">
-                      <ActionChip
-                        onClick={() =>
-                          setEditDraft({
-                            ...r,
-                            total_fee_inr: r?.notes?.total_fee_inr || 60000,
-                            monthly_fee_inr: r?.notes?.monthly_fee_inr || 6000,
-                            ...(r.notes || {}),
-                          })
-                        }
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Read-only status pills */}
+                      {r.agreement_state === "sent" && (
+                        <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600 ring-1 ring-inset ring-slate-500/10">
+                          Sent
+                        </span>
+                      )}
+                      {r.agreement_state === "viewed" && (
+                        <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-600/20">
+                          Viewed
+                        </span>
+                      )}
+                      {r.agreement_state === "signed" && (
+                        <>
+                          <span className="inline-flex items-center rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
+                            Signed
+                          </span>
+                          <span className="inline-flex items-center rounded-md bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700 ring-1 ring-inset ring-sky-700/10">
+                            Pending Details
+                          </span>
+                        </>
+                      )}
+                      {r.agreement_state === "details_viewed" && (
+                        <>
+                          <span className="inline-flex items-center rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
+                            Signed
+                          </span>
+                          <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-600/20">
+                            Details Viewed
+                          </span>
+                        </>
+                      )}
+                      {r.agreement_state === "details_filled" && (
+                        <span className="inline-flex items-center rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 animate-pulse">
+                          Details Filled
+                        </span>
+                      )}
+
+                      {/* Consolidated Actions Dropdown */}
+                      <div
+                        className="relative inline-block text-left"
+                        ref={activeActionMenuId === r.enrollment_id ? actionMenuRef : null}
                       >
-                        Details
-                      </ActionChip>
-                      <ActionChip onClick={() => setReceiptCandidate(r)}>
-                        Receipt
-                      </ActionChip>
-                      {r.status !== "archived" &&
-                        r.lifecycle_state !== "archived" &&
-                        r.status !== "refunded" &&
-                        r.lifecycle_state !== "refunded" &&
-                        (() => {
-                          const agreementState =
-                            r.agreement_state || "not_sent";
-                          const isSending =
-                            sendingAgreementEnrollmentId === r.enrollment_id;
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setActiveActionMenuId(
+                              activeActionMenuId === r.enrollment_id ? null : r.enrollment_id,
+                            )
+                          }
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-sm transition-colors cursor-pointer"
+                        >
+                          <span>Actions</span>
+                          <ChevronDown
+                            size={13}
+                            className={`transition-transform duration-150 ${
+                              activeActionMenuId === r.enrollment_id ? "rotate-180" : ""
+                            }`}
+                          />
+                        </button>
 
-                          if (
-                            agreementState === "not_sent" ||
-                            agreementState === "expired" ||
-                            agreementState === "cancelled"
-                          ) {
-                            return (
-                              <ActionChip
-                                onClick={() => handleSendAgreement?.(r)}
-                                disabled={isSending}
+                        {activeActionMenuId === r.enrollment_id && (
+                          <div className="absolute right-0 top-full z-50 mt-1.5 w-52 origin-top-right rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl ring-1 ring-black/5">
+                            {/* 1. Edit Details */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveActionMenuId(null);
+                                setEditDraft({
+                                  ...r,
+                                  total_fee_inr: r?.notes?.total_fee_inr || 60000,
+                                  monthly_fee_inr: r?.notes?.monthly_fee_inr || 6000,
+                                  ...(r.notes || {}),
+                                });
+                              }}
+                              className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors text-left cursor-pointer"
+                            >
+                              <Edit size={13} className="text-slate-400" />
+                              <span>Edit Details</span>
+                            </button>
+
+                            {/* 2. Receipts Modal */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveActionMenuId(null);
+                                setReceiptCandidate(r);
+                              }}
+                              className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors text-left cursor-pointer"
+                            >
+                              <FileText size={13} className="text-slate-400" />
+                              <span>Receipts</span>
+                            </button>
+
+                            {/* 3. Send / Resend Agreement */}
+                            {r.status !== "archived" &&
+                              r.lifecycle_state !== "archived" &&
+                              r.status !== "refunded" &&
+                              r.lifecycle_state !== "refunded" && (
+                                <button
+                                  type="button"
+                                  disabled={sendingAgreementEnrollmentId === r.enrollment_id}
+                                  onClick={() => {
+                                    setActiveActionMenuId(null);
+                                    handleSendAgreement?.(r);
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors text-left disabled:opacity-50 cursor-pointer"
+                                >
+                                  <Send size={13} className="text-slate-400" />
+                                  <span>
+                                    {sendingAgreementEnrollmentId === r.enrollment_id
+                                      ? "Sending..."
+                                      : r.agreement_state &&
+                                        !["not_sent", "expired", "cancelled"].includes(
+                                          r.agreement_state,
+                                        )
+                                      ? "Resend Agreement"
+                                      : "Send Agreement"}
+                                  </span>
+                                </button>
+                              )}
+
+                            {/* 4. Copy Signing Link (if available) */}
+                            {r.agreement_signing_url && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleCopyLink(r.enrollment_id, r.agreement_signing_url);
+                                  setActiveActionMenuId(null);
+                                }}
+                                className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors text-left cursor-pointer"
                               >
-                                {isSending ? "Sending..." : "Send Agreement"}
-                              </ActionChip>
-                            );
-                          }
-
-                          if (agreementState === "sent") {
-                            return (
-                              <div className="flex items-center gap-1.5">
-                                <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600 ring-1 ring-inset ring-slate-500/10">
-                                  Sent
+                                <Copy size={13} className="text-slate-400" />
+                                <span>
+                                  {copiedEnrollmentId === r.enrollment_id
+                                    ? "Link Copied!"
+                                    : "Copy Signing Link"}
                                 </span>
-                                {r.agreement_signing_url && (
-                                  <ActionChip
-                                    onClick={() =>
-                                      handleCopyLink(
-                                        r.enrollment_id,
-                                        r.agreement_signing_url,
-                                      )
-                                    }
-                                    variant={
-                                      copiedEnrollmentId === r.enrollment_id
-                                        ? "success"
-                                        : "secondary"
-                                    }
-                                  >
-                                    {copiedEnrollmentId === r.enrollment_id
-                                      ? "Copied"
-                                      : "Copy Link"}
-                                  </ActionChip>
-                                )}
-                                <ActionChip
-                                  onClick={() => handleSendAgreement?.(r)}
-                                  disabled={isSending}
+                              </button>
+                            )}
+
+                            {/* 5. Generate Details Link (if signed via job screening and no signing url) */}
+                            {r.agreement_state &&
+                              ["signed", "details_viewed"].includes(r.agreement_state) &&
+                              !r.agreement_signing_url && (
+                                <button
+                                  type="button"
+                                  disabled={sendingAgreementEnrollmentId === r.enrollment_id}
+                                  onClick={() => {
+                                    setActiveActionMenuId(null);
+                                    handleGenerateDetailsLink?.(r);
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors text-left disabled:opacity-50 cursor-pointer"
+                                  title="Agreement was signed via job screening, so this link skips the document and opens the details form."
                                 >
-                                  {isSending ? "Sending..." : "Resend"}
-                                </ActionChip>
-                              </div>
-                            );
-                          }
-
-                          if (agreementState === "viewed") {
-                            return (
-                              <div className="flex items-center gap-1.5">
-                                <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-600/20">
-                                  Viewed
-                                </span>
-                                {r.agreement_signing_url && (
-                                  <ActionChip
-                                    onClick={() =>
-                                      handleCopyLink(
-                                        r.enrollment_id,
-                                        r.agreement_signing_url,
-                                      )
-                                    }
-                                    variant={
-                                      copiedEnrollmentId === r.enrollment_id
-                                        ? "success"
-                                        : "secondary"
-                                    }
-                                  >
-                                    {copiedEnrollmentId === r.enrollment_id
-                                      ? "Copied"
-                                      : "Copy Link"}
-                                  </ActionChip>
-                                )}
-                                <ActionChip
-                                  onClick={() => handleSendAgreement?.(r)}
-                                  disabled={isSending}
-                                >
-                                  {isSending ? "Sending..." : "Resend"}
-                                </ActionChip>
-                              </div>
-                            );
-                          }
-
-                          if (agreementState === "signed") {
-                            return (
-                              <div className="flex items-center gap-1.5">
-                                <span className="inline-flex items-center rounded-md bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
-                                  Signed
-                                </span>
-                                <span className="inline-flex items-center rounded-md bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-700 ring-1 ring-inset ring-sky-700/10">
-                                  Pending Details
-                                </span>
-                                {r.agreement_signed_url && (
-                                  <ActionChip
-                                    onClick={() =>
-                                      window.open(
-                                        r.agreement_signed_url,
-                                        "_blank",
-                                      )
-                                    }
-                                    variant="secondary"
-                                  >
-                                    View
-                                  </ActionChip>
-                                )}
-                                {r.agreement_signing_url ? (
-                                  <ActionChip
-                                    onClick={() =>
-                                      handleCopyLink(
-                                        r.enrollment_id,
-                                        r.agreement_signing_url,
-                                      )
-                                    }
-                                    variant={
-                                      copiedEnrollmentId === r.enrollment_id
-                                        ? "success"
-                                        : "secondary"
-                                    }
-                                  >
-                                    {copiedEnrollmentId === r.enrollment_id
-                                      ? "Copied"
-                                      : "Copy Link"}
-                                  </ActionChip>
-                                ) : (
-                                  <ActionChip
-                                    onClick={() =>
-                                      handleGenerateDetailsLink?.(r)
-                                    }
-                                    disabled={isSending}
-                                    title="Agreement was signed via job screening, so this link skips the document and opens the details form."
-                                  >
-                                    {isSending
-                                      ? "Generating..."
-                                      : "Generate Link"}
-                                  </ActionChip>
-                                )}
-                              </div>
-                            );
-                          }
-
-                          if (agreementState === "details_viewed") {
-                            return (
-                              <div className="flex items-center gap-1.5">
-                                <span className="inline-flex items-center rounded-md bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
-                                  Signed
-                                </span>
-                                <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-600/20">
-                                  Details Viewed
-                                </span>
-                                {r.agreement_signed_url && (
-                                  <ActionChip
-                                    onClick={() =>
-                                      window.open(
-                                        r.agreement_signed_url,
-                                        "_blank",
-                                      )
-                                    }
-                                    variant="secondary"
-                                  >
-                                    View
-                                  </ActionChip>
-                                )}
-                                {r.agreement_signing_url ? (
-                                  <ActionChip
-                                    onClick={() =>
-                                      handleCopyLink(
-                                        r.enrollment_id,
-                                        r.agreement_signing_url,
-                                      )
-                                    }
-                                    variant={
-                                      copiedEnrollmentId === r.enrollment_id
-                                        ? "success"
-                                        : "secondary"
-                                    }
-                                  >
-                                    {copiedEnrollmentId === r.enrollment_id
-                                      ? "Copied"
-                                      : "Copy Link"}
-                                  </ActionChip>
-                                ) : (
-                                  <ActionChip
-                                    onClick={() =>
-                                      handleGenerateDetailsLink?.(r)
-                                    }
-                                    disabled={isSending}
-                                    title="Agreement was signed via job screening, so this link skips the document and opens the details form."
-                                  >
-                                    {isSending
+                                  <LinkIcon size={13} className="text-slate-400" />
+                                  <span>
+                                    {sendingAgreementEnrollmentId === r.enrollment_id
                                       ? "Generating..."
                                       : "Generate Details Link"}
-                                  </ActionChip>
-                                )}
-                              </div>
-                            );
-                          }
+                                  </span>
+                                </button>
+                              )}
 
-                          if (agreementState === "details_filled") {
-                            return (
-                              <div className="flex items-center gap-1.5">
-                                <span className="inline-flex items-center rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20 animate-pulse">
-                                  Details Filled
+                            {/* 6. View Signed Agreement (if signed) */}
+                            {r.agreement_signed_url && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveActionMenuId(null);
+                                  window.open(r.agreement_signed_url, "_blank");
+                                }}
+                                className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors text-left cursor-pointer"
+                              >
+                                <ExternalLink size={13} className="text-slate-400" />
+                                <span>View Signed Agreement</span>
+                              </button>
+                            )}
+
+                            {/* 7. Finalize Candidate (if pending) */}
+                            {r.status === "pending" && (
+                              <button
+                                type="button"
+                                disabled={savingEnrollmentId === r.enrollment_id}
+                                onClick={() => {
+                                  setActiveActionMenuId(null);
+                                  const confirmed = window.confirm(
+                                    `Are you sure you want to finalize candidate "${
+                                      r.student_name || "this candidate"
+                                    }"?`,
+                                  );
+                                  if (confirmed) {
+                                    handleFinalize(r);
+                                  }
+                                }}
+                                className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition-colors text-left disabled:opacity-50 cursor-pointer"
+                              >
+                                <CheckCircle size={13} className="text-emerald-600" />
+                                <span>
+                                  {savingEnrollmentId === r.enrollment_id
+                                    ? "Finalizing..."
+                                    : "Finalize Candidate"}
                                 </span>
-                                {r.agreement_signed_url && (
-                                  <ActionChip
-                                    onClick={() =>
-                                      window.open(
-                                        r.agreement_signed_url,
-                                        "_blank",
-                                      )
-                                    }
-                                    variant="secondary"
-                                  >
-                                    View
-                                  </ActionChip>
-                                )}
-                              </div>
-                            );
-                          }
+                              </button>
+                            )}
 
-                          return null;
-                        })()}
-                      {r.status === "pending" && (
-                        <ActionChip
-                          onClick={() => handleFinalize(r)}
-                          disabled={savingEnrollmentId === r.enrollment_id}
-                          variant="success"
-                        >
-                          {savingEnrollmentId === r.enrollment_id
-                            ? "Finalizing..."
-                            : "Finalize"}
-                        </ActionChip>
-                      )}
-                      <ActionChip
-                        onClick={() => {
-                          if (
-                            window.confirm(
-                              "Data for this candidate will be vanished. Are you sure?",
-                            )
-                          ) {
-                            handleDeleteCandidate?.(r.enrollment_id);
-                          }
-                        }}
-                        disabled={savingEnrollmentId === r.enrollment_id}
-                        variant="danger"
-                      >
-                        Delete
-                      </ActionChip>
+                            <div className="my-1 border-t border-slate-100" />
+
+                            {/* 8. Delete Candidate (Danger) */}
+                            <button
+                              type="button"
+                              disabled={savingEnrollmentId === r.enrollment_id}
+                              onClick={() => {
+                                setActiveActionMenuId(null);
+                                if (
+                                  window.confirm(
+                                    `Data for candidate "${
+                                      r.student_name || "this candidate"
+                                    }" will be permanently deleted. Are you sure?`,
+                                  )
+                                ) {
+                                  handleDeleteCandidate?.(r.enrollment_id);
+                                }
+                              }}
+                              className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-rose-700 hover:bg-rose-50 transition-colors text-left disabled:opacity-50 cursor-pointer"
+                            >
+                              <Trash2 size={13} className="text-rose-600" />
+                              <span>Delete Candidate</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>

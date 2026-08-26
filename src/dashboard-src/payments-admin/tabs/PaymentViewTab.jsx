@@ -480,31 +480,16 @@ export function PaymentViewTab({
                             </ActionChip>
                           )
                         ) : null}
-                        {canManagePayments && r.enrollment_id &&
-                          (r.enrollment_notes?.candidate_type ===
-                          "recruitment" ? (
+                        {r.enrollment_id &&
+                          r.enrollment_notes?.candidate_type ===
+                            "recruitment" && (
                             <span
                               className="rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700 border border-indigo-200"
                               title="Candidate tagged as recruitment"
                             >
                               Recruitment
                             </span>
-                          ) : (
-                            <ActionChip
-                              onClick={() =>
-                                handleTagRecruitment?.(
-                                  r.enrollment_id,
-                                  r.student_name,
-                                )
-                              }
-                              disabled={savingEnrollmentId === r.enrollment_id}
-                              variant="primary"
-                            >
-                              {savingEnrollmentId === r.enrollment_id
-                                ? "Tagging..."
-                                : "Tag as Recruitment"}
-                            </ActionChip>
-                          ))}
+                          )}
                         {canManagePayments && r.metadata_json?.source === "admin_manual_actual" && (
                           <ActionChip
                             onClick={() =>
