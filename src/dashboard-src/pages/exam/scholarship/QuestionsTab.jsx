@@ -26,6 +26,14 @@ import EmptyState from "./ui/EmptyState";
 import { inputCls, labelCls } from "./ui/buttons";
 import { ControlDropdown } from "../../../payments-admin/components/controls";
 
+const NON_ANSWERABLE = new Set([
+  "page_break",
+  "reading_passage",
+  "audio_block",
+  "content_block",
+  "image_block",
+]);
+
 const TYPE_TONE = {
   audio_block: "bg-amber-50 border-amber-200 text-amber-600",
   reading_passage: "bg-blue-50 border-blue-200 text-blue-600",
@@ -273,13 +281,17 @@ export default function QuestionsTab() {
 
   if (!selectedExam) return null;
 
+  const answerableCount = examQuestions.filter(
+    (q) => !NON_ANSWERABLE.has(q.question_type),
+  ).length;
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)] gap-6 items-start">
       {/* Question list */}
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-slate-700">
-            Questions ({examQuestions.length})
+            Questions ({answerableCount})
           </h3>
           {editingQuestionId && (
             <button
@@ -308,15 +320,23 @@ export default function QuestionsTab() {
               strategy={verticalListSortingStrategy}
             >
               <div className="space-y-2">
-                {examQuestions.map((q, idx) => (
-                  <SortableQuestionRow
-                    key={q.question_id}
-                    q={q}
-                    qNum={idx + 1}
-                    onEdit={() => startEditQuestion(q)}
-                    onDelete={() => handleDeleteQuestion(q.question_id)}
-                  />
-                ))}
+                {(() => {
+                  let qCounter = 0;
+                  return examQuestions.map((q) => {
+                    const isNonQ = NON_ANSWERABLE.has(q.question_type);
+                    if (!isNonQ) qCounter++;
+                    const qNum = isNonQ ? null : qCounter;
+                    return (
+                      <SortableQuestionRow
+                        key={q.question_id}
+                        q={q}
+                        qNum={qNum}
+                        onEdit={() => startEditQuestion(q)}
+                        onDelete={() => handleDeleteQuestion(q.question_id)}
+                      />
+                    );
+                  });
+                })()}
               </div>
             </SortableContext>
           </DndContext>
