@@ -9,6 +9,7 @@ import {
   Plus,
   Mail,
   Image,
+  KeyRound,
   Sparkles,
   ChevronDown,
   ChevronRight,
@@ -59,6 +60,7 @@ export function AccountsPage() {
   });
   const [form, setForm] = useState({
     email: "",
+    password: "",
     partner_logo_file: null,
     status: 1,
   });
@@ -85,6 +87,31 @@ export function AccountsPage() {
       [accountId]: !prev[accountId],
     }));
   };
+
+  // Generates a fresh password; the only copy is the clipboard + toast shown here.
+  async function handleResetPassword(account) {
+    if (
+      !window.confirm(
+        `Reset password for "${account.email}"?\n\nA new password will be generated and copied to your clipboard.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      const res = await exploreCandidatesAdminApi.resetAccountPassword(
+        account.id,
+      );
+      const generated = res?.data?.data?.generated_password || "";
+      if (generated && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(generated);
+      }
+      toast.success(`New password copied to clipboard: ${generated}`);
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Could not reset password",
+      );
+    }
+  }
 
   // Group accounts into Main Accounts and their nested Sub-Accounts
   const structuredAccounts = useMemo(() => {
@@ -203,6 +230,23 @@ export function AccountsPage() {
 
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+              <KeyRound className="h-3.5 w-3.5 text-slate-400" />
+              Password (Optional)
+            </label>
+            <input
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-[#083262] focus:outline-none focus:ring-1 focus:ring-[#083262] transition"
+              type="text"
+              autoComplete="new-password"
+              placeholder="Blank = OTP-only sign-in"
+              value={form.password}
+              onChange={(e) =>
+                setForm((v) => ({ ...v, password: e.target.value }))
+              }
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
               <Image className="h-3.5 w-3.5 text-slate-400" />
               Partner Logo (Optional)
             </label>
@@ -229,11 +273,16 @@ export function AccountsPage() {
                 await exploreCandidatesAdminApi.upsertAccount(form);
                 setForm({
                   email: "",
+                  password: "",
                   partner_logo_file: null,
                   status: 1,
                 });
                 await load();
-                toast.success("Recruiter account created");
+                toast.success(
+                  form.password
+                    ? "Recruiter account created (password sign-in enabled)"
+                    : "Recruiter account created",
+                );
               } catch (error) {
                 toast.error(
                   error?.response?.data?.message || "Could not save account",
@@ -283,6 +332,7 @@ export function AccountsPage() {
                 <th className="px-6 py-4">Profiles</th>
                 <th className="px-6 py-4 text-center">Mask Contacts</th>
                 <th className="px-6 py-4 text-center">Job Posting</th>
+                <th className="px-6 py-4 text-center">Shared Account</th>
                 <th className="px-6 py-4 text-center">Force Terms</th>
                 <th className="px-6 py-4 text-right">Actions</th>
               </tr>
@@ -290,7 +340,7 @@ export function AccountsPage() {
             <TableBody>
               {!filteredMainAccounts.length ? (
                 <tr>
-                  <td className="px-6 py-10 text-center text-slate-400" colSpan={7}>
+                  <td className="px-6 py-10 text-center text-slate-400" colSpan={8}>
                     No recruiter accounts found.
                   </td>
                 </tr>
@@ -346,9 +396,25 @@ export function AccountsPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4.5 align-middle">
-                          <span className="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
-                            Main Portal
-                          </span>
+                          <div className="flex flex-col items-start gap-1">
+                            <span className="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                              Main Portal
+                            </span>
+                            {account.is_visitor ? (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 border border-purple-100">
+                                Visitor Record
+                              </span>
+                            ) : account.password_enabled ? (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-100">
+                                <KeyRound className="h-3 w-3" />
+                                Password
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-500 border border-slate-200">
+                                OTP only
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4.5 align-middle">
                           <span className="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
@@ -422,6 +488,43 @@ export function AccountsPage() {
                               }}
                             />
                             {toggling[`job-${account.id}`] && (
+                              <Spinner size="sm" color="text-[#083262]" />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4.5 align-middle">
+                          <div className="flex justify-center items-center gap-1.5">
+                            <ToggleSwitch
+                              checked={Boolean(account.prompt_individual_email)}
+                              disabled={toggling[`shared-${account.id}`]}
+                              onChange={async (val) => {
+                                setToggling((prev) => ({
+                                  ...prev,
+                                  [`shared-${account.id}`]: true,
+                                }));
+                                try {
+                                  await exploreCandidatesAdminApi.updateAccountSettings(
+                                    account.id,
+                                    {
+                                      prompt_individual_email: val,
+                                    },
+                                  );
+                                  await load();
+                                  toast.success("Shared account setting updated");
+                                } catch (error) {
+                                  toast.error(
+                                    error?.response?.data?.message ||
+                                      "Could not update shared account setting",
+                                  );
+                                } finally {
+                                  setToggling((prev) => ({
+                                    ...prev,
+                                    [`shared-${account.id}`]: false,
+                                  }));
+                                }
+                              }}
+                            />
+                            {toggling[`shared-${account.id}`] && (
                               <Spinner size="sm" color="text-[#083262]" />
                             )}
                           </div>
@@ -555,6 +658,13 @@ export function AccountsPage() {
                             >
                               Logo
                             </ActionButton>
+                            {!account.is_visitor ? (
+                              <ActionButton
+                                onClick={() => handleResetPassword(account)}
+                              >
+                                Reset Password
+                              </ActionButton>
+                            ) : null}
                             <ActionButton
                               variant="danger"
                               onClick={() => {
@@ -609,9 +719,25 @@ export function AccountsPage() {
                               </div>
                             </td>
                             <td className="px-6 py-3.5 align-middle">
-                              <span className="text-xs text-slate-500 font-medium italic">
-                                Sub of {account.email}
-                              </span>
+                              <div className="flex flex-col items-start gap-1">
+                                <span className="text-xs text-slate-500 font-medium italic">
+                                  Sub of {account.email}
+                                </span>
+                                {sub.is_visitor ? (
+                                  <span className="inline-flex items-center gap-1 rounded-md bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 border border-purple-100">
+                                    Visitor Record
+                                  </span>
+                                ) : sub.password_enabled ? (
+                                  <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-100">
+                                    <KeyRound className="h-3 w-3" />
+                                    Password
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-500 border border-slate-200">
+                                    OTP only
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             <td className="px-6 py-3.5 align-middle">
                               <span className="text-xs text-slate-500 font-medium">
@@ -638,6 +764,13 @@ export function AccountsPage() {
                             </td>
                             <td className="px-6 py-3.5 align-middle">
                               <div className="flex flex-wrap justify-end gap-1.5">
+                                {!sub.is_visitor ? (
+                                  <ActionButton
+                                    onClick={() => handleResetPassword(sub)}
+                                  >
+                                    Reset Password
+                                  </ActionButton>
+                                ) : null}
                                 <ActionButton
                                   onClick={() => {
                                     setConfirmModal({
@@ -751,3 +884,4 @@ export function AccountsPage() {
     </div>
   );
 }
+
