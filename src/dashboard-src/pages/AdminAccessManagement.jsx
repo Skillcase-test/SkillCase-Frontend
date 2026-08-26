@@ -22,7 +22,8 @@ const MODULE_OPTIONS = [
   { key: "explore_candidates", label: "Explore Candidates" },
   { key: "job_screening", label: "Job Screening" },
   { key: "exam", label: "Exam Manager" },
-  { key: "batch", label: "Batch" },
+  { key: "batch", label: "Batch Manager" },
+  { key: "scholarship_exam", label: "Scholarship Exam Manager" },
   { key: "landing_page", label: "Landing Page" },
   { key: "trust_page", label: "Trust Page" },
   { key: "notifications", label: "Notifications" },
@@ -95,6 +96,10 @@ const SIMPLE_ACCESS_MODULES = {
     viewActions: ["view"],
     fullActions: ["view", "create", "edit", "delete"],
   },
+  scholarship_exam: {
+    viewActions: ["view"],
+    fullActions: ["view", "create", "edit", "delete"],
+  },
   wise: { viewActions: ["view"], fullActions: ["view", "edit"] },
   wise_classes: { viewActions: ["view"], fullActions: ["view", "edit"] },
   paywall: { viewActions: ["view"], fullActions: ["view", "edit"] },
@@ -106,6 +111,49 @@ const SIMPLE_ACCESS_MODULES = {
     fullActions: ["view", "create", "edit"],
   },
 };
+
+function arePermissionsEqual(a, b) {
+  const objA = a || {};
+  const objB = b || {};
+  const keysA = Object.keys(objA)
+    .filter((k) => Array.isArray(objA[k]) && objA[k].length > 0)
+    .sort();
+  const keysB = Object.keys(objB)
+    .filter((k) => Array.isArray(objB[k]) && objB[k].length > 0)
+    .sort();
+  if (keysA.length !== keysB.length) return false;
+  for (let i = 0; i < keysA.length; i++) {
+    const k = keysA[i];
+    if (k !== keysB[i]) return false;
+    const actsA = [...objA[k]].sort();
+    const actsB = [...objB[k]].sort();
+    if (actsA.length !== actsB.length) return false;
+    for (let j = 0; j < actsA.length; j++) {
+      if (actsA[j] !== actsB[j]) return false;
+    }
+  }
+  return true;
+}
+
+function areWiseEqual(a, b) {
+  const wiseA = a || { has_full_access: false, batch_ids: [] };
+  const wiseB = b || { has_full_access: false, batch_ids: [] };
+  if (Boolean(wiseA.has_full_access) !== Boolean(wiseB.has_full_access)) return false;
+  const batchesA = [...(wiseA.batch_ids || [])].map(String).sort();
+  const batchesB = [...(wiseB.batch_ids || [])].map(String).sort();
+  if (batchesA.length !== batchesB.length) return false;
+  return batchesA.every((id, i) => id === batchesB[i]);
+}
+
+function areTermsEqual(a, b) {
+  const termsA = a || { has_full_access: false, template_ids: [] };
+  const termsB = b || { has_full_access: false, template_ids: [] };
+  if (Boolean(termsA.has_full_access) !== Boolean(termsB.has_full_access)) return false;
+  const templatesA = [...(termsA.template_ids || [])].map(String).sort();
+  const templatesB = [...(termsB.template_ids || [])].map(String).sort();
+  if (templatesA.length !== templatesB.length) return false;
+  return templatesA.every((id, i) => id === templatesB[i]);
+}
 
 // Modules with no meaningful edit action at all — always shown as view-only,
 // no toggle needed.
@@ -245,21 +293,21 @@ function PermissionPicker({ value, onChange }) {
         <button
           type="button"
           onClick={() => applyToAll("view")}
-          className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700"
+          className="rounded-lg border border-[#002856]/20 bg-[#002856]/5 px-3 py-1.5 text-xs font-semibold text-[#002856] hover:bg-[#002856]/10 transition-colors"
         >
           Set View For All
         </button>
         <button
           type="button"
           onClick={() => applyToAll("all")}
-          className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700"
+          className="rounded-lg border border-[#002856]/30 bg-[#002856]/10 px-3 py-1.5 text-xs font-semibold text-[#002856] hover:bg-[#002856]/20 transition-colors"
         >
           Set Full Access For All
         </button>
         <button
           type="button"
           onClick={() => applyToAll("clear")}
-          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700"
+          className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
         >
           Clear All
         </button>
@@ -287,10 +335,10 @@ function PermissionPicker({ value, onChange }) {
                   </span>
                 </div>
                 <label
-                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer ${
+                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer transition-colors ${
                     hasAccess
-                      ? "border-blue-700 bg-blue-700 text-white"
-                      : "border-slate-300 bg-white text-slate-600"
+                      ? "border-[#002856] bg-[#002856] text-white shadow-sm"
+                      : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"
                   }`}
                 >
                   <input
@@ -327,10 +375,10 @@ function PermissionPicker({ value, onChange }) {
                   </span>
                 </div>
                 <label
-                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer ${
+                  className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer transition-colors ${
                     hasAccess
-                      ? "border-blue-700 bg-blue-700 text-white"
-                      : "border-slate-300 bg-white text-slate-600"
+                      ? "border-[#002856] bg-[#002856] text-white shadow-sm"
+                      : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"
                   }`}
                 >
                   <input
@@ -370,17 +418,17 @@ function PermissionPicker({ value, onChange }) {
                   <button
                     type="button"
                     onClick={() => setModuleActions(moduleDef.key, [])}
-                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50"
                   >
                     clear
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <label
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer ${
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer transition-colors ${
                       isViewOnly
-                        ? "border-blue-700 bg-blue-700 text-white"
-                        : "border-slate-300 bg-white text-slate-600"
+                        ? "border-[#002856] bg-[#002856] text-white shadow-sm"
+                        : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"
                     }`}
                   >
                     <input
@@ -396,10 +444,10 @@ function PermissionPicker({ value, onChange }) {
                     {moduleDef.label}: View Only
                   </label>
                   <label
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer ${
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer transition-colors ${
                       isFullAccess
-                        ? "border-blue-700 bg-blue-700 text-white"
-                        : "border-slate-300 bg-white text-slate-600"
+                        ? "border-[#002856] bg-[#002856] text-white shadow-sm"
+                        : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"
                     }`}
                   >
                     <input
@@ -438,14 +486,14 @@ function PermissionPicker({ value, onChange }) {
                           ...PAYMENTS_ALL_TAB_KEYS,
                         ])
                       }
-                      className="rounded border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700"
+                      className="rounded border border-[#002856]/20 bg-[#002856]/5 px-2 py-0.5 text-[10px] font-semibold text-[#002856] hover:bg-[#002856]/10"
                     >
                       all tabs
                     </button>
                     <button
                       type="button"
                       onClick={() => setModuleActions(moduleDef.key, [])}
-                      className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+                      className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50"
                     >
                       clear
                     </button>
@@ -457,10 +505,10 @@ function PermissionPicker({ value, onChange }) {
                     return (
                       <label
                         key={tab.key}
-                        className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer ${
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer transition-colors ${
                           checked
-                            ? "border-blue-700 bg-blue-700 text-white"
-                            : "border-slate-300 bg-white text-slate-600"
+                            ? "border-[#002856] bg-[#002856] text-white shadow-sm"
+                            : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"
                         }`}
                       >
                         <input
@@ -534,10 +582,10 @@ function PermissionPicker({ value, onChange }) {
                     <button
                       type="button"
                       onClick={toggleSkillcaseInterviewViewAllAccess}
-                      className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${
+                      className={`rounded border px-2 py-0.5 text-[10px] font-semibold transition-colors ${
                         hasViewAll
-                          ? "border-blue-200 bg-blue-50 text-blue-700"
-                          : "border-slate-200 bg-white text-slate-600"
+                          ? "border-[#002856]/30 bg-[#002856]/10 text-[#002856]"
+                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                       }`}
                     >
                       {hasViewAll ? "super view on" : "super view"}
@@ -545,10 +593,10 @@ function PermissionPicker({ value, onChange }) {
                     <button
                       type="button"
                       onClick={toggleSkillcaseInterviewSuperAccess}
-                      className={`rounded border px-2 py-0.5 text-[10px] font-semibold ${
+                      className={`rounded border px-2 py-0.5 text-[10px] font-semibold transition-colors ${
                         hasSuperAccess
                           ? "border-amber-200 bg-amber-50 text-amber-700"
-                          : "border-slate-200 bg-white text-slate-600"
+                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                       }`}
                     >
                       {hasSuperAccess ? "super access on" : "super access"}
@@ -556,7 +604,7 @@ function PermissionPicker({ value, onChange }) {
                     <button
                       type="button"
                       onClick={() => setModuleActions(moduleDef.key, [])}
-                      className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+                      className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50"
                     >
                       clear
                     </button>
@@ -570,10 +618,10 @@ function PermissionPicker({ value, onChange }) {
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <label
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer ${
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer transition-colors ${
                       isViewOnly
-                        ? "border-blue-700 bg-blue-700 text-white"
-                        : "border-slate-300 bg-white text-slate-600"
+                        ? "border-[#002856] bg-[#002856] text-white shadow-sm"
+                        : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"
                     }`}
                   >
                     <input
@@ -585,10 +633,10 @@ function PermissionPicker({ value, onChange }) {
                     View Only (own)
                   </label>
                   <label
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer ${
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer transition-colors ${
                       isFullAccess
-                        ? "border-blue-700 bg-blue-700 text-white"
-                        : "border-slate-300 bg-white text-slate-600"
+                        ? "border-[#002856] bg-[#002856] text-white shadow-sm"
+                        : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"
                     }`}
                   >
                     <input
@@ -625,7 +673,7 @@ function PermissionPicker({ value, onChange }) {
                   <button
                     type="button"
                     onClick={() => setModuleActions(moduleDef.key, ["view"])}
-                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50"
                   >
                     view
                   </button>
@@ -634,14 +682,14 @@ function PermissionPicker({ value, onChange }) {
                     onClick={() =>
                       setModuleActions(moduleDef.key, [...ACTION_OPTIONS])
                     }
-                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50"
                   >
                     all
                   </button>
                   <button
                     type="button"
                     onClick={() => setModuleActions(moduleDef.key, [])}
-                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600"
+                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50"
                   >
                     clear
                   </button>
@@ -653,10 +701,10 @@ function PermissionPicker({ value, onChange }) {
                   return (
                     <label
                       key={actionKey}
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer transition-colors ${
                         checked
-                          ? "border-blue-700 bg-blue-700 text-white"
-                          : "border-slate-300 bg-white text-slate-600"
+                          ? "border-[#002856] bg-[#002856] text-white shadow-sm"
+                          : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"
                       }`}
                     >
                       <input
@@ -717,6 +765,8 @@ export default function AdminAccessManagement() {
   const [termsTemplates, setTermsTemplates] = useState([]);
   const [templateToAdd, setTemplateToAdd] = useState("");
 
+  const [savedState, setSavedState] = useState(null);
+
   const [usersLoading, setUsersLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [batchesLoading, setBatchesLoading] = useState(false);
@@ -774,6 +824,7 @@ export default function AdminAccessManagement() {
   async function selectUser(user) {
     setSelectedUser(user);
     setBatchToAdd("");
+    setTemplateToAdd("");
     setDetailLoading(true);
     try {
       const [permRes, wiseRes, termsRes] = await Promise.all([
@@ -783,16 +834,25 @@ export default function AdminAccessManagement() {
           .getUserTermsAccess(user.user_id)
           .catch(() => ({ data: { terms: {} } })),
       ]);
-      setPermissions(permRes.data.permissions || {});
+      const initialPerms = permRes.data.permissions || {};
       const wise = wiseRes.data.wise || {};
-      setWisePayload({
+      const initialWise = {
         has_full_access: Boolean(wise.has_full_access),
         batch_ids: (wise.batch_ids || []).map((id) => String(id)),
-      });
+      };
       const terms = termsRes.data.terms || {};
-      setTermsPayload({
+      const initialTerms = {
         has_full_access: Boolean(terms.has_full_access),
         template_ids: (terms.template_ids || []).map((id) => String(id)),
+      };
+
+      setPermissions(initialPerms);
+      setWisePayload(initialWise);
+      setTermsPayload(initialTerms);
+      setSavedState({
+        permissions: initialPerms,
+        wisePayload: initialWise,
+        termsPayload: initialTerms,
       });
     } finally {
       setDetailLoading(false);
@@ -874,6 +934,14 @@ export default function AdminAccessManagement() {
     return termsTemplates.filter((t) => !selected.has(String(t.template_id)));
   }, [termsTemplates, termsPayload.template_ids]);
 
+  const hasUnsavedChanges = useMemo(() => {
+    if (!savedState || !selectedUser || selectedUser.role !== "admin") return false;
+    const permsMatch = arePermissionsEqual(permissions, savedState.permissions);
+    const wiseMatch = areWiseEqual(wisePayload, savedState.wisePayload);
+    const termsMatch = areTermsEqual(termsPayload, savedState.termsPayload);
+    return !permsMatch || !wiseMatch || !termsMatch;
+  }, [savedState, selectedUser, permissions, wisePayload, termsPayload]);
+
   async function handleRoleChange(nextRole) {
     if (!selectedUser) return;
     setRoleSaving(true);
@@ -895,6 +963,11 @@ export default function AdminAccessManagement() {
         adminAccessApi.putUserWiseAccess(selectedUser.user_id, wisePayload),
         adminAccessApi.putUserTermsAccess(selectedUser.user_id, termsPayload),
       ]);
+      setSavedState({
+        permissions,
+        wisePayload,
+        termsPayload,
+      });
       await loadUsers();
     } finally {
       setSaving(false);
@@ -923,7 +996,7 @@ export default function AdminAccessManagement() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="flex items-center gap-2 text-lg font-bold text-slate-900">
-              <ShieldCheck className="h-5 w-5 text-blue-700" />
+              <ShieldCheck className="h-5 w-5 text-[#002856]" />
               Admin Access Management
             </h1>
             <p className="text-sm text-slate-500">
@@ -938,7 +1011,7 @@ export default function AdminAccessManagement() {
               loadTermsTemplates();
             }}
             disabled={refreshing}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-60 transition-colors"
           >
             {refreshing ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -957,7 +1030,7 @@ export default function AdminAccessManagement() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search users..."
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002856]/20 focus:border-[#002856]"
             />
           </div>
           {usersLoading ? (
@@ -972,9 +1045,9 @@ export default function AdminAccessManagement() {
                 <button
                   key={user.user_id}
                   onClick={() => selectUser(user)}
-                  className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition ${
+                  className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition-all ${
                     selectedUser?.user_id === user.user_id
-                      ? "border-blue-500 bg-blue-50"
+                      ? "border-[#002856] bg-[#002856]/5 shadow-sm ring-1 ring-[#002856]/10"
                       : "border-slate-200 hover:bg-slate-50"
                   }`}
                 >
@@ -1009,11 +1082,19 @@ export default function AdminAccessManagement() {
             <div className="space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
                 <div>
-                  <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
-                    <UserCog className="h-5 w-5 text-blue-700" />
-                    {selectedUser.fullname || selectedUser.username}
-                  </h2>
-                  <p className="text-xs text-slate-500">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="flex items-center gap-2 text-lg font-bold text-slate-800">
+                      <UserCog className="h-5 w-5 text-[#002856]" />
+                      {selectedUser.fullname || selectedUser.username}
+                    </h2>
+                    {hasUnsavedChanges && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-800 animate-pulse">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                        Unsaved Changes
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
                     {selectedUser.user_id}
                   </p>
                 </div>
@@ -1025,7 +1106,7 @@ export default function AdminAccessManagement() {
                     value={selectedUser.role}
                     onChange={(e) => handleRoleChange(e.target.value)}
                     disabled={roleSaving}
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold disabled:opacity-60"
+                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[#002856]/20 focus:border-[#002856]"
                   >
                     <option value="user">user</option>
                     <option value="admin">admin</option>
@@ -1050,7 +1131,7 @@ export default function AdminAccessManagement() {
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Wise Batch Scope
                     </p>
-                    <label className="mb-3 flex items-center gap-2 text-sm">
+                    <label className="mb-3 flex items-center gap-2 text-sm cursor-pointer">
                       <input
                         type="checkbox"
                         checked={wisePayload.has_full_access}
@@ -1076,7 +1157,7 @@ export default function AdminAccessManagement() {
                               <select
                                 value={batchToAdd}
                                 onChange={(e) => setBatchToAdd(e.target.value)}
-                                className="min-w-[240px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                                className="min-w-[240px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002856]/20 focus:border-[#002856]"
                               >
                                 <option value="">
                                   Select a batch to grant access
@@ -1106,7 +1187,7 @@ export default function AdminAccessManagement() {
                                   }));
                                   setBatchToAdd("");
                                 }}
-                                className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 disabled:opacity-50"
+                                className="rounded-lg border border-[#002856]/20 bg-[#002856]/5 px-3 py-2 text-xs font-semibold text-[#002856] hover:bg-[#002856]/10 transition-colors disabled:opacity-50"
                               >
                                 Add Batch
                               </button>
@@ -1153,7 +1234,7 @@ export default function AdminAccessManagement() {
                     <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Terms & Signatures Scope
                     </p>
-                    <label className="mb-3 flex items-center gap-2 text-sm">
+                    <label className="mb-3 flex items-center gap-2 text-sm cursor-pointer">
                       <input
                         type="checkbox"
                         checked={termsPayload.has_full_access}
@@ -1181,7 +1262,7 @@ export default function AdminAccessManagement() {
                                 onChange={(e) =>
                                   setTemplateToAdd(e.target.value)
                                 }
-                                className="min-w-[240px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                                className="min-w-[240px] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#002856]/20 focus:border-[#002856]"
                               >
                                 <option value="">
                                   Select a template to grant access
@@ -1211,7 +1292,7 @@ export default function AdminAccessManagement() {
                                   }));
                                   setTemplateToAdd("");
                                 }}
-                                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 disabled:opacity-50"
+                                className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 transition-colors disabled:opacity-50"
                               >
                                 Add Template
                               </button>
@@ -1258,16 +1339,33 @@ export default function AdminAccessManagement() {
                 </>
               )}
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleSave}
-                  disabled={saving || selectedUser.role !== "admin"}
-                  className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-                >
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                  {saving ? "Saving Access..." : "Save Access"}
-                </button>
-              </div>
+              {/* Floating Sticky Save Action Bar — Visible ONLY when unsaved changes exist */}
+              {hasUnsavedChanges && (
+                <div className="sticky bottom-4 z-20 mt-6 rounded-2xl border border-amber-300/80 bg-white/95 p-3.5 shadow-2xl backdrop-blur-md transition-all animate-in fade-in slide-in-from-bottom-3 duration-200">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800">
+                        <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+                        Unsaved Changes
+                      </span>
+                      <span className="text-xs font-medium text-slate-600">
+                        You have modified permissions. Click to apply.
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={handleSave}
+                      disabled={saving || selectedUser.role !== "admin"}
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#002856] px-6 py-2.5 text-sm font-bold text-white shadow-lg ring-4 ring-[#002856]/20 hover:bg-[#001e40] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {saving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : null}
+                      {saving ? "Saving Access..." : "Save Access"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
