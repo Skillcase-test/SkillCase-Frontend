@@ -6,6 +6,8 @@ export default function AppScreenshots({ screenshots = [] }) {
   const [isMobile, setIsMobile] = useState(false);
   const touchStartX = useRef(null);
 
+  const list = screenshots;
+
   // Resize listener to adapt translate values for mobile responsiveness
   useEffect(() => {
     const handleResize = () => {
@@ -16,12 +18,9 @@ export default function AppScreenshots({ screenshots = [] }) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  if (screenshots.length === 0) return null;
-
-  const list = screenshots;
-
   // Auto-scroll loop
   useEffect(() => {
+    if (list.length === 0) return;
     const timer = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % list.length);
     }, 4500);
@@ -29,10 +28,12 @@ export default function AppScreenshots({ screenshots = [] }) {
   }, [list.length]);
 
   const handlePrev = () => {
+    if (list.length === 0) return;
     setActiveIndex((prev) => (prev - 1 + list.length) % list.length);
   };
 
   const handleNext = () => {
+    if (list.length === 0) return;
     setActiveIndex((prev) => (prev + 1) % list.length);
   };
 
@@ -52,6 +53,7 @@ export default function AppScreenshots({ screenshots = [] }) {
   const getCardStyle = (index) => {
     let offset = index - activeIndex;
     const total = list.length;
+    if (total === 0) return {};
 
     // Handle circular wrap around
     if (total > 2) {
@@ -98,6 +100,8 @@ export default function AppScreenshots({ screenshots = [] }) {
       };
     }
   };
+
+  if (list.length === 0) return null;
 
   return (
     <section className="px-4 max-w-5xl mx-auto w-full relative overflow-hidden">
