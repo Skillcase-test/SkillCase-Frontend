@@ -63,6 +63,7 @@ const TRIAL_STATUS_TABS = [
   { value: "all", label: "All" },
   { value: "active", label: "Trial Active" },
   { value: "expired", label: "Trial Expired" },
+  { value: "maybe_later", label: "Maybe Later" },
 ];
 
 const AUTOPAY_STATUS_TABS = [
@@ -89,6 +90,117 @@ function formatTrialEnd(value) {
     dateStyle: "medium",
     timeStyle: "short",
   });
+}
+
+function parseSemver(versionStr) {
+  if (!versionStr || typeof versionStr !== "string") return null;
+  const clean = versionStr.trim().replace(/^v/i, "");
+  const match = clean.match(/^(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
+  if (!match) return null;
+  return [
+    parseInt(match[1] || "0", 10),
+    parseInt(match[2] || "0", 10),
+    parseInt(match[3] || "0", 10),
+  ];
+}
+
+function compareSemver(v1, v2) {
+  const p1 = parseSemver(v1);
+  const p2 = parseSemver(v2);
+  if (!p1 && !p2) return 0;
+  if (!p1) return -1;
+  if (!p2) return 1;
+
+  for (let i = 0; i < 3; i++) {
+    if (p1[i] > p2[i]) return 1;
+    if (p1[i] < p2[i]) return -1;
+  }
+  return 0;
+}
+
+function getTrialStatusInfo(student) {
+  const version = student.app_version;
+  const trialEnd = student.trial_end_at ? new Date(student.trial_end_at) : null;
+  const trialSkipped = student.trial_offer_skipped_at
+    ? new Date(student.trial_offer_skipped_at)
+    : null;
+  const now = new Date();
+
+  // 1. If user has an explicit trial end date (started a trial)
+  if (trialEnd) {
+    const isActive = trialEnd > now;
+    if (isActive) {
+      return {
+        type: "trial_active",
+        badgeLabel: "Trial Active",
+        subtext: `Ends ${formatTrialEnd(student.trial_end_at)}`,
+        tooltip: `Free trial active until ${formatDateTime(student.trial_end_at)}.`,
+        badgeClass:
+          "bg-emerald-50 text-emerald-700 border border-emerald-200/80",
+        versionTag: version ? `v${version.replace(/^v/i, "")}` : null,
+      };
+    }
+    return {
+      type: "trial_expired",
+      badgeLabel: "Trial Expired",
+      subtext: `Ended ${formatTrialEnd(student.trial_end_at)}`,
+      tooltip: `Free trial ended on ${formatDateTime(student.trial_end_at)}.`,
+      badgeClass: "bg-slate-100 text-slate-600 border border-slate-200",
+      versionTag: version ? `v${version.replace(/^v/i, "")}` : null,
+    };
+  }
+
+  // 2. No trial end date: classify by app version
+  const isV125OrAbove = compareSemver(version, "1.2.5") >= 0;
+  const isV127OrAbove = compareSemver(version, "1.2.7") >= 0;
+
+  // Case: Version < 1.2.5 or unversioned/web user
+  if (!isV125OrAbove) {
+    return {
+      type: "legacy_version",
+      badgeLabel: version ? `Version < 1.2.5` : "Version < 1.2.5",
+      subtext: "No trial support",
+      tooltip:
+        "Student is on an older app version (< 1.2.5) where the trial feature did not exist.",
+      badgeClass: "bg-slate-50 text-slate-500 border border-slate-200/60",
+      versionTag: version ? `v${version.replace(/^v/i, "")}` : "< 1.2.5",
+    };
+  }
+
+  // Case: Version >= 1.2.7 (Maybe Later was explicitly tracked)
+  if (isV127OrAbove) {
+    if (trialSkipped) {
+      return {
+        type: "maybe_later",
+        badgeLabel: "Maybe Later",
+        subtext: `Clicked ${formatTrialEnd(student.trial_offer_skipped_at)}`,
+        tooltip: `Student clicked 'Maybe Later' on ${formatDateTime(student.trial_offer_skipped_at)}.`,
+        badgeClass: "bg-indigo-50 text-indigo-700 border border-indigo-200/80",
+        versionTag: `v${version.replace(/^v/i, "")}`,
+      };
+    }
+    return {
+      type: "not_started_or_legacy_skip",
+      badgeLabel: "Unclaimed / Skipped < 1.2.7",
+      subtext: "Unclaimed or skipped on < 1.2.7",
+      tooltip:
+        "Student is on v1.2.7+ without a trial end date or skip record. They may have not started trial, or they clicked 'Maybe Later' previously while on v1.2.5–1.2.6 before tracking was added.",
+      badgeClass: "bg-slate-50 text-slate-500 border border-slate-200/60",
+      versionTag: `v${version.replace(/^v/i, "")}`,
+    };
+  }
+
+  // Case: Version 1.2.5 <= V < 1.2.7 (Trial existed, but Maybe Later was not recorded in DB)
+  return {
+    type: "untracked_maybe_later",
+    badgeLabel: "Possibly Maybe Later",
+    subtext: "Untracked (< 1.2.7)",
+    tooltip:
+      "Student is on v1.2.5–1.2.6 without a trial end date. On these versions, clicking 'Maybe Later' was not recorded in the database.",
+    badgeClass:
+      "bg-amber-50 text-amber-700 border border-amber-200/80 border-dashed",
+    versionTag: `v${version.replace(/^v/i, "")}`,
+  };
 }
 
 function Paywall() {
@@ -359,15 +471,15 @@ function Paywall() {
   // Utility badge styling for Action Keys
   const getActionBadge = (key) => {
     let classes = "bg-slate-100 text-slate-600";
-    if (key.includes("enabled")) {
+    if (key.includes("enabled") || key === "trial_started") {
       classes = "bg-purple-50 text-purple-700 border border-purple-200";
-    } else if (key.includes("disabled")) {
+    } else if (key.includes("disabled") || key === "trial_ended_dismissed") {
       classes = "bg-slate-100 text-slate-600 border border-slate-200";
     } else if (key.includes("verified") || key.includes("charged")) {
       classes = "bg-emerald-50 text-emerald-700 border border-emerald-200";
     } else if (key.includes("cancelled") || key.includes("failed")) {
       classes = "bg-rose-50 text-rose-700 border border-rose-200";
-    } else if (key.includes("session")) {
+    } else if (key.includes("session") || key === "trial_offer_skipped") {
       classes = "bg-blue-50 text-blue-700 border border-blue-200";
     }
     return (
@@ -483,7 +595,7 @@ function Paywall() {
                 key={tab.value}
                 type="button"
                 onClick={() => handleStatusFilterChange(tab.value)}
-                className={`h-7 px-1.5 rounded-md text-xs transition-all cursor-pointer ${
+                className={`h-7 px-1.5 rounded-md text-[11px] transition-all cursor-pointer ${
                   statusFilter === tab.value
                     ? "bg-white shadow-2xs text-slate-900 font-semibold"
                     : "text-slate-500 hover:text-slate-800 font-medium"
@@ -501,7 +613,7 @@ function Paywall() {
                 key={tab.value}
                 type="button"
                 onClick={() => handleTrialStatusFilterChange(tab.value)}
-                className={`h-7 px-1.5 rounded-md text-xs transition-all cursor-pointer ${
+                className={`h-7 px-1.5 rounded-md text-[11px] transition-all cursor-pointer ${
                   trialStatusFilter === tab.value
                     ? "bg-white shadow-2xs text-slate-900 font-semibold"
                     : "text-slate-500 hover:text-slate-800 font-medium"
@@ -519,7 +631,7 @@ function Paywall() {
                 key={tab.value}
                 type="button"
                 onClick={() => handleAutopayStatusFilterChange(tab.value)}
-                className={`h-7 px-1.5 rounded-md text-xs transition-all cursor-pointer ${
+                className={`h-7 px-1.5 rounded-md text-[11px] transition-all cursor-pointer ${
                   autopayStatusFilter === tab.value
                     ? "bg-white shadow-2xs text-slate-900 font-semibold"
                     : "text-slate-500 hover:text-slate-800 font-medium"
@@ -602,10 +714,10 @@ function Paywall() {
                 <th
                   onClick={() => handleColumnSort("trial")}
                   className="px-3.5 py-2.5 text-center whitespace-nowrap cursor-pointer select-none hover:bg-slate-100/80 transition-colors group"
-                  title="Click to sort by Trial Expiry"
+                  title="Click to sort by Trial Status"
                 >
                   <div className="inline-flex items-center justify-center">
-                    <span>Trial Ends</span>
+                    <span>Trial Status</span>
                     {renderSortIcon("trial")}
                   </div>
                 </th>
@@ -670,14 +782,34 @@ function Paywall() {
                         "—"
                       )}
                     </td>
-                    <td className="px-3.5 py-2.5 whitespace-nowrap text-center text-slate-600">
-                      {student.trial_end_at ? (
-                        <span className="text-amber-700 font-medium text-[11px]">
-                          {formatTrialEnd(student.trial_end_at)}
-                        </span>
-                      ) : (
-                        "—"
-                      )}
+                    <td className="px-3.5 py-2.5 whitespace-nowrap text-center">
+                      {(() => {
+                        const info = getTrialStatusInfo(student);
+                        return (
+                          <div
+                            className="inline-flex flex-col items-center gap-0.5 cursor-default"
+                            title={info.tooltip || ""}
+                          >
+                            <div className="inline-flex items-center gap-1.5">
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium ${info.badgeClass}`}
+                              >
+                                {info.badgeLabel}
+                              </span>
+                              {info.versionTag && (
+                                <span className="text-[10px] text-slate-400 font-mono font-medium">
+                                  {info.versionTag}
+                                </span>
+                              )}
+                            </div>
+                            {info.subtext && (
+                              <span className="text-[10px] text-slate-500 font-mono">
+                                {info.subtext}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap text-center">
                       {getAutopayBadge(
