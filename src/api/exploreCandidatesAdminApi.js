@@ -69,10 +69,12 @@ export const exploreCandidatesAdminApi = {
     api.delete(`/admin/explore-candidates/library-profiles/${encodeURIComponent(profileUid)}`),
 
   listAccounts: () => api.get("/admin/explore-candidates/accounts"),
+  // Dual-capability accounts: a password makes the legacy password sign-in work;
+  // blank keeps them OTP-only.
   upsertAccount: (payload) => {
     const formData = new FormData();
     formData.append("email", payload.email || "");
-    formData.append("password", payload.password || "");
+    if (payload.password) formData.append("password", payload.password);
     formData.append("status", String(payload.status ?? 1));
     if (payload.partner_logo_file instanceof File) {
       formData.append("partner_logo_file", payload.partner_logo_file);
@@ -82,9 +84,19 @@ export const exploreCandidatesAdminApi = {
     }
     return api.post("/admin/explore-candidates/accounts", formData);
   },
-  deleteAccount: (accountId) => api.delete(`/admin/explore-candidates/accounts/${accountId}`),
   resetAccountPassword: (accountId) =>
     api.post(`/admin/explore-candidates/accounts/${accountId}/reset-password`),
+  createSubAccount: (accountId, email) =>
+    api.post(`/admin/explore-candidates/accounts/${accountId}/sub-accounts`, { email }),
+  attachSubAccount: (accountId, subAccountId) =>
+    api.post(
+      `/admin/explore-candidates/accounts/${accountId}/sub-accounts/${subAccountId}`,
+    ),
+  detachSubAccount: (accountId, subAccountId) =>
+    api.delete(
+      `/admin/explore-candidates/accounts/${accountId}/sub-accounts/${subAccountId}`,
+    ),
+  deleteAccount: (accountId) => api.delete(`/admin/explore-candidates/accounts/${accountId}`),
   updateAccountSettings: (accountId, payload) =>
     api.patch(`/admin/explore-candidates/accounts/${accountId}/settings`, payload),
   updateAccountIdentity: (accountId, payload = {}) => {
@@ -245,4 +257,96 @@ export const exploreCandidatesAdminApi = {
 
   listRecruiterLoginEvents: (params = {}) =>
     api.get("/admin/explore-candidates/recruiter-login-events", { params }),
+
+  listAccessRequests: (params = {}) =>
+    api.get("/admin/explore-candidates/access-requests", { params }),
+  reviewAccessRequest: (id, payload) =>
+    api.post(`/admin/explore-candidates/access-requests/${id}/review`, payload),
+
+  // Recruiter job postings -- admin can view them and manage candidate assignment
+  // only; creating/editing/closing stays with the recruiter.
+  listAllJobs: (params = {}) =>
+    api.get("/admin/explore-candidates/jobs", { params }),
+  getJobAdminDetail: (jobId) =>
+    api.get(`/admin/explore-candidates/jobs/${jobId}`),
+  assignJobCandidates: (jobId, profileIds) =>
+    api.post(`/admin/explore-candidates/jobs/${jobId}/candidates`, {
+      profile_ids: profileIds,
+    }),
+  unassignJobCandidate: (jobId, profileId) =>
+    api.delete(`/admin/explore-candidates/jobs/${jobId}/candidates/${profileId}`),
+
+  getFieldOptions: () => api.get("/admin/explore-candidates/field-options"),
+  addFieldOption: (fieldName, optionValue) =>
+    api.post("/admin/explore-candidates/field-options", {
+      field_name: fieldName,
+      option_value: optionValue,
+    }),
+  updateFieldOption: (id, optionValue) =>
+    api.patch(`/admin/explore-candidates/field-options/${id}`, {
+      option_value: optionValue,
+    }),
+  deleteFieldOption: (id) =>
+    api.delete(`/admin/explore-candidates/field-options/${id}`),
+
+  // Europass Progress Template API (Admin Only).
+  // opts.onPhase(evt) receives live server stages (parsing / ocr_fallback / structuring)
+  // streamed as newline-delimited JSON; opts.onUploadProgress forwards axios upload events.
+  convertEuropassResume: (payload, opts = {}) => {
+    const formData = new FormData();
+    if (payload.resume_file instanceof File) {
+      formData.append("resume_file", payload.resume_file);
+    }
+    if (payload.fileUrl) formData.append("fileUrl", payload.fileUrl);
+    if (payload.rawText) formData.append("rawText", payload.rawText);
+    if (payload.candidateContext) {
+      formData.append("candidateContext", JSON.stringify(payload.candidateContext));
+    }
+
+    let seen = "";
+    return api.post("/admin/explore-candidates/europass/convert", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        "X-Europass-Stream": "1",
+      },
+      onUploadProgress: opts.onUploadProgress,
+      onDownloadProgress: opts.onPhase
+        ? (event) => {
+            const all = String(event?.target?.responseText || "");
+            const fresh = all.slice(seen.length);
+            seen = all;
+            const lines = fresh.split("\n");
+            // Only complete lines end with \n; the last element may be partial.
+            lines.slice(0, -1).forEach((line) => {
+              if (!line.trim()) return;
+              try {
+                opts.onPhase(JSON.parse(line));
+              } catch (_e) {}
+            });
+          }
+        : undefined,
+    }).then((res) => {
+      if (typeof res.data === "string") {
+        const events = res.data
+          .split("\n")
+          .filter((l) => l.trim())
+          .map((l) => JSON.parse(l));
+        const finalEvent = [...events].reverse().find((e) => e.done !== undefined);
+        if (!finalEvent?.done) {
+          const err = new Error(finalEvent?.message || "Failed to generate Europass CV");
+          err.status = finalEvent?.status;
+          throw err;
+        }
+        res.data = { message: finalEvent.message, data: finalEvent.data };
+      }
+      return res;
+    });
+  },
+
+  generateEuropassPdf: (europassData) =>
+    api.post(
+      "/admin/explore-candidates/europass/generate-pdf",
+      { europassData },
+      { responseType: "blob" },
+    ),
 };
