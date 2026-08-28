@@ -1654,7 +1654,7 @@ function OptionContent({ opt }) {
       </span>
     );
   }
-  return <span className="break-words break-all min-w-0">{opt}</span>;
+  return <span className="break-words min-w-0 whitespace-normal [overflow-wrap:break-word] [word-break:normal]">{opt}</span>;
 }
 
 // QUESTION RENDERER FUNCTION
@@ -1806,7 +1806,7 @@ function renderQuestion(
               }, 200);
             }}
             placeholder={qData.placeholder || "Type your answer"}
-            className="w-full p-3.5 rounded-xl border-2 border-gray-200 text-base font-medium leading-relaxed whitespace-pre-wrap break-words break-all placeholder:text-base placeholder:font-medium placeholder:leading-relaxed placeholder:text-gray-400 focus:border-[#002856] focus:outline-none transition-all"
+            className="w-full p-3.5 rounded-xl border-2 border-gray-200 text-base font-medium leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:break-word] [word-break:normal] placeholder:text-base placeholder:font-medium placeholder:leading-relaxed placeholder:text-gray-400 focus:border-[#002856] focus:outline-none transition-all"
             minRows={1}
           />
         </div>
@@ -1863,7 +1863,7 @@ function renderQuestion(
       return (
         <div className="space-y-3">
           {qData.intro_text && (
-            <div className="text-base text-gray-700 whitespace-pre-wrap break-words break-all">
+            <div className="text-base text-gray-700 whitespace-pre-wrap break-words [overflow-wrap:break-word] [word-break:normal]">
               {qData.intro_text}
             </div>
           )}
@@ -1969,7 +1969,7 @@ function renderQuestion(
                             ? item.placeholders[blankIdx]
                             : "") || "Type your answer"
                         }
-                        className="w-full p-3.5 rounded-xl border-2 border-gray-200 text-base font-medium leading-relaxed whitespace-pre-wrap break-words break-all placeholder:text-base placeholder:font-medium placeholder:leading-relaxed placeholder:text-gray-400 focus:border-[#002856] focus:outline-none transition-all"
+                        className="w-full p-3.5 rounded-xl border-2 border-gray-200 text-base font-medium leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:break-word] [word-break:normal] placeholder:text-base placeholder:font-medium placeholder:leading-relaxed placeholder:text-gray-400 focus:border-[#002856] focus:outline-none transition-all"
                         minRows={1}
                       />
                     ))}
@@ -2066,7 +2066,7 @@ function renderQuestion(
               }, 200);
             }}
             placeholder="Type the corrected sentence..."
-            className="w-full p-3.5 rounded-xl border-2 border-gray-200 text-base font-medium leading-relaxed whitespace-pre-wrap break-words break-all placeholder:text-base placeholder:font-medium placeholder:leading-relaxed placeholder:text-gray-400 focus:border-[#002856] focus:outline-none transition-all"
+            className="w-full p-3.5 rounded-xl border-2 border-gray-200 text-base font-medium leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:break-word] [word-break:normal] placeholder:text-base placeholder:font-medium placeholder:leading-relaxed placeholder:text-gray-400 focus:border-[#002856] focus:outline-none transition-all"
             rows={3}
           />
         </div>

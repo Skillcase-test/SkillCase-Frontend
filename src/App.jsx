@@ -326,7 +326,7 @@ const DeepLinkRedirect = lazy(
   () => import("./pages/deepLink/DeepLinkRedirect"),
 );
 
-const MAX_RETRY_ATTEMPTS = 3;
+const MAX_RETRY_ATTEMPTS = 5;
 
 const RETRY_DELAY_MS = 2000;
 const PLAY_STORE_URL = "market://details?id=com.skillcase.app";
@@ -654,18 +654,69 @@ function AppContent() {
             return;
 
           case "ota_available": {
+            const isSilent = data.silent === true;
             const bundleExists = bundles.bundleIds?.includes(data.version);
 
             if (bundleExists) {
               addSentryBreadcrumb({
                 category: "ota",
                 message: "bundle-already-exists",
-                data: { version: data.version },
+                data: { version: data.version, silent: isSilent },
               });
               console.log(
-                `Bundle ${data.version} already exists, setting as next bundle`,
+                `Bundle ${data.version} already exists, setting as next bundle${isSilent ? " (silent)" : ""}`,
               );
               await LiveUpdate.setNextBundle({ bundleId: data.version });
+              return;
+            }
+
+            if (isSilent) {
+              // Invisible background download — no modal, apply on next cold start
+              recordEvent("ota.download_started", {
+                domain: "app_update",
+                feature: "ota_update",
+                entity_type: "app_release",
+                entity_id: data.version,
+                lifecycle: "started",
+                attributes: { state: "ota_downloading", mode: "silent" },
+              });
+              addSentryBreadcrumb({
+                category: "ota",
+                message: "download-started-silent",
+                data: { version: data.version },
+              });
+              api
+                .post("/updates/log", {
+                  event: "download_started",
+                  targetVersion: data.version,
+                })
+                .catch(() => {});
+              await LiveUpdate.downloadBundle({
+                url: data.url,
+                bundleId: data.version,
+              });
+              await LiveUpdate.setNextBundle({ bundleId: data.version });
+              api
+                .post("/updates/log", {
+                  event: "download_complete",
+                  targetVersion: data.version,
+                })
+                .catch(() => {});
+              console.log(`OTA silent download ready: ${data.version} (next start)`);
+              recordEvent("ota.download_completed", {
+                domain: "app_update",
+                feature: "ota_update",
+                entity_type: "app_release",
+                entity_id: data.version,
+                lifecycle: "succeeded",
+                outcome: "ready",
+                attributes: { state: "ota_ready", mode: "silent" },
+              });
+              addSentryBreadcrumb({
+                category: "ota",
+                message: "download-ready-silent",
+                data: { version: data.version },
+              });
               return;
             }
 
@@ -759,8 +810,9 @@ function AppContent() {
         });
 
         if (retryCount < MAX_RETRY_ATTEMPTS) {
-          console.log(`Retrying in ${RETRY_DELAY_MS}ms...`);
-          await delay(RETRY_DELAY_MS);
+          const backoffMs = RETRY_DELAY_MS * Math.pow(2, retryCount - 1);
+          console.log(`Retrying in ${backoffMs}ms... (attempt ${retryCount}/${MAX_RETRY_ATTEMPTS})`);
+          await delay(backoffMs);
           return attemptUpdate();
         }
 

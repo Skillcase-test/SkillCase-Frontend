@@ -275,4 +275,28 @@ describe("scholarshipExamApi", () => {
       );
     });
   });
+
+  // ─── Scholarship tiers ────────────────────────────────────────────────────
+
+  describe("Tier endpoints", () => {
+    test("listTiers calls GET /admin/scholarship-exam/:testId/tiers", async () => {
+      await scholarshipApi.listTiers("e1");
+      expect(mockGet).toHaveBeenCalledWith("/admin/scholarship-exam/e1/tiers");
+    });
+
+    test("createTier calls POST /admin/scholarship-exam/:testId/tiers", async () => {
+      await scholarshipApi.createTier("e1", { min_score: 80, scholarship_pct: 20 });
+      expect(mockPost).toHaveBeenCalledWith("/admin/scholarship-exam/e1/tiers", { min_score: 80, scholarship_pct: 20 });
+    });
+
+    test("updateTier calls PUT /admin/scholarship-exam/:testId/tiers/:tierId", async () => {
+      await scholarshipApi.updateTier("e1", "t1", { scholarship_pct: 25 });
+      expect(mockPut).toHaveBeenCalledWith("/admin/scholarship-exam/e1/tiers/t1", { scholarship_pct: 25 });
+    });
+
+    test("deleteTier calls DELETE /admin/scholarship-exam/:testId/tiers/:tierId", async () => {
+      await scholarshipApi.deleteTier("e1", "t1");
+      expect(mockDelete).toHaveBeenCalledWith("/admin/scholarship-exam/e1/tiers/t1");
+    });
+  });
 });

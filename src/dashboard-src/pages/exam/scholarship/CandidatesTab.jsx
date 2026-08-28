@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, Users, AlertTriangle } from "lucide-react";
-import { useScholarshipWorkspace, formatDateTime } from "./index";
+import { useScholarshipWorkspace } from "./index";
+import { formatDateTime } from "../../../../utils/dateTime";
 import StatusPill from "./ui/StatusPill";
 import Chip from "./ui/Chip";
 import EmptyState from "./ui/EmptyState";

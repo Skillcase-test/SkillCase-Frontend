@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   BookOpen,
   FileText,
@@ -16,10 +16,24 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import { trackFeatureEvent } from "../telemetry/events";
+import { getLandingVisibility } from "../api/scholarshipExamApi";
+import ScholarshipEntryCard, {
+  hasScholarshipAccess,
+} from "../components/ScholarshipEntryCard";
 
 export default function LandingPage() {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+  const [showScholarshipOnLanding, setShowScholarshipOnLanding] = useState(false);
+
+  // Skip the round trip for everyone who could never see the card anyway.
+  const canSeeScholarship = hasScholarshipAccess(user);
+  useEffect(() => {
+    if (!canSeeScholarship) return;
+    getLandingVisibility()
+      .then((r) => setShowScholarshipOnLanding(!!r.data?.show_on_landing))
+      .catch(() => {});
+  }, [canSeeScholarship]);
 
   useEffect(() => {
     if (!user) {
@@ -249,6 +263,12 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+          {/* Scholarship Exam — same card and audience as ProfilePage */}
+          {showScholarshipOnLanding && hasScholarshipAccess(user) && (
+            <div className="container mx-auto mt-8 px-0 sm:px-0">
+              <ScholarshipEntryCard visible user={user} />
+            </div>
+          )}
         </section>
       )}
     </div>

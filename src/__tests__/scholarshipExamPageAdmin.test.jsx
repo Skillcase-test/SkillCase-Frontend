@@ -43,6 +43,20 @@ vi.mock("../api/scholarshipExamApi", () => ({
   overrideAnswer: vi.fn(),
   overrideAnswerPoints: vi.fn(),
   exportExamExcel: vi.fn(),
+  // OverviewTab reads these on mount. A vi.mock factory is strict — an export
+  // it omits throws on access and kills the whole render, so they must resolve.
+  getAdminLandingVisibility: vi.fn(() =>
+    Promise.resolve({ data: { settings: { show_on_landing: false } } }),
+  ),
+  updateAdminLandingVisibility: vi.fn((v) =>
+    Promise.resolve({ data: { settings: { show_on_landing: v } } }),
+  ),
+  getAdminProfileVisibility: vi.fn(() =>
+    Promise.resolve({ data: { settings: { show_on_profile: false } } }),
+  ),
+  updateAdminProfileVisibility: vi.fn((v) =>
+    Promise.resolve({ data: { settings: { show_on_profile: v } } }),
+  ),
 }));
 
 vi.mock("../telemetry/legacyAnalytics", () => {
@@ -294,6 +308,10 @@ describe("AdminScholarshipManager (single-exam workspace)", () => {
 
     expect(await screen.findByText("Release results?")).toBeInTheDocument();
     expect(scholarshipApi.updateExam).not.toHaveBeenCalled();
+    // Acknowledgment required: button disabled until checked
+    const ack = await screen.findByRole("checkbox");
+    expect(screen.getByRole("button", { name: "Yes, Release Results" })).toBeDisabled();
+    fireEvent.click(ack);
     fireEvent.click(screen.getByRole("button", { name: "Yes, Release Results" }));
 
     await waitFor(() =>

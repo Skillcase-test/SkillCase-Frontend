@@ -15,6 +15,10 @@ import A1MigrationModal from "../../components/a1/A1MigrationModal";
 import ModalPortal from "../../components/common/ModalPortal";
 import { isB1PracticeLevel } from "../../utils/b1Progress";
 import { trackFeatureEvent } from "../../telemetry/events";
+import { getLandingVisibility } from "../../api/scholarshipExamApi";
+import ScholarshipEntryCard, {
+  hasScholarshipAccess,
+} from "../../components/ScholarshipEntryCard";
 
 function LandingFeatureCardsSkeleton() {
   return (
@@ -56,6 +60,18 @@ export default function LandingPage() {
   const [switchingToNew, setSwitchingToNew] = useState(false);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const switchTimeoutRef = useRef(null);
+
+  // Scholarship re-entry card. Candidates who switched to learn/practice keep
+  // scholarship_candidate_at, so this is how they get back to the exam funnel.
+  // Skip the round trip for everyone who could never see the card anyway.
+  const [showScholarshipCard, setShowScholarshipCard] = useState(false);
+  const canSeeScholarship = hasScholarshipAccess(user);
+  useEffect(() => {
+    if (!canSeeScholarship) return;
+    getLandingVisibility()
+      .then((r) => setShowScholarshipCard(!!r.data?.show_on_landing))
+      .catch(() => {});
+  }, [canSeeScholarship]);
 
   const location = useLocation();
   const [lgMode, setLgMode] = useState(() => {
@@ -276,6 +292,12 @@ export default function LandingPage() {
           <LandingFeatureCardsSkeleton />
         ) : (
           <FeatureCardsGrid useRevampA1={isRevampA1User} />
+        )}
+
+        {showScholarshipCard && (
+          <div className="px-4 mt-4">
+            <ScholarshipEntryCard visible user={user} />
+          </div>
         )}
 
         {showLandingSections && (

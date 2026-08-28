@@ -6,6 +6,10 @@ import { resetArticleEducation } from "../utils/articleUtils";
 import { isTrialActive, trialDaysLeft } from "../utils/premium";
 import { stableFile } from "../utils/stableFile";
 import api from "../api/axios";
+import { getProfileVisibility } from "../api/scholarshipExamApi";
+import ScholarshipEntryCard, {
+  hasScholarshipAccess,
+} from "../components/ScholarshipEntryCard";
 import { trackFeatureEvent } from "../telemetry/events";
 import {
   getProgress,
@@ -267,6 +271,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [toast, setToast] = useState({ show: false, msg: "", type: "" });
+  const [showOnProfile, setShowOnProfile] = useState(false);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -340,6 +345,15 @@ export default function ProfilePage() {
       });
     }
   }, []);
+
+  // Skip the round trip for everyone who could never see the card anyway.
+  const canSeeScholarship = hasScholarshipAccess(user);
+  useEffect(() => {
+    if (!canSeeScholarship) return;
+    getProfileVisibility()
+      .then((r) => setShowOnProfile(!!r.data?.show_on_profile))
+      .catch(() => {});
+  }, [canSeeScholarship]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -1018,48 +1032,8 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* Scholarship Exam Entry — re-entry point into the exam funnel.
-                Only for candidates who were ever granted exam access:
-                scholarship_candidate_at is stamped once at onboarding (or by
-                the sweeper backfill) and never cleared, so the card survives a
-                switch to learning/practicing mode. has_scholarship_access
-                covers candidates an admin added manually — they never went
-                through scholarship onboarding, so this card is their only way
-                in. */}
-            {(!!user?.scholarship_candidate_at ||
-              user?.has_scholarship_access === true) && (
-              <div className="w-full p-3 bg-gradient-to-r from-[#002856] to-[#1A4B9F] rounded-xl flex flex-col gap-2.5">
-                <div className="flex justify-between items-start gap-3">
-                  <div className="flex-1 min-w-0 flex flex-col gap-4">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1 bg-[#edb843] rounded-3xl flex items-center justify-center">
-                          <LucideIcons.GraduationCap className="size-4 text-[#002856]" />
-                        </div>
-                        <span className="text-white text-base font-semibold leading-5">
-                          Scholarship Exam
-                        </span>
-                      </div>
-                      <p className="text-white/80 text-xs font-normal leading-4">
-                        Check your exam status or view your results.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => navigate("/scholarship")}
-                      className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
-                    >
-                      <span className="text-amber-300 text-xs font-medium">
-                        Open Scholarship Exam
-                      </span>
-                      <ChevronRightIcon className="size-3 text-amber-300" />
-                    </button>
-                  </div>
-                  <div className="size-20 rounded-2xl overflow-hidden shrink-0 bg-white/10 flex items-center justify-center">
-                    <LucideIcons.GraduationCap className="size-10 text-[#edb843]" />
-                  </div>
-                </div>
-              </div>
-            )}
+            {/* Scholarship Exam Entry — re-entry point into the exam funnel. */}
+            <ScholarshipEntryCard visible={showOnProfile} user={user} />
 
             {/* Your Information Card */}
             <div className="flex flex-col gap-3">

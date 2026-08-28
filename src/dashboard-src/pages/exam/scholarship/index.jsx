@@ -22,6 +22,7 @@ import {
   Play,
   Copy,
   Trash2,
+  Award,
 } from "lucide-react";
 import Chip from "./ui/Chip";
 import toast, { Toaster } from "react-hot-toast";
@@ -33,46 +34,22 @@ import OverviewTab from "./OverviewTab";
 import QuestionsTab from "./QuestionsTab";
 import CandidatesTab from "./CandidatesTab";
 import SubmissionsTab from "./SubmissionsTab";
+import TiersTab from "./TiersTab";
 import CreateExamModal from "./CreateExamModal";
 import ConfirmDialog from "./ui/ConfirmDialog";
 import { btn } from "./ui/buttons";
+import { toUTC, toLocalInput } from "../../../../utils/dateTime";
 import { ControlDropdown } from "../../../payments-admin/components/controls";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const toUTC = (datetimeLocal) => {
-  if (!datetimeLocal) return null;
-  return new Date(datetimeLocal).toISOString();
-};
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const toLocalInput = (utcStr) => {
-  if (!utcStr) return "";
-  const normalized = String(utcStr).trim().replace(" ", "T");
-  const hasTimezone = /Z$|[+-]\d{2}:\d{2}$/.test(normalized);
-  const d = new Date(hasTimezone ? normalized : `${normalized}Z`);
-  if (Number.isNaN(d.getTime())) return "";
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const min = String(d.getMinutes()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
-};
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const formatDateTime = (val) => {
-  if (!val) return "—";
-  const d = new Date(val);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+// A release with zero reachable devices used to toast "notifications sent",
+// which reads as success when nobody was actually told.
+const releaseToastMessage = (data) => {
+  const sent = data?.notifications_sent;
+  if (sent == null) return "Results released";
+  if (sent === 0) return "Results released — no devices reachable, nothing sent";
+  return `Results released — ${sent} notification${sent === 1 ? "" : "s"} sent`;
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -141,6 +118,7 @@ export default function AdminScholarshipManager() {
   const [submissions, setSubmissions] = useState([]);
   const [submissionDetail, setSubmissionDetail] = useState(null);
   const [itemOverrides, setItemOverrides] = useState({});
+  const [tiers, setTiers] = useState([]);
 
   const dndSensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -342,9 +320,11 @@ export default function AdminScholarshipManager() {
     requestConfirm({
       title: nextVisible ? "Release results?" : "Hide results?",
       message: nextVisible
-        ? `Every candidate who finished "${exam.title}" will immediately see their score and answers.`
-        : `Scores and answers will no longer be visible to candidates for "${exam.title}".`,
+        ? `Every candidate who finished "${exam.title}" will see their scholarship award and receive a push notification. Tiers will be locked until you hide results again.`
+        : `Scholarship results will no longer be visible to candidates for "${exam.title}". Tiers can be edited again.`,
       confirmLabel: nextVisible ? "Yes, Release Results" : "Yes, Hide Results",
+      requireAck: nextVisible,
+      ackLabel: "I understand tiers will be locked",
       action: () => doToggleResultsVisible(exam, nextVisible),
     });
   };
@@ -354,15 +334,13 @@ export default function AdminScholarshipManager() {
       const res = await runWithActionLoading("Updating result visibility...", () =>
         api.updateExam(exam.test_id, { results_visible: nextVisible }),
       );
-      toast.success(
-        nextVisible
-          ? "Results are now visible to candidates"
-          : "Results hidden",
-      );
+      toast.success(nextVisible ? releaseToastMessage(res.data) : "Results hidden");
       await fetchExams();
       if (selectedExam?.test_id === exam.test_id) setSelectedExam(res.data?.exam);
-    } catch {
-      toast.error("Failed to update result visibility");
+      await loadTiers();
+    } catch (err) {
+      const msg = err.response?.data?.msg || "Failed to update result visibility";
+      toast.error(msg);
     }
   };
 
@@ -644,6 +622,18 @@ export default function AdminScholarshipManager() {
     );
   }, [visStudents, visQuery]);
 
+  const loadTiers = useCallback(async () => {
+    if (!selectedExam) return;
+    try {
+      const res = await api.listTiers(selectedExam.test_id);
+      setTiers(res.data?.tiers || []);
+    } catch {
+      // silent — chip just won't show
+    }
+  }, [selectedExam]);
+
+  useEffect(() => { loadTiers(); }, [loadTiers]);
+
   // ── Submissions ──────────────────────────────────────────────────────────
 
   const loadSubmissions = useCallback(async () => {
@@ -825,6 +815,8 @@ export default function AdminScholarshipManager() {
     handleAddStudents,
     handleRemoveStudent,
     handleRemoveStudents,
+    tiers,
+    loadTiers,
     // submissions
     submissions,
     submissionDetail,
@@ -965,6 +957,11 @@ export default function AdminScholarshipManager() {
                             Results out
                           </Chip>
                         )}
+                        {selectedExam.results_visible && tiers.length > 0 && (
+                          <Chip cls="bg-sky-50 text-sky-700 border-sky-200">
+                            Up to {Math.max(...tiers.map((t) => Number(t.scholarship_pct)))}% scholarship
+                          </Chip>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
                         <span className="inline-flex items-center gap-1">
@@ -1029,6 +1026,7 @@ export default function AdminScholarshipManager() {
                       { key: "questions", label: "Questions", icon: FileQuestion },
                       { key: "candidates", label: "Candidates", icon: Users },
                       { key: "submissions", label: "Submissions", icon: ListChecks },
+                      { key: "tiers", label: "Scholarship Tiers", icon: Award },
                     ].map((t) => (
                       <button
                         key={t.key}
@@ -1037,6 +1035,7 @@ export default function AdminScholarshipManager() {
                           if (t.key === "candidates") loadVisibility();
                           if (t.key === "submissions") loadSubmissions();
                           if (t.key === "overview") openSettings();
+                          if (t.key === "tiers") loadTiers();
                         }}
                         className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg transition-colors ${
                           tab === t.key
@@ -1055,6 +1054,7 @@ export default function AdminScholarshipManager() {
                 {tab === "questions" && <QuestionsTab />}
                 {tab === "candidates" && <CandidatesTab />}
                 {tab === "submissions" && <SubmissionsTab />}
+                {tab === "tiers" && <TiersTab />}
               </>
             )}
           </main>

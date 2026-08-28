@@ -1,5 +1,6 @@
 import { Download, ListChecks } from "lucide-react";
-import { useScholarshipWorkspace, formatDateTime } from "./index";
+import { useScholarshipWorkspace } from "./index";
+import { formatDateTime } from "../../../../utils/dateTime";
 import StatusPill from "./ui/StatusPill";
 import EmptyState from "./ui/EmptyState";
 import SubmissionReview from "./SubmissionReview";

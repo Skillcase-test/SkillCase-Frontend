@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   FileQuestion,
   Users,
@@ -9,6 +9,8 @@ import {
   Info,
   GraduationCap,
 } from "lucide-react";
+import toast from "react-hot-toast";
+import * as api from "../../../../api/scholarshipExamApi";
 import { useScholarshipWorkspace } from "./index";
 import StatCard from "./ui/StatCard";
 import { btn, inputCls, labelCls } from "./ui/buttons";
@@ -31,6 +33,48 @@ export default function OverviewTab() {
     loadVisibility,
     loadSubmissions,
   } = useScholarshipWorkspace();
+
+  const [showOnLanding, setShowOnLanding] = useState(false);
+  const [showOnProfile, setShowOnProfile] = useState(false);
+  const [landingSaving, setLandingSaving] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  useEffect(() => {
+    api.getAdminLandingVisibility()
+      .then((r) => setShowOnLanding(!!r.data?.settings?.show_on_landing))
+      .catch(() => {});
+    api.getAdminProfileVisibility()
+      .then((r) => setShowOnProfile(!!r.data?.settings?.show_on_profile))
+      .catch(() => {});
+  }, []);
+
+  const handleToggleLanding = async () => {
+    const next = !showOnLanding;
+    setLandingSaving(true);
+    try {
+      const r = await api.updateAdminLandingVisibility(next);
+      setShowOnLanding(!!r.data?.settings?.show_on_landing);
+      toast.success(next ? "Scholarship card will show on Landing Page" : "Scholarship card hidden from Landing Page");
+    } catch (e) {
+      toast.error(e.response?.data?.msg || "Failed to update");
+    } finally {
+      setLandingSaving(false);
+    }
+  };
+
+  const handleToggleProfile = async () => {
+    const next = !showOnProfile;
+    setProfileSaving(true);
+    try {
+      const r = await api.updateAdminProfileVisibility(next);
+      setShowOnProfile(!!r.data?.settings?.show_on_profile);
+      toast.success(next ? "Scholarship card will show on Profile Page" : "Scholarship card hidden from Profile Page");
+    } catch (e) {
+      toast.error(e.response?.data?.msg || "Failed to update");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   // Load the visibility + submission counts when the overview opens.
   useEffect(() => {
@@ -172,6 +216,50 @@ export default function OverviewTab() {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Show on Landing/Profile — independent global flags, same audience */}
+        <div className="bg-white rounded-xl border border-[#e5e7eb] shadow-sm p-5 flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
+                <GraduationCap className="w-4 h-4" />
+              </span>
+              <h3 className="text-sm font-bold text-slate-700">Show on Landing Page</h3>
+            </div>
+            <button
+              onClick={handleToggleLanding}
+              disabled={landingSaving}
+              className={`relative w-11 h-6 rounded-full transition-colors ${showOnLanding ? "bg-[#002856]" : "bg-slate-300"} ${landingSaving ? "opacity-60" : ""}`}
+              aria-label="Toggle show on landing"
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${showOnLanding ? "translate-x-5" : ""}`} />
+            </button>
+          </div>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            When enabled, the Scholarship Exam card appears on Landing Page for candidates with scholarship access only.
+          </p>
+          {landingSaving && <p className="text-[11px] text-slate-400">Saving…</p>}
+          <div className="border-t border-slate-100 pt-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
+                <GraduationCap className="w-4 h-4" />
+              </span>
+              <h3 className="text-sm font-bold text-slate-700">Show on Profile Page</h3>
+            </div>
+            <button
+              onClick={handleToggleProfile}
+              disabled={profileSaving}
+              className={`relative w-11 h-6 rounded-full transition-colors ${showOnProfile ? "bg-[#002856]" : "bg-slate-300"} ${profileSaving ? "opacity-60" : ""}`}
+              aria-label="Toggle show on profile"
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${showOnProfile ? "translate-x-5" : ""}`} />
+            </button>
+          </div>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            When enabled, the Scholarship Exam card appears on Profile Page for candidates with scholarship access only.
+          </p>
+          {profileSaving && <p className="text-[11px] text-slate-400">Saving…</p>}
         </div>
 
         {/* How it works */}

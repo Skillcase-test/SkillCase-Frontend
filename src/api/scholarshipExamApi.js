@@ -110,3 +110,34 @@ export const exportExamExcel = (testId) =>
   api.get(`/admin/scholarship-exam/${testId}/export/excel`, {
     responseType: "blob",
   });
+
+// SCHOLARSHIP TIERS (admin)
+export const listTiers = (testId) =>
+  api.get(`/admin/scholarship-exam/${testId}/tiers`);
+
+export const createTier = (testId, data) =>
+  api.post(`/admin/scholarship-exam/${testId}/tiers`, data);
+
+export const updateTier = (testId, tierId, data) =>
+  api.put(`/admin/scholarship-exam/${testId}/tiers/${tierId}`, data);
+
+export const deleteTier = (testId, tierId) =>
+  api.delete(`/admin/scholarship-exam/${testId}/tiers/${tierId}`);
+
+export const getLandingVisibility = () =>
+  api.get("/scholarship-exam/landing-visibility");
+
+export const getProfileVisibility = () =>
+  api.get("/scholarship-exam/profile-visibility");
+
+export const getAdminLandingVisibility = () =>
+  api.get("/admin/scholarship-exam/landing-visibility");
+
+export const updateAdminLandingVisibility = (show_on_landing) =>
+  api.put("/admin/scholarship-exam/landing-visibility", { show_on_landing });
+
+export const getAdminProfileVisibility = () =>
+  api.get("/admin/scholarship-exam/profile-visibility");
+
+export const updateAdminProfileVisibility = (show_on_profile) =>
+  api.put("/admin/scholarship-exam/profile-visibility", { show_on_profile });

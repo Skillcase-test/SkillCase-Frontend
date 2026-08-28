@@ -343,7 +343,7 @@ describe("ScholarshipResult", () => {
     expect(await screen.findByText("LANDED_ON_ROOT")).toBeInTheDocument();
   });
 
-  test("released results show the score and answer review", async () => {
+  test("released results show scholarship award with dialer CTA (eligible)", async () => {
     getExamResult.mockResolvedValue({
       data: {
         exam: makeExam({ results_visible: true }),
@@ -352,109 +352,103 @@ describe("ScholarshipResult", () => {
           score: 80,
           earned_points: 8,
           total_points: 10,
+          awarded_scholarship_pct: 20,
+          awarded_tier_id: 1,
           finished_at: new Date().toISOString(),
         },
-        questions: [],
+        tiers: [{ tier_id: 1, min_score: 50, scholarship_pct: 10 }],
+        percentile: 82,
+        awarded_tier: { tier_id: 1, min_score: 80, scholarship_pct: 20 },
       },
     });
     renderResult(<ScholarshipResult />);
 
-    expect(await screen.findByText("80.0%")).toBeInTheDocument();
-    expect(screen.getByText("Answer Review")).toBeInTheDocument();
+    expect(await screen.findByText(/You're eligible for/)).toBeInTheDocument();
+    expect(screen.getByText(/20% scholarship/)).toBeInTheDocument();
+    expect(screen.getByText(/You're above 82% of candidates/)).toBeInTheDocument();
+    const cta = screen.getByRole("link", { name: /Contact SkillCase Team/ });
+    expect(cta).toHaveAttribute("href", "tel:+919972266767");
+    expect(screen.queryByText("Answer Review")).not.toBeInTheDocument();
   });
 
-  test("released results render content blocks as content, never as questions", async () => {
+  test("released results show not-eligible state without CTA", async () => {
     getExamResult.mockResolvedValue({
       data: {
         exam: makeExam({ results_visible: true }),
         submission: {
           status: "completed",
-          score: 80,
-          earned_points: 8,
+          score: 30,
+          earned_points: 3,
           total_points: 10,
+          awarded_scholarship_pct: null,
+          awarded_tier_id: null,
           finished_at: new Date().toISOString(),
         },
-        questions: [
-          {
-            question_id: "pb1",
-            question_type: "page_break",
-            question_data: {},
-            audio_url: null,
-            user_answer: null,
-            is_correct: null,
-          },
-          {
-            question_id: "q1",
-            question_type: "mcq_single",
-            question_data: {
-              question: "Was ist richtig?",
-              correct: "Apfel",
-              options: ["Apfel", "Banane"],
-            },
-            audio_url: null,
-            user_answer: "Apfel",
-            is_correct: true,
-          },
-          {
-            question_id: "rp1",
-            question_type: "reading_passage",
-            question_data: { passage: "Berlin ist eine Stadt." },
-            audio_url: null,
-            user_answer: null,
-            is_correct: null,
-          },
-          {
-            question_id: "cb1",
-            question_type: "content_block",
-            question_data: { content: "Remember: nouns are capitalised." },
-            audio_url: null,
-            user_answer: null,
-            is_correct: null,
-          },
-          {
-            question_id: "ab1",
-            question_type: "audio_block",
-            question_data: {},
-            audio_url: "https://example.com/audio.mp3",
-            user_answer: null,
-            is_correct: null,
-          },
-          {
-            question_id: "ib1",
-            question_type: "image_block",
-            question_data: { image_url: "https://example.com/map.png", alt: "exam map" },
-            audio_url: null,
-            user_answer: null,
-            is_correct: null,
-          },
-          {
-            question_id: "q2",
-            question_type: "mcq_single",
-            question_data: { question: "Zweite Frage?", correct: 0, options: ["A", "B"] },
-            audio_url: null,
-            user_answer: "A",
-            is_correct: true,
-          },
-        ],
+        tiers: [{ tier_id: 1, min_score: 50, scholarship_pct: 10 }],
+        percentile: 10,
+        awarded_tier: null,
       },
     });
     renderResult(<ScholarshipResult />);
 
-    await screen.findByText("Answer Review");
+    expect(await screen.findByText(/Thanks for taking the scholarship exam/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Contact SkillCase Team/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Back to SkillCase/ })).toBeInTheDocument();
+  });
 
-    // Blocks render as their content
-    expect(screen.getByText("Page Break")).toBeInTheDocument();
-    expect(screen.getByText("Reading Passage")).toBeInTheDocument();
-    expect(screen.getByText("Berlin ist eine Stadt.")).toBeInTheDocument();
-    expect(screen.getByText("Remember: nouns are capitalised.")).toBeInTheDocument();
-    expect(screen.getByText("Audio")).toBeInTheDocument();
-    expect(screen.getByAltText("exam map")).toBeInTheDocument();
+  // ── Redemption window ───────────────────────────────────────────────────
+  // The admin sets redemption_expires_at; an eligible candidate sees a live
+  // countdown until it passes, then the percentage is withheld but the phone
+  // CTA stays so they can still talk to someone.
+  const eligibleWithExpiry = (expiresAt) => ({
+    data: {
+      exam: makeExam({ results_visible: true, redemption_expires_at: expiresAt }),
+      submission: {
+        status: "completed",
+        score: 80,
+        awarded_scholarship_pct: 20,
+        awarded_tier_id: 1,
+        finished_at: new Date().toISOString(),
+      },
+      tiers: [{ tier_id: 1, min_score: 50, scholarship_pct: 10 }],
+      percentile: 82,
+      awarded_tier: { tier_id: 1, min_score: 80, scholarship_pct: 20 },
+    },
+  });
 
-    // Only the two answerable questions carry answer UI and numbering
-    expect(screen.getAllByText("Your answer")).toHaveLength(2);
-    expect(screen.getAllByText(/^\d\.$/)).toHaveLength(2);
-    expect(screen.getByText("Was ist richtig?")).toBeInTheDocument();
-    expect(screen.getByText("Zweite Frage?")).toBeInTheDocument();
+  test("an unexpired window shows a live countdown", async () => {
+    const in2h = new Date(Date.now() + 2 * 60 * 60 * 1000 + 90_000).toISOString();
+    getExamResult.mockResolvedValue(eligibleWithExpiry(in2h));
+    renderResult(<ScholarshipResult />);
+
+    expect(await screen.findByText("Redeem within")).toBeInTheDocument();
+    expect(screen.getByText(/^02:\d\d:\d\d$/)).toBeInTheDocument();
+    expect(screen.getByText(/20% scholarship/)).toBeInTheDocument();
+  });
+
+  test("an expired window hides the percentage but keeps the dialer CTA", async () => {
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    getExamResult.mockResolvedValue(eligibleWithExpiry(yesterday));
+    renderResult(<ScholarshipResult />);
+
+    expect(await screen.findByRole("heading", { name: "Offer expired" })).toBeInTheDocument();
+    expect(screen.queryByText(/20% scholarship/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Redeem within")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Contact SkillCase Team/ }),
+    ).toHaveAttribute("href", "tel:+919972266767");
+  });
+
+  test("an expiry set for a non-eligible candidate never shows a countdown", async () => {
+    const in2h = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    const res = eligibleWithExpiry(in2h);
+    res.data.submission.awarded_scholarship_pct = null;
+    res.data.awarded_tier = null;
+    getExamResult.mockResolvedValue(res);
+    renderResult(<ScholarshipResult />);
+
+    expect(await screen.findByText(/Thanks for taking the scholarship exam/)).toBeInTheDocument();
+    expect(screen.queryByText("Redeem within")).not.toBeInTheDocument();
   });
 
   test("non-awaited error shows the error screen with a back link", async () => {
