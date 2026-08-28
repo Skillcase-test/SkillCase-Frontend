@@ -13,10 +13,15 @@ import {
   Award,
   Dumbbell,
   Sparkles,
+  Phone,
+  ArrowRight,
+  CheckCircle2,
+  TrendingUp,
 } from "lucide-react";
 import mayaThumbsup from "../../assets/onboarding/mayaThumbsup.webp";
 import mayaShocked from "../../assets/onboarding/mayaShocked.webp";
 import mayaSad from "../../assets/onboarding/mayaSad.webp";
+import mayaSmiling from "../../assets/onboarding/mayaSmiling.webp";
 
 /** B1-style top navigation row shared by every result state. */
 function ResultTopBar({ title }) {
@@ -42,7 +47,7 @@ function ResultTopBar({ title }) {
 
 /**
  * Scholarship result screen. Two modes:
- *  - Results released  → full score + answer review (mirrors ExamResult).
+ *  - Results released  → full score + award voucher / practice funnel.
  *  - Results awaited   → "results awaited" state with the option to switch to
  *    learning or practicing mode (opens the level-picker modal).
  */
@@ -64,13 +69,11 @@ export default function ScholarshipResult() {
   const awarded = submission?.awarded_scholarship_pct;
   const isEligible = awarded != null && Number(awarded) > 0;
 
-  // Only the eligible-and-unexpired screen renders a countdown. Without this
-  // gate the whole page re-rendered every second for candidates who can never
-  // see one, and kept ticking forever after the window closed.
+  // Only the eligible-and-unexpired screen renders a countdown.
   useEffect(() => {
     if (!expiresAt || !isEligible) return;
     const end = new Date(expiresAt).getTime();
-    if (!(Date.now() < end)) return; // already expired (or unparseable)
+    if (!(Date.now() < end)) return;
     const id = setInterval(() => {
       setNowTick(Date.now());
       if (Date.now() >= end) clearInterval(id);
@@ -78,17 +81,11 @@ export default function ScholarshipResult() {
     return () => clearInterval(id);
   }, [expiresAt, isEligible]);
 
-  // The level picker exists to replace the placeholder A1 that scholarship
-  // onboarding assigns. Anyone who reached the exam from an existing
-  // learn/practice account (admin-added candidates, or a candidate who already
-  // picked a level once and came back) has a real level, so asking again would
-  // demote them — hand them straight back to their mode instead.
+  // Level picker logic for candidates who haven't assigned a German proficiency level
   const needsLevel =
     !!user?.scholarship_candidate_at &&
     user?.lg_preferred_mode === "scholarship";
 
-  // Shared by the picker and the skip path: a candidate who never took their
-  // free trial sees the trial offer before the hub (same gate as onboarding).
   const goToMode = (mode, freshUser) => {
     const dest = mode === "learn" ? "/learn-german" : "/";
     const target = freshUser || user;
@@ -104,7 +101,6 @@ export default function ScholarshipResult() {
       setPicker(mode);
       return;
     }
-    // No level argument: their existing proficiency level stays untouched.
     const freshUser = await switchScholarshipToMode(mode);
     goToMode(mode, freshUser);
   };
@@ -295,46 +291,12 @@ export default function ScholarshipResult() {
       }) + " IST"
     : null;
 
-  // Expired but was eligible → hide percentage, keep CTA
+  // Expired but was eligible → hide percentage, keep phone CTA + clean practice button
   if (isEligible && isExpired) {
     return (
       <div className="min-h-screen bg-white flex flex-col">
         <ResultTopBar title="Scholarship Exam" />
-        <div className="relative h-[140px] w-full overflow-hidden bg-gradient-to-br from-[#002856] via-[#0a3d7a] to-[#153A71]">
-          <div>
-            <div className="absolute -right-10 -top-10 w-44 h-44 bg-[#edb843] opacity-10 rounded-full blur-3xl" />
-            <div className="absolute -left-12 -bottom-16 w-52 h-52 bg-[#1E76F3] opacity-20 rounded-full blur-3xl" />
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
-          </div>
-          <img src={mayaSad} alt="" className="absolute right-6 bottom-0 h-[140px] object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)]" />
-        </div>
-        <div className="flex-1 px-4 pt-6 pb-10 text-center">
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-50 text-red-600 text-[11px] font-bold uppercase tracking-wider">
-            Offer expired
-          </span>
-          <h1 className="text-[22px] font-bold text-[#181d27] mt-4 leading-snug">Offer expired</h1>
-          <p className="text-sm text-[#7b7b7b] mt-3 leading-relaxed">
-            Your scholarship window closed on {expiresDisplay}. Contact our team to explore next steps.
-          </p>
-          <a
-            href="tel:+919972266767"
-            onClick={() => analytics?.capture("scholarship_contact_cta_clicked", { feature_key: "scholarship_exam", exam_id: testId, awarded_pct: Number(awarded), percentile, expired: true })}
-            className="mt-6 w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-[#002856] text-white rounded-xl font-bold hover:bg-[#001e40] transition"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" /></svg>
-            Contact SkillCase Team
-          </a>
-          <button onClick={() => navigate("/scholarship")} className="w-full mt-3 px-6 py-3 text-[#002856] rounded-xl font-semibold hover:bg-gray-50 transition">Back to Scholarship</button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isEligible) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col">
-        <ResultTopBar title="Scholarship Exam" />
-        <div className="relative h-[140px] w-full overflow-hidden bg-gradient-to-br from-[#002856] via-[#0a3d7a] to-[#153A71]">
+        <div className="relative h-[150px] w-full overflow-hidden bg-gradient-to-br from-[#002856] via-[#0a3d7a] to-[#153A71]">
           <div>
             <div className="absolute -right-10 -top-10 w-44 h-44 bg-[#edb843] opacity-10 rounded-full blur-3xl" />
             <div className="absolute -left-12 -bottom-16 w-52 h-52 bg-[#1E76F3] opacity-20 rounded-full blur-3xl" />
@@ -343,42 +305,137 @@ export default function ScholarshipResult() {
           <img
             src={mayaSad}
             alt=""
-            className="absolute right-6 bottom-0 h-[140px] object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)]"
+            className="absolute right-6 bottom-0 h-[150px] object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)]"
           />
         </div>
-        <div className="flex-1 px-4 pt-6 pb-10 text-center">
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold uppercase tracking-wider">
-            {exam?.title || "Scholarship Exam"}
+        <div className="flex-1 px-4 pt-6 pb-10 text-center flex flex-col">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-50 text-red-600 text-[11px] font-bold uppercase tracking-wider mx-auto">
+            Offer expired
           </span>
           <h1 className="text-[22px] font-bold text-[#181d27] mt-4 leading-snug">
-            Thanks for taking the scholarship exam.
+            Offer expired
           </h1>
           <p className="text-sm text-[#7b7b7b] mt-3 leading-relaxed">
-            Unfortunately, you didn&apos;t qualify for a scholarship this time.
-            Keep practicing — we&apos;d love to see you back.
+            Your scholarship window closed on {expiresDisplay}. Contact our team
+            to explore next steps.
           </p>
-          {submission?.finished_at && (
-            <p className="text-xs text-[#9ca3af] mt-4 inline-flex items-center gap-1 justify-center">
-              <Clock className="w-3.5 h-3.5" />
-              Submitted{" "}
-              {new Date(submission.finished_at).toLocaleDateString("en-IN", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}
-            </p>
-          )}
+
+          <div className="mt-6 space-y-3">
+            <a
+              href="tel:+919972266767"
+              onClick={() =>
+                analytics?.capture("scholarship_contact_cta_clicked", {
+                  feature_key: "scholarship_exam",
+                  exam_id: testId,
+                  awarded_pct: Number(awarded),
+                  percentile,
+                  expired: true,
+                })
+              }
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-[#002856] text-white rounded-xl font-bold hover:bg-[#001e40] transition"
+            >
+              <Phone className="w-4 h-4" />
+              <span>Contact SkillCase Team</span>
+            </a>
+
+            <button
+              onClick={() => handleModeHandoff("practice")}
+              className="w-full py-3 px-4 border border-[#dbdbdb] text-[#002856] font-semibold text-xs rounded-xl hover:bg-slate-50 transition flex items-center justify-center gap-1.5"
+            >
+              <Dumbbell className="w-4 h-4 text-[#edb843]" />
+              <span>Continue Practicing German</span>
+            </button>
+          </div>
+
           <button
-            onClick={() => navigate("/learn-german")}
-            className="w-full mt-8 px-6 py-3 border border-slate-200 text-[#002856] rounded-xl font-semibold hover:bg-slate-50 transition"
+            onClick={() => navigate("/scholarship")}
+            className="w-full mt-3 px-6 py-2 text-slate-500 text-xs font-semibold hover:bg-gray-50 transition"
           >
-            Back to SkillCase
+            Back to Scholarship
           </button>
         </div>
+
+        {picker && (
+          <ScholarshipLevelPickerModal
+            mode={picker}
+            onClose={() => setPicker(null)}
+            onDone={(freshUser) => goToMode(picker, freshUser)}
+          />
+        )}
       </div>
     );
   }
 
+  // ── Negative Result (No scholarship / Did not qualify) ──────────────────
+  if (!isEligible) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col">
+        <ResultTopBar title="Scholarship Exam" />
+        <div className="relative h-[150px] w-full overflow-hidden bg-gradient-to-br from-[#002856] via-[#0a3d7a] to-[#153A71]">
+          <div>
+            <div className="absolute -right-10 -top-10 w-44 h-44 bg-[#edb843] opacity-10 rounded-full blur-3xl" />
+            <div className="absolute -left-12 -bottom-16 w-52 h-52 bg-[#1E76F3] opacity-20 rounded-full blur-3xl" />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white" />
+          </div>
+          <img
+            src={mayaSmiling}
+            alt="Maya smiling"
+            className="absolute right-6 bottom-0 h-[150px] object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)]"
+          />
+        </div>
+
+        <div className="px-4 pt-4 pb-4">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">
+            Exam Completed
+          </span>
+          <h1 className="text-[26px] font-semibold text-[#002856] leading-[34px] mt-1.5">
+            Good effort on your exam!
+          </h1>
+          <p className="text-xs text-black opacity-70 mt-1 leading-relaxed">
+            You didn&apos;t reach the scholarship cut-off this time, but daily
+            practice is the fastest way to build fluency.
+          </p>
+        </div>
+
+        <div className="flex-1 px-4 pb-8 space-y-3">
+          <button
+            onClick={() => handleModeHandoff("practice")}
+            className="w-full p-4 rounded-xl border border-[#dbdbdb] hover:border-[#002856] hover:shadow-sm transition flex items-center gap-3 text-left group bg-white"
+          >
+            <span className="w-11 h-11 rounded-xl bg-[#edb843] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Dumbbell className="w-5 h-5 text-[#002856]" />
+            </span>
+            <span className="flex-1">
+              <span className="block font-semibold text-[#181d27] text-sm">
+                Practice Your German
+              </span>
+              <span className="block text-xs text-[#7b7b7b]">
+                Flashcards, grammar drills & tests
+              </span>
+            </span>
+            <ChevronRight className="w-5 h-5 text-[#414651]" />
+          </button>
+
+          <button
+            onClick={() => navigate("/scholarship")}
+            className="w-full mt-3 px-6 py-3 text-[#002856] rounded-xl font-semibold hover:bg-gray-50 transition"
+          >
+            Back to Scholarship Exam
+          </button>
+        </div>
+
+        {picker && (
+          <ScholarshipLevelPickerModal
+            mode={picker}
+            onClose={() => setPicker(null)}
+            onDone={(freshUser) => goToMode(picker, freshUser)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // ── Positive Result (Scholarship Awarded) ──────────────────────────────
   const pctDisplay = Number(awarded).toString().replace(/\.0$/, "");
 
   const handleContactClick = () => {
@@ -394,7 +451,8 @@ export default function ScholarshipResult() {
     <div className="min-h-screen bg-white flex flex-col">
       <ResultTopBar title="Scholarship Exam" />
 
-      <div className="relative h-[140px] w-full overflow-hidden bg-gradient-to-br from-[#002856] via-[#0a3d7a] to-[#153A71]">
+      {/* Hero Banner */}
+      <div className="relative h-[150px] w-full overflow-hidden bg-gradient-to-br from-[#002856] via-[#0a3d7a] to-[#153A71]">
         <div>
           <div className="absolute -right-10 -top-10 w-44 h-44 bg-[#edb843] opacity-10 rounded-full blur-3xl" />
           <div className="absolute -left-12 -bottom-16 w-52 h-52 bg-[#1E76F3] opacity-20 rounded-full blur-3xl" />
@@ -402,78 +460,91 @@ export default function ScholarshipResult() {
         </div>
         <img
           src={mayaThumbsup}
-          alt="Maya giving a thumbs up"
-          className="absolute right-6 bottom-0 h-[140px] object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)]"
+          alt="Maya cheering"
+          className="absolute right-6 bottom-0 h-[150px] object-contain drop-shadow-[0_8px_16px_rgba(0,0,0,0.35)]"
         />
       </div>
 
-      <div className="flex-1 px-4 pt-4 pb-10">
+      <div className="px-4 pt-4 pb-2">
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(237,184,67,0.18)] text-[#ac8121] text-[10px] font-bold uppercase tracking-wider">
           <Sparkles className="w-3 h-3" /> Congratulations!
         </span>
-        <h1 className="text-[26px] font-bold text-[#002856] leading-[34px] mt-2">
-          You&apos;re eligible for <span className="text-[#ac8121]">{pctDisplay}% scholarship</span>
+        <h1 className="text-[26px] font-semibold text-[#002856] leading-[34px] mt-1.5">
+          You&apos;re eligible for{" "}
+          <span className="text-[#ac8121]">{pctDisplay}% scholarship</span>
         </h1>
         {percentile != null && (
-          <p className="text-sm font-semibold text-green-700 mt-1">
+          <p className="text-xs font-semibold text-[#019035] mt-1">
             You&apos;re above {percentile}% of candidates
           </p>
         )}
-        <p className="text-xs text-black opacity-70 mt-2 leading-relaxed">
-          To redeem, contact our admissions team. We&apos;ll guide you through the next steps.
+        <p className="text-xs text-black opacity-70 mt-1 leading-relaxed">
+          Contact our admissions team to claim your scholarship and begin your
+          course.
         </p>
-        {expiresAt && !isExpired && timeLeft && (
-          <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-amber-700">Redeem within</p>
-            <p className="text-lg font-bold text-[#002856] tabular-nums">
-              {timeLeft.days > 0 ? `${timeLeft.days}d ` : ""}{String(timeLeft.hours).padStart(2, "0")}:
-              {String(timeLeft.mins).padStart(2, "0")}:{String(timeLeft.secs).padStart(2, "0")}
-            </p>
-            <p className="text-[11px] text-slate-500">Valid till {expiresDisplay}</p>
-          </div>
-        )}
-        {expiresAt && !isExpired && !timeLeft && (
-          <p className="text-[11px] text-slate-500 mt-2">Valid till {expiresDisplay}</p>
-        )}
-        {submission?.finished_at && (
-          <p className="text-xs text-[#9ca3af] mt-3 inline-flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" />
-            Submitted{" "}
-            {new Date(submission.finished_at).toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })}
-          </p>
-        )}
+      </div>
 
-        <div className="bg-white border border-[#dbdbdb] rounded-xl px-5 py-6 mt-6 text-center">
-          <div className="flex items-center justify-center gap-2 text-[#7b7b7b] text-sm mb-2">
-            <Award className="w-4 h-4 text-[#ac8121]" />
-            {exam?.title || "Scholarship Exam"}
+      <div className="flex-1 px-4 pb-8 space-y-4">
+        {/* Clean Award Card */}
+        <div className="bg-white border border-[#dbdbdb] rounded-xl px-5 py-4 text-center">
+          <div className="text-5xl font-bold leading-none text-[#002856]">
+            {pctDisplay}%
           </div>
-          <div className="text-5xl font-bold leading-none text-[#002856]">{pctDisplay}%</div>
-          <p className="text-[#7b7b7b] text-sm mt-1">scholarship awarded</p>
+          <p className="text-[#7b7b7b] text-sm mt-1.5">scholarship awarded</p>
+
+          {expiresAt && !isExpired && timeLeft && (
+            <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-center gap-1.5 text-xs text-amber-700 font-semibold">
+              <Clock className="w-3.5 h-3.5" />
+              <span>
+                Redeem within {timeLeft.days > 0 ? `${timeLeft.days}d ` : ""}
+                {String(timeLeft.hours).padStart(2, "0")}:
+                {String(timeLeft.mins).padStart(2, "0")}:
+                {String(timeLeft.secs).padStart(2, "0")}
+              </span>
+            </div>
+          )}
         </div>
 
-        <a
-          href="tel:+919972266767"
-          onClick={handleContactClick}
-          className="mt-6 w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-[#002856] text-white rounded-xl font-bold hover:bg-[#001e40] transition"
-        >
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
-          </svg>
-          Contact SkillCase Team
-        </a>
+        {/* Action Stack */}
+        <div className="space-y-2.5">
+          <a
+            href="tel:+919972266767"
+            onClick={handleContactClick}
+            className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-[#002856] text-white rounded-xl font-bold hover:bg-[#001e40] transition"
+          >
+            <Phone className="w-4 h-4" />
+            <span>Contact SkillCase Team</span>
+          </a>
+
+          <button
+            onClick={() => handleModeHandoff("practice")}
+            className="w-full p-3.5 rounded-xl border border-[#dbdbdb] hover:border-[#002856] transition flex items-center justify-between text-left group bg-white"
+          >
+            <div className="flex items-center gap-2.5">
+              <Dumbbell className="w-4 h-4 text-[#002856]" />
+              <span className="font-semibold text-[#181d27] text-xs">
+                Practice German while you wait
+              </span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-[#7b7b7b]" />
+          </button>
+        </div>
 
         <button
           onClick={() => navigate("/scholarship")}
-          className="w-full mt-3 px-6 py-3 text-[#002856] rounded-xl font-semibold hover:bg-gray-50 transition"
+          className="w-full mt-2 py-2 text-[#002856] text-xs font-semibold text-center hover:bg-gray-50 rounded-xl transition"
         >
           Back to Scholarship
         </button>
       </div>
+
+      {picker && (
+        <ScholarshipLevelPickerModal
+          mode={picker}
+          onClose={() => setPicker(null)}
+          onDone={(freshUser) => goToMode(picker, freshUser)}
+        />
+      )}
     </div>
   );
 }

@@ -371,7 +371,7 @@ describe("ScholarshipResult", () => {
     expect(screen.queryByText("Answer Review")).not.toBeInTheDocument();
   });
 
-  test("released results show not-eligible state without CTA", async () => {
+  test("released results show not-eligible state without dialer CTA and with practice retention CTA", async () => {
     getExamResult.mockResolvedValue({
       data: {
         exam: makeExam({ results_visible: true }),
@@ -391,9 +391,14 @@ describe("ScholarshipResult", () => {
     });
     renderResult(<ScholarshipResult />);
 
-    expect(await screen.findByText(/Thanks for taking the scholarship exam/)).toBeInTheDocument();
+    expect(await screen.findByText(/Good effort on your exam!/)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Contact SkillCase Team/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Back to SkillCase/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Practice Your German/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Back to Scholarship Exam/ })).toBeInTheDocument();
+
+    // Clicking practice handoff opens level picker for fresh scholarship candidates
+    fireEvent.click(screen.getByRole("button", { name: /Practice Your German/ }));
+    expect(await screen.findByText("Start practicing German")).toBeInTheDocument();
   });
 
   // ── Redemption window ───────────────────────────────────────────────────
@@ -421,8 +426,8 @@ describe("ScholarshipResult", () => {
     getExamResult.mockResolvedValue(eligibleWithExpiry(in2h));
     renderResult(<ScholarshipResult />);
 
-    expect(await screen.findByText("Redeem within")).toBeInTheDocument();
-    expect(screen.getByText(/^02:\d\d:\d\d$/)).toBeInTheDocument();
+    expect(await screen.findByText(/Redeem within/)).toBeInTheDocument();
+    expect(screen.getByText(/^Redeem within 02:\d\d:\d\d$/)).toBeInTheDocument();
     expect(screen.getByText(/20% scholarship/)).toBeInTheDocument();
   });
 
@@ -433,7 +438,7 @@ describe("ScholarshipResult", () => {
 
     expect(await screen.findByRole("heading", { name: "Offer expired" })).toBeInTheDocument();
     expect(screen.queryByText(/20% scholarship/)).not.toBeInTheDocument();
-    expect(screen.queryByText("Redeem within")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Redeem within/)).not.toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /Contact SkillCase Team/ }),
     ).toHaveAttribute("href", "tel:+919972266767");
@@ -447,8 +452,8 @@ describe("ScholarshipResult", () => {
     getExamResult.mockResolvedValue(res);
     renderResult(<ScholarshipResult />);
 
-    expect(await screen.findByText(/Thanks for taking the scholarship exam/)).toBeInTheDocument();
-    expect(screen.queryByText("Redeem within")).not.toBeInTheDocument();
+    expect(await screen.findByText(/Good effort on your exam!/)).toBeInTheDocument();
+    expect(screen.queryByText(/Redeem within/)).not.toBeInTheDocument();
   });
 
   test("non-awaited error shows the error screen with a back link", async () => {
