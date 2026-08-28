@@ -1003,7 +1003,7 @@ export default function ProfilePage() {
                           <LucideIcons.Gift className="size-4 text-white" />
                         </div>
                         <span className="text-[#002856] text-base font-semibold leading-5">
-                          Free Plan active
+                          Free Plan actived
                         </span>
                       </div>
                       <p className="text-[#002856] text-xs font-normal leading-4">
