@@ -30,7 +30,20 @@ const TIER_TABS = [
     value: "all",
     label: "All Users",
     tone: "slate",
-    infoText: "Every student in the selected created-at date range.",
+    infoText: "Every student registered in the selected created-at date range.",
+  },
+  {
+    value: "paywall_active",
+    label: "Paywall Active",
+    tone: "purple",
+    infoText: "Students whose paywall restriction is currently toggled active.",
+  },
+  {
+    value: "v125_plus",
+    label: "Trial Eligible (v1.2.5+)",
+    tone: "blue",
+    infoText:
+      "Students on app version 1.2.5 or above who have access to the free trial feature.",
   },
   {
     value: "paid",
@@ -43,13 +56,21 @@ const TIER_TABS = [
     label: "On Trial",
     tone: "amber",
     infoText:
-      "Students on a running free trial without an active autopay mandate.",
+      "Students currently on an active 7-day free trial without an active autopay mandate.",
   },
   {
-    value: "free",
-    label: "Free Tier",
-    tone: "blue",
-    infoText: "Students who are neither paid nor on a running trial.",
+    value: "maybe_later",
+    label: "Maybe Later Tier",
+    tone: "indigo",
+    infoText:
+      "Students on v1.2.5+ who skipped or haven't claimed trial and have not subscribed.",
+  },
+  {
+    value: "trial_expired_unpaid",
+    label: "Trial Expired (Unpaid)",
+    tone: "rose",
+    infoText:
+      "Students who claimed a free trial, whose trial expired, and who did not convert to a paid subscription.",
   },
 ];
 
@@ -208,9 +229,14 @@ function Paywall() {
   const [searchQuery, setSearchQuery] = useState("");
   const [tierCounts, setTierCounts] = useState({
     all: 0,
+    v125_plus: 0,
+    paywall_active: 0,
     paid: 0,
     trial: 0,
+    maybe_later: 0,
     free: 0,
+    total_trial_takers: 0,
+    trial_expired_unpaid: 0,
   });
   const [statusFilter, setStatusFilter] = useState("all");
   const [trialStatusFilter, setTrialStatusFilter] = useState("all");
@@ -562,17 +588,70 @@ function Paywall() {
         </div>
 
         {/* Tier Summary Cards */}
-        <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {TIER_TABS.map((tab) => (
-            <StatCard
-              key={tab.value}
-              label={tab.label}
-              value={Number(tierCounts[tab.value] || 0).toLocaleString("en-IN")}
-              tone={tab.tone}
-              infoText={tab.infoText}
-            />
-          ))}
-        </div>
+        {(() => {
+          const allTotal = Number(tierCounts.all || 0);
+          const v125Total = Number(tierCounts.v125_plus || 0);
+          const paywallActiveTotal = Number(tierCounts.paywall_active || 0);
+          const paidCount = Number(tierCounts.paid || 0);
+          const trialCount = Number(tierCounts.trial || 0);
+          const maybeLaterCount = Number(tierCounts.maybe_later || 0);
+          const totalTrialTakers = Number(tierCounts.total_trial_takers || 0);
+          const trialExpiredUnpaid = Number(
+            tierCounts.trial_expired_unpaid || 0,
+          );
+
+          const getTierSubtext = (tabValue) => {
+            switch (tabValue) {
+              case "all":
+                return allTotal > 0
+                  ? `${((v125Total / allTotal) * 100).toFixed(1)}% on v1.2.5+ (${v125Total.toLocaleString("en-IN")})`
+                  : "All registered students";
+              case "v125_plus":
+                return allTotal > 0
+                  ? `${((v125Total / allTotal) * 100).toFixed(1)}% of all users`
+                  : "App v1.2.5 or above";
+              case "paywall_active":
+                return allTotal > 0
+                  ? `${((paywallActiveTotal / allTotal) * 100).toFixed(1)}% of all users`
+                  : "Toggle restriction ON";
+              case "paid":
+                return v125Total > 0
+                  ? `${((paidCount / v125Total) * 100).toFixed(1)}% of v1.2.5+ users`
+                  : "Active autopay";
+              case "trial":
+                return v125Total > 0
+                  ? `${((trialCount / v125Total) * 100).toFixed(1)}% of v1.2.5+ users`
+                  : "Running free trial";
+              case "maybe_later":
+                return v125Total > 0
+                  ? `${((maybeLaterCount / v125Total) * 100).toFixed(1)}% of v1.2.5+ users`
+                  : "Skipped / Unclaimed";
+              case "trial_expired_unpaid":
+                return totalTrialTakers > 0
+                  ? `${((trialExpiredUnpaid / totalTrialTakers) * 100).toFixed(1)}% did not pay (${trialExpiredUnpaid}/${totalTrialTakers} trial users)`
+                  : "Expired without paying";
+              default:
+                return null;
+            }
+          };
+
+          return (
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+              {TIER_TABS.map((tab) => (
+                <StatCard
+                  key={tab.value}
+                  label={tab.label}
+                  value={Number(tierCounts[tab.value] || 0).toLocaleString(
+                    "en-IN",
+                  )}
+                  subText={getTierSubtext(tab.value)}
+                  tone={tab.tone}
+                  infoText={tab.infoText}
+                />
+              ))}
+            </div>
+          );
+        })()}
 
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-2 mb-4">
