@@ -656,6 +656,56 @@ describe("ScholarshipResult", () => {
       const errEl = await screen.findByTestId("seat-booking-error");
       expect(errEl).toHaveTextContent(/Payment checkout is temporarily unavailable/);
     });
+
+    test("per-user override uses override pct without special pill", async () => {
+      getExamResult.mockResolvedValue({
+        data: {
+          exam: makeExam({ results_visible: true }),
+          submission: {
+            status: "completed",
+            score: 80,
+            awarded_scholarship_pct: 10,
+            awarded_tier_id: 1,
+            finished_at: new Date().toISOString(),
+          },
+          tiers: [{ tier_id: 1, min_score: 50, scholarship_pct: 10 }],
+          percentile: 82,
+          awarded_tier: { tier_id: 1, min_score: 50, scholarship_pct: 10 },
+          user_award_active: true,
+          user_award_pct: 35,
+        },
+      });
+      renderResult(<ScholarshipResult />);
+      expect(await screen.findByText(/35% scholarship/)).toBeInTheDocument();
+      // The special pill was removed per product decision — no override-pill should render.
+      expect(screen.queryByTestId("override-pill")).not.toBeInTheDocument();
+    });
+
+    test("override that makes a not-eligible candidate eligible", async () => {
+      getExamResult.mockResolvedValue({
+        data: {
+          exam: makeExam({ results_visible: true }),
+          submission: {
+            status: "completed",
+            score: 30,
+            awarded_scholarship_pct: null,
+            awarded_tier_id: null,
+            finished_at: new Date().toISOString(),
+          },
+          tiers: [{ tier_id: 1, min_score: 50, scholarship_pct: 10 }],
+          percentile: 10,
+          awarded_tier: null,
+          user_award_active: true,
+          user_award_pct: 20,
+        },
+      });
+      renderResult(<ScholarshipResult />);
+      expect(await screen.findByText(/20% scholarship/)).toBeInTheDocument();
+      expect(screen.queryByTestId("override-pill")).not.toBeInTheDocument();
+      // The CTA must be live: the server resolves the same override, so this
+      // button no longer 409s on a percentage the candidate can see.
+      expect(await screen.findByTestId("book-my-seat-button")).toBeInTheDocument();
+    });
   });
 });
 

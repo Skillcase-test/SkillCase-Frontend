@@ -772,8 +772,7 @@ export default function ScholarshipExamPage() {
 
     let stateListener = null;
     let backHandler = null;
-    const handleVisibility = () =>
-      document.hidden ? markAway() : markBack();
+    const handleVisibility = () => (document.hidden ? markAway() : markBack());
 
     if (Capacitor.isNativePlatform()) {
       stateListener = CapApp.addListener("appStateChange", ({ isActive }) =>
@@ -1049,7 +1048,9 @@ export default function ScholarshipExamPage() {
         {/* Top Bar */}
         <div
           className="bg-white px-4 pb-2.5 flex items-center justify-between"
-          style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+          style={{
+            paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))",
+          }}
         >
           <div className="flex items-center gap-3 min-w-0">
             <button
@@ -1058,9 +1059,6 @@ export default function ScholarshipExamPage() {
             >
               Page {currentPageIdx + 1}/{pages.length}
             </button>
-            <span className="text-sm font-semibold text-gray-600 truncate flex items-center gap-1.5">
-              {exam?.title}
-            </span>
           </div>
           <div
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono font-bold text-sm shrink-0 ${
@@ -1654,7 +1652,11 @@ function OptionContent({ opt }) {
       </span>
     );
   }
-  return <span className="break-words min-w-0 whitespace-normal [overflow-wrap:break-word] [word-break:normal]">{opt}</span>;
+  return (
+    <span className="break-words min-w-0 whitespace-normal [overflow-wrap:break-word] [word-break:normal]">
+      {opt}
+    </span>
+  );
 }
 
 // QUESTION RENDERER FUNCTION

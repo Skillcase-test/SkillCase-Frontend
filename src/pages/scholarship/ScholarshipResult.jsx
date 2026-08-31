@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { getExamResult, createSeatCheckout } from "../../api/scholarshipExamApi";
+import {
+  getExamResult,
+  createSeatCheckout,
+} from "../../api/scholarshipExamApi";
 import { useFirstPartyAnalytics } from "../../telemetry/legacyAnalytics";
 import ScholarshipLevelPickerModal from "../../components/ScholarshipLevelPickerModal";
 import ScholarshipStatusCard from "../../components/ScholarshipStatusCard";
@@ -67,9 +70,17 @@ export default function ScholarshipResult() {
   const [percentile, setPercentile] = useState(null);
   const [picker, setPicker] = useState(null); // "learn" | "practice" | null
   const [nowTick, setNowTick] = useState(Date.now());
+  const [userAward, setUserAward] = useState({
+    active: false,
+    pct: null,
+    reason: null,
+  });
   const user = useSelector((state) => state.auth.user);
   const expiresAt = exam?.redemption_expires_at;
-  const awarded = submission?.awarded_scholarship_pct;
+  // Per-user override always wins over tier pct
+  const awarded = userAward.active
+    ? userAward.pct
+    : submission?.awarded_scholarship_pct;
   const isEligible = awarded != null && Number(awarded) > 0;
 
   // Only the eligible-and-unexpired screen renders a countdown.
@@ -117,15 +128,24 @@ export default function ScholarshipResult() {
         setExam(res.data?.exam);
         setSubmission(res.data?.submission);
         setPercentile(res.data?.percentile ?? null);
+        setUserAward({
+          active: !!res.data?.user_award_active,
+          pct: res.data?.user_award_pct ?? null,
+          reason: res.data?.user_award_reason || null,
+        });
+        // Report the pct the candidate actually saw. Reading the tier snapshot
+        // here would log 0%/ineligible for anyone on a manual award.
+        const effectivePct = res.data?.user_award_active
+          ? res.data?.user_award_pct
+          : res.data?.submission?.awarded_scholarship_pct;
         analytics?.capture("scholarship_result_viewed", {
           feature_key: "scholarship_exam",
           exam_id: testId,
           exam_title: res.data?.exam?.title,
           results_visible: true,
-          awarded_pct: res.data?.submission?.awarded_scholarship_pct ?? null,
-          is_eligible:
-            res.data?.submission?.awarded_scholarship_pct != null &&
-            Number(res.data?.submission?.awarded_scholarship_pct) > 0,
+          awarded_pct: effectivePct ?? null,
+          is_eligible: effectivePct != null && Number(effectivePct) > 0,
+          award_source: res.data?.user_award_active ? "user_award" : "tier",
           percentile: res.data?.percentile ?? null,
         });
       } catch (err) {
@@ -893,9 +913,7 @@ export default function ScholarshipResult() {
                   <Ticket className="w-4 h-4 sm:w-5 sm:h-5" />
                 )}
                 <span>
-                  {seatLoading
-                    ? "Opening checkout…"
-                    : "Book my seat — ₹3,000"}
+                  {seatLoading ? "Opening checkout…" : "Book my seat"}
                 </span>
               </button>
             )}

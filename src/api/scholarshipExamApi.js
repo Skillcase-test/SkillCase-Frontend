@@ -148,3 +148,23 @@ export const getAdminProfileVisibility = () =>
 
 export const updateAdminProfileVisibility = (show_on_profile) =>
   api.put("/admin/scholarship-exam/profile-visibility", { show_on_profile });
+
+// ── Per-user awards (global, no testId) ──────────────────────────────────
+export const searchUsersForAward = (q) =>
+  api.get("/admin/scholarship-exam/user-awards/search-users", { params: { q } });
+
+export const listUserAwards = (params) =>
+  api.get("/admin/scholarship-exam/user-awards", { params });
+
+export const createUserAward = (data) =>
+  api.post("/admin/scholarship-exam/user-awards", data);
+
+export const updateUserAward = (awardId, data) =>
+  api.put(`/admin/scholarship-exam/user-awards/${awardId}`, data);
+
+export const revokeUserAward = (awardId, data) =>
+  api.delete(`/admin/scholarship-exam/user-awards/${awardId}`, { data });
+
+// ── Scholarship audit log ──────────────────────────────────────────────────
+export const getAuditLog = (params) =>
+  api.get("/admin/scholarship-exam/audit-log", { params });

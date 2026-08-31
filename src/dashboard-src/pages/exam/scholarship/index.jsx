@@ -23,6 +23,8 @@ import {
   Copy,
   Trash2,
   Award,
+  UserPlus,
+  History,
 } from "lucide-react";
 import Chip from "./ui/Chip";
 import toast, { Toaster } from "react-hot-toast";
@@ -35,6 +37,8 @@ import QuestionsTab from "./QuestionsTab";
 import CandidatesTab from "./CandidatesTab";
 import SubmissionsTab from "./SubmissionsTab";
 import TiersTab from "./TiersTab";
+import UserAwardsTab from "./UserAwardsTab";
+import ActivityLogTab from "./ActivityLogTab";
 import CreateExamModal from "./CreateExamModal";
 import ConfirmDialog from "./ui/ConfirmDialog";
 import { btn } from "./ui/buttons";
@@ -1027,6 +1031,8 @@ export default function AdminScholarshipManager() {
                       { key: "candidates", label: "Candidates", icon: Users },
                       { key: "submissions", label: "Submissions", icon: ListChecks },
                       { key: "tiers", label: "Scholarship Tiers", icon: Award },
+                      { key: "user_awards", label: "User Awards", icon: UserPlus },
+                      { key: "audit_log", label: "Activity Log", icon: History },
                     ].map((t) => (
                       <button
                         key={t.key}
@@ -1055,6 +1061,8 @@ export default function AdminScholarshipManager() {
                 {tab === "candidates" && <CandidatesTab />}
                 {tab === "submissions" && <SubmissionsTab />}
                 {tab === "tiers" && <TiersTab />}
+                {tab === "user_awards" && <UserAwardsTab />}
+                {tab === "audit_log" && <ActivityLogTab />}
               </>
             )}
           </main>

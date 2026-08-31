@@ -5,12 +5,17 @@ import Modal from "./Modal";
  * Replaces window.confirm() everywhere in the scholarship admin.
  * The orchestrator holds a single `confirm` state object of shape:
  *   { title, message, confirmLabel, danger, action }
+ *
+ * Optional: `requireAck` adds a must-tick checkbox, `promptLabel` adds a free-text
+ * field whose value is passed to `action(value)` — used where the reason is
+ * written to the audit trail and a hardcoded placeholder would be a lie.
  */
 import { useState, useEffect } from "react";
 
 export default function ConfirmDialog({ confirm, onCancel }) {
   const [acked, setAcked] = useState(false);
-  useEffect(() => { setAcked(false); }, [confirm]);
+  const [promptValue, setPromptValue] = useState("");
+  useEffect(() => { setAcked(false); setPromptValue(""); }, [confirm]);
   if (!confirm) return null;
   const needAck = !!confirm.requireAck;
   return (
@@ -36,8 +41,9 @@ export default function ConfirmDialog({ confirm, onCancel }) {
             disabled={needAck && !acked}
             onClick={async () => {
               const { action } = confirm;
+              const value = promptValue;
               onCancel();
-              await action?.();
+              await action?.(value);
             }}
             className={`px-4 py-2.5 rounded-xl text-sm font-bold text-white transition disabled:opacity-40 disabled:cursor-not-allowed ${
               confirm.danger
@@ -51,6 +57,19 @@ export default function ConfirmDialog({ confirm, onCancel }) {
       }
     >
       <p className="text-sm text-slate-500 leading-relaxed">{confirm.message}</p>
+      {confirm.promptLabel && (
+        <label className="block mt-4 text-xs font-semibold text-slate-600">
+          {confirm.promptLabel}
+          <input
+            data-testid="confirm-prompt"
+            autoFocus
+            value={promptValue}
+            onChange={(e) => setPromptValue(e.target.value)}
+            placeholder={confirm.promptPlaceholder || ""}
+            className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-normal outline-none focus:border-[#002856]"
+          />
+        </label>
+      )}
       {needAck && (
         <label className="flex items-start gap-2 mt-4 text-xs text-slate-600 cursor-pointer select-none">
           <input type="checkbox" checked={acked} onChange={(e) => setAcked(e.target.checked)} className="mt-0.5" />
