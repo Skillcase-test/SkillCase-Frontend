@@ -28,6 +28,13 @@ export const submitExam = (testId, answers) =>
 export const getExamResult = (testId) =>
   api.get(`/scholarship-exam/${testId}/result`);
 
+// "Book my seat" — eligible candidate mints a Razorpay payment link for ₹3,000.
+// Returns { checkoutUrl, paymentLinkId, amountPaise, attemptId } on success.
+// Throws 409 if the candidate is not eligible, the offer expired, or a
+// seat booking already exists for this user+testId.
+export const createSeatCheckout = (testId) =>
+  api.post(`/scholarship-exam/${testId}/seat-checkout`);
+
 // ADMIN SCHOLARSHIP EXAM ENDPOINTS
 export const createExam = (data) =>
   api.post("/admin/scholarship-exam/create", data);

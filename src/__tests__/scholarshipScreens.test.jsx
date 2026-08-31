@@ -20,6 +20,7 @@ import { setUser } from "../redux/auth/authSlice";
 vi.mock("../api/scholarshipExamApi", () => ({
   getScholarshipExam: vi.fn(),
   getExamResult: vi.fn(),
+  createSeatCheckout: vi.fn(),
 }));
 vi.mock("../telemetry/legacyAnalytics", () => {
   // Stable reference — ScholarshipHome's effect depends on [analytics], so a
@@ -34,6 +35,7 @@ vi.mock("../utils/lgMode", () => ({
 import {
   getScholarshipExam,
   getExamResult,
+  createSeatCheckout,
 } from "../api/scholarshipExamApi";
 import { switchScholarshipToMode } from "../utils/lgMode";
 import ScholarshipHome from "../pages/scholarship/ScholarshipHome";
@@ -391,13 +393,13 @@ describe("ScholarshipResult", () => {
     });
     renderResult(<ScholarshipResult />);
 
-    expect(await screen.findByText(/Good effort on your exam!/)).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Contact SkillCase Team/ })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Practice Your German/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Back to Scholarship Exam/ })).toBeInTheDocument();
+    expect(await screen.findByText(/didn't make it/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Talk to Our Team/i })).toHaveAttribute("href", "tel:+919972266767");
+    expect(screen.getByRole("button", { name: /Keep Practicing/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Back to Scholarship Exam/i })).toBeInTheDocument();
 
     // Clicking practice handoff opens level picker for fresh scholarship candidates
-    fireEvent.click(screen.getByRole("button", { name: /Practice Your German/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Keep Practicing/i }));
     expect(await screen.findByText("Start practicing German")).toBeInTheDocument();
   });
 
@@ -452,7 +454,7 @@ describe("ScholarshipResult", () => {
     getExamResult.mockResolvedValue(res);
     renderResult(<ScholarshipResult />);
 
-    expect(await screen.findByText(/Good effort on your exam!/)).toBeInTheDocument();
+    expect(await screen.findByText(/didn't make it/i)).toBeInTheDocument();
     expect(screen.queryByText(/Redeem within/)).not.toBeInTheDocument();
   });
 
@@ -462,6 +464,198 @@ describe("ScholarshipResult", () => {
 
     expect(await screen.findByText("boom")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Back to Exam" })).toBeInTheDocument();
+  });
+
+  // ── "Book my seat" Razorpay checkout (₹3,000) ─────────────────────────
+  // Eligible candidates can mint a payment link. The button should:
+  //   - render for eligible + not-expired
+  //   - be absent for not-eligible and expired
+  //   - POST /seat-checkout and trigger window.location.href on success
+  //   - show a "Seat booked" badge when the API returns 409 seat_already_booked
+  //   - render an error banner on generic failure
+  describe("Book my seat checkout", () => {
+    let originalLocation;
+    beforeEach(() => {
+      originalLocation = window.location;
+      delete window.location;
+      window.location = { href: "" };
+      createSeatCheckout.mockReset();
+    });
+    afterEach(() => {
+      window.location = originalLocation;
+    });
+
+    test("eligible + not-expired renders the Book my seat button", async () => {
+      getExamResult.mockResolvedValue({
+        data: {
+          exam: makeExam({ results_visible: true }),
+          submission: {
+            status: "completed",
+            score: 80,
+            awarded_scholarship_pct: 20,
+            awarded_tier_id: 1,
+            finished_at: new Date().toISOString(),
+          },
+          tiers: [{ tier_id: 1, min_score: 50, scholarship_pct: 10 }],
+          percentile: 82,
+          awarded_tier: { tier_id: 1, min_score: 80, scholarship_pct: 20 },
+        },
+      });
+      renderResult(<ScholarshipResult />);
+
+      const btn = await screen.findByTestId("book-my-seat-button");
+      expect(btn).toBeInTheDocument();
+      expect(btn).toHaveTextContent(/Book my seat — ₹3,000/);
+      expect(btn).not.toBeDisabled();
+      // Dialer CTA stays
+      expect(
+        screen.getByRole("link", { name: /Contact SkillCase Team/ }),
+      ).toHaveAttribute("href", "tel:+919972266767");
+    });
+
+    test("not-eligible candidates do NOT see the Book my seat button", async () => {
+      getExamResult.mockResolvedValue({
+        data: {
+          exam: makeExam({ results_visible: true }),
+          submission: {
+            status: "completed",
+            score: 30,
+            awarded_scholarship_pct: null,
+            awarded_tier_id: null,
+            finished_at: new Date().toISOString(),
+          },
+          tiers: [{ tier_id: 1, min_score: 50, scholarship_pct: 10 }],
+          percentile: 10,
+          awarded_tier: null,
+        },
+      });
+      renderResult(<ScholarshipResult />);
+
+      await screen.findByText(/didn't make it/i);
+      expect(screen.queryByTestId("book-my-seat-button")).not.toBeInTheDocument();
+    });
+
+    test("expired window hides the Book my seat button", async () => {
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      getExamResult.mockResolvedValue({
+        data: {
+          exam: makeExam({ results_visible: true, redemption_expires_at: yesterday }),
+          submission: {
+            status: "completed",
+            score: 80,
+            awarded_scholarship_pct: 20,
+            awarded_tier_id: 1,
+            finished_at: new Date().toISOString(),
+          },
+          tiers: [{ tier_id: 1, min_score: 50, scholarship_pct: 10 }],
+          percentile: 82,
+          awarded_tier: { tier_id: 1, min_score: 80, scholarship_pct: 20 },
+        },
+      });
+      renderResult(<ScholarshipResult />);
+
+      await screen.findByRole("heading", { name: "Offer expired" });
+      expect(screen.queryByTestId("book-my-seat-button")).not.toBeInTheDocument();
+    });
+
+    test("clicking Book my seat calls API and redirects to checkoutUrl", async () => {
+      getExamResult.mockResolvedValue({
+        data: {
+          exam: makeExam({ results_visible: true }),
+          submission: {
+            status: "completed",
+            score: 80,
+            awarded_scholarship_pct: 20,
+            awarded_tier_id: 1,
+            finished_at: new Date().toISOString(),
+          },
+          tiers: [{ tier_id: 1, min_score: 50, scholarship_pct: 10 }],
+          percentile: 82,
+          awarded_tier: { tier_id: 1, min_score: 80, scholarship_pct: 20 },
+        },
+      });
+      createSeatCheckout.mockResolvedValue({
+        data: {
+          checkoutUrl: "https://rzp.io/i/abc",
+          paymentLinkId: "plink_abc",
+          amountPaise: 300000,
+          attemptId: "sc_seat_rzp_test",
+        },
+      });
+
+      renderResult(<ScholarshipResult />);
+      const btn = await screen.findByTestId("book-my-seat-button");
+      fireEvent.click(btn);
+
+      await waitFor(() =>
+        expect(createSeatCheckout).toHaveBeenCalledWith("e1"),
+      );
+      await waitFor(() =>
+        expect(window.location.href).toBe("https://rzp.io/i/abc"),
+      );
+    });
+
+    test("409 seat_already_booked flips to the Seat booked badge", async () => {
+      getExamResult.mockResolvedValue({
+        data: {
+          exam: makeExam({ results_visible: true }),
+          submission: {
+            status: "completed",
+            score: 80,
+            awarded_scholarship_pct: 20,
+            awarded_tier_id: 1,
+            finished_at: new Date().toISOString(),
+          },
+          tiers: [{ tier_id: 1, min_score: 50, scholarship_pct: 10 }],
+          percentile: 82,
+          awarded_tier: { tier_id: 1, min_score: 80, scholarship_pct: 20 },
+        },
+      });
+      createSeatCheckout.mockRejectedValue({
+        response: {
+          status: 409,
+          data: {
+            msg: "A seat booking already exists for this exam",
+            code: "seat_already_booked",
+            booking: { payment_link_id: "plink_existing", payment_status: "paid" },
+          },
+        },
+      });
+
+      renderResult(<ScholarshipResult />);
+      fireEvent.click(await screen.findByTestId("book-my-seat-button"));
+
+      expect(await screen.findByTestId("seat-booked-badge")).toHaveTextContent(/Seat booked/);
+      // The button disappears when the badge shows
+      expect(screen.queryByTestId("book-my-seat-button")).not.toBeInTheDocument();
+    });
+
+    test("generic error renders the error banner with the API message", async () => {
+      getExamResult.mockResolvedValue({
+        data: {
+          exam: makeExam({ results_visible: true }),
+          submission: {
+            status: "completed",
+            score: 80,
+            awarded_scholarship_pct: 20,
+            awarded_tier_id: 1,
+            finished_at: new Date().toISOString(),
+          },
+          tiers: [{ tier_id: 1, min_score: 50, scholarship_pct: 10 }],
+          percentile: 82,
+          awarded_tier: { tier_id: 1, min_score: 80, scholarship_pct: 20 },
+        },
+      });
+      createSeatCheckout.mockRejectedValue({
+        response: { status: 503, data: { msg: "Payment checkout is temporarily unavailable. Please try again." } },
+      });
+
+      renderResult(<ScholarshipResult />);
+      fireEvent.click(await screen.findByTestId("book-my-seat-button"));
+
+      const errEl = await screen.findByTestId("seat-booking-error");
+      expect(errEl).toHaveTextContent(/Payment checkout is temporarily unavailable/);
+    });
   });
 });
 
