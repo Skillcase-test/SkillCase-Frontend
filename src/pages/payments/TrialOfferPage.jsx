@@ -101,13 +101,23 @@ export default function TrialOfferPage() {
 
   const goLater = () => {
     // Record explicit trial skip to backend for permanent audit reporting (best-effort, non-blocking)
-    api.post("/user/skip-trial").catch((err) => {
-      console.error("Skip trial recording error:", err);
-    });
-    // The skip has to stick. /profile/upgrade redirects first-time users here,
-    // so returning there without this marker bounces them straight back to this
-    // screen and "May be later" looks like a dead button.
-    navigate(from, { replace: true, state: { skipTrialOffer: true } });
+    api
+      .post("/user/skip-trial")
+      .then(({ data }) => {
+        if (data?.user) {
+          dispatch(setUser(data.user));
+        }
+      })
+      .catch((err) => {
+        console.error("Skip trial recording error:", err);
+      });
+
+    const targetDestination =
+      from && from !== "/profile/upgrade" && from !== "/trial-offer"
+        ? from
+        : "/";
+
+    navigate(targetDestination, { replace: true });
   };
 
   return (
