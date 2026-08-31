@@ -129,7 +129,14 @@ export default function BottomTabBar() {
       if (!cancelled) setProgressRatio(Math.min(Math.max(ratio, 0), 1));
     };
 
-    if (isB1) {
+    // Courses mode wins for every level — B1/B2 users browsing German Classes
+    // get the Course status ring, not their practice progress. The level keeps
+    // the ratio aligned with the level-filtered /video-courses hub.
+    if (mode === "courses") {
+      getVideoCourseProgressRatio(level || "A1")
+        .then(applyRatio)
+        .catch(() => {});
+    } else if (isB1) {
       if (mode === "jobs") {
         getJobStepsProgressRatio()
           .then(applyRatio)
@@ -146,10 +153,6 @@ export default function BottomTabBar() {
             applyRatio(res.data.progressRatio ?? 0);
           }
         })
-        .catch(() => {});
-    } else if (mode === "courses") {
-      getVideoCourseProgressRatio()
-        .then(applyRatio)
         .catch(() => {});
     } else if (level === "A2") {
       getA2PracticeProgressRatio()
@@ -286,10 +289,11 @@ export default function BottomTabBar() {
   // Route Home straight to the selected hub instead of "/" — going through
   // LandingPage paints one frame of the practice hub (switcher flashes to
   // Practice) before its redirect effect fires. Client-only "courses" mode
-  // included; B1 users keep the practice-hub home.
+  // included for every level that can hold it (B1/B2 get it via the
+  // german_classes flag); only "learn" stays A1/A2-only.
   const cachedHomeMode = localStorage.getItem("lg_preferred_mode");
   const homeDest =
-    !isB1 && cachedHomeMode === "courses"
+    cachedHomeMode === "courses"
       ? "/video-courses"
       : !isB1 && cachedHomeMode === "learn"
         ? "/learn-german"
@@ -403,14 +407,14 @@ export default function BottomTabBar() {
               : "cursor-default"
           }`}
           title={
-            isB1
-              ? mode === "jobs"
-                ? "Your job progress"
-                : "Your B1 progress"
-              : mode === "learn"
-                ? "German words learnt"
-                : mode === "courses"
-                  ? "Course status"
+            mode === "courses"
+              ? "Course status"
+              : isB1
+                ? mode === "jobs"
+                  ? "Your job progress"
+                  : `Your ${level || "B1"} progress`
+                : mode === "learn"
+                  ? "German words learnt"
                   : level === "A2"
                     ? "Your A2 progress"
                     : "Your A1 progress"
@@ -500,7 +504,12 @@ export default function BottomTabBar() {
             loading="lazy"
           />
           <div className="flex flex-col items-center text-center text-[10px] font-medium leading-[12px] text-stone-500 z-10">
-            {isB1 ? (
+            {mode === "courses" ? (
+              <>
+                <span>Course</span>
+                <span>status</span>
+              </>
+            ) : isB1 ? (
               mode === "jobs" ? (
                 <>
                   <span>Your job</span>
@@ -508,7 +517,7 @@ export default function BottomTabBar() {
                 </>
               ) : (
                 <>
-                  <span>Your B1</span>
+                  <span>Your {level || "B1"}</span>
                   <span>progress</span>
                 </>
               )
@@ -528,11 +537,6 @@ export default function BottomTabBar() {
                 >
                   words learnt
                 </span>
-              </>
-            ) : mode === "courses" ? (
-              <>
-                <span>Course</span>
-                <span>status</span>
               </>
             ) : level === "A2" ? (
               <>

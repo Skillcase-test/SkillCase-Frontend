@@ -116,8 +116,8 @@ describe("CourseSelectPage", () => {
     );
 
     expect(await screen.findByText("German Basics")).toBeInTheDocument();
-    expect(screen.getByText("1/4 videos completed")).toBeInTheDocument();
-    expect(screen.getByText("A1")).toBeInTheDocument();
+    expect(screen.getByText(/4 videos/)).toBeInTheDocument();
+    expect(screen.getByText("In Progress")).toBeInTheDocument();
   });
 
   test("calls the usage-limit gate for the video_courses module", async () => {

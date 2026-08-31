@@ -85,10 +85,10 @@ describe("B1/B2 shell — TopModeSwitcher", () => {
     localStorage.clear();
   });
 
-  it("renders only Job Preparation + German Jobs for a B1 user (no Guided German / German Classes tabs)", () => {
+  it("renders Job Preparation, German Jobs, and German Classes for a B1 user when german_classes is enabled", () => {
     render(<TopModeSwitcher />);
 
-    // B1/B2 tabs: "Job Preparation" (practice hub) + "German Jobs" (pipeline)
+    // B1/B2 tabs: "Job Preparation" (practice hub) + "German Jobs" (pipeline) + "German Classes"
     expect(
       screen.getByRole("tab", { name: /job preparation/i }),
     ).toBeInTheDocument();
@@ -96,10 +96,10 @@ describe("B1/B2 shell — TopModeSwitcher", () => {
       screen.getByRole("tab", { name: /german jobs/i }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("tab", { name: /guided.*german/i }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("tab", { name: /german.*classes/i }),
+    ).toBeInTheDocument();
     expect(
-      screen.queryByRole("tab", { name: /german.*classes/i }),
+      screen.queryByRole("tab", { name: /guided.*german/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -225,7 +225,7 @@ describe("B1/B2 shell — NewNavbar chrome", () => {
 
     render(<NewNavbar />);
 
-    expect(screen.getByText("B1 German Level")).toBeInTheDocument();
+    expect(screen.getByText("B2 German Level")).toBeInTheDocument();
     expect(screen.queryByAltText("Skillcase")).not.toBeInTheDocument();
   });
 });

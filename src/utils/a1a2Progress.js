@@ -109,9 +109,9 @@ export function getA2PracticeProgressRatio() {
  * (matches what the /video-courses hub shows). Returns 0 when there is no
  * data or the request fails so the ring degrades gracefully.
  */
-export async function getVideoCourseProgressRatio() {
+export async function getVideoCourseProgressRatio(level) {
   try {
-    const res = await getVideoCourses();
+    const res = await getVideoCourses(level);
     const courses = toList(res?.data?.data);
     const totals = courses.reduce(
       (acc, course) => ({

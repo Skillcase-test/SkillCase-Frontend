@@ -75,7 +75,7 @@ describe("TopModeSwitcher — Feature Flag Gating", () => {
     expect(screen.queryByText("Classes")).not.toBeInTheDocument();
   });
 
-  it("renders 3 tabs (Exam & Practice, Guided German, German Classes) when german_classes flag is enabled", async () => {
+  it("renders 3 tabs (Exam & Practice, Guided German, German Classes) when german_classes flag is enabled for A1/A2", async () => {
     featureFlagApi.getMyFeatureFlags.mockResolvedValueOnce({
       data: { flags: { german_classes: true } },
     });
@@ -87,6 +87,38 @@ describe("TopModeSwitcher — Feature Flag Gating", () => {
     });
     expect(screen.getByText("Practice")).toBeInTheDocument();
     expect(screen.getByText("Guided")).toBeInTheDocument();
+  });
+
+  it("renders 2 tabs (Job Preparation, German Jobs) for B1 when german_classes flag is disabled", async () => {
+    featureFlagApi.getMyFeatureFlags.mockResolvedValueOnce({
+      data: { flags: { german_classes: false } },
+    });
+
+    renderWithStore(<TopModeSwitcher />, {
+      initialState: { user: { user_prof_level: "B1" } },
+      route: "/",
+    });
+
+    expect(screen.getByText("Job Preparation")).toBeInTheDocument();
+    expect(screen.getByText("German Jobs")).toBeInTheDocument();
+    expect(screen.queryByText("Classes")).not.toBeInTheDocument();
+  });
+
+  it("renders 3 tabs (Job Preparation, German Jobs, German Classes) for B1 when german_classes flag is enabled", async () => {
+    featureFlagApi.getMyFeatureFlags.mockResolvedValueOnce({
+      data: { flags: { german_classes: true } },
+    });
+
+    renderWithStore(<TopModeSwitcher />, {
+      initialState: { user: { user_prof_level: "B1" } },
+      route: "/",
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("Classes")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Job Preparation")).toBeInTheDocument();
+    expect(screen.getByText("German Jobs")).toBeInTheDocument();
   });
 });
 
@@ -217,6 +249,30 @@ describe("FeatureFlagsAdmin Control Panel", () => {
         expect.objectContaining({
           paid_enabled: true,
           unpaid_enabled: false,
+          eligible_levels: ["A1", "A2"],
+        })
+      );
+    });
+  });
+
+  it("toggles target proficiency levels and includes them when saving rollout rules", async () => {
+    renderWithStore(<FeatureFlagsAdmin />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Target Proficiency Levels")).toBeInTheDocument();
+    });
+
+    // Toggle B1 on
+    const b1Button = screen.getByRole("button", { name: "B1" });
+    fireEvent.click(b1Button);
+
+    fireEvent.click(screen.getByText("Save Rollout Rules"));
+
+    await waitFor(() => {
+      expect(featureFlagApi.adminUpdateFeatureConfig).toHaveBeenCalledWith(
+        "german_classes",
+        expect.objectContaining({
+          eligible_levels: ["A1", "A2", "B1"],
         })
       );
     });

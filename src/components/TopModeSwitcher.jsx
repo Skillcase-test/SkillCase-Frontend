@@ -114,7 +114,9 @@ export default function TopModeSwitcher({ isTourActive = false }) {
   const activeTab = isB1
     ? location.pathname.startsWith("/job-screening")
       ? "jobs"
-      : "practice"
+      : isCoursesPath(location.pathname)
+        ? "courses"
+        : "practice"
     : isLearnPath(location.pathname)
       ? "learn"
       : isCoursesPath(location.pathname)
@@ -363,6 +365,18 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 line2=""
                 blendColor={blendColor}
               />
+              {showGermanClasses && (
+                <SwitcherTab
+                  active={activeTab === "courses"}
+                  tabRef={activeTab === "courses" ? activeTabRef : undefined}
+                  onClick={() => handleSwitch("courses")}
+                  onPreload={() => handlePreload("courses")}
+                  image={classImg}
+                  line1="German"
+                  line2="Classes"
+                  blendColor={blendColor}
+                />
+              )}
             </>
           ) : (
             <>

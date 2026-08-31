@@ -32,6 +32,7 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
     global_enabled: false,
     paid_enabled: false,
     unpaid_enabled: false,
+    eligible_levels: ["A1", "A2", "B1", "B2"],
   });
   const [savingCohortRules, setSavingCohortRules] = useState(false);
 
@@ -45,7 +46,7 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
 
   const selectedFeature =
     features.find((f) => f.feature_key === selectedFeatureKey) || activeConfig;
-  const eligibleLevelsList = selectedFeature?.eligible_levels || ["A1", "A2"];
+  const eligibleLevelsList = selectedFeature?.eligible_levels || ["A1", "A2", "B1", "B2"];
   const isGlobalOnly = Boolean(selectedFeature?.global_only);
   const FeatureModule = FEATURE_MODULES[selectedFeatureKey];
 
@@ -71,6 +72,7 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
           global_enabled: Boolean(list[0].global_enabled),
           paid_enabled: Boolean(list[0].paid_enabled),
           unpaid_enabled: Boolean(list[0].unpaid_enabled),
+          eligible_levels: list[0].eligible_levels || ["A1", "A2", "B1", "B2"],
         });
       }
     } catch (err) {
@@ -102,6 +104,7 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
           global_enabled: Boolean(data.feature.global_enabled),
           paid_enabled: Boolean(data.feature.paid_enabled),
           unpaid_enabled: Boolean(data.feature.unpaid_enabled),
+          eligible_levels: data.feature.eligible_levels || ["A1", "A2", "B1", "B2"],
         });
       }
       setStats(data.stats || {});
@@ -137,7 +140,12 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
       // global_only flags reject cohort fields server-side.
       const payload = isGlobalOnly
         ? { global_enabled: cohortRules.global_enabled }
-        : cohortRules;
+        : {
+            global_enabled: cohortRules.global_enabled,
+            paid_enabled: cohortRules.paid_enabled,
+            unpaid_enabled: cohortRules.unpaid_enabled,
+            eligible_levels: cohortRules.eligible_levels,
+          };
       const res = await adminUpdateFeatureConfig(selectedFeatureKey, payload);
       toast.success(
         isGlobalOnly ? "Feature updated successfully!" : "Cohort rules updated successfully!"

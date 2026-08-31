@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { Loader2, PlayCircle } from "lucide-react";
 import { getVideoCourses } from "../../api/videoCourseApi";
 import { trackFeatureEvent } from "../../telemetry/events";
@@ -7,24 +8,27 @@ import { useUsageLimitGate } from "../../hooks/useUsageLimits";
 
 export default function CourseSelectPage() {
   const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
+  const userLevel = (user?.user_prof_level || "A1").toUpperCase();
   useUsageLimitGate("ALL", "video_courses");
 
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getVideoCourses()
+    getVideoCourses(userLevel)
       .then((res) => {
         const nextCourses = res.data?.data || [];
         setCourses(nextCourses);
         trackFeatureEvent("video_courses", "course_list_viewed", {
           entityType: "course_catalog",
           total: nextCourses.length,
+          attributes: { level: userLevel },
         });
       })
       .catch((err) => console.error("Error fetching video courses:", err))
       .finally(() => setLoading(false));
-  }, []);
+  }, [userLevel]);
 
   const openCourse = (course) => {
     trackFeatureEvent("video_courses", "course_opened", {

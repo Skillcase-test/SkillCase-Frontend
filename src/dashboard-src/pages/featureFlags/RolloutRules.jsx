@@ -38,6 +38,10 @@ export default function RolloutRules({
 }) {
   const levelText = levels.join(", ");
   const toggle = (key) => onChange({ ...rules, [key]: !rules[key] });
+  const currentLevels = rules.eligible_levels || levels || [];
+  const isAllLevels = currentLevels.some((l) =>
+    ["ALL", "*"].includes(String(l).toUpperCase())
+  );
 
   return (
     <div className="bg-gradient-to-br from-slate-900 to-blue-950 rounded-2xl p-5 sm:p-6 text-white shadow-md border border-slate-800">
@@ -118,6 +122,49 @@ export default function RolloutRules({
           </>
         )}
       </div>
+
+      {!isGlobalOnly && (
+        <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/80 mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-white">Target Proficiency Levels</div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Select which levels are eligible for this feature. Toggling off a level disables the feature for all students in that level.
+            </p>
+          </div>
+          {isAllLevels ? (
+            <div className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 shrink-0">
+              All levels (ALL)
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 shrink-0">
+              {["A1", "A2", "B1", "B2"].map((lvl) => {
+                const active = currentLevels.includes(lvl);
+                return (
+                <button
+                  key={lvl}
+                  type="button"
+                  disabled={!canEdit}
+                  onClick={() => {
+                    if (!canEdit) return;
+                    const next = active
+                      ? currentLevels.filter((l) => l !== lvl)
+                      : [...currentLevels, lvl];
+                    onChange({ ...rules, eligible_levels: next });
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    active
+                      ? "bg-blue-600 text-white shadow-xs"
+                      : "bg-slate-700/60 text-slate-400 hover:bg-slate-700"
+                  } ${!canEdit ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+                >
+                  {active ? `✓ ${lvl}` : lvl}
+                </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

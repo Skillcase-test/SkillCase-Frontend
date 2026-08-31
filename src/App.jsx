@@ -1029,7 +1029,10 @@ function AppContent() {
     // must be free to roam the practice shell even while their saved mode is
     // job_screening — the switcher is how they get back into the pipeline.
     (isB1User &&
-      (location.pathname === "/" || location.pathname.startsWith("/b1")));
+      (location.pathname === "/" ||
+        location.pathname.startsWith("/b1") ||
+        location.pathname.startsWith("/video-courses") ||
+        location.pathname.startsWith("/video-course/")));
 
   if (isJobScreeningUser && !isJobScreeningAllowedRoute) {
     return <Navigate to="/job-screening" replace />;
@@ -2118,7 +2121,9 @@ function ConditionalTopSwitcher() {
   const showSwitcher = isScholarshipRoute(location.pathname)
     ? location.pathname === "/scholarship"
     : isB1
-      ? location.pathname === "/" || location.pathname === "/job-screening"
+      ? location.pathname === "/" ||
+        location.pathname === "/job-screening" ||
+        location.pathname === "/video-courses"
       : location.pathname === "/" ||
         location.pathname === "/learn-german" ||
         location.pathname === "/video-courses";

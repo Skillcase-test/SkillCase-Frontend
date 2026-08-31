@@ -101,8 +101,10 @@ export default function LandingPage() {
   // German Classes is a client-side-only mode (the /user/lg-mode server
   // whitelist has no such value) — selecting its tab persists "courses" in
   // lg_preferred_mode, so Home lands back here instead of the practice hub.
+  // Applies to every level: B1/B2 users get the tab via the german_classes
+  // feature flag, so their saved "courses" mode must redirect too.
   const prefersCoursesMode =
-    !isB1User && (lgMode || user?.lg_preferred_mode) === "courses";
+    (lgMode || user?.lg_preferred_mode) === "courses";
 
   const isJobScreening =
     !isB1User &&

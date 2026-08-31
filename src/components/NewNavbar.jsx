@@ -64,7 +64,7 @@ export default function Navbar({ disableNavigation = false }) {
   }
 
   const rawLevel = user?.user_prof_level || "A1";
-  const displayLevel = isB1PracticeLevel(rawLevel) ? "B1" : rawLevel;
+  const displayLevel = String(rawLevel).toUpperCase();
   const isPremium = isPremiumUser(user);
   const isTrial = !isPremium && isTrialActive(user);
   const daysLeft = trialDaysLeft(user);
@@ -100,7 +100,7 @@ export default function Navbar({ disableNavigation = false }) {
   // effect fires, which flashes the mode switcher to Practice.
   let brandHref = "/";
   if (isB1User && isJobScreeningContext) brandHref = "/job-screening";
-  else if (!isB1User && cachedMode === "courses") brandHref = "/video-courses";
+  else if (cachedMode === "courses") brandHref = "/video-courses";
   else if (!isB1User && cachedMode === "learn") brandHref = "/learn-german";
 
   const handleBrandClick = (e) => {
