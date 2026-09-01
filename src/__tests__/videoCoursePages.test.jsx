@@ -413,3 +413,149 @@ describe("VideoPlayerPage", () => {
     expect(await screen.findByText("Video not found.")).toBeInTheDocument();
   });
 });
+
+describe("VideoPlayerPage — first-visit tour", () => {
+  const TOUR_KEY = "skillcase_video_classes_tour";
+
+  const fullData = {
+    video,
+    timestamps: [],
+    audio_tracks: [
+      { language_code: "en", audio_url: null },
+      { language_code: "hi", audio_url: "https://s3.example/dub.mp3" },
+    ],
+    notes: [{ language_code: "en", file_url: "https://example.com/notes.pdf" }],
+  };
+
+  const renderPlayer = () =>
+    render(
+      <MemoryRouter initialEntries={["/video-course/10"]}>
+        <Routes>
+          <Route path="/video-course/:videoId" element={<VideoPlayerPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+  const mountWith = (data) => {
+    getVideoCourseVideo.mockResolvedValueOnce({ data: { data } });
+    renderPlayer();
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    updateVideoCourseProgress.mockResolvedValue({ data: {} });
+    getVideoCourse.mockResolvedValue({ data: { data: { course, videos: [video] } } });
+    getSuggestedVideoQuestions.mockResolvedValue({
+      data: { data: { questions: [] } },
+    });
+  });
+
+  test("shows the tour on a first visit, starting at the player step", async () => {
+    mountWith(fullData);
+
+    expect(await screen.findByText("Your video plays here")).toBeInTheDocument();
+    expect(screen.getByTestId("video-tour-next")).toHaveTextContent("Next");
+    expect(screen.getByTestId("video-tour-skip")).toBeInTheDocument();
+    expect(screen.queryByTestId("video-tour-back")).toBeNull();
+    expect(trackFeatureEvent).toHaveBeenCalledWith(
+      "video_courses",
+      "tour_started",
+      expect.objectContaining({ entityId: "10" }),
+    );
+  });
+
+  test("advancing to the audio step opens the settings menu", async () => {
+    mountWith(fullData);
+    await screen.findByText("Your video plays here");
+
+    fireEvent.click(screen.getByTestId("video-tour-next"));
+    await screen.findByText("Speed & language");
+
+    fireEvent.click(screen.getByTestId("video-tour-next"));
+
+    expect(await screen.findByText("Switch audio here")).toBeInTheDocument();
+    expect(screen.getByText("Playback speed")).toBeInTheDocument();
+    expect(screen.getByText("Audio language")).toBeInTheDocument();
+  });
+
+  test("walking all six steps ends with Done and marks the tour complete", async () => {
+    mountWith(fullData);
+    await screen.findByText("Your video plays here");
+
+    const upcomingTitles = [
+      "Speed & language",
+      "Switch audio here",
+      "What this video covers",
+      "Lesson notes",
+      "Ask anything",
+    ];
+    for (const title of upcomingTitles) {
+      fireEvent.click(screen.getByTestId("video-tour-next"));
+      await screen.findByText(title);
+    }
+
+    expect(screen.getByTestId("video-tour-next")).toHaveTextContent("Done");
+    fireEvent.click(screen.getByTestId("video-tour-next"));
+
+    await waitFor(() =>
+      expect(screen.queryByText("Ask anything")).toBeNull(),
+    );
+    expect(JSON.parse(localStorage.getItem(TOUR_KEY)).completed).toBe(true);
+    expect(trackFeatureEvent).toHaveBeenCalledWith(
+      "video_courses",
+      "tour_completed",
+      expect.objectContaining({ entityId: "10" }),
+    );
+  });
+
+  test("Skip persists completion and hides the tour", async () => {
+    mountWith(fullData);
+    await screen.findByText("Your video plays here");
+
+    fireEvent.click(screen.getByTestId("video-tour-skip"));
+
+    await waitFor(() =>
+      expect(screen.queryByText("Your video plays here")).toBeNull(),
+    );
+    expect(JSON.parse(localStorage.getItem(TOUR_KEY)).completed).toBe(true);
+    expect(trackFeatureEvent).toHaveBeenCalledWith(
+      "video_courses",
+      "tour_skipped",
+      expect.objectContaining({ entityId: "10" }),
+    );
+  });
+
+  test("a completed tour never shows again", async () => {
+    localStorage.setItem(TOUR_KEY, JSON.stringify({ completed: true }));
+    mountWith(fullData);
+
+    await screen.findByText("Greetings");
+
+    expect(screen.queryByText("Your video plays here")).toBeNull();
+  });
+
+  test("collapses to three steps when description, notes, and extra audio are absent", async () => {
+    mountWith({
+      video: { ...video, description: null },
+      timestamps: [],
+      audio_tracks: [{ language_code: "en", audio_url: null }],
+    });
+
+    await screen.findByText("Your video plays here");
+    fireEvent.click(screen.getByTestId("video-tour-next"));
+    await screen.findByText("Speed & language");
+    fireEvent.click(screen.getByTestId("video-tour-next"));
+
+    expect(await screen.findByText("Ask anything")).toBeInTheDocument();
+    expect(screen.getByTestId("video-tour-next")).toHaveTextContent("Done");
+  });
+
+  test("no tour on the not-found path", async () => {
+    mountWith(null);
+
+    await screen.findByText("Video not found.");
+
+    expect(screen.queryByText("Your video plays here")).toBeNull();
+  });
+});

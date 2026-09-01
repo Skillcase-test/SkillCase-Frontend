@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -31,6 +31,8 @@ import {
 } from "../../api/videoCourseApi";
 import ChatDrawer from "./components/ChatDrawer";
 import PdfViewer from "../notes/components/PdfViewer";
+import VideoClassesTour from "./VideoClassesTour";
+import { isVideoClassesTourComplete } from "./videoClassesTourStorage";
 import { trackLearningEvent } from "../../telemetry/events";
 
 import { useUsageLimitGate } from "../../hooks/useUsageLimits";
@@ -193,6 +195,14 @@ export default function VideoPlayerPage() {
   const [settingsCoords, setSettingsCoords] = useState(null);
   const settingsButtonRef = useRef(null);
   const settingsMenuRef = useRef(null);
+  const descriptionRef = useRef(null);
+  const notesRef = useRef(null);
+  const chatBarRef = useRef(null);
+
+  // First-visit guided tour (persisted in localStorage, see videoClassesTourStorage.js)
+  const [tourActive, setTourActive] = useState(false);
+  const tourStartedRef = useRef(false);
+  const tourVideoIdRef = useRef(null);
 
   // Gesture Coordinator for Double-Tap & Single-Tap
   const clickCountRef = useRef(0);
@@ -264,6 +274,8 @@ export default function VideoPlayerPage() {
   useEffect(() => {
     if (!settingsOpen) return undefined;
     const handleOutside = (e) => {
+      // The tour owns the menu while it's running — callout clicks must not dismiss it.
+      if (tourActive) return;
       const insideBtn = settingsButtonRef.current?.contains(e.target);
       const insideMenu = settingsMenuRef.current?.contains(e.target);
       if (!insideBtn && !insideMenu) {
@@ -279,7 +291,7 @@ export default function VideoPlayerPage() {
       document.removeEventListener("touchstart", handleOutside);
       window.removeEventListener("resize", measureSettings);
     };
-  }, [settingsOpen, measureSettings]);
+  }, [settingsOpen, measureSettings, tourActive]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -424,12 +436,12 @@ export default function VideoPlayerPage() {
   const resetControlsTimeout = useCallback(() => {
     setShowControls(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    if (isPlaying && !settingsOpen) {
+    if (isPlaying && !settingsOpen && !tourActive) {
       controlsTimeoutRef.current = setTimeout(() => {
         setShowControls(false);
       }, 5000);
     }
-  }, [isPlaying, settingsOpen]);
+  }, [isPlaying, settingsOpen, tourActive]);
 
   useEffect(() => {
     resetControlsTimeout();
@@ -437,6 +449,56 @@ export default function VideoPlayerPage() {
       if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     };
   }, [resetControlsTimeout]);
+
+  const tourRefs = useMemo(
+    () => ({
+      videoContainer: videoContainerRef,
+      settingsButton: settingsButtonRef,
+      settingsMenu: settingsMenuRef,
+      description: descriptionRef,
+      notes: notesRef,
+      chatBar: chatBarRef,
+    }),
+    [],
+  );
+
+  const endTour = useCallback(() => {
+    setTourActive(false);
+    setSettingsOpen(false);
+    setSettingsSubmenu(null);
+    resetControlsTimeout();
+  }, [resetControlsTimeout]);
+
+  // First visit: walk the user through the player once, then never again.
+  useEffect(() => {
+    if (loading || !video?.video_id || tourStartedRef.current) return;
+    if (isVideoClassesTourComplete()) return;
+    tourStartedRef.current = true;
+    tourVideoIdRef.current = videoId;
+    videoRef.current?.pause();
+    setShowControls(true);
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    setTourActive(true);
+  }, [loading, video?.video_id, videoId]);
+
+  // Drop the tour (without persisting) if the context changes under it.
+  useEffect(() => {
+    if (!tourActive) return;
+    if (isFullscreen || tourVideoIdRef.current !== videoId) endTour();
+  }, [tourActive, isFullscreen, videoId, endTour]);
+
+  // Mimics toggleSettings for the tour's settings-menu step: coords must be
+  // measured before the portaled menu opens, or it renders off-screen.
+  const openSettingsForTour = useCallback(() => {
+    measureSettings();
+    setSettingsOpen(true);
+    setSettingsSubmenu(null);
+  }, [measureSettings]);
+
+  const closeSettingsForTour = useCallback(() => {
+    setSettingsOpen(false);
+    setSettingsSubmenu(null);
+  }, []);
 
   const togglePlay = () => {
     const el = videoRef.current;
@@ -1272,7 +1334,10 @@ export default function VideoPlayerPage() {
 
           {/* Video Description Dropdown Accordion (Closed by default) */}
           {video.description && (
-            <details className="group bg-[#F8F9FA] rounded-2xl border border-zinc-100 overflow-hidden">
+            <details
+              ref={descriptionRef}
+              className="group bg-[#F8F9FA] rounded-2xl border border-zinc-100 overflow-hidden"
+            >
               <summary className="p-4 flex items-center justify-between gap-2 cursor-pointer list-none select-none hover:bg-zinc-100/50 transition-colors [&::-webkit-details-marker]:hidden">
                 <span className="text-left text-slate-900 text-base font-bold">
                   Video Description
@@ -1290,6 +1355,7 @@ export default function VideoPlayerPage() {
           {/* Video Notes (PDF Viewer) */}
           {notes.length > 0 && (
             <details
+              ref={notesRef}
               className="group bg-[#F8F9FA] rounded-2xl border border-zinc-100 overflow-hidden"
               onToggle={(e) => {
                 if (e.target.open) {
@@ -1376,6 +1442,7 @@ export default function VideoPlayerPage() {
       {/* Floating Bottom AI Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto px-4 pt-8 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] bg-gradient-to-t from-black/40 via-black/15 to-transparent pointer-events-none z-40 flex justify-center">
         <button
+          ref={chatBarRef}
           type="button"
           onClick={() => setChatOpen(true)}
           aria-label="Ask anything about this video"
@@ -1389,6 +1456,19 @@ export default function VideoPlayerPage() {
           </span>
         </button>
       </div>
+
+      {tourActive && (
+        <VideoClassesTour
+          videoId={videoId}
+          refs={tourRefs}
+          hasDescription={Boolean(video?.description)}
+          hasNotes={notes.length > 0}
+          hasAudioSwitch={audioTracks.length > 1}
+          openSettingsMenu={openSettingsForTour}
+          closeSettingsMenu={closeSettingsForTour}
+          onExit={endTour}
+        />
+      )}
 
       <ChatDrawer
         videoId={videoId}
