@@ -39,7 +39,7 @@ const RULES = [
   [/^\/interview/, "interview", "interview"],
   [/^\/signup|^\/login/, "auth", "authentication"],
   [/^\/admin|^\/b1admin|^\/internal/, "internal", "internal"],
-  [/^\/start-now|^\/register|^\/thank-you|^\/open-app|^\/continue/, "acquisition", "acquisition"],
+  [/^\/start-now|^\/register|^\/thank-you|^\/open-app|^\/continue|^\/redirect/, "acquisition", "acquisition"],
   [/^\/(a1|a2|b1)\/?$/, "learning", "level_home"],
   [/^\/$/, "home", "landing"],
 ];

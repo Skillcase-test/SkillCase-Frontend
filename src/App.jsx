@@ -414,21 +414,32 @@ function AppContent() {
     getMaintenanceStatus(),
   );
 
-  // Public routes that don't require auth
+  // Standalone public acquisition, marketing, trust, and event routes that
+  // are accessible to everyone, including authenticated job-screening candidates.
+  const publicAcquisitionRoutes = [
+    "/start-now",
+    "/register",
+    "/events",
+    "/thank-you",
+    "/open-app",
+    "/redirect",
+    "/continue",
+  ];
+  const isPublicAcquisitionRoute =
+    publicAcquisitionRoutes.some((route) => location.pathname.startsWith(route)) ||
+    /^\/interview\/[^/]+$/.test(location.pathname);
+
+  // Public routes that don't require auth (includes auth entrypoints & terms)
   const publicRoutes = [
     "/login",
     "/signup",
-    "/register",
-    "/open-app",
-    "/thank-you",
-    "/events",
     "/terms/sign",
     "/onboarding",
-    "/start-now",
+    ...publicAcquisitionRoutes,
   ];
   const isPublicRoute =
-    publicRoutes.some((route) => location.pathname.startsWith(route)) ||
-    /^\/interview\/[^/]+$/.test(location.pathname);
+    isPublicAcquisitionRoute ||
+    publicRoutes.some((route) => location.pathname.startsWith(route));
 
   const disablePullToRefresh = useMemo(
     () =>
@@ -1029,7 +1040,10 @@ function AppContent() {
     // must be free to roam the practice shell even while their saved mode is
     // job_screening — the switcher is how they get back into the pipeline.
     (isB1User &&
-      (location.pathname === "/" || location.pathname.startsWith("/b1")));
+      (location.pathname === "/" || location.pathname.startsWith("/b1"))) ||
+    // Public landing, trust, acquisition and event routes are accessible to
+    // screening candidates (e.g. promotional links, marketing campaigns, events).
+    isPublicAcquisitionRoute;
 
   if (isJobScreeningUser && !isJobScreeningAllowedRoute) {
     return <Navigate to="/job-screening" replace />;
