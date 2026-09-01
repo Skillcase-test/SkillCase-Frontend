@@ -184,6 +184,8 @@ export default function VideoPlayerPage() {
   const controlsTimeoutRef = useRef(null);
   const resumedRef = useRef(false);
   const completionReportedRef = useRef(false);
+  const activeWatchSecondsRef = useRef(0);
+  const lastTickRef = useRef(null);
 
   // Settings menu state & portal coords
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -346,24 +348,75 @@ export default function VideoPlayerPage() {
     const shouldReportCompletion =
       reachedCompletion && !completionReportedRef.current;
     if (shouldReportCompletion) completionReportedRef.current = true;
+
+    // Collect accumulated active watch seconds
+    const deltaSeconds = Math.max(0, Math.floor(activeWatchSecondsRef.current));
+    if (deltaSeconds > 0) {
+      activeWatchSecondsRef.current -= deltaSeconds;
+    }
+
     updateVideoCourseProgress(videoId, {
       watch_time_seconds: Math.floor(el.currentTime),
+      delta_seconds: deltaSeconds,
       completed: shouldReportCompletion,
-    }).catch((err) => {
-      if (shouldReportCompletion) completionReportedRef.current = false;
-      console.error("Failed to update video progress:", err);
-    });
+    })
+      .then((res) => {
+        if (res?.data?.usage_locked) {
+          el.pause();
+          setIsPlaying(false);
+          window.dispatchEvent(
+            new CustomEvent("skillcase:usage-limit", {
+              detail: res.data.usage_state || {
+                locked: true,
+                reason: "usage_limit",
+                module_key: "video_courses",
+                level: "ALL",
+              },
+            }),
+          );
+        }
+      })
+      .catch((err) => {
+        if (shouldReportCompletion) completionReportedRef.current = false;
+        if (deltaSeconds > 0) {
+          activeWatchSecondsRef.current += deltaSeconds;
+        }
+        console.error("Failed to update video progress:", err);
+      });
   };
 
   useEffect(() => {
     if (!videoId || !user?.user_id) return undefined;
     const videoElement = videoRef.current;
-    const interval = setInterval(() => {
-      if (videoRef.current && !videoRef.current.paused) saveProgress();
-    }, 10000);
+
+    // 1-second active watch heartbeat tick
+    const tickInterval = setInterval(() => {
+      const now = performance.now();
+      if (lastTickRef.current) {
+        const elapsed = (now - lastTickRef.current) / 1000;
+        if (
+          videoRef.current &&
+          !videoRef.current.paused &&
+          document.visibilityState === "visible" &&
+          elapsed > 0 &&
+          elapsed < 3
+        ) {
+          activeWatchSecondsRef.current += elapsed;
+        }
+      }
+      lastTickRef.current = now;
+
+      // Flush progress when >= 30 seconds of active playback accumulated
+      if (activeWatchSecondsRef.current >= 30) {
+        saveProgress();
+      }
+    }, 1000);
+
     return () => {
-      clearInterval(interval);
-      if (videoElement?.currentTime > 0) saveProgress(false, videoElement);
+      clearInterval(tickInterval);
+      if (videoElement?.currentTime > 0 || activeWatchSecondsRef.current > 0) {
+        saveProgress(false, videoElement);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId, user?.user_id, video]);
@@ -419,6 +472,9 @@ export default function VideoPlayerPage() {
       if (dubAudioRef.current) dubAudioRef.current.pause();
       setIsPlaying(false);
       setShowControls(true);
+      if (activeWatchSecondsRef.current >= 1) {
+        saveProgress();
+      }
     }
   };
 

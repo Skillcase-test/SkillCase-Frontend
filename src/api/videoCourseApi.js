@@ -46,8 +46,9 @@ export const updateVideoCourseProgress = (videoId, data) =>
   api.post(`/video-courses/${videoId}/progress`, data, {
     meta: {
       invalidateCacheTags: [VIDEO_COURSE_CACHE_TAG],
-      // Only a completion consumes the "video_courses" quota server-side.
-      ...(data?.completed === true && { refreshUsageLimitsOnSuccess: true }),
+      ...((data?.completed === true || (Number(data?.delta_seconds) || 0) > 0) && {
+        refreshUsageLimitsOnSuccess: true,
+      }),
     },
   });
 export const getVideoCourseProgress = (videoId) =>

@@ -95,7 +95,7 @@ const MODULE_UNIT_INFO = {
   conversation: "conversations completed",
   learn_german: "guided lessons completed",
   story: "stories completed",
-  video_courses: "videos watched",
+  video_courses: "minutes watched",
 };
 
 // Plain on/off switch, same visual language as JobScreeningAdmin's toggles.

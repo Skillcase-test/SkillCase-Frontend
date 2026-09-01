@@ -96,6 +96,15 @@ describe("videoCourseApi", () => {
       expect(mockPost.mock.calls[0][2].meta.refreshUsageLimitsOnSuccess).toBe(true);
     });
 
+    test("updateVideoCourseProgress refreshes usage limits when delta_seconds > 0", async () => {
+      await videoCourseApi.updateVideoCourseProgress("v1", {
+        watch_time_seconds: 60,
+        delta_seconds: 30,
+        completed: false,
+      });
+      expect(mockPost.mock.calls[0][2].meta.refreshUsageLimitsOnSuccess).toBe(true);
+    });
+
     test("getVideoCourseProgress calls GET /video-courses/:id/progress", async () => {
       await videoCourseApi.getVideoCourseProgress("v1");
       expect(mockGet).toHaveBeenCalledWith("/video-courses/v1/progress");
