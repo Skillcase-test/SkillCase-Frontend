@@ -763,8 +763,8 @@ export default function ProfilePage() {
 
   const displayName = form.fullname || user?.username || "Amélie Laurent";
   const displayPhone = phoneNumber || user?.number || "8240951870";
-  const isAutopayActive = user && user.autopay_enabled === true;
-  const isTrial = !isAutopayActive && isTrialActive(user);
+  const isPaidMember = Boolean(user && (user.autopay_enabled === true || user.is_paid === true));
+  const isTrial = !isPaidMember && isTrialActive(user);
   const trialDays = trialDaysLeft(user);
   const nextBilling = (() => {
     if (!user?.next_billing_at) return "";
@@ -908,7 +908,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Plan Card — Free vs Premium Member */}
-            {isAutopayActive ? (
+            {isPaidMember ? (
               <div className="w-full p-3 bg-gradient-to-r from-[#083262] to-[#1E5CA2] rounded-xl flex flex-col gap-2.5">
                 <div className="flex justify-between items-start gap-3">
                   <div className="flex-1 min-w-0 flex flex-col gap-4">
@@ -923,24 +923,26 @@ export default function ProfilePage() {
                       </div>
                       <div className="flex flex-col gap-1">
                         <p className="text-white text-xs font-normal leading-4">
-                          Active Plan: ₹99 / month
+                          {user?.autopay_enabled ? "Active Plan: ₹99 / month" : "Active Plan: Full Access"}
                         </p>
-                        {nextBilling && (
+                        {nextBilling && user?.autopay_enabled ? (
                           <p className="text-white text-xs font-normal leading-4">
                             Next billing: {nextBilling}
                           </p>
-                        )}
+                        ) : null}
                       </div>
                     </div>
-                    <button
-                      onClick={() => navigate("/profile/manage-plan")}
-                      className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
-                    >
-                      <span className="text-amber-300 text-xs font-medium">
-                        Manage Plan
-                      </span>
-                      <ChevronRightIcon className="size-3 text-amber-300" />
-                    </button>
+                    {user?.autopay_enabled && (
+                      <button
+                        onClick={() => navigate("/profile/manage-plan")}
+                        className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                      >
+                        <span className="text-amber-300 text-xs font-medium">
+                          Manage Plan
+                        </span>
+                        <ChevronRightIcon className="size-3 text-amber-300" />
+                      </button>
+                    )}
                   </div>
                   <div className="size-24 rounded-3xl overflow-hidden shrink-0 ">
                     <img

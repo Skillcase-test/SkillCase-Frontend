@@ -3,9 +3,9 @@
 // (trial_active / trial_days_left / trial_taken / trial_ended_dismissed), so
 // the client never re-derives dates — it just reads flags.
 
-// Paid autopay subscription (Razorpay) — the strongest state.
+// Paid autopay subscription (Razorpay) or course enrolled (is_paid) — full premium state.
 export function isPremiumUser(user) {
-  return user?.autopay_enabled === true;
+  return user?.autopay_enabled === true || user?.is_paid === true;
 }
 
 // 7-day free trial still running (tracked on our side, full premium access).
