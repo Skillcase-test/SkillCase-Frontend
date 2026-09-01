@@ -32,6 +32,7 @@ describe("TiersTab", () => {
     mockGetSubs.mockResolvedValue({ data: { submissions: [] } });
     mockCreateTier.mockResolvedValue({ data: { tier: { tier_id: 1 } } });
     mockDeleteTier.mockResolvedValue({ data: {} });
+    mockUpdateTier.mockResolvedValue({ data: { tier: {} } });
     mockUpdateExam.mockResolvedValue({ data: {} });
   });
 
@@ -77,6 +78,68 @@ describe("TiersTab", () => {
     fireEvent.change(inputs[1], { target: { value: "15" } });
     fireEvent.click(screen.getByRole("button", { name: /Add tier/ }));
     await waitFor(() => expect(mockCreateTier).toHaveBeenCalledWith(1, { min_score: 70, scholarship_pct: 15 }));
+  });
+
+  // ─── Tier row editing ───────────────────────────────────────────────────
+  // Rows used to be editable-by-default with a silent blur-save that users
+  // couldn't tell was working. Now they are read-only until the pencil is
+  // clicked, then explicit save/cancel.
+  describe("tier row editing", () => {
+    const oneTier = [{ tier_id: 1, min_score: 50, scholarship_pct: 10 }];
+
+    test("inputs are read-only until the pencil is clicked", async () => {
+      mockListTiers.mockResolvedValue({ data: { tiers: oneTier } });
+      render(<TiersTab />);
+      const min = await screen.findByTestId("tier-min-input");
+      expect(min).toHaveAttribute("readonly");
+      expect(screen.getByTestId("tier-pct-input")).toHaveAttribute("readonly");
+      fireEvent.click(screen.getByTestId("tier-edit-btn"));
+      expect(screen.getByTestId("tier-min-input")).not.toHaveAttribute("readonly");
+    });
+
+    test("edit → save sends both fields in one updateTier call", async () => {
+      mockListTiers.mockResolvedValue({ data: { tiers: oneTier } });
+      render(<TiersTab />);
+      await screen.findByTestId("tier-edit-btn");
+      fireEvent.click(screen.getByTestId("tier-edit-btn"));
+      fireEvent.change(screen.getByTestId("tier-min-input"), { target: { value: "60" } });
+      fireEvent.change(screen.getByTestId("tier-pct-input"), { target: { value: "15" } });
+      fireEvent.click(screen.getByTestId("tier-save-btn"));
+      await waitFor(() =>
+        expect(mockUpdateTier).toHaveBeenCalledWith(1, 1, { min_score: 60, scholarship_pct: 15 }),
+      );
+    });
+
+    test("cancel reverts the drafts and exits edit mode", async () => {
+      mockListTiers.mockResolvedValue({ data: { tiers: oneTier } });
+      render(<TiersTab />);
+      await screen.findByTestId("tier-edit-btn");
+      fireEvent.click(screen.getByTestId("tier-edit-btn"));
+      fireEvent.change(screen.getByTestId("tier-min-input"), { target: { value: "99" } });
+      fireEvent.click(screen.getByTestId("tier-cancel-btn"));
+      expect(screen.getByTestId("tier-min-input")).toHaveValue(50);
+      expect(screen.getByTestId("tier-min-input")).toHaveAttribute("readonly");
+      expect(mockUpdateTier).not.toHaveBeenCalled();
+    });
+
+    test("an out-of-range value is rejected before hitting the API", async () => {
+      mockListTiers.mockResolvedValue({ data: { tiers: oneTier } });
+      render(<TiersTab />);
+      await screen.findByTestId("tier-edit-btn");
+      fireEvent.click(screen.getByTestId("tier-edit-btn"));
+      fireEvent.change(screen.getByTestId("tier-pct-input"), { target: { value: "150" } });
+      fireEvent.click(screen.getByTestId("tier-save-btn"));
+      await waitFor(() => expect(mockUpdateTier).not.toHaveBeenCalled());
+    });
+
+    test("no pencil when tiers are locked", async () => {
+      mockSelectedExam = { test_id: 1, results_visible: true };
+      mockListTiers.mockResolvedValue({ data: { tiers: oneTier } });
+      render(<TiersTab />);
+      await screen.findByTestId("tier-min-input");
+      expect(screen.queryByTestId("tier-edit-btn")).not.toBeInTheDocument();
+      expect(screen.getByTestId("tier-delete-btn")).toBeDisabled();
+    });
   });
 
   // ─── Redemption window ──────────────────────────────────────────────────

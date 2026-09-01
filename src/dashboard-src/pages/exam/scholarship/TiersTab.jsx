@@ -1,10 +1,11 @@
 import { useEffect, useState, useMemo } from "react";
-import { Award, Plus, Trash2, Loader2, Lock, Info } from "lucide-react";
+import { Award, Plus, Trash2, Loader2, Lock, Info, Pencil, X, Check, Clock } from "lucide-react";
 import toast from "react-hot-toast";
 import * as api from "../../../../api/scholarshipExamApi";
 import { useScholarshipWorkspace } from "./index";
-import { toUTC, toLocalInput, formatDateTime } from "../../../../utils/dateTime";
-import { btn, inputCls, labelCls } from "./ui/buttons";
+import { toUTC, toLocalInput, formatDateTimeIST } from "../../../../utils/dateTime";
+import { btn, inputCls, inputH, labelCls } from "./ui/buttons";
+import { useNowMs, formatTimeLeft } from "./ui/timeLeft";
 
 export default function TiersTab() {
   const { selectedExam, loadTiers: reloadParentTiers } = useScholarshipWorkspace();
@@ -22,6 +23,15 @@ export default function TiersTab() {
   const [expiresInput, setExpiresInput] = useState("");
   const [expiresSaving, setExpiresSaving] = useState(false);
 
+  const nowMs = useNowMs(60000);
+  const globalMsLeft = selectedExam?.redemption_expires_at
+    ? new Date(selectedExam.redemption_expires_at).getTime() - nowMs
+    : null;
+  const globalLeft = globalMsLeft != null && Number.isFinite(globalMsLeft)
+    ? formatTimeLeft(globalMsLeft)
+    : null;
+  const globalExpired = globalMsLeft != null && globalMsLeft <= 0;
+
   useEffect(() => {
     setExpiresInput(toLocalInput(selectedExam?.redemption_expires_at || ""));
   }, [selectedExam?.redemption_expires_at]);
@@ -36,6 +46,10 @@ export default function TiersTab() {
     try {
       const raw = override !== undefined ? override : expiresInput;
       const val = raw ? toUTC(raw) : null;
+      if (val && new Date(val).getTime() < nowMs) {
+        toast.error("Deadline must be now or later");
+        return;
+      }
       await api.updateExam(testId, { redemption_expires_at: val });
       toast.success(val ? "Expiry saved (IST)" : "Expiry cleared");
       if (override !== undefined) setExpiresInput(override);
@@ -157,22 +171,6 @@ export default function TiersTab() {
     }
   };
 
-  const handleEdit = async (tier, field, value) => {
-    if (isLocked) return;
-    const num = Number(value);
-    if (value === "" || Number.isNaN(num)) return;
-    if (num < 0 || num > 100) {
-      toast.error("Value must be between 0 and 100");
-      return;
-    }
-    try {
-      await api.updateTier(testId, tier.tier_id, { [field]: num });
-      await fetchTiers();
-    } catch (err) {
-      toast.error(err.response?.data?.msg || "Failed to update tier");
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -198,27 +196,39 @@ export default function TiersTab() {
           <span className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
             <Info className="w-4 h-4" />
           </span>
-          <h3 className="text-sm font-bold text-slate-700">Redemption window</h3>
-          <span className="text-xs text-slate-400">— optional, IST, live countdown on result screen</span>
+          <h3 className="text-sm font-bold text-slate-700">Global redemption window</h3>
         </div>
-        {selectedExam?.redemption_expires_at && !expiresInput && (
-          <p className="text-xs text-slate-500 mb-2">Current: {formatDateTime(selectedExam.redemption_expires_at)} IST</p>
-        )}
         <div className="flex items-end gap-3">
           <div className="flex-1">
             <label className={labelCls}>Redeem until (IST)</label>
             <input
               type="datetime-local"
               value={expiresInput}
+              min={toLocalInput(new Date(nowMs).toISOString())}
               disabled={isLocked}
               onChange={(e) => setExpiresInput(e.target.value)}
               className={`${inputCls} ${isLocked ? "opacity-60 cursor-not-allowed" : ""}`}
             />
           </div>
+          {globalLeft && (
+            <span
+              data-testid="global-window-left"
+              title={`Redeem until ${formatDateTimeIST(selectedExam.redemption_expires_at)} (IST)`}
+              className={`inline-flex items-center gap-1.5 px-3 rounded-xl text-[11px] font-semibold shrink-0 ${inputH} ${
+                globalExpired
+                  ? "bg-red-50 text-red-600 border border-red-200"
+                  : globalMsLeft < 24 * 3600_000
+                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                    : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+              }`}
+            >
+              <Clock className="w-3.5 h-3.5" /> {globalLeft}
+            </span>
+          )}
           <button
             onClick={() => handleSaveExpiry()}
             disabled={isLocked || expiresSaving}
-            className={`${btn.primary} shrink-0 ${isLocked ? "opacity-40 cursor-not-allowed" : ""}`}
+            className={`${btn.primary} ${inputH} shrink-0 ${isLocked ? "opacity-40 cursor-not-allowed" : ""}`}
           >
             {expiresSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
           </button>
@@ -226,13 +236,13 @@ export default function TiersTab() {
             <button
               onClick={() => handleSaveExpiry("")}
               disabled={isLocked || expiresSaving}
-              className={`${btn.secondary} shrink-0`}
+              className={`${btn.secondary} ${inputH} shrink-0`}
             >
               Clear
             </button>
           )}
         </div>
-        <p className="text-[11px] text-slate-400 mt-2">When set, eligible candidates see a live countdown. When expired, the percentage is hidden but "Contact SkillCase Team" stays. Locked while results are visible.</p>
+        <p className="text-[11px] text-slate-400 mt-2">Deadline to book the seat. Per-user awards can override this. Locked while results are visible.</p>
       </div>
 
       {/* Live preview strip */}
@@ -262,7 +272,7 @@ export default function TiersTab() {
             <Award className="w-4 h-4" />
           </span>
           <h3 className="text-sm font-bold text-slate-700">Scholarship tiers</h3>
-          <span className="text-xs text-slate-400">— highest match wins, inclusive boundary</span>
+          <span className="text-xs text-slate-400">— highest matching tier wins</span>
         </div>
 
         {tiers.length === 0 ? (
@@ -274,65 +284,7 @@ export default function TiersTab() {
         ) : (
           <div className="space-y-3">
             {tiers.map((t) => (
-              <div key={t.tier_id} className="flex items-end gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-                <div className="flex-1">
-                  <label className={labelCls}>Min score (%)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    step={0.01}
-                    value={t.min_score}
-                    disabled={isLocked}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setTiers((prev) => prev.map((x) => x.tier_id === t.tier_id ? { ...x, min_score: v === "" ? "" : Number(v) } : x));
-                    }}
-                    onBlur={(e) => {
-                      const raw = e.target.value;
-                      if (raw === "" || Number(raw) === Number(t.min_score)) return;
-                      // Revert optimistic value to server value on failure inside handleEdit
-                      handleEdit(t, "min_score", raw);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") e.target.blur();
-                    }}
-                    className={`${inputCls} ${isLocked ? "opacity-60 cursor-not-allowed" : ""}`}
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className={labelCls}>Scholarship (%)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={100}
-                    step={0.01}
-                    value={t.scholarship_pct}
-                    disabled={isLocked}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      setTiers((prev) => prev.map((x) => x.tier_id === t.tier_id ? { ...x, scholarship_pct: v === "" ? "" : Number(v) } : x));
-                    }}
-                    onBlur={(e) => {
-                      const raw = e.target.value;
-                      if (raw === "" || Number(raw) === Number(t.scholarship_pct)) return;
-                      handleEdit(t, "scholarship_pct", raw);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") e.target.blur();
-                    }}
-                    className={`${inputCls} ${isLocked ? "opacity-60 cursor-not-allowed" : ""}`}
-                  />
-                </div>
-                <button
-                  onClick={() => handleDelete(t.tier_id)}
-                  disabled={isLocked || saving}
-                  className={`${btn.dangerGhost} shrink-0 ${isLocked ? "opacity-40 cursor-not-allowed" : ""}`}
-                  title="Delete tier"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              <TierRow key={t.tier_id} tier={t} testId={testId} isLocked={isLocked} onSaved={fetchTiers} onDelete={handleDelete} />
             ))}
           </div>
         )}
@@ -372,15 +324,143 @@ export default function TiersTab() {
             <button
               onClick={handleAdd}
               disabled={isLocked || saving}
-              className={`${btn.primary} shrink-0 ${isLocked ? "opacity-40 cursor-not-allowed" : ""}`}
+              className={`${btn.primary} ${inputH} shrink-0 ${isLocked ? "opacity-40 cursor-not-allowed" : ""}`}
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               Add tier
             </button>
           </div>
-          <p className="text-[11px] text-slate-400 mt-2">Example: Min 80 → 20% means anyone scoring 80% or above gets 20% scholarship.</p>
+          <p className="text-[11px] text-slate-400 mt-2">Scores at or above the min score get that scholarship %.</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Tier rows are read-only until the pencil is clicked — silent blur-saves made
+// edits feel broken. Explicit edit → save/cancel keeps intent visible.
+function TierRow({ tier, testId, isLocked, onSaved, onDelete }) {
+  const [editing, setEditing] = useState(false);
+  const [minScore, setMinScore] = useState(String(tier.min_score));
+  const [pct, setPct] = useState(String(tier.scholarship_pct));
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = () => {
+    setMinScore(String(tier.min_score));
+    setPct(String(tier.scholarship_pct));
+    setEditing(true);
+  };
+
+  const cancelEdit = () => {
+    setMinScore(String(tier.min_score));
+    setPct(String(tier.scholarship_pct));
+    setEditing(false);
+  };
+
+  const saveEdit = async () => {
+    const m = Number(minScore);
+    const p = Number(pct);
+    if (minScore === "" || pct === "" || Number.isNaN(m) || Number.isNaN(p)) {
+      toast.error("Both fields are required and must be numbers");
+      return;
+    }
+    if (m < 0 || m > 100 || p < 0 || p > 100) {
+      toast.error("Values must be between 0 and 100");
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.updateTier(testId, tier.tier_id, { min_score: m, scholarship_pct: p });
+      toast.success("Tier updated");
+      setEditing(false);
+      await onSaved();
+    } catch (err) {
+      toast.error(err.response?.data?.msg || "Failed to update tier");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const readOnlyCls = !editing ? "bg-slate-50 text-slate-500 cursor-default" : "";
+
+  return (
+    <div data-testid="tier-row" className="flex items-end gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+      <div className="flex-1">
+        <label className={labelCls}>Min score (%)</label>
+        <input
+          data-testid="tier-min-input"
+          type="number"
+          min={0}
+          max={100}
+          step={0.01}
+          value={minScore}
+          readOnly={!editing}
+          onChange={(e) => setMinScore(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && editing) saveEdit();
+          }}
+          className={`${inputCls} ${readOnlyCls}`}
+        />
+      </div>
+      <div className="flex-1">
+        <label className={labelCls}>Scholarship (%)</label>
+        <input
+          data-testid="tier-pct-input"
+          type="number"
+          min={0}
+          max={100}
+          step={0.01}
+          value={pct}
+          readOnly={!editing}
+          onChange={(e) => setPct(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && editing) saveEdit();
+          }}
+          className={`${inputCls} ${readOnlyCls}`}
+        />
+      </div>
+      {editing ? (
+        <>
+          <button
+            data-testid="tier-save-btn"
+            onClick={saveEdit}
+            disabled={saving}
+            className={`${btn.primary} ${inputH} w-[42px] !px-0 shrink-0`}
+            title="Save changes"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+          </button>
+          <button
+            data-testid="tier-cancel-btn"
+            onClick={cancelEdit}
+            disabled={saving}
+            className={`${btn.secondary} ${inputH} w-[42px] !px-0 shrink-0`}
+            title="Cancel editing"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </>
+      ) : (
+        !isLocked && (
+          <button
+            data-testid="tier-edit-btn"
+            onClick={startEdit}
+            className={`${btn.secondary} ${inputH} w-[42px] !px-0 shrink-0`}
+            title="Edit tier"
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
+        )
+      )}
+      <button
+        data-testid="tier-delete-btn"
+        onClick={() => onDelete(tier.tier_id)}
+        className={`${btn.dangerGhost} ${inputH} w-[42px] !px-0 !rounded-xl shrink-0 ${isLocked ? "opacity-40 cursor-not-allowed" : ""}`}
+        disabled={isLocked}
+        title="Delete tier"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
     </div>
   );
 }
