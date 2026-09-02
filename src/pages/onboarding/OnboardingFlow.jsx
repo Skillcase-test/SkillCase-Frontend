@@ -167,13 +167,13 @@ const BuiltinPathwayCard = React.memo(({ pathway, selected, onSelect }) => (
   <button
     type="button"
     onClick={onSelect}
-    className={`w-full p-4 rounded-xl border text-left flex items-center gap-4 transition-all cursor-pointer ${
+    className={`w-full p-3.5 rounded-md border text-left flex items-center gap-3.5 transition-all cursor-pointer ${
       selected
         ? "border-[#002856] bg-blue-50/40 ring-1 ring-[#002856]"
         : "border-zinc-300 bg-white hover:border-zinc-400"
     }`}
   >
-    <div className="w-16 h-12 rounded-lg overflow-hidden shrink-0 flex items-center justify-center bg-transparent">
+    <div className="w-14 h-11 rounded overflow-hidden shrink-0 flex items-center justify-center bg-transparent">
       {pathway.image_url ? (
         <img
           src={pathway.image_url}
@@ -183,26 +183,26 @@ const BuiltinPathwayCard = React.memo(({ pathway, selected, onSelect }) => (
       ) : pathway.is_builtin ? (
         <img src={germanFlag} alt="" className="w-full h-full object-contain" />
       ) : (
-        <Briefcase className="w-6 h-6 text-zinc-400" />
+        <Briefcase className="w-5 h-5 text-zinc-400" />
       )}
     </div>
     <div className="flex-1 min-w-0">
       <div className="flex items-center justify-between gap-2">
         <span
-          className={`text-[15px] font-semibold transition-colors ${
+          className={`text-[13px] sm:text-[14px] font-semibold transition-colors ${
             selected ? "text-[#002856]" : "text-slate-900"
           }`}
         >
           {pathway.title}
         </span>
         {pathway.badge && (
-          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-700/10 text-green-700 border border-green-700/20">
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-700/10 text-green-700 border border-green-700/20">
             {pathway.badge}
           </span>
         )}
       </div>
       {pathway.description && (
-        <p className="text-xs text-zinc-500 mt-1 line-clamp-2 leading-snug">
+        <p className="text-[10px] text-zinc-500 mt-0.5 line-clamp-2 leading-snug">
           {pathway.description}
         </p>
       )}
@@ -215,46 +215,46 @@ const OtherPathwayCard = React.memo(({ pathway, selected, onSelect }) => (
   <button
     type="button"
     onClick={onSelect}
-    className={`w-full p-3.5 rounded-2xl border text-center flex flex-col items-center justify-between transition-all cursor-pointer h-full min-h-[120px] ${
+    className={`w-full p-2.5 sm:p-3 rounded-md border text-center flex flex-col items-center justify-start transition-all cursor-pointer h-full ${
       selected
         ? "border-[#002856] bg-blue-50/40 ring-1 ring-[#002856]"
         : "border-zinc-300 bg-white hover:border-zinc-400"
     }`}
   >
-    <div className="flex flex-col items-center text-center w-full">
-      <div className="w-full h-12 flex items-center justify-center mb-2 overflow-hidden bg-transparent">
-        {pathway.image_url ? (
-          <img
-            src={pathway.image_url}
-            alt=""
-            className="w-full h-full object-contain max-h-12"
-          />
-        ) : (
-          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
-            <Briefcase className="w-5 h-5 text-slate-500" />
-          </div>
-        )}
-      </div>
+    <div className="w-full h-11 sm:h-12 flex items-center justify-center mb-2 overflow-hidden bg-transparent shrink-0">
+      {pathway.image_url ? (
+        <img
+          src={pathway.image_url}
+          alt=""
+          className="max-w-full max-h-full object-contain"
+        />
+      ) : (
+        <div className="w-9 h-9 rounded-md bg-slate-100 flex items-center justify-center">
+          <Briefcase className="w-4 h-4 text-slate-500" />
+        </div>
+      )}
+    </div>
+    <div className="flex-1 min-w-0 w-full flex flex-col items-center text-center justify-start">
       <p
-        className={`text-[12px] font-semibold leading-tight line-clamp-2 transition-colors ${
+        className={`text-[11px] sm:text-[12px] font-bold leading-tight line-clamp-2 transition-colors ${
           selected ? "text-[#002856]" : "text-slate-900"
         }`}
       >
         {pathway.title}
       </p>
       {pathway.description && (
-        <p className="text-[10px] text-zinc-400 line-clamp-2 mt-1 leading-snug">
+        <p className="text-[9px] sm:text-[10px] text-zinc-500 line-clamp-2 mt-1 leading-tight">
           {pathway.description}
         </p>
       )}
+      {pathway.badge && (
+        <div className="mt-1.5">
+          <span className="inline-block px-1.5 py-0.5 bg-amber-100 text-amber-800 text-[9px] font-bold rounded">
+            {pathway.badge}
+          </span>
+        </div>
+      )}
     </div>
-    {pathway.badge && (
-      <div className="mt-2">
-        <span className="inline-block px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full">
-          {pathway.badge}
-        </span>
-      </div>
-    )}
   </button>
 ));
 
@@ -1456,11 +1456,11 @@ const OnboardingFlow = () => {
               />
               <div className="flex-1 bg-white rounded-t-[32px] px-6 py-6 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:mt-0 md:shadow-none md:px-16 md:py-12 md:justify-center md:overflow-y-auto">
                 <div className="w-full max-w-[420px] mx-auto flex flex-col flex-1 md:justify-center">
-                  <div className="flex-1 md:flex-initial md:mb-6">
-                    <p className="text-zinc-500 text-sm font-medium mb-2.5">
+                  <div className="flex-1 md:flex-initial md:mb-4">
+                    <p className="text-zinc-500 text-xs sm:text-sm font-medium mb-2">
                       Language learning and jobs
                     </p>
-                    <div className="flex flex-col gap-3 mb-6">
+                    <div className="flex flex-col gap-2.5 mb-4">
                       {builtinPathway && (
                         <BuiltinPathwayCard
                           pathway={builtinPathway}
@@ -1474,11 +1474,11 @@ const OnboardingFlow = () => {
 
                     {otherPathways.length > 0 && (
                       <>
-                        <p className="text-zinc-500 text-sm font-medium mb-2.5">
+                        <p className="text-zinc-500 text-xs sm:text-sm font-medium mb-2">
                           Other pathways
                         </p>
                         {otherPathways.length === 1 ? (
-                          <div className="flex flex-col gap-3 mb-6">
+                          <div className="flex flex-col gap-2.5 mb-4">
                             <BuiltinPathwayCard
                               pathway={otherPathways[0]}
                               selected={
@@ -1491,7 +1491,7 @@ const OnboardingFlow = () => {
                           </div>
                         ) : (
                           <div
-                            className={`grid gap-2 mb-6 ${
+                            className={`grid gap-2 mb-4 ${
                               otherPathways.length === 2
                                 ? "grid-cols-2"
                                 : "grid-cols-3"
