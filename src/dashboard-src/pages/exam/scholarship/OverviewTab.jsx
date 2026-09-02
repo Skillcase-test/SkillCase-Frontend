@@ -274,17 +274,19 @@ export default function OverviewTab() {
             <li className="flex gap-2">
               <span className="text-[#002856] font-bold shrink-0">1.</span>
               <span>
-                <b className="text-slate-600">One exam is served at a time.</b>{" "}
-                Activating a draft automatically deactivates the current live
-                exam.
+                <b className="text-slate-600">Each exam has a pathway.</b>{" "}
+                Candidates see the exam tied to the pathway they chose; edit its
+                onboarding card from the <b className="text-slate-600">Pathway</b>{" "}
+                tab.
               </span>
             </li>
             <li className="flex gap-2">
               <span className="text-[#002856] font-bold shrink-0">2.</span>
               <span>
-                <b className="text-slate-600">Candidates are auto-added.</b>{" "}
-                Anyone who visits the exam is granted access automatically — no
-                bulk uploads needed.
+                <b className="text-slate-600">Candidates are enrolled, not auto-added.</b>{" "}
+                They join when they pick this pathway at onboarding or when you
+                add them under <b className="text-slate-600">Candidates</b> —
+                visiting alone no longer grants access.
               </span>
             </li>
             <li className="flex gap-2">

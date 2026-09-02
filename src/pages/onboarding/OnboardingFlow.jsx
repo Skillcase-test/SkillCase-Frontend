@@ -8,7 +8,8 @@ import { loginSuccess } from "../../redux/auth/authSlice";
 import { hapticLight } from "../../utils/haptics";
 import { setClarityTag, trackClarityEvent } from "../../observability/clarity";
 import { trackFlowAction, useFlowJourney } from "../../telemetry/flow";
-import { getPublicFeatureFlags } from "../../api/featureFlagApi";
+import { getPublicPathways } from "../../api/scholarshipExamApi";
+import { Briefcase } from "lucide-react";
 
 // Extracts first 6-digit sequence from SMS text
 function extractOtp(smsText) {
@@ -29,6 +30,7 @@ import studentIcon from "../../assets/onboarding/student.webp";
 import supportIcon from "../../assets/onboarding/support.webp";
 import otherIcon from "../../assets/onboarding/other.webp";
 import whiteLogo from "../../assets/onboarding/white_mainlogo.webp";
+import germanFlag from "../../assets/onboarding/germanFlag.webp";
 
 // Shared Components
 import TypewriterText from "../learnGerman/lesson/screens/shared/TypewriterText";
@@ -62,10 +64,11 @@ const ONBOARDING_STEP_EVENTS = {
   3: "lg_onboarding_otp_viewed",
   4: "lg_onboarding_name_viewed",
   5: "lg_onboarding_occupation_viewed",
-  6: "lg_onboarding_status_viewed",
-  7: "lg_onboarding_level_viewed",
-  8: "lg_onboarding_preference_viewed",
-  9: "lg_onboarding_b1_b2_preference_viewed",
+  6: "lg_onboarding_pathway_viewed",
+  7: "lg_onboarding_status_viewed",
+  8: "lg_onboarding_level_viewed",
+  9: "lg_onboarding_preference_viewed",
+  10: "lg_onboarding_b1_b2_preference_viewed",
 };
 
 function normalizeOnboardingValue(value) {
@@ -158,6 +161,106 @@ const Step8TopSection = React.memo(({ germanStatus, mayaFull }) => {
   );
 });
 
+// Horizontal card for "Jobs in Germany" or when single other pathway exists
+const BuiltinPathwayCard = React.memo(({ pathway, selected, onSelect }) => (
+  <button
+    type="button"
+    onClick={onSelect}
+    className={`w-full p-4 rounded-xl border text-left flex items-center gap-4 transition-all cursor-pointer ${
+      selected
+        ? "border-[#002856] bg-blue-50/40 ring-1 ring-[#002856]"
+        : "border-zinc-300 bg-white hover:border-zinc-400"
+    }`}
+  >
+    <div className="w-16 h-12 rounded-lg overflow-hidden shrink-0 flex items-center justify-center bg-transparent">
+      {pathway.image_url ? (
+        <img
+          src={pathway.image_url}
+          alt=""
+          className="w-full h-full object-contain"
+        />
+      ) : pathway.is_builtin ? (
+        <img
+          src={germanFlag}
+          alt=""
+          className="w-full h-full object-contain"
+        />
+      ) : (
+        <Briefcase className="w-6 h-6 text-zinc-400" />
+      )}
+    </div>
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className={`text-[15px] font-semibold transition-colors ${
+            selected ? "text-[#002856]" : "text-slate-900"
+          }`}
+        >
+          {pathway.title}
+        </span>
+        {pathway.badge && (
+          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-700/10 text-green-700 border border-green-700/20">
+            {pathway.badge}
+          </span>
+        )}
+      </div>
+      {pathway.description && (
+        <p className="text-xs text-zinc-500 mt-1 line-clamp-2 leading-snug">
+          {pathway.description}
+        </p>
+      )}
+    </div>
+  </button>
+));
+
+// Vertical card for other admin-created pathways in a grid
+const OtherPathwayCard = React.memo(({ pathway, selected, onSelect }) => (
+  <button
+    type="button"
+    onClick={onSelect}
+    className={`w-full p-3.5 rounded-2xl border text-center flex flex-col items-center justify-between transition-all cursor-pointer h-full min-h-[120px] ${
+      selected
+        ? "border-[#002856] bg-blue-50/40 ring-1 ring-[#002856]"
+        : "border-zinc-300 bg-white hover:border-zinc-400"
+    }`}
+  >
+    <div className="flex flex-col items-center text-center w-full">
+      <div className="w-full h-12 flex items-center justify-center mb-2 overflow-hidden bg-transparent">
+        {pathway.image_url ? (
+          <img
+            src={pathway.image_url}
+            alt=""
+            className="w-full h-full object-contain max-h-12"
+          />
+        ) : (
+          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
+            <Briefcase className="w-5 h-5 text-slate-500" />
+          </div>
+        )}
+      </div>
+      <p
+        className={`text-[12px] font-semibold leading-tight line-clamp-2 transition-colors ${
+          selected ? "text-[#002856]" : "text-slate-900"
+        }`}
+      >
+        {pathway.title}
+      </p>
+      {pathway.description && (
+        <p className="text-[10px] text-zinc-400 line-clamp-2 mt-1 leading-snug">
+          {pathway.description}
+        </p>
+      )}
+    </div>
+    {pathway.badge && (
+      <div className="mt-2">
+        <span className="inline-block px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full">
+          {pathway.badge}
+        </span>
+      </div>
+    )}
+  </button>
+));
+
 const OnboardingFlow = () => {
   const [step, setStep] = useState(1);
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -172,22 +275,32 @@ const OnboardingFlow = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [resendSeconds, setResendSeconds] = useState(0);
-  const [scholarshipOpen, setScholarshipOpen] = useState(false);
+  const [pathways, setPathways] = useState([]);
+  const [selectedPathwayId, setSelectedPathwayId] = useState(null);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // Fails closed: a failed fetch hides the option, matching the server gate.
+  // Fails closed: a failed fetch leaves the list empty, so the pathway screen
+  // is skipped and "Jobs in Germany" is implied (matching the server default).
   useEffect(() => {
     let cancelled = false;
-    getPublicFeatureFlags()
+    getPublicPathways()
       .then((res) => {
         if (!cancelled) {
-          setScholarshipOpen(Boolean(res?.data?.flags?.scholarship_onboarding));
+          setPathways(Array.isArray(res?.data?.pathways) ? res.data.pathways : []);
         }
       })
       .catch(() => {
-        if (!cancelled) setScholarshipOpen(false);
+        if (!cancelled) {
+          setPathways([]);
+          trackFlowAction(
+            "onboarding",
+            "learner_onboarding",
+            "pathways_fetch_failed",
+            { step: 6, reasonCode: "api_failed" },
+          );
+        }
       });
     return () => {
       cancelled = true;
@@ -201,18 +314,26 @@ const OnboardingFlow = () => {
     flowId: "learner_onboarding",
     step,
     stepIndex: step - 1,
-    totalSteps: 9,
+    totalSteps: 10,
   });
 
-  // Back navigation map: each step knows its previous step
-  const BACK_MAP = { 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 7 };
+  // Back navigation map: each step knows its previous step.
+  // 6 = pathways, 7 = German status, 8 = level, 9 = preference, 10 = B1/B2 pref.
+  const BACK_MAP = { 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 8 };
+  const hasOtherPathways = pathways.some((p) => !p.is_builtin);
   const handleBack = () => {
     setError("");
     setStep((s) => {
-      const next =
-        s === 8 && germanStatus === "Yet to start (no knowledge)"
-          ? 6
-          : (BACK_MAP[s] ?? s);
+      let next;
+      if (s === 9 && germanStatus === "Yet to start (no knowledge)") {
+        // Preference → German status (the level step was skipped).
+        next = 7;
+      } else if (s === 7 && !hasOtherPathways) {
+        // German status → occupation (the pathways screen was skipped).
+        next = 5;
+      } else {
+        next = BACK_MAP[s] ?? s;
+      }
       trackFlowAction("onboarding", "learner_onboarding", "step_navigated", {
         step: s,
         direction: "back",
@@ -513,7 +634,9 @@ const OnboardingFlow = () => {
   const handleOccupationSubmit = () => {
     if (occupation) {
       setError("");
-      setStep(6);
+      // Show "What are you here for?" only when there are other pathways to
+      // pick from; otherwise Jobs in Germany is implied and we go straight on.
+      setStep(hasOtherPathways ? 6 : 7);
       trackFlowAction("onboarding", "learner_onboarding", "step_completed", {
         step: 5,
         lifecycle: "succeeded",
@@ -534,26 +657,20 @@ const OnboardingFlow = () => {
         "onboarding",
         "learner_onboarding",
         "validation_blocked",
-        { step: 6, validationCode: "german_status_required" },
+        { step: 7, validationCode: "german_status_required" },
       );
       return;
     }
     setError("");
-    // Scholarship exam funnel — skip straight to completion (no level or
-    // preference step; the candidate lands on the scholarship exam screen).
-    if (germanStatus === "I am here for the scholarship exam") {
-      handleScholarshipSubmit();
-      return;
-    }
     if (germanStatus === "Yet to start (no knowledge)") {
       setGermanLevel("");
       setPreference("1");
-      setStep(8);
+      setStep(9);
     } else if (germanStatus === "I have completed learning German") {
-      setStep(7);
+      setStep(8);
     } else {
       setPreference("2");
-      setStep(7);
+      setStep(8);
     }
   };
 
@@ -585,7 +702,7 @@ const OnboardingFlow = () => {
       );
       navigate("/job-screening", { replace: true });
       trackFlowAction("onboarding", "learner_onboarding", "flow_completed", {
-        step: 7,
+        step: 8,
         lifecycle: "succeeded",
         branch: "job_screening",
       });
@@ -594,7 +711,7 @@ const OnboardingFlow = () => {
         "onboarding",
         "learner_onboarding",
         "flow_completion_failed",
-        { step: 7, lifecycle: "failed", reasonCode: "api_failed" },
+        { step: 8, lifecycle: "failed", reasonCode: "api_failed" },
       );
       setError(
         err.response?.data?.msg || "Something went wrong. Please try again.",
@@ -604,10 +721,41 @@ const OnboardingFlow = () => {
     }
   };
 
-  // Scholarship funnel completion — same endpoint as normal onboarding, but
-  // flagged so the backend sets lg_preferred_mode="scholarship" and skips the
-  // germanStatus requirement.
-  const handleScholarshipSubmit = async () => {
+  // Step 6 "What are you here for?" — record the picked pathway.
+  const selectPathway = (id) => {
+    setSelectedPathwayId(id);
+    const chosen = pathways.find((p) => p.id === id);
+    trackFlowAction("onboarding", "learner_onboarding", "selection_changed", {
+      step: 6,
+      selectionCode: chosen
+        ? normalizeOnboardingValue(chosen.title)
+        : String(id),
+    });
+  };
+
+  // Continue from the pathway screen: Jobs in Germany (built-in) flows into the
+  // normal German questions; a real pathway enrols the candidate and routes them
+  // straight to its exam.
+  const handlePathwayContinue = () => {
+    const builtin = pathways.find((p) => p.is_builtin) || null;
+    const chosenId = selectedPathwayId ?? builtin?.id ?? null;
+    const chosen = pathways.find((p) => p.id === chosenId) || builtin;
+    if (!chosen || chosen.is_builtin) {
+      trackFlowAction("onboarding", "learner_onboarding", "step_completed", {
+        step: 6,
+        lifecycle: "succeeded",
+        branch: "jobs_in_germany",
+      });
+      setStep(7);
+      return;
+    }
+    handlePathwaySubmit(chosen.id, chosen.title);
+  };
+
+  // Pathway enrolment — same endpoint as normal onboarding, but the backend
+  // resolves pathwayId, sets current_pathway_id + the enrolment row, and flags
+  // lg_preferred_mode="scholarship".
+  const handlePathwaySubmit = async (pathwayId, title) => {
     setLoading(true);
     setError("");
     try {
@@ -616,10 +764,7 @@ const OnboardingFlow = () => {
         firstName,
         lastName,
         occupation,
-        germanStatus: "scholarship",
-        germanLevel: "",
-        germanPreference: "4",
-        scholarshipExam: true,
+        pathwayId,
       });
       dispatch(loginSuccess({ token: data.token, user: data.user }));
       localStorage.setItem("lg_preferred_mode", "scholarship");
@@ -628,7 +773,7 @@ const OnboardingFlow = () => {
         {
           lg_funnel: "onboarding",
           lg_selected_mode: "scholarship",
-          lg_german_status: "scholarship",
+          lg_pathway: normalizeOnboardingValue(title),
           lg_occupation: occupation,
         },
         "lg_onboarding_completed",
@@ -637,7 +782,8 @@ const OnboardingFlow = () => {
       trackFlowAction("onboarding", "learner_onboarding", "flow_completed", {
         step: 6,
         lifecycle: "succeeded",
-        branch: "scholarship",
+        branch: "pathway",
+        attributes: { pathway_id: pathwayId },
       });
     } catch (err) {
       trackFlowAction(
@@ -664,10 +810,10 @@ const OnboardingFlow = () => {
           germanLevel.includes("B1") || germanLevel.includes("B2");
         if (isB1OrB2) {
           setPreference("");
-          setStep(9);
+          setStep(10);
         } else {
           setPreference("2");
-          setStep(8);
+          setStep(9);
         }
       }
     } else {
@@ -675,19 +821,19 @@ const OnboardingFlow = () => {
         "onboarding",
         "learner_onboarding",
         "validation_blocked",
-        { step: 7, validationCode: "german_level_required" },
+        { step: 8, validationCode: "german_level_required" },
       );
     }
   };
 
-  // Screen 8 → Complete onboarding
+  // Screen 9 → Complete onboarding
   const handlePreferenceSubmit = async () => {
     if (!preference && germanStatus !== "Yet to start (no knowledge)") {
       trackFlowAction(
         "onboarding",
         "learner_onboarding",
         "validation_blocked",
-        { step: 8, validationCode: "preference_required" },
+        { step: 9, validationCode: "preference_required" },
       );
       return;
     }
@@ -726,7 +872,7 @@ const OnboardingFlow = () => {
       // Navigate based on preference
       if (germanPrefCode === "2") {
         trackFlowAction("onboarding", "learner_onboarding", "flow_completed", {
-          step: 8,
+          step: 9,
           lifecycle: "succeeded",
           branch: "practice",
         });
@@ -735,7 +881,7 @@ const OnboardingFlow = () => {
         });
       } else {
         trackFlowAction("onboarding", "learner_onboarding", "flow_completed", {
-          step: 8,
+          step: 9,
           lifecycle: "succeeded",
           branch: "learn",
         });
@@ -750,7 +896,7 @@ const OnboardingFlow = () => {
         "onboarding",
         "learner_onboarding",
         "flow_completion_failed",
-        { step: 8, lifecycle: "failed", reasonCode: "api_failed" },
+        { step: 9, lifecycle: "failed", reasonCode: "api_failed" },
       );
       setError(
         err.response?.data?.msg || "Something went wrong. Please try again.",
@@ -766,7 +912,7 @@ const OnboardingFlow = () => {
         "onboarding",
         "learner_onboarding",
         "validation_blocked",
-        { step: 9, validationCode: "preference_required" },
+        { step: 10, validationCode: "preference_required" },
       );
       return;
     }
@@ -801,14 +947,14 @@ const OnboardingFlow = () => {
 
       if (preference === "3") {
         trackFlowAction("onboarding", "learner_onboarding", "flow_completed", {
-          step: 9,
+          step: 10,
           lifecycle: "succeeded",
           branch: "job_screening",
         });
         navigateAfterOnboarding(data.user, navigate, "/job-screening");
       } else {
         trackFlowAction("onboarding", "learner_onboarding", "flow_completed", {
-          step: 9,
+          step: 10,
           lifecycle: "succeeded",
           branch: "practice",
         });
@@ -821,7 +967,7 @@ const OnboardingFlow = () => {
         "onboarding",
         "learner_onboarding",
         "flow_completion_failed",
-        { step: 9, lifecycle: "failed", reasonCode: "api_failed" },
+        { step: 10, lifecycle: "failed", reasonCode: "api_failed" },
       );
       setError(
         err.response?.data?.msg || "Something went wrong. Please try again.",
@@ -841,6 +987,13 @@ const OnboardingFlow = () => {
   const isLevelValid = germanLevel !== "";
   const isPreferenceValid = preference !== "";
 
+  // New step-6 "What are you here for?" — Jobs in Germany is the built-in card
+  // and is pre-selected; admin pathways (each wrapping one exam) list below it.
+  const builtinPathway = pathways.find((p) => p.is_builtin) || null;
+  const otherPathways = pathways.filter((p) => !p.is_builtin);
+  const selectedPathwayOrDefault =
+    selectedPathwayId ?? builtinPathway?.id ?? null;
+
   const selectOccupation = (value) => {
     setOccupation(value);
     trackFlowAction("onboarding", "learner_onboarding", "selection_changed", {
@@ -857,39 +1010,39 @@ const OnboardingFlow = () => {
   const selectGermanStatus = (value) => {
     setGermanStatus(value);
     trackFlowAction("onboarding", "learner_onboarding", "selection_changed", {
-      step: 6,
+      step: 7,
       selectionCode: normalizeOnboardingValue(value),
     });
     trackClarityEvent("lg_onboarding_status_selected", {
       lg_funnel: "onboarding",
       lg_german_status: normalizeOnboardingValue(value),
-      lg_onboarding_step: 6,
+      lg_onboarding_step: 7,
     });
   };
 
   const selectGermanLevel = (value) => {
     setGermanLevel(value);
     trackFlowAction("onboarding", "learner_onboarding", "selection_changed", {
-      step: 7,
+      step: 8,
       selectionCode: normalizeOnboardingValue(value.split("\n")[0]),
     });
     trackClarityEvent("lg_onboarding_level_selected", {
       lg_funnel: "onboarding",
       lg_selected_level: normalizeOnboardingValue(value.split("\n")[0]),
-      lg_onboarding_step: 7,
+      lg_onboarding_step: 8,
     });
   };
 
   const selectPreference = (value) => {
     setPreference(value);
     trackFlowAction("onboarding", "learner_onboarding", "selection_changed", {
-      step: 8,
+      step: 9,
       selectionCode: value,
     });
     trackClarityEvent("lg_onboarding_preference_selected", {
       lg_funnel: "onboarding",
       lg_selected_mode: value === "2" ? "practice" : "learn",
-      lg_onboarding_step: 8,
+      lg_onboarding_step: 9,
     });
   };
 
@@ -1289,6 +1442,87 @@ const OnboardingFlow = () => {
 
           {step === 6 && (
             <motion.div
+              key="pathways"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
+            >
+              <TopSection
+                mascot={mayaWave}
+                tooltip="What are you here for?"
+              />
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-6 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:mt-0 md:shadow-none md:px-16 md:py-12 md:justify-center md:overflow-y-auto">
+                <div className="w-full max-w-[420px] mx-auto flex flex-col flex-1 md:justify-center">
+                  <div className="flex-1 md:flex-initial md:mb-6">
+                    <p className="text-zinc-500 text-sm font-medium mb-2.5">
+                      Language learning and jobs
+                    </p>
+                    <div className="flex flex-col gap-3 mb-6">
+                      {builtinPathway && (
+                        <BuiltinPathwayCard
+                          pathway={builtinPathway}
+                          selected={
+                            selectedPathwayOrDefault === builtinPathway.id
+                          }
+                          onSelect={() => selectPathway(builtinPathway.id)}
+                        />
+                      )}
+                    </div>
+
+                    {otherPathways.length > 0 && (
+                      <>
+                        <p className="text-zinc-500 text-sm font-medium mb-2.5">
+                          Other pathways
+                        </p>
+                        {otherPathways.length === 1 ? (
+                          <div className="flex flex-col gap-3 mb-6">
+                            <BuiltinPathwayCard
+                              pathway={otherPathways[0]}
+                              selected={
+                                selectedPathwayOrDefault === otherPathways[0].id
+                              }
+                              onSelect={() => selectPathway(otherPathways[0].id)}
+                            />
+                          </div>
+                        ) : (
+                          <div
+                            className={`grid gap-2 mb-6 ${
+                              otherPathways.length === 2
+                                ? "grid-cols-2"
+                                : "grid-cols-3"
+                            }`}
+                          >
+                            {otherPathways.map((p) => (
+                              <OtherPathwayCard
+                                key={p.id}
+                                pathway={p}
+                                selected={selectedPathwayOrDefault === p.id}
+                                onSelect={() => selectPathway(p.id)}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  {error && (
+                    <p className="text-red-500 text-[13px] font-medium mt-2 mb-1">
+                      {error}
+                    </p>
+                  )}
+                  <BottomActions
+                    onNext={handlePathwayContinue}
+                    disabled={!selectedPathwayOrDefault || loading}
+                    nextText="Continue"
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 7 && (
+            <motion.div
               key="germanStatus"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1310,15 +1544,6 @@ const OnboardingFlow = () => {
                         { id: "A", label: "Yet to start (no knowledge)" },
                         { id: "B", label: "I am learning German" },
                         { id: "C", label: "I have completed learning German" },
-                        ...(scholarshipOpen
-                          ? [
-                              {
-                                id: "D",
-                                label: "I am here for the scholarship exam",
-                                scholarship: true,
-                              },
-                            ]
-                          : []),
                       ].map((status) => (
                         <button
                           key={status.id}
@@ -1354,18 +1579,14 @@ const OnboardingFlow = () => {
                   <BottomActions
                     onNext={handleGermanStatusSubmit}
                     disabled={!isStatusValid}
-                    nextText={
-                      germanStatus === "I am here for the scholarship exam"
-                        ? "Continue to Exam"
-                        : "Next"
-                    }
+                    nextText="Next"
                   />
                 </div>
               </div>
             </motion.div>
           )}
 
-          {step === 7 && (
+          {step === 8 && (
             <motion.div
               key="germanLevel"
               initial={{ opacity: 0 }}
@@ -1459,7 +1680,7 @@ const OnboardingFlow = () => {
             </motion.div>
           )}
 
-          {step === 8 && (
+          {step === 9 && (
             <motion.div
               key="preference"
               initial={{ opacity: 0 }}
@@ -1558,7 +1779,7 @@ const OnboardingFlow = () => {
             </motion.div>
           )}
 
-          {step === 9 && (
+          {step === 10 && (
             <motion.div
               key="b1_b2_preference"
               initial={{ opacity: 0 }}

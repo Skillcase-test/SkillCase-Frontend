@@ -25,12 +25,16 @@ import {
   Award,
   UserPlus,
   History,
+  ArrowLeft,
+  Edit2,
 } from "lucide-react";
 import Chip from "./ui/Chip";
 import toast, { Toaster } from "react-hot-toast";
 import { getDefaultData, normalizeQuestionData } from "../AdminExamManager";
 
 import * as api from "../../../../api/scholarshipExamApi";
+import PathwaysHub from "./PathwaysHub";
+import PathwayModal from "./PathwayModal";
 import ExamSidebar from "./ExamSidebar";
 import OverviewTab from "./OverviewTab";
 import QuestionsTab from "./QuestionsTab";
@@ -47,8 +51,6 @@ import { ControlDropdown } from "../../../payments-admin/components/controls";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-// A release with zero reachable devices used to toast "notifications sent",
-// which reads as success when nobody was actually told.
 const releaseToastMessage = (data) => {
   const sent = data?.notifications_sent;
   if (sent == null) return "Results released";
@@ -72,6 +74,7 @@ const WorkspaceContext = createContext(null);
 export const useScholarshipWorkspace = () => useContext(WorkspaceContext);
 
 const EMPTY_NEW_EXAM = {
+  pathway_id: null,
   title: "",
   description: "",
   duration_minutes: 60,
@@ -84,15 +87,25 @@ const EMPTY_NEW_EXAM = {
 
 export default function AdminScholarshipManager() {
   const [exams, setExams] = useState([]);
+  const [pathways, setPathways] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState({ active: false, label: "" });
 
+  // Active view: null = PathwaysHub (Level 1), number = Scoped Workspace (Level 2)
+  const [activePathwayId, setActivePathwayId] = useState(null);
+
+  // Modals
   const [showCreate, setShowCreate] = useState(false);
+  const [pathwayModalState, setPathwayModalState] = useState({
+    isOpen: false,
+    pathway: null,
+  });
   const [newExam, setNewExam] = useState(EMPTY_NEW_EXAM);
   const [confirm, setConfirm] = useState(null);
 
+  // Selected Exam inside Level 2
   const [selectedExam, setSelectedExam] = useState(null);
   const [examQuestions, setExamQuestions] = useState([]);
   const [tab, setTab] = useState("overview");
@@ -156,6 +169,20 @@ export default function AdminScholarshipManager() {
     fetchExams();
   }, [fetchExams]);
 
+  const fetchPathways = useCallback(async () => {
+    try {
+      const res = await api.listPathways();
+      setPathways(res.data?.pathways || []);
+    } catch {
+      // Non-fatal: the exam workspace still works without the pathway list.
+      setPathways([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPathways();
+  }, [fetchPathways]);
+
   // ── Exam detail ──────────────────────────────────────────────────────────
 
   const openExam = useCallback(async (testId) => {
@@ -184,22 +211,45 @@ export default function AdminScholarshipManager() {
     }
   }, [selectedExam]);
 
-  const switchExam = (testId) => {
-    const id = Number(testId);
-    if (selectedExam && Number(selectedExam.test_id) === id) return;
-    setSubmissionDetail(null);
-    resetQuestionForm();
-    openExam(id);
-  };
+  const switchExam = useCallback(
+    (testId) => {
+      openExam(Number(testId));
+    },
+    [openExam],
+  );
 
-  // Auto-open the live exam (or the first one) when the list arrives.
+  const handleSelectPathway = useCallback(
+    (pathway) => {
+      setActivePathwayId(Number(pathway.id));
+      const pathwayExams = exams.filter(
+        (e) => Number(e.pathway_id) === Number(pathway.id),
+      );
+      const live = pathwayExams.find((e) => e.is_active);
+      const target = live || pathwayExams[0];
+      if (target) {
+        openExam(target.test_id);
+      } else {
+        setSelectedExam(null);
+      }
+    },
+    [exams, openExam],
+  );
+
+  const handleBackToPathways = useCallback(() => {
+    setActivePathwayId(null);
+    setSelectedExam(null);
+  }, []);
+
   useEffect(() => {
-    if (!selectedExam && exams.length > 0 && !loading) {
-      const active = exams.find((e) => e.is_active);
-      const target = active || exams[0];
-      if (target) openExam(target.test_id);
+    if (
+      activePathwayId &&
+      pathways.length > 0 &&
+      !pathways.some((p) => p.id === activePathwayId)
+    ) {
+      setActivePathwayId(null);
+      setSelectedExam(null);
     }
-  }, [exams, selectedExam, loading, openExam]);
+  }, [pathways, activePathwayId]);
 
   // ── Create / Delete / Duplicate / Activate ───────────────────────────────
 
@@ -208,14 +258,20 @@ export default function AdminScholarshipManager() {
       toast.error("Title is required");
       return;
     }
+    const targetPathwayId = newExam.pathway_id || activePathwayId;
+    if (!targetPathwayId) {
+      toast.error("Please select a pathway for this exam");
+      return;
+    }
     if (!newExam.duration_minutes || newExam.duration_minutes < 1) {
       toast.error("Duration must be at least 1 minute");
       return;
     }
     setSaving(true);
     try {
-      await runWithActionLoading("Creating exam...", () =>
+      const created = await runWithActionLoading("Creating exam...", () =>
         api.createExam({
+          pathway_id: newExam.pathway_id,
           title: newExam.title,
           description: newExam.description,
           duration_minutes: newExam.duration_minutes,
@@ -224,10 +280,14 @@ export default function AdminScholarshipManager() {
           is_active: newExam.is_active,
         }),
       );
+
       toast.success("Exam created");
       setShowCreate(false);
       setNewExam(EMPTY_NEW_EXAM);
-      await fetchExams();
+      await Promise.all([fetchExams(), fetchPathways()]);
+      if (created?.data?.exam?.test_id) {
+        openExam(created.data.exam.test_id);
+      }
     } catch (err) {
       toast.error(err.response?.data?.msg || "Failed to create exam");
     } finally {
@@ -346,6 +406,56 @@ export default function AdminScholarshipManager() {
       const msg = err.response?.data?.msg || "Failed to update result visibility";
       toast.error(msg);
     }
+  };
+
+  // ── Pathways ─────────────────────────────────────────────────────────────
+
+  const handleSavePathwayModal = async (formData, pathwayId) => {
+    setSaving(true);
+    try {
+      if (pathwayId) {
+        await runWithActionLoading("Saving pathway...", () =>
+          api.updatePathway(pathwayId, formData),
+        );
+        toast.success("Pathway updated");
+      } else {
+        await runWithActionLoading("Creating pathway...", () =>
+          api.createPathway(formData),
+        );
+        toast.success("Pathway created");
+      }
+      setPathwayModalState({ isOpen: false, pathway: null });
+      await Promise.all([fetchPathways(), fetchExams()]);
+    } catch (err) {
+      toast.error(err.response?.data?.msg || "Failed to save pathway");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeletePathway = (pathway) => {
+    if (pathway.is_builtin) return;
+    requestConfirm({
+      title: "Delete pathway?",
+      message: `"${pathway.title}" and its configuration will be permanently removed. Pathways with existing candidate exam attempts cannot be deleted.`,
+      confirmLabel: "Delete",
+      danger: true,
+      action: async () => {
+        try {
+          await runWithActionLoading("Deleting pathway...", () =>
+            api.deletePathway(pathway.id),
+          );
+          toast.success("Pathway deleted");
+          if (activePathwayId === pathway.id) {
+            setActivePathwayId(null);
+            setSelectedExam(null);
+          }
+          await Promise.all([fetchPathways(), fetchExams()]);
+        } catch (err) {
+          toast.error(err.response?.data?.msg || "Failed to delete pathway");
+        }
+      },
+    });
   };
 
   // ── Settings ─────────────────────────────────────────────────────────────
@@ -539,24 +649,44 @@ export default function AdminScholarshipManager() {
   const handleAddStudents = async (userIds) => {
     if (!userIds.length) return;
     try {
-      await runWithActionLoading("Adding candidates...", () =>
+      const res = await runWithActionLoading("Adding candidates...", () =>
         api.setExamVisibility(selectedExam.test_id, userIds),
       );
-      toast.success(
-        userIds.length === 1
-          ? "Candidate granted access"
-          : `${userIds.length} candidates granted access`,
-      );
+      const data = res?.data || {};
+      const conflicts = Array.isArray(data.conflicts) ? data.conflicts : [];
+      const added = data.count ?? userIds.length - conflicts.length;
+
+      if (conflicts.length > 0) {
+        const first = conflicts[0]?.msg || conflicts[0]?.conflicting_exam_title;
+        toast(
+          added > 0
+            ? `Added ${added}. ${conflicts.length} refused — ${first || "already active in another exam"}.`
+            : `Refused — ${first || "already active in another exam"}.`,
+          { icon: "⚠️" },
+        );
+      } else {
+        toast.success(
+          added === 1
+            ? "Candidate granted access"
+            : `${added} candidates granted access`,
+        );
+      }
       await loadVisibility();
-    } catch {
-      toast.error("Failed to add candidates");
+    } catch (err) {
+      const data = err?.response?.data;
+      const conflicts = Array.isArray(data?.conflicts) ? data.conflicts : [];
+      const first = conflicts[0]?.msg || data?.msg;
+      toast.error(
+        first || "Failed to add candidates",
+      );
+      if (data?.count > 0) await loadVisibility();
     }
   };
 
   const handleRemoveStudent = (visId, name) => {
     requestConfirm({
       title: "Remove candidate?",
-      message: `"${name}" will lose access to this exam. They will be re-added automatically if they visit again.`,
+      message: `"${name}" will lose access to this exam. Their submission stays intact, and removing them frees them to be added to a different exam.`,
       confirmLabel: "Remove",
       danger: true,
       action: async () => {
@@ -580,7 +710,7 @@ export default function AdminScholarshipManager() {
         visIds.length === 1
           ? "Remove candidate?"
           : `Remove ${visIds.length} candidates?`,
-      message: `They will lose access to this exam. Anyone who visits again will be re-added automatically.`,
+      message: `They will lose access to this exam. Submissions stay intact, and removing them frees each candidate to be added to a different exam.`,
       confirmLabel: "Yes, Remove",
       danger: true,
       action: async () => {
@@ -764,14 +894,10 @@ export default function AdminScholarshipManager() {
     }
   };
 
-  // ── Confirm dialog ───────────────────────────────────────────────────────
+  // ── Derived State ────────────────────────────────────────────────────────
 
   const requestConfirm = (opts) => setConfirm(opts);
-
-  // ── Derived ──────────────────────────────────────────────────────────────
-
-  const activeExam = exams.find((e) => e.is_active) || null;
-  const totalCandidates = exams.reduce((sum, e) => sum + (e.submission_count || 0), 0);
+  const selectedPathway = pathways.find((p) => Number(p.id) === Number(activePathwayId)) || null;
 
   const value = {
     exams,
@@ -844,6 +970,14 @@ export default function AdminScholarshipManager() {
     handleDuplicate,
     handleToggleActive,
     handleToggleResultsVisible,
+    // pathway context
+    pathways,
+    selectedPathway,
+    activePathwayId,
+    handleSelectPathway,
+    handleBackToPathways,
+    handleSavePathwayModal,
+    handleDeletePathway,
     // ui state
     showCreate,
     setShowCreate,
@@ -851,9 +985,6 @@ export default function AdminScholarshipManager() {
     setNewExam,
     confirm,
     requestConfirm,
-    // derived
-    activeExam,
-    totalCandidates,
   };
 
   return (
@@ -876,199 +1007,285 @@ export default function AdminScholarshipManager() {
           </div>
         )}
 
-        {/* Header */}
-        <div className="flex items-center justify-between gap-4 bg-white p-5 rounded-xl border border-[#e5e7eb] shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-[#002856] flex items-center justify-center shrink-0">
-              <GraduationCap className="w-6 h-6 text-[#edb843]" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-800">Scholarship Exam Admin</h1>
-              <p className="text-xs text-slate-400 mt-0.5">
-                One exam served at a time · candidates are auto-added when they visit
-              </p>
-            </div>
-          </div>
-          <button onClick={() => setShowCreate(true)} className={btn.primary}>
-            <Plus className="w-4 h-4" /> New Exam
-          </button>
-        </div>
-
-        {/* Mobile exam switcher (sidebar is hidden below lg) */}
-        <div className="lg:hidden">
-          <label className="block text-xs font-semibold text-slate-500 mb-1">
-            Exam
-          </label>
-          <ControlDropdown
-            aria-label="Exam"
-            value={String(selectedExam?.test_id ?? "")}
-            onChange={switchExam}
-            options={exams.map((e) => ({
-              value: String(e.test_id),
-              label: `${e.is_active ? "● " : ""}${e.title}${e.is_active ? " (Live)" : " (Draft)"}`,
-            }))}
-            placeholder="Select an exam…"
+        {/* Level 1: Pathways Hub */}
+        {activePathwayId === null ? (
+          <PathwaysHub
+            pathways={pathways}
+            exams={exams}
+            loading={loading}
+            onSelectPathway={handleSelectPathway}
+            onOpenCreatePathway={() =>
+              setPathwayModalState({ isOpen: true, pathway: null })
+            }
+            onEditPathway={(pathway) =>
+              setPathwayModalState({ isOpen: true, pathway })
+            }
+            onDeletePathway={handleDeletePathway}
           />
-        </div>
+        ) : (
+          /* Level 2: Scoped Pathway Exam Workspace */
+          <>
+            {/* Pathway Header Bar with Back Button */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-[#e5e7eb] shadow-sm">
+              <div className="flex items-center gap-4 min-w-0">
+                <button
+                  type="button"
+                  onClick={handleBackToPathways}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-[#002856] bg-slate-100 hover:bg-slate-200 rounded-xl transition shrink-0 cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4" /> All Pathways
+                </button>
 
-        {/* Workspace */}
-        <div className="flex gap-5 items-start">
-          <ExamSidebar onSelect={switchExam} />
-          <main className="flex-1 min-w-0">
-            {!selectedExam ? (
-              loading ? (
-                <div className="bg-white rounded-xl border border-[#e5e7eb] shadow-sm flex items-center justify-center py-20">
-                  <Loader2 className="w-6 h-6 animate-spin text-[#002856]" />
-                </div>
-              ) : (
-                <div className="bg-white rounded-xl border border-[#e5e7eb] shadow-sm flex flex-col items-center justify-center py-20 text-center">
-                  <GraduationCap className="w-12 h-12 text-[#002856]/20 mb-3" />
-                  <p className="font-semibold text-slate-700">
-                    {exams.length === 0 ? "No exams yet" : "Select an exam"}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1 mb-4">
-                    {exams.length === 0
-                      ? "Create the scholarship exam to get started."
-                      : "Pick an exam from the sidebar to manage it."}
-                  </p>
-                  {exams.length === 0 && (
-                    <button onClick={() => setShowCreate(true)} className={btn.primary}>
-                      <Plus className="w-4 h-4" /> Create first exam
-                    </button>
-                  )}
-                </div>
-              )
-            ) : (
-              <>
-                {/* Exam header + tabs */}
-                <div className="bg-white rounded-xl border border-[#e5e7eb] shadow-sm px-6 py-5 mb-5">
-                  <div className="flex flex-wrap items-center justify-between gap-4">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h2 className="text-lg font-bold text-slate-800 truncate">
-                          {selectedExam.title}
-                        </h2>
-                        <Chip
-                          cls={
-                            selectedExam.is_active
-                              ? "bg-green-50 text-green-700 border-green-200"
-                              : "bg-slate-100 text-slate-500 border-slate-200"
-                          }
-                        >
-                          {selectedExam.is_active ? "● Live" : "Draft"}
-                        </Chip>                        {selectedExam.results_visible && (
-                          <Chip cls="bg-amber-50 text-amber-700 border-amber-200">
-                            Results out
-                          </Chip>
-                        )}
-                        {selectedExam.results_visible && tiers.length > 0 && (
-                          <Chip cls="bg-sky-50 text-sky-700 border-sky-200">
-                            Up to {Math.max(...tiers.map((t) => Number(t.scholarship_pct)))}% scholarship
-                          </Chip>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
-                        <span className="inline-flex items-center gap-1">
-                          <Clock className="w-3.5 h-3.5" /> {selectedExam.duration_minutes} min
-                        </span>
-                        <span className="text-slate-200">·</span>
-                        <span className="inline-flex items-center gap-1">
-                          <FileQuestion className="w-3.5 h-3.5" /> {selectedExam.total_questions || 0} Qs
-                        </span>
-                        <span className="text-slate-200">·</span>
-                        <span className="inline-flex items-center gap-1">
-                          <Users className="w-3.5 h-3.5" /> {selectedExam.submission_count || 0} started
-                        </span>
-                      </div>
-                    </div>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#002856] flex items-center justify-center shrink-0 border border-blue-100 overflow-hidden">
+                    {selectedPathway?.image_url ? (
+                      <img
+                        src={selectedPathway.image_url}
+                        alt=""
+                        className="w-full h-full object-contain"
+                      />
+                    ) : (
+                      <GraduationCap className="w-5 h-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      {selectedExam.is_active ? (
-                        <button
-                          onClick={() => handleToggleActive(selectedExam, false)}
-                          className={btn.amber}
-                        >
-                          Deactivate
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleToggleActive(selectedExam, true)}
-                          className={btn.success}
-                        >
-                          <Play className="w-3.5 h-3.5" /> Activate Exam
-                        </button>
+                      <h1 className="text-lg font-bold text-slate-800 truncate">
+                        {selectedPathway?.title || "Exam Pathway"}
+                      </h1>
+                      {selectedPathway?.badge && (
+                        <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded">
+                          {selectedPathway.badge}
+                        </span>
                       )}
-                      <button
-                        onClick={() => handleToggleResultsVisible(selectedExam)}
-                        className={`${btn.secondary} ${
-                          selectedExam.results_visible
-                            ? "!border-amber-300 !text-amber-700 hover:!bg-amber-50"
-                            : ""
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          selectedPathway?.is_active
+                            ? "bg-green-100 text-green-800"
+                            : "bg-slate-100 text-slate-500"
                         }`}
                       >
-                        {selectedExam.results_visible ? "Hide Results" : "Release Results"}
-                      </button>
-                      <button
-                        onClick={() => handleDuplicate(selectedExam)}
-                        className={btn.secondary}
-                        title="Duplicate exam (media copied, copy is a draft)"
-                      >
-                        <Copy className="w-3.5 h-3.5" /> Duplicate
-                      </button>
-                      <button
-                        onClick={() => handleDeleteExam(selectedExam)}
-                        className={btn.dangerGhost}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Delete
-                      </button>
+                        {selectedPathway?.is_active ? "Onboarding Active" : "Hidden"}
+                      </span>
                     </div>
                   </div>
-
-                  {/* Tabs */}
-                  <div className="flex items-center gap-1 mt-4 border-t border-slate-100 pt-3 overflow-x-auto">
-                    {[
-                      { key: "overview", label: "Overview", icon: LayoutDashboard },
-                      { key: "questions", label: "Questions", icon: FileQuestion },
-                      { key: "candidates", label: "Candidates", icon: Users },
-                      { key: "submissions", label: "Submissions", icon: ListChecks },
-                      { key: "tiers", label: "Scholarship Tiers", icon: Award },
-                      { key: "user_awards", label: "User Awards", icon: UserPlus },
-                      { key: "audit_log", label: "Activity Log", icon: History },
-                    ].map((t) => (
-                      <button
-                        key={t.key}
-                        onClick={() => {
-                          setTab(t.key);
-                          if (t.key === "candidates") loadVisibility();
-                          if (t.key === "submissions") loadSubmissions();
-                          if (t.key === "overview") openSettings();
-                          if (t.key === "tiers") loadTiers();
-                        }}
-                        className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg transition-colors ${
-                          tab === t.key
-                            ? "bg-[#002856] text-white shadow-sm"
-                            : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        <t.icon className="w-3.5 h-3.5" />
-                        {t.label}
-                      </button>
-                    ))}
-                  </div>
                 </div>
+              </div>
 
-                {tab === "overview" && <OverviewTab />}
-                {tab === "questions" && <QuestionsTab />}
-                {tab === "candidates" && <CandidatesTab />}
-                {tab === "submissions" && <SubmissionsTab />}
-                {tab === "tiers" && <TiersTab />}
-                {tab === "user_awards" && <UserAwardsTab />}
-                {tab === "audit_log" && <ActivityLogTab />}
-              </>
-            )}
-          </main>
-        </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPathwayModalState({ isOpen: true, pathway: selectedPathway })
+                  }
+                  className={btn.secondary}
+                >
+                  <Edit2 className="w-3.5 h-3.5" /> Edit Pathway
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewExam((prev) => ({
+                      ...prev,
+                      pathway_id: activePathwayId,
+                    }));
+                    setShowCreate(true);
+                  }}
+                  className={btn.primary}
+                >
+                  <Plus className="w-4 h-4" /> New Exam
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile exam switcher */}
+            <div className="lg:hidden">
+              <label className="block text-xs font-semibold text-slate-500 mb-1">
+                Exam
+              </label>
+              <ControlDropdown
+                aria-label="Exam"
+                value={String(selectedExam?.test_id ?? "")}
+                onChange={switchExam}
+                options={exams
+                  .filter((e) => Number(e.pathway_id) === Number(activePathwayId))
+                  .map((e) => ({
+                    value: String(e.test_id),
+                    label: `${e.is_active ? "● " : ""}${e.title}${e.is_active ? " (Live)" : " (Draft)"}`,
+                  }))}
+                placeholder="Select an exam…"
+              />
+            </div>
+
+            {/* Scoped Workspace Layout */}
+            <div className="flex gap-5 items-start">
+              <ExamSidebar onSelect={switchExam} />
+              <main className="flex-1 min-w-0">
+                {!selectedExam ? (
+                  <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm flex flex-col items-center justify-center py-20 text-center">
+                    <GraduationCap className="w-12 h-12 text-[#002856]/20 mb-3" />
+                    <p className="font-semibold text-slate-700">
+                      No exam selected in {selectedPathway?.title || "this pathway"}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-1 mb-4">
+                      Create an exam or pick an existing draft from the sidebar to manage it.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNewExam((prev) => ({
+                          ...prev,
+                          pathway_id: activePathwayId,
+                        }));
+                        setShowCreate(true);
+                      }}
+                      className={btn.primary}
+                    >
+                      <Plus className="w-4 h-4" /> Create First Exam
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {/* Exam Header & Tabs */}
+                    <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm px-6 py-5 mb-5">
+                      <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h2 className="text-lg font-bold text-slate-800 truncate">
+                              {selectedExam.title}
+                            </h2>
+                            <Chip
+                              cls={
+                                selectedExam.is_active
+                                  ? "bg-green-50 text-green-700 border-green-200"
+                                  : "bg-slate-100 text-slate-500 border-slate-200"
+                              }
+                            >
+                              {selectedExam.is_active ? "● Live" : "Draft"}
+                            </Chip>
+                            {selectedExam.results_visible && (
+                              <Chip cls="bg-amber-50 text-amber-700 border-amber-200">
+                                Results out
+                              </Chip>
+                            )}
+                            {selectedExam.results_visible && tiers.length > 0 && (
+                              <Chip cls="bg-sky-50 text-sky-700 border-sky-200">
+                                Up to {Math.max(...tiers.map((t) => Number(t.scholarship_pct)))}% scholarship
+                              </Chip>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-400">
+                            <span className="inline-flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5" /> {selectedExam.duration_minutes} min
+                            </span>
+                            <span className="text-slate-200">·</span>
+                            <span className="inline-flex items-center gap-1">
+                              <FileQuestion className="w-3.5 h-3.5" /> {selectedExam.total_questions || 0} Qs
+                            </span>
+                            <span className="text-slate-200">·</span>
+                            <span className="inline-flex items-center gap-1">
+                              <Users className="w-3.5 h-3.5" /> {selectedExam.submission_count || 0} started
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {selectedExam.is_active ? (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleActive(selectedExam, false)}
+                              className={btn.amber}
+                            >
+                              Deactivate
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleToggleActive(selectedExam, true)}
+                              className={btn.success}
+                            >
+                              <Play className="w-3.5 h-3.5" /> Activate Exam
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleResultsVisible(selectedExam)}
+                            className={`${btn.secondary} ${
+                              selectedExam.results_visible
+                                ? "!border-amber-300 !text-amber-700 hover:!bg-amber-50"
+                                : ""
+                            }`}
+                          >
+                            {selectedExam.results_visible ? "Hide Results" : "Release Results"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDuplicate(selectedExam)}
+                            className={btn.secondary}
+                            title="Duplicate exam (media copied, copy is a draft)"
+                          >
+                            <Copy className="w-3.5 h-3.5" /> Duplicate
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteExam(selectedExam)}
+                            className={btn.dangerGhost}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Delete
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Workspace Tabs */}
+                      <div className="flex items-center gap-1 mt-4 border-t border-slate-100 pt-3 overflow-x-auto">
+                        {[
+                          { key: "overview", label: "Overview", icon: LayoutDashboard },
+                          { key: "questions", label: "Questions", icon: FileQuestion },
+                          { key: "candidates", label: "Candidates", icon: Users },
+                          { key: "submissions", label: "Submissions", icon: ListChecks },
+                          { key: "tiers", label: "Scholarship Tiers", icon: Award },
+                          { key: "user_awards", label: "User Awards", icon: UserPlus },
+                          { key: "audit_log", label: "Activity Log", icon: History },
+                        ].map((t) => (
+                          <button
+                            key={t.key}
+                            type="button"
+                            onClick={() => {
+                              setTab(t.key);
+                              if (t.key === "candidates") loadVisibility();
+                              if (t.key === "submissions") loadSubmissions();
+                              if (t.key === "overview") openSettings();
+                              if (t.key === "tiers") loadTiers();
+                            }}
+                            className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg transition-colors ${
+                              tab === t.key
+                                ? "bg-[#002856] text-white shadow-sm"
+                                : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+                            }`}
+                          >
+                            <t.icon className="w-3.5 h-3.5" />
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {tab === "overview" && <OverviewTab />}
+                    {tab === "questions" && <QuestionsTab />}
+                    {tab === "candidates" && <CandidatesTab />}
+                    {tab === "submissions" && <SubmissionsTab />}
+                    {tab === "tiers" && <TiersTab />}
+                    {tab === "user_awards" && <UserAwardsTab />}
+                    {tab === "audit_log" && <ActivityLogTab />}
+                  </>
+                )}
+              </main>
+            </div>
+          </>
+        )}
       </div>
 
+      {/* Modals */}
       {showCreate && (
         <CreateExamModal
           exam={newExam}
@@ -1076,8 +1293,19 @@ export default function AdminScholarshipManager() {
           onClose={() => setShowCreate(false)}
           onSave={handleCreateExam}
           saving={saving}
+          pathways={pathways}
         />
       )}
+
+      {pathwayModalState.isOpen && (
+        <PathwayModal
+          pathway={pathwayModalState.pathway}
+          onClose={() => setPathwayModalState({ isOpen: false, pathway: null })}
+          onSave={handleSavePathwayModal}
+          saving={saving}
+        />
+      )}
+
       <ConfirmDialog confirm={confirm} onCancel={() => setConfirm(null)} />
     </WorkspaceContext.Provider>
   );

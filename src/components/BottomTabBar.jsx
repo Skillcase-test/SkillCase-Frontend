@@ -871,7 +871,6 @@ function ScholarshipBottomBar({ user, streak }) {
             loading="lazy"
           />
           <div className="flex flex-col items-center text-center text-[10px] font-medium leading-[12px] text-stone-500 z-10">
-            <span>Scholarship</span>
             <span>Exam</span>
           </div>
         </div>

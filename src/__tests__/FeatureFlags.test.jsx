@@ -305,9 +305,9 @@ describe("FeatureFlagsAdmin Control Panel", () => {
 
 describe("FeatureFlagsAdmin — global_only features", () => {
   const globalOnlyFeature = {
-    feature_key: "scholarship_onboarding",
-    name: "Scholarship Exam Onboarding",
-    description: 'Shows the "I am here for the scholarship exam" option during onboarding',
+    feature_key: "maintenance_mode",
+    name: "Maintenance Mode",
+    description: "Global-only toggle: shown app-wide with no per-cohort rules",
     eligible_levels: ["ALL"],
     global_enabled: true,
     paid_enabled: false,
@@ -369,7 +369,7 @@ describe("FeatureFlagsAdmin — global_only features", () => {
 
     await waitFor(() => {
       expect(featureFlagApi.adminUpdateFeatureConfig).toHaveBeenCalledWith(
-        "scholarship_onboarding",
+        "maintenance_mode",
         { global_enabled: true }
       );
     });

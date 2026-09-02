@@ -9,6 +9,7 @@ import { useFirstPartyAnalytics } from "../../telemetry/legacyAnalytics";
 import ScholarshipLevelPickerModal from "../../components/ScholarshipLevelPickerModal";
 import ScholarshipStatusCard from "../../components/ScholarshipStatusCard";
 import { switchScholarshipToMode } from "../../utils/lgMode";
+import toast from "react-hot-toast";
 import {
   ChevronLeft,
   ChevronRight,
@@ -115,8 +116,12 @@ export default function ScholarshipResult() {
       setPicker(mode);
       return;
     }
-    const freshUser = await switchScholarshipToMode(mode);
-    goToMode(mode, freshUser);
+    try {
+      const freshUser = await switchScholarshipToMode(mode);
+      goToMode(mode, freshUser);
+    } catch (err) {
+      toast.error("Failed to switch modes. Please try again.");
+    }
   };
 
   useEffect(() => {
@@ -942,7 +947,7 @@ export default function ScholarshipResult() {
               className="w-full py-3.5 px-5 bg-[#002856] hover:bg-[#001e40] text-white rounded-md font-bold text-sm sm:text-base transition flex items-center justify-center gap-2.5 cursor-pointer active:scale-[0.99]"
             >
               <Phone className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
-              <span>Contact SkillCase Team</span>
+              <span>Contact Skillcase Team</span>
             </a>
 
             {/* Practice CTA */}

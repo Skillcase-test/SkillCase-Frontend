@@ -1,6 +1,7 @@
-import { Copy, Play, Trash2 } from "lucide-react";
+﻿import React from "react";
+import { Plus, Copy, Play, Trash2, GraduationCap, CheckCircle2 } from "lucide-react";
 import { useScholarshipWorkspace } from "./index";
-import Chip from "./ui/Chip";
+import { btn } from "./ui/buttons";
 
 function ExamRow({ exam, selected, onSelect }) {
   const { handleDuplicate, handleDeleteExam, handleToggleActive } =
@@ -11,129 +12,212 @@ function ExamRow({ exam, selected, onSelect }) {
   return (
     <div
       onClick={() => onSelect(exam.test_id)}
-      className={`group w-full text-left px-4 py-3 border-b border-[#f1f5f9] cursor-pointer transition-colors ${
-        isSelected ? "bg-[#eff6ff]" : "hover:bg-[#f8fafc]"
+      className={`group w-full text-left px-3.5 py-3 rounded-xl cursor-pointer transition-colors mb-1.5 ${
+        isSelected
+          ? "bg-[#002856] text-white shadow-sm"
+          : "bg-slate-50/80 hover:bg-slate-100 text-slate-700"
       }`}
     >
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-[#181d27] truncate">
+      <div className="flex items-center justify-between gap-1.5">
+        <p className={`text-xs font-bold truncate ${isSelected ? "text-white" : "text-slate-800"}`}>
           {exam.title}
         </p>
-        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div
+          className={`flex items-center gap-0.5 shrink-0 transition-opacity ${
+            isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          }`}
+        >
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               handleDuplicate(exam);
             }}
-            className="p-1 rounded-md text-slate-400 hover:text-[#002856] hover:bg-slate-100 transition-colors"
-            title="Duplicate exam (media copied, copy is a draft)"
+            className={`p-1 rounded ${
+              isSelected
+                ? "text-white/80 hover:text-white hover:bg-white/10"
+                : "text-slate-400 hover:text-[#002856] hover:bg-slate-200"
+            }`}
+            title="Duplicate exam"
           >
-            <Copy className="w-3.5 h-3.5" />
+            <Copy className="w-3 h-3" />
           </button>
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               handleDeleteExam(exam);
             }}
-            className="p-1 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+            className={`p-1 rounded ${
+              isSelected
+                ? "text-red-200 hover:text-red-100 hover:bg-white/10"
+                : "text-slate-400 hover:text-red-500 hover:bg-red-50"
+            }`}
             title="Delete exam"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <Trash2 className="w-3 h-3" />
           </button>
         </div>
       </div>
-      <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
+
+      <div
+        className={`flex items-center gap-2 mt-1.5 text-[10px] ${
+          isSelected ? "text-blue-100" : "text-slate-400"
+        }`}
+      >
         {isActive ? (
-          <Chip cls="bg-green-50 text-green-700 border-green-200">● Live</Chip>
+          <span
+            className={`px-1.5 py-0.2 rounded font-bold ${
+              isSelected
+                ? "bg-green-500 text-white"
+                : "bg-green-100 text-green-800"
+            }`}
+          >
+            ● Live
+          </span>
         ) : (
-          <Chip cls="bg-slate-100 text-slate-500 border-slate-200">Draft</Chip>
+          <span
+            className={`px-1.5 py-0.2 rounded ${
+              isSelected ? "bg-white/20 text-white" : "bg-slate-200 text-slate-600"
+            }`}
+          >
+            Draft
+          </span>
         )}
         <span>{exam.total_questions || 0} Qs</span>
         <span>·</span>
-        <span>{exam.submission_count || 0} started</span>
+        <span>{exam.submission_count || 0} attempts</span>
       </div>
+
       {!isActive && (
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             handleToggleActive(exam, true);
           }}
-          className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-green-700 hover:text-green-800 transition-colors"
+          className={`mt-2 inline-flex items-center gap-1 text-[10px] font-bold ${
+            isSelected
+              ? "text-green-300 hover:text-green-200"
+              : "text-green-700 hover:text-green-800"
+          }`}
         >
-          <Play className="w-3 h-3" /> Activate
+          <Play className="w-2.5 h-2.5" /> Activate
         </button>
       )}
     </div>
   );
 }
 
-function Section({ label, tone, children }) {
-  return (
-    <div className="bg-white rounded-xl border border-[#e5e7eb] shadow-sm overflow-hidden">
-      <div className="px-4 py-2.5 border-b border-[#f1f5f9] flex items-center gap-2">
-        <span
-          className={`w-1.5 h-1.5 rounded-full ${
-            tone === "green" ? "bg-green-500" : "bg-slate-300"
-          }`}
-        />
-        <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-          {label}
-        </h3>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-/**
- * All-exams sidebar: the live exam at the top, drafts below. Clicking a row
- * opens it in the workspace. Hover reveals Duplicate / Delete; drafts get a
- * quick Activate action.
- */
 export default function ExamSidebar({ onSelect }) {
-  const { exams, loading, activeExam, selectedExam } = useScholarshipWorkspace();
-  const drafts = exams.filter((e) => !e.is_active);
+  const {
+    exams,
+    selectedExam,
+    selectedPathway,
+    setShowCreate,
+    setNewExam,
+  } = useScholarshipWorkspace();
+
+  // Filter exams strictly for this selected pathway (or all if fallback)
+  const pathwayExams = selectedPathway
+    ? exams.filter((e) => Number(e.pathway_id) === Number(selectedPathway.id))
+    : exams;
+
+  const liveExam = pathwayExams.find((e) => e.is_active);
+  const draftExams = pathwayExams.filter((e) => !e.is_active);
 
   return (
-    <aside className="w-72 shrink-0 hidden lg:flex flex-col gap-4 sticky top-6">
-      <Section label="Live exam" tone="green">
-        {loading ? (
-          <div className="px-4 py-6 text-center text-xs text-slate-400">
-            Loading…
-          </div>
-        ) : activeExam ? (
-          <ExamRow
-            exam={activeExam}
-            selected={selectedExam}
-            onSelect={onSelect}
-          />
-        ) : (
-          <div className="px-4 py-6 text-center text-xs text-slate-400">
-            No live exam — activate a draft to serve it.
-          </div>
-        )}
-      </Section>
+    <aside className="w-80 shrink-0 hidden lg:flex flex-col gap-4 sticky top-6">
+      {/* Top action */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+          <GraduationCap className="w-3.5 h-3.5" /> Pathway Exams
+        </h3>
+        <button
+          type="button"
+          onClick={() => {
+            setNewExam((prev) => ({
+              ...prev,
+              pathway_id: selectedPathway?.id || null,
+            }));
+            setShowCreate(true);
+          }}
+          className="text-xs font-bold text-[#002856] hover:underline flex items-center gap-1"
+        >
+          <Plus className="w-3 h-3" /> New Exam
+        </button>
+      </div>
 
-      <Section label={`Drafts (${drafts.length})`} tone="slate">
-        {loading ? (
-          <div className="px-4 py-6 text-center text-xs text-slate-400">
-            Loading…
+      {pathwayExams.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-[#e5e7eb] p-6 text-center">
+          <p className="text-xs text-slate-600 font-bold mb-1">No exams yet</p>
+          <p className="text-[11px] text-slate-400 mb-3">
+            Create an exam for this pathway.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setNewExam((prev) => ({
+                ...prev,
+                pathway_id: selectedPathway?.id || null,
+              }));
+              setShowCreate(true);
+            }}
+            className={`${btn.primary} !py-2 !text-xs mx-auto`}
+          >
+            <Plus className="w-3.5 h-3.5" /> Create Exam
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {/* Live Exam Section */}
+          <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-3">
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500" /> Live Exam
+              </span>
+              <span className="text-[10px] text-slate-400">1 active per pathway</span>
+            </div>
+
+            {liveExam ? (
+              <ExamRow
+                exam={liveExam}
+                selected={selectedExam}
+                onSelect={onSelect}
+              />
+            ) : (
+              <div className="py-3 px-2 text-center bg-amber-50/50 rounded-xl border border-dashed border-amber-200">
+                <p className="text-[11px] text-amber-800 font-medium">No live exam</p>
+                <p className="text-[10px] text-amber-600/80 mt-0.5">
+                  Activate a draft below to make it live for candidates.
+                </p>
+              </div>
+            )}
           </div>
-        ) : drafts.length === 0 ? (
-          <div className="px-4 py-6 text-center text-xs text-slate-400">
-            No drafts yet.
-          </div>
-        ) : (
-          drafts.map((exam) => (
-            <ExamRow
-              key={exam.test_id}
-              exam={exam}
-              selected={selectedExam}
-              onSelect={onSelect}
-            />
-          ))
-        )}
-      </Section>
+
+          {/* Draft Exams Section */}
+          {draftExams.length > 0 && (
+            <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-sm p-3">
+              <div className="pb-2 mb-2 border-b border-slate-100">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Draft Exams ({draftExams.length})
+                </span>
+              </div>
+
+              <div className="space-y-1">
+                {draftExams.map((exam) => (
+                  <ExamRow
+                    key={exam.test_id}
+                    exam={exam}
+                    selected={selectedExam}
+                    onSelect={onSelect}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </aside>
   );
 }

@@ -296,7 +296,8 @@ export default function ScholarshipHome() {
       <div className="px-4 pt-4 pb-4">
         <div className="flex items-center gap-2 mb-1.5">
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(237,184,67,0.18)] text-[#ac8121] text-[10px] font-bold uppercase tracking-wider">
-            <Sparkles className="w-3 h-3" /> Scholarship Exam
+            <Sparkles className="w-3 h-3" />
+            Exam
           </span>
         </div>
         <h1 className="text-[26px] font-semibold text-[#002856] leading-[34px]">
@@ -438,7 +439,9 @@ export default function ScholarshipHome() {
                   className="w-full px-6 py-3.5 bg-gradient-to-r from-[#edb843] to-[#e0a92e] text-[#002856] rounded-xl font-bold text-base shadow-md active:scale-[0.99] transition flex items-center justify-center gap-2"
                 >
                   <Play className="w-5 h-5" />
-                  {isInProgress ? "I understand, resume" : "I understand, start"}
+                  {isInProgress
+                    ? "I understand, resume"
+                    : "I understand, start"}
                 </button>
                 <button
                   onClick={() => setShowRules(false)}

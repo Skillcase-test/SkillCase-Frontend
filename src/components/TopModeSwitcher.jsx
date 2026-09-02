@@ -340,8 +340,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
               tabRef={activeTabRef}
               onClick={() => {}}
               image={bookImg}
-              line1="Scholarship"
-              line2="Exam"
+              line1="Exam"
               blendColor={blendColor}
             />
           ) : isB1 ? (

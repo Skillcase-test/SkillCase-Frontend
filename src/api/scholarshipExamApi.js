@@ -39,7 +39,8 @@ export const createSeatCheckout = (testId) =>
 export const createExam = (data) =>
   api.post("/admin/scholarship-exam/create", data);
 
-export const listExams = () => api.get("/admin/scholarship-exam/list");
+export const listExams = (params) =>
+  api.get("/admin/scholarship-exam/list", { params });
 
 export const getExamDetail = (testId) =>
   api.get(`/admin/scholarship-exam/${testId}`);
@@ -52,6 +53,31 @@ export const deleteExam = (testId) =>
 
 export const duplicateExam = (testId) =>
   api.post(`/admin/scholarship-exam/${testId}/duplicate`);
+
+// ── Pathways ───────────────────────────────────────────────────────────────
+// Public, pre-auth feed for the onboarding "What are you here for?" screen.
+export const getPublicPathways = () =>
+  api.get("/scholarship-exam/pathways/public");
+
+// Admin: all pathways incl. the built-in "Jobs in Germany".
+export const listPathways = () =>
+  api.get("/admin/scholarship-exam/pathways");
+
+// Admin: create a pathway. Accepts FormData.
+export const createPathway = (formData) =>
+  api.post("/admin/scholarship-exam/pathways", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+// Admin: edit a pathway. Accepts a FormData (image file field is optional).
+export const updatePathway = (id, formData) =>
+  api.put(`/admin/scholarship-exam/pathways/${id}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+// Admin: delete a pathway.
+export const deletePathway = (id) =>
+  api.delete(`/admin/scholarship-exam/pathways/${id}`);
 
 export const addQuestion = (testId, formData) =>
   api.post(`/admin/scholarship-exam/${testId}/question`, formData, {

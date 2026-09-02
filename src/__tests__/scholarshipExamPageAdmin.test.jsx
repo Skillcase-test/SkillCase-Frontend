@@ -43,6 +43,10 @@ vi.mock("../api/scholarshipExamApi", () => ({
   overrideAnswer: vi.fn(),
   overrideAnswerPoints: vi.fn(),
   exportExamExcel: vi.fn(),
+  listPathways: vi.fn(() => Promise.resolve({ data: { pathways: [] } })),
+  createPathway: vi.fn(),
+  deletePathway: vi.fn(),
+  updatePathway: vi.fn(),
   // OverviewTab reads these on mount. A vi.mock factory is strict — an export
   // it omits throws on access and kills the whole render, so they must resolve.
   getAdminLandingVisibility: vi.fn(() =>
@@ -108,7 +112,7 @@ describe("ScholarshipExamPage (standalone)", () => {
     );
 
     expect(await screen.findByText("Was ist richtig?")).toBeInTheDocument();
-    expect(screen.getByText("Scholarship Test")).toBeInTheDocument();
+    expect(screen.getByText("Scholarship Exam")).toBeInTheDocument();
     expect(screen.getByText("30:00")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Submit/ })).toBeInTheDocument();
     expect(scholarshipApi.startExam).toHaveBeenCalledWith("e1");
@@ -158,12 +162,17 @@ const adminTest = (name, fn) => test(name, fn, 20000);
 describe("AdminScholarshipManager (single-exam workspace)", () => {
   beforeEach(() => vi.clearAllMocks());
 
+  const pathways = [
+    { id: 10, title: "Nursing Pathway", is_builtin: false, is_active: true },
+  ];
+
   const exams = [
-    { test_id: 1, title: "Scholarship 2026", proficiency_level: "ALL", duration_minutes: 60, total_questions: 5, is_active: true, results_visible: false, submission_count: 3 },
-    { test_id: 2, title: "Scholarship 2027", proficiency_level: "ALL", duration_minutes: 45, total_questions: 0, is_active: false, results_visible: false, submission_count: 0 },
+    { test_id: 1, pathway_id: 10, title: "Scholarship 2026", proficiency_level: "ALL", duration_minutes: 60, total_questions: 5, is_active: true, results_visible: false, submission_count: 3 },
+    { test_id: 2, pathway_id: 10, title: "Scholarship 2027", proficiency_level: "ALL", duration_minutes: 45, total_questions: 0, is_active: false, results_visible: false, submission_count: 0 },
   ];
 
   const mockList = () => {
+    scholarshipApi.listPathways.mockResolvedValue({ data: { pathways } });
     scholarshipApi.listExams.mockResolvedValue({ data: { exams } });
     scholarshipApi.getExamDetail.mockResolvedValue({
       data: { exam: exams[0], questions: [] },
@@ -173,22 +182,28 @@ describe("AdminScholarshipManager (single-exam workspace)", () => {
     scholarshipApi.getExamSubmissions.mockResolvedValue({ data: { submissions: [] } });
   };
 
-  // The exam header + tab bar only render once the auto-open has finished, so
-  // waiting on it guarantees the sidebar rows are stable (not mid-reload).
-  // Generous timeout: the full suite runs many files in parallel on a slow box.
-  const waitForExamOpen = () =>
-    screen.findByRole("button", { name: "Questions" }, { timeout: 8000 });
+  // Enters Level 2 workspace from Level 1 PathwaysHub and waits for exam tabs
+  const waitForExamOpen = async () => {
+    const manageBtn = await screen.findByRole("button", { name: /Manage Exams/i }, { timeout: 8000 });
+    fireEvent.click(manageBtn);
+    return screen.findByRole("button", { name: "Questions" }, { timeout: 8000 });
+  };
 
-  adminTest("renders the sidebar exam list with Live/Draft badges and auto-opens the live exam", async () => {
+  adminTest("renders pathways in hub and transitions to scoped exam workspace on Manage Exams", async () => {
     mockList();
     render(<AdminScholarshipManager />);
 
     expect(
-      await screen.findByText("Scholarship Exam Admin"),
+      await screen.findByText("Exam Pathways"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Scholarship 2026")).toBeInTheDocument();
+    expect(screen.getByText("Nursing Pathway")).toBeInTheDocument();
+
+    const manageBtn = screen.getByRole("button", { name: /Manage Exams/i });
+    fireEvent.click(manageBtn);
+
+    expect(await screen.findByText("Scholarship 2026")).toBeInTheDocument();
     expect(screen.getByText("Scholarship 2027")).toBeInTheDocument();
-    expect(screen.getByText("● Live")).toBeInTheDocument();
+    expect(screen.getAllByText("● Live").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Draft").length).toBeGreaterThan(0);
 
     // The live exam opens into the workspace automatically
@@ -246,6 +261,7 @@ describe("AdminScholarshipManager (single-exam workspace)", () => {
 
   adminTest("Activate always asks for confirmation, even with no other live exam", async () => {
     const noLive = exams.map((e) => ({ ...e, is_active: false }));
+    scholarshipApi.listPathways.mockResolvedValue({ data: { pathways } });
     scholarshipApi.listExams.mockResolvedValue({ data: { exams: noLive } });
     scholarshipApi.getExamDetail.mockResolvedValue({
       data: { exam: noLive[0], questions: [] },
@@ -282,7 +298,7 @@ describe("AdminScholarshipManager (single-exam workspace)", () => {
     });
     render(<AdminScholarshipManager />);
 
-    // Wait for the exam header (not just the sidebar title) before acting
+    await waitForExamOpen();
     fireEvent.click(await screen.findByRole("button", { name: "Deactivate" }));
 
     expect(await screen.findByText("Deactivate exam?")).toBeInTheDocument();
@@ -303,7 +319,7 @@ describe("AdminScholarshipManager (single-exam workspace)", () => {
     });
     render(<AdminScholarshipManager />);
 
-    // Wait for the exam header (not just the sidebar title) before acting
+    await waitForExamOpen();
     fireEvent.click(await screen.findByRole("button", { name: "Release Results" }));
 
     expect(await screen.findByText("Release results?")).toBeInTheDocument();
@@ -326,6 +342,7 @@ describe("AdminScholarshipManager (single-exam workspace)", () => {
       ...e,
       results_visible: e.test_id === 1,
     }));
+    scholarshipApi.listPathways.mockResolvedValue({ data: { pathways } });
     scholarshipApi.listExams.mockResolvedValue({ data: { exams: visible } });
     scholarshipApi.getExamDetail.mockResolvedValue({
       data: { exam: visible[0], questions: [] },
@@ -338,7 +355,7 @@ describe("AdminScholarshipManager (single-exam workspace)", () => {
     });
     render(<AdminScholarshipManager />);
 
-    // Wait for the exam header (not just the sidebar title) before acting
+    await waitForExamOpen();
     fireEvent.click(await screen.findByRole("button", { name: "Hide Results" }));
 
     expect(await screen.findByText("Hide results?")).toBeInTheDocument();
@@ -399,6 +416,7 @@ describe("AdminScholarshipManager (single-exam workspace)", () => {
     });
     render(<AdminScholarshipManager />);
 
+    await waitForExamOpen();
     // Open the Submissions tab
     fireEvent.click(await screen.findByRole("button", { name: "Submissions" }));
     expect(await screen.findByText("Anna Schmidt")).toBeInTheDocument();
@@ -432,6 +450,7 @@ describe("AdminScholarshipManager (single-exam workspace)", () => {
   }));
 
   const openCandidatesTab = async () => {
+    await waitForExamOpen();
     fireEvent.click(
       await screen.findByRole("button", { name: "Candidates" }, { timeout: 8000 }),
     );
@@ -653,6 +672,7 @@ describe("AdminScholarshipManager (single-exam workspace)", () => {
     });
     render(<AdminScholarshipManager />);
 
+    await waitForExamOpen();
     fireEvent.click(await screen.findByRole("button", { name: "Submissions" }));
     await screen.findByText("Anna Schmidt");
     fireEvent.click(screen.getByRole("button", { name: "Review" }));
@@ -757,6 +777,7 @@ describe("AdminScholarshipManager (single-exam workspace)", () => {
     });
     render(<AdminScholarshipManager />);
 
+    await waitForExamOpen();
     fireEvent.click(await screen.findByRole("button", { name: "Submissions" }));
     await screen.findByText("Max Müller");
     fireEvent.click(screen.getByRole("button", { name: "Review" }));
@@ -816,6 +837,7 @@ describe("AdminScholarshipManager (single-exam workspace)", () => {
     });
     render(<AdminScholarshipManager />);
 
+    await waitForExamOpen();
     fireEvent.click(await screen.findByRole("button", { name: "Questions" }));
 
     expect(await screen.findByText("Page Break")).toBeInTheDocument();

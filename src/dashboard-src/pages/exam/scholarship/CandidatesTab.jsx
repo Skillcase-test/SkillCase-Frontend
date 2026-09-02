@@ -10,10 +10,11 @@ import { btn, inputCls } from "./ui/buttons";
 const PAGE_SIZE = 10;
 
 /**
- * Candidates tab: auto-granted access explained, plus two searchable,
- * paginated (10 + "Show more") multi-select lists — one to grant access to
- * students who don't have it, one to manage (and bulk-remove) candidates who
- * do. No "Remove All": bulk actions only ever apply to what is selected.
+ * Candidates tab: enrolment explained, plus two searchable, paginated
+ * (10 + "Show more") multi-select lists — one to grant access to students who
+ * don't have it, one to manage (and bulk-remove) candidates who do. A candidate
+ * sits one exam at a time, so moving them to another exam means removing them
+ * here first. No "Remove All": bulk actions only ever apply to what is selected.
  */
 export default function CandidatesTab() {
   const {
@@ -137,10 +138,10 @@ export default function CandidatesTab() {
       <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3 text-xs text-blue-800 flex items-start gap-2">
         <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
         <p>
-          Access is granted automatically to every candidate who visits the
-          exam. Use the lists below to grant access manually, or to remove
-          someone (they will be re-added if they visit again). Bulk actions
-          only ever apply to what you have selected.
+          Candidates are enrolled here — via onboarding or by adding them
+          below. A candidate can be active in only one exam at a time, so you
+          must remove them from another exam before adding them here. Bulk
+          actions only ever apply to what you have selected.
         </p>
       </div>
 
@@ -260,7 +261,7 @@ export default function CandidatesTab() {
               <p className="text-[11px] text-slate-400 mt-0.5">
                 {visQuery
                   ? `${filteredVisStudents.length} matching your search`
-                  : "Auto-added when they visit · search, select and remove in bulk"}
+                  : "Enrolled via onboarding or added manually · search, select and remove in bulk"}
               </p>
             </div>
             {selectedVis.size > 0 && (
@@ -289,7 +290,7 @@ export default function CandidatesTab() {
                 ? "No candidates yet"
                 : "No candidates match your search"
             }
-            sub="They are added automatically when they visit the exam."
+            sub="Candidates appear here once enrolled via onboarding or added manually."
             compact
           />
         ) : (
