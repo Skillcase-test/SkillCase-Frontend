@@ -414,21 +414,32 @@ function AppContent() {
     getMaintenanceStatus(),
   );
 
-  // Public routes that don't require auth
+  // Standalone public acquisition, marketing, trust, and event routes that
+  // are accessible to everyone, including authenticated job-screening candidates.
+  const publicAcquisitionRoutes = [
+    "/start-now",
+    "/register",
+    "/events",
+    "/thank-you",
+    "/open-app",
+    "/redirect",
+    "/continue",
+  ];
+  const isPublicAcquisitionRoute =
+    publicAcquisitionRoutes.some((route) => location.pathname.startsWith(route)) ||
+    /^\/interview\/[^/]+$/.test(location.pathname);
+
+  // Public routes that don't require auth (includes auth entrypoints & terms)
   const publicRoutes = [
     "/login",
     "/signup",
-    "/register",
-    "/open-app",
-    "/thank-you",
-    "/events",
     "/terms/sign",
     "/onboarding",
-    "/start-now",
+    ...publicAcquisitionRoutes,
   ];
   const isPublicRoute =
-    publicRoutes.some((route) => location.pathname.startsWith(route)) ||
-    /^\/interview\/[^/]+$/.test(location.pathname);
+    isPublicAcquisitionRoute ||
+    publicRoutes.some((route) => location.pathname.startsWith(route));
 
   const disablePullToRefresh = useMemo(
     () =>

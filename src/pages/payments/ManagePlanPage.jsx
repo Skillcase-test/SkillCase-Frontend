@@ -26,9 +26,9 @@ export default function ManagePlanPage() {
   const [showCancel, setShowCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
-  // Not premium → back to the upgrade path
+  // Not premium with recurring autopay → redirect
   if (user?.autopay_enabled !== true) {
-    return <Navigate to="/profile/upgrade" replace />;
+    return <Navigate to={user?.is_paid ? "/profile" : "/profile/upgrade"} replace />;
   }
 
   const handleDisableAutopay = async () => {

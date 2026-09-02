@@ -83,6 +83,10 @@ export default function UpgradePlanPage() {
     return <Navigate to="/profile/manage-plan" replace />;
   }
 
+  if (user?.is_paid === true && !showSuccess) {
+    return <Navigate to="/profile" replace />;
+  }
+
   // Never took the free trial yet → the trial offer comes first; the user
   // only lands on payment after the trial is claimed (or they skip it).
   // skipTrialOffer is set by the offer screen's "May be later", so choosing to

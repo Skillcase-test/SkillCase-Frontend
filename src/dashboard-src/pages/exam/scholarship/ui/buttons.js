@@ -26,4 +26,9 @@ export const btn = {
 export const inputCls =
   "w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#002856]/20 focus:border-[#002856]";
 
+// inputCls renders at 42px (text-sm line + py-2.5 + border). Buttons that sit
+// in the same row must pin this height — their smaller text-xs line height
+// otherwise makes them visibly shorter than the inputs.
+export const inputH = "h-[42px]";
+
 export const labelCls = "block text-xs font-semibold text-slate-500 mb-1";

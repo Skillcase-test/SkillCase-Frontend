@@ -1,12 +1,42 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Search, Plus, Trash2, Loader2, UserPlus, Save, RefreshCw } from "lucide-react";
+import { Search, Plus, Trash2, Loader2, UserPlus, Save, RefreshCw, Clock } from "lucide-react";
 import toast from "react-hot-toast";
 import * as api from "../../../../api/scholarshipExamApi";
 import useDebounce from "../../../../hooks/useDebounce";
+import { toUTC, toLocalInput, formatDateTimeIST } from "../../../../utils/dateTime";
 import { btn, inputCls, labelCls } from "./ui/buttons";
+import { formatTimeLeft } from "./ui/timeLeft";
 import ConfirmDialog from "./ui/ConfirmDialog";
 
 const PAGE_SIZE = 25;
+
+/**
+ * datetime-local (IST) → UTC ISO, enforcing "now or later" the same way the
+ * picker's min attribute does client-side. Returns { value } (null = clear /
+ * fall back to the global window) or { error }. An already-saved deadline that
+ * has since passed comes back flagged `unchanged` so editing % or note still
+ * works — only newly picked dates must be in the future.
+ */
+function parseExpiryInput(raw, savedIso) {
+  const trimmed = String(raw).trim();
+  if (trimmed === "") return { value: null };
+  let iso;
+  try {
+    iso = toUTC(trimmed);
+  } catch {
+    return { error: "Pick a valid date and time" };
+  }
+  const ms = new Date(iso).getTime();
+  // datetime-local has minute resolution — compare at that resolution so a
+  // value re-seeded from the server counts as untouched.
+  const savedMs = savedIso ? new Date(savedIso).getTime() : null;
+  const unchanged = savedMs != null && Number.isFinite(savedMs) &&
+    Math.floor(ms / 60000) === Math.floor(savedMs / 60000);
+  if (!unchanged && ms < Date.now()) {
+    return { error: "Deadline must be now or later" };
+  }
+  return { value: iso, unchanged };
+}
 
 export default function UserAwardsTab() {
   const [awards, setAwards] = useState([]);
@@ -20,6 +50,7 @@ export default function UserAwardsTab() {
   const [userResults, setUserResults] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [pct, setPct] = useState("");
+  const [expires, setExpires] = useState("");
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [queryLoading, setQueryLoading] = useState(false);
@@ -28,6 +59,10 @@ export default function UserAwardsTab() {
   const wrapperRef = useRef(null);
   const searchTimeoutRef = useRef(null);
   const activeSearchRef = useRef("");
+
+  // The picker must never offer a past date — recompute the floor on each
+  // render so a form left open overnight can't submit yesterday.
+  const minExpiryInput = toLocalInput(new Date().toISOString());
 
   const fetchAwards = useCallback(async (p = 1) => {
     setLoading(true);
@@ -122,11 +157,18 @@ export default function UserAwardsTab() {
     if (pct === "" || !Number.isInteger(n) || n < 0 || n > 100) {
       toast.error("Scholarship % must be an integer 0–100"); return;
     }
+    const parsedExpiry = parseExpiryInput(expires);
+    if (parsedExpiry.error) { toast.error(parsedExpiry.error); return; }
     setSaving(true);
     try {
-      await api.createUserAward({ user_id: selectedUser.user_id, scholarship_pct: n, reason: reason.trim() || undefined });
+      await api.createUserAward({
+        user_id: selectedUser.user_id,
+        scholarship_pct: n,
+        reason: reason.trim() || undefined,
+        redemption_expires_at: parsedExpiry.value ?? undefined,
+      });
       toast.success("Award created");
-      setSelectedUser(null); setPct(""); setReason(""); setUserResults([]); setUserSearch("");
+      setSelectedUser(null); setPct(""); setExpires(""); setReason(""); setUserResults([]); setUserSearch("");
       await fetchAwards();
     } catch (err) {
       toast.error(err.response?.data?.msg || "Failed to create award");
@@ -135,11 +177,17 @@ export default function UserAwardsTab() {
     }
   };
 
-  const handleUpdate = async (award, newPct, newReason) => {
+  const handleUpdate = async (award, newPct, newReason, newExpires) => {
     const n = Number(newPct);
     if (!Number.isInteger(n) || n < 0 || n > 100) { toast.error("Scholarship % must be 0–100 integer"); return; }
+    const parsedExpiry = parseExpiryInput(newExpires, award.redemption_expires_at);
+    if (parsedExpiry.error) { toast.error(parsedExpiry.error); return; }
     try {
-      await api.updateUserAward(award.id, { scholarship_pct: n, reason: newReason });
+      await api.updateUserAward(award.id, {
+        scholarship_pct: n,
+        reason: newReason,
+        ...(parsedExpiry.unchanged ? {} : { redemption_expires_at: parsedExpiry.value }),
+      });
       toast.success("Award updated");
       await fetchAwards(page);
     } catch (err) {
@@ -185,32 +233,24 @@ export default function UserAwardsTab() {
     <div className="space-y-5">
       {/* Create */}
       <div className="bg-white rounded-xl border border-[#e5e7eb] shadow-sm p-6">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-1">
           <span className="w-8 h-8 rounded-lg bg-[#eef2f6] flex items-center justify-center text-[#002856]">
             <UserPlus className="w-4 h-4" />
           </span>
           <h3 className="text-sm font-bold text-slate-700">Per-user scholarship</h3>
-          <span className="text-xs text-slate-400">— global override, always wins over tier</span>
         </div>
-
-        {/* The award is global, but the candidate only ever sees it on a released
-            result — there is no other screen that reads it. */}
-        <p className="text-xs text-slate-500 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
-          Applies to every exam (not tied to one), and overrides whatever the tiers awarded.
-          The candidate sees it on their result page only once that exam&apos;s results are
-          released — until then the award exists but is invisible to them.
-        </p>
+        <p className="text-xs text-slate-400 mb-4">Overrides tiers and the global redemption window for this user.</p>
 
         <div className="space-y-3">
           <div ref={wrapperRef} className="relative">
-            <label className={labelCls}>Search user (name, username, phone, user_id — min 2 chars)</label>
+            <label className={labelCls}>Search user</label>
             <div className="relative">
               <input
                 data-testid="award-user-search"
                 value={userSearch}
                 onChange={(e) => handleUserSearchChange(e.target.value)}
                 onFocus={handleUserFocus}
-                placeholder="e.g. yash, 98765, user_123"
+                placeholder="Name, username, phone or user_id"
                 className={`${inputCls} pr-9`}
                 autoComplete="off"
               />
@@ -258,21 +298,31 @@ export default function UserAwardsTab() {
             </div>
           )}
 
-          <div className="flex gap-3">
-            <div className="w-36">
+          <div className="flex items-end gap-3">
+            <div className="w-28">
               <label className={labelCls}>Scholarship %</label>
               <input data-testid="award-pct-input" type="number" min={0} max={100} step={1} value={pct} onChange={(e) => setPct(e.target.value)} placeholder="e.g. 25" className={inputCls} />
             </div>
+            <div className="w-56">
+              <label className={labelCls}>Redeem until (IST)</label>
+              <input
+                data-testid="award-expires-input"
+                type="datetime-local"
+                min={minExpiryInput}
+                value={expires}
+                onChange={(e) => setExpires(e.target.value)}
+                title="Redemption deadline for this user. Leave blank to use the exam's global window."
+                className={inputCls}
+              />
+            </div>
             <div className="flex-1">
-              <label className={labelCls}>Internal note (optional — admins only)</label>
-              <input data-testid="award-reason-input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. approved by director, offline drive" className={inputCls} />
+              <label className={labelCls}>Note (optional)</label>
+              <input data-testid="award-reason-input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Internal note, admins only" className={inputCls} />
             </div>
-            <div className="flex items-end">
-              <button data-testid="award-create-btn" onClick={handleCreate} disabled={saving || !selectedUser} className={`${btn.primary} ${!selectedUser ? "opacity-40 cursor-not-allowed" : ""}`}>
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                Save award
-              </button>
-            </div>
+            <button data-testid="award-create-btn" onClick={handleCreate} disabled={saving || !selectedUser} className={`${btn.primary} shrink-0 ${!selectedUser ? "opacity-40 cursor-not-allowed" : ""}`}>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              Save award
+            </button>
           </div>
         </div>
       </div>
@@ -284,7 +334,7 @@ export default function UserAwardsTab() {
           data-testid="award-filter"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Filter awards by name / username / phone"
+          placeholder="Filter by name, username or phone"
           className="flex-1 text-sm bg-transparent border-0 outline-none focus:ring-0 placeholder:text-slate-400"
         />
         {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-400 shrink-0" />}
@@ -324,32 +374,84 @@ export default function UserAwardsTab() {
   );
 }
 
+function WindowChip({ award }) {
+  if (!award.redemption_expires_at) {
+    return (
+      <span data-testid="award-window-global" className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-100 text-slate-500 text-[11px] font-semibold">
+        <Clock className="w-3 h-3" /> Global window
+      </span>
+    );
+  }
+  const msLeft = award.hours_left != null ? award.hours_left * 3600000 : null;
+  const label = formatTimeLeft(msLeft);
+  const expired = msLeft != null && msLeft <= 0;
+  const urgent = !expired && msLeft != null && msLeft < 24 * 3600000;
+  const cls = expired
+    ? "bg-red-50 text-red-600 border border-red-200"
+    : urgent
+      ? "bg-amber-50 text-amber-700 border border-amber-200"
+      : "bg-emerald-50 text-emerald-700 border border-emerald-200";
+  return (
+    <span data-testid="award-window-chip" title={`Redeem until ${formatDateTimeIST(award.redemption_expires_at)} (IST)`} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold ${cls}`}>
+      <Clock className="w-3 h-3" /> {label || "—"}
+    </span>
+  );
+}
+
 function AwardRow({ award, onUpdate, onRevoke }) {
   const [pct, setPct] = useState(String(award.scholarship_pct));
   const [reason, setReason] = useState(award.reason || "");
+  const savedExpires = toLocalInput(award.redemption_expires_at || "");
+  const [expires, setExpires] = useState(savedExpires);
   const [saving, setSaving] = useState(false);
-  const dirty = Number(pct) !== Number(award.scholarship_pct) || (reason || "") !== (award.reason || "");
+  const dirty =
+    Number(pct) !== Number(award.scholarship_pct) ||
+    (reason || "") !== (award.reason || "") ||
+    expires !== savedExpires;
   const handleSave = async () => {
     setSaving(true);
-    await onUpdate(award, pct, reason.trim() || null);
+    await onUpdate(award, pct, reason.trim() || null, expires);
     setSaving(false);
   };
   return (
-    <div data-testid="award-row" className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-slate-800 truncate">{award.fullname || award.username} <span className="font-normal text-slate-400">@{award.username} · {award.number || "—"}</span></p>
-        <p className="text-xs text-slate-400 truncate">{award.user_id} {award.reason ? `· ${award.reason}` : ""}</p>
+    <div data-testid="award-row" className="p-3.5 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition">
+      <div className="flex items-center gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-slate-800 truncate">{award.fullname || award.username} <span className="font-normal text-slate-400">@{award.username} · {award.number || "—"}</span></p>
+          <p className="text-xs text-slate-400 truncate">{award.user_id} {award.reason ? `· ${award.reason}` : ""}</p>
+        </div>
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          <WindowChip award={award} />
+          <button data-testid="award-revoke-btn" onClick={() => onRevoke(award)} className={`${btn.dangerGhost} !px-2 !py-1 text-xs`}>
+            <Trash2 className="w-3 h-3" /> Revoke
+          </button>
+        </div>
       </div>
-      <input data-testid="award-row-pct" type="number" min={0} max={100} step={1} value={pct} onChange={(e) => setPct(e.target.value)} className="w-20 rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
-      <span className="text-xs text-slate-400">%</span>
-      <input data-testid="award-row-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="reason" className="w-36 rounded-lg border border-slate-200 px-2 py-1.5 text-sm" />
-      <button data-testid="award-row-save" onClick={handleSave} disabled={!dirty || saving} className={`${btn.secondary} !px-2 !py-1 text-xs ${!dirty ? "opacity-40" : ""}`}>
-        {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-        Save
-      </button>
-      <button data-testid="award-revoke-btn" onClick={() => onRevoke(award)} className={`${btn.dangerGhost} !px-2 !py-1 text-xs`}>
-        <Trash2 className="w-3 h-3" /> Revoke
-      </button>
+      <div className="mt-3 flex items-end gap-2.5">
+        <div className="w-24">
+          <label className={labelCls}>%</label>
+          <input data-testid="award-row-pct" type="number" min={0} max={100} step={1} value={pct} onChange={(e) => setPct(e.target.value)} className={inputCls} />
+        </div>
+        <div className="w-52">
+          <label className={labelCls}>Redeem until (IST)</label>
+          <input
+            data-testid="award-row-expires"
+            type="datetime-local"
+            value={expires}
+            onChange={(e) => setExpires(e.target.value)}
+            title="Leave blank to use the exam's global window"
+            className={inputCls}
+          />
+        </div>
+        <div className="flex-1">
+          <label className={labelCls}>Note</label>
+          <input data-testid="award-row-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Internal note" className={inputCls} />
+        </div>
+        <button data-testid="award-row-save" onClick={handleSave} disabled={!dirty || saving} className={`${btn.secondary} shrink-0 !px-3 ${!dirty ? "opacity-40" : ""}`}>
+          {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+          Save
+        </button>
+      </div>
     </div>
   );
 }

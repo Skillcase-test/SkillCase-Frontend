@@ -43,6 +43,7 @@ function derivePermittedTabs(role, paymentActions) {
         paymentActions.includes("tab_payments") ||
         paymentActions.includes("tab_payments_view") ||
         paymentActions.includes("tab_payments_download") ||
+        paymentActions.includes("tab_payments_links") ||
         paymentActions.includes("manage")
       ) {
         permitted.add("payments");

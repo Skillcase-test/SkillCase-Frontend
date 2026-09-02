@@ -50,6 +50,7 @@ const PAYMENTS_TAB_OPTIONS = [
   { key: "tab_payments", label: "Payment View: Full Access" },
   { key: "tab_payments_view", label: "Payment View: View Only" },
   { key: "tab_payments_download", label: "Payment View: Download Only" },
+  { key: "tab_payments_links", label: "Payment View: Link Creation" },
   { key: "tab_emandate", label: "EMandate View" },
   { key: "tab_rawlogs", label: "Raw Logs" },
   { key: "tab_invoice", label: "Invoice Send: Full Access" },
@@ -62,6 +63,7 @@ const PAYMENTS_ALL_TAB_KEYS = PAYMENTS_TAB_OPTIONS.map((t) => t.key).filter(
     ![
       "tab_payments_view",
       "tab_payments_download",
+      "tab_payments_links",
       "tab_invoice_view",
       "tab_invoice_download",
     ].includes(key),
@@ -523,6 +525,7 @@ function PermissionPicker({ value, onChange }) {
                               "tab_payments",
                               "tab_payments_view",
                               "tab_payments_download",
+                              "tab_payments_links",
                             ]);
                             const invoiceViewKeys = new Set([
                               "tab_invoice",

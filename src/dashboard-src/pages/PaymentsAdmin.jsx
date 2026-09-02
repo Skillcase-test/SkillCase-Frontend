@@ -208,6 +208,8 @@ export default function PaymentsAdmin() {
         : state.adminRole;
   const hasPaymentFullAccess = state.adminRole === "super_admin" ||
     state.paymentActions.includes("manage") || state.paymentActions.includes("tab_payments");
+  const hasPaymentLinksAccess = hasPaymentFullAccess ||
+    state.paymentActions.includes("tab_payments_links");
   const hasInvoiceFullAccess = state.adminRole === "super_admin" ||
     state.paymentActions.includes("manage") || state.paymentActions.includes("tab_invoice");
   const hasInvoiceDownloadAccess = hasInvoiceFullAccess ||
@@ -434,7 +436,7 @@ export default function PaymentsAdmin() {
                         </ControlButton>
                       </>
                     ) : null}
-                    {state.tab === "payments" && hasPaymentFullAccess ? (
+                    {state.tab === "payments" && hasPaymentLinksAccess ? (
                       <>
                         <ControlDropdown
                           value=""
@@ -450,6 +452,10 @@ export default function PaymentsAdmin() {
                         >
                           Create Payment Link
                         </ControlButton>
+                      </>
+                    ) : null}
+                    {state.tab === "payments" && hasPaymentFullAccess ? (
+                      <>
                         <ControlButton
                           onClick={() =>
                             state.setManualPaymentModal({
@@ -499,7 +505,7 @@ export default function PaymentsAdmin() {
                           >
                             Transactions
                           </button>
-                          {hasPaymentFullAccess ? (
+                          {hasPaymentLinksAccess ? (
                             <button
                               type="button"
                               aria-pressed={state.paymentLinksOnly}
@@ -909,7 +915,7 @@ export default function PaymentsAdmin() {
                         {state.reconciling ? "Reconciling..." : "Reconcile"}
                       </button>
                       ) : null}
-                      {(hasPaymentFullAccess || state.paymentActions.includes("tab_payments_download")) ? (
+                      {(hasPaymentFullAccess || state.paymentActions.includes("tab_payments_download") || state.paymentActions.includes("tab_payments_links")) ? (
                       <ControlButton
                         onClick={actions.exportPaymentsExcel}
                         variant="primary"

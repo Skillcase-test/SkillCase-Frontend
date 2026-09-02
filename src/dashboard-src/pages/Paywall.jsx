@@ -518,12 +518,20 @@ function Paywall() {
   };
 
   // Utility badge formatter
-  const getAutopayBadge = (status, enabled) => {
+  const getAutopayBadge = (status, enabled, isPaid) => {
     if (enabled) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60">
           <CheckCircle className="w-3 h-3" />
           Active
+        </span>
+      );
+    }
+    if (isPaid) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+          <CheckCircle className="w-3 h-3" />
+          Paid
         </span>
       );
     }
@@ -894,6 +902,7 @@ function Paywall() {
                       {getAutopayBadge(
                         student.autopay_status,
                         student.autopay_enabled,
+                        student.is_paid,
                       )}
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap text-center">
