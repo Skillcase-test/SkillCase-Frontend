@@ -45,6 +45,7 @@ export default function SupportTicketsAdmin() {
   const [commentDrafts, setCommentDrafts] = useState({});
   const [commentImageDrafts, setCommentImageDrafts] = useState({});
   const [submittingCommentId, setSubmittingCommentId] = useState(null);
+  const [resolvingTicket, setResolvingTicket] = useState(null);
   const commentFileInputRefs = useRef({});
 
   const fetchTickets = async (silent = false) => {
@@ -265,7 +266,7 @@ export default function SupportTicketsAdmin() {
               Start Progress
             </button>
             <button
-              onClick={() => handleStatusChange(ticket.ticket_id, "resolved")}
+              onClick={() => setResolvingTicket(ticket)}
               className="px-3 py-1 text-[10px] font-bold rounded-lg border border-[#c3ebc6] bg-[#eaf7f0] text-[#1e7e34] hover:bg-[#d6f5df] transition-colors cursor-pointer"
             >
               Resolve
@@ -276,7 +277,7 @@ export default function SupportTicketsAdmin() {
         return (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => handleStatusChange(ticket.ticket_id, "resolved")}
+              onClick={() => setResolvingTicket(ticket)}
               className="px-3 py-1 text-[10px] font-bold rounded-lg border border-transparent bg-[#1e7e34] text-white hover:bg-[#155a24] transition-colors cursor-pointer shadow-sm"
             >
               Resolve Issue
@@ -694,6 +695,48 @@ export default function SupportTicketsAdmin() {
             }`}
             style={imageZoom === 1 ? undefined : { width: `${imageZoom * 100}%` }}
           />
+          </div>
+        </div>
+      )}
+
+      {/* Resolve Ticket Confirmation Modal */}
+      {resolvingTicket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-slate-900">Resolve Support Ticket?</h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Are you sure you want to mark <span className="font-bold text-slate-800">Ticket #{resolvingTicket.ticket_id}</span> ({resolvingTicket.title}) as resolved?
+                </p>
+                <p className="text-xs text-slate-500 leading-relaxed font-medium">
+                  This will update the ticket status and immediately send a push notification to the candidate informing them that action has been taken.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setResolvingTicket(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const tId = resolvingTicket.ticket_id;
+                  setResolvingTicket(null);
+                  await handleStatusChange(tId, "resolved");
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-[#1e7e34] hover:bg-[#155a24] rounded-lg transition-colors cursor-pointer shadow-sm"
+              >
+                Yes, Resolve &amp; Notify
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -763,7 +763,8 @@ export default function ProfilePage() {
 
   const displayName = form.fullname || user?.username || "Amélie Laurent";
   const displayPhone = phoneNumber || user?.number || "8240951870";
-  const isPaidMember = Boolean(user && (user.autopay_enabled === true || user.is_paid === true));
+  const isAutopayActive = Boolean(user && user.autopay_enabled === true);
+  const isPaidMember = Boolean(isAutopayActive || user?.is_paid === true);
   const isTrial = !isPaidMember && isTrialActive(user);
   const trialDays = trialDaysLeft(user);
   const nextBilling = (() => {
@@ -909,46 +910,63 @@ export default function ProfilePage() {
 
             {/* Plan Card — Free vs Premium Member */}
             {isPaidMember ? (
-              <div className="w-full p-3 bg-gradient-to-r from-[#083262] to-[#1E5CA2] rounded-xl flex flex-col gap-2.5">
-                <div className="flex justify-between items-start gap-3">
-                  <div className="flex-1 min-w-0 flex flex-col gap-4">
-                    <div className="flex flex-col gap-2">
+              <div className="w-full p-3.5 bg-gradient-to-r from-[#083262] to-[#1E5CA2] rounded-xl flex flex-col gap-2.5 shadow-sm">
+                <div className="flex justify-between items-center gap-3">
+                  <div className="flex-1 min-w-0 flex flex-col gap-2.5">
+                    <div className="flex flex-col gap-1.5">
                       <div className="flex items-center gap-2">
-                        <div className="p-1 bg-amber-300 rounded-3xl flex items-center justify-center">
+                        <div className="p-1 bg-amber-300 rounded-3xl flex items-center justify-center shrink-0">
                           <GemIcon className="size-4 text-[#002856]" />
                         </div>
                         <span className="text-white text-base font-semibold leading-5">
                           Premium Member
                         </span>
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <p className="text-white text-xs font-normal leading-4">
-                          {user?.autopay_enabled ? "Active Plan: ₹99 / month" : "Active Plan: Full Access"}
+                      <div className="flex flex-col gap-0.5">
+                        <p className="text-white text-xs font-medium leading-4">
+                          {user?.autopay_enabled
+                            ? "Active Plan: ₹99 / month"
+                            : "Active Plan: Full Access"}
                         </p>
-                        {nextBilling && user?.autopay_enabled ? (
-                          <p className="text-white text-xs font-normal leading-4">
+                        {user?.autopay_enabled && nextBilling ? (
+                          <p className="text-white/80 text-[11px] font-normal leading-4">
                             Next billing: {nextBilling}
                           </p>
-                        ) : null}
+                        ) : (
+                          <p className="text-white/80 text-[11px] font-normal leading-4">
+                            All courses &amp; learning features unlocked
+                          </p>
+                        )}
                       </div>
                     </div>
-                    {user?.autopay_enabled && (
+
+                    {user?.autopay_enabled ? (
                       <button
                         onClick={() => navigate("/profile/manage-plan")}
-                        className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                        className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity w-fit"
                       >
                         <span className="text-amber-300 text-xs font-medium">
                           Manage Plan
                         </span>
                         <ChevronRightIcon className="size-3 text-amber-300" />
                       </button>
+                    ) : (
+                      <button
+                        onClick={() => navigate("/")}
+                        className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity w-fit"
+                      >
+                        <span className="text-amber-300 text-xs font-medium">
+                          Start Practicing
+                        </span>
+                        <ChevronRightIcon className="size-3 text-amber-300" />
+                      </button>
                     )}
                   </div>
-                  <div className="size-24 rounded-3xl overflow-hidden shrink-0 ">
+                  <div className="size-20 sm:size-24 rounded-3xl overflow-hidden shrink-0">
                     <img
                       src={diamond}
                       alt="Premium"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                 </div>
@@ -1202,8 +1220,8 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Transactions — Premium members only */}
-            {isAutopayActive && (
+            {/* Transactions — Paid members only */}
+            {isPaidMember && (
               <div className="flex flex-col gap-3">
                 <h3 className="text-base font-semibold text-[#101828] leading-6">
                   Your transactions

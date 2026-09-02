@@ -31,3 +31,7 @@ export const uploadCommentImage = async (file) => {
     }
   });
 };
+
+export const markTicketCommentsRead = async (ticketId) => {
+  return api.post(`/support/ticket/${ticketId}/read`);
+};

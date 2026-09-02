@@ -27,6 +27,7 @@ import {
   uploadScreenshot,
   addTicketComment,
   uploadCommentImage,
+  markTicketCommentsRead,
 } from "../api/supportApi";
 import { stableFile } from "../utils/stableFile";
 import toast from "react-hot-toast";
@@ -59,6 +60,7 @@ export default function SupportWidget() {
   const [commentImageDrafts, setCommentImageDrafts] = useState({});
   const [submittingCommentTicketId, setSubmittingCommentTicketId] =
     useState(null);
+  const [focusedTicketId, setFocusedTicketId] = useState(null);
   const ticketsRef = useRef([]);
   const fileInputRef = useRef(null);
   const modalFileInputRef = useRef(null);
@@ -109,6 +111,41 @@ export default function SupportWidget() {
   useEffect(() => {
     ticketsRef.current = tickets;
   }, [tickets]);
+
+  // Pre-fetch tickets on shell routes to populate unread badge state
+  useEffect(() => {
+    if (showSupport) {
+      fetchTickets(true);
+    }
+  }, [location.pathname, showSupport]);
+
+  // Deep linking: Detect openSupport and ticketId query params
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const shouldOpen = searchParams.get("openSupport") === "true";
+    const ticketIdParam = searchParams.get("ticketId");
+
+    if (shouldOpen || ticketIdParam) {
+      setIsOpen(true);
+      setActiveTab("history");
+
+      if (ticketIdParam) {
+        const numId = Number(ticketIdParam);
+        setFocusedTicketId(numId);
+        setTimeout(() => {
+          const el = document.getElementById(`ticket-card-${numId}`);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 500);
+      }
+
+      // Clean search parameters from URL without reloading
+      searchParams.delete("openSupport");
+      searchParams.delete("ticketId");
+      const newSearch = searchParams.toString();
+      const newUrl = `${location.pathname}${newSearch ? `?${newSearch}` : ""}${location.hash}`;
+      window.history.replaceState(null, "", newUrl);
+    }
+  }, [location.search, location.pathname]);
 
   // Poll for status updates while support panel is open (deferred slightly to ensure smooth opening animation)
   useEffect(() => {
@@ -352,6 +389,39 @@ export default function SupportWidget() {
     }
   };
 
+  const totalUnreadComments = tickets.reduce(
+    (sum, t) => sum + (Number(t.unread_admin_comments_count) || 0),
+    0
+  );
+
+  // When user is in history tab, mark unread comments as read
+  useEffect(() => {
+    if (isOpen && activeTab === "history" && tickets.length > 0) {
+      const unreadTickets = tickets.filter(
+        (t) => (Number(t.unread_admin_comments_count) || 0) > 0
+      );
+      if (unreadTickets.length > 0) {
+        unreadTickets.forEach((t) => {
+          markTicketCommentsRead(t.ticket_id).catch(() => {});
+        });
+        setTickets((prev) =>
+          prev.map((t) =>
+            (Number(t.unread_admin_comments_count) || 0) > 0
+              ? {
+                  ...t,
+                  unread_admin_comments_count: 0,
+                  comments: (t.comments || []).map((c) => ({
+                    ...c,
+                    is_read_by_user: true,
+                  })),
+                }
+              : t
+          )
+        );
+      }
+    }
+  }, [isOpen, activeTab, tickets]);
+
   // Listen for custom event from Profile page
   useEffect(() => {
     const handleOpenSupport = () => {
@@ -391,9 +461,12 @@ export default function SupportWidget() {
             }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="flex items-center justify-center w-10 h-10 bg-[#002856] text-white rounded-full shadow-[0_8px_30px_rgba(0,40,86,0.3)] hover:brightness-110 focus:outline-none cursor-pointer"
+            className="relative flex items-center justify-center w-10 h-10 bg-[#002856] text-white rounded-full shadow-[0_8px_30px_rgba(0,40,86,0.3)] hover:brightness-110 focus:outline-none cursor-pointer"
           >
             <MessageSquare className="w-4 h-4" />
+            {totalUnreadComments > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-rose-500 rounded-full border-2 border-white" />
+            )}
           </Motion.button>
         </div>
       )}
@@ -514,7 +587,12 @@ export default function SupportWidget() {
                     </>
                   )}
                   <History className="w-5 h-5 text-black shrink-0 relative z-10" />
-                  <span className="relative z-10">Ticket History</span>
+                  <span className="relative z-10 flex items-center gap-1.5">
+                    Ticket History
+                    {totalUnreadComments > 0 && (
+                      <span className="w-2 h-2 bg-rose-500 rounded-full" />
+                    )}
+                  </span>
                 </button>
               </div>
 
@@ -674,17 +752,32 @@ export default function SupportWidget() {
                             ticket.created_at,
                           ).toLocaleDateString("en-GB");
 
+                          const hasUnreadReplies = (Number(ticket.unread_admin_comments_count) || 0) > 0;
+                          const isFocused = focusedTicketId === ticket.ticket_id;
+
                           return (
                             <div
+                              id={`ticket-card-${ticket.ticket_id}`}
                               key={ticket.ticket_id}
-                              className="bg-white border border-slate-100 rounded-3xl p-5 shadow-2xs space-y-4"
+                              className={`bg-white border rounded-3xl p-5 shadow-2xs space-y-4 transition-all duration-300 ${
+                                isFocused
+                                  ? "border-[#002856] ring-2 ring-[#002856]/20"
+                                  : "border-slate-100"
+                              }`}
                             >
                               {/* Header Row */}
                               <div className="flex items-start justify-between gap-3">
                                 <div>
-                                  <span className="text-xs font-medium text-slate-400 block">
-                                    {formattedId}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-medium text-slate-400 block">
+                                      {formattedId}
+                                    </span>
+                                    {hasUnreadReplies && (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">
+                                        New Reply
+                                      </span>
+                                    )}
+                                  </div>
                                   <h4 className="font-bold text-slate-900 text-base leading-snug mt-1">
                                     {ticket.title}
                                   </h4>
