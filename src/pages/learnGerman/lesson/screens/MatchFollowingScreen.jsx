@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
+import { useSelector } from "react-redux";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import ProgressBar from "./shared/ProgressBar";
-import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
+import { getMayaImage } from "../../../../utils/mayaAvatars";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 
 // screen.leftItems: [{ id, label, letter, matchId }]
@@ -22,6 +23,7 @@ export default function MatchFollowingScreen({
   title,
   level,
 }) {
+  const { user } = useSelector((state) => state.auth);
   const leftItems = screen?.leftItems || [];
   const rightItems = screen?.rightItems || [];
 
@@ -37,7 +39,7 @@ export default function MatchFollowingScreen({
       <div className="flex items-center px-4 mt-2 shrink-0 z-20 relative">
         <motion.img
           layoutId="mayaMascot"
-          src={mayaLooking}
+          src={getMayaImage("looking", user?.occupation)}
           className="w-24 sm:w-28 h-auto object-contain"
         />
         <motion.div

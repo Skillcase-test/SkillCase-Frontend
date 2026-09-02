@@ -1,6 +1,7 @@
+import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import mayaThumbsup from "../../../../assets/onboarding/mayaThumbsup.webp";
+import { getMayaImage } from "../../../../utils/mayaAvatars";
 import ProgressBar from "./shared/ProgressBar";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import { resolveAssetUrl } from "../../../../utils/imageUtils";
@@ -17,6 +18,7 @@ export default function IntroScreen({
   onDialogueDone,
   onNext,
 }) {
+  const { user } = useSelector((state) => state.auth);
   const bgImage = screen.image
     ? resolveAssetUrl(screen.image)
     : DEFAULT_LESSON_BACKGROUND;
@@ -76,7 +78,7 @@ export default function IntroScreen({
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 21, opacity: 1 }}
             transition={{ delay: 0.3 }}
-            src={mayaThumbsup}
+            src={getMayaImage("thumbsup", user?.occupation)}
             className="w-42 h-auto object-contain z-10 mt-2"
             style={{ transformOrigin: "bottom center" }}
           />

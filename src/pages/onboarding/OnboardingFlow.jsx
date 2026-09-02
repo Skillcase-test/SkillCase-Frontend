@@ -25,6 +25,7 @@ import mayaStanding from "../../assets/onboarding/mayaStanding.webp";
 import mayaWave from "../../assets/onboarding/mayaWave.webp";
 import mayaSmiling from "../../assets/onboarding/mayaSmiling.webp";
 import mayaFull from "../../assets/onboarding/mayaFull.webp";
+import { getMayaImage } from "../../utils/mayaAvatars";
 import nurseIcon from "../../assets/onboarding/nurse.webp";
 import studentIcon from "../../assets/onboarding/student.webp";
 import supportIcon from "../../assets/onboarding/support.webp";
@@ -180,11 +181,7 @@ const BuiltinPathwayCard = React.memo(({ pathway, selected, onSelect }) => (
           className="w-full h-full object-contain"
         />
       ) : pathway.is_builtin ? (
-        <img
-          src={germanFlag}
-          alt=""
-          className="w-full h-full object-contain"
-        />
+        <img src={germanFlag} alt="" className="w-full h-full object-contain" />
       ) : (
         <Briefcase className="w-6 h-6 text-zinc-400" />
       )}
@@ -288,7 +285,9 @@ const OnboardingFlow = () => {
     getPublicPathways()
       .then((res) => {
         if (!cancelled) {
-          setPathways(Array.isArray(res?.data?.pathways) ? res.data.pathways : []);
+          setPathways(
+            Array.isArray(res?.data?.pathways) ? res.data.pathways : [],
+          );
         }
       })
       .catch(() => {
@@ -599,7 +598,10 @@ const OnboardingFlow = () => {
   const handleOtpPaste = (e) => {
     e.preventDefault();
     const pasted = e.clipboardData?.getData("text") || "";
-    const digits = (extractOtp(pasted) || pasted.replace(/\D/g, "")).slice(0, 6);
+    const digits = (extractOtp(pasted) || pasted.replace(/\D/g, "")).slice(
+      0,
+      6,
+    );
     if (digits) {
       const newArr = ["", "", "", "", "", ""];
       for (let k = 0; k < 6; k++) {
@@ -1389,16 +1391,16 @@ const OnboardingFlow = () => {
                     </h2>
                     <div className="flex flex-col gap-3 w-full pb-2 mt-2">
                       {[
-                        { id: "B", label: "Professional nurse", icon: nurseIcon },
                         {
                           id: "A",
-                          label: "Student (learning nursing)",
-                          icon: studentIcon,
+                          label: "Professional nurse",
+                          icon: supportIcon,
                         },
+                        { id: "B", label: "Physiotherapist", icon: nurseIcon },
                         {
                           id: "C",
-                          label: "Healthcare support staff",
-                          icon: supportIcon,
+                          label: "Student (learning nursing)",
+                          icon: studentIcon,
                         },
                         { id: "D", label: "Other", icon: otherIcon },
                       ].map((occ) => (
@@ -1449,7 +1451,7 @@ const OnboardingFlow = () => {
               className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
             >
               <TopSection
-                mascot={mayaWave}
+                mascot={getMayaImage("wave", occupation)}
                 tooltip="What are you here for?"
               />
               <div className="flex-1 bg-white rounded-t-[32px] px-6 py-6 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:mt-0 md:shadow-none md:px-16 md:py-12 md:justify-center md:overflow-y-auto">
@@ -1482,7 +1484,9 @@ const OnboardingFlow = () => {
                               selected={
                                 selectedPathwayOrDefault === otherPathways[0].id
                               }
-                              onSelect={() => selectPathway(otherPathways[0].id)}
+                              onSelect={() =>
+                                selectPathway(otherPathways[0].id)
+                              }
                             />
                           </div>
                         ) : (
@@ -1530,7 +1534,7 @@ const OnboardingFlow = () => {
               className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
             >
               <TopSection
-                mascot={mayaSmiling}
+                mascot={getMayaImage("smiling", occupation)}
                 tooltip="What is your current German level?"
               />
               <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-8 md:h-full md:w-[55%] md:rounded-none md:mt-0 md:shadow-none md:px-16 md:py-12 md:justify-center md:overflow-y-auto">
@@ -1595,7 +1599,7 @@ const OnboardingFlow = () => {
               className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
             >
               <TopSection
-                mascot={mayaSmiling}
+                mascot={getMayaImage("smiling", occupation)}
                 tooltip="What is your current German level?"
               />
               <div className="flex-1 bg-white rounded-t-[32px] px-6 py-3 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-10 md:h-full md:w-[55%] md:rounded-none md:mt-0 md:shadow-none md:px-16 md:py-12 md:justify-center md:overflow-y-auto">
@@ -1628,7 +1632,8 @@ const OnboardingFlow = () => {
                       ]
                         .filter(
                           (lvl) =>
-                            germanStatus !== "I have completed learning German" ||
+                            germanStatus !==
+                              "I have completed learning German" ||
                             lvl.level >= 3,
                         )
                         .map((lvl) => {
@@ -1746,7 +1751,9 @@ const OnboardingFlow = () => {
                             <div className="flex-1 flex flex-wrap items-center gap-2">
                               <span
                                 className={`text-[14px] font-semibold  transition-colors ${
-                                  isSelected ? "text-[#1E76F3]" : "text-[#111827]"
+                                  isSelected
+                                    ? "text-[#1E76F3]"
+                                    : "text-[#111827]"
                                 }`}
                               >
                                 {pref.label}
@@ -1788,7 +1795,7 @@ const OnboardingFlow = () => {
               className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
             >
               <TopSection
-                mascot={mayaSmiling}
+                mascot={getMayaImage("smiling", occupation)}
                 tooltip="Since you already have intermediate or advanced German skills, which path would you like to take?"
               />
 

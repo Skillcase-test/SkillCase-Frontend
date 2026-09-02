@@ -12,7 +12,7 @@ import {
 } from "../utils/shellRoutes";
 import { useFeatureFlags } from "../hooks/useFeatureFlags";
 import bookImg from "../assets/book.webp";
-import mayaSmilingImg from "../assets/onboarding/mayaSmiling.webp";
+import { getMayaImage } from "../utils/mayaAvatars";
 import classImg from "../assets/class.webp";
 import bagImg from "../assets/bag.webp";
 
@@ -384,7 +384,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 tabRef={activeTab === "learn" ? activeTabRef : undefined}
                 onClick={() => handleSwitch("learn")}
                 onPreload={() => handlePreload("learn")}
-                image={mayaSmilingImg}
+                image={getMayaImage("smiling", user?.occupation)}
                 line1="Guided"
                 line2="German"
                 blendColor={blendColor}

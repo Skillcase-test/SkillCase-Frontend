@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   ChevronLeft,
   PhoneCall,
@@ -7,10 +8,12 @@ import {
   HelpCircle,
   AlertCircle,
 } from "lucide-react";
-import mayaImg from "../../../../assets/onboarding/mayaSmiling.webp";
+import { getMayaImage } from "../../../../utils/mayaAvatars";
 
 export default function LobbyScreen({ onStartCall, isConnecting, error }) {
   const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
+  const mayaImg = getMayaImage("smiling", user?.occupation);
   const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [micPermissionState, setMicPermissionState] = useState("unknown");
   const [loopbackStatus, setLoopbackStatus] = useState("idle");

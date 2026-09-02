@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
 import { PhoneOff, Mic, MicOff, Clock4 } from "lucide-react";
-import mayaImg from "../../../../assets/onboarding/mayaSmiling.webp";
+import { getMayaImage } from "../../../../utils/mayaAvatars";
 
 function formatDuration(seconds) {
   const m = Math.floor(seconds / 60)
@@ -56,6 +57,8 @@ export default function CallScreen({
   onToggleManualRecording,
   onSelectTopic,
 }) {
+  const { user } = useSelector((state) => state.auth);
+  const mayaImg = getMayaImage("smiling", user?.occupation);
   const isAiSpeaking = callState === "ai_speaking";
   const isEnding = callState === "ending";
   const chatContainerRef = useRef(null);

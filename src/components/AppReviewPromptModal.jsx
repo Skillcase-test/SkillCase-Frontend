@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
 import { AppReview } from "@capawesome/capacitor-app-review";
 import { AnimatePresence, motion } from "framer-motion";
 import { Star, X } from "lucide-react";
-import mayaThumbsup from "../assets/onboarding/mayaThumbsup.webp";
+import { getMayaImage } from "../utils/mayaAvatars";
 import ModalPortal from "./common/ModalPortal";
 import api from "../api/axios";
 import { recordEvent } from "../telemetry";
@@ -30,6 +31,7 @@ function getHeadline(streakDays) {
 }
 
 export default function AppReviewPromptModal({ blocked = false }) {
+  const { user } = useSelector((state) => state.auth);
   const [pending, setPending] = useState(null); // { milestone, streakDays } queued before open
   const [visible, setVisible] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -242,7 +244,7 @@ export default function AppReviewPromptModal({ blocked = false }) {
                   <div className="relative flex items-center justify-center">
                     <div className="size-24 bg-blue-100 rounded-[58.54px] overflow-hidden shrink-0">
                       <img
-                        src={mayaThumbsup}
+                        src={getMayaImage("thumbsup", user?.occupation)}
                         alt="Maya giving a thumbs up for your streak"
                         className="w-full h-full object-cover"
                       />

@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import ProgressBar from "./shared/ProgressBar";
-import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
+import { getMayaImage } from "../../../../utils/mayaAvatars";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import TypewriterText from "./shared/TypewriterText";
 import { hapticLight } from "../../../../utils/haptics";
@@ -17,6 +18,7 @@ export default function ConversationIntroScreen({
   title,
   level,
 }) {
+  const { user } = useSelector((state) => state.auth);
   const mayaDialogues =
     Array.isArray(screen?.dialogues) && screen.dialogues.length
       ? screen.dialogues
@@ -65,7 +67,9 @@ export default function ConversationIntroScreen({
         <img
           className="w-22 h-22 object-contain z-10 drop-shadow-md"
           src={
-            screen?.mayaImage ? resolveAssetUrl(screen.mayaImage) : mayaLooking
+            screen?.mayaImage
+              ? resolveAssetUrl(screen.mayaImage)
+              : getMayaImage("looking", user?.occupation)
           }
           alt="Character"
         />

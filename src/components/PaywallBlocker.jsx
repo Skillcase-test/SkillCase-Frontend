@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Loader2, Phone, Lock, Check } from "lucide-react";
-import mayaLooking from "../assets/onboarding/mayaLooking.webp";
+import { getMayaImage } from "../utils/mayaAvatars";
 import { useAutopayCheckout } from "../hooks/useAutopayCheckout";
 import { useNavigate } from "react-router-dom";
 
@@ -39,7 +39,7 @@ export default function PaywallBlocker({ user, dispatch, onSuccess }) {
         {/* Mascot Image positioned inside the card */}
         <div className="w-20 h-20 rounded-full shadow-sm bg-[#a2c5f2] overflow-hidden flex items-center justify-center shrink-0">
           <img
-            src={mayaLooking}
+            src={getMayaImage("looking", user?.occupation)}
             alt="Maya mascot looking"
             className="w-full h-full object-cover"
           />

@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useSelector } from "react-redux";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Lightbulb } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import ProgressBar from "./shared/ProgressBar";
-import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
+import { getMayaImage } from "../../../../utils/mayaAvatars";
 import handtap from "../../../../assets/handtap.webp";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import WaveformIcon from "./shared/WaveformIcon";
@@ -23,6 +24,7 @@ export default function VocabScreen({
   title,
   level,
 }) {
+  const { user } = useSelector((state) => state.auth);
   const vocab = {
     img: screen?.image ? resolveAssetUrl(screen.image) : fallbackImg,
     word: screen?.word || "Word",
@@ -43,7 +45,7 @@ export default function VocabScreen({
       <div className="flex items-center px-4 mt-2 shrink-0 z-20 relative">
         <motion.img
           layoutId="mayaMascot"
-          src={mayaLooking}
+          src={getMayaImage("looking", user?.occupation)}
           className="w-24 sm:w-28 h-auto object-contain"
         />
         <motion.div

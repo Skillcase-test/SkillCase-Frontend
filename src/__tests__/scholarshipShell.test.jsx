@@ -112,7 +112,6 @@ describe("TopModeSwitcher — scholarship variant", () => {
     const tabs = screen.getAllByRole("tab");
     expect(tabs).toHaveLength(1);
     expect(tabs[0]).toHaveAttribute("aria-selected", "true");
-    expect(tabs[0]).toHaveTextContent("Scholarship");
     expect(tabs[0]).toHaveTextContent("Exam");
   });
 

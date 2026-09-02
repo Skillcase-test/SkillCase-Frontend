@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
+import { useSelector } from "react-redux";
 import { DndContext, closestCenter, DragOverlay } from "@dnd-kit/core";
 import ProgressBar from "./shared/ProgressBar";
 import DraggablePill from "./shared/DraggablePill";
 import DroppableSlot from "./shared/DroppableSlot";
 import DragResultModal from "./shared/DragResultModal";
-import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
+import { getMayaImage } from "../../../../utils/mayaAvatars";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import { resolveAssetUrl } from "../../../../utils/imageUtils";
 
@@ -27,6 +28,7 @@ export default function MatchImageScreen({
   title,
   level,
 }) {
+  const { user } = useSelector((state) => state.auth);
   const dragSlots = screen?.slots || [];
   const dragItemsBank = screen?.items || [];
   const allPlaced = Object.values(placedItems).every((i) => i !== null);
@@ -56,7 +58,7 @@ export default function MatchImageScreen({
           <motion.img
             layoutId="mayaMascot"
             className="w-[90px] shrink-0 z-10 drop-shadow-md"
-            src={mayaLooking}
+            src={getMayaImage("looking", user?.occupation)}
           />
           <motion.div
             layoutId="mayaDialog"

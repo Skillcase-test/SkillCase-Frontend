@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { getScholarshipExam } from "../../api/scholarshipExamApi";
 import { useFirstPartyAnalytics } from "../../telemetry/legacyAnalytics";
+import { getMayaImage } from "../../utils/mayaAvatars";
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,9 +17,6 @@ import {
   RefreshCw,
   X,
 } from "lucide-react";
-import mayaWave from "../../assets/onboarding/mayaWave.webp";
-import mayaSmiling from "../../assets/onboarding/mayaSmiling.webp";
-import mayaThumbsup from "../../assets/onboarding/mayaThumbsup.webp";
 import mayaSad from "../../assets/onboarding/mayaSad.webp";
 
 function formatRemaining(seconds) {
@@ -62,6 +61,7 @@ const EXAM_RULES = [
 export default function ScholarshipHome() {
   const navigate = useNavigate();
   const analytics = useFirstPartyAnalytics();
+  const { user } = useSelector((state) => state.auth);
 
   const [exam, setExam] = useState(null);
   const [submission, setSubmission] = useState(null);
@@ -138,7 +138,7 @@ export default function ScholarshipHome() {
     return (
       <div className="min-h-[75vh] flex flex-col items-center justify-center bg-white p-6 text-center">
         <img
-          src={blocked ? mayaSad : mayaWave}
+          src={blocked ? mayaSad : getMayaImage("wave", user?.occupation)}
           alt=""
           className="w-28 h-28 object-contain mb-4 opacity-90"
         />
@@ -181,16 +181,16 @@ export default function ScholarshipHome() {
     !windowClosed;
 
   // Maya pose per state
-  let mascot = mayaWave;
+  let mascot = getMayaImage("wave", user?.occupation);
   let mascotAlt = "Maya waving";
   if (isInProgress) {
-    mascot = mayaSmiling;
+    mascot = getMayaImage("smiling", user?.occupation);
     mascotAlt = "Maya smiling";
   } else if (isCompleted && resultsReleased) {
-    mascot = mayaThumbsup;
+    mascot = getMayaImage("thumbsup", user?.occupation);
     mascotAlt = "Maya giving a thumbs up";
   } else if (isCompleted) {
-    mascot = mayaThumbsup;
+    mascot = getMayaImage("thumbsup", user?.occupation);
     mascotAlt = "Maya cheering";
   } else if (status === "warned_out" || status === "auto_closed") {
     mascot = mayaSad;

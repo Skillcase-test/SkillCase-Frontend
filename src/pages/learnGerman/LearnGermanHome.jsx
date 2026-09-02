@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Check, Lock, X } from "lucide-react";
-import mayaThumbsup from "../../assets/onboarding/mayaThumbsup.webp";
+import { getMayaImage } from "../../utils/mayaAvatars";
 import {
   getLGMode,
   getLessonsList,
@@ -199,6 +199,7 @@ const GuideSpotlight = ({ rect, radius = 22, onClick, children }) => {
 };
 
 function RestartLessonModal({ isOpen, chapterTitle, onRestart, onClose }) {
+  const { user } = useSelector((state) => state.auth);
   if (!isOpen) return null;
 
   return (
@@ -236,7 +237,7 @@ function RestartLessonModal({ isOpen, chapterTitle, onRestart, onClose }) {
             <div className="absolute w-[240px] h-[240px] bg-white/40 rounded-full top-[-60px] z-0" />
             <div className="absolute w-[160px] h-[160px] bg-white rounded-full top-[-20px] z-10" />
             <motion.img
-              src={mayaThumbsup}
+              src={getMayaImage("thumbsup", user?.occupation)}
               alt="Maya"
               className="relative z-20 h-36 object-contain drop-shadow-md self-end"
               initial={{ y: 30, opacity: 0 }}

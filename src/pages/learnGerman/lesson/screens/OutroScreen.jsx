@@ -1,13 +1,15 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { useSelector } from "react-redux";
 import { useState } from "react";
 import ProgressBar from "./shared/ProgressBar";
-import mayaThumbsup from "../../../../assets/onboarding/mayaThumbsup.webp";
+import { getMayaImage } from "../../../../utils/mayaAvatars";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import TapIndicator from "./shared/TapIndicator";
 
 // screen.dialogues: string[] — Maya speaks these one by one as user taps
 // Tapping through all dialogues advances to the level-complete modal
 export default function OutroScreen({ screen, progressRatio, title, level }) {
+  const { user } = useSelector((state) => state.auth);
   const [dialogueIndex, setDialogueIndex] = useState(0);
   const dialogues = screen?.dialogues || ["Great job! See you next time."];
 
@@ -65,7 +67,7 @@ export default function OutroScreen({ screen, progressRatio, title, level }) {
         {/* Maya mascot — large, standing proud */}
         <motion.img
           layoutId="mayaMascot"
-          src={mayaThumbsup}
+          src={getMayaImage("thumbsup", user?.occupation)}
           className="w-56 object-contain"
           initial={{ y: 40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}

@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { useSelector } from "react-redux";
 import { ArrowRight } from "lucide-react";
-import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
+import { getMayaImage } from "../../../../utils/mayaAvatars";
 import { useEffect, useState } from "react";
 import ProgressBar from "./shared/ProgressBar";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
@@ -17,6 +18,7 @@ export default function LessonScenarioScreen({
   guidedTapNonce = 0,
   onGuidedCompleteTap,
 }) {
+  const { user } = useSelector((state) => state.auth);
   const [dialogueIndex, setDialogueIndex] = useState(0);
   const [imgError, setImgError] = useState(false);
   const dialogues = screen.dialogues || [];
@@ -76,7 +78,11 @@ export default function LessonScenarioScreen({
         >
           <motion.img
             layoutId="mayaMascot"
-            src={screen.mayaImage ? resolveAssetUrl(screen.mayaImage) : mayaLooking}
+            src={
+              screen.mayaImage
+                ? resolveAssetUrl(screen.mayaImage)
+                : getMayaImage("looking", user?.occupation)
+            }
             className="absolute -left-2 bottom-0 w-[110px] sm:w-32 h-auto object-contain z-20"
             transition={{
               layout: { duration: 0.45, ease: [0.22, 1, 0.36, 1] },

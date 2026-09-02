@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Check, Gem, Loader2, Lock, Phone, X } from "lucide-react";
-import mayaLooking from "../assets/onboarding/mayaLooking.webp";
+import { getMayaImage } from "../utils/mayaAvatars";
 import mayaSad from "../assets/onboarding/mayaSad.webp";
 import timerImg from "../assets/timer.webp";
 import { useAutopayCheckout } from "../hooks/useAutopayCheckout";
@@ -201,7 +201,11 @@ export default function UsageLimitModal() {
             <div className="flex items-center justify-center">
               <div className="size-24 bg-blue-100 rounded-full overflow-hidden relative shrink-0">
                 <img
-                  src={isHardLocked || expired ? mayaLooking : mayaSad}
+                  src={
+                    isHardLocked || expired
+                      ? getMayaImage("looking", user?.occupation)
+                      : mayaSad
+                  }
                   alt={
                     isHardLocked
                       ? "Maya presenting the premium plan"

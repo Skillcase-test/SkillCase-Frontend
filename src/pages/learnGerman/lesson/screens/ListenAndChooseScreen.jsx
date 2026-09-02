@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
+import { useSelector } from "react-redux";
 import { ArrowLeft, ArrowRight, Volume2 } from "lucide-react";
 import ProgressBar from "./shared/ProgressBar";
-import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
+import { getMayaImage } from "../../../../utils/mayaAvatars";
 import handtap from "../../../../assets/handtap.webp";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import WaveformIcon from "./shared/WaveformIcon";
@@ -29,6 +30,7 @@ export default function ListenAndChooseScreen({
   title,
   level,
 }) {
+  const { user } = useSelector((state) => state.auth);
   const options = screen?.options || [];
   const audioText = screen?.audioText || "";
   const question = screen?.question || "What is it?";
@@ -48,7 +50,7 @@ export default function ListenAndChooseScreen({
         <motion.img
           layoutId="mayaMascot"
           className="w-[90px] shrink-0 z-10 drop-shadow-md"
-          src={mayaLooking}
+          src={getMayaImage("looking", user?.occupation)}
         />
         <motion.div
           layoutId="mayaDialog"

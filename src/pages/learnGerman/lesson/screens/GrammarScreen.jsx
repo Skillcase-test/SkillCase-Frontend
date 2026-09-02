@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
+import { useSelector } from "react-redux";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import ProgressBar from "./shared/ProgressBar";
-import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
+import { getMayaImage } from "../../../../utils/mayaAvatars";
 import handtap from "../../../../assets/handtap.webp";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import WaveformIcon from "./shared/WaveformIcon";
@@ -21,6 +22,7 @@ export default function GrammarScreen({
   level,
   onBackClick,
 }) {
+  const { user } = useSelector((state) => state.auth);
   const grammar = {
     text: screen?.text || "",
     dialogue: screen?.dialogue || "Let's look at some grammar!",
@@ -47,7 +49,7 @@ export default function GrammarScreen({
       <div className="flex items-center px-4 mt-2 shrink-0 z-20 relative">
         <motion.img
           layoutId="mayaMascot"
-          src={mayaLooking}
+          src={getMayaImage("looking", user?.occupation)}
           className="w-24 sm:w-28 h-auto object-contain self-end"
         />
         <motion.div

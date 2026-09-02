@@ -19,9 +19,10 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Check, X } from "lucide-react";
+import { useSelector } from "react-redux";
 import ProgressBar from "./shared/ProgressBar";
 import DragResultModal from "./shared/DragResultModal";
-import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
+import { getMayaImage } from "../../../../utils/mayaAvatars";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 
 
@@ -155,6 +156,7 @@ export default function UnjumbleScreen({
   title,
   level,
 }) {
+  const { user } = useSelector((state) => state.auth);
   const unjumbleSlots = screen?.slots || [];
   const unjumbleItemsBank = screen?.items || [];
 
@@ -347,7 +349,7 @@ export default function UnjumbleScreen({
           <motion.img
             layoutId="mayaMascot"
             className="w-[90px] shrink-0 z-10 drop-shadow-md"
-            src={mayaLooking}
+            src={getMayaImage("looking", user?.occupation)}
           />
           <motion.div
             layoutId="mayaDialog"

@@ -28,7 +28,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
-import mayaSmiling from "../../assets/onboarding/mayaSmiling.webp";
+import { getMayaImage } from "../../utils/mayaAvatars";
 import { setUser } from "../../redux/auth/authSlice";
 import { trackFeatureEvent } from "../../telemetry/events";
 import { captureTelemetryError } from "../../telemetry";
@@ -753,7 +753,7 @@ const JobScreening = () => {
           {/* Mascot and Speech Bubble */}
           <div className="flex flex-col items-center gap-4 w-full">
             <img
-              src={mayaSmiling}
+              src={getMayaImage("smiling", user?.occupation)}
               alt="Maya mascot smiling"
               className="w-24 h-24 object-contain"
             />

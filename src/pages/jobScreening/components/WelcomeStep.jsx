@@ -1,12 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { completeWelcome, markStepNoteViewed } from "../../../api/jobScreeningApi";
 import { Plane, Database, RefreshCw } from "lucide-react";
-import mayaThumbsup from "../../../assets/onboarding/mayaThumbsup.webp";
+import { getMayaImage } from "../../../utils/mayaAvatars";
 import { trackFlowAction } from "../../../telemetry/flow";
 import RejectionNote from "../../../components/RejectionNote";
 
 const WelcomeStep = ({ progress, onComplete }) => {
+  const { user } = useSelector((state) => state.auth);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -84,7 +86,7 @@ const WelcomeStep = ({ progress, onComplete }) => {
           {/* Inner Circle with Thumbs-up Mascot */}
           <div className="w-26 h-26 sm:w-32 sm:h-32 bg-gradient-to-b from-[#3b82f6] to-[#93c5fd] rounded-full overflow-hidden flex items-center justify-center shadow-md relative z-10">
             <img
-              src={mayaThumbsup}
+              src={getMayaImage("thumbsup", user?.occupation)}
               alt="Mascot Thumbs Up"
               className="w-24 h-28 sm:w-28 sm:h-32 object-contain translate-y-2 select-none"
               draggable="false"

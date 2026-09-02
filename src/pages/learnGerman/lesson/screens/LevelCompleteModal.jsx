@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { useSelector } from "react-redux";
 import { X } from "lucide-react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import mayaThumbsup from "../../../../assets/onboarding/mayaThumbsup.webp";
+import { getMayaImage } from "../../../../utils/mayaAvatars";
 import germanFlag from "../../../../assets/onboarding/germanFlag.webp";
 import TypewriterText from "./shared/TypewriterText";
 import {
@@ -88,6 +89,7 @@ export default function LevelCompleteModal({
   coinsAwarded = 20,
   vocabWordCount = 0,
 }) {
+  const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -174,7 +176,7 @@ export default function LevelCompleteModal({
               <div className="absolute w-[240px] h-[240px] bg-white/40 rounded-full top-[-60px] z-0" />
               <div className="absolute w-[160px] h-[160px] bg-white rounded-full top-[-20px] z-0" />
               <motion.img
-                src={mayaThumbsup}
+                src={getMayaImage("thumbsup", user?.occupation)}
                 alt="Maya"
                 className="relative z-10 h-40 object-contain drop-shadow-md self-end"
                 initial={{ y: 30, opacity: 0 }}

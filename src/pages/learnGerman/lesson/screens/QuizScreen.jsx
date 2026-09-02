@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -11,7 +12,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import ProgressBar from "./shared/ProgressBar";
-import mayaLooking from "../../../../assets/onboarding/mayaLooking.webp";
+import { getMayaImage } from "../../../../utils/mayaAvatars";
 import handtap from "../../../../assets/handtap.webp";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import WaveformIcon from "./shared/WaveformIcon";
@@ -23,6 +24,8 @@ const LETTERS = ["A", "B", "C", "D"];
 export default function QuizScreen({
   screen,
   onPrev,
+  onNext,
+  onSkip,
   canGoPrev = false,
   selectedOption,
   setSelectedOption,
@@ -33,6 +36,7 @@ export default function QuizScreen({
   title,
   level,
 }) {
+  const { user } = useSelector((state) => state.auth);
   const [imgError, setImgError] = useState(false);
   const options = screen?.options || ["Option 1", "Option 2", "Option 3"];
   const question = screen?.question || "What is the answer?";
@@ -49,7 +53,7 @@ export default function QuizScreen({
       <div className="flex items-center px-4 mt-2 shrink-0 z-20 relative">
         <motion.img
           layoutId="mayaMascot"
-          src={mayaLooking}
+          src={getMayaImage("looking", user?.occupation)}
           className="w-24 sm:w-28 h-auto object-contain"
         />
         <motion.div

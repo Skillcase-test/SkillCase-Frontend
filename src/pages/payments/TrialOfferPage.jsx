@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Check, Gem, Loader2 } from "lucide-react";
 import api from "../../api/axios";
 import { setUser } from "../../redux/auth/authSlice";
-import mayaWave from "../../assets/onboarding/mayaWave.webp";
+import { getMayaImage } from "../../utils/mayaAvatars";
 import trialBadge from "../../assets/trial.webp";
 import { isPremiumUser, hasTakenTrial } from "../../utils/premium";
 
@@ -182,7 +182,7 @@ export default function TrialOfferPage() {
                 <div className="w-50 h-32 relative">
                   <div className="absolute size-32 bg-blue-100 rounded-[88px] overflow-hidden shrink-0">
                     <img
-                      src={mayaWave}
+                      src={getMayaImage("wave", user?.occupation)}
                       alt="Maya waving"
                       className="w-full h-full object-cover"
                     />

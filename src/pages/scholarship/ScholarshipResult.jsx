@@ -26,7 +26,7 @@ import {
   Ticket,
   CheckCircle2,
 } from "lucide-react";
-import mayaThumbsup from "../../assets/onboarding/mayaThumbsup.webp";
+import { getMayaImage } from "../../utils/mayaAvatars";
 import mayaShocked from "../../assets/onboarding/mayaShocked.webp";
 import mayaSad from "../../assets/onboarding/mayaSad.webp";
 
@@ -691,7 +691,7 @@ export default function ScholarshipResult() {
 
                 {/* 4. Maya Character Asset */}
                 <img
-                  src={mayaThumbsup}
+                  src={getMayaImage("thumbsup", user?.occupation)}
                   alt="Maya cheering"
                   className="relative z-20 w-40 sm:w-44 object-contain drop-shadow-[0_8px_14px_rgba(0,40,86,0.12)]"
                 />
