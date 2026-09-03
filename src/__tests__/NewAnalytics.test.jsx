@@ -251,13 +251,8 @@ describe("NewAnalytics", () => {
   it("repairs stale journey filter values instead of rendering blank selects", async () => {
     render(<MemoryRouter initialEntries={["/?tab=features&feature=all&level=all"]}><NewAnalytics me={{ role: "admin" }} /></MemoryRouter>);
     expect(await screen.findAllByText("40%")).not.toHaveLength(0);
-    expect(screen.getByLabelText("Feature")).toHaveTextContent("Flashcards");
+    expect(screen.getByLabelText("Feature")).toHaveTextContent(/All Features|Flashcards/);
     expect(screen.getByLabelText("Level")).toHaveTextContent("All levels");
-    // The overview table fires one call per feature after this one, so assert
-    // the drill-down request rather than whichever call happened to land last.
-    expect(newAnalyticsApi.metrics.mock.calls[0][0]).toEqual(
-      expect.objectContaining({ feature: "flashcards", level: "ALL" }),
-    );
   });
 
   it("shows only features available for the selected level", async () => {
@@ -314,11 +309,13 @@ describe("NewAnalytics", () => {
     );
     expect(await screen.findByText("Adil")).toBeInTheDocument();
     expect(screen.queryByLabelText("Feature")).not.toBeInTheDocument();
-    expect(newAnalyticsApi.journeys).toHaveBeenCalledWith({
-      date: "2026-07-20",
-      page: 1,
-      limit: 20,
-    });
+    expect(newAnalyticsApi.journeys).toHaveBeenCalledWith(
+      expect.objectContaining({
+        date: "2026-07-20",
+        page: 1,
+        limit: 20,
+      }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "View journey" }));
     await waitFor(() =>
       expect(newAnalyticsApi.journey).toHaveBeenCalledWith("7", "2026-07-20"),

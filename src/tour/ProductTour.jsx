@@ -41,7 +41,26 @@ export default function ProductTour({ children }) {
   const [a1MigrationStatus, setA1MigrationStatus] = useState(null);
   const [migrationLoading, setMigrationLoading] = useState(false);
   const isA1 = user?.user_prof_level?.toLowerCase() === "a1";
-  const canRunLegacyTour = !isA1 || a1MigrationStatus === "legacy_acknowledged";
+
+  const checkTopSwitcherDone = () =>
+    Boolean(user?.top_switcher_tour_completed) ||
+    (user?.user_id &&
+      localStorage.getItem(`top_switcher_tour_completed_${user.user_id}`) === "true");
+
+  const [topSwitcherDone, setTopSwitcherDone] = useState(checkTopSwitcherDone);
+
+  useEffect(() => {
+    setTopSwitcherDone(checkTopSwitcherDone());
+  }, [user?.user_id, user?.top_switcher_tour_completed]);
+
+  useEffect(() => {
+    const handleTopSwitcherComplete = () => setTopSwitcherDone(true);
+    window.addEventListener("topSwitcherTourComplete", handleTopSwitcherComplete);
+    return () => window.removeEventListener("topSwitcherTourComplete", handleTopSwitcherComplete);
+  }, []);
+
+  const canRunLegacyTour =
+    (!isA1 || a1MigrationStatus === "legacy_acknowledged") && topSwitcherDone;
   const legacyTourEnabled = Boolean(user && user.onboarding_completed === false && tourPage && canRunLegacyTour);
   useTourJourney({ enabled: legacyTourEnabled, tourId: "legacy_product_tour", phase: tourPage, tourVersion: "1" });
 

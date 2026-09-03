@@ -40,7 +40,9 @@ export const createExam = (data) =>
   api.post("/admin/scholarship-exam/create", data);
 
 export const listExams = (params) =>
-  api.get("/admin/scholarship-exam/list", { params });
+  params
+    ? api.get("/admin/scholarship-exam/list", { params })
+    : api.get("/admin/scholarship-exam/list");
 
 export const getExamDetail = (testId) =>
   api.get(`/admin/scholarship-exam/${testId}`);

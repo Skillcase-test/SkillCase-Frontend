@@ -245,8 +245,12 @@ const JobScreening = () => {
           scrollContainer !== document.documentElement &&
           scrollContainer !== document.body
         ) {
-          scrollContainer.scrollBy({ top: delta, behavior: "smooth" });
-        } else {
+          if (typeof scrollContainer.scrollBy === "function") {
+            scrollContainer.scrollBy({ top: delta, behavior: "smooth" });
+          } else {
+            scrollContainer.scrollTop += delta;
+          }
+        } else if (typeof window.scrollBy === "function") {
           window.scrollBy({ top: delta, behavior: "smooth" });
         }
       }, 300);
@@ -255,10 +259,28 @@ const JobScreening = () => {
   }, [progress, isExecutingStep]);
 
   const fetchProgress = async () => {
+    const isTopTourCompleted = Boolean(
+      !user?.user_id ||
+        user?.top_switcher_tour_completed ||
+        (user?.user_id &&
+          localStorage.getItem(`top_switcher_tour_completed_${user.user_id}`) === "true"),
+    );
+
+    const isTourActive =
+      Boolean(typeof window !== "undefined" && window.__topSwitcherTourActive) ||
+      (typeof sessionStorage !== "undefined" &&
+        sessionStorage.getItem("top_switcher_tour_active") === "true");
+
+    const isB1User = isB1PracticeLevel(user?.user_prof_level);
+
     // If user is no longer a job screening candidate, redirect to home
+    // (B1/B2 users have legitimate access via the switcher, and tour preview must never be bounced)
     const isJobCandidate =
+      isB1User ||
+      isTourActive ||
       user?.german_preference === "3" ||
       user?.lg_preferred_mode === "job_screening";
+
     if (!isJobCandidate) {
       const redirectTo = getEligibleHomeRoute(user);
       trackFeatureEvent("job_screening", "eligibility_redirected", {
@@ -300,6 +322,10 @@ const JobScreening = () => {
           .toLowerCase()
           .includes("not eligible")
       ) {
+        if (isTourActive || isB1User) {
+          setLoading(false);
+          return;
+        }
         setRedirecting(true);
         setError("");
         let refreshedUser = user;

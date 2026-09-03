@@ -27,6 +27,9 @@ import {
 
 const A2_TOUR_STATE_KEY = "a2_tour_state";
 
+const getA2TourStateKey = (userId) =>
+  userId ? `${A2_TOUR_STATE_KEY}_${userId}` : A2_TOUR_STATE_KEY;
+
 const ALL_PHASES = [
   "landing",
   "flashcard_select",
@@ -43,8 +46,8 @@ const ALL_PHASES = [
   "test_level",
 ];
 
-function getInitialState() {
-  const saved = localStorage.getItem(A2_TOUR_STATE_KEY);
+function getInitialState(key = A2_TOUR_STATE_KEY) {
+  const saved = localStorage.getItem(key);
   if (saved) {
     try {
       return JSON.parse(saved);
@@ -119,7 +122,8 @@ export default function A2ProductTour({ children }) {
   const driverRef = useRef(null);
   const activeFeatureRef = useRef(null);
   const phaseLabelRef = useRef(null);
-  const [tourState, setTourState] = useState(getInitialState);
+  const tourKey = getA2TourStateKey(user?.user_id);
+  const [tourState, setTourState] = useState(() => getInitialState(tourKey));
   const [activeFeature, setActiveFeature] = useState(null);
   const [activePhase, setActivePhase] = useState(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -127,12 +131,45 @@ export default function A2ProductTour({ children }) {
 
   const isA2 = user?.user_prof_level?.toLowerCase() === "a2";
   const isDone = user?.a2_onboarding_completed === true;
-  useTourJourney({ enabled: Boolean(isA2 && !isDone && activeFeature), tourId: "a2_product_tour", phase: activePhase || activeFeature, tourVersion: "1" });
+
+  const checkTopSwitcherDone = () =>
+    Boolean(user?.top_switcher_tour_completed) ||
+    (user?.user_id &&
+      localStorage.getItem(`top_switcher_tour_completed_${user.user_id}`) === "true");
+
+  const [topSwitcherDone, setTopSwitcherDone] = useState(checkTopSwitcherDone);
+
+  useEffect(() => {
+    setTopSwitcherDone(checkTopSwitcherDone());
+  }, [user?.user_id, user?.top_switcher_tour_completed]);
+
+  useEffect(() => {
+    if (!user?.user_id) return;
+    const key = getA2TourStateKey(user.user_id);
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        setTourState(JSON.parse(saved));
+      } catch {}
+    }
+  }, [user?.user_id]);
+
+  useEffect(() => {
+    const handleTopSwitcherComplete = () => setTopSwitcherDone(true);
+    window.addEventListener("topSwitcherTourComplete", handleTopSwitcherComplete);
+    return () => window.removeEventListener("topSwitcherTourComplete", handleTopSwitcherComplete);
+  }, []);
+
+  useTourJourney({ enabled: Boolean(isA2 && topSwitcherDone && !isDone && activeFeature), tourId: "a2_product_tour", phase: activePhase || activeFeature, tourVersion: "1" });
 
   // Keep ref in sync for event handlers
   useEffect(() => {
     activeFeatureRef.current = activeFeature;
   }, [activeFeature]);
+
+  useEffect(() => {
+    localStorage.setItem(tourKey, JSON.stringify(tourState));
+  }, [tourKey, tourState]);
 
   //Helpers
 
@@ -141,7 +178,7 @@ export default function A2ProductTour({ children }) {
       setTourState((prev) => {
         if (prev[phase]) return prev; // Already done, skip
         const next = { ...prev, [phase]: true };
-        localStorage.setItem(A2_TOUR_STATE_KEY, JSON.stringify(next));
+        localStorage.setItem(tourKey, JSON.stringify(next));
         if (isAllComplete(next)) {
           api.post("/user/complete-a2-onboarding").catch(() => {});
           dispatch(setA2OnboardingComplete());
@@ -149,7 +186,7 @@ export default function A2ProductTour({ children }) {
         return next;
       });
     },
-    [dispatch],
+    [dispatch, tourKey],
   );
 
   const showSuccess = useCallback(() => {
@@ -169,14 +206,14 @@ export default function A2ProductTour({ children }) {
     trackFlowAction("tour", "a2_product_tour", "tour_skipped", { phase: activePhase || activeFeature, tourVersion: "1" });
     destroyDriver();
     const allDone = Object.fromEntries(ALL_PHASES.map((p) => [p, true]));
-    localStorage.setItem(A2_TOUR_STATE_KEY, JSON.stringify(allDone));
+    localStorage.setItem(tourKey, JSON.stringify(allDone));
     setTourState(allDone);
     api.post("/user/complete-a2-onboarding").catch(() => {});
     dispatch(setA2OnboardingComplete());
     phaseLabelRef.current = null;
     setActiveFeature(null);
     setActivePhase(null);
-  }, [destroyDriver, dispatch, activePhase, activeFeature]);
+  }, [destroyDriver, dispatch, activePhase, activeFeature, tourKey]);
 
   /** Start a driver.js tour with given steps */
   const startDriver = useCallback(
@@ -255,12 +292,11 @@ export default function A2ProductTour({ children }) {
 
   // Route detection
   useEffect(() => {
-    if (!isA2 || isDone) {
+    if (!isA2 || !topSwitcherDone || isDone) {
       // Clean up any pending tour
       const prevLabel = phaseLabelRef.current;
       if (prevLabel) {
         destroyDriver();
-        markDone(prevLabel);
         phaseLabelRef.current = null;
       }
       setActiveFeature(null);
@@ -324,7 +360,6 @@ export default function A2ProductTour({ children }) {
     const prevLabel = phaseLabelRef.current;
     if (prevLabel && prevLabel !== newLabel) {
       destroyDriver();
-      markDone(prevLabel);
     }
     phaseLabelRef.current = newLabel;
 
@@ -338,6 +373,7 @@ export default function A2ProductTour({ children }) {
     destroyDriver,
     markDone,
     user?.id,
+    topSwitcherDone,
   ]);
 
   // Start tour when feature/phase changes

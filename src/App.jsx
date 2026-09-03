@@ -102,6 +102,7 @@ import A2ProductTour from "./tour/A2ProductTour";
 import A1EntryResolver from "./components/a1/A1EntryResolver";
 import A1ProductTour from "./tour/A1ProductTour";
 import B1ProductTour from "./tour/B1ProductTour";
+import TopSwitcherTour from "./components/TopSwitcherTour";
 import { Capacitor } from "@capacitor/core";
 import { Fullscreen } from "@boengli/capacitor-fullscreen";
 import { LiveUpdate } from "@capawesome/capacitor-live-update";
@@ -1142,6 +1143,7 @@ function AppContent() {
                 />
                 <AppHeaderShell />
                 <ConditionalTopSwitcher />
+                <TopSwitcherTour />
                 {isPaywallLocked && !isPaymentRoute(location.pathname) && (
                   <PaywallBlocker
                     user={user}

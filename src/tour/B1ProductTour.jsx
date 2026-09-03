@@ -9,6 +9,7 @@ import { setB1OnboardingComplete } from "../redux/auth/authSlice";
 import api from "../api/axios";
 import { B1TourContext } from "./B1TourContext";
 import { trackFlowAction, useTourJourney } from "../telemetry/flow";
+import { isB1PracticeLevel } from "../utils/b1Progress";
 import {
   getB1LandingSteps,
   getB1FlashcardSelectSteps,
@@ -22,6 +23,9 @@ import {
 
 const B1_TOUR_STATE_KEY = "b1_tour_state";
 
+const getB1TourStateKey = (userId) =>
+  userId ? `${B1_TOUR_STATE_KEY}_${userId}` : B1_TOUR_STATE_KEY;
+
 const ALL_PHASES = [
   "landing",
   "flashcard_select",
@@ -33,8 +37,8 @@ const ALL_PHASES = [
   "maya_lobby",
 ];
 
-function getInitialState() {
-  const saved = localStorage.getItem(B1_TOUR_STATE_KEY);
+function getInitialState(key = B1_TOUR_STATE_KEY) {
+  const saved = localStorage.getItem(key);
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
@@ -136,29 +140,62 @@ export default function B1ProductTour({ children }) {
   const activeFeatureRef = useRef(null);
   const phaseLabelRef = useRef(null);
 
-  const [tourState, setTourState] = useState(getInitialState);
+  const tourKey = getB1TourStateKey(user?.user_id);
+  const [tourState, setTourState] = useState(() => getInitialState(tourKey));
   const [activeFeature, setActiveFeature] = useState(null);
   const [activePhase, setActivePhase] = useState(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
-  const isB1 = user?.user_prof_level?.toLowerCase() === "b1";
+  const isB1 = isB1PracticeLevel(user?.user_prof_level);
   const isDone = user?.b1_onboarding_completed === true;
-  useTourJourney({ enabled: Boolean(isB1 && !isDone && activeFeature), tourId: "b1_product_tour", phase: activePhase || activeFeature, tourVersion: "1" });
+
+  const checkTopSwitcherDone = () =>
+    Boolean(user?.top_switcher_tour_completed) ||
+    (user?.user_id &&
+      localStorage.getItem(`top_switcher_tour_completed_${user.user_id}`) === "true");
+
+  const [topSwitcherDone, setTopSwitcherDone] = useState(checkTopSwitcherDone);
+
+  useEffect(() => {
+    setTopSwitcherDone(checkTopSwitcherDone());
+  }, [user?.user_id, user?.top_switcher_tour_completed]);
+
+  useEffect(() => {
+    if (!user?.user_id) return;
+    const key = getB1TourStateKey(user.user_id);
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setTourState(
+          Object.fromEntries(ALL_PHASES.map((phase) => [phase, Boolean(parsed?.[phase])])),
+        );
+      } catch {}
+    }
+  }, [user?.user_id]);
+
+  useEffect(() => {
+    const handleTopSwitcherComplete = () => setTopSwitcherDone(true);
+    window.addEventListener("topSwitcherTourComplete", handleTopSwitcherComplete);
+    return () => window.removeEventListener("topSwitcherTourComplete", handleTopSwitcherComplete);
+  }, []);
+
+  useTourJourney({ enabled: Boolean(isB1 && topSwitcherDone && !isDone && activeFeature), tourId: "b1_product_tour", phase: activePhase || activeFeature, tourVersion: "1" });
 
   useEffect(() => {
     activeFeatureRef.current = activeFeature;
   }, [activeFeature]);
 
   useEffect(() => {
-    localStorage.setItem(B1_TOUR_STATE_KEY, JSON.stringify(tourState));
-  }, [tourState]);
+    localStorage.setItem(tourKey, JSON.stringify(tourState));
+  }, [tourKey, tourState]);
 
   const markDone = useCallback(
     (phase) => {
       setTourState((prev) => {
         if (prev[phase]) return prev;
         const next = { ...prev, [phase]: true };
-        localStorage.setItem(B1_TOUR_STATE_KEY, JSON.stringify(next));
+        localStorage.setItem(tourKey, JSON.stringify(next));
         if (isAllComplete(next)) {
           api.post("/user/complete-b1-onboarding")
             .catch(() => {
@@ -170,7 +207,7 @@ export default function B1ProductTour({ children }) {
         return next;
       });
     },
-    [dispatch],
+    [dispatch, tourKey],
   );
 
   const showSuccess = useCallback(() => {
@@ -190,7 +227,7 @@ export default function B1ProductTour({ children }) {
     trackFlowAction("tour", "b1_product_tour", "tour_skipped", { phase: activePhase || activeFeature, tourVersion: "1" });
     destroyDriver();
     const allDone = Object.fromEntries(ALL_PHASES.map((p) => [p, true]));
-    localStorage.setItem(B1_TOUR_STATE_KEY, JSON.stringify(allDone));
+    localStorage.setItem(tourKey, JSON.stringify(allDone));
     setTourState(allDone);
     api.post("/user/complete-b1-onboarding")
       .catch(() => {
@@ -200,7 +237,7 @@ export default function B1ProductTour({ children }) {
     phaseLabelRef.current = null;
     setActiveFeature(null);
     setActivePhase(null);
-  }, [destroyDriver, dispatch, activePhase, activeFeature]);
+  }, [destroyDriver, dispatch, activePhase, activeFeature, tourKey]);
 
   const closeCurrentPhase = useCallback(() => {
     cleanupTapOverlays();
@@ -318,11 +355,10 @@ export default function B1ProductTour({ children }) {
 
   // Route & Phase detection
   useEffect(() => {
-    if (!isB1 || isDone) {
+    if (!isB1 || !topSwitcherDone || isDone) {
       const prevLabel = phaseLabelRef.current;
       if (prevLabel) {
         destroyDriver();
-        markDone(prevLabel);
         phaseLabelRef.current = null;
       }
       setActiveFeature(null);
@@ -378,7 +414,6 @@ export default function B1ProductTour({ children }) {
     const prevLabel = phaseLabelRef.current;
     if (prevLabel && prevLabel !== newLabel) {
       destroyDriver();
-      markDone(prevLabel);
     }
     phaseLabelRef.current = newLabel;
 
@@ -392,6 +427,7 @@ export default function B1ProductTour({ children }) {
     destroyDriver,
     markDone,
     user?.id,
+    topSwitcherDone,
   ]);
 
   // Execute tour based on detected feature/phase

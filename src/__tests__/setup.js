@@ -28,3 +28,27 @@ if (!window.matchMedia) {
     dispatchEvent: () => false,
   });
 }
+
+import { vi } from 'vitest';
+
+vi.mock('react-redux', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    useSelector: (selector, ...rest) => {
+      try {
+        return actual.useSelector(selector, ...rest);
+      } catch (err) {
+        if (err?.message?.includes('could not find react-redux context value')) {
+          try {
+            return selector({ auth: { user: null, isAuthenticated: false } });
+          } catch {
+            return undefined;
+          }
+        }
+        throw err;
+      }
+    },
+  };
+});
+

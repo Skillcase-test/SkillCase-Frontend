@@ -30,6 +30,9 @@ import {
 
 const A1_TOUR_STATE_KEY = "a1_tour_state";
 
+const getA1TourStateKey = (userId) =>
+  userId ? `${A1_TOUR_STATE_KEY}_${userId}` : A1_TOUR_STATE_KEY;
+
 const ALL_PHASES = [
   "landing",
   "flashcard_select",
@@ -47,8 +50,8 @@ const ALL_PHASES = [
   "test_level",
 ];
 
-function getInitialState() {
-  const saved = localStorage.getItem(A1_TOUR_STATE_KEY);
+function getInitialState(key = A1_TOUR_STATE_KEY) {
+  const saved = localStorage.getItem(key);
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
@@ -139,7 +142,8 @@ export default function A1ProductTour({ children }) {
   const driverRef = useRef(null);
   const activeFeatureRef = useRef(null);
   const phaseLabelRef = useRef(null);
-  const [tourState, setTourState] = useState(getInitialState);
+  const tourKey = getA1TourStateKey(user?.user_id);
+  const [tourState, setTourState] = useState(() => getInitialState(tourKey));
   const [activeFeature, setActiveFeature] = useState(null);
   const [activePhase, setActivePhase] = useState(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -149,8 +153,41 @@ export default function A1ProductTour({ children }) {
 
   const isA1 = user?.user_prof_level?.toLowerCase() === "a1";
   const isDone = user?.a1_onboarding_completed === true;
+
+  const checkTopSwitcherDone = () =>
+    Boolean(user?.top_switcher_tour_completed) ||
+    (user?.user_id &&
+      localStorage.getItem(`top_switcher_tour_completed_${user.user_id}`) === "true");
+
+  const [topSwitcherDone, setTopSwitcherDone] = useState(checkTopSwitcherDone);
+
+  useEffect(() => {
+    setTopSwitcherDone(checkTopSwitcherDone());
+  }, [user?.user_id, user?.top_switcher_tour_completed]);
+
+  useEffect(() => {
+    if (!user?.user_id) return;
+    const key = getA1TourStateKey(user.user_id);
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setTourState(
+          Object.fromEntries(ALL_PHASES.map((phase) => [phase, Boolean(parsed?.[phase])])),
+        );
+      } catch {}
+    }
+  }, [user?.user_id]);
+
+  useEffect(() => {
+    const handleTopSwitcherComplete = () => setTopSwitcherDone(true);
+    window.addEventListener("topSwitcherTourComplete", handleTopSwitcherComplete);
+    return () => window.removeEventListener("topSwitcherTourComplete", handleTopSwitcherComplete);
+  }, []);
+
   const canRunA1Tour =
     isA1 &&
+    topSwitcherDone &&
     ["revamp_opted_in", "revamp_forced_after_deadline"].includes(
       a1MigrationStatus,
     );
@@ -204,16 +241,15 @@ export default function A1ProductTour({ children }) {
   }, [activeFeature]);
 
   useEffect(() => {
-    // Ensure stale keys (e.g., news_detail) are removed from persisted state.
-    localStorage.setItem(A1_TOUR_STATE_KEY, JSON.stringify(tourState));
-  }, [tourState]);
+    localStorage.setItem(tourKey, JSON.stringify(tourState));
+  }, [tourKey, tourState]);
 
   const markDone = useCallback(
     (phase) => {
       setTourState((prev) => {
         if (prev[phase]) return prev;
         const next = { ...prev, [phase]: true };
-        localStorage.setItem(A1_TOUR_STATE_KEY, JSON.stringify(next));
+        localStorage.setItem(tourKey, JSON.stringify(next));
         if (isAllComplete(next)) {
           api.post("/user/complete-a1-onboarding").catch(() => {});
           dispatch(setA1OnboardingComplete());
@@ -221,7 +257,7 @@ export default function A1ProductTour({ children }) {
         return next;
       });
     },
-    [dispatch],
+    [dispatch, tourKey],
   );
 
   const showSuccess = useCallback(() => {
@@ -241,14 +277,14 @@ export default function A1ProductTour({ children }) {
     trackFlowAction("tour", "a1_product_tour", "tour_skipped", { phase: activePhase || activeFeature, tourVersion: "1" });
     destroyDriver();
     const allDone = Object.fromEntries(ALL_PHASES.map((p) => [p, true]));
-    localStorage.setItem(A1_TOUR_STATE_KEY, JSON.stringify(allDone));
+    localStorage.setItem(tourKey, JSON.stringify(allDone));
     setTourState(allDone);
     api.post("/user/complete-a1-onboarding").catch(() => {});
     dispatch(setA1OnboardingComplete());
     phaseLabelRef.current = null;
     setActiveFeature(null);
     setActivePhase(null);
-  }, [destroyDriver, dispatch, activePhase, activeFeature]);
+  }, [destroyDriver, dispatch, activePhase, activeFeature, tourKey]);
 
   const closeCurrentPhase = useCallback(() => {
     cleanupTapOverlays();
@@ -358,7 +394,6 @@ export default function A1ProductTour({ children }) {
       const prevLabel = phaseLabelRef.current;
       if (prevLabel) {
         destroyDriver();
-        markDone(prevLabel);
         phaseLabelRef.current = null;
       }
       setActiveFeature(null);
@@ -423,7 +458,6 @@ export default function A1ProductTour({ children }) {
     const prevLabel = phaseLabelRef.current;
     if (prevLabel && prevLabel !== newLabel) {
       destroyDriver();
-      markDone(prevLabel);
     }
     phaseLabelRef.current = newLabel;
 

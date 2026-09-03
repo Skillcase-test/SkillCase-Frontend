@@ -119,10 +119,28 @@ export default function LandingPage() {
   const isScholarshipUser =
     (lgMode || user?.lg_preferred_mode) === "scholarship";
 
+  const isTopTourCompleted = Boolean(
+    !user?.user_id ||
+      user?.top_switcher_tour_completed ||
+      (user?.user_id &&
+        localStorage.getItem(`top_switcher_tour_completed_${user.user_id}`) === "true"),
+  );
+
+  const isTopSwitcherTourActive =
+    !isTopTourCompleted ||
+    Boolean(typeof window !== "undefined" && window.__topSwitcherTourActive) ||
+    (typeof sessionStorage !== "undefined" &&
+      sessionStorage.getItem("top_switcher_tour_active") === "true");
+
   useEffect(() => {
     if (isScholarshipUser) {
       navigate("/scholarship", { replace: true });
-    } else if (isJobScreening) {
+      return;
+    }
+    if (isTopSwitcherTourActive) {
+      return;
+    }
+    if (isJobScreening) {
       navigate("/job-screening", { replace: true });
     } else if (prefersCoursesMode) {
       navigate("/video-courses", { replace: true });
@@ -135,19 +153,22 @@ export default function LandingPage() {
     prefersCoursesMode,
     prefersLearnMode,
     isScholarshipUser,
+    isTopSwitcherTourActive,
   ]);
 
   useEffect(() => {
     const active = showA1MigrationModal || showSwitchConfirm || isUpgrading;
     if (active) {
       window.dispatchEvent(new CustomEvent("lgTourStart"));
-    } else {
+    } else if (!isTopSwitcherTourActive) {
       window.dispatchEvent(new CustomEvent("lgTourEnd"));
     }
     return () => {
-      window.dispatchEvent(new CustomEvent("lgTourEnd"));
+      if (!isTopSwitcherTourActive) {
+        window.dispatchEvent(new CustomEvent("lgTourEnd"));
+      }
     };
-  }, [showA1MigrationModal, showSwitchConfirm, isUpgrading]);
+  }, [showA1MigrationModal, showSwitchConfirm, isUpgrading, isTopSwitcherTourActive]);
 
   useEffect(() => {
     if (!user?.user_id) return;

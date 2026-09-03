@@ -49,10 +49,12 @@ describe("RecapScreen", () => {
     spy.mockRestore();
 
     expect(errors.join("\n")).not.toMatch(/Rendered (more|fewer) hooks/);
-    expect(trackFeatureEvent).toHaveBeenCalledWith(
-      "learning",
-      "recap_viewed",
-      expect.objectContaining({ entityId: "global", total: 2 }),
-    );
+    await waitFor(() => {
+      expect(trackFeatureEvent).toHaveBeenCalledWith(
+        "learning",
+        "recap_viewed",
+        expect.objectContaining({ entityId: "global", total: 2 }),
+      );
+    });
   });
 });

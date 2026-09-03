@@ -342,6 +342,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
               image={bookImg}
               line1="Exam"
               blendColor={blendColor}
+              tourTabKey="scholarship"
             />
           ) : isB1 ? (
             <>
@@ -353,6 +354,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 line1="Job Preparation"
                 line2=""
                 blendColor={blendColor}
+                tourTabKey="practice"
               />
               <SwitcherTab
                 active={activeTab === "jobs"}
@@ -363,6 +365,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 line1="German Jobs"
                 line2=""
                 blendColor={blendColor}
+                tourTabKey="jobs"
               />
               {showGermanClasses && (
                 <SwitcherTab
@@ -374,6 +377,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                   line1="German"
                   line2="Classes"
                   blendColor={blendColor}
+                  tourTabKey="courses"
                 />
               )}
             </>
@@ -388,6 +392,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 line1="Guided"
                 line2="German"
                 blendColor={blendColor}
+                tourTabKey="learn"
               />
               <SwitcherTab
                 active={activeTab === "practice"}
@@ -397,6 +402,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 line1="German"
                 line2="Practice"
                 blendColor={blendColor}
+                tourTabKey="practice"
               />
               {showGermanClasses && (
                 <SwitcherTab
@@ -408,6 +414,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                   line1="German"
                   line2="Classes"
                   blendColor={blendColor}
+                  tourTabKey="courses"
                 />
               )}
             </>
@@ -427,12 +434,15 @@ function SwitcherTab({
   line1,
   line2,
   blendColor = "#ffffff",
+  tourTabKey,
 }) {
   return (
     <button
       type="button"
       role="tab"
       ref={tabRef}
+      id={tourTabKey ? `top-switcher-tab-${tourTabKey}` : undefined}
+      data-tour-tab={tourTabKey}
       onClick={onClick}
       onPointerEnter={onPreload}
       onTouchStart={onPreload}

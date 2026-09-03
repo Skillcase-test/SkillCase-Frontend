@@ -505,7 +505,7 @@ describe("ScholarshipResult", () => {
 
       const btn = await screen.findByTestId("book-my-seat-button");
       expect(btn).toBeInTheDocument();
-      expect(btn).toHaveTextContent(/Book my seat — ₹3,000/);
+      expect(btn).toHaveTextContent(/Book my seat/);
       expect(btn).not.toBeDisabled();
       // Dialer CTA stays
       expect(

@@ -725,6 +725,7 @@ export default function LearnGermanHome() {
   const [restartLesson, setRestartLesson] = useState(null);
   const activeLessonRef = useRef(null);
   const suppressStartGoalForVisitRef = useRef(false);
+  const hasPendingFirstLandingGuideRef = useRef(false);
   const [showFirstChapterGuide, setShowFirstChapterGuide] = useState(false);
   const [tourStep, setTourStep] = useState(0); // 0 = BottomSwitcher, 1 = ChapterCard
   const [firstChapterGuideRect, setFirstChapterGuideRect] = useState(null);
@@ -739,7 +740,38 @@ export default function LearnGermanHome() {
   const [pendingAnimation, setPendingAnimation] = useState(null);
   // When true, the auto-scroll to activeLessonRef is skipped (animation owns scrolling)
   const hasPendingAnimRef = useRef(false);
-  // Captured at mount so cards skip stagger entry animation when returning from a lesson
+
+  useEffect(() => {
+    const active = showFirstChapterGuide && tourStep === 0;
+    if (active) {
+      window.dispatchEvent(new CustomEvent("lgTourStart"));
+    } else if (!window.__topSwitcherTourActive) {
+      window.dispatchEvent(new CustomEvent("lgTourEnd"));
+    }
+    return () => {
+      if (!window.__topSwitcherTourActive) {
+        window.dispatchEvent(new CustomEvent("lgTourEnd"));
+      }
+    };
+  }, [showFirstChapterGuide, tourStep]);
+
+  useEffect(() => {
+    const handleTopSwitcherComplete = () => {
+      const stage = getLgGuideStage();
+      if (stage !== LG_GUIDE_STAGES.COMPLETE) {
+        hasPendingFirstLandingGuideRef.current = false;
+        setLgGuideStage(LG_GUIDE_STAGES.NOT_STARTED);
+        setTourStep(1);
+        setShowFirstChapterGuide(true);
+        clearLgFirstLandingMarker();
+      }
+    };
+
+    window.addEventListener("topSwitcherTourComplete", handleTopSwitcherComplete);
+    return () => {
+      window.removeEventListener("topSwitcherTourComplete", handleTopSwitcherComplete);
+    };
+  }, []);  // Captured at mount so cards skip stagger entry animation when returning from a lesson
   const fromLessonCompleteRef = useRef(
     location.state?.fromLessonComplete === true,
   );
@@ -778,17 +810,7 @@ export default function LearnGermanHome() {
     return () => clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    const active = showFirstChapterGuide && tourStep === 0;
-    if (active) {
-      window.dispatchEvent(new CustomEvent("lgTourStart"));
-    } else {
-      window.dispatchEvent(new CustomEvent("lgTourEnd"));
-    }
-    return () => {
-      window.dispatchEvent(new CustomEvent("lgTourEnd"));
-    };
-  }, [showFirstChapterGuide, tourStep]);
+
 
   const applyCompletedProgressOverride = useCallback(
     (lessons, completedLessonId) => {
@@ -927,7 +949,26 @@ export default function LearnGermanHome() {
     const isFirstLandingSignal =
       location.state?.fromOnboardingFirstLanding === true ||
       getLgFirstLandingMarker();
-    if (isFirstLandingSignal || fromLessonComplete) {
+    const isTopSwitcherDone =
+      Boolean(user?.top_switcher_tour_completed) ||
+      (user?.user_id &&
+        localStorage.getItem(`top_switcher_tour_completed_${user.user_id}`) === "true");
+
+    const guideStage = getLgGuideStage();
+    const isGuideComplete = guideStage === LG_GUIDE_STAGES.COMPLETE;
+    const isGuidePending =
+      (isFirstLandingSignal ||
+        !guideStage ||
+        guideStage === LG_GUIDE_STAGES.NOT_STARTED) &&
+      !isGuideComplete;
+
+    const isTourRunning =
+      !isTopSwitcherDone ||
+      Boolean(window.__topSwitcherTourActive) ||
+      showFirstChapterGuide ||
+      isGuidePending;
+
+    if (isFirstLandingSignal || fromLessonComplete || isTourRunning) {
       suppressStartGoalForVisitRef.current = true;
     }
     const shouldSuppressStartGoalThisVisit =
@@ -946,20 +987,20 @@ export default function LearnGermanHome() {
       });
     }
 
-    if (isFirstLandingSignal) {
-      const stage = getLgGuideStage();
-      if (!stage || stage === LG_GUIDE_STAGES.NOT_STARTED) {
+    if (isGuidePending) {
+      if (isTopSwitcherDone && !window.__topSwitcherTourActive) {
         setLgGuideStage(LG_GUIDE_STAGES.NOT_STARTED);
+        setTourStep(1);
         setShowFirstChapterGuide(true);
-      } else if (stage !== LG_GUIDE_STAGES.COMPLETE) {
-        setShowFirstChapterGuide(true);
+        clearLgFirstLandingMarker();
+      } else {
+        hasPendingFirstLandingGuideRef.current = true;
+        setShowFirstChapterGuide(false);
       }
-      clearLgFirstLandingMarker();
     }
 
-    if (isFirstLandingSignal) {
-      // Suppress both Daily Goal modals on very first post-onboarding landing.
-      // Mark as shown so navigating away and back does not re-trigger the modal.
+    if (isFirstLandingSignal || isTourRunning) {
+      // Suppress both Daily Goal modals on first landing or while any tour is active
       markDailyGoalShown(user?.user_id);
       setShowCompleted(false);
       setShowDailyGoal(false);
@@ -1001,6 +1042,7 @@ export default function LearnGermanHome() {
       }
     } else if (
       !shouldSuppressStartGoalThisVisit &&
+      !isTourRunning &&
       shouldShowDailyGoal(user?.user_id)
     ) {
       setShowDailyGoal(true);
@@ -1427,7 +1469,7 @@ export default function LearnGermanHome() {
       </motion.div>
 
       {/* STEP 0: Mode Switcher */}
-      {showFirstChapterGuide && tourStep === 0 && switcherGuideRect && (
+      {showFirstChapterGuide && !window.__topSwitcherTourActive && tourStep === 0 && switcherGuideRect && (
         <GuideSpotlight
           rect={switcherGuideRect}
           radius={30}
@@ -1444,7 +1486,7 @@ export default function LearnGermanHome() {
       )}
 
       {/* STEP 1: First Chapter Card */}
-      {showFirstChapterGuide && tourStep === 1 && firstChapterGuideRect && (
+      {showFirstChapterGuide && !window.__topSwitcherTourActive && tourStep === 1 && firstChapterGuideRect && (
         <GuideSpotlight
           rect={firstChapterGuideRect}
           radius={24}
@@ -1469,7 +1511,11 @@ export default function LearnGermanHome() {
 
       {/* Daily Goal Modal — shown once per day */}
       <DailyGoalModal
-        isOpen={showDailyGoal}
+        isOpen={Boolean(
+          showDailyGoal &&
+            !showFirstChapterGuide &&
+            !window.__topSwitcherTourActive,
+        )}
         onClose={() => setShowDailyGoal(false)}
         nextLesson={nextLesson}
         userId={user?.user_id}
@@ -1478,7 +1524,11 @@ export default function LearnGermanHome() {
 
       {/* Daily Goal Completed Modal — shown after finishing a lesson */}
       <DailyGoalCompletedModal
-        isOpen={showCompleted}
+        isOpen={Boolean(
+          showCompleted &&
+            !showFirstChapterGuide &&
+            !window.__topSwitcherTourActive,
+        )}
         onClose={() => setShowCompleted(false)}
         nextLesson={nextLesson}
         streakUpdated={streakUpdated}

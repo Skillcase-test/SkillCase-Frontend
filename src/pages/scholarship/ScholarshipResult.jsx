@@ -947,7 +947,7 @@ export default function ScholarshipResult() {
               className="w-full py-3.5 px-5 bg-[#002856] hover:bg-[#001e40] text-white rounded-md font-bold text-sm sm:text-base transition flex items-center justify-center gap-2.5 cursor-pointer active:scale-[0.99]"
             >
               <Phone className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
-              <span>Contact Skillcase Team</span>
+              <span>Contact SkillCase Team</span>
             </a>
 
             {/* Practice CTA */}
