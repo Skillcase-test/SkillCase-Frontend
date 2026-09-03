@@ -1278,11 +1278,52 @@ export default function ScholarshipExamPage() {
             });
           })()}
         </div>
+
+        {/* Bottom Navigation — inside exam content */}
+        <div className="pt-8 pb-12 flex items-center justify-between gap-3 border-t border-slate-100 mt-8">
+          <button
+            type="button"
+            onClick={() => {
+              setCurrentPageIdx((i) => Math.max(0, i - 1));
+              requestAnimationFrame(scrollToPageTop);
+            }}
+            disabled={currentPageIdx === 0}
+            className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft className="w-4 h-4" /> Prev
+          </button>
+          {currentPageIdx === pages.length - 1 ? (
+            <button
+              type="button"
+              onClick={() => setShowSubmitConfirmModal(true)}
+              disabled={isSubmitting}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#002856] text-white text-sm font-bold shadow-lg hover:bg-[#001e40] transition disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              Submit
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentPageIdx((i) => Math.min(pages.length - 1, i + 1));
+                requestAnimationFrame(scrollToPageTop);
+              }}
+              className="flex items-center gap-1 px-5 py-2.5 rounded-xl bg-[#002856] text-white text-sm font-semibold shadow-md hover:bg-[#001e40] transition border border-[#002856]/60"
+            >
+              Next <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Umlaut Keyboard — shows above bottom nav when a text input is focused */}
+      {/* Umlaut Keyboard — shows at bottom of screen when a text input is focused */}
       {focusedInput && (
-        <div className="sticky bottom-[65px] z-50 bg-white border-t border-gray-100 px-2 py-1">
+        <div className="sticky bottom-0 z-50 bg-white border-t border-gray-100 px-2 py-1 shadow-lg">
           <UmlautKeyboard
             onInsert={(char) => {
               const el = focusedTextareaRef.current;
@@ -1329,47 +1370,6 @@ export default function ScholarshipExamPage() {
           />
         </div>
       )}
-
-      {/* Bottom Navigation */}
-      <div className="bg-white p-4 flex items-center justify-between sticky bottom-0 z-40 ">
-        <button
-          type="button"
-          onClick={() => {
-            setCurrentPageIdx((i) => Math.max(0, i - 1));
-            requestAnimationFrame(scrollToPageTop);
-          }}
-          disabled={currentPageIdx === 0}
-          className="flex items-center gap-1 px-4 py-2.5 rounded-xl border border-slate-300 sm font-semibold disabled:opacity-30"
-        >
-          <ChevronLeft className="w-4 h-4" /> Prev
-        </button>
-        {currentPageIdx === pages.length - 1 ? (
-          <button
-            type="button"
-            onClick={() => setShowSubmitConfirmModal(true)}
-            disabled={isSubmitting}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#002856] text-white text-sm font-bold shadow-lg disabled:opacity-50"
-          >
-            {isSubmitting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-            Submit
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              setCurrentPageIdx((i) => Math.min(pages.length - 1, i + 1));
-              requestAnimationFrame(scrollToPageTop);
-            }}
-            className="flex items-center gap-1 px-4 py-2.5 rounded-xl bg-[#002856] text-white text-sm font-semibold shadow-md border border-[#002856]/60"
-          >
-            Next <ChevronRight className="w-4 h-4" />
-          </button>
-        )}
-      </div>
 
       {/* Question Navigation Drawer */}
       {showNavDrawer && (
