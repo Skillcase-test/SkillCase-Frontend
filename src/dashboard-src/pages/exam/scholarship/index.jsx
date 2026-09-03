@@ -418,14 +418,19 @@ export default function AdminScholarshipManager({ me: propMe } = {}) {
 
   const handleToggleResultsVisible = (exam) => {
     const nextVisible = !exam.results_visible;
+    const hasTiers = tiers && tiers.length > 0;
     requestConfirm({
       title: nextVisible ? "Release results?" : "Hide results?",
       message: nextVisible
-        ? `Every candidate who finished "${exam.title}" will see their scholarship award and receive a push notification. Tiers will be locked until you hide results again.`
+        ? hasTiers
+          ? `Every candidate who finished "${exam.title}" will see their scholarship award and receive a push notification. Tiers will be locked until you hide results again.`
+          : `No scholarship tiers configured. Results will be released individually via User Awards (candidates will see "Results Awaited" until their award is assigned).`
         : `Scholarship results will no longer be visible to candidates for "${exam.title}". Tiers can be edited again.`,
       confirmLabel: nextVisible ? "Yes, Release Results" : "Yes, Hide Results",
       requireAck: nextVisible,
-      ackLabel: "I understand tiers will be locked",
+      ackLabel: hasTiers
+        ? "I understand tiers will be locked"
+        : "I understand results will be released",
       action: () => doToggleResultsVisible(exam, nextVisible),
     });
   };
