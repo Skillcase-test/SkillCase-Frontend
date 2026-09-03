@@ -638,6 +638,10 @@ function AppContent() {
             return;
 
           case "play_store":
+            if (!isAuthenticated) {
+              console.log("Play store update available, but user is not authenticated; deferring prompt");
+              return;
+            }
             setShowPlayStoreSkipForLater(data.showSkipForLater !== false);
             recordEvent("ota.update_prompt_presented", {
               domain: "app_update",
@@ -666,7 +670,7 @@ function AppContent() {
             return;
 
           case "ota_available": {
-            const isSilent = data.silent === true;
+            const isSilent = data.silent === true || !isAuthenticated;
             const bundleExists = bundles.bundleIds?.includes(data.version);
 
             if (bundleExists) {
@@ -1077,7 +1081,7 @@ function AppContent() {
       <div ref={contentRef} className="flex-1 flex flex-col">
         <AppReviewPromptModal blocked={maintenanceOpen || otaState !== null} />
         <OtaUpdateModal
-          otaState={maintenanceOpen ? null : otaState}
+          otaState={maintenanceOpen || !isAuthenticated ? null : otaState}
           otaProgress={otaProgress}
           showSkipForLater={showPlayStoreSkipForLater}
           onSkip={() => {

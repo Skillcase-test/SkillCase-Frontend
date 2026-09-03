@@ -40,16 +40,16 @@ describe("heartbeat scheduling", () => {
     vi.useRealTimers();
   });
 
-  it("sends immediately and then on a ten second cadence", async () => {
+  it("sends immediately and then on a thirty second cadence", async () => {
     startHeartbeat();
     await advance(0);
     expect(post).toHaveBeenCalledTimes(1);
     expect(post).toHaveBeenCalledWith("/user/heartbeat");
 
-    await advance(10000);
+    await advance(30000);
     expect(post).toHaveBeenCalledTimes(2);
 
-    await advance(10000);
+    await advance(30000);
     expect(post).toHaveBeenCalledTimes(3);
   });
 
@@ -72,7 +72,7 @@ describe("heartbeat scheduling", () => {
     expect(post).toHaveBeenCalledTimes(2);
 
     // Exactly one loop must be live: a leaked timer would double this.
-    await advance(10000);
+    await advance(30000);
     expect(post).toHaveBeenCalledTimes(3);
   });
 
@@ -87,7 +87,7 @@ describe("heartbeat scheduling", () => {
     expect(post).not.toHaveBeenCalled();
 
     setEnvironment({ online: true, visibility: "visible" });
-    await advance(10000);
+    await advance(30000);
     expect(post).toHaveBeenCalled();
   });
 
@@ -97,13 +97,12 @@ describe("heartbeat scheduling", () => {
     await advance(0);
     expect(post).toHaveBeenCalledTimes(1);
 
-    // 10s, then 20s, then 40s: three more attempts across 70s. The old fixed
-    // interval would have fired seven times in the same window.
-    await advance(10000);
+    // 30s, then 60s, then 120s: three more attempts across 210s.
+    await advance(30000);
     expect(post).toHaveBeenCalledTimes(2);
-    await advance(20000);
+    await advance(60000);
     expect(post).toHaveBeenCalledTimes(3);
-    await advance(40000);
+    await advance(120000);
     expect(post).toHaveBeenCalledTimes(4);
 
     // Well past the cap the loop is still alive but slow.
@@ -118,15 +117,15 @@ describe("heartbeat scheduling", () => {
     post.mockRejectedValue(new Error("Network Error"));
     startHeartbeat();
     await advance(0);
-    await advance(10000);
-    await advance(20000);
+    await advance(30000);
+    await advance(60000);
     const afterFailures = post.mock.calls.length;
 
     post.mockResolvedValue({ data: {} });
-    await advance(40000);
+    await advance(120000);
     expect(post.mock.calls.length).toBe(afterFailures + 1);
 
-    await advance(10000);
+    await advance(30000);
     expect(post.mock.calls.length).toBe(afterFailures + 2);
   });
 
@@ -137,9 +136,9 @@ describe("heartbeat scheduling", () => {
     expect(post).toHaveBeenCalledTimes(1);
 
     // A 403 is a completed round trip, so it must not trigger backoff.
-    await advance(10000);
+    await advance(30000);
     expect(post).toHaveBeenCalledTimes(2);
-    await advance(10000);
+    await advance(30000);
     expect(post).toHaveBeenCalledTimes(3);
   });
 });

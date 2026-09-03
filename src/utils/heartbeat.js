@@ -19,7 +19,7 @@ export const sendAppVersion = async () => {
   }
 };
 
-const HEARTBEAT_INTERVAL_MS = 10000;
+const HEARTBEAT_INTERVAL_MS = 30000;
 const HEARTBEAT_MAX_BACKOFF_MS = 300000; // 5 minutes
 let heartbeatBackoffMs = 0;
 let heartbeatStopped = true;
