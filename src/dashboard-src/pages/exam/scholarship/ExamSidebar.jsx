@@ -1,13 +1,21 @@
-﻿import React from "react";
+import React from "react";
 import { Plus, Copy, Play, Trash2, GraduationCap, CheckCircle2 } from "lucide-react";
 import { useScholarshipWorkspace } from "./index";
 import { btn } from "./ui/buttons";
 
 function ExamRow({ exam, selected, onSelect }) {
-  const { handleDuplicate, handleDeleteExam, handleToggleActive } =
-    useScholarshipWorkspace();
+  const {
+    handleDuplicate,
+    handleDeleteExam,
+    handleToggleActive,
+    canCreateExam,
+    canEditExam,
+    canDeleteExam,
+    isGrader,
+  } = useScholarshipWorkspace();
   const isActive = Boolean(exam.is_active);
   const isSelected = selected?.test_id === exam.test_id;
+  const showActions = !isGrader && (canCreateExam || canDeleteExam);
 
   return (
     <div
@@ -22,42 +30,48 @@ function ExamRow({ exam, selected, onSelect }) {
         <p className={`text-xs font-bold truncate ${isSelected ? "text-white" : "text-slate-800"}`}>
           {exam.title}
         </p>
-        <div
-          className={`flex items-center gap-0.5 shrink-0 transition-opacity ${
-            isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-          }`}
-        >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDuplicate(exam);
-            }}
-            className={`p-1 rounded ${
-              isSelected
-                ? "text-white/80 hover:text-white hover:bg-white/10"
-                : "text-slate-400 hover:text-[#002856] hover:bg-slate-200"
+        {showActions && (
+          <div
+            className={`flex items-center gap-0.5 shrink-0 transition-opacity ${
+              isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
             }`}
-            title="Duplicate exam"
           >
-            <Copy className="w-3 h-3" />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleDeleteExam(exam);
-            }}
-            className={`p-1 rounded ${
-              isSelected
-                ? "text-red-200 hover:text-red-100 hover:bg-white/10"
-                : "text-slate-400 hover:text-red-500 hover:bg-red-50"
-            }`}
-            title="Delete exam"
-          >
-            <Trash2 className="w-3 h-3" />
-          </button>
-        </div>
+            {canCreateExam && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDuplicate(exam);
+                }}
+                className={`p-1 rounded ${
+                  isSelected
+                    ? "text-white/80 hover:text-white hover:bg-white/10"
+                    : "text-slate-400 hover:text-[#002856] hover:bg-slate-200"
+                }`}
+                title="Duplicate exam"
+              >
+                <Copy className="w-3 h-3" />
+              </button>
+            )}
+            {canDeleteExam && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteExam(exam);
+                }}
+                className={`p-1 rounded ${
+                  isSelected
+                    ? "text-red-200 hover:text-red-100 hover:bg-white/10"
+                    : "text-slate-400 hover:text-red-500 hover:bg-red-50"
+                }`}
+                title="Delete exam"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div
@@ -89,7 +103,7 @@ function ExamRow({ exam, selected, onSelect }) {
         <span>{exam.submission_count || 0} attempts</span>
       </div>
 
-      {!isActive && (
+      {!isActive && !isGrader && canEditExam && (
         <button
           type="button"
           onClick={(e) => {
@@ -116,6 +130,8 @@ export default function ExamSidebar({ onSelect }) {
     selectedPathway,
     setShowCreate,
     setNewExam,
+    canCreateExam,
+    isGrader,
   } = useScholarshipWorkspace();
 
   // Filter exams strictly for this selected pathway (or all if fallback)
@@ -133,27 +149,7 @@ export default function ExamSidebar({ onSelect }) {
         <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
           <GraduationCap className="w-3.5 h-3.5" /> Pathway Exams
         </h3>
-        <button
-          type="button"
-          onClick={() => {
-            setNewExam((prev) => ({
-              ...prev,
-              pathway_id: selectedPathway?.id || null,
-            }));
-            setShowCreate(true);
-          }}
-          className="text-xs font-bold text-[#002856] hover:underline flex items-center gap-1"
-        >
-          <Plus className="w-3 h-3" /> New Exam
-        </button>
-      </div>
-
-      {pathwayExams.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#e5e7eb] p-6 text-center">
-          <p className="text-xs text-slate-600 font-bold mb-1">No exams yet</p>
-          <p className="text-[11px] text-slate-400 mb-3">
-            Create an exam for this pathway.
-          </p>
+        {canCreateExam && !isGrader && (
           <button
             type="button"
             onClick={() => {
@@ -163,10 +159,34 @@ export default function ExamSidebar({ onSelect }) {
               }));
               setShowCreate(true);
             }}
-            className={`${btn.primary} !py-2 !text-xs mx-auto`}
+            className="text-xs font-bold text-[#002856] hover:underline flex items-center gap-1"
           >
-            <Plus className="w-3.5 h-3.5" /> Create Exam
+            <Plus className="w-3 h-3" /> New Exam
           </button>
+        )}
+      </div>
+
+      {pathwayExams.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-[#e5e7eb] p-6 text-center">
+          <p className="text-xs text-slate-600 font-bold mb-1">No exams yet</p>
+          <p className="text-[11px] text-slate-400 mb-3">
+            {canCreateExam && !isGrader ? "Create an exam for this pathway." : "No exams have been published yet."}
+          </p>
+          {canCreateExam && !isGrader && (
+            <button
+              type="button"
+              onClick={() => {
+                setNewExam((prev) => ({
+                  ...prev,
+                  pathway_id: selectedPathway?.id || null,
+                }));
+                setShowCreate(true);
+              }}
+              className={`${btn.primary} !py-2 !text-xs mx-auto`}
+            >
+              <Plus className="w-3.5 h-3.5" /> Create Exam
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-3">

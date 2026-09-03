@@ -113,12 +113,8 @@ const VideoCourseAdd = lazy(() => import("./videoCourses/add"));
 const VideoCourseManage = lazy(() => import("./videoCourses/manage"));
 
 
-function hasPermission(me, moduleKey, action = "view") {
-  if (!me) return false;
-  if (me.role === "super_admin") return true;
-  const actions = me.permissions?.[moduleKey] || [];
-  return actions.includes("manage") || actions.includes(action);
-}
+import { hasPermission, AdminAccessContext } from "../../utils/adminPermissions";
+export { hasPermission };
 
 function Guard({ allowed, children }) {
   if (!allowed) return <Navigate to="/admin/no-access" replace />;
@@ -904,6 +900,15 @@ export default function Dashboard() {
       });
     }
 
+    if (me.role !== "super_admin" && hasPermission(me, "call_engine", "view")) {
+      core.push({
+        key: "call-engine",
+        label: "Call Engine",
+        path: "/admin/call-engine",
+        module: "call_engine",
+      });
+    }
+
     const a1ContentAllowed = hasPermission(me, "content", "view");
     const a2ContentAllowed = hasPermission(me, "a2_content", "view");
     const b1ContentAllowed = hasPermission(me, "b1_content", "view");
@@ -1206,7 +1211,8 @@ export default function Dashboard() {
         </aside>
 
         <main className="min-h-[calc(100vh-24px)] rounded-lg border border-slate-200 bg-white p-3 lg:p-4">
-          <Suspense fallback={<DashboardShellSkeleton />}>
+          <AdminAccessContext.Provider value={me}>
+            <Suspense fallback={<DashboardShellSkeleton />}>
             <Routes>
               <Route index element={<Navigate to={defaultPath} replace />} />
               <Route
@@ -1347,7 +1353,7 @@ export default function Dashboard() {
                 path="scholarship-exam"
                 element={
                   <Guard allowed={hasPermission(me, "scholarship_exam")}>
-                    <AdminScholarshipManager />
+                    <AdminScholarshipManager me={me} />
                   </Guard>
                 }
               />
@@ -1807,8 +1813,8 @@ export default function Dashboard() {
               <Route
                 path="call-engine"
                 element={
-                  me.role === "super_admin" ? (
-                    <CallEnginePage />
+                  me.role === "super_admin" || hasPermission(me, "call_engine", "view") ? (
+                    <CallEnginePage me={me} />
                   ) : (
                     <Navigate to="/admin/no-access" replace />
                   )
@@ -1816,7 +1822,8 @@ export default function Dashboard() {
               />
             </Routes>
           </Suspense>
-        </main>
+        </AdminAccessContext.Provider>
+      </main>
       </div>
     </div>
   );

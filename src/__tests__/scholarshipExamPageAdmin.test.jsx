@@ -63,6 +63,27 @@ vi.mock("../api/scholarshipExamApi", () => ({
   ),
 }));
 
+let mockAuthUser = { role: "super_admin" };
+
+vi.mock("react-redux", () => ({
+  useSelector: (selector) => selector({ auth: { user: mockAuthUser } }),
+}));
+
+vi.mock("../api/adminAccessApi", () => ({
+  adminAccessApi: {
+    getMyAccess: vi.fn(() =>
+      Promise.resolve({
+        data: {
+          role: mockAuthUser?.role || "super_admin",
+          permissions: mockAuthUser?.permissions || {
+            scholarship_exam: ["view", "create", "edit", "delete"],
+          },
+        },
+      }),
+    ),
+  },
+}));
+
 vi.mock("../telemetry/legacyAnalytics", () => {
   const analytics = { capture: vi.fn() };
   return { useFirstPartyAnalytics: () => analytics };
@@ -160,7 +181,10 @@ describe("ScholarshipExamPage (standalone)", () => {
 const adminTest = (name, fn) => test(name, fn, 20000);
 
 describe("AdminScholarshipManager (single-exam workspace)", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuthUser = { role: "super_admin" };
+  });
 
   const pathways = [
     { id: 10, title: "Nursing Pathway", is_builtin: false, is_active: true },
@@ -846,5 +870,38 @@ describe("AdminScholarshipManager (single-exam workspace)", () => {
     expect(screen.getByText("Audio Block")).toBeInTheDocument();
     expect(screen.getByText("Audio uploaded ✓")).toBeInTheDocument();
     expect(screen.getByText("Was ist richtig?")).toBeInTheDocument();
+  });
+
+  adminTest("Grader access restricts tabs to Candidates, Submissions, User Awards and hides exam action buttons", async () => {
+    mockAuthUser = {
+      role: "admin",
+      permissions: { scholarship_exam: ["view", "grader"] },
+    };
+    mockList();
+    render(<AdminScholarshipManager />);
+
+    const manageBtn = await screen.findByRole("button", { name: /Manage Exams/i });
+    fireEvent.click(manageBtn);
+
+    expect(await screen.findByText("Scholarship 2026")).toBeInTheDocument();
+
+    // Grader only sees Candidates, Submissions, User Awards tabs
+    expect(await screen.findByRole("button", { name: /Candidates/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Submissions/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /User Awards/ })).toBeInTheDocument();
+
+    // Grader does NOT see Overview, Questions, Tiers, or Audit Log
+    expect(screen.queryByRole("button", { name: /^Overview$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Questions$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Scholarship Tiers/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Activity Log/ })).not.toBeInTheDocument();
+
+    // Grader does NOT see exam mutation buttons
+    expect(screen.queryByRole("button", { name: /New Exam/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Duplicate/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Delete/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Activate/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Deactivate/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Release Results/ })).not.toBeInTheDocument();
   });
 });

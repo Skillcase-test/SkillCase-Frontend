@@ -35,6 +35,7 @@ const MODULE_OPTIONS = [
   { key: "paywall", label: "Paywall" },
   { key: "usage_limits", label: "Usage Limits" },
   { key: "feature_flags", label: "Feature Flags" },
+  { key: "call_engine", label: "Call Engine" },
 ];
 const ACTION_OPTIONS = ["view", "create", "edit", "delete", "manage"];
 const SKILLCASE_INTERVIEW_MODULE = "skillcase_interviews";
@@ -99,9 +100,17 @@ const SIMPLE_ACCESS_MODULES = {
     viewActions: ["view"],
     fullActions: ["view", "create", "edit", "delete"],
   },
-  scholarship_exam: {
+  call_engine: {
     viewActions: ["view"],
+    fullActions: ["view", "edit"],
+    viewLabel: "Call Engine: View Only (AI Disabled)",
+    fullLabel: "Call Engine: Full Access (AI Enabled)",
+  },
+  scholarship_exam: {
+    viewActions: ["view", "grader"],
     fullActions: ["view", "create", "edit", "delete"],
+    viewLabel: "Scholarship Exam: Grader Access (Candidates, Submissions, User Awards)",
+    fullLabel: "Scholarship Exam: Full Access (All Tabs & Exams)",
   },
   wise: { viewActions: ["view"], fullActions: ["view", "edit"] },
   wise_classes: { viewActions: ["view"], fullActions: ["view", "edit"] },
@@ -444,7 +453,7 @@ function PermissionPicker({ value, onChange }) {
                         ])
                       }
                     />
-                    {moduleDef.label}: View Only
+                    {config.viewLabel || `${moduleDef.label}: View Only`}
                   </label>
                   <label
                     className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer transition-colors ${
@@ -463,7 +472,7 @@ function PermissionPicker({ value, onChange }) {
                         ])
                       }
                     />
-                    {moduleDef.label}: Full Access
+                    {config.fullLabel || `${moduleDef.label}: Full Access`}
                   </label>
                 </div>
               </div>

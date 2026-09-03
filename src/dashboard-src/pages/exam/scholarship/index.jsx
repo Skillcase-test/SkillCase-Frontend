@@ -48,6 +48,7 @@ import ConfirmDialog from "./ui/ConfirmDialog";
 import { btn } from "./ui/buttons";
 import { toUTC, toLocalInput } from "../../../../utils/dateTime";
 import { ControlDropdown } from "../../../payments-admin/components/controls";
+import { hasPermission, useAdminAccess } from "../../../../utils/adminPermissions";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -85,7 +86,29 @@ const EMPTY_NEW_EXAM = {
 
 // ─── Orchestrator ───────────────────────────────────────────────────────────
 
-export default function AdminScholarshipManager() {
+export default function AdminScholarshipManager({ me: propMe } = {}) {
+  const me = useAdminAccess(propMe);
+  const examActions = me?.permissions?.scholarship_exam || [];
+  const isSuperAdmin = me?.role === "super_admin";
+
+  const isGrader = Boolean(
+    examActions.includes("grader") &&
+      !examActions.includes("edit") &&
+      !examActions.includes("manage") &&
+      !examActions.includes("create"),
+  );
+
+  const canCreateExam = Boolean(
+    !isGrader && (isSuperAdmin || examActions.includes("create") || examActions.includes("manage")),
+  );
+  const canEditExam = Boolean(
+    !isGrader && (isSuperAdmin || examActions.includes("edit") || examActions.includes("manage")),
+  );
+  const canDeleteExam = Boolean(
+    !isGrader && (isSuperAdmin || examActions.includes("delete") || examActions.includes("manage")),
+  );
+  const hasFullExamAccess = !isGrader;
+
   const [exams, setExams] = useState([]);
   const [pathways, setPathways] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -108,7 +131,13 @@ export default function AdminScholarshipManager() {
   // Selected Exam inside Level 2
   const [selectedExam, setSelectedExam] = useState(null);
   const [examQuestions, setExamQuestions] = useState([]);
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab] = useState(isGrader ? "candidates" : "overview");
+
+  useEffect(() => {
+    if (isGrader && (tab === "overview" || tab === "questions" || tab === "tiers" || tab === "audit_log")) {
+      setTab("candidates");
+    }
+  }, [isGrader, tab]);
 
   const [editSettings, setEditSettings] = useState(null);
 
@@ -191,14 +220,22 @@ export default function AdminScholarshipManager() {
       const res = await api.getExamDetail(testId);
       setSelectedExam(res.data?.exam);
       setExamQuestions(res.data?.questions || []);
-      setTab("overview");
+      setTab(isGrader ? "candidates" : "overview");
       setError("");
+      if (isGrader) {
+        api.getExamVisibility(testId).then((visRes) => {
+          setVisStudents(visRes.data?.students || []);
+        }).catch(() => {});
+        api.listAllStudents().then((studentsRes) => {
+          setAllStudents(studentsRes.data?.students || []);
+        }).catch(() => {});
+      }
     } catch {
       setError("Failed to load exam");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isGrader]);
 
   const refreshDetail = useCallback(async () => {
     if (!selectedExam) return;
@@ -766,7 +803,11 @@ export default function AdminScholarshipManager() {
     }
   }, [selectedExam]);
 
-  useEffect(() => { loadTiers(); }, [loadTiers]);
+  useEffect(() => {
+    if (!isGrader) {
+      loadTiers();
+    }
+  }, [loadTiers, isGrader]);
 
   // ── Submissions ──────────────────────────────────────────────────────────
 
@@ -900,6 +941,12 @@ export default function AdminScholarshipManager() {
   const selectedPathway = pathways.find((p) => Number(p.id) === Number(activePathwayId)) || null;
 
   const value = {
+    canCreateExam,
+    canEditExam,
+    canDeleteExam,
+    isGrader,
+    isSuperAdmin,
+    hasFullExamAccess,
     exams,
     loading,
     saving,
@@ -1073,28 +1120,32 @@ export default function AdminScholarshipManager() {
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setPathwayModalState({ isOpen: true, pathway: selectedPathway })
-                  }
-                  className={btn.secondary}
-                >
-                  <Edit2 className="w-3.5 h-3.5" /> Edit Pathway
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNewExam((prev) => ({
-                      ...prev,
-                      pathway_id: activePathwayId,
-                    }));
-                    setShowCreate(true);
-                  }}
-                  className={btn.primary}
-                >
-                  <Plus className="w-4 h-4" /> New Exam
-                </button>
+                {!isGrader && canEditExam && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPathwayModalState({ isOpen: true, pathway: selectedPathway })
+                    }
+                    className={btn.secondary}
+                  >
+                    <Edit2 className="w-3.5 h-3.5" /> Edit Pathway
+                  </button>
+                )}
+                {canCreateExam && !isGrader && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewExam((prev) => ({
+                        ...prev,
+                        pathway_id: activePathwayId,
+                      }));
+                      setShowCreate(true);
+                    }}
+                    className={btn.primary}
+                  >
+                    <Plus className="w-4 h-4" /> New Exam
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1130,19 +1181,21 @@ export default function AdminScholarshipManager() {
                     <p className="text-xs text-slate-400 mt-1 mb-4">
                       Create an exam or pick an existing draft from the sidebar to manage it.
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewExam((prev) => ({
-                          ...prev,
-                          pathway_id: activePathwayId,
-                        }));
-                        setShowCreate(true);
-                      }}
-                      className={btn.primary}
-                    >
-                      <Plus className="w-4 h-4" /> Create First Exam
-                    </button>
+                    {canCreateExam && !isGrader && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewExam((prev) => ({
+                            ...prev,
+                            pathway_id: activePathwayId,
+                          }));
+                          setShowCreate(true);
+                        }}
+                        className={btn.primary}
+                      >
+                        <Plus className="w-4 h-4" /> Create First Exam
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -1168,7 +1221,7 @@ export default function AdminScholarshipManager() {
                                 Results out
                               </Chip>
                             )}
-                            {selectedExam.results_visible && tiers.length > 0 && (
+                            {selectedExam.results_visible && !isGrader && tiers.length > 0 && (
                               <Chip cls="bg-sky-50 text-sky-700 border-sky-200">
                                 Up to {Math.max(...tiers.map((t) => Number(t.scholarship_pct)))}% scholarship
                               </Chip>
@@ -1189,64 +1242,81 @@ export default function AdminScholarshipManager() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {selectedExam.is_active ? (
-                            <button
-                              type="button"
-                              onClick={() => handleToggleActive(selectedExam, false)}
-                              className={btn.amber}
-                            >
-                              Deactivate
-                            </button>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => handleToggleActive(selectedExam, true)}
-                              className={btn.success}
-                            >
-                              <Play className="w-3.5 h-3.5" /> Activate Exam
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleToggleResultsVisible(selectedExam)}
-                            className={`${btn.secondary} ${
-                              selectedExam.results_visible
-                                ? "!border-amber-300 !text-amber-700 hover:!bg-amber-50"
-                                : ""
-                            }`}
-                          >
-                            {selectedExam.results_visible ? "Hide Results" : "Release Results"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDuplicate(selectedExam)}
-                            className={btn.secondary}
-                            title="Duplicate exam (media copied, copy is a draft)"
-                          >
-                            <Copy className="w-3.5 h-3.5" /> Duplicate
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteExam(selectedExam)}
-                            className={btn.dangerGhost}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" /> Delete
-                          </button>
-                        </div>
+                        {!isGrader && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {canEditExam && (
+                              <>
+                                {selectedExam.is_active ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleActive(selectedExam, false)}
+                                    className={btn.amber}
+                                  >
+                                    Deactivate
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleActive(selectedExam, true)}
+                                    className={btn.success}
+                                  >
+                                    <Play className="w-3.5 h-3.5" /> Activate Exam
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleResultsVisible(selectedExam)}
+                                  className={`${btn.secondary} ${
+                                    selectedExam.results_visible
+                                      ? "!border-amber-300 !text-amber-700 hover:!bg-amber-50"
+                                      : ""
+                                  }`}
+                                >
+                                  {selectedExam.results_visible ? "Hide Results" : "Release Results"}
+                                </button>
+                              </>
+                            )}
+                            {canCreateExam && (
+                              <button
+                                type="button"
+                                onClick={() => handleDuplicate(selectedExam)}
+                                className={btn.secondary}
+                                title="Duplicate exam (media copied, copy is a draft)"
+                              >
+                                <Copy className="w-3.5 h-3.5" /> Duplicate
+                              </button>
+                            )}
+                            {canDeleteExam && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteExam(selectedExam)}
+                                className={btn.dangerGhost}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Delete
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Workspace Tabs */}
                       <div className="flex items-center gap-1 mt-4 border-t border-slate-100 pt-3 overflow-x-auto">
-                        {[
-                          { key: "overview", label: "Overview", icon: LayoutDashboard },
-                          { key: "questions", label: "Questions", icon: FileQuestion },
-                          { key: "candidates", label: "Candidates", icon: Users },
-                          { key: "submissions", label: "Submissions", icon: ListChecks },
-                          { key: "tiers", label: "Scholarship Tiers", icon: Award },
-                          { key: "user_awards", label: "User Awards", icon: UserPlus },
-                          { key: "audit_log", label: "Activity Log", icon: History },
-                        ].map((t) => (
+                        {(isGrader
+                          ? [
+                              { key: "candidates", label: "Candidates", icon: Users },
+                              { key: "submissions", label: "Submissions", icon: ListChecks },
+                              { key: "user_awards", label: "User Awards", icon: UserPlus },
+                            ]
+                          : [
+                              { key: "overview", label: "Overview", icon: LayoutDashboard },
+                              { key: "questions", label: "Questions", icon: FileQuestion },
+                              { key: "candidates", label: "Candidates", icon: Users },
+                              { key: "submissions", label: "Submissions", icon: ListChecks },
+                              { key: "tiers", label: "Scholarship Tiers", icon: Award },
+                              { key: "user_awards", label: "User Awards", icon: UserPlus },
+                              { key: "audit_log", label: "Activity Log", icon: History },
+                            ]
+                        ).map((t) => (
                           <button
                             key={t.key}
                             type="button"
@@ -1254,8 +1324,8 @@ export default function AdminScholarshipManager() {
                               setTab(t.key);
                               if (t.key === "candidates") loadVisibility();
                               if (t.key === "submissions") loadSubmissions();
-                              if (t.key === "overview") openSettings();
-                              if (t.key === "tiers") loadTiers();
+                              if (t.key === "overview" && !isGrader) openSettings();
+                              if (t.key === "tiers" && !isGrader) loadTiers();
                             }}
                             className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold rounded-lg transition-colors ${
                               tab === t.key
@@ -1270,13 +1340,13 @@ export default function AdminScholarshipManager() {
                       </div>
                     </div>
 
-                    {tab === "overview" && <OverviewTab />}
-                    {tab === "questions" && <QuestionsTab />}
+                    {tab === "overview" && !isGrader && <OverviewTab />}
+                    {tab === "questions" && !isGrader && <QuestionsTab />}
                     {tab === "candidates" && <CandidatesTab />}
                     {tab === "submissions" && <SubmissionsTab />}
-                    {tab === "tiers" && <TiersTab />}
+                    {tab === "tiers" && !isGrader && <TiersTab />}
                     {tab === "user_awards" && <UserAwardsTab />}
-                    {tab === "audit_log" && <ActivityLogTab />}
+                    {tab === "audit_log" && !isGrader && <ActivityLogTab />}
                   </>
                 )}
               </main>
