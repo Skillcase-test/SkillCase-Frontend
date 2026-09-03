@@ -77,7 +77,14 @@ export default function VideoClassesTour({
       getEl: () => refs.chatBar.current,
     });
     return list;
-  }, [refs, hasDescription, hasNotes, hasAudioSwitch, openSettingsMenu, closeSettingsMenu]);
+  }, [
+    refs,
+    hasDescription,
+    hasNotes,
+    hasAudioSwitch,
+    openSettingsMenu,
+    closeSettingsMenu,
+  ]);
 
   const [stepIndex, setStepIndex] = useState(0);
   const [rect, setRect] = useState(null);
@@ -93,7 +100,9 @@ export default function VideoClassesTour({
     current.enter?.();
     if (current.scrollTo) {
       try {
-        current.getEl()?.scrollIntoView?.({ block: "center", behavior: "smooth" });
+        current
+          .getEl()
+          ?.scrollIntoView?.({ block: "center", behavior: "smooth" });
       } catch {}
     }
 
@@ -156,7 +165,7 @@ export default function VideoClassesTour({
             <span
               key={s.id}
               className={`h-1.5 rounded-full transition-all ${
-                i === stepIndex ? "w-4 bg-sky-700" : "w-1.5 bg-slate-300"
+                i === stepIndex ? "w-4 bg-[#002856]" : "w-1.5 bg-slate-300"
               }`}
             />
           ))}
@@ -176,7 +185,7 @@ export default function VideoClassesTour({
             type="button"
             onClick={goNext}
             data-testid="video-tour-next"
-            className="px-4 py-1.5 rounded-full text-xs font-bold text-white bg-sky-800 hover:bg-sky-700 cursor-pointer"
+            className="px-4 py-1.5 rounded-full text-xs font-bold text-white bg-[#002856] hover:bg-[#002856] cursor-pointer"
           >
             {isLastStep ? "Done" : "Next"}
           </button>
