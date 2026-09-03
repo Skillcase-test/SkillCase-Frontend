@@ -191,6 +191,9 @@ export const updateUserAward = (awardId, data) =>
 export const revokeUserAward = (awardId, data) =>
   api.delete(`/admin/scholarship-exam/user-awards/${awardId}`, { data });
 
+export const listCompletedCandidatesForAward = (testId, params) =>
+  api.get(`/admin/scholarship-exam/${testId}/completed-candidates`, { params });
+
 // ── Scholarship audit log ──────────────────────────────────────────────────
 export const getAuditLog = (params) =>
   api.get("/admin/scholarship-exam/audit-log", { params });

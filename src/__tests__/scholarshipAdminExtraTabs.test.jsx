@@ -11,6 +11,9 @@ vi.mock("../api/scholarshipExamApi", () => ({
   listTiers: vi.fn().mockResolvedValue({ data: { tiers: [] } }),
   getExamSubmissions: vi.fn().mockResolvedValue({ data: { submissions: [] } }),
   updateExam: vi.fn(),
+  listCompletedCandidatesForAward: vi.fn().mockResolvedValue({
+    data: { candidates: [], count: 0, pending_count: 0, page: 1, limit: 25 },
+  }),
 }));
 
 const workspace = vi.hoisted(() => ({ selectedExam: { test_id: 1 } }));
@@ -171,6 +174,56 @@ describe("UserAwardsTab — per-user redemption window", () => {
     expect(payload.scholarship_pct).toBe(40);
     // Re-sending the stale deadline would trip the server's now-or-later rule
     expect(payload).not.toHaveProperty("redemption_expires_at");
+  });
+
+  test("renders completed candidates feed and grants award directly", async () => {
+    vi.mocked(api.listCompletedCandidatesForAward).mockResolvedValue({
+      data: {
+        candidates: [
+          {
+            submission_id: 101,
+            user_id: "u123",
+            fullname: "Aarav Sharma",
+            number: "9876543210",
+            score: 85,
+            earned_points: 17,
+            total_points: 20,
+            finished_at: new Date().toISOString(),
+            active_award_id: null,
+          },
+        ],
+        count: 1,
+        pending_count: 1,
+        page: 1,
+        limit: 25,
+      },
+    });
+
+    render(<UserAwardsTab />);
+    await waitFor(() =>
+      expect(api.listCompletedCandidatesForAward).toHaveBeenCalledWith(1, expect.any(Object)),
+    );
+
+    const row = await screen.findByTestId("completed-candidate-row");
+    expect(row).toBeInTheDocument();
+    expect(row).toHaveTextContent("Aarav Sharma");
+    expect(row).toHaveTextContent("9876543210");
+    // Verify user_id is NOT displayed
+    expect(row).not.toHaveTextContent("u123");
+
+    // Quick add 24h
+    fireEvent.click(screen.getByText("+24h"));
+    // Enter 30%
+    const pctInput = row.querySelector('input[type="number"]');
+    fireEvent.change(pctInput, { target: { value: "30" } });
+
+    // Click Grant Award
+    fireEvent.click(screen.getByText("Grant Award"));
+    await waitFor(() => expect(api.createUserAward).toHaveBeenCalled());
+    const grantCall = api.createUserAward.mock.calls[0][0];
+    expect(grantCall.user_id).toBe("u123");
+    expect(grantCall.scholarship_pct).toBe(30);
+    expect(grantCall.redemption_expires_at).toBeDefined();
   });
 });
 
