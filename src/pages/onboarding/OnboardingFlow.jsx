@@ -887,7 +887,7 @@ const OnboardingFlow = () => {
           lifecycle: "succeeded",
           branch: "learn",
         });
-        // "Continue learning German" or "Yet to start"
+        // "Start learning German" or "Yet to start"
         setLgFirstLandingMarker();
         navigateAfterOnboarding(data.user, navigate, "/learn-german", {
           state: { fromOnboardingFirstLanding: true },
@@ -1710,7 +1710,7 @@ const OnboardingFlow = () => {
                           id: "A",
                           label:
                             germanStatus === "Yet to start (no knowledge)"
-                              ? "Continue learning German"
+                              ? "Start learning German"
                               : "Practice my German",
                           recommended: true,
                         },
@@ -1719,12 +1719,12 @@ const OnboardingFlow = () => {
                           label:
                             germanStatus === "Yet to start (no knowledge)"
                               ? "Practice my German"
-                              : "Continue learning German",
+                              : "Start learning German",
                           recommended: false,
                         },
                       ].map((pref) => {
                         const prefCode =
-                          pref.label === "Continue learning German" ? "1" : "2";
+                          pref.label === "Start learning German" ? "1" : "2";
                         const isSelected = preference === prefCode;
                         return (
                           <button
