@@ -1434,7 +1434,8 @@ export function CandidateDetailsForm({
                       className="text-xs font-semibold text-rose-600 underline"
                       onClick={() => {
                         if (window.confirm("Remove selfie?")) {
-                          setEditDraft((p) => ({ ...p, selfie_key: null }));
+                          setEditDraft((p) => ({ ...p, selfie_key: "" }));
+                          setSelfiePreviewUrl("");
                         }
                       }}
                     >

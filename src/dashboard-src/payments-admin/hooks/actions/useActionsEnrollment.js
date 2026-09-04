@@ -154,6 +154,7 @@ export function useActionsEnrollment(state) {
       degree_certificate_gdrive_link:
         editDraft.degree_certificate_gdrive_link || "",
       updated_resume_gdrive_link: editDraft.updated_resume_gdrive_link || "",
+      selfie_key: editDraft.selfie_key ?? "",
       terms_ack_status: editDraft.terms_ack_status || "",
       lead_owner: editDraft.lead_owner || "",
       internal_remark: editDraft.internal_remark || "",
