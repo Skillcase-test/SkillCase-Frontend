@@ -1027,11 +1027,16 @@ function UserOverridesTab({ canEdit }) {
                       : "border-transparent hover:bg-slate-50"
                   }`}
                 >
-                  <div className="text-xs font-bold text-slate-800">
-                    {u.fullname || u.username}
+                  <div className="text-xs font-bold text-slate-800 flex items-center flex-wrap gap-1">
+                    <span>{u.fullname || u.username}</span>
                     {u.current_profeciency_level && (
-                      <span className="ml-1.5 text-[9px] font-bold text-slate-400 uppercase">
+                      <span className="text-[9px] font-bold text-slate-400 uppercase">
                         {u.current_profeciency_level}
+                      </span>
+                    )}
+                    {u.is_limited && (
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                        Limited
                       </span>
                     )}
                   </div>
