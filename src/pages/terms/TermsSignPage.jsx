@@ -1637,6 +1637,8 @@ export default function TermsSignPage() {
                     <option value="Post BSc Nursing">Post BSc Nursing</option>
                     <option value="GNM Nursing">GNM Nursing</option>
                     <option value="Phd Nursing">Phd Nursing</option>
+                    <option value="BPT">BPT</option>
+                    <option value="MPT">MPT</option>
                     <option value="Others">Others</option>
                   </select>
                 </div>
