@@ -11,6 +11,7 @@ export const INITIAL_PROFILE_FORM = {
   experience: "",
   language: "",
   specialization: "",
+  departments: [],
   photo: null,
   resume: null,
   degcert: null,

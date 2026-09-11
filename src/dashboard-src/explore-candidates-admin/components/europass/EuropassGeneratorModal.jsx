@@ -177,6 +177,7 @@ export function EuropassGeneratorModal({
           experience: candidateForm.experience,
           language: candidateForm.language,
           specialization: candidateForm.specialization,
+          departments: candidateForm.departments,
           photo: typeof candidateForm.photo === "string" ? candidateForm.photo : "",
         },
       };

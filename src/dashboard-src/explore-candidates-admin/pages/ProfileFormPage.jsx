@@ -29,6 +29,7 @@ import {
   ActionButton,
   ControlDropdown,
   DynamicDropdownField,
+  DynamicMultiTagField,
 } from "../components/controls";
 import { ConfirmationModal } from "../components/ConfirmationModal";
 import { EuropassGeneratorModal } from "../components/europass/EuropassGeneratorModal";
@@ -99,14 +100,15 @@ export function ProfileFormPage({ mode }) {
 
   const isMainPhpReadOnly =
     mode === "edit" && String(profileId || "").startsWith("main_php:");
-  // Age is stored only on local profiles; bridge sources (explore_php etc.)
-  // can't persist it, so the field is hidden there instead of silently dropped.
+  // Age and department tags are stored only on local profiles; bridge sources
+  // (explore_php etc.) can't persist them via the PHP bridge whitelist, so age
+  // is hidden there instead of silently dropped and departments show read-only.
   // profileId arrives as a source uid like "local:5" / "explore_php:5"; a bare
   // numeric id means local.
   const profileSource = String(profileId || "").includes(":")
     ? String(profileId).split(":")[0]
     : "local";
-  const canEditAge = mode === "create" || profileSource === "local";
+  const canEditLocalFields = mode === "create" || profileSource === "local";
 
   const activeVideoList = mode === "edit" ? videos : createVideos;
   const nextVideoOrder = useMemo(
@@ -199,6 +201,11 @@ export function ProfileFormPage({ mode }) {
         ...INITIAL_PROFILE_FORM,
         ...profile,
         dob: normalizeDateForInput(profile.dob),
+        departments: Array.isArray(profile.departments)
+          ? profile.departments
+          : String(profile.specialization || "").trim()
+            ? [String(profile.specialization).trim()]
+            : [],
       };
       // Older profiles may have dob but no stored age yet -- prefill it so a
       // save persists it without the admin re-entering anything.
@@ -233,6 +240,9 @@ export function ProfileFormPage({ mode }) {
         experience: form.experience,
         language: form.language,
         specialization: form.specialization,
+        departments: JSON.stringify(
+          Array.isArray(form.departments) ? form.departments : [],
+        ),
         photo: form.photo,
         resume: form.resume,
         degcert: form.degcert,
@@ -401,7 +411,7 @@ export function ProfileFormPage({ mode }) {
               />
             </div>
 
-            {canEditAge ? (
+            {canEditLocalFields ? (
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
                   Age
@@ -469,16 +479,23 @@ export function ProfileFormPage({ mode }) {
               placeholder="e.g. 1-2 years, Fresher..."
             />
 
-            <DynamicDropdownField
-              label="Specialization / Domain"
+            <DynamicMultiTagField
+              label="Department"
               field="specialization"
-              value={form.specialization || ""}
+              values={Array.isArray(form.departments) ? form.departments : []}
+              primaryValue={form.specialization || ""}
               options={fieldOptions.specialization || []}
-              onChange={(val) => setForm((v) => ({ ...v, specialization: val }))}
+              onChange={(vals, primary) =>
+                setForm((v) => ({
+                  ...v,
+                  departments: vals,
+                  specialization: primary,
+                }))
+              }
               onAddOption={handleAddOption}
               onUpdateOption={handleUpdateOption}
               onDeleteOption={handleDeleteOption}
-              readOnly={isMainPhpReadOnly}
+              readOnly={isMainPhpReadOnly || !canEditLocalFields}
               placeholder="e.g. ICU / Critical Care..."
             />
           </div>
