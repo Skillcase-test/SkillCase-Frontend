@@ -4,6 +4,7 @@ export const INITIAL_PROFILE_FORM = {
   countrycode: "+91",
   phone: "",
   dob: "",
+  age: "",
   gender: "",
   expected_level: "",
   qualification: "",

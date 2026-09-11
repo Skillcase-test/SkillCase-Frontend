@@ -36,6 +36,20 @@ export function normalizeDateForInput(value) {
   return d.toISOString().slice(0, 10);
 }
 
+export function calculateAgeFromDob(dob) {
+  // dob is normalized to "YYYY-MM-DD"; parsing the parts directly avoids the
+  // UTC-midnight pitfall of `new Date("YYYY-MM-DD")` behind-UTC timezones.
+  const [year, month, day] = String(dob || "").split("-").map(Number);
+  if (!year || !month || !day) return "";
+  const now = new Date();
+  let age = now.getFullYear() - year;
+  const monthDiff = now.getMonth() + 1 - month;
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < day)) {
+    age -= 1;
+  }
+  return age >= 0 && age <= 120 ? String(age) : "";
+}
+
 export function getDisplayFileName(value) {
   if (!value) return "";
   if (typeof File !== "undefined" && value instanceof File) return value.name;

@@ -35,6 +35,7 @@ import { EuropassGeneratorModal } from "../components/europass/EuropassGenerator
 import { INITIAL_PROFILE_FORM } from "../utils/constants";
 import {
   normalizeDateForInput,
+  calculateAgeFromDob,
   getStoredAssetLabel,
   openAssetInline,
   pickPdfOrReset,
@@ -98,6 +99,32 @@ export function ProfileFormPage({ mode }) {
 
   const isMainPhpReadOnly =
     mode === "edit" && String(profileId || "").startsWith("main_php:");
+  // Age is stored only on local profiles; bridge sources (explore_php etc.)
+  // can't persist it, so the field is hidden there instead of silently dropped.
+  // profileId arrives as a source uid like "local:5" / "explore_php:5"; a bare
+  // numeric id means local.
+  const profileSource = String(profileId || "").includes(":")
+    ? String(profileId).split(":")[0]
+    : "local";
+  const canEditAge = mode === "create" || profileSource === "local";
+
+  const activeVideoList = mode === "edit" ? videos : createVideos;
+  const nextVideoOrder = useMemo(
+    () =>
+      activeVideoList.reduce(
+        (max, v) => Math.max(max, Number(v.display_order) || 0),
+        -1,
+      ) + 1,
+    [activeVideoList],
+  );
+
+  // Keep the "new video" order default one above the current max. Skipped while
+  // the admin has already started filling the row so we never clobber input.
+  useEffect(() => {
+    setNewVideo((v) =>
+      v.title || v.file ? v : { ...v, display_order: nextVideoOrder },
+    );
+  }, [nextVideoOrder]);
 
   const isDirty = useMemo(() => {
     if (isMainPhpReadOnly) return false;
@@ -173,6 +200,11 @@ export function ProfileFormPage({ mode }) {
         ...profile,
         dob: normalizeDateForInput(profile.dob),
       };
+      // Older profiles may have dob but no stored age yet -- prefill it so a
+      // save persists it without the admin re-entering anything.
+      if (!String(loaded.age || "").trim() && loaded.dob) {
+        loaded.age = calculateAgeFromDob(loaded.dob);
+      }
       setForm(loaded);
       setInitialForm(loaded);
       setVideos(data.videos || []);
@@ -194,6 +226,7 @@ export function ProfileFormPage({ mode }) {
         countrycode: form.countrycode,
         phone: form.phone,
         dob: form.dob,
+        age: form.age,
         gender: form.gender,
         expected_level: form.expected_level,
         qualification: form.qualification,
@@ -356,9 +389,34 @@ export function ProfileFormPage({ mode }) {
                 className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-800 focus:border-[#083262] focus:outline-none focus:ring-1 focus:ring-[#083262] transition disabled:bg-slate-100"
                 type="date"
                 value={form.dob || ""}
-                onChange={(e) => setForm((v) => ({ ...v, dob: e.target.value }))}
+                onChange={(e) => {
+                  const dob = e.target.value;
+                  const computedAge = calculateAgeFromDob(dob);
+                  setForm((v) => ({
+                    ...v,
+                    dob,
+                    age: computedAge || v.age,
+                  }));
+                }}
               />
             </div>
+
+            {canEditAge ? (
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                  Age
+                </label>
+                <input
+                  disabled={isMainPhpReadOnly}
+                  className="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-[#083262] focus:outline-none focus:ring-1 focus:ring-[#083262] transition disabled:bg-slate-100 disabled:text-slate-500"
+                  placeholder="e.g. 28"
+                  value={form.age || ""}
+                  onChange={(e) =>
+                    setForm((v) => ({ ...v, age: e.target.value }))
+                  }
+                />
+              </div>
+            ) : null}
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
@@ -1088,6 +1146,7 @@ export function ProfileFormPage({ mode }) {
                     setNewVideo({ title: "", display_order: 0, file: null });
                     setVideoInputKey((v) => v + 1);
                     toast.success("Video uploaded");
+                    await refreshProfileDetails();
                   } catch (error) {
                     toast.error(
                       error?.response?.data?.message ||
@@ -1100,12 +1159,10 @@ export function ProfileFormPage({ mode }) {
                     }));
                   }
                   return;
-                } else {
-                  setCreateVideos((prev) => [...prev, { ...newVideo }]);
                 }
+                setCreateVideos((prev) => [...prev, { ...newVideo }]);
                 setNewVideo({ title: "", display_order: 0, file: null });
                 setVideoInputKey((v) => v + 1);
-                if (mode === "edit") await refreshProfileDetails();
               }}
             >
               {videoUploadState.new ? "Uploading..." : "Add Video"}
