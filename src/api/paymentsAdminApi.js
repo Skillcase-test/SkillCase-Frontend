@@ -169,6 +169,8 @@ export const paymentsAdminApi = {
     api.post("/admin/payments/import/rollback", { importId }),
   getBookedAmountCandidatePayments: (phone) =>
     api.get("/admin/payments/booked-amounts/candidate-payments", { params: { phone } }),
+  getExistingBookedAmounts: (items) =>
+    api.post("/admin/payments/booked-amounts/existing", { items }),
   bookAmount: (payload) =>
     api.post("/admin/payments/booked-amounts", payload),
   bookAmountBulk: (payload) =>

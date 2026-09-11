@@ -14,6 +14,10 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState("");
   const [showBookingConfirmation, setShowBookingConfirmation] = useState(false);
+  const [mergePrompt, setMergePrompt] = useState(false);
+  const [existingGroups, setExistingGroups] = useState([]);
+  const [mergeTarget, setMergeTarget] = useState({});
+  const [existingLoading, setExistingLoading] = useState(false);
 
   useEffect(() => {
     if (modal && modal.open) {
@@ -22,6 +26,9 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
       setNotes("");
       setError("");
       setShowBookingConfirmation(false);
+      setMergePrompt(false);
+      setExistingGroups([]);
+      setMergeTarget({});
 
       if (modal.isBulk && Array.isArray(modal.payments)) {
         setPayments(modal.payments);
@@ -51,6 +58,70 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
     }
   }, [modal]);
 
+  // Look up booked amounts the involved candidates already have in the chosen
+  // target month — those can be consolidated into one invoice at confirm time.
+  useEffect(() => {
+    if (!modal || !modal.open) return;
+    const nameByEnrollment = {};
+    let items = [];
+    if (modal.isBulk) {
+      const enrollmentIds = [
+        ...new Set(
+          (modal.payments || [])
+            .map((p) => String(p.enrollment_id || ""))
+            .filter(Boolean),
+        ),
+      ];
+      for (const p of modal.payments || []) {
+        const eid = String(p.enrollment_id || "");
+        if (eid && !nameByEnrollment[eid])
+          nameByEnrollment[eid] = p.student_name || "";
+      }
+      items = enrollmentIds.map((eid) => ({
+        enrollment_id: eid,
+        year,
+        month,
+      }));
+    } else if (modal.payment?.enrollment_id) {
+      const eid = String(modal.payment.enrollment_id);
+      nameByEnrollment[eid] = modal.payment.student_name || "";
+      items = [{ enrollment_id: eid, year, month }];
+    }
+    if (!items.length) {
+      setExistingGroups([]);
+      setMergeTarget({});
+      return;
+    }
+    setExistingLoading(true);
+    paymentsAdminApi
+      .getExistingBookedAmounts(items)
+      .then((res) => {
+        const groups = [];
+        const targets = {};
+        for (const r of res.data?.results || []) {
+          const bookings = r.bookings || [];
+          if (!bookings.length) continue;
+          const eid = String(r.enrollment_id);
+          groups.push({
+            enrollment_id: eid,
+            student_name: nameByEnrollment[eid] || "",
+            bookings,
+          });
+          const firstMergeable = bookings.find(
+            (b) => b.invoice_status !== "sent",
+          );
+          targets[eid] = firstMergeable ? firstMergeable.booked_amount_id : "";
+        }
+        setExistingGroups(groups);
+        setMergeTarget(targets);
+      })
+      .catch(() => {
+        setExistingGroups([]);
+        setMergeTarget({});
+      })
+      .finally(() => setExistingLoading(false));
+  }, [modal, year, month]);
+
   if (!modal || !modal.open) return null;
   if (!modal.isBulk && !modal.payment) return null;
 
@@ -64,12 +135,33 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
     );
   };
 
+  const selectMergeTarget = (enrollmentId, bookedAmountId) => {
+    setMergeTarget((prev) => ({ ...prev, [enrollmentId]: bookedAmountId }));
+  };
+
+  const totalMergeCount = Object.values(mergeTarget).filter(Boolean).length;
+
+  const mergeableCount = existingGroups.reduce(
+    (sum, g) =>
+      sum + g.bookings.filter((b) => b.invoice_status !== "sent").length,
+    0,
+  );
+  const sentOnlyCount = existingGroups.reduce(
+    (sum, g) =>
+      sum + g.bookings.filter((b) => b.invoice_status === "sent").length,
+    0,
+  );
+  const hasMergeableBookings = mergeableCount > 0;
+
   const handleClose = () => {
     setPayments([]);
     setSelectedIds([]);
     setError("");
     setLoading(false);
     setShowBookingConfirmation(false);
+    setMergePrompt(false);
+    setExistingGroups([]);
+    setMergeTarget({});
     setModal({ open: false, payment: null });
   };
 
@@ -79,7 +171,11 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
       return;
     }
     setError("");
-    setShowBookingConfirmation(true);
+    if (hasMergeableBookings) {
+      setMergePrompt(true);
+    } else {
+      setShowBookingConfirmation(true);
+    }
   };
 
   const handleConfirm = async () => {
@@ -87,20 +183,27 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
     setError("");
     try {
       if (modal.isBulk) {
+        const mergeMap = {};
+        for (const [eid, targetId] of Object.entries(mergeTarget)) {
+          if (targetId) mergeMap[eid] = [targetId];
+        }
         await onConfirm({
           payment_ids: selectedIds,
           year,
           month,
           notes,
           isBulk: true,
+          merge_map: mergeMap,
         });
       } else {
+        const eid = String(initialPayment.enrollment_id);
         await onConfirm({
           enrollment_id: initialPayment.enrollment_id,
           payment_ids: selectedIds,
           year,
           month,
           notes,
+          merge_booked_amount_ids: mergeTarget[eid] ? [mergeTarget[eid]] : [],
         });
       }
       handleClose();
@@ -235,6 +338,28 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
             )}
           </div>
 
+          {/* Existing bookings awareness — merge choice is forced at confirm */}
+          {existingLoading ? (
+            <p className="text-xs text-slate-400 py-1">
+              Checking existing bookings for this month...
+            </p>
+          ) : hasMergeableBookings ? (
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 px-3 py-2.5 text-[11px] font-medium text-indigo-800">
+              {mergeableCount} existing booking
+              {mergeableCount === 1 ? "" : "s"} already exist
+              {mergeableCount === 1 ? "s" : ""} for {MONTH_NAMES[month]} {year} —
+              you will be asked which booking to add the new payments to, or to
+              book separately.
+            </div>
+          ) : sentOnlyCount > 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[11px] font-medium text-slate-600">
+              {sentOnlyCount} existing booking{sentOnlyCount === 1 ? "" : "s"} in{" "}
+              {MONTH_NAMES[month]} {year} already{" "}
+              {sentOnlyCount === 1 ? "has" : "have"} a sent invoice — this will
+              be booked as a separate invoice.
+            </div>
+          ) : null}
+
           {/* Notes textarea */}
           <div>
             <label className="block text-xs font-semibold text-slate-700">
@@ -273,6 +398,142 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
         </div>
       </div>
 
+      {mergePrompt ? (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
+          <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-5 shadow-2xl flex flex-col max-h-[85vh]">
+            <h4 className="text-base font-bold text-slate-900">
+              Existing bookings in {MONTH_NAMES[month]} {year}
+            </h4>
+            <p className="mt-1.5 text-xs leading-5 text-slate-600">
+              {modal.isBulk
+                ? "Some selected candidates already have booked amounts for this month. Pick which booking the new payments get added to — its invoice covers the combined amount."
+                : "This candidate already has booked amounts for this month. Pick which booking the new payments get added to — its invoice covers the combined amount."}
+            </p>
+
+            <div className="mt-3 flex-1 space-y-2 overflow-y-auto pr-1">
+              {existingGroups.map((g) => (
+                <div
+                  key={g.enrollment_id}
+                  className="rounded-xl border border-slate-200 overflow-hidden"
+                >
+                  {modal.isBulk ? (
+                    <div className="border-b border-slate-100 bg-slate-50 px-3 py-1.5 text-[11px] font-semibold text-slate-700">
+                      {g.student_name || "Candidate"}
+                    </div>
+                  ) : null}
+                  <div className="divide-y divide-slate-100">
+                    {g.bookings.map((b) => {
+                      const isSent = b.invoice_status === "sent";
+                      const isDraft = b.invoice_status === "generated";
+                      const checked =
+                        mergeTarget[g.enrollment_id] === b.booked_amount_id;
+                      return (
+                        <label
+                          key={b.booked_amount_id}
+                          className={`flex items-start gap-2.5 px-3 py-2 select-none ${
+                            isSent
+                              ? "cursor-not-allowed opacity-60"
+                              : "cursor-pointer hover:bg-slate-50/50"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name={`merge-${g.enrollment_id}`}
+                            disabled={isSent}
+                            checked={checked}
+                            onChange={() =>
+                              selectMergeTarget(
+                                g.enrollment_id,
+                                b.booked_amount_id,
+                              )
+                            }
+                            className="mt-0.5 h-4 w-4 rounded-full border-slate-300 text-slate-900 focus:ring-slate-900"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-semibold text-slate-800">
+                                {formatInrFromPaise(b.amount_paise)}
+                              </p>
+                              {isSent ? (
+                                <span className="rounded-md border border-rose-100 bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">
+                                  Sent {b.invoice_number || ""}
+                                </span>
+                              ) : isDraft ? (
+                                <span className="rounded-md border border-indigo-100 bg-indigo-50 px-1.5 py-0.5 text-[10px] font-bold text-indigo-700">
+                                  Draft {b.invoice_number || ""}
+                                </span>
+                              ) : (
+                                <span className="rounded-md border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">
+                                  No invoice
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-0.5 text-[10px] text-slate-400">
+                              {b.txn_count} payment{b.txn_count === 1 ? "" : "s"}{" "}
+                              · booked {formatIstDate(b.created_at)}
+                              {isSent
+                                ? " — locked, invoice already sent"
+                                : isDraft
+                                  ? " — draft will be regenerated"
+                                  : ""}
+                            </p>
+                          </div>
+                        </label>
+                      );
+                    })}
+                    <label className="flex items-start gap-2.5 px-3 py-2 select-none cursor-pointer hover:bg-slate-50/50">
+                      <input
+                        type="radio"
+                        name={`merge-${g.enrollment_id}`}
+                        checked={!mergeTarget[g.enrollment_id]}
+                        onChange={() => selectMergeTarget(g.enrollment_id, "")}
+                        className="mt-0.5 h-4 w-4 rounded-full border-slate-300 text-slate-900 focus:ring-slate-900"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-slate-800">
+                          Book as a separate invoice
+                        </p>
+                        <p className="mt-0.5 text-[10px] text-slate-400">
+                          creates a new booked amount — its own invoice
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-2 text-[11px] text-slate-500">
+              {modal.isBulk
+                ? `${totalMergeCount} candidate${totalMergeCount === 1 ? "" : "s"} will merge into an existing booking, ${existingGroups.length - totalMergeCount} will be booked separately.`
+                : totalMergeCount > 0
+                  ? "New payments will be added to the selected booking — one invoice covers the combined amount."
+                  : "New payments will be booked as a separate invoice."}
+            </p>
+
+            <div className="mt-4 flex justify-end gap-2 border-t border-slate-100 pt-3">
+              <ControlButton
+                variant="secondary"
+                onClick={() => setMergePrompt(false)}
+                disabled={loading}
+              >
+                Go Back
+              </ControlButton>
+              <ControlButton
+                variant="primary"
+                onClick={() => {
+                  setMergePrompt(false);
+                  setShowBookingConfirmation(true);
+                }}
+                disabled={loading}
+              >
+                Continue
+              </ControlButton>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {showBookingConfirmation ? (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/50 p-4">
           <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl">
@@ -285,6 +546,13 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
                 ? `${selectedIds.length} selected payments will be booked.`
                 : `${initialPayment?.student_name || "This candidate"}'s selected payments will be booked.`}
             </p>
+            {totalMergeCount > 0 ? (
+              <p className="mt-2 text-xs font-medium text-indigo-700">
+                {modal.isBulk
+                  ? `${totalMergeCount} candidate${totalMergeCount === 1 ? "" : "s"} will merge into an existing booking — its invoice covers the combined amount.`
+                  : "The new payments will be added to the existing booking — one invoice covers the combined amount."}
+              </p>
+            ) : null}
             <div className="mt-5 flex justify-end gap-2">
               <ControlButton
                 variant="secondary"
