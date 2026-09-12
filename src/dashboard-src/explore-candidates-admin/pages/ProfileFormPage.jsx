@@ -308,6 +308,40 @@ export function ProfileFormPage({ mode }) {
     }
   };
 
+  // Profiles without a video introduction are weaker for recruiters — confirm
+  // before saving when none is attached.
+  const hasVideo =
+    mode === "edit"
+      ? videos.some((v) => v.video_file)
+      : createVideos.some((v) => v.file);
+
+  const requestSaveProfile = () => {
+    if (isMainPhpReadOnly || savingProfile) return;
+    if (!hasVideo) {
+      setConfirmModal({
+        open: true,
+        title: "No Video Added",
+        description:
+          "This candidate profile has no video introduction. Profiles with videos perform better with recruiters — are you sure you want to save anyway?",
+        confirmText: "Save Anyway",
+        variant: "default",
+        onConfirm: () => {
+          setConfirmModal({
+            open: false,
+            title: "",
+            description: "",
+            onConfirm: null,
+            loading: false,
+          });
+          handleSaveProfile();
+        },
+        loading: false,
+      });
+      return;
+    }
+    handleSaveProfile();
+  };
+
   const title =
     mode === "edit" ? "Edit Candidate Profile" : "Create Candidate Profile";
 
@@ -1192,6 +1226,8 @@ export function ProfileFormPage({ mode }) {
         isOpen={confirmModal.open}
         title={confirmModal.title}
         description={confirmModal.description}
+        confirmText={confirmModal.confirmText}
+        variant={confirmModal.variant}
         loading={confirmModal.loading}
         onConfirm={confirmModal.onConfirm}
         onCancel={() => setConfirmModal({ open: false, title: "", description: "", onConfirm: null, loading: false })}
@@ -1235,7 +1271,7 @@ export function ProfileFormPage({ mode }) {
               icon={Save}
               disabled={savingProfile || !form.fullname?.trim()}
               loading={savingProfile}
-              onClick={handleSaveProfile}
+              onClick={requestSaveProfile}
             >
               {mode === "edit" ? "Save Changes" : "Create Profile"}
             </PrimaryButton>

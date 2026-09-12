@@ -34,9 +34,11 @@ import {
   Phone,
   CalendarDays,
   StickyNote,
+  Plus,
 } from "lucide-react";
 import SortableStepItem from "./SortableStepItem";
 import { toast } from "react-hot-toast";
+import { exploreCandidatesAdminApi } from "../../../api/exploreCandidatesAdminApi";
 
 const formatToLocalDateTimeString = (dateInput) => {
   if (!dateInput) return "";
@@ -100,6 +102,60 @@ const CandidateDetail = ({
   const [email, setEmail] = useState("");
   const [number, setNumber] = useState("");
   const [proficiency, setProficiency] = useState("");
+  const [extraProfileFields, setExtraProfileFields] = useState({});
+  const [addingOptionFor, setAddingOptionFor] = useState("");
+  const [newOptionValue, setNewOptionValue] = useState("");
+  const [addingOption, setAddingOption] = useState(false);
+  // Newly added options show instantly — the server copy arrives on the next
+  // detail refresh; cleared when switching candidates.
+  const [pendingOptions, setPendingOptions] = useState({});
+
+  // Options for option-backed fields live in explore_candidate_field_options
+  // (shared with the Explore profile form), so a new option is added there and
+  // the detail refresh picks it up in profile_field_config.
+  const handleAddProfileFieldOption = async (field) => {
+    const optionValue = newOptionValue.trim();
+    if (!optionValue) return;
+    try {
+      setAddingOption(true);
+      const res = await exploreCandidatesAdminApi.addFieldOption(
+        field.options_field,
+        optionValue,
+      );
+      // The API dedupes case-insensitively and returns the canonical row —
+      // store/select that casing so "mba" doesn't sit next to an existing "MBA".
+      const canonical = res.data?.data?.option_value || optionValue;
+      toast.success(`Option "${canonical}" added`);
+      setPendingOptions((prev) => ({
+        ...prev,
+        [field.options_field]: [
+          ...new Set([...(prev[field.options_field] || []), canonical]),
+        ],
+      }));
+      setExtraProfileFields((prev) =>
+        field.input === "multiselect"
+          ? {
+              ...prev,
+              [field.field]: [
+                ...new Set([
+                  ...(Array.isArray(prev[field.field])
+                    ? prev[field.field]
+                    : []),
+                  canonical,
+                ]),
+              ],
+            }
+          : { ...prev, [field.field]: canonical },
+      );
+      setAddingOptionFor("");
+      setNewOptionValue("");
+      onRefresh?.();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to add option");
+    } finally {
+      setAddingOption(false);
+    }
+  };
 
   const [interviewId, setInterviewId] = useState("");
   const [agreementId, setAgreementId] = useState("");
@@ -224,8 +280,15 @@ const CandidateDetail = ({
     });
   };
 
+  // The detail payload contains freshly presigned URLs on every poll, so the
+  // candidate object identity changes constantly. Depend on the actual source
+  // values instead: the reseed only runs when one of them really changed (or
+  // a different candidate was opened), which keeps in-progress edits intact.
+  const profileFieldsJson = JSON.stringify(candidate?.profile_fields || {});
+  const stepsConfigJson = JSON.stringify(candidate?.steps_config || []);
+
   useEffect(() => {
-    if (!candidate) return;
+    if (!candidate?.user_id) return;
 
     setFullname(candidate.fullname || "");
     setEmail(candidate.email || candidate.extracted_email || "");
@@ -253,7 +316,7 @@ const CandidateDetail = ({
 
     // The backend resolver is the source of truth for step status and order.
     // Always sync this state after saves, resets, and background refreshes.
-    setSteps(candidate.steps_config || []);
+    setSteps(JSON.parse(stepsConfigJson));
 
     setPaywallEnabled(
       candidate.paywall_enabled === true
@@ -263,7 +326,33 @@ const CandidateDetail = ({
           : "",
     );
     setPaywallPaid(!!candidate.paywall_paid);
-  }, [candidate]);
+    setExtraProfileFields(JSON.parse(profileFieldsJson));
+  }, [
+    candidate?.user_id,
+    candidate?.fullname,
+    candidate?.email,
+    candidate?.extracted_email,
+    candidate?.number,
+    candidate?.language_level,
+    candidate?.current_profeciency_level,
+    candidate?.assigned_interview_id,
+    candidate?.assigned_agreement_template_id,
+    candidate?.training_slot_time,
+    candidate?.training_meet_link,
+    candidate?.recruiter_slot_time,
+    candidate?.recruiter_meet_link,
+    candidate?.paywall_enabled,
+    candidate?.paywall_paid,
+    profileFieldsJson,
+    stepsConfigJson,
+  ]);
+
+  // Option overlays belong to the currently open candidate — drop them on
+  // switch so stale additions can't bleed into another profile.
+  useEffect(() => {
+    setPendingOptions({});
+    setAddingOptionFor("");
+  }, [candidate?.user_id]);
 
   const cleanString = (val) => {
     if (!val || val === "NaN" || val === "undefined" || val === "null")
@@ -361,6 +450,7 @@ const CandidateDetail = ({
       email,
       number,
       current_profeciency_level: proficiency,
+      profile_fields: extraProfileFields,
     });
   };
 
@@ -1289,6 +1379,158 @@ const CandidateDetail = ({
                   </div>
                 </div>
               </div>
+
+              {/* Globally-enabled extra screening profile fields */}
+              {(candidate.profile_field_config || []).length > 0 && (
+                <div className="flex flex-col gap-3 border-t border-slate-100 pt-3">
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    Screening Profile Fields
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {candidate.profile_field_config.map((field) => {
+                      const value = extraProfileFields[field.field];
+                      const setValue = (val) =>
+                        setExtraProfileFields((prev) => ({
+                          ...prev,
+                          [field.field]: val,
+                        }));
+                      const fieldOptions = [
+                        ...new Set([
+                          ...(field.options || []),
+                          ...(pendingOptions[field.options_field] || []),
+                        ]),
+                      ];
+                      return (
+                        <div key={field.field} className="flex flex-col gap-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                              {field.label}
+                              {field.required && (
+                                <span className="ml-0.5 text-red-400">*</span>
+                              )}
+                            </label>
+                            {field.options_field && canEdit && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAddingOptionFor(
+                                    addingOptionFor === field.field
+                                      ? ""
+                                      : field.field,
+                                  );
+                                  setNewOptionValue("");
+                                }}
+                                className="inline-flex items-center gap-0.5 text-[8px] font-bold text-[#083262] hover:text-[#052243] normal-case tracking-normal cursor-pointer shrink-0"
+                                title={`Add a new ${field.label} option (shared with Explore profiles)`}
+                              >
+                                <Plus className="w-2.5 h-2.5" />
+                                Add option
+                              </button>
+                            )}
+                          </div>
+                          {addingOptionFor === field.field && (
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={newOptionValue}
+                                onChange={(e) =>
+                                  setNewOptionValue(e.target.value)
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleAddProfileFieldOption(field);
+                                  }
+                                }}
+                                placeholder={`New ${field.label} option`}
+                                autoFocus
+                                className="flex-1 border border-slate-200 rounded-lg px-2 py-1.5 text-[10px] bg-white focus:outline-none focus:border-[#083262]"
+                              />
+                              <button
+                                type="button"
+                                disabled={addingOption || !newOptionValue.trim()}
+                                onClick={() =>
+                                  handleAddProfileFieldOption(field)
+                                }
+                                className="px-2 py-1.5 rounded-lg bg-[#083262] text-white text-[9px] font-bold hover:bg-[#052243] transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                              >
+                                Add
+                              </button>
+                            </div>
+                          )}
+                          {field.input === "date" && (
+                            <input
+                              type="date"
+                              value={value || ""}
+                              onChange={(e) => setValue(e.target.value)}
+                              className="border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all"
+                            />
+                          )}
+                          {field.input === "text" && (
+                            <input
+                              type="text"
+                              value={value || ""}
+                              onChange={(e) => setValue(e.target.value)}
+                              className="border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all"
+                            />
+                          )}
+                          {field.input === "select" && (
+                            <select
+                              value={value || ""}
+                              onChange={(e) => setValue(e.target.value)}
+                              className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all"
+                            >
+                              <option value="">Select {field.label}</option>
+                              {fieldOptions.map((opt) => (
+                                <option key={opt} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                          {field.input === "multiselect" && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {fieldOptions.map((opt) => {
+                                const selected = (
+                                  Array.isArray(value) ? value : []
+                                ).includes(opt);
+                                return (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() =>
+                                      setValue(
+                                        selected
+                                          ? (Array.isArray(value)
+                                              ? value
+                                              : []
+                                            ).filter((v) => v !== opt)
+                                          : [
+                                              ...(Array.isArray(value)
+                                                ? value
+                                                : []),
+                                              opt,
+                                            ],
+                                      )
+                                    }
+                                    className={`px-2 py-1 rounded-lg border text-[10px] font-semibold transition-colors cursor-pointer ${
+                                      selected
+                                        ? "bg-[#083262] text-white border-[#083262]"
+                                        : "bg-white text-slate-600 border-slate-200 hover:border-[#083262]"
+                                    }`}
+                                  >
+                                    {opt}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <button
                 type="submit"

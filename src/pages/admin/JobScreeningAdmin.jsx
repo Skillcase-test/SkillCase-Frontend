@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-hot-toast";
-import { Settings, RefreshCw, X, GripVertical } from "lucide-react";
+import { Settings, RefreshCw, X, GripVertical, Save } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -34,8 +34,27 @@ import {
 import CandidateList from "./components/CandidateList";
 import CandidateDetail from "./components/CandidateDetail";
 
+// Normalizes the settings API payload into the shape globalSettings uses, so
+// the saved snapshot and the editable state are directly comparable.
+const normalizeGlobalSettings = (settings = {}) => ({
+  default_interview_id: settings.default_interview_id || "",
+  default_agreement_template_id: settings.default_agreement_template_id || "",
+  required_additional_documents:
+    settings.required_additional_documents || [],
+  default_recruiter_id: settings.default_recruiter_id || "",
+  default_job_title: settings.default_job_title || "",
+  default_job_location: settings.default_job_location || "",
+  default_job_salary_range: settings.default_job_salary_range || "",
+  default_job_type: settings.default_job_type || "",
+  default_job_description: settings.default_job_description || "",
+  steps_config: settings.steps_config || [],
+  paywall_enabled: settings.paywall_enabled || false,
+  profile_fields: settings.profile_fields || [],
+});
+
 const JobScreeningAdmin = ({ canEdit = true }) => {
   const detailRequestIdRef = React.useRef(0);
+  const settingsScrollRef = React.useRef(null);
   const [candidates, setCandidates] = useState([]);
   const [options, setOptions] = useState({
     interviews: [],
@@ -53,7 +72,11 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
     default_job_type: "",
     default_job_description: "",
     steps_config: [],
+    profile_fields: [],
   });
+  const [savedSettingsSnapshot, setSavedSettingsSnapshot] = useState(null);
+  const [profileFieldCatalog, setProfileFieldCatalog] = useState([]);
+  const [docMapTargets, setDocMapTargets] = useState([]);
 
   const [selectedCandidateId, setSelectedCandidateId] = useState(null);
   const [selectedCandidateDetail, setSelectedCandidateDetail] = useState(null);
@@ -221,21 +244,11 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
         const resSettings = await adminGetSettings();
         if (resSettings.data?.success) {
           const settings = resSettings.data.data || {};
-          setGlobalSettings({
-            default_interview_id: settings.default_interview_id || "",
-            default_agreement_template_id:
-              settings.default_agreement_template_id || "",
-            required_additional_documents:
-              settings.required_additional_documents || [],
-            default_recruiter_id: settings.default_recruiter_id || "",
-            default_job_title: settings.default_job_title || "",
-            default_job_location: settings.default_job_location || "",
-            default_job_salary_range: settings.default_job_salary_range || "",
-            default_job_type: settings.default_job_type || "",
-            default_job_description: settings.default_job_description || "",
-            steps_config: settings.steps_config || [],
-            paywall_enabled: settings.paywall_enabled || false,
-          });
+          const normalized = normalizeGlobalSettings(settings);
+          setGlobalSettings(normalized);
+          setSavedSettingsSnapshot(normalized);
+          setProfileFieldCatalog(settings.profile_field_catalog || []);
+          setDocMapTargets(settings.doc_map_targets || []);
         }
       } catch (err) {
         console.error("Error fetching options and settings:", err);
@@ -286,7 +299,14 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
       if (!silent) setDetailLoading(true);
       const res = await adminGetCandidateDetail(userId);
       if (res.data?.success && requestId === detailRequestIdRef.current) {
-        setSelectedCandidateDetail(res.data.data);
+        // Skip the state update when the poll returned identical data — a new
+        // object identity would re-run CandidateDetail's seed effect and wipe
+        // any in-progress form edits.
+        setSelectedCandidateDetail((prev) =>
+          prev && JSON.stringify(prev) === JSON.stringify(res.data.data)
+            ? prev
+            : res.data.data,
+        );
         syncCandidateListRow(res.data.data);
       }
     } catch (err) {
@@ -564,21 +584,11 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
       if (data?.success) {
         toast.success("Global pipeline settings saved successfully");
         const settings = data.data || {};
-        setGlobalSettings({
-          default_interview_id: settings.default_interview_id || "",
-          default_agreement_template_id:
-            settings.default_agreement_template_id || "",
-          required_additional_documents:
-            settings.required_additional_documents || [],
-          default_recruiter_id: settings.default_recruiter_id || "",
-          default_job_title: settings.default_job_title || "",
-          default_job_location: settings.default_job_location || "",
-          default_job_salary_range: settings.default_job_salary_range || "",
-          default_job_type: settings.default_job_type || "",
-          default_job_description: settings.default_job_description || "",
-          steps_config: settings.steps_config || [],
-          paywall_enabled: settings.paywall_enabled || false,
-        });
+        const normalized = normalizeGlobalSettings(settings);
+        setGlobalSettings(normalized);
+        setSavedSettingsSnapshot(normalized);
+        setProfileFieldCatalog(settings.profile_field_catalog || []);
+        setDocMapTargets(settings.doc_map_targets || []);
         fetchList();
       } else {
         toast.error("Failed to update settings");
@@ -594,6 +604,7 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
   };
 
   const [newDocTitle, setNewDocTitle] = useState("");
+  const [newDocMapsTo, setNewDocMapsTo] = useState("");
   const [newDocExts, setNewDocExts] = useState({
     pdf: true,
     doc: true,
@@ -602,6 +613,45 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
     jpg: true,
     jpeg: true,
   });
+
+  const DOC_MAP_TARGET_LABELS = {
+    degcert: "Degree Certificate",
+    workcert: "Work/Experience Certificate",
+    photo: "Candidate Photo",
+  };
+
+  const handleDocMapsToChange = (docId, mapsTo) => {
+    if (blockIfReadOnly()) return;
+    setGlobalSettings((prev) => ({
+      ...prev,
+      required_additional_documents: (
+        prev.required_additional_documents || []
+      ).map((d) =>
+        d.id === docId
+          ? { ...d, maps_to: mapsTo || undefined }
+          : d,
+      ),
+    }));
+  };
+
+  const handleProfileFieldToggle = (field, key, checked) => {
+    if (blockIfReadOnly()) return;
+    setGlobalSettings((prev) => {
+      const list = [...(prev.profile_fields || [])];
+      const idx = list.findIndex((f) => f.field === field);
+      const existing =
+        idx >= 0
+          ? list[idx]
+          : { field, enabled: false, candidate_editable: true, required: false };
+      const next = { ...existing, [key]: checked };
+      if (key === "enabled" && !checked) {
+        next.candidate_editable = false;
+      }
+      if (idx >= 0) list[idx] = next;
+      else list.push(next);
+      return { ...prev, profile_fields: list };
+    });
+  };
 
   const handleAddDocRequirement = () => {
     if (blockIfReadOnly()) return;
@@ -625,6 +675,7 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
       title: newDocTitle.trim(),
       allowed_extensions: selectedExts,
       description: `Please upload a clear copy of your ${newDocTitle.trim()}.`,
+      ...(newDocMapsTo ? { maps_to: newDocMapsTo } : {}),
     };
 
     setGlobalSettings((prev) => ({
@@ -635,6 +686,7 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
       ],
     }));
     setNewDocTitle("");
+    setNewDocMapsTo("");
   };
 
   const handleRemoveDocRequirement = (docId) => {
@@ -646,6 +698,10 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
       ).filter((d) => d.id !== docId),
     }));
   };
+
+  const settingsDirty =
+    savedSettingsSnapshot !== null &&
+    JSON.stringify(globalSettings) !== JSON.stringify(savedSettingsSnapshot);
 
   return (
     <div className="flex flex-col gap-6 h-full ">
@@ -863,7 +919,7 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
             </div>
           </div>
         ) : (
-          <div className="h-full overflow-y-auto pr-1 pb-10">
+          <div ref={settingsScrollRef} className="h-full overflow-y-auto pr-1 pb-10">
             {/* Header & Save Action */}
             <div className="flex justify-between items-center mb-6 bg-slate-50 p-4 border border-slate-200/60 rounded-2xl">
               <div className="text-left">
@@ -886,11 +942,42 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
               </button>
             </div>
 
-            {/* Grid of 3 spacious cards */}
+            {/* Section navigator — jump to a settings block */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {[
+                ["jscard-general", "1 · General Defaults"],
+                ["jscard-steps", "2 · Pipeline Steps"],
+                ["jscard-docs", "3 · Documents Checklist"],
+                ["jscard-fields", "4 · Profile Fields"],
+              ].map(([targetId, label]) => (
+                <button
+                  key={targetId}
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById(targetId);
+                    const container = settingsScrollRef.current;
+                    if (!el || !container) return;
+                    container.scrollTo({
+                      top:
+                        el.getBoundingClientRect().top -
+                        container.getBoundingClientRect().top +
+                        container.scrollTop -
+                        12,
+                      behavior: "smooth",
+                    });
+                  }}
+                  className="px-3.5 py-1.5 rounded-full border border-slate-200 bg-white text-[10px] font-bold text-slate-500 hover:text-[#083262] hover:border-[#083262]/40 hover:shadow-sm transition-all cursor-pointer"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Grid of 4 spacious cards (2×2 on desktop) */}
             <fieldset disabled={!canEdit} className="contents">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
               {/* Card 1: Default Templates & Job Info */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-4">
+              <div id="jscard-general" className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-4 scroll-mt-4">
                 <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left border-b border-slate-100 pb-2">
                   General Defaults
                 </span>
@@ -1100,7 +1187,7 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
               </div>
 
               {/* Card 2: Steps Configurator (DnD) */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-4">
+              <div id="jscard-steps" className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-4 scroll-mt-4">
                 <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left border-b border-slate-100 pb-2">
                   Pipeline Steps Order & Settings
                 </span>
@@ -1171,7 +1258,7 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
               </div>
 
               {/* Card 3: Checklist Requirements */}
-              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-4">
+              <div id="jscard-docs" className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-4 scroll-mt-4">
                 <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left border-b border-slate-100 pb-2">
                   Checklist & Documents
                 </span>
@@ -1198,9 +1285,9 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
                           (doc) => (
                             <div
                               key={doc.id}
-                              className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg p-2 text-[10px]"
+                              className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg p-2 text-[10px] gap-2"
                             >
-                              <div className="truncate pr-2 text-left">
+                              <div className="truncate pr-2 text-left min-w-0 flex-1">
                                 <span className="font-bold text-slate-700 block truncate">
                                   {doc.title}
                                 </span>
@@ -1211,12 +1298,30 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
                                     .toUpperCase()}
                                 </span>
                               </div>
+                              <select
+                                value={doc.maps_to || ""}
+                                onChange={(e) =>
+                                  handleDocMapsToChange(
+                                    doc.id,
+                                    e.target.value,
+                                  )
+                                }
+                                className="shrink-0 border border-slate-200 rounded-md px-1.5 py-1 text-[9px] font-semibold bg-white text-slate-600 focus:outline-none focus:border-[#083262] max-w-[110px]"
+                                title="Map this document to an Explore profile field (syncs once approved)"
+                              >
+                                <option value="">Extra doc</option>
+                                {docMapTargets.map((target) => (
+                                  <option key={target} value={target}>
+                                    {DOC_MAP_TARGET_LABELS[target] || target}
+                                  </option>
+                                ))}
+                              </select>
                               <button
                                 type="button"
                                 onClick={() =>
                                   handleRemoveDocRequirement(doc.id)
                                 }
-                                className="text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                                className="text-slate-400 hover:text-red-500 transition-colors p-1 cursor-pointer shrink-0"
                               >
                                 <X className="w-3.5 h-3.5" />
                               </button>
@@ -1239,6 +1344,22 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
                       onChange={(e) => setNewDocTitle(e.target.value)}
                       className="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:border-[#083262]"
                     />
+
+                    {/* Optional Explore field mapping */}
+                    <select
+                      value={newDocMapsTo}
+                      onChange={(e) => setNewDocMapsTo(e.target.value)}
+                      className="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-xs bg-white text-slate-600 focus:outline-none focus:border-[#083262]"
+                    >
+                      <option value="">
+                        Store as extra document (default)
+                      </option>
+                      {docMapTargets.map((target) => (
+                        <option key={target} value={target}>
+                          Map to: {DOC_MAP_TARGET_LABELS[target] || target}
+                        </option>
+                      ))}
+                    </select>
 
                     {/* Checkboxes for file types */}
                     <div className="flex flex-wrap gap-2 mt-1">
@@ -1273,8 +1394,145 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
                   </div>
                 </div>
               </div>
+
+              {/* Card 4: Candidate Profile Fields */}
+              <div id="jscard-fields" className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-4 scroll-mt-4">
+                <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left border-b border-slate-100 pb-2">
+                  Candidate Profile Fields
+                </span>
+                <p className="text-[10px] text-slate-400 font-medium leading-relaxed text-left -mt-1">
+                  Extra profile fields that admins fill on a candidate's detail
+                  page — values sync into the matching Explore candidate
+                  profile fields. Fields are never shown to candidates.
+                  <span className="text-slate-500 font-semibold"> Required</span> only marks the
+                  field with a badge — it never blocks the pipeline.
+                </p>
+
+                {profileFieldCatalog.length === 0 ? (
+                  <p className="text-[10px] text-slate-400 italic text-left">
+                    Profile field catalog unavailable.
+                  </p>
+                ) : (
+                  ["basic", "professional"].map((group) => {
+                    const groupFields = profileFieldCatalog.filter(
+                      (f) => f.group === group,
+                    );
+                    if (groupFields.length === 0) return null;
+                    return (
+                      <div key={group} className="flex flex-col gap-2">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest text-left">
+                          {group === "basic"
+                            ? "Basic & Contact Information"
+                            : "Professional Qualifications & Track"}
+                        </span>
+                        {groupFields.map((field) => {
+                          const cfg = (
+                            globalSettings.profile_fields || []
+                          ).find((f) => f.field === field.field) || {
+                            enabled: false,
+                            candidate_editable: true,
+                            required: false,
+                          };
+                          return (
+                            <div
+                              key={field.field}
+                              className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-lg p-2 text-[10px] gap-2"
+                            >
+                              <div className="text-left min-w-0 flex-1">
+                                <span className="font-bold text-slate-700 block truncate">
+                                  {field.label}
+                                </span>
+                                <span className="text-[8px] text-slate-400 font-medium">
+                                  {field.field} · {field.input}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3 shrink-0">
+                                <label
+                                  className="flex items-center gap-1 cursor-pointer select-none"
+                                  title="Field is active in the pipeline"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={!!cfg.enabled}
+                                    onChange={(e) =>
+                                      handleProfileFieldToggle(
+                                        field.field,
+                                        "enabled",
+                                        e.target.checked,
+                                      )
+                                    }
+                                    className="rounded border-slate-200 text-[#083262] focus:ring-0 w-3 h-3"
+                                  />
+                                  <span className="text-[9px] font-bold text-slate-500">
+                                    Enable
+                                  </span>
+                                </label>
+                                <label
+                                  className={`flex items-center gap-1 select-none ${cfg.enabled ? "cursor-pointer" : "opacity-40 cursor-not-allowed"}`}
+                                  title="Marks the field as required in the admin candidate form — a hint only, never blocks the pipeline."
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={!!cfg.required}
+                                    disabled={!cfg.enabled}
+                                    onChange={(e) =>
+                                      handleProfileFieldToggle(
+                                        field.field,
+                                        "required",
+                                        e.target.checked,
+                                      )
+                                    }
+                                    className="rounded border-slate-200 text-[#083262] focus:ring-0 w-3 h-3"
+                                  />
+                                  <span className="text-[9px] font-bold text-slate-500">
+                                    Required
+                                  </span>
+                                </label>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </div>
             </fieldset>
+
+            {/* Floating Save bar — pops in only when settings differ from the last save */}
+            {settingsDirty && canEdit && (
+              <div className="fixed bottom-6 inset-x-0 z-40 flex justify-center pointer-events-none px-4 animate-in slide-in-from-bottom-5 fade-in duration-200">
+                <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/95 px-5 py-3 shadow-2xl backdrop-blur-md ring-1 ring-slate-900/10">
+                  <div className="flex items-center gap-2 pr-2 border-r border-slate-200">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    <span className="text-xs font-bold text-slate-700">
+                      Unsaved changes
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={updating}
+                    onClick={() => {
+                      setGlobalSettings(savedSettingsSnapshot);
+                      toast.success("Changes discarded");
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-slate-500 border border-slate-200 hover:bg-slate-50 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    Discard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleUpdateSettings(globalSettings)}
+                    disabled={updating}
+                    className="px-5 py-2 rounded-xl text-xs font-extrabold bg-[#083262] text-white hover:bg-[#052243] transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    {updating ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
