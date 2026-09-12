@@ -30,16 +30,14 @@ const LANGUAGE_LEVEL_OPTIONS = [
 
 const AD_SET_OPTIONS = [
   { value: "", label: "-- Select Ad Set --" },
-  { value: "Inbound", label: "Inbound" },
-  { value: "Influencer", label: "Influencer" },
-  { value: "Referral", label: "Referral" },
-  { value: "App Install", label: "App Install" },
-];
-
-const COMPANY_OPTIONS = [
-  { value: "", label: "-- Select Profession / Company --" },
-  { value: "Nurse", label: "Nurse" },
-  { value: "Physiotherapist", label: "Physiotherapist" },
+  { value: "Inbound (Nurse)", label: "Inbound (Nurse)" },
+  { value: "Inbound (Physiotherapist)", label: "Inbound (Physiotherapist)" },
+  { value: "Influencer (Nurse)", label: "Influencer (Nurse)" },
+  { value: "Influencer (Physiotherapist)", label: "Influencer (Physiotherapist)" },
+  { value: "Referral (Nurse)", label: "Referral (Nurse)" },
+  { value: "Referral (Physiotherapist)", label: "Referral (Physiotherapist)" },
+  { value: "App Install (Nurse)", label: "App Install (Nurse)" },
+  { value: "App Install (Physiotherapist)", label: "App Install (Physiotherapist)" },
 ];
 
 // Custom dropdown (button + chevron + option list) — same pattern used across
@@ -117,7 +115,7 @@ function CustomDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute z-50 mt-1.5 w-full rounded-xl bg-white border border-zinc-200 shadow-xl overflow-hidden py-1">
+        <div className="absolute z-50 mt-1.5 w-full rounded-xl bg-white border border-zinc-200 shadow-xl max-h-32 overflow-y-auto py-1">
           {options.map((opt) => (
             <button
               key={opt.value}
@@ -144,7 +142,7 @@ function CustomDropdown({
 export default function InternalLeadForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [companyName, setCompanyName] = useState("");
+  const [companyName, setCompanyName] = useState("Skillcase");
   const [languageLevel, setLanguageLevel] = useState("");
   const [adSet, setAdSet] = useState("");
   const [formErrors, setFormErrors] = useState({
@@ -155,13 +153,13 @@ export default function InternalLeadForm() {
 
   const formRef = useRef(null);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     // Custom dropdowns have no native <select> to enforce `required`, so
     // mirror the original validation here — an empty selection blocks submit.
     const nextErrors = {
-      companyName: !companyName,
+      companyName: !companyName.trim(),
       languageLevel: !languageLevel,
       adSet: !adSet,
     };
@@ -171,32 +169,6 @@ export default function InternalLeadForm() {
     }
     setFormErrors({ companyName: false, languageLevel: false, adSet: false });
     setIsSubmitting(true);
-
-    try {
-      // Get form data (hidden inputs carry the custom dropdown values)
-      const formData = new FormData(formRef.current);
-
-      // Submit to Pabbly (triggers WhatsApp drip campaign)
-      await fetch(
-        "https://connect.pabbly.com/workflow/sendwebhookdata/IjU3NjcwNTZjMDYzMTA0MzU1MjZlNTUzMzUxMzUi_pc",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: formData.get("Last Name"),
-            phone: formData.get("Mobile"),
-            company: formData.get("Accounts.Account Name"),
-            email: formData.get("Email"),
-            languageLevel: formData.get("CONTACTCF4"),
-            adSet: formData.get("CONTACTCF8"),
-            source: "Internal",
-          }),
-        },
-      );
-    } catch (error) {
-      console.error("Pabbly webhook error:", error);
-      // Continue even if Pabbly fails
-    }
 
     // Submit to Bigin
     formRef.current.submit();
@@ -236,7 +208,7 @@ export default function InternalLeadForm() {
           <button
             onClick={() => {
               formRef.current?.reset();
-              setCompanyName("");
+              setCompanyName("Skillcase");
               setLanguageLevel("");
               setAdSet("");
               setFormErrors({ companyName: false, languageLevel: false, adSet: false });
@@ -274,12 +246,7 @@ export default function InternalLeadForm() {
             <input type="hidden" name="returnURL" value="null" />
             <input type="hidden" name="CONTACTCF1" value="Candidate" />
 
-            {/* Hidden inputs carry the custom dropdown values for Bigin + Pabbly */}
-            <input
-              type="hidden"
-              name="Accounts.Account Name"
-              value={companyName}
-            />
+            {/* Hidden inputs carry custom dropdown values for Bigin */}
             <input type="hidden" name="CONTACTCF4" value={languageLevel} />
             <input type="hidden" name="CONTACTCF8" value={adSet} />
 
@@ -306,22 +273,27 @@ export default function InternalLeadForm() {
               <label className={labelClass}>
                 Company Name <span className="text-rose-500">*</span>
               </label>
-              <CustomDropdown
-                options={COMPANY_OPTIONS}
-                value={companyName}
-                onChange={(val) => {
-                  setCompanyName(val);
-                  if (val) {
-                    setFormErrors((prev) => ({ ...prev, companyName: false }));
-                  }
-                }}
-                placeholder="-- Select Profession / Company --"
-                icon={Building2}
-                invalid={formErrors.companyName}
-              />
+              <div className="relative">
+                <Building2 className={iconClass} />
+                <input
+                  type="text"
+                  name="Accounts.Account Name"
+                  value={companyName}
+                  onChange={(e) => {
+                    setCompanyName(e.target.value);
+                    if (e.target.value.trim()) {
+                      setFormErrors((prev) => ({ ...prev, companyName: false }));
+                    }
+                  }}
+                  required
+                  maxLength="200"
+                  className={inputClass}
+                  placeholder="Enter company name"
+                />
+              </div>
               {formErrors.companyName && (
                 <p className="mt-1.5 text-[10px] font-semibold text-rose-500">
-                  Please select a company/profession
+                  Please enter a company name
                 </p>
               )}
             </div>
