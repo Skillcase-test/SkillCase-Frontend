@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, ChevronDown, ChevronUp, Eye, RefreshCw, Download } from "lucide-react";
 import { interviewToolsApi } from "../../api/interviewToolsApi";
 import { formatCurrentQuestion, formatDateTimeIST } from "../../utils/dateTime";
+import { useCandidateSort } from "./shared/candidateSorting";
+import CandidateSortableTh from "./shared/CandidateSortableTh";
 
 const STATUS_STYLE = {
   completed: "bg-emerald-100 text-emerald-700",
@@ -193,6 +195,7 @@ export default function InterviewToolsCandidatesPage({
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
+  const { sort, sortedRows, toggleSort } = useCandidateSort(candidates);
 
   const loadCandidates = async () => {
     setLoading(true);
@@ -272,25 +275,41 @@ export default function InterviewToolsCandidatesPage({
           <table className="min-w-full">
             <thead className="bg-gray-50 text-left text-xs uppercase tracking-[0.16em] text-gray-500">
               <tr>
-                <th className="px-6 py-4">Candidate</th>
-                <th className="px-4 py-4">Submission</th>
+                <CandidateSortableTh column="candidate_name" sort={sort} onToggle={toggleSort} className="px-6 py-4">
+                  Candidate
+                </CandidateSortableTh>
+                <CandidateSortableTh column="status" sort={sort} onToggle={toggleSort}>
+                  Submission
+                </CandidateSortableTh>
                 {isSuperAdmin ? (
-                  <th className="px-4 py-4">Current Question</th>
+                  <CandidateSortableTh column="current_question" sort={sort} onToggle={toggleSort}>
+                    Current Question
+                  </CandidateSortableTh>
                 ) : null}
                 {isSuperAdmin ? (
-                  <th className="px-4 py-4">Started (IST)</th>
+                  <CandidateSortableTh column="started_at" sort={sort} onToggle={toggleSort}>
+                    Started (IST)
+                  </CandidateSortableTh>
                 ) : null}
                 {isSuperAdmin ? (
-                  <th className="px-4 py-4">Completed (IST)</th>
+                  <CandidateSortableTh column="completed_at" sort={sort} onToggle={toggleSort}>
+                    Completed (IST)
+                  </CandidateSortableTh>
                 ) : null}
-                <th className="px-4 py-4">Review Status</th>
-                <th className="px-4 py-4">Reviewed</th>
-                <th className="px-4 py-4">Score</th>
+                <CandidateSortableTh column="review_status" sort={sort} onToggle={toggleSort}>
+                  Review Status
+                </CandidateSortableTh>
+                <CandidateSortableTh column="reviewed" sort={sort} onToggle={toggleSort}>
+                  Reviewed
+                </CandidateSortableTh>
+                <CandidateSortableTh column="score" sort={sort} onToggle={toggleSort}>
+                  Score
+                </CandidateSortableTh>
                 <th className="px-4 py-4 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
-              {candidates.map((item) => (
+              {sortedRows.map((item) => (
                 <tr key={item.submission_id} className="hover:bg-gray-50">
                   <td className="px-6 py-5">
                     <div className="font-semibold text-gray-900">
