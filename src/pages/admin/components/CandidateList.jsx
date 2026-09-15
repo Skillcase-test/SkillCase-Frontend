@@ -18,7 +18,7 @@ const SCORE_OPERATORS = [
   { value: "eq", label: "=" },
 ];
 
-const DepartmentMultiSelect = ({ options, selected, onChange }) => {
+const DepartmentMultiSelect = ({ options, selected, onChange, disabled }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -44,7 +44,8 @@ const DepartmentMultiSelect = ({ options, selected, onChange }) => {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="h-8 min-w-32 max-w-44 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600 outline-none transition focus:border-[#083262] focus:ring-2 focus:ring-[#083262]/10 flex items-center justify-between gap-1.5"
+        disabled={disabled}
+        className={`h-8 min-w-32 max-w-44 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600 outline-none transition focus:border-[#083262] focus:ring-2 focus:ring-[#083262]/10 flex items-center justify-between gap-1.5 ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
       >
         <span className="truncate">
           {selected.length === 0
@@ -117,9 +118,15 @@ const CandidateList = ({
   experienceFilter,
   onExperienceChange,
   experienceOptions,
+  experienceEnabled = true,
+  qualificationFilter,
+  onQualificationChange,
+  qualificationOptions,
+  qualificationEnabled = true,
   departmentFilters,
   onDepartmentsChange,
   departmentOptions,
+  departmentsEnabled = true,
 }) => {
   return (
     <div className="flex flex-col h-full bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden ">
@@ -283,14 +290,18 @@ const CandidateList = ({
               </span>
             </label>
 
-            <label className="flex flex-col gap-1">
+            <label
+              className="flex flex-col gap-1"
+              title={experienceEnabled ? undefined : "Enable this field in Global Pipeline → Profile Fields"}
+            >
               <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
                 Experience
               </span>
               <select
                 value={experienceFilter}
                 onChange={(e) => onExperienceChange(e.target.value)}
-                className="h-8 min-w-28 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600 outline-none transition focus:border-[#083262] focus:ring-2 focus:ring-[#083262]/10"
+                disabled={!experienceEnabled}
+                className="h-8 min-w-28 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600 outline-none transition focus:border-[#083262] focus:ring-2 focus:ring-[#083262]/10 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <option value="">All Experience</option>
                 {experienceOptions.map((opt) => (
@@ -301,7 +312,32 @@ const CandidateList = ({
               </select>
             </label>
 
-            <label className="flex flex-col gap-1">
+            <label
+              className="flex flex-col gap-1"
+              title={qualificationEnabled ? undefined : "Enable this field in Global Pipeline → Profile Fields"}
+            >
+              <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                Qualification
+              </span>
+              <select
+                value={qualificationFilter}
+                onChange={(e) => onQualificationChange(e.target.value)}
+                disabled={!qualificationEnabled}
+                className="h-8 min-w-28 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600 outline-none transition focus:border-[#083262] focus:ring-2 focus:ring-[#083262]/10 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <option value="">All Qualifications</option>
+                {qualificationOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label
+              className="flex flex-col gap-1"
+              title={departmentsEnabled ? undefined : "Enable this field in Global Pipeline → Profile Fields"}
+            >
               <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
                 Departments
               </span>
@@ -309,6 +345,7 @@ const CandidateList = ({
                 options={departmentOptions}
                 selected={departmentFilters}
                 onChange={onDepartmentsChange}
+                disabled={!departmentsEnabled}
               />
             </label>
 

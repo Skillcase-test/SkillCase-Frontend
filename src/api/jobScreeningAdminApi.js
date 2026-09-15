@@ -25,6 +25,7 @@ export const adminGetCandidates = (
       score_op: extraFilters.scoreOp || undefined,
       score_value: extraFilters.scoreValue || undefined,
       experience: extraFilters.experience || undefined,
+      qualification: extraFilters.qualification || undefined,
       departments:
         extraFilters.departments && extraFilters.departments.length
           ? JSON.stringify(extraFilters.departments)

@@ -95,6 +95,7 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
   const [scoreOp, setScoreOp] = useState("gte");
   const [scoreValue, setScoreValue] = useState("");
   const [experienceFilter, setExperienceFilter] = useState("");
+  const [qualificationFilter, setQualificationFilter] = useState("");
   const [departmentFilters, setDepartmentFilters] = useState([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [summary, setSummary] = useState({
@@ -213,8 +214,9 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
           paymentStatus,
           scoreOp: scoreValue !== "" ? scoreOp || "gte" : "",
           scoreValue,
-          experience: experienceFilter,
-          departments: departmentFilters,
+          experience: experienceEnabled ? experienceFilter : "",
+          qualification: qualificationEnabled ? qualificationFilter : "",
+          departments: departmentsEnabled ? departmentFilters : [],
         },
       );
       if (res.data?.success) {
@@ -232,16 +234,27 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
     }
   };
 
+  // Options-backed filters are only usable when the field is enabled in
+  // Global Pipeline → Profile Fields — the same gate extraction uses.
+  const isProfileFieldEnabled = (name) =>
+    (globalSettings.profile_fields || []).some(
+      (f) => f.field === name && f.enabled,
+    );
+  const experienceEnabled = isProfileFieldEnabled("experience");
+  const qualificationEnabled = isProfileFieldEnabled("qualification");
+  const departmentsEnabled = isProfileFieldEnabled("departments");
+
   useEffect(() => {
     fetchList();
-  }, [page, appliedSearch, statusFilter, startDate, endDate, proficiencyLevel, sortBy, paymentStatus, scoreOp, scoreValue, experienceFilter, departmentFilters]);
+  }, [page, appliedSearch, statusFilter, startDate, endDate, proficiencyLevel, sortBy, paymentStatus, scoreOp, scoreValue, experienceFilter, qualificationFilter, departmentFilters, experienceEnabled, qualificationEnabled, departmentsEnabled]);
 
   const activeFilterCount =
     (proficiencyLevel ? 1 : 0) +
     (paymentStatus ? 1 : 0) +
     (scoreValue !== "" ? 1 : 0) +
-    (experienceFilter ? 1 : 0) +
-    departmentFilters.length;
+    (experienceEnabled && experienceFilter ? 1 : 0) +
+    (qualificationEnabled && qualificationFilter ? 1 : 0) +
+    (departmentsEnabled ? departmentFilters.length : 0);
 
   const handleExtraFilterChange = (setter) => (value) => {
     setter(value);
@@ -254,6 +267,7 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
     setScoreOp("gte");
     setScoreValue("");
     setExperienceFilter("");
+    setQualificationFilter("");
     setDepartmentFilters([]);
     setPage(1);
   };
@@ -963,9 +977,15 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
                 experienceFilter={experienceFilter}
                 onExperienceChange={handleExtraFilterChange(setExperienceFilter)}
                 experienceOptions={options?.field_options?.experience || []}
+                experienceEnabled={experienceEnabled}
+                qualificationFilter={qualificationFilter}
+                onQualificationChange={handleExtraFilterChange(setQualificationFilter)}
+                qualificationOptions={options?.field_options?.qualification || []}
+                qualificationEnabled={qualificationEnabled}
                 departmentFilters={departmentFilters}
                 onDepartmentsChange={handleExtraFilterChange(setDepartmentFilters)}
                 departmentOptions={options?.field_options?.specialization || []}
+                departmentsEnabled={departmentsEnabled}
               />
             </div>
           </div>
