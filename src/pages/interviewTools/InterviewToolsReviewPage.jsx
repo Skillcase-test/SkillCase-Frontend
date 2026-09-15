@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Download, Save } from "lucide-react";
 import { interviewToolsApi } from "../../api/interviewToolsApi";
 import InterviewVideoPlayer from "./shared/InterviewVideoPlayer";
@@ -22,7 +22,7 @@ export default function InterviewToolsReviewPage({
 
   const STORAGE_KEY = `review_draft_${selectedInterviewPositionId}_${selectedInterviewSubmissionId}`;
 
-  const loadDetail = async () => {
+  const loadDetail = useCallback(async () => {
     const res = await interviewToolsApi.getCandidateDetail(
       selectedInterviewPositionId,
       selectedInterviewSubmissionId,
@@ -40,7 +40,7 @@ export default function InterviewToolsReviewPage({
     setOverallWeakness(
       payload.submission.overall_weakness || draft.overallWeakness || "",
     );
-  };
+  }, [selectedInterviewPositionId, selectedInterviewSubmissionId, STORAGE_KEY]);
 
   useEffect(() => {
     if (!detail) return;
@@ -57,9 +57,9 @@ export default function InterviewToolsReviewPage({
   useEffect(() => {
     if (!selectedInterviewPositionId || !selectedInterviewSubmissionId) return;
     loadDetail();
-  }, [selectedInterviewPositionId, selectedInterviewSubmissionId]);
+  }, [selectedInterviewPositionId, selectedInterviewSubmissionId, loadDetail]);
 
-  const answerList = detail?.answers || [];
+  const answerList = useMemo(() => detail?.answers || [], [detail]);
   const activeAnswer = answerList[activeIndex];
 
   const calculatedAverage = useMemo(() => {
@@ -179,26 +179,79 @@ export default function InterviewToolsReviewPage({
       {activeAnswer ? (
         <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
           <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
                 {detail.submission.candidate_name}
               </h2>
-              <p className="mt-2 text-sm font-semibold text-slate-500">
+              <p className="mt-1.5 text-xs font-semibold text-slate-500">
                 {detail.submission.candidate_email}
               </p>
-              <p className="mt-1 text-sm font-medium text-slate-400">
+              <p className="mt-0.5 text-xs font-medium text-slate-400">
                 {detail.submission.candidate_phone}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
+                Questions
+              </label>
+              <div className="space-y-1.5">
+                {answerList.map((item, index) => (
+                  <button
+                    key={item.question_id}
+                    type="button"
+                    onClick={() => setActiveIndex(index)}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-semibold transition ${
+                      activeIndex === index
+                        ? "bg-[#083262] text-white shadow-sm"
+                        : "bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-100"
+                    }`}
+                  >
+                    <span className="truncate">
+                      {item.question_order}. {item.title}
+                    </span>
+                    <span
+                      className={`ml-2 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${activeIndex === index ? "bg-white/20" : "bg-white border border-slate-200"}`}
+                    >
+                      {item.admin_score || "-"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
+                Answer Rating
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
+                  <button
+                    key={score}
+                    type="button"
+                    onClick={() =>
+                      updateAnswerScore(activeAnswer.question_id, score)
+                    }
+                    className={`flex h-9 min-w-[2.5rem] flex-1 items-center justify-center rounded-lg border text-xs font-bold transition shadow-sm ${
+                      Number(activeAnswer.admin_score) === score
+                        ? "border-[#083262] bg-[#083262] text-white scale-105"
+                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                    }`}
+                  >
+                    {score}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
                 Review Status
               </label>
               <select
                 value={reviewStatus}
                 onChange={(e) => setReviewStatus(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:border-[#083262] shadow-sm bg-slate-50 hover:bg-white transition"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-[#083262] shadow-sm bg-slate-50 hover:bg-white transition"
               >
                 {REVIEW_STATUSES.map((item) => (
                   <option key={item} value={item}>
@@ -206,7 +259,7 @@ export default function InterviewToolsReviewPage({
                   </option>
                 ))}
               </select>
-              <div className="mt-4 flex items-center gap-2">
+              <div className="mt-3 flex items-center gap-2">
                 <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400 ml-1">
                   Calculated Average:
                 </span>
@@ -222,47 +275,8 @@ export default function InterviewToolsReviewPage({
                 value={manualScore}
                 onChange={(e) => setManualScore(e.target.value)}
                 placeholder="Manual override score"
-                className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm font-semibold outline-none focus:border-[#083262] shadow-sm transition"
+                className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold outline-none focus:border-[#083262] shadow-sm transition"
               />
-
-              <div className="mt-6 space-y-4">
-                <div>
-                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
-                    Remarks
-                  </label>
-                  <textarea
-                    value={remarks}
-                    onChange={(e) => setRemarks(e.target.value)}
-                    placeholder="General thoughts on the candidate..."
-                    rows={3}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-[#083262] shadow-sm transition"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
-                    Overall Strength
-                  </label>
-                  <textarea
-                    value={overallStrength}
-                    onChange={(e) => setOverallStrength(e.target.value)}
-                    placeholder="Candidate's strongest points..."
-                    rows={2}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-[#083262] shadow-sm transition"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
-                    Overall Weakness
-                  </label>
-                  <textarea
-                    value={overallWeakness}
-                    onChange={(e) => setOverallWeakness(e.target.value)}
-                    placeholder="Areas needing improvement..."
-                    rows={2}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-[#083262] shadow-sm transition"
-                  />
-                </div>
-              </div>
             </div>
           </div>
 
@@ -318,53 +332,44 @@ export default function InterviewToolsReviewPage({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <label className="mb-4 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
-                Answer Rating
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
-                  <button
-                    key={score}
-                    type="button"
-                    onClick={() =>
-                      updateAnswerScore(activeAnswer.question_id, score)
-                    }
-                    className={`flex h-10 min-w-[3rem] flex-1 items-center justify-center rounded-xl border text-sm font-bold transition shadow-sm ${
-                      Number(activeAnswer.admin_score) === score
-                        ? "border-[#083262] bg-[#083262] text-white scale-105"
-                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"
-                    }`}
-                  >
-                    {score}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="space-y-2">
-                {answerList.map((item, index) => (
-                  <button
-                    key={item.question_id}
-                    type="button"
-                    onClick={() => setActiveIndex(index)}
-                    className={`flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-left text-sm font-bold transition ${
-                      activeIndex === index
-                        ? "bg-[#083262] text-white shadow-sm"
-                        : "bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-100"
-                    }`}
-                  >
-                    <span>
-                      {item.question_order}. {item.title}
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 rounded text-xs ${activeIndex === index ? "bg-white/20" : "bg-white border border-slate-200"}`}
-                    >
-                      {item.admin_score || "-"}
-                    </span>
-                  </button>
-                ))}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
+                    Remarks
+                  </label>
+                  <textarea
+                    value={remarks}
+                    onChange={(e) => setRemarks(e.target.value)}
+                    placeholder="General thoughts on the candidate..."
+                    rows={2}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#083262] shadow-sm transition"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
+                    Overall Strength
+                  </label>
+                  <textarea
+                    value={overallStrength}
+                    onChange={(e) => setOverallStrength(e.target.value)}
+                    placeholder="Candidate's strongest points..."
+                    rows={2}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#083262] shadow-sm transition"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
+                    Overall Weakness
+                  </label>
+                  <textarea
+                    value={overallWeakness}
+                    onChange={(e) => setOverallWeakness(e.target.value)}
+                    placeholder="Areas needing improvement..."
+                    rows={2}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#083262] shadow-sm transition"
+                  />
+                </div>
               </div>
             </div>
           </div>

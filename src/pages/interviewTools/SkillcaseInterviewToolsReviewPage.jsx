@@ -246,12 +246,12 @@ export default function SkillcaseInterviewToolsReviewPage({
       {activeAnswer ? (
         <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
           <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
                 {detail.submission.candidate_name}
               </h2>
               {isSuperAdmin && detail.active_assignment ? (
-                <p className="mt-2 text-xs font-semibold text-slate-500">
+                <p className="mt-1.5 text-xs font-semibold text-slate-500">
                   Assigned to{" "}
                   <span className="text-slate-800">
                     {detail.active_assignment.assigned_to_name}
@@ -263,15 +263,69 @@ export default function SkillcaseInterviewToolsReviewPage({
               ) : null}
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
+                Questions
+              </label>
+              <div className="space-y-1.5">
+                {answerList.map((item, index) => (
+                  <button
+                    key={item.question_id}
+                    type="button"
+                    onClick={() => setActiveIndex(index)}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-xs font-semibold transition ${
+                      activeIndex === index
+                        ? "bg-[#083262] text-white shadow-sm"
+                        : "bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-100"
+                    }`}
+                  >
+                    <span className="truncate">
+                      {item.question_order}. {item.title}
+                    </span>
+                    <span
+                      className={`ml-2 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${activeIndex === index ? "bg-white/20" : "bg-white border border-slate-200"}`}
+                    >
+                      {item.admin_score || "-"}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
+                Answer Rating
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
+                  <button
+                    key={score}
+                    type="button"
+                    disabled={!canSubmitReview}
+                    onClick={() =>
+                      updateAnswerScore(activeAnswer.question_id, score)
+                    }
+                    className={`flex h-9 min-w-[2.5rem] flex-1 items-center justify-center rounded-lg border text-xs font-bold transition shadow-sm disabled:cursor-not-allowed disabled:opacity-60 ${
+                      Number(activeAnswer.admin_score) === score
+                        ? "border-[#083262] bg-[#083262] text-white scale-105"
+                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                    }`}
+                  >
+                    {score}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
                 Review Status
               </label>
               <select
                 value={reviewStatus}
                 onChange={(e) => setReviewStatus(e.target.value)}
                 disabled={!canSubmitReview}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:border-[#083262] shadow-sm bg-slate-50 hover:bg-white transition disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-bold text-slate-800 outline-none focus:border-[#083262] shadow-sm bg-slate-50 hover:bg-white transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {REVIEW_STATUSES.map((item) => (
                   <option key={item} value={item}>
@@ -279,24 +333,24 @@ export default function SkillcaseInterviewToolsReviewPage({
                   </option>
                 ))}
               </select>
-              <div className="mt-4 flex items-center gap-2">
+              <div className="mt-3 flex items-center gap-2">
                 <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400 ml-1">
                   Calculated Average:
                 </span>
                 <span className="bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded text-xs">
                   {calculatedAverage || "-"}
                 </span>
+                {isSuperAdmin && (
+                  <>
+                    <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500 ml-2">
+                      AI Score:
+                    </span>
+                    <span className="bg-blue-50 text-[#083262] border border-blue-100 font-bold px-2 py-0.5 rounded text-xs">
+                      {detail.submission.ai_score ? Number(detail.submission.ai_score).toFixed(1) : "-"}
+                    </span>
+                  </>
+                )}
               </div>
-              {isSuperAdmin && (
-                <div className="mt-2 flex items-center gap-2">
-                  <span className="text-[10px] uppercase tracking-widest font-bold text-slate-500 ml-1">
-                    AI Average Score:
-                  </span>
-                  <span className="bg-blue-50 text-[#083262] border border-blue-100 font-bold px-2 py-0.5 rounded text-xs">
-                    {detail.submission.ai_score ? Number(detail.submission.ai_score).toFixed(1) : "-"}
-                  </span>
-                </div>
-              )}
               <input
                 type="number"
                 min="1"
@@ -306,51 +360,99 @@ export default function SkillcaseInterviewToolsReviewPage({
                 onChange={(e) => setManualScore(e.target.value)}
                 disabled={!canSubmitReview}
                 placeholder="Manual override score"
-                className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm font-semibold outline-none focus:border-[#083262] shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed"
+                className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold outline-none focus:border-[#083262] shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed"
               />
-
-              <div className="mt-6 space-y-4">
-                <div>
-                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
-                    Remarks
-                  </label>
-                  <textarea
-                    value={remarks}
-                    onChange={(e) => setRemarks(e.target.value)}
-                    disabled={!canSubmitReview}
-                    placeholder="General thoughts on the learner..."
-                    rows={3}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-[#083262] shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
-                    Overall Strength
-                  </label>
-                  <textarea
-                    value={overallStrength}
-                    onChange={(e) => setOverallStrength(e.target.value)}
-                    disabled={!canSubmitReview}
-                    placeholder="Learner's strongest points..."
-                    rows={2}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-[#083262] shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
-                    Overall Weakness
-                  </label>
-                  <textarea
-                    value={overallWeakness}
-                    onChange={(e) => setOverallWeakness(e.target.value)}
-                    disabled={!canSubmitReview}
-                    placeholder="Areas needing improvement..."
-                    rows={2}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-[#083262] shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed"
-                  />
-                </div>
-              </div>
             </div>
+
+            {isSuperAdmin && activeAnswer.answer_video_key ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="mb-2 flex items-center justify-between">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-[#083262] ml-1">
+                    AI Score
+                  </label>
+                  {activeAnswer.ai_detected_lang && activeAnswer.ai_scoring_status === "done" && (
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+                      {activeAnswer.ai_detected_lang}
+                    </span>
+                  )}
+                </div>
+
+                {activeAnswer.ai_scoring_status === "done" ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl font-extrabold text-[#083262]">
+                        {Number(activeAnswer.ai_score).toFixed(1)}
+                      </span>
+                      <span className="text-xs text-slate-400 font-medium">/ 10</span>
+                    </div>
+
+                    {activeAnswer.ai_reasoning && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 ml-1">
+                          Reasoning
+                        </p>
+                        <p className="text-xs text-slate-700 leading-relaxed">
+                          {activeAnswer.ai_reasoning}
+                        </p>
+                      </div>
+                    )}
+
+                    {activeAnswer.ai_strengths && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-1 ml-1">
+                          Strengths
+                        </p>
+                        <p className="text-xs text-slate-700 leading-relaxed">
+                          {activeAnswer.ai_strengths}
+                        </p>
+                      </div>
+                    )}
+
+                    {activeAnswer.ai_weaknesses && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-rose-400 mb-1 ml-1">
+                          Weaknesses
+                        </p>
+                        <p className="text-xs text-slate-700 leading-relaxed">
+                          {activeAnswer.ai_weaknesses}
+                        </p>
+                      </div>
+                    )}
+
+                    {activeAnswer.ai_transcript && (
+                      <details className="group">
+                        <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1 select-none hover:text-slate-600 transition">
+                          Transcript
+                        </summary>
+                        <p className="mt-2 text-xs text-slate-500 leading-relaxed whitespace-pre-wrap border border-slate-100 rounded-lg p-3 bg-slate-50">
+                          {activeAnswer.ai_transcript}
+                        </p>
+                      </details>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {(activeAnswer.ai_scoring_status === "failed" ||
+                      aiScoringMap[activeAnswer.answer_id] === "error") && (
+                      <p className="text-xs text-rose-600 font-medium">
+                        Scoring failed. Try again.
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      disabled={isAiInProgress(activeAnswer.ai_scoring_status, activeAnswer.answer_id)}
+                      onClick={() => handleRunAiScore(activeAnswer.answer_id)}
+                      className="inline-flex items-center gap-2 rounded-lg bg-[#083262] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#052243] disabled:opacity-50 shadow-sm w-full justify-center"
+                    >
+                      {getAiButtonText(activeAnswer.ai_scoring_status, activeAnswer.answer_id)}
+                    </button>
+                    <p className="text-[10px] text-slate-400 text-center">
+                      Transcribes the answer and scores it against the question using AI
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
 
           <div className="space-y-6 flex flex-col h-full">
@@ -407,144 +509,47 @@ export default function SkillcaseInterviewToolsReviewPage({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <label className="mb-4 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
-                Answer Rating
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
-                  <button
-                    key={score}
-                    type="button"
-                    disabled={!canSubmitReview}
-                    onClick={() =>
-                      updateAnswerScore(activeAnswer.question_id, score)
-                    }
-                    className={`flex h-10 min-w-[3rem] flex-1 items-center justify-center rounded-xl border text-sm font-bold transition shadow-sm disabled:cursor-not-allowed disabled:opacity-60 ${
-                      Number(activeAnswer.admin_score) === score
-                        ? "border-[#083262] bg-[#083262] text-white scale-105"
-                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"
-                    }`}
-                  >
-                    {score}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {isSuperAdmin && activeAnswer.answer_video_key ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="mb-4 flex items-center justify-between">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-[#083262] ml-1">
-                    AI Score
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
+                    Remarks
                   </label>
-                  {activeAnswer.ai_detected_lang && activeAnswer.ai_scoring_status === "done" && (
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
-                      {activeAnswer.ai_detected_lang}
-                    </span>
-                  )}
+                  <textarea
+                    value={remarks}
+                    onChange={(e) => setRemarks(e.target.value)}
+                    disabled={!canSubmitReview}
+                    placeholder="General thoughts on the learner..."
+                    rows={2}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#083262] shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
                 </div>
-
-                {activeAnswer.ai_scoring_status === "done" ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3">
-                      <span className="text-3xl font-extrabold text-[#083262]">
-                        {Number(activeAnswer.ai_score).toFixed(1)}
-                      </span>
-                      <span className="text-sm text-slate-400 font-medium">/ 10</span>
-                    </div>
-
-                    {activeAnswer.ai_reasoning && (
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 ml-1">
-                          Reasoning
-                        </p>
-                        <p className="text-sm text-slate-700 leading-relaxed">
-                          {activeAnswer.ai_reasoning}
-                        </p>
-                      </div>
-                    )}
-
-                    {activeAnswer.ai_strengths && (
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-1 ml-1">
-                          Strengths
-                        </p>
-                        <p className="text-sm text-slate-700 leading-relaxed">
-                          {activeAnswer.ai_strengths}
-                        </p>
-                      </div>
-                    )}
-
-                    {activeAnswer.ai_weaknesses && (
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-rose-400 mb-1 ml-1">
-                          Weaknesses
-                        </p>
-                        <p className="text-sm text-slate-700 leading-relaxed">
-                          {activeAnswer.ai_weaknesses}
-                        </p>
-                      </div>
-                    )}
-
-                    {activeAnswer.ai_transcript && (
-                      <details className="group">
-                        <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1 select-none hover:text-slate-600 transition">
-                          Transcript
-                        </summary>
-                        <p className="mt-2 text-xs text-slate-500 leading-relaxed whitespace-pre-wrap border border-slate-100 rounded-xl p-3 bg-slate-50">
-                          {activeAnswer.ai_transcript}
-                        </p>
-                      </details>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {(activeAnswer.ai_scoring_status === "failed" ||
-                      aiScoringMap[activeAnswer.answer_id] === "error") && (
-                      <p className="text-xs text-rose-600 font-medium">
-                        Scoring failed. Try again.
-                      </p>
-                    )}
-                    <button
-                      type="button"
-                      disabled={isAiInProgress(activeAnswer.ai_scoring_status, activeAnswer.answer_id)}
-                      onClick={() => handleRunAiScore(activeAnswer.answer_id)}
-                      className="inline-flex items-center gap-2 rounded-xl bg-[#083262] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#052243] disabled:opacity-50 shadow-sm w-full justify-center"
-                    >
-                      {getAiButtonText(activeAnswer.ai_scoring_status, activeAnswer.answer_id)}
-                    </button>
-                    <p className="text-[10px] text-slate-400 text-center">
-                      Transcribes the answer and scores it against the question using AI
-                    </p>
-                  </div>
-                )}
-              </div>
-            ) : null}
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="space-y-2">
-                {answerList.map((item, index) => (
-                  <button
-                    key={item.question_id}
-                    type="button"
-                    onClick={() => setActiveIndex(index)}
-                    className={`flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-left text-sm font-bold transition ${
-                      activeIndex === index
-                        ? "bg-[#083262] text-white shadow-sm"
-                        : "bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-100"
-                    }`}
-                  >
-                    <span>
-                      {item.question_order}. {item.title}
-                    </span>
-                    <span
-                      className={`px-2 py-0.5 rounded text-xs ${activeIndex === index ? "bg-white/20" : "bg-white border border-slate-200"}`}
-                    >
-                      {item.admin_score || "-"}
-                    </span>
-                  </button>
-                ))}
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
+                    Overall Strength
+                  </label>
+                  <textarea
+                    value={overallStrength}
+                    onChange={(e) => setOverallStrength(e.target.value)}
+                    disabled={!canSubmitReview}
+                    placeholder="Learner's strongest points..."
+                    rows={2}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#083262] shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
+                    Overall Weakness
+                  </label>
+                  <textarea
+                    value={overallWeakness}
+                    onChange={(e) => setOverallWeakness(e.target.value)}
+                    disabled={!canSubmitReview}
+                    placeholder="Areas needing improvement..."
+                    rows={2}
+                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-[#083262] shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                </div>
               </div>
             </div>
           </div>
