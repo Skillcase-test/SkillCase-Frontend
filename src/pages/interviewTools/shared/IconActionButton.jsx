@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const TONE = {
   default:
@@ -25,6 +25,8 @@ export default function IconActionButton({
 }) {
   const [confirmed, setConfirmed] = useState(false);
   const timer = useRef(null);
+
+  useEffect(() => () => clearTimeout(timer.current), []);
 
   const handleClick = () => {
     onClick?.();

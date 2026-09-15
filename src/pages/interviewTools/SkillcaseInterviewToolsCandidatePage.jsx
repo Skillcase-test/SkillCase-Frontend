@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Check, CheckCircle2, ChevronDown, ChevronUp, CircleDashed, Eye, RefreshCw, Download, Search, UserCheck, X } from "lucide-react";
 import { skillcaseInterviewToolsApi } from "../../api/skillcaseInterviewToolsApi";
 import { formatCurrentQuestion, formatDateTimeIST } from "../../utils/dateTime";
@@ -444,7 +444,7 @@ export default function SkillcaseInterviewToolsCandidatesPage({
   const [reviewAssignTarget, setReviewAssignTarget] = useState(null);
   const { sort, sortedRows, toggleSort } = useCandidateSort(candidates);
 
-  const loadCandidates = async () => {
+  const loadCandidates = useCallback(async () => {
     setLoading(true);
     try {
       const res = await skillcaseInterviewToolsApi.getCandidates(
@@ -457,12 +457,12 @@ export default function SkillcaseInterviewToolsCandidatesPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedInterviewPositionId]);
 
   useEffect(() => {
     if (!selectedInterviewPositionId) return;
     loadCandidates();
-  }, [selectedInterviewPositionId]);
+  }, [selectedInterviewPositionId, loadCandidates]);
 
   return (
     <div className="space-y-6">
@@ -615,7 +615,13 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                   </td>
                   <td className="px-4 py-4 text-center">
                     <span
-                      title={item.is_fully_reviewed ? "Fully reviewed" : "Not fully reviewed"}
+                      title={
+                        item.is_fully_reviewed
+                          ? item.reviewed_by_name
+                            ? `Fully reviewed by ${item.reviewed_by_name}`
+                            : "Fully reviewed"
+                          : "Not fully reviewed"
+                      }
                       className="inline-flex"
                     >
                       {item.is_fully_reviewed ? (

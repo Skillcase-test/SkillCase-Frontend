@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ClipboardCheck, Eye, RefreshCw } from "lucide-react";
 import { skillcaseInterviewToolsApi } from "../../api/skillcaseInterviewToolsApi";
 import { formatDateTimeIST } from "../../utils/dateTime";
@@ -21,7 +21,7 @@ export default function SkillcaseReviewAssignmentsPage({ setActivePage }) {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res =
@@ -33,11 +33,11 @@ export default function SkillcaseReviewAssignmentsPage({ setActivePage }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   const openReview = (item) => {
     setActivePage("interview-tools-review", {

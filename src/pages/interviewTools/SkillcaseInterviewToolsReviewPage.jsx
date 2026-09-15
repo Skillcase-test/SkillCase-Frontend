@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ArrowLeft, Download, Lock, Save } from "lucide-react";
 import { skillcaseInterviewToolsApi } from "../../api/skillcaseInterviewToolsApi";
@@ -28,7 +28,7 @@ export default function SkillcaseInterviewToolsReviewPage({
 
   const STORAGE_KEY = `review_draft_${selectedInterviewPositionId}_${selectedInterviewSubmissionId}`;
 
-  const loadDetail = async () => {
+  const loadDetail = useCallback(async () => {
     const res = await skillcaseInterviewToolsApi.getCandidateDetail(
       selectedInterviewPositionId,
       selectedInterviewSubmissionId,
@@ -46,7 +46,7 @@ export default function SkillcaseInterviewToolsReviewPage({
     setOverallWeakness(
       payload.submission.overall_weakness || draft.overallWeakness || "",
     );
-  };
+  }, [selectedInterviewPositionId, selectedInterviewSubmissionId, STORAGE_KEY]);
 
   useEffect(() => {
     if (!detail) return;
@@ -63,9 +63,9 @@ export default function SkillcaseInterviewToolsReviewPage({
   useEffect(() => {
     if (!selectedInterviewPositionId || !selectedInterviewSubmissionId) return;
     loadDetail();
-  }, [selectedInterviewPositionId, selectedInterviewSubmissionId]);
+  }, [selectedInterviewPositionId, selectedInterviewSubmissionId, loadDetail]);
 
-  const answerList = detail?.answers || [];
+  const answerList = useMemo(() => detail?.answers || [], [detail]);
   const activeAnswer = answerList[activeIndex];
 
   const calculatedAverage = useMemo(() => {
