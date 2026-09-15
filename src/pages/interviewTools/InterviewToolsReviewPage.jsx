@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Download, Save } from "lucide-react";
 import { interviewToolsApi } from "../../api/interviewToolsApi";
 import InterviewVideoPlayer from "./shared/InterviewVideoPlayer";
@@ -15,10 +15,21 @@ export default function InterviewToolsReviewPage({
   const [activeIndex, setActiveIndex] = useState(0);
   const [reviewStatus, setReviewStatus] = useState("in_review");
   const [manualScore, setManualScore] = useState("");
+  const [loadedScore, setLoadedScore] = useState("");
   const [remarks, setRemarks] = useState("");
   const [overallStrength, setOverallStrength] = useState("");
   const [overallWeakness, setOverallWeakness] = useState("");
   const [saving, setSaving] = useState(false);
+  // Click-to-confirm: replacing an existing answer score arms the target
+  // button briefly; a second click applies it.
+  const [pendingScore, setPendingScore] = useState(null);
+  const pendingTimer = useRef(null);
+
+  useEffect(() => () => clearTimeout(pendingTimer.current), []);
+  useEffect(() => {
+    setPendingScore(null);
+    clearTimeout(pendingTimer.current);
+  }, [activeIndex]);
 
   const STORAGE_KEY = `review_draft_${selectedInterviewPositionId}_${selectedInterviewSubmissionId}`;
 
@@ -31,6 +42,7 @@ export default function InterviewToolsReviewPage({
     setDetail(payload);
     setReviewStatus(payload.submission.overall_review_status || "in_review");
     setManualScore(payload.submission.overall_score || "");
+    setLoadedScore(payload.submission.overall_score || "");
 
     const draft = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
     setRemarks(payload.submission.remarks || draft.remarks || "");
@@ -72,7 +84,7 @@ export default function InterviewToolsReviewPage({
     ).toFixed(2);
   }, [answerList]);
 
-  const updateAnswerScore = (questionId, nextScore) => {
+  const applyScore = (questionId, nextScore) => {
     setDetail((prev) => ({
       ...prev,
       answers: prev.answers.map((item) =>
@@ -81,6 +93,31 @@ export default function InterviewToolsReviewPage({
           : item,
       ),
     }));
+  };
+
+  const updateAnswerScore = (questionId, nextScore) => {
+    const current = answerList.find((item) => item.question_id === questionId);
+    const isOverride =
+      current?.admin_score != null &&
+      Number(current.admin_score) !== Number(nextScore);
+
+    if (!isOverride) {
+      setPendingScore(null);
+      clearTimeout(pendingTimer.current);
+      applyScore(questionId, nextScore);
+      return;
+    }
+
+    if (pendingScore?.questionId === questionId && pendingScore?.score === nextScore) {
+      setPendingScore(null);
+      clearTimeout(pendingTimer.current);
+      applyScore(questionId, nextScore);
+      return;
+    }
+
+    setPendingScore({ questionId, score: nextScore });
+    clearTimeout(pendingTimer.current);
+    pendingTimer.current = setTimeout(() => setPendingScore(null), 2500);
   };
 
   const saveReview = async () => {
@@ -225,23 +262,35 @@ export default function InterviewToolsReviewPage({
                 Answer Rating
               </label>
               <div className="flex flex-wrap gap-1.5">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => (
-                  <button
-                    key={score}
-                    type="button"
-                    onClick={() =>
-                      updateAnswerScore(activeAnswer.question_id, score)
-                    }
-                    className={`flex h-9 min-w-[2.5rem] flex-1 items-center justify-center rounded-lg border text-xs font-bold transition shadow-sm ${
-                      Number(activeAnswer.admin_score) === score
-                        ? "border-[#083262] bg-[#083262] text-white scale-105"
-                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"
-                    }`}
-                  >
-                    {score}
-                  </button>
-                ))}
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => {
+                  const armed =
+                    pendingScore?.questionId === activeAnswer.question_id &&
+                    pendingScore?.score === score;
+                  return (
+                    <button
+                      key={score}
+                      type="button"
+                      onClick={() =>
+                        updateAnswerScore(activeAnswer.question_id, score)
+                      }
+                      className={`flex h-9 min-w-[2.5rem] flex-1 items-center justify-center rounded-lg border text-xs font-bold transition shadow-sm ${
+                        armed
+                          ? "border-amber-300 bg-amber-50 text-amber-700 scale-105"
+                          : Number(activeAnswer.admin_score) === score
+                            ? "border-[#083262] bg-[#083262] text-white scale-105"
+                            : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"
+                      }`}
+                    >
+                      {armed ? "Sure?" : score}
+                    </button>
+                  );
+                })}
               </div>
+              {pendingScore?.questionId === activeAnswer.question_id ? (
+                <p className="mt-2 text-[10px] font-semibold text-amber-600 ml-1">
+                  Tap "{pendingScore.score}" again to replace score {activeAnswer.admin_score}
+                </p>
+              ) : null}
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -277,6 +326,13 @@ export default function InterviewToolsReviewPage({
                 placeholder="Manual override score"
                 className="mt-3 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold outline-none focus:border-[#083262] shadow-sm transition"
               />
+              {String(manualScore).trim() !== "" &&
+              String(manualScore) !== String(loadedScore) ? (
+                <p className="mt-1.5 text-[10px] font-semibold text-amber-600 ml-1">
+                  Will override the calculated score
+                  {calculatedAverage ? ` (${calculatedAverage})` : ""}
+                </p>
+              ) : null}
             </div>
           </div>
 
