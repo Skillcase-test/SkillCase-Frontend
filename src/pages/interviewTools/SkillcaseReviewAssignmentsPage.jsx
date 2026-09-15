@@ -15,7 +15,7 @@ const STATUS_STYLE = {
 };
 
 // The assigned reviewer's queue: submissions a super admin sent to the current
-// admin. Reviewing an item completes its assignment, clearing it here.
+// admin. Reviewed items stay listed until the super admin releases them.
 export default function SkillcaseReviewAssignmentsPage({ setActivePage }) {
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -134,6 +134,11 @@ export default function SkillcaseReviewAssignmentsPage({ setActivePage }) {
                       >
                         {item.submission_status}
                       </span>
+                      {item.assignment_status === "completed" ? (
+                        <span className="ml-2 inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                          Reviewed
+                        </span>
+                      ) : null}
                     </td>
                     <td className="px-4 py-4 text-xs text-slate-600">
                       {item.assigned_by_name || "-"}
@@ -147,9 +152,17 @@ export default function SkillcaseReviewAssignmentsPage({ setActivePage }) {
                     <td className="px-4 py-4 text-right">
                       <IconActionButton
                         icon={Eye}
-                        label="Review"
+                        label={
+                          item.assignment_status === "completed"
+                            ? "View"
+                            : "Review"
+                        }
                         tone="primary"
-                        title="Review submission"
+                        title={
+                          item.assignment_status === "completed"
+                            ? "View submitted review"
+                            : "Review submission"
+                        }
                         onClick={() => openReview(item)}
                       />
                     </td>

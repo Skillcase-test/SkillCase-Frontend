@@ -300,9 +300,9 @@ describe("SendForReviewModal", () => {
     );
 
     expect(
-      await screen.findByText("Currently assigned to", { exact: false }),
+      await screen.findByText("hidden from the position owner", { exact: false }),
     ).toBeInTheDocument();
-    fireEvent.click(screen.getByText("Remove assignment"));
+    fireEvent.click(screen.getByText("Return to owner"));
 
     await waitFor(() =>
       expect(apiMock.unassignReview).toHaveBeenCalledWith(5, 9),

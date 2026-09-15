@@ -294,11 +294,12 @@ export function SendForReviewModal({ positionId, candidate, onClose, onDone }) {
         <div className="px-6 py-4">
           {candidate.active_assignment_id ? (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              Currently assigned to{" "}
+              Assigned to{" "}
               <span className="font-semibold">
                 {candidate.assigned_reviewer_name}
-              </span>
-              . Picking another admin re-assigns the review.
+              </span>{" "}
+              — hidden from the position owner while delegated. Picking another
+              admin re-assigns it; removing returns it to the owner.
             </div>
           ) : null}
 
@@ -404,7 +405,7 @@ export function SendForReviewModal({ positionId, candidate, onClose, onDone }) {
               disabled={submitting}
               className="rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
             >
-              Remove assignment
+              Return to owner
             </button>
           ) : (
             <span />
