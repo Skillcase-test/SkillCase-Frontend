@@ -77,6 +77,24 @@ export default function SkillcaseInterviewToolsReviewPage({
     loadDetail();
   }, [selectedInterviewPositionId, selectedInterviewSubmissionId, loadDetail]);
 
+  // Presence heartbeat — while someone who can write a review has this
+  // submission open, super admins see them live and cannot reassign/return it.
+  const canReview = detail?.can_review === true;
+  useEffect(() => {
+    if (!canReview) return undefined;
+    const ping = () => {
+      skillcaseInterviewToolsApi
+        .recordReviewPresence(
+          selectedInterviewPositionId,
+          selectedInterviewSubmissionId,
+        )
+        .catch(() => {});
+    };
+    ping();
+    const timer = setInterval(ping, 10000);
+    return () => clearInterval(timer);
+  }, [canReview, selectedInterviewPositionId, selectedInterviewSubmissionId]);
+
   const answerList = useMemo(() => detail?.answers || [], [detail]);
   const activeAnswer = answerList[activeIndex];
 

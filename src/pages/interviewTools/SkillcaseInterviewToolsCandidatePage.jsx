@@ -292,6 +292,14 @@ export function SendForReviewModal({ positionId, candidate, onClose, onDone }) {
         </div>
 
         <div className="px-6 py-4">
+          {candidate.reviewing_now_name ? (
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+              <span className="font-semibold">{candidate.reviewing_now_name}</span>{" "}
+              is currently reviewing this submission — assignment changes are
+              paused until they leave.
+            </div>
+          ) : null}
+
           {candidate.active_assignment_id ? (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               Assigned to{" "}
@@ -402,7 +410,7 @@ export function SendForReviewModal({ positionId, candidate, onClose, onDone }) {
             <button
               type="button"
               onClick={handleUnassign}
-              disabled={submitting}
+              disabled={submitting || Boolean(candidate.reviewing_now_name)}
               className="rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
             >
               Return to owner
@@ -421,7 +429,12 @@ export function SendForReviewModal({ positionId, candidate, onClose, onDone }) {
             <button
               type="button"
               onClick={handleAssign}
-              disabled={!selectedUserId || submitting || loadingAdmins}
+              disabled={
+                !selectedUserId ||
+                submitting ||
+                loadingAdmins ||
+                Boolean(candidate.reviewing_now_name)
+              }
               className="rounded-xl bg-gray-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-black disabled:opacity-50"
             >
               {submitting ? "Sending…" : "Send for review"}
@@ -576,6 +589,12 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                         {item.assigned_reviewer_name || "Assigned"}
                       </div>
                     ) : null}
+                    {item.reviewing_now_name ? (
+                      <div className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                        {item.reviewing_now_name} is reviewing
+                      </div>
+                    ) : null}
                   </td>
                   <td className="px-4 py-4">
                     <span
@@ -647,10 +666,13 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                           icon={UserCheck}
                           label={item.active_assignment_id ? "Reassign" : "Send"}
                           title={
-                            item.active_assignment_id
-                              ? "Reassign reviewer"
-                              : "Send for review"
+                            item.reviewing_now_name
+                              ? `${item.reviewing_now_name} is currently reviewing — try again shortly`
+                              : item.active_assignment_id
+                                ? "Reassign reviewer"
+                                : "Send for review"
                           }
+                          disabled={Boolean(item.reviewing_now_name)}
                           onClick={() => setReviewAssignTarget(item)}
                         />
                       )}

@@ -246,6 +246,30 @@ describe("SendForReviewModal", () => {
     expect(screen.getByText(/No reviewers match/)).toBeInTheDocument();
   });
 
+  test("locks assignment actions while a reviewer is live on the submission", async () => {
+    apiMock.listAssignableAdmins.mockResolvedValue({ data: { data: admins } });
+    render(
+      <SendForReviewModal
+        positionId={5}
+        candidate={{
+          ...CANDIDATE,
+          active_assignment_id: 7,
+          assigned_reviewer_name: "Admin One",
+          reviewing_now_name: "Admin One",
+        }}
+        onClose={vi.fn()}
+        onDone={vi.fn()}
+      />,
+    );
+
+    expect(
+      await screen.findByText(/currently reviewing this submission/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Return to owner")).toBeDisabled();
+    fireEvent.click(screen.getByText("Admin Two"));
+    expect(screen.getByText("Send for review")).toBeDisabled();
+  });
+
   test("clicking the selected reviewer again deselects them", async () => {
     apiMock.listAssignableAdmins.mockResolvedValue({ data: { data: admins } });
     render(

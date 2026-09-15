@@ -81,4 +81,10 @@ export const skillcaseInterviewToolsApi = {
     api.delete(
       `/admin/skillcase-interviews/positions/${positionId}/candidates/${submissionId}/review-assign`,
     ),
+
+  // Review-page presence heartbeat — best-effort, callers swallow failures.
+  recordReviewPresence: (positionId, submissionId) =>
+    api.post(
+      `/admin/skillcase-interviews/positions/${positionId}/candidates/${submissionId}/review-presence`,
+    ),
 };
