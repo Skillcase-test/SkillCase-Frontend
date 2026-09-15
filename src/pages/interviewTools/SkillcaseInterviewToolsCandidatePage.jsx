@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Eye, RefreshCw, Download, Search, UserCheck, X } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, ChevronDown, ChevronUp, CircleDashed, Eye, RefreshCw, Download, Search, UserCheck, X } from "lucide-react";
 import { skillcaseInterviewToolsApi } from "../../api/skillcaseInterviewToolsApi";
 import { formatCurrentQuestion, formatDateTimeIST } from "../../utils/dateTime";
 import { useCandidateSort } from "./shared/candidateSorting";
 import CandidateSortableTh from "./shared/CandidateSortableTh";
+import IconActionButton from "./shared/IconActionButton";
 
 const STATUS_STYLE = {
   completed: "bg-emerald-100 text-emerald-700",
@@ -42,7 +43,7 @@ function PositionEventLog({ positionId }) {
 
   return (
     <div className="space-y-4 ">
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
         <button
           type="button"
           onClick={() => setPublishExpanded((v) => !v)}
@@ -112,7 +113,7 @@ function PositionEventLog({ positionId }) {
         )}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
       <button
         type="button"
         onClick={() => setInviteExpanded((v) => !v)}
@@ -276,7 +277,7 @@ export function SendForReviewModal({ positionId, candidate, onClose, onDone }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+      <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
           <h3 className="text-base font-semibold text-gray-900">
             Send for review — {candidate.candidate_name}
@@ -475,94 +476,96 @@ export default function SkillcaseInterviewToolsCandidatesPage({
           Back to Interviews
         </button>
 
-        <button
-          type="button"
-          onClick={loadCandidates}
-          className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </button>
-
-        {isSuperAdmin && (
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={async () => {
-              try {
-                const res = await skillcaseInterviewToolsApi.downloadInterviewPDF(selectedInterviewPositionId);
-                const url = window.URL.createObjectURL(new Blob([res.data]));
-                const link = document.createElement("a");
-                link.href = url;
-                link.setAttribute("download", `InterviewReport-${selectedInterviewPositionId}.pdf`);
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-              } catch (error) {
-                console.error("PDF download failed:", error);
-                alert("Could not download PDF report");
-              }
-            }}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#083262] bg-white px-4 py-3 text-sm font-medium text-[#083262] transition hover:bg-blue-50"
+            onClick={loadCandidates}
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
           >
-            <Download className="h-4 w-4" />
-            Download Full Report
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
           </button>
-        )}
+
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const res = await skillcaseInterviewToolsApi.downloadInterviewPDF(selectedInterviewPositionId);
+                  const url = window.URL.createObjectURL(new Blob([res.data]));
+                  const link = document.createElement("a");
+                  link.href = url;
+                  link.setAttribute("download", `InterviewReport-${selectedInterviewPositionId}.pdf`);
+                  document.body.appendChild(link);
+                  link.click();
+                  link.remove();
+                } catch (error) {
+                  console.error("PDF download failed:", error);
+                  alert("Could not download PDF report");
+                }
+              }}
+              className="inline-flex items-center gap-2 rounded-xl border border-[#083262] bg-white px-4 py-3 text-sm font-medium text-[#083262] transition hover:bg-blue-50"
+            >
+              <Download className="h-4 w-4" />
+              Download Full Report
+            </button>
+          )}
+        </div>
       </div>
 
       {status ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {status}
         </div>
       ) : null}
 
-      <div className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-sm">
+      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
           <table className="min-w-full">
-            <thead className="bg-gray-50 text-left text-xs uppercase tracking-[0.16em] text-gray-500">
+            <thead className="bg-gray-50 text-left text-[10px] font-bold uppercase tracking-wider text-gray-500">
               <tr>
-                <CandidateSortableTh column="candidate_name" sort={sort} onToggle={toggleSort} className="px-6 py-4">
+                <CandidateSortableTh column="candidate_name" sort={sort} onToggle={toggleSort} className="px-4 py-3">
                   Learner
                 </CandidateSortableTh>
-                <CandidateSortableTh column="status" sort={sort} onToggle={toggleSort} className="px-6 py-4">
+                <CandidateSortableTh column="status" sort={sort} onToggle={toggleSort} className="px-4 py-3">
                   Submission
                 </CandidateSortableTh>
                 {isSuperAdmin ? (
-                  <CandidateSortableTh column="current_question" sort={sort} onToggle={toggleSort} className="px-6 py-4">
-                    Current Question
+                  <CandidateSortableTh column="current_question" sort={sort} onToggle={toggleSort} className="px-4 py-3">
+                    Current Q.
                   </CandidateSortableTh>
                 ) : null}
                 {isSuperAdmin ? (
-                  <CandidateSortableTh column="started_at" sort={sort} onToggle={toggleSort} className="px-6 py-4">
+                  <CandidateSortableTh column="started_at" sort={sort} onToggle={toggleSort} className="px-4 py-3">
                     Started (IST)
                   </CandidateSortableTh>
                 ) : null}
                 {isSuperAdmin ? (
-                  <CandidateSortableTh column="completed_at" sort={sort} onToggle={toggleSort} className="px-6 py-4">
+                  <CandidateSortableTh column="completed_at" sort={sort} onToggle={toggleSort} className="px-4 py-3">
                     Completed (IST)
                   </CandidateSortableTh>
                 ) : null}
-                <CandidateSortableTh column="review_status" sort={sort} onToggle={toggleSort} className="px-6 py-4">
+                <CandidateSortableTh column="review_status" sort={sort} onToggle={toggleSort} className="px-4 py-3">
                   Review Status
                 </CandidateSortableTh>
-                <CandidateSortableTh column="reviewed" sort={sort} onToggle={toggleSort} className="px-6 py-4">
+                <CandidateSortableTh column="reviewed" sort={sort} onToggle={toggleSort} className="px-4 py-3">
                   Reviewed
                 </CandidateSortableTh>
-                <CandidateSortableTh column="score" sort={sort} onToggle={toggleSort} className="px-6 py-4">
+                <CandidateSortableTh column="score" sort={sort} onToggle={toggleSort} className="px-4 py-3">
                   Score
                 </CandidateSortableTh>
                 {isSuperAdmin && (
-                  <CandidateSortableTh column="ai_score" sort={sort} onToggle={toggleSort} className="px-6 py-4">
+                  <CandidateSortableTh column="ai_score" sort={sort} onToggle={toggleSort} className="px-4 py-3">
                     AI Score
                   </CandidateSortableTh>
                 )}
-                <th className="px-6 py-4 text-right">Action</th>
+                <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
               {sortedRows.map((item) => (
                 <tr key={item.submission_id} className="hover:bg-gray-50">
-                  <td className="px-6 py-5">
+                  <td className="px-4 py-4">
                     <div className="font-semibold text-gray-900">
                       {item.candidate_name}
                     </div>
@@ -573,7 +576,7 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                       </div>
                     ) : null}
                   </td>
-                  <td className="px-6 py-5">
+                  <td className="px-4 py-4">
                     <span
                       className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                         STATUS_STYLE[item.status] || STATUS_STYLE.completed
@@ -583,7 +586,7 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                     </span>
                   </td>
                   {isSuperAdmin ? (
-                    <td className="px-6 py-5 text-xs text-gray-600 font-semibold whitespace-nowrap">
+                    <td className="px-4 py-4 text-xs text-gray-600 font-semibold whitespace-nowrap">
                       {formatCurrentQuestion(
                         item.current_question_index,
                         item.total_questions,
@@ -591,16 +594,16 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                     </td>
                   ) : null}
                   {isSuperAdmin ? (
-                    <td className="px-6 py-5 text-xs text-gray-600 whitespace-nowrap">
+                    <td className="px-4 py-4 text-xs text-gray-600 whitespace-nowrap">
                       {formatDateTimeIST(item.started_at)}
                     </td>
                   ) : null}
                   {isSuperAdmin ? (
-                    <td className="px-6 py-5 text-xs text-gray-600 whitespace-nowrap">
+                    <td className="px-4 py-4 text-xs text-gray-600 whitespace-nowrap">
                       {formatDateTimeIST(item.completed_at)}
                     </td>
                   ) : null}
-                  <td className="px-6 py-5">
+                  <td className="px-4 py-4">
                     <span
                       className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                         STATUS_STYLE[item.overall_review_status] ||
@@ -610,39 +613,45 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                       {item.overall_review_status}
                     </span>
                   </td>
-                  <td className="px-6 py-5">
+                  <td className="px-4 py-4 text-center">
                     <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                        item.is_fully_reviewed ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
-                      }`}
+                      title={item.is_fully_reviewed ? "Fully reviewed" : "Not fully reviewed"}
+                      className="inline-flex"
                     >
-                      {item.is_fully_reviewed ? "Reviewed" : "Not Reviewed"}
+                      {item.is_fully_reviewed ? (
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      ) : (
+                        <CircleDashed className="h-4 w-4 text-gray-300" />
+                      )}
                     </span>
                   </td>
-                  <td className="px-6 py-5 font-semibold text-gray-900">
+                  <td className="px-4 py-4 font-semibold text-gray-900">
                     {item.overall_score || item.calculated_score || "-"}
                   </td>
                   {isSuperAdmin && (
-                    <td className="px-6 py-5 font-semibold text-[#083262]">
+                    <td className="px-4 py-4 font-semibold text-[#083262]">
                       {item.ai_score ? Number(item.ai_score).toFixed(1) : "-"}
                     </td>
                   )}
-                  <td className="px-6 py-5 text-right">
-                    <div className="flex justify-end gap-2">
+                  <td className="px-4 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
                       {isSuperAdmin && (
-                        <button
-                          type="button"
+                        <IconActionButton
+                          icon={UserCheck}
+                          label={item.active_assignment_id ? "Reassign" : "Send"}
+                          title={
+                            item.active_assignment_id
+                              ? "Reassign reviewer"
+                              : "Send for review"
+                          }
                           onClick={() => setReviewAssignTarget(item)}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
-                          title="Send for review"
-                        >
-                          <UserCheck className="h-4 w-4" />
-                          {item.active_assignment_id ? "Reassign" : "Send"}
-                        </button>
+                        />
                       )}
                       {isSuperAdmin && (
-                        <button
-                          type="button"
+                        <IconActionButton
+                          icon={Download}
+                          label="PDF"
+                          title="Download PDF report"
                           onClick={async () => {
                             try {
                               const res = await skillcaseInterviewToolsApi.downloadCandidatePDF(
@@ -661,14 +670,13 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                               alert("Could not download PDF report");
                             }
                           }}
-                          className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
-                          title="Download PDF Report"
-                        >
-                          <Download className="h-4 w-4" />
-                        </button>
+                        />
                       )}
-                      <button
-                        type="button"
+                      <IconActionButton
+                        icon={Eye}
+                        label="Review"
+                        tone="primary"
+                        title="Review submission"
                         onClick={() => {
                           setSelectedInterviewSubmissionId(item.submission_id);
                           setActivePage("interview-tools-review", {
@@ -676,11 +684,7 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                             submissionId: item.submission_id,
                           });
                         }}
-                        className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-black"
-                      >
-                        <Eye className="h-4 w-4" />
-                        Review
-                      </button>
+                      />
                     </div>
                   </td>
                 </tr>

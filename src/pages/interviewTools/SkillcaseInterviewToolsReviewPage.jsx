@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowLeft, Download, Save } from "lucide-react";
+import { ArrowLeft, Download, Lock, Save } from "lucide-react";
 import { skillcaseInterviewToolsApi } from "../../api/skillcaseInterviewToolsApi";
 import InterviewVideoPlayer from "./shared/InterviewVideoPlayer";
 
@@ -169,6 +169,10 @@ export default function SkillcaseInterviewToolsReviewPage({
     );
   }
 
+  // Read-only viewers (e.g. view_all admins, or owners without edit) can open
+  // the detail but must not be offered a save path they can't complete.
+  const canSubmitReview = detail.can_review !== false;
+
   return (
     <div className="space-y-6 ">
       <div className="flex items-center justify-between">
@@ -220,15 +224,22 @@ export default function SkillcaseInterviewToolsReviewPage({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={saveReview}
-            disabled={saving}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#083262] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#052243] disabled:opacity-60 shadow-sm"
-          >
-            <Save className="h-4 w-4" />
-            {saving ? "Saving..." : "Save Review"}
-          </button>
+          {canSubmitReview ? (
+            <button
+              type="button"
+              onClick={saveReview}
+              disabled={saving}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#083262] px-6 py-3.5 text-sm font-bold text-white transition hover:bg-[#052243] disabled:opacity-60 shadow-sm"
+            >
+              <Save className="h-4 w-4" />
+              {saving ? "Saving..." : "Save Review"}
+            </button>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs font-bold text-slate-400">
+              <Lock className="h-3.5 w-3.5" />
+              Read-only access
+            </span>
+          )}
         </div>
       </div>
 
@@ -259,7 +270,8 @@ export default function SkillcaseInterviewToolsReviewPage({
               <select
                 value={reviewStatus}
                 onChange={(e) => setReviewStatus(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:border-[#083262] shadow-sm bg-slate-50 hover:bg-white transition"
+                disabled={!canSubmitReview}
+                className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm font-bold text-slate-800 outline-none focus:border-[#083262] shadow-sm bg-slate-50 hover:bg-white transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {REVIEW_STATUSES.map((item) => (
                   <option key={item} value={item}>
@@ -292,8 +304,9 @@ export default function SkillcaseInterviewToolsReviewPage({
                 step="0.01"
                 value={manualScore}
                 onChange={(e) => setManualScore(e.target.value)}
+                disabled={!canSubmitReview}
                 placeholder="Manual override score"
-                className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm font-semibold outline-none focus:border-[#083262] shadow-sm transition"
+                className="mt-4 w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm font-semibold outline-none focus:border-[#083262] shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed"
               />
 
               <div className="mt-6 space-y-4">
@@ -304,9 +317,10 @@ export default function SkillcaseInterviewToolsReviewPage({
                   <textarea
                     value={remarks}
                     onChange={(e) => setRemarks(e.target.value)}
+                    disabled={!canSubmitReview}
                     placeholder="General thoughts on the learner..."
                     rows={3}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-[#083262] shadow-sm transition"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-[#083262] shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>
@@ -316,9 +330,10 @@ export default function SkillcaseInterviewToolsReviewPage({
                   <textarea
                     value={overallStrength}
                     onChange={(e) => setOverallStrength(e.target.value)}
+                    disabled={!canSubmitReview}
                     placeholder="Learner's strongest points..."
                     rows={2}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-[#083262] shadow-sm transition"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-[#083262] shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>
@@ -328,9 +343,10 @@ export default function SkillcaseInterviewToolsReviewPage({
                   <textarea
                     value={overallWeakness}
                     onChange={(e) => setOverallWeakness(e.target.value)}
+                    disabled={!canSubmitReview}
                     placeholder="Areas needing improvement..."
                     rows={2}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-[#083262] shadow-sm transition"
+                    className="w-full rounded-xl border border-slate-200 px-4 py-3.5 text-sm outline-none focus:border-[#083262] shadow-sm transition disabled:opacity-60 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -400,10 +416,11 @@ export default function SkillcaseInterviewToolsReviewPage({
                   <button
                     key={score}
                     type="button"
+                    disabled={!canSubmitReview}
                     onClick={() =>
                       updateAnswerScore(activeAnswer.question_id, score)
                     }
-                    className={`flex h-10 min-w-[3rem] flex-1 items-center justify-center rounded-xl border text-sm font-bold transition shadow-sm ${
+                    className={`flex h-10 min-w-[3rem] flex-1 items-center justify-center rounded-xl border text-sm font-bold transition shadow-sm disabled:cursor-not-allowed disabled:opacity-60 ${
                       Number(activeAnswer.admin_score) === score
                         ? "border-[#083262] bg-[#083262] text-white scale-105"
                         : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300"

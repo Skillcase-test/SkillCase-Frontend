@@ -223,6 +223,10 @@ function SkillcaseInterviewsModule({
   canDownload = false,
   canSeePositions = false,
   canReview = false,
+  canCreate = false,
+  canEdit = false,
+  canDelete = false,
+  canInvite = false,
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -286,6 +290,10 @@ function SkillcaseInterviewsModule({
               setSelectedInterviewPositionId={setSelectedInterviewPositionId}
               canManageAll={canManageAll}
               canViewAll={canViewAll}
+              canCreate={canCreate}
+              canEdit={canEdit}
+              canDelete={canDelete}
+              canInvite={canInvite}
             />
           ) : (
             <Navigate to="reviews" replace />
@@ -1359,6 +1367,25 @@ export default function Dashboard() {
                         "skillcase_interviews",
                         "reviewer",
                       )}
+                      canCreate={hasPermission(
+                        me,
+                        "skillcase_interviews",
+                        "create",
+                      )}
+                      canEdit={hasPermission(
+                        me,
+                        "skillcase_interviews",
+                        "edit",
+                      )}
+                      canDelete={hasPermission(
+                        me,
+                        "skillcase_interviews",
+                        "delete",
+                      )}
+                      canInvite={
+                        hasPermission(me, "skillcase_interviews", "edit") ||
+                        hasPermission(me, "skillcase_interviews", "view_all")
+                      }
                     />
                   </Guard>
                 }

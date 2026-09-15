@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, RefreshCw, ShieldCheck, UserCog } from "lucide-react";
+import { Loader2, RefreshCw, ShieldCheck, UserCog, X } from "lucide-react";
 import { adminAccessApi } from "../../api/adminAccessApi";
 import api from "../../api/axios";
 
@@ -269,12 +269,13 @@ function PermissionPicker({ value, onChange }) {
     } else {
       actionSet.add("manage");
       actionSet.add("view");
+      actionSet.delete("view_all"); // mutually exclusive — manage implies view_all
     }
     setModuleActions(SKILLCASE_INTERVIEW_MODULE, [...actionSet]);
   };
 
-  // "Super View": read-only access across every admin's positions (plus inviting
-  // candidates), without the edit/delete-everything rights that Super Access grants.
+  // "View all": read-only access across every admin's positions (plus inviting
+  // candidates), without the edit/delete-everything rights that Manage grants.
   const toggleSkillcaseInterviewViewAllAccess = () => {
     const existing = normalized[SKILLCASE_INTERVIEW_MODULE] || [];
     const actionSet = new Set(existing);
@@ -283,6 +284,7 @@ function PermissionPicker({ value, onChange }) {
     } else {
       actionSet.add("view_all");
       actionSet.add("view");
+      actionSet.delete("manage"); // mutually exclusive — manage implies view_all
     }
     setModuleActions(SKILLCASE_INTERVIEW_MODULE, [...actionSet]);
   };
@@ -582,8 +584,10 @@ function PermissionPicker({ value, onChange }) {
             );
           }
 
-          // Skillcase Interviews: own-only view/edit tier, plus two independent
-          // super-tiers (Super View = read-all + invite, Super Access = full control)
+          // Skillcase Interviews: three labeled groups —
+          //   "Own": radio tier for positions this admin creates
+          //   "All": independent read-all / manage-all flags
+          //   "Reviews": reviewer queue access for assigned submissions
           if (moduleDef.key === SKILLCASE_INTERVIEW_MODULE) {
             const baseActions = selected.filter((a) =>
               ["view", "create", "edit", "delete"].includes(a),
@@ -596,105 +600,141 @@ function PermissionPicker({ value, onChange }) {
             const hasViewAll = selected.includes("view_all");
             const hasReviewer = selected.includes("reviewer");
 
+            const pill = (checked) =>
+              `rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer transition-colors ${
+                checked
+                  ? "border-[#002856] bg-[#002856] text-white shadow-sm"
+                  : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"
+              }`;
+            const row = (label, children) => (
+              <div className="flex items-start gap-3">
+                <span className="w-16 shrink-0 pt-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  {label}
+                </span>
+                <div className="flex flex-wrap gap-1.5">{children}</div>
+              </div>
+            );
+
             return (
               <div
                 key={moduleDef.key}
                 className="rounded-xl border border-slate-200 bg-slate-50/60 p-3"
               >
-                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div className="mb-2 flex items-center justify-between gap-2">
                   <p className="text-xs font-semibold uppercase tracking-wider text-slate-600">
                     {moduleDef.label}
                   </p>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={toggleSkillcaseInterviewViewAllAccess}
-                      className={`rounded border px-2 py-0.5 text-[10px] font-semibold transition-colors ${
-                        hasViewAll
-                          ? "border-[#002856]/30 bg-[#002856]/10 text-[#002856]"
-                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      {hasViewAll ? "super view on" : "super view"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={toggleSkillcaseInterviewSuperAccess}
-                      className={`rounded border px-2 py-0.5 text-[10px] font-semibold transition-colors ${
-                        hasSuperAccess
-                          ? "border-amber-200 bg-amber-50 text-amber-700"
-                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      {hasSuperAccess ? "super access on" : "super access"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={toggleSkillcaseInterviewReviewer}
-                      className={`rounded border px-2 py-0.5 text-[10px] font-semibold transition-colors ${
-                        hasReviewer
-                          ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      {hasReviewer ? "reviewer on" : "reviewer"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setModuleActions(moduleDef.key, [])}
-                      className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50"
-                    >
-                      clear
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setModuleActions(moduleDef.key, [])}
+                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50"
+                  >
+                    clear
+                  </button>
                 </div>
-                <p className="mb-2 text-[10px] font-medium leading-relaxed text-slate-400">
-                  Super Access: full control (edit/delete/download) across every
-                  admin's interviews. Super View: read-only across every admin's
-                  interviews, can still invite candidates, no downloads. Reviewer:
-                  sees only the Reviews tab and can review submissions assigned
-                  to them — no positions, downloads, or edit rights. Below sets
-                  this admin's own default access to interviews they create.
+
+                <div className="space-y-2">
+                  {row(
+                    "Own",
+                    <>
+                      <label
+                        className={pill(isViewOnly)}
+                        title="View own interviews, learners and PDF reports — no create, edit or delete. Click again to remove own access."
+                      >
+                        <input
+                          type="radio"
+                          className="hidden"
+                          checked={isViewOnly}
+                          onClick={() =>
+                            isViewOnly &&
+                            setSkillcaseInterviewBaseAccess([])
+                          }
+                          onChange={() =>
+                            setSkillcaseInterviewBaseAccess(["view"])
+                          }
+                        />
+                        Viewer
+                      </label>
+                      <label
+                        className={pill(isFullAccess)}
+                        title="Create, edit, delete, invite and review on own interviews. Click again to remove own access."
+                      >
+                        <input
+                          type="radio"
+                          className="hidden"
+                          checked={isFullAccess}
+                          onClick={() =>
+                            isFullAccess &&
+                            setSkillcaseInterviewBaseAccess([])
+                          }
+                          onChange={() =>
+                            setSkillcaseInterviewBaseAccess([
+                              "view",
+                              "create",
+                              "edit",
+                              "delete",
+                            ])
+                          }
+                        />
+                        Manager
+                      </label>
+                    </>,
+                  )}
+                  {row(
+                    "All",
+                    <>
+                      <label
+                        className={pill(hasViewAll)}
+                        title="Read-only across every admin's interviews; can invite candidates — no downloads or edits"
+                      >
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={hasViewAll}
+                          onChange={toggleSkillcaseInterviewViewAllAccess}
+                        />
+                        View all
+                      </label>
+                      <label
+                        className={pill(hasSuperAccess)}
+                        title="Full control over every admin's interviews — edit, delete and download included"
+                      >
+                        <input
+                          type="checkbox"
+                          className="hidden"
+                          checked={hasSuperAccess}
+                          onChange={toggleSkillcaseInterviewSuperAccess}
+                        />
+                        Manage all
+                      </label>
+                    </>,
+                  )}
+                  {row(
+                    "Reviews",
+                    <label
+                      className={pill(hasReviewer)}
+                      title="Sees only the Reviews tab; reviews submissions a super admin assigns — no positions or downloads"
+                    >
+                      <input
+                        type="checkbox"
+                        className="hidden"
+                        checked={hasReviewer}
+                        onChange={toggleSkillcaseInterviewReviewer}
+                      />
+                      Reviewer
+                    </label>,
+                  )}
+                </div>
+
+                <p className="mt-2.5 text-[10px] leading-relaxed text-slate-400">
+                  <span className="font-semibold text-slate-500">Own:</span>{" "}
+                  access to interviews this admin creates.{" "}
+                  <span className="font-semibold text-slate-500">All:</span>{" "}
+                  same access extended to every admin's interviews.{" "}
+                  <span className="font-semibold text-slate-500">Reviewer:</span>{" "}
+                  Reviews tab only — reviews assigned submissions. Hover any
+                  option for details.
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <label
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer transition-colors ${
-                      isViewOnly
-                        ? "border-[#002856] bg-[#002856] text-white shadow-sm"
-                        : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      className="hidden"
-                      checked={isViewOnly}
-                      onChange={() => setSkillcaseInterviewBaseAccess(["view"])}
-                    />
-                    View Only (own)
-                  </label>
-                  <label
-                    className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer transition-colors ${
-                      isFullAccess
-                        ? "border-[#002856] bg-[#002856] text-white shadow-sm"
-                        : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      className="hidden"
-                      checked={isFullAccess}
-                      onChange={() =>
-                        setSkillcaseInterviewBaseAccess([
-                          "view",
-                          "create",
-                          "edit",
-                          "delete",
-                        ])
-                      }
-                    />
-                    Full Access (own)
-                  </label>
-                </div>
               </div>
             );
           }
@@ -1012,6 +1052,13 @@ export default function AdminAccessManagement() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleDiscard() {
+    if (!savedState) return;
+    setPermissions(savedState.permissions);
+    setWisePayload(savedState.wisePayload);
+    setTermsPayload(savedState.termsPayload);
   }
 
   if (roleLoading) {
@@ -1393,16 +1440,27 @@ export default function AdminAccessManagement() {
                       </span>
                     </div>
 
-                    <button
-                      onClick={handleSave}
-                      disabled={saving || selectedUser.role !== "admin"}
-                      className="inline-flex items-center gap-2 rounded-xl bg-[#002856] px-6 py-2.5 text-sm font-bold text-white shadow-lg ring-4 ring-[#002856]/20 hover:bg-[#001e40] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {saving ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : null}
-                      {saving ? "Saving Access..." : "Save Access"}
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDiscard}
+                        disabled={saving}
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <X className="h-4 w-4" />
+                        Discard
+                      </button>
+                      <button
+                        onClick={handleSave}
+                        disabled={saving || selectedUser.role !== "admin"}
+                        className="inline-flex items-center gap-2 rounded-xl bg-[#002856] px-6 py-2.5 text-sm font-bold text-white shadow-lg ring-4 ring-[#002856]/20 hover:bg-[#001e40] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {saving ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : null}
+                        {saving ? "Saving Access..." : "Save Access"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
