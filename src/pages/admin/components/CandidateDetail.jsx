@@ -1408,6 +1408,15 @@ const CandidateDetail = ({
                               {field.required && (
                                 <span className="ml-0.5 text-red-400">*</span>
                               )}
+                              {candidate.profile_fields_meta?.[field.field] ===
+                                "auto" && (
+                                <span
+                                  className="ml-1 px-1 py-px rounded bg-amber-100 text-amber-600 text-[7px] font-bold normal-case tracking-normal align-middle"
+                                  title="Auto-extracted from the uploaded resume — please verify"
+                                >
+                                  AUTO
+                                </span>
+                              )}
                             </label>
                             {field.options_field && canEdit && (
                               <button
