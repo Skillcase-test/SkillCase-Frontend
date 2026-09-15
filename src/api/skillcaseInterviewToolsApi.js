@@ -63,4 +63,22 @@ export const skillcaseInterviewToolsApi = {
     api.post(
       `/admin/skillcase-interviews/positions/${positionId}/candidates/${submissionId}/answers/${answerId}/ai-score`,
     ),
+
+  // Review assignments
+  listMyReviewAssignments: () =>
+    api.get("/admin/skillcase-interviews/review-assignments/mine"),
+
+  listAssignableAdmins: () =>
+    api.get("/admin/skillcase-interviews/assignable-admins"),
+
+  assignForReview: (positionId, submissionId, payload) =>
+    api.post(
+      `/admin/skillcase-interviews/positions/${positionId}/candidates/${submissionId}/review-assign`,
+      payload,
+    ),
+
+  unassignReview: (positionId, submissionId) =>
+    api.delete(
+      `/admin/skillcase-interviews/positions/${positionId}/candidates/${submissionId}/review-assign`,
+    ),
 };

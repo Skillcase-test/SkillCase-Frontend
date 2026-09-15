@@ -24,7 +24,7 @@ import { uploadFileToSignedUrl } from "./shared/uploadFileToSignedUrl";
 import InterviewVideoPlayer from "./shared/InterviewVideoPlayer";
 import useInterviewRecorder from "./shared/useInterviewRecorder";
 
-const emptyQuestion = () => ({
+const emptyVariant = () => ({
   local_id: crypto.randomUUID(),
   title: "",
   short_description: "",
@@ -32,6 +32,15 @@ const emptyQuestion = () => ({
   video_key: "",
   preview_url: "",
 });
+
+const emptyQuestion = () => {
+  const variant = emptyVariant();
+  return {
+    local_id: crypto.randomUUID(),
+    active_variant_id: variant.local_id,
+    variants: [variant],
+  };
+};
 
 const defaultForm = {
   title: "",
@@ -313,6 +322,9 @@ function InlinePreview({ form, questions }) {
   }, [introExists]);
 
   const activeQuestion = questions[questionIndex];
+  // Preview shows the first variant of each slot — candidates get a rotating
+  // variant at runtime, variant 0 is the representative.
+  const activeVariant = activeQuestion?.variants?.[0];
 
   const nextFromQuestion = () => {
     if (questionIndex < questions.length - 1) {
@@ -374,23 +386,23 @@ function InlinePreview({ form, questions }) {
             </div>
           )}
 
-          {step === "question" && activeQuestion && (
+          {step === "question" && activeVariant && (
             <div className="w-full flex flex-col lg:flex-row gap-8">
               <div className="flex-1 space-y-4">
                 <div className="inline-block px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-bold uppercase tracking-widest border border-blue-100">
                   Question {questionIndex + 1} of {questions.length}
                 </div>
                 <h2 className="text-2xl font-extrabold text-slate-900 leading-tight">
-                  {activeQuestion.title || "Untitled Question"}
+                  {activeVariant.title || "Untitled Question"}
                 </h2>
                 <p className="text-slate-600 text-sm leading-relaxed">
-                  {activeQuestion.short_description}
+                  {activeVariant.short_description}
                 </p>
 
-                {activeQuestion.preview_url ? (
+                {activeVariant.preview_url ? (
                   <div className="rounded-2xl shadow-sm bg-slate-900 shrink-0 mt-6 w-full">
                     <InterviewVideoPlayer
-                      src={activeQuestion.preview_url}
+                      src={activeVariant.preview_url}
                       title="Question Video"
                     />
                   </div>
@@ -573,14 +585,26 @@ export default function SkillcaseInterviewToolsBuilderPage({
           thank_you_message: data.thank_you_message || "",
         });
 
-        const qData = (data.questions || []).map((item) => ({
-          local_id: crypto.randomUUID(),
-          title: item.title || "",
-          short_description: item.short_description || "",
-          video_file: null,
-          video_key: item.video_key || "",
-          preview_url: item.video_url || "",
-        }));
+        // The API returns questions grouped into slots — each slot carries a
+        // `variants` array. Flat single-variant payloads map to one-variant slots.
+        const qData = (data.questions || []).map((slot) => {
+          const source = Array.isArray(slot.variants) && slot.variants.length
+            ? slot.variants
+            : [slot];
+          const variants = source.map((item) => ({
+            local_id: crypto.randomUUID(),
+            title: item.title || "",
+            short_description: item.short_description || "",
+            video_file: null,
+            video_key: item.video_key || "",
+            preview_url: item.video_url || "",
+          }));
+          return {
+            local_id: crypto.randomUUID(),
+            active_variant_id: variants[0].local_id,
+            variants,
+          };
+        });
 
         setQuestions(qData);
         if (qData.length > 0) setActiveQuestionId(qData[0].local_id);
@@ -646,6 +670,67 @@ export default function SkillcaseInterviewToolsBuilderPage({
     );
   };
 
+  const updateVariant = (questionLocalId, variantLocalId, patch) => {
+    const patchKeys = Object.keys(patch || {});
+    if (patchKeys.length) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        patchKeys.forEach((key) => {
+          delete next[`question:${questionLocalId}:${variantLocalId}:${key}`];
+        });
+        return next;
+      });
+    }
+    setQuestions((prev) =>
+      prev.map((item) =>
+        item.local_id === questionLocalId
+          ? {
+              ...item,
+              variants: item.variants.map((v) =>
+                v.local_id === variantLocalId ? { ...v, ...patch } : v,
+              ),
+            }
+          : item,
+      ),
+    );
+  };
+
+  const addVariant = (questionLocalId) => {
+    const variant = emptyVariant();
+    setQuestions((prev) =>
+      prev.map((item) =>
+        item.local_id === questionLocalId
+          ? {
+              ...item,
+              variants: [...item.variants, variant],
+              active_variant_id: variant.local_id,
+            }
+          : item,
+      ),
+    );
+  };
+
+  const removeVariant = (questionLocalId, variantLocalId) => {
+    setQuestions((prev) =>
+      prev.map((item) => {
+        if (item.local_id !== questionLocalId || item.variants.length <= 1) {
+          return item;
+        }
+        const variants = item.variants.filter(
+          (v) => v.local_id !== variantLocalId,
+        );
+        return {
+          ...item,
+          variants,
+          active_variant_id:
+            item.active_variant_id === variantLocalId
+              ? variants[0].local_id
+              : item.active_variant_id,
+        };
+      }),
+    );
+  };
+
   const updateFormField = (key, value) => {
     setFieldErrors((prev) => {
       const next = { ...prev };
@@ -663,6 +748,9 @@ export default function SkillcaseInterviewToolsBuilderPage({
     }
     if (field.questionId) {
       setActiveQuestionId(field.questionId);
+      if (field.variantId) {
+        updateQuestion(field.questionId, { active_variant_id: field.variantId });
+      }
     }
 
     setTimeout(() => {
@@ -694,21 +782,29 @@ export default function SkillcaseInterviewToolsBuilderPage({
     ];
 
     questions.forEach((question, index) => {
-      checks.push({
-        key: `question:${question.local_id}:title`,
-        tab: "questions",
-        questionId: question.local_id,
-        domId: `question-title-${question.local_id}`,
-        message: `Question ${index + 1} title is required.`,
-        isInvalid: !String(question.title || "").trim(),
-      });
-      checks.push({
-        key: `question:${question.local_id}:video_key`,
-        tab: "questions",
-        questionId: question.local_id,
-        domId: `question-video-${question.local_id}`,
-        message: `Question ${index + 1} video is required.`,
-        isInvalid: !String(question.video_key || "").trim() && !question.video_file,
+      question.variants.forEach((variant, variantIndex) => {
+        const label = `Question ${index + 1}${
+          question.variants.length > 1 ? ` variant ${variantIndex + 1}` : ""
+        }`;
+        checks.push({
+          key: `question:${question.local_id}:${variant.local_id}:title`,
+          tab: "questions",
+          questionId: question.local_id,
+          variantId: variant.local_id,
+          domId: `question-title-${variant.local_id}`,
+          message: `${label} title is required.`,
+          isInvalid: !String(variant.title || "").trim(),
+        });
+        checks.push({
+          key: `question:${question.local_id}:${variant.local_id}:video_key`,
+          tab: "questions",
+          questionId: question.local_id,
+          variantId: variant.local_id,
+          domId: `question-video-${variant.local_id}`,
+          message: `${label} video is required.`,
+          isInvalid:
+            !String(variant.video_key || "").trim() && !variant.video_file,
+        });
       });
     });
 
@@ -740,7 +836,7 @@ export default function SkillcaseInterviewToolsBuilderPage({
       }));
     }
     if (recordingTarget.type === "question" && recordingTarget.localId) {
-      updateQuestion(recordingTarget.localId, {
+      updateVariant(recordingTarget.localId, recordingTarget.variantId, {
         video_file: recordedFile,
         preview_url: previewUrl,
       });
@@ -781,20 +877,24 @@ export default function SkillcaseInterviewToolsBuilderPage({
 
       const finalQuestions = [];
       for (const item of questions) {
-        let videoKey = item.video_key;
-        if (item.video_file) {
-          const result = await uploadSingleVideo({
-            file: item.video_file,
-            kind: "question",
-            questionId: item.local_id,
+        const variants = [];
+        for (const variant of item.variants) {
+          let videoKey = variant.video_key;
+          if (variant.video_file) {
+            const result = await uploadSingleVideo({
+              file: variant.video_file,
+              kind: "question",
+              questionId: variant.local_id,
+            });
+            videoKey = result.key;
+          }
+          variants.push({
+            title: variant.title,
+            short_description: variant.short_description,
+            video_key: videoKey,
           });
-          videoKey = result.key;
         }
-        finalQuestions.push({
-          title: item.title,
-          short_description: item.short_description,
-          video_key: videoKey,
-        });
+        finalQuestions.push({ variants });
       }
 
       const payload = {
@@ -1168,6 +1268,9 @@ export default function SkillcaseInterviewToolsBuilderPage({
 
   const renderQuestionsTab = () => {
     const activeQ = questions.find((q) => q.local_id === activeQuestionId);
+    const activeV =
+      activeQ?.variants.find((v) => v.local_id === activeQ.active_variant_id) ||
+      activeQ?.variants[0];
 
     return (
       <div className="flex-1 flex overflow-hidden w-full bg-white ">
@@ -1207,13 +1310,20 @@ export default function SkillcaseInterviewToolsBuilderPage({
                       </button>
                     </div>
                     <div className="flex-1 truncate">
-                      <div
-                        className={`text-xs font-bold mb-0.5 uppercase tracking-wide ${isActive ? "text-[#083262]" : "text-slate-500"}`}
-                      >
-                        Q. {idx + 1}
+                      <div className="flex items-center gap-1.5">
+                        <div
+                          className={`text-xs font-bold mb-0.5 uppercase tracking-wide ${isActive ? "text-[#083262]" : "text-slate-500"}`}
+                        >
+                          Q. {idx + 1}
+                        </div>
+                        {q.variants.length > 1 && (
+                          <span className="mb-0.5 rounded-full bg-violet-100 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-violet-700">
+                            {q.variants.length} variants
+                          </span>
+                        )}
                       </div>
                       <div className="text-sm font-semibold text-slate-900 truncate">
-                        {q.title || "Untitled Question"}
+                        {q.variants[0]?.title || "Untitled Question"}
                       </div>
                     </div>
                   </div>
@@ -1241,22 +1351,73 @@ export default function SkillcaseInterviewToolsBuilderPage({
 
         {/* Right Editor Pane */}
         <div className="flex-1 bg-white overflow-y-auto p-8 lg:p-14">
-          {activeQ ? (
+          {activeQ && activeV ? (
             <div className="max-w-3xl mx-auto space-y-8">
+              <div>
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {activeQ.variants.map((v, i) => (
+                      <button
+                        key={v.local_id}
+                        type="button"
+                        onClick={() =>
+                          updateQuestion(activeQ.local_id, {
+                            active_variant_id: v.local_id,
+                          })
+                        }
+                        className={`rounded-full px-4 py-1.5 text-xs font-bold transition border ${
+                          v.local_id === activeV.local_id
+                            ? "bg-[#083262] text-white border-[#083262]"
+                            : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
+                        }`}
+                      >
+                        Variant {i + 1}
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => addVariant(activeQ.local_id)}
+                      className="rounded-full px-4 py-1.5 text-xs font-bold text-[#083262] border border-dashed border-[#083262]/40 hover:bg-blue-50 transition inline-flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> Add Variant
+                    </button>
+                    {activeQ.variants.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeVariant(activeQ.local_id, activeV.local_id)
+                        }
+                        className="rounded-full px-3 py-1.5 text-xs font-semibold text-rose-500 hover:bg-rose-50 transition inline-flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" /> Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {activeQ.variants.length > 1 && (
+                  <p className="mt-3 text-xs text-slate-500">
+                    Each learner is served one of these variants on a
+                    round-robin basis.
+                  </p>
+                )}
+              </div>
+
               <div className="mb-2">
                 <div className="text-[10px] font-bold uppercase tracking-widest text-[#083262] mb-2">
                   Edit Question Details
                 </div>
                 <input
-                  id={`question-title-${activeQ.local_id}`}
-                  value={activeQ.title}
+                  id={`question-title-${activeV.local_id}`}
+                  value={activeV.title}
                   onChange={(e) =>
-                    updateQuestion(activeQ.local_id, { title: e.target.value })
+                    updateVariant(activeQ.local_id, activeV.local_id, {
+                      title: e.target.value,
+                    })
                   }
                   placeholder="Enter Question Target (e.g. Behavioral / Technical)"
-                  className={`text-3xl lg:text-4xl font-extrabold outline-none w-full placeholder-slate-300 bg-transparent underline-offset-8 ${fieldErrors[`question:${activeQ.local_id}:title`] ? "text-rose-700 focus:underline decoration-rose-300" : "text-slate-900 focus:underline decoration-slate-200"}`}
+                  className={`text-3xl lg:text-4xl font-extrabold outline-none w-full placeholder-slate-300 bg-transparent underline-offset-8 ${fieldErrors[`question:${activeQ.local_id}:${activeV.local_id}:title`] ? "text-rose-700 focus:underline decoration-rose-300" : "text-slate-900 focus:underline decoration-slate-200"}`}
                 />
-                {fieldErrors[`question:${activeQ.local_id}:title`] && <p className="mt-2 text-xs font-medium text-rose-600">{fieldErrors[`question:${activeQ.local_id}:title`]}</p>}
+                {fieldErrors[`question:${activeQ.local_id}:${activeV.local_id}:title`] && <p className="mt-2 text-xs font-medium text-rose-600">{fieldErrors[`question:${activeQ.local_id}:${activeV.local_id}:title`]}</p>}
               </div>
 
               <div>
@@ -1264,9 +1425,9 @@ export default function SkillcaseInterviewToolsBuilderPage({
                   Learner Context / Description
                 </label>
                 <textarea
-                  value={activeQ.short_description}
+                  value={activeV.short_description}
                   onChange={(e) =>
-                    updateQuestion(activeQ.local_id, {
+                    updateVariant(activeQ.local_id, activeV.local_id, {
                       short_description: e.target.value,
                     })
                   }
@@ -1277,10 +1438,10 @@ export default function SkillcaseInterviewToolsBuilderPage({
               </div>
 
               <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-8">
-                <div id={`question-video-${activeQ.local_id}`} className={`bg-slate-100 rounded-[2rem] overflow-hidden aspect-video flex items-center justify-center border relative group ${fieldErrors[`question:${activeQ.local_id}:video_key`] ? "border-rose-300 ring-2 ring-rose-100" : "border-slate-200"}`}>
-                  {activeQ.preview_url ? (
+                <div id={`question-video-${activeV.local_id}`} className={`bg-slate-100 rounded-[2rem] overflow-hidden aspect-video flex items-center justify-center border relative group ${fieldErrors[`question:${activeQ.local_id}:${activeV.local_id}:video_key`] ? "border-rose-300 ring-2 ring-rose-100" : "border-slate-200"}`}>
+                  {activeV.preview_url ? (
                     <InterviewVideoPlayer
-                      src={activeQ.preview_url}
+                      src={activeV.preview_url}
                       title="Preview"
                     />
                   ) : (
@@ -1289,7 +1450,7 @@ export default function SkillcaseInterviewToolsBuilderPage({
                     </span>
                   )}
                 </div>
-                {fieldErrors[`question:${activeQ.local_id}:video_key`] && <p className="text-xs font-medium text-rose-600">{fieldErrors[`question:${activeQ.local_id}:video_key`]}</p>}
+                {fieldErrors[`question:${activeQ.local_id}:${activeV.local_id}:video_key`] && <p className="text-xs font-medium text-rose-600">{fieldErrors[`question:${activeQ.local_id}:${activeV.local_id}:video_key`]}</p>}
 
                 <div className="flex flex-col justify-center space-y-4">
                   <h4 className="text-lg font-bold text-slate-900 leading-tight">
@@ -1312,7 +1473,7 @@ export default function SkillcaseInterviewToolsBuilderPage({
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (!file) return;
-                          updateQuestion(activeQ.local_id, {
+                          updateVariant(activeQ.local_id, activeV.local_id, {
                             video_file: file,
                             preview_url: URL.createObjectURL(file),
                           });
@@ -1324,7 +1485,8 @@ export default function SkillcaseInterviewToolsBuilderPage({
                         openRecorder({
                           type: "question",
                           localId: activeQ.local_id,
-                          label: activeQ.title || "question",
+                          variantId: activeV.local_id,
+                          label: activeV.title || "question",
                         })
                       }
                       className="w-full flex items-center justify-center gap-2 rounded-2xl bg-slate-900 py-3.5 transition hover:bg-black text-white"

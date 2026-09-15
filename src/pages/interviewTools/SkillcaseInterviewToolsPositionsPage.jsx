@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { skillcaseInterviewToolsApi } from "../../api/skillcaseInterviewToolsApi";
 import { formatDateTimeIST } from "../../utils/dateTime";
+import SkillcaseInterviewNavTabs from "./shared/SkillcaseInterviewNavTabs";
 
 const STATUS_META = {
   draft: "bg-slate-100 text-slate-700",
@@ -195,6 +196,11 @@ export default function SkillcaseInterviewToolsPositionsPage({
           </button>
         </div>
       </div>
+
+      <SkillcaseInterviewNavTabs
+        active="positions"
+        setActivePage={setActivePage}
+      />
 
       {status ? (
         <div

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ArrowLeft, Download, Save } from "lucide-react";
 import { skillcaseInterviewToolsApi } from "../../api/skillcaseInterviewToolsApi";
 import InterviewVideoPlayer from "./shared/InterviewVideoPlayer";
@@ -12,6 +13,9 @@ export default function SkillcaseInterviewToolsReviewPage({
   canDownload = false,
   isSuperAdmin = false,
 }) {
+  const [searchParams] = useSearchParams();
+  const fromReviews = searchParams.get("from") === "reviews";
+
   const [detail, setDetail] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [reviewStatus, setReviewStatus] = useState("in_review");
@@ -171,14 +175,16 @@ export default function SkillcaseInterviewToolsReviewPage({
         <button
           type="button"
           onClick={() =>
-            setActivePage("interview-tools-candidates", {
-              positionId: selectedInterviewPositionId,
-            })
+            fromReviews
+              ? setActivePage("interview-tools-reviews")
+              : setActivePage("interview-tools-candidates", {
+                  positionId: selectedInterviewPositionId,
+                })
           }
           className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 shadow-sm"
         >
           <ArrowLeft className="h-4 w-4 text-slate-500" />
-          Back to Learners
+          {fromReviews ? "Back to Reviews" : "Back to Learners"}
         </button>
 
         <div className="flex items-center gap-3">
@@ -233,6 +239,17 @@ export default function SkillcaseInterviewToolsReviewPage({
               <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
                 {detail.submission.candidate_name}
               </h2>
+              {isSuperAdmin && detail.active_assignment ? (
+                <p className="mt-2 text-xs font-semibold text-slate-500">
+                  Assigned to{" "}
+                  <span className="text-slate-800">
+                    {detail.active_assignment.assigned_to_name}
+                  </span>
+                  {detail.active_assignment.assigned_by_name
+                    ? ` by ${detail.active_assignment.assigned_by_name}`
+                    : ""}
+                </p>
+              ) : null}
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { ArrowLeft, ChevronDown, ChevronUp, Eye, RefreshCw, Download } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Eye, RefreshCw, Download, Search, UserCheck, X } from "lucide-react";
 import { skillcaseInterviewToolsApi } from "../../api/skillcaseInterviewToolsApi";
 import { formatCurrentQuestion, formatDateTimeIST } from "../../utils/dateTime";
 import { useCandidateSort } from "./shared/candidateSorting";
@@ -184,6 +184,253 @@ function PositionEventLog({ positionId }) {
   );
 }
 
+// Super-admin modal for sending a candidate's submission to an admin reviewer.
+// Re-selecting while an assignment is active re-assigns (backend cancels the
+// old one); the secondary action removes the active assignment entirely.
+export function SendForReviewModal({ positionId, candidate, onClose, onDone }) {
+  const [admins, setAdmins] = useState([]);
+  const [loadingAdmins, setLoadingAdmins] = useState(true);
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [query, setQuery] = useState("");
+  const [note, setNote] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    skillcaseInterviewToolsApi
+      .listAssignableAdmins()
+      .then((res) => {
+        if (!cancelled) setAdmins(res.data.data || []);
+      })
+      .catch(() => {
+        if (!cancelled) setError("Could not load admins");
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingAdmins(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleAssign = async () => {
+    if (!selectedUserId) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      await skillcaseInterviewToolsApi.assignForReview(
+        positionId,
+        candidate.submission_id,
+        { reviewer_user_id: selectedUserId, note },
+      );
+      onDone?.();
+      onClose();
+    } catch (err) {
+      setError(
+        err?.response?.data?.message || "Could not send candidate for review",
+      );
+      setSubmitting(false);
+    }
+  };
+
+  const handleUnassign = async () => {
+    setSubmitting(true);
+    setError("");
+    try {
+      await skillcaseInterviewToolsApi.unassignReview(
+        positionId,
+        candidate.submission_id,
+      );
+      onDone?.();
+      onClose();
+    } catch (err) {
+      setError(
+        err?.response?.data?.message || "Could not remove review assignment",
+      );
+      setSubmitting(false);
+    }
+  };
+
+  const reviewerLabel = (admin) =>
+    admin.fullname || admin.username || admin.email || admin.user_id;
+
+  const reviewerInitials = (admin) =>
+    reviewerLabel(admin)
+      .trim()
+      .split(/\s+/)
+      .map((part) => part[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+
+  const filteredAdmins = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return admins;
+    return admins.filter((admin) =>
+      [admin.fullname, admin.username, admin.email].some((value) =>
+        value?.toLowerCase().includes(q),
+      ),
+    );
+  }, [admins, query]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+          <h3 className="text-base font-semibold text-gray-900">
+            Send for review — {candidate.candidate_name}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="px-6 py-4">
+          {candidate.active_assignment_id ? (
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              Currently assigned to{" "}
+              <span className="font-semibold">
+                {candidate.assigned_reviewer_name}
+              </span>
+              . Picking another admin re-assigns the review.
+            </div>
+          ) : null}
+
+          {loadingAdmins ? (
+            <p className="py-6 text-center text-sm text-gray-400">
+              Loading reviewers…
+            </p>
+          ) : admins.length === 0 ? (
+            <p className="py-6 text-center text-sm text-gray-400">
+              No admins with the reviewer permission available to assign.
+            </p>
+          ) : (
+            <>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <Search className="h-4 w-4 text-gray-400" />
+                </span>
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search reviewers by name or email…"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-3 text-sm font-medium text-gray-700 placeholder-gray-400 outline-none transition focus:border-[#083262] focus:bg-white focus:ring-2 focus:ring-[#083262]/10"
+                />
+              </div>
+
+              <div className="mt-3 max-h-56 space-y-1.5 overflow-y-auto pr-0.5">
+                {filteredAdmins.length === 0 ? (
+                  <p className="py-6 text-center text-sm text-gray-400">
+                    No reviewers match “{query.trim()}”.
+                  </p>
+                ) : (
+                  filteredAdmins.map((admin) => {
+                    const selected = selectedUserId === admin.user_id;
+                    return (
+                      <button
+                        key={admin.user_id}
+                        type="button"
+                        onClick={() =>
+                          setSelectedUserId(selected ? "" : admin.user_id)
+                        }
+                        className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left transition ${
+                          selected
+                            ? "border-[#083262] bg-blue-50/60 shadow-sm"
+                            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        <span
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
+                            selected
+                              ? "bg-[#083262] text-white"
+                              : "bg-gray-100 text-gray-500"
+                          }`}
+                        >
+                          {reviewerInitials(admin)}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold text-gray-900">
+                            {reviewerLabel(admin)}
+                          </span>
+                          {admin.email ? (
+                            <span className="block truncate text-xs text-gray-500">
+                              {admin.email}
+                            </span>
+                          ) : null}
+                        </span>
+                        {selected ? (
+                          <Check className="h-4 w-4 shrink-0 text-[#083262]" />
+                        ) : null}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+              {query.trim() ? (
+                <p className="mt-1.5 text-right text-[10px] font-semibold text-gray-400">
+                  {filteredAdmins.length} of {admins.length}
+                </p>
+              ) : null}
+            </>
+          )}
+
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Note for the reviewer (optional)"
+            rows={2}
+            className="mt-4 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#083262]"
+          />
+
+          {error ? (
+            <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              {error}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex items-center justify-between gap-2 border-t border-gray-100 px-6 py-4">
+          {candidate.active_assignment_id ? (
+            <button
+              type="button"
+              onClick={handleUnassign}
+              disabled={submitting}
+              className="rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
+            >
+              Remove assignment
+            </button>
+          ) : (
+            <span />
+          )}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleAssign}
+              disabled={!selectedUserId || submitting || loadingAdmins}
+              className="rounded-xl bg-gray-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-black disabled:opacity-50"
+            >
+              {submitting ? "Sending…" : "Send for review"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SkillcaseInterviewToolsCandidatesPage({
   selectedInterviewPositionId,
   setSelectedInterviewSubmissionId,
@@ -193,6 +440,7 @@ export default function SkillcaseInterviewToolsCandidatesPage({
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
+  const [reviewAssignTarget, setReviewAssignTarget] = useState(null);
   const { sort, sortedRows, toggleSort } = useCandidateSort(candidates);
 
   const loadCandidates = async () => {
@@ -318,6 +566,12 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                     <div className="font-semibold text-gray-900">
                       {item.candidate_name}
                     </div>
+                    {item.active_assignment_id ? (
+                      <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+                        <UserCheck className="h-3 w-3" />
+                        {item.assigned_reviewer_name || "Assigned"}
+                      </div>
+                    ) : null}
                   </td>
                   <td className="px-6 py-5">
                     <span
@@ -378,6 +632,17 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                       {isSuperAdmin && (
                         <button
                           type="button"
+                          onClick={() => setReviewAssignTarget(item)}
+                          className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-gray-50"
+                          title="Send for review"
+                        >
+                          <UserCheck className="h-4 w-4" />
+                          {item.active_assignment_id ? "Reassign" : "Send"}
+                        </button>
+                      )}
+                      {isSuperAdmin && (
+                        <button
+                          type="button"
                           onClick={async () => {
                             try {
                               const res = await skillcaseInterviewToolsApi.downloadCandidatePDF(
@@ -427,6 +692,15 @@ export default function SkillcaseInterviewToolsCandidatesPage({
 
       {isSuperAdmin ? (
         <PositionEventLog positionId={selectedInterviewPositionId} />
+      ) : null}
+
+      {isSuperAdmin && reviewAssignTarget ? (
+        <SendForReviewModal
+          positionId={selectedInterviewPositionId}
+          candidate={reviewAssignTarget}
+          onClose={() => setReviewAssignTarget(null)}
+          onDone={loadCandidates}
+        />
       ) : null}
     </div>
   );

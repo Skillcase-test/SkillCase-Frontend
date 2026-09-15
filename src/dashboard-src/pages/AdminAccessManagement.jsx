@@ -287,8 +287,21 @@ function PermissionPicker({ value, onChange }) {
     setModuleActions(SKILLCASE_INTERVIEW_MODULE, [...actionSet]);
   };
 
+  // "Reviewer": sees only the Reviews tab and can review submissions a super
+  // admin assigns to them — no positions, candidates list, or downloads.
+  const toggleSkillcaseInterviewReviewer = () => {
+    const existing = normalized[SKILLCASE_INTERVIEW_MODULE] || [];
+    const actionSet = new Set(existing);
+    if (actionSet.has("reviewer")) {
+      actionSet.delete("reviewer");
+    } else {
+      actionSet.add("reviewer");
+    }
+    setModuleActions(SKILLCASE_INTERVIEW_MODULE, [...actionSet]);
+  };
+
   // Base own-only tier: view-only vs full CRUD on positions this admin created —
-  // preserves whichever of the manage/view_all flags above are already set.
+  // preserves whichever of the manage/view_all/reviewer flags above are set.
   const setSkillcaseInterviewBaseAccess = (baseActions) => {
     const existing = normalized[SKILLCASE_INTERVIEW_MODULE] || [];
     const flags = existing.filter(
@@ -581,6 +594,7 @@ function PermissionPicker({ value, onChange }) {
               sortedBase === ["create", "delete", "edit", "view"].sort().join(",");
             const hasSuperAccess = selected.includes("manage");
             const hasViewAll = selected.includes("view_all");
+            const hasReviewer = selected.includes("reviewer");
 
             return (
               <div
@@ -616,6 +630,17 @@ function PermissionPicker({ value, onChange }) {
                     </button>
                     <button
                       type="button"
+                      onClick={toggleSkillcaseInterviewReviewer}
+                      className={`rounded border px-2 py-0.5 text-[10px] font-semibold transition-colors ${
+                        hasReviewer
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      {hasReviewer ? "reviewer on" : "reviewer"}
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => setModuleActions(moduleDef.key, [])}
                       className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50"
                     >
@@ -626,7 +651,9 @@ function PermissionPicker({ value, onChange }) {
                 <p className="mb-2 text-[10px] font-medium leading-relaxed text-slate-400">
                   Super Access: full control (edit/delete/download) across every
                   admin's interviews. Super View: read-only across every admin's
-                  interviews, can still invite candidates, no downloads. Below sets
+                  interviews, can still invite candidates, no downloads. Reviewer:
+                  sees only the Reviews tab and can review submissions assigned
+                  to them — no positions, downloads, or edit rights. Below sets
                   this admin's own default access to interviews they create.
                 </p>
                 <div className="flex flex-wrap gap-2">

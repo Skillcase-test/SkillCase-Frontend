@@ -50,6 +50,9 @@ const SkillcaseInterviewToolsCandidatesPage = lazy(
 const SkillcaseInterviewToolsReviewPage = lazy(
   () => import("../../pages/interviewTools/SkillcaseInterviewToolsReviewPage"),
 );
+const SkillcaseReviewAssignmentsPage = lazy(
+  () => import("../../pages/interviewTools/SkillcaseReviewAssignmentsPage"),
+);
 const WiseDashboard = lazy(() => import("../../pages/internal/WiseDashboard"));
 const WiseClassesDashboard = lazy(
   () => import("../../pages/internal/WiseClassesDashboard"),
@@ -218,6 +221,8 @@ function SkillcaseInterviewsModule({
   canManageAll = false,
   canViewAll = false,
   canDownload = false,
+  canSeePositions = false,
+  canReview = false,
 }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -250,6 +255,10 @@ function SkillcaseInterviewsModule({
       params.set("submissionId", String(submissionId));
     }
 
+    if (options.from) {
+      params.set("from", String(options.from));
+    }
+
     const search = params.toString();
     const suffix = search ? `?${search}` : "";
 
@@ -261,51 +270,72 @@ function SkillcaseInterviewsModule({
       navigate(`/admin/skillcase-interviews/candidates${suffix}`);
     if (page === "interview-tools-review")
       navigate(`/admin/skillcase-interviews/review${suffix}`);
+    if (page === "interview-tools-reviews")
+      navigate(`/admin/skillcase-interviews/reviews${suffix}`);
   };
 
   return (
     <Routes>
+      {/* Reviewer-only admins land on and stay within the Reviews queue. */}
       <Route
         index
         element={
-          <SkillcaseInterviewToolsPositionsPage
-            setActivePage={setActivePage}
-            setSelectedInterviewPositionId={setSelectedInterviewPositionId}
-            canManageAll={canManageAll}
-            canViewAll={canViewAll}
-          />
+          canSeePositions ? (
+            <SkillcaseInterviewToolsPositionsPage
+              setActivePage={setActivePage}
+              setSelectedInterviewPositionId={setSelectedInterviewPositionId}
+              canManageAll={canManageAll}
+              canViewAll={canViewAll}
+            />
+          ) : (
+            <Navigate to="reviews" replace />
+          )
         }
       />
       <Route
         path="builder"
         element={
-          <SkillcaseInterviewToolsBuilderPage
-            selectedInterviewPositionId={selectedInterviewPositionId}
-            setActivePage={setActivePage}
-          />
+          <Guard allowed={canSeePositions}>
+            <SkillcaseInterviewToolsBuilderPage
+              selectedInterviewPositionId={selectedInterviewPositionId}
+              setActivePage={setActivePage}
+            />
+          </Guard>
         }
       />
       <Route
         path="candidates"
         element={
-          <SkillcaseInterviewToolsCandidatesPage
-            selectedInterviewPositionId={selectedInterviewPositionId}
-            setSelectedInterviewSubmissionId={setSelectedInterviewSubmissionId}
-            setActivePage={setActivePage}
-            isSuperAdmin={isSuperAdmin}
-          />
+          <Guard allowed={canSeePositions}>
+            <SkillcaseInterviewToolsCandidatesPage
+              selectedInterviewPositionId={selectedInterviewPositionId}
+              setSelectedInterviewSubmissionId={setSelectedInterviewSubmissionId}
+              setActivePage={setActivePage}
+              isSuperAdmin={isSuperAdmin}
+            />
+          </Guard>
         }
       />
       <Route
         path="review"
         element={
-          <SkillcaseInterviewToolsReviewPage
-            selectedInterviewPositionId={selectedInterviewPositionId}
-            selectedInterviewSubmissionId={selectedInterviewSubmissionId}
-            setActivePage={setActivePage}
-            canDownload={canDownload}
-            isSuperAdmin={isSuperAdmin}
-          />
+          <Guard allowed={canSeePositions || canReview}>
+            <SkillcaseInterviewToolsReviewPage
+              selectedInterviewPositionId={selectedInterviewPositionId}
+              selectedInterviewSubmissionId={selectedInterviewSubmissionId}
+              setActivePage={setActivePage}
+              canDownload={canDownload}
+              isSuperAdmin={isSuperAdmin}
+            />
+          </Guard>
+        }
+      />
+      <Route
+        path="reviews"
+        element={
+          <Guard allowed={canReview}>
+            <SkillcaseReviewAssignmentsPage setActivePage={setActivePage} />
+          </Guard>
         }
       />
     </Routes>
@@ -798,6 +828,9 @@ export default function Dashboard() {
         label: "Skillcase Interviews",
         path: "/admin/skillcase-interviews",
         module: "skillcase_interviews",
+        // Reviewer-only admins get the sidebar entry too — the module routes
+        // them straight to their Reviews queue.
+        anyActions: ["reviewer"],
       },
       {
         key: "wise",
@@ -889,7 +922,13 @@ export default function Dashboard() {
         path: "/admin/feature-flags",
         module: "feature_flags",
       },
-    ].filter((item) => hasPermission(me, item.module, "view"));
+    ].filter(
+      (item) =>
+        hasPermission(me, item.module, "view") ||
+        (item.anyActions || []).some((action) =>
+          hasPermission(me, item.module, action),
+        ),
+    );
 
     if (me.role !== "super_admin" && hasPaymentsAccess) {
       core.push({
@@ -1287,7 +1326,12 @@ export default function Dashboard() {
               <Route
                 path="skillcase-interviews/*"
                 element={
-                  <Guard allowed={hasPermission(me, "skillcase_interviews")}>
+                  <Guard
+                    allowed={
+                      hasPermission(me, "skillcase_interviews") ||
+                      hasPermission(me, "skillcase_interviews", "reviewer")
+                    }
+                  >
                     <SkillcaseInterviewsModule
                       isSuperAdmin={me.role === "super_admin"}
                       canManageAll={hasPermission(
@@ -1304,6 +1348,16 @@ export default function Dashboard() {
                         me,
                         "skillcase_interviews",
                         "manage",
+                      )}
+                      canSeePositions={hasPermission(
+                        me,
+                        "skillcase_interviews",
+                        "view",
+                      )}
+                      canReview={hasPermission(
+                        me,
+                        "skillcase_interviews",
+                        "reviewer",
                       )}
                     />
                   </Guard>
