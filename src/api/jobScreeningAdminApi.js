@@ -9,6 +9,7 @@ export const adminGetCandidates = (
   endDate = "",
   proficiencyLevel = "",
   sortBy = "activity_desc",
+  extraFilters = {},
 ) =>
   api.get("/admin/job-screening/candidates", {
     params: {
@@ -20,6 +21,14 @@ export const adminGetCandidates = (
       end_date: endDate || undefined,
       proficiency_level: proficiencyLevel || undefined,
       sort_by: sortBy || undefined,
+      payment_status: extraFilters.paymentStatus || undefined,
+      score_op: extraFilters.scoreOp || undefined,
+      score_value: extraFilters.scoreValue || undefined,
+      experience: extraFilters.experience || undefined,
+      departments:
+        extraFilters.departments && extraFilters.departments.length
+          ? JSON.stringify(extraFilters.departments)
+          : undefined,
     },
   });
 

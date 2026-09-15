@@ -91,6 +91,12 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [proficiencyLevel, setProficiencyLevel] = useState("");
+  const [paymentStatus, setPaymentStatus] = useState("");
+  const [scoreOp, setScoreOp] = useState("gte");
+  const [scoreValue, setScoreValue] = useState("");
+  const [experienceFilter, setExperienceFilter] = useState("");
+  const [departmentFilters, setDepartmentFilters] = useState([]);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [summary, setSummary] = useState({
     total_users: 0,
     initiated: 0,
@@ -203,6 +209,13 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
         endDate,
         proficiencyLevel,
         sortBy,
+        {
+          paymentStatus,
+          scoreOp: scoreValue !== "" ? scoreOp || "gte" : "",
+          scoreValue,
+          experience: experienceFilter,
+          departments: departmentFilters,
+        },
       );
       if (res.data?.success) {
         setCandidates(res.data.data || []);
@@ -221,7 +234,29 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
 
   useEffect(() => {
     fetchList();
-  }, [page, appliedSearch, statusFilter, startDate, endDate, proficiencyLevel, sortBy]);
+  }, [page, appliedSearch, statusFilter, startDate, endDate, proficiencyLevel, sortBy, paymentStatus, scoreOp, scoreValue, experienceFilter, departmentFilters]);
+
+  const activeFilterCount =
+    (proficiencyLevel ? 1 : 0) +
+    (paymentStatus ? 1 : 0) +
+    (scoreValue !== "" ? 1 : 0) +
+    (experienceFilter ? 1 : 0) +
+    departmentFilters.length;
+
+  const handleExtraFilterChange = (setter) => (value) => {
+    setter(value);
+    setPage(1);
+  };
+
+  const clearExtraFilters = () => {
+    setProficiencyLevel("");
+    setPaymentStatus("");
+    setScoreOp("gte");
+    setScoreValue("");
+    setExperienceFilter("");
+    setDepartmentFilters([]);
+    setPage(1);
+  };
 
   const handleSummaryFilter = (filter) => {
     setStatusFilter(filter);
@@ -915,6 +950,22 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
                   setEndDate("");
                   setPage(1);
                 }}
+                filtersOpen={filtersOpen}
+                onToggleFilters={() => setFiltersOpen((v) => !v)}
+                activeFilterCount={activeFilterCount}
+                onClearFilters={clearExtraFilters}
+                paymentStatus={paymentStatus}
+                onPaymentStatusChange={handleExtraFilterChange(setPaymentStatus)}
+                scoreOp={scoreOp}
+                onScoreOpChange={handleExtraFilterChange(setScoreOp)}
+                scoreValue={scoreValue}
+                onScoreValueChange={handleExtraFilterChange(setScoreValue)}
+                experienceFilter={experienceFilter}
+                onExperienceChange={handleExtraFilterChange(setExperienceFilter)}
+                experienceOptions={options?.field_options?.experience || []}
+                departmentFilters={departmentFilters}
+                onDepartmentsChange={handleExtraFilterChange(setDepartmentFilters)}
+                departmentOptions={options?.field_options?.specialization || []}
               />
             </div>
           </div>

@@ -1,12 +1,89 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Search,
   Check,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Loader2,
   Calendar,
+  SlidersHorizontal,
 } from "lucide-react";
+
+const SCORE_OPERATORS = [
+  { value: "gt", label: ">" },
+  { value: "gte", label: ">=" },
+  { value: "lt", label: "<" },
+  { value: "lte", label: "<=" },
+  { value: "eq", label: "=" },
+];
+
+const DepartmentMultiSelect = ({ options, selected, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  const toggle = (value) => {
+    onChange(
+      selected.includes(value)
+        ? selected.filter((v) => v !== value)
+        : [...selected, value],
+    );
+  };
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="h-8 min-w-32 max-w-44 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600 outline-none transition focus:border-[#083262] focus:ring-2 focus:ring-[#083262]/10 flex items-center justify-between gap-1.5"
+      >
+        <span className="truncate">
+          {selected.length === 0
+            ? "All Departments"
+            : selected.length === 1
+              ? selected[0]
+              : `${selected.length} selected`}
+        </span>
+        <ChevronDown className="h-3 w-3 shrink-0 text-slate-400" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-30 mt-1 max-h-52 w-56 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+          {options.length === 0 && (
+            <div className="px-2 py-3 text-center text-[10px] font-semibold text-slate-400">
+              No departments configured
+            </div>
+          )}
+          {options.map((opt) => {
+            const checked = selected.includes(opt);
+            return (
+              <label
+                key={opt}
+                className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggle(opt)}
+                  className="h-3 w-3 rounded border-slate-300 text-[#083262] focus:ring-0"
+                />
+                <span className="truncate">{opt}</span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const CandidateList = ({
   candidates,
@@ -27,6 +104,22 @@ const CandidateList = ({
   onStartDateChange,
   onEndDateChange,
   onClearDates,
+  filtersOpen,
+  onToggleFilters,
+  activeFilterCount,
+  onClearFilters,
+  paymentStatus,
+  onPaymentStatusChange,
+  scoreOp,
+  onScoreOpChange,
+  scoreValue,
+  onScoreValueChange,
+  experienceFilter,
+  onExperienceChange,
+  experienceOptions,
+  departmentFilters,
+  onDepartmentsChange,
+  departmentOptions,
 }) => {
   return (
     <div className="flex flex-col h-full bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden ">
@@ -64,19 +157,25 @@ const CandidateList = ({
 
             <label className="flex flex-col gap-1">
               <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
-                Proficiency
+                &nbsp;
               </span>
-              <select
-                value={proficiencyLevel}
-                onChange={(e) => onProficiencyLevelChange(e.target.value)}
-                className="h-8 min-w-24 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600 outline-none transition focus:border-[#083262] focus:ring-2 focus:ring-[#083262]/10"
+              <button
+                type="button"
+                onClick={onToggleFilters}
+                className={`relative h-8 rounded-lg border px-3 text-[10px] font-bold transition flex items-center gap-1.5 ${
+                  filtersOpen || activeFilterCount > 0
+                    ? "border-[#083262] bg-blue-50/60 text-[#083262]"
+                    : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+                }`}
               >
-                <option value="">All Levels</option>
-                <option value="A1">A1</option>
-                <option value="A2">A2</option>
-                <option value="B1">B1</option>
-                <option value="B2">B2</option>
-              </select>
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#083262] px-1 text-[8px] font-extrabold text-white">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
             </label>
 
             <label className="flex flex-col gap-1">
@@ -122,6 +221,108 @@ const CandidateList = ({
             )}
           </div>
         </div>
+
+        {filtersOpen && (
+          <div className="mt-2.5 flex flex-wrap items-end gap-2 rounded-xl border border-slate-100 bg-slate-50/60 p-2.5">
+            <label className="flex flex-col gap-1">
+              <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                Proficiency
+              </span>
+              <select
+                value={proficiencyLevel}
+                onChange={(e) => onProficiencyLevelChange(e.target.value)}
+                className="h-8 min-w-24 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600 outline-none transition focus:border-[#083262] focus:ring-2 focus:ring-[#083262]/10"
+              >
+                <option value="">All Levels</option>
+                <option value="B1">B1</option>
+                <option value="B2">B2</option>
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                Payment
+              </span>
+              <select
+                value={paymentStatus}
+                onChange={(e) => onPaymentStatusChange(e.target.value)}
+                className="h-8 min-w-24 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600 outline-none transition focus:border-[#083262] focus:ring-2 focus:ring-[#083262]/10"
+              >
+                <option value="">All</option>
+                <option value="paid">Paid</option>
+                <option value="unpaid">Unpaid</option>
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                Interview Score
+              </span>
+              <span className="flex items-center gap-1">
+                <select
+                  value={scoreOp}
+                  onChange={(e) => onScoreOpChange(e.target.value)}
+                  className="h-8 w-16 rounded-lg border border-slate-200 bg-white px-1.5 text-[10px] font-semibold text-slate-600 outline-none transition focus:border-[#083262] focus:ring-2 focus:ring-[#083262]/10"
+                >
+                  {SCORE_OPERATORS.map((op) => (
+                    <option key={op.value} value={op.value}>
+                      {op.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.5"
+                  placeholder="0-10"
+                  value={scoreValue}
+                  onChange={(e) => onScoreValueChange(e.target.value)}
+                  className="h-8 w-20 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600 outline-none transition focus:border-[#083262] focus:ring-2 focus:ring-[#083262]/10"
+                />
+              </span>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                Experience
+              </span>
+              <select
+                value={experienceFilter}
+                onChange={(e) => onExperienceChange(e.target.value)}
+                className="h-8 min-w-28 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600 outline-none transition focus:border-[#083262] focus:ring-2 focus:ring-[#083262]/10"
+              >
+                <option value="">All Experience</option>
+                {experienceOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1">
+              <span className="text-[8px] font-bold uppercase tracking-wider text-slate-400">
+                Departments
+              </span>
+              <DepartmentMultiSelect
+                options={departmentOptions}
+                selected={departmentFilters}
+                onChange={onDepartmentsChange}
+              />
+            </label>
+
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                onClick={onClearFilters}
+                className="h-8 rounded-lg border border-slate-200 bg-white px-3 text-[9px] font-bold text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Candidate List Container */}
