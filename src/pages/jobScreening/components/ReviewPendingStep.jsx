@@ -25,8 +25,7 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
   const isCompleted = progress?.current_step_id !== "review_pending";
   const referralRewarded = Boolean(progress?.priority_review_at);
   const referralCompletedCount =
-    progress?.referral?.stats?.completed ||
-    (referralRewarded ? 1 : 0);
+    progress?.referral?.stats?.completed || (referralRewarded ? 1 : 0);
 
   useEffect(() => {
     if (isCompleted) {
@@ -138,87 +137,192 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
             <ArrowLeft className="w-4 h-4" />
             <span>Back</span>
           </button>
-        <span className="text-slate-400 text-sm font-semibold">
-          Job Progress
-        </span>
-      </div>
-
-      {progress?.interview_rejection_message && (
-        <div className="w-full mb-4 text-left">
-          <RejectionNote
-            message={progress.interview_rejection_message}
-            viewedAt={progress.interview_candidate_viewed_at}
-            onView={handleMarkInterviewRejectionViewed}
-          />
-        </div>
-      )}
-
-      {progress?.step_notes?.review_pending?.message && (
-        <div className="w-full mb-4 text-left">
-          <RejectionNote
-            message={progress.step_notes.review_pending.message}
-            viewedAt={progress.step_notes.review_pending.viewed_at}
-            onView={() => markStepNoteViewed("review_pending")}
-          />
-        </div>
-      )}
-
-      {/* Red Rejected Card block */}
-      <div className="w-full px-5 pt-10 pb-5 bg-gradient-to-b from-red-50 to-red-100/50 rounded-2xl border border-red-200/30 flex flex-col items-center gap-4">
-        {/* Rejected Icon */}
-        <div className="w-12 h-12 bg-red-600 rounded-xl flex items-center justify-center text-white shrink-0">
-          <AlertCircle className="w-6 h-6" />
+          <span className="text-slate-400 text-sm font-semibold">
+            Job Progress
+          </span>
         </div>
 
-        {/* Heading */}
-        <div className="text-center w-full">
-          <h2 className="text-red-700 text-2xl font-bold tracking-tight">
-            Interview review failed
-          </h2>
-          <p className="text-red-700/80 text-xs sm:text-sm font-medium mt-2 max-w-[280px] mx-auto leading-relaxed">
-            Unfortunately, your Skillcase video interview did not pass our
-            review. We are here to support your growth. Reach out to Skillcase
-            support to receive detailed feedback and guidance on next steps.
-          </p>
-        </div>
-
-        {/* Call Support Action */}
-        <a
-          href="tel:+919731462667"
-          className="w-full h-12 bg-[#002856] hover:bg-[#07192f] text-white rounded-xl font-bold text-sm sm:text-base transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer border-none"
-        >
-          Call Skillcase Support
-        </a>
-
-        {error && (
-          <div className="w-full flex items-start gap-2.5 text-red-500 text-xs font-semibold p-3 bg-red-50/50 rounded-xl border border-red-100 text-left">
-            <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
-            <span>{error}</span>
+        {progress?.interview_rejection_message && (
+          <div className="w-full mb-4 text-left">
+            <RejectionNote
+              message={progress.interview_rejection_message}
+              viewedAt={progress.interview_candidate_viewed_at}
+              onView={handleMarkInterviewRejectionViewed}
+            />
           </div>
         )}
 
-        {/* Refresh Status Button */}
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="w-full h-12 bg-white hover:bg-slate-50 text-[#002856] border border-[#002856] rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm cursor-pointer"
-        >
-          {refreshing ? (
-            <>
-              <RefreshCw className="animate-spin w-4 h-4 text-[#002856]" />
-              <span>Syncing status...</span>
-            </>
-          ) : (
-            <>
-              <RefreshCw className="w-4 h-4 text-[#002856]" />
-              <span>Refresh status</span>
-            </>
+        {progress?.step_notes?.review_pending?.message && (
+          <div className="w-full mb-4 text-left">
+            <RejectionNote
+              message={progress.step_notes.review_pending.message}
+              viewedAt={progress.step_notes.review_pending.viewed_at}
+              onView={() => markStepNoteViewed("review_pending")}
+            />
+          </div>
+        )}
+
+        {/* Red Rejected Card block */}
+        <div className="w-full px-5 pt-10 pb-5 bg-gradient-to-b from-red-50 to-red-100/50 rounded-2xl border border-red-200/30 flex flex-col items-center gap-4">
+          {/* Rejected Icon */}
+          <div className="w-12 h-12 bg-red-600 rounded-xl flex items-center justify-center text-white shrink-0">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+
+          {/* Heading */}
+          <div className="text-center w-full">
+            <h2 className="text-red-700 text-2xl font-bold tracking-tight">
+              Interview review failed
+            </h2>
+            <p className="text-red-700/80 text-xs sm:text-sm font-medium mt-2 max-w-[280px] mx-auto leading-relaxed">
+              Unfortunately, your Skillcase video interview did not pass our
+              review. We are here to support your growth. Reach out to Skillcase
+              support to receive detailed feedback and guidance on next steps.
+            </p>
+          </div>
+
+          {/* Call Support Action */}
+          <a
+            href="tel:+919731462667"
+            className="w-full h-12 bg-[#002856] hover:bg-[#07192f] text-white rounded-xl font-bold text-sm sm:text-base transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer border-none"
+          >
+            Call Skillcase Support
+          </a>
+
+          {error && (
+            <div className="w-full flex items-start gap-2.5 text-red-500 text-xs font-semibold p-3 bg-red-50/50 rounded-xl border border-red-100 text-left">
+              <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
           )}
-        </button>
+
+          {/* Refresh Status Button */}
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="w-full h-12 bg-white hover:bg-slate-50 text-[#002856] border border-[#002856] rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm cursor-pointer"
+          >
+            {refreshing ? (
+              <>
+                <RefreshCw className="animate-spin w-4 h-4 text-[#002856]" />
+                <span>Syncing status...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4 text-[#002856]" />
+                <span>Refresh status</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
+
+  if (referralRewarded && !isCompleted) {
+    return (
+      <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative">
+        {/* Header bar matching Figma */}
+        <div className="w-full flex items-center justify-start gap-3 mb-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="w-7 h-7 flex items-center justify-center rounded-md border-2 border-slate-400 text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer shrink-0"
+            aria-label="Back to Job Progress"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <span className="text-[#002856] text-base font-semibold">
+            Referral
+          </span>
+        </div>
+
+        {progress?.step_notes?.review_pending?.message && (
+          <div className="w-full mb-4 text-left">
+            <RejectionNote
+              message={progress.step_notes.review_pending.message}
+              viewedAt={progress.step_notes.review_pending.viewed_at}
+              onView={() => markStepNoteViewed("review_pending")}
+            />
+          </div>
+        )}
+
+        {/* Rewarded Amber Container */}
+        <div className="w-full px-5 py-7 bg-[#FDF4DE] rounded-3xl border border-[#F3E2B8] flex flex-col items-center gap-4">
+          {/* Rocket Hero with Check Overlay */}
+          <div className="relative flex items-center justify-center pt-2 pb-1">
+            <img
+              src="/rocket.webp"
+              alt=""
+              aria-hidden="true"
+              className="w-20 h-20 sm:w-24 sm:h-24 object-contain select-none pointer-events-none drop-shadow-xs rotate-20"
+              draggable="false"
+            />
+            <div className="absolute top-0 left-1/2 -translate-x-8 w-7 h-7 bg-[#15803d] rounded-full flex items-center justify-center text-white border-2 border-white shadow-xs">
+              <Check className="w-4 h-4 stroke-[3]" />
+            </div>
+          </div>
+
+          {/* Heading */}
+          <div className="text-center w-full">
+            <h2 className="text-slate-900 text-2xl sm:text-3xl font-bold tracking-tight">
+              Queue Skipped!
+            </h2>
+            <p className="text-slate-600 text-xs sm:text-sm font-normal mt-1.5 max-w-[280px] mx-auto leading-relaxed">
+              Amazing! You have now unlocked priority tracking for your profile.
+            </p>
+          </div>
+
+          {/* Inner Card Box */}
+          <div className="w-full bg-[#FFFDF8]/90 backdrop-blur-xs rounded-2xl p-4 sm:p-5 border border-amber-200/50 flex flex-col gap-3 text-left mt-1 shadow-2xs">
+            <h3 className="text-slate-900 text-sm sm:text-base font-bold">
+              Your profile is now in priority review
+            </h3>
+            <div className="flex flex-col gap-2.5 mt-1">
+              <div className="flex items-start gap-2.5">
+                <div className="w-5 h-5 bg-[#15803d] rounded-full flex items-center justify-center text-white shrink-0 mt-0.5 shadow-2xs">
+                  <Check className="w-3 h-3 stroke-[3]" />
+                </div>
+                <span className="text-slate-700 text-xs sm:text-sm font-medium leading-snug">
+                  Your video interview jumped to the front of the review queue
+                </span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <div className="w-5 h-5 bg-[#15803d] rounded-full flex items-center justify-center text-white shrink-0 mt-0.5 shadow-2xs">
+                  <Check className="w-3 h-3 stroke-[3]" />
+                </div>
+                <span className="text-slate-700 text-xs sm:text-sm font-medium leading-snug">
+                  Reviewer assigned for priority evaluation
+                </span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <div className="w-5 h-5 bg-[#15803d] rounded-full flex items-center justify-center text-white shrink-0 mt-0.5 shadow-2xs">
+                  <Check className="w-3 h-3 stroke-[3]" />
+                </div>
+                <span className="text-slate-700 text-xs sm:text-sm font-medium leading-snug">
+                  Results and recruiter matching processed 10x faster
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Error Message if any */}
+          {error && (
+            <p className="text-red-500 text-xs font-semibold">{error}</p>
+          )}
+
+          {/* Action CTA */}
+          <button
+            type="button"
+            onClick={onBack}
+            className="w-full h-12 bg-[#002856] hover:bg-[#07192f] text-white rounded-xl font-bold text-sm sm:text-base transition-all shadow-sm cursor-pointer border-none flex items-center justify-center mt-2"
+          >
+            Continue to Job Progress
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative ">

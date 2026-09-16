@@ -6,7 +6,11 @@ import { trackFeatureEvent } from "../../../telemetry/events";
 // referral link; once a friend finishes onboarding the backend sets
 // priority_review_at and the card flips to the rewarded "fast-forwarded"
 // state — same slot, no layout jump.
-const ReferralPromoCard = ({ rewarded = false, completedCount = 0, onRefer }) => {
+const ReferralPromoCard = ({
+  rewarded = false,
+  completedCount = 0,
+  onRefer,
+}) => {
   const handleClick = (event) => {
     // The lobby step card is itself clickable — keep the promo tap from
     // bubbling up and opening the step.
@@ -22,21 +26,41 @@ const ReferralPromoCard = ({ rewarded = false, completedCount = 0, onRefer }) =>
 
   if (rewarded) {
     return (
-      <div className="w-full rounded-2xl bg-gradient-to-r from-emerald-50 to-green-100 border border-green-200/80 shadow-xs p-3.5 sm:p-4 flex items-center gap-3.5 text-left">
-        <div className="w-10 h-10 rounded-xl bg-[#15803d] text-white flex items-center justify-center shrink-0 shadow-sm">
-          <Check className="w-5 h-5 stroke-[3]" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h4 className="text-[#14532d] text-sm sm:text-base font-bold leading-tight">
-            You're fast-forwarded!
-          </h4>
-          <p className="text-green-800/80 text-[11px] sm:text-xs font-medium mt-1 leading-relaxed">
-            {completedCount > 0
-              ? `${completedCount} friend${completedCount === 1 ? "" : "s"} joined — your review is now a priority.`
-              : "Your friend joined — your review is now a priority."}
+      <button
+        type="button"
+        onClick={handleClick}
+        aria-label="Refer more friends"
+        className="group w-full rounded-2xl p-3.5 sm:p-4 bg-gradient-to-r from-emerald-50 to-teal-100 border border-emerald-200/80 shadow-xs flex items-center justify-between text-left transition-all hover:shadow-sm hover:border-emerald-300 active:scale-[0.99] cursor-pointer overflow-hidden"
+      >
+        <div className="min-w-0 flex-1 flex flex-col justify-start items-start">
+          <div className="flex items-center gap-1.5">
+            <span className="w-5 h-5 rounded-full bg-[#15803d] text-white flex items-center justify-center shrink-0 shadow-xs">
+              <Check className="w-3.5 h-3.5 stroke-[3]" />
+            </span>
+            <h4 className="text-[#14532d] text-sm sm:text-base font-bold leading-tight">
+              Fast-track activated!
+            </h4>
+          </div>
+          <p className="text-[#14532d]/80 text-[11px] sm:text-xs font-normal leading-relaxed mt-1">
+            You skipped the queue! Your interview is now first in line for
+            recruiter review.
           </p>
+          <div className="mt-2.5 inline-flex items-center gap-1 text-[#002856] text-xs font-semibold group-hover:underline">
+            <span>Refer more friends</span>
+            <ArrowRight className="w-3.5 h-3.5 shrink-0 transition-transform group-hover:translate-x-0.5" />
+          </div>
         </div>
-      </div>
+
+        <div className="shrink-0 flex items-center justify-center pl-1">
+          <img
+            src="/rocket.webp"
+            alt=""
+            aria-hidden="true"
+            className="w-14 h-14 sm:w-16 sm:h-16 object-contain -rotate-[17deg] select-none pointer-events-none drop-shadow-xs"
+            draggable="false"
+          />
+        </div>
+      </button>
     );
   }
 
