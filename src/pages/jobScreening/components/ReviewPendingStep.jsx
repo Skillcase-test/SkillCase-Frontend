@@ -12,7 +12,6 @@ import {
   markInterviewRejectionViewed,
   markStepNoteViewed,
 } from "../../../api/jobScreeningApi";
-import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { motion } from "framer-motion";
 import { trackFlowAction } from "../../../telemetry/flow";
 import RejectionNote from "../../../components/RejectionNote";
@@ -377,26 +376,6 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
             onRefer={() => navigate("/job-screening/refer")}
           />
         )}
-
-        {/* Please note card */}
-        <div className="w-full bg-gradient-to-r from-[#e0f2fe] to-[#c3e7ff] rounded-2xl border border-blue-200 flex items-center gap-3.5 shadow-sm text-left overflow-hidden">
-          <img
-            src={mayaShocked}
-            alt="Mascot Alert"
-            className="w-20 h-20 object-contain shrink-0 select-none"
-            draggable="false"
-          />
-          <div className="min-w-0 flex-1 pr-4 py-3">
-            <h5 className="text-[#002856] text-xs sm:text-sm font-bold">
-              {isCompleted ? "Verification complete" : "Please note"}
-            </h5>
-            <p className="text-slate-500 text-[10px] sm:text-xs mt-0.5 leading-normal">
-              {isCompleted
-                ? "Your interview verification is completed. Redirecting you shortly..."
-                : "Typically takes around 24-48 hrs. You will be notified."}
-            </p>
-          </div>
-        </div>
 
         {/* Error Message */}
         {error && <p className="text-red-500 text-xs font-semibold">{error}</p>}
