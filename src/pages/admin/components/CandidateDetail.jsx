@@ -693,6 +693,17 @@ const CandidateDetail = ({
     });
   };
 
+  const handleReleaseLowScoreHold = () => {
+    openConfirmModal({
+      title: "Release Low-Score Hold?",
+      message:
+        "This candidate's interview passed but scored below the minimum benchmark, so they're parked on the review step with the crash-course screens. Releasing the hold lets their pipeline continue as if the review passed normally.",
+      onConfirm: () => {
+        onUpdate(candidate.user_id, { release_low_score_hold: true });
+      },
+    });
+  };
+
   const handleResetAdditionalDocs = () => {
     openConfirmModal({
       title: "Reset Additional Documents Checkpoint?",
@@ -2151,6 +2162,37 @@ const CandidateDetail = ({
                             Recruiter review evaluation of candidate
                             submissions.
                           </p>
+
+                          {/* Low-score hold banner — review passed but under
+                              INTERVIEW_MIN_SCORE; candidate is parked on the
+                              crash-course screens until released */}
+                          {candidate.interview_below_threshold && (
+                            <div className="p-3 bg-sky-50 border border-sky-200 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wider">
+                                  Held · Low Interview Score
+                                </span>
+                                {candidate.course_optin_at && (
+                                  <span className="text-[9px] font-semibold text-sky-600">
+                                    course opted-in
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-sky-800/80">
+                                Review passed but the score is below the
+                                benchmark — the candidate is seeing the crash
+                                course screens. Release the hold to let their
+                                pipeline continue.
+                              </p>
+                              <button
+                                type="button"
+                                onClick={handleReleaseLowScoreHold}
+                                className="text-[10px] font-bold text-white bg-sky-600 hover:bg-sky-700 px-2.5 py-1 rounded-lg transition-all"
+                              >
+                                Release Hold
+                              </button>
+                            </div>
+                          )}
 
                           {/* Referral fast-forward banner */}
                           {(candidate.priority_review_at ||

@@ -4,6 +4,9 @@ export const getProgress = () => api.get("/job-screening/progress");
 
 export const getReferralDetails = () => api.get("/job-screening/referral");
 
+export const optInCrashCourse = () =>
+  api.post("/job-screening/course-optin");
+
 export const completeWelcome = () =>
   api.post("/job-screening/welcome-complete");
 

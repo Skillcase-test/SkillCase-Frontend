@@ -331,6 +331,7 @@ const DeepLinkRedirect = lazy(
   () => import("./pages/deepLink/DeepLinkRedirect"),
 );
 const ReferralPage = lazy(() => import("./pages/jobScreening/ReferralPage"));
+const CoursePage = lazy(() => import("./pages/jobScreening/CoursePage"));
 const ReferralRedirect = lazy(
   () => import("./pages/referral/ReferralRedirect"),
 );
@@ -1354,6 +1355,13 @@ function AppContent() {
                     element={lazyScreen(
                       <ReferralPage />,
                       "Loading Referral...",
+                    )}
+                  />
+                  <Route
+                    path="/job-screening/course"
+                    element={lazyScreen(
+                      <CoursePage />,
+                      "Loading Course...",
                     )}
                   />
                   <Route

@@ -16,6 +16,8 @@ import { motion } from "framer-motion";
 import { trackFlowAction } from "../../../telemetry/flow";
 import RejectionNote from "../../../components/RejectionNote";
 import ReferralPromoCard from "./ReferralPromoCard";
+import LowScoreCoursePrompt from "./LowScoreCoursePrompt";
+import CourseOptedIn from "./CourseOptedIn";
 
 const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
   const navigate = useNavigate();
@@ -23,6 +25,11 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
   const [error, setError] = useState("");
 
   const isCompleted = progress?.current_step_id !== "review_pending";
+  // Below-threshold hold: review passed but under INTERVIEW_MIN_SCORE — the
+  // pipeline parks here until an admin releases it. Opted-in candidates see
+  // the thank-you screen on every revisit.
+  const lowScoreHeld = Boolean(progress?.interview_below_threshold);
+  const courseOptedIn = Boolean(progress?.course_optin_at);
   const referralRewarded = Boolean(progress?.priority_review_at);
   const referralCompletedCount =
     progress?.referral?.stats?.completed || (referralRewarded ? 1 : 0);
@@ -216,6 +223,37 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
           </button>
         </div>
       </div>
+    );
+  }
+
+  // Held candidates never reach isCompleted — the silent poll above still
+  // runs, so an admin hold-release advances them automatically.
+  if (lowScoreHeld) {
+    if (courseOptedIn) {
+      return (
+        <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative">
+          <div className="w-full flex items-center justify-between mb-4">
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back</span>
+            </button>
+            <span className="text-slate-400 text-sm font-semibold">
+              Job Progress
+            </span>
+          </div>
+          <CourseOptedIn onDone={onBack} />
+        </div>
+      );
+    }
+    return (
+      <LowScoreCoursePrompt
+        onBack={onBack}
+        onExplore={() => navigate("/job-screening/course")}
+      />
     );
   }
 

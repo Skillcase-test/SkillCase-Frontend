@@ -1135,8 +1135,12 @@ const JobScreening = () => {
                       </span>
                     </div>
 
-                    {/* Referral fast-forward promo — review_pending only */}
-                    {step.id === "review_pending" && (isActive || isReview) && (
+                    {/* Referral fast-forward promo — review_pending only, and
+                        not while a below-threshold score has them held (their
+                        review already ran; nothing left to fast-forward) */}
+                    {step.id === "review_pending" &&
+                      (isActive || isReview) &&
+                      !progress?.interview_below_threshold && (
                       <ReferralPromoCard
                         rewarded={Boolean(progress?.priority_review_at)}
                         completedCount={
