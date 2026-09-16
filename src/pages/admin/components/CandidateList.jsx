@@ -157,6 +157,7 @@ const CandidateList = ({
                 className="h-8 min-w-24 rounded-lg border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-600 outline-none transition focus:border-[#083262] focus:ring-2 focus:ring-[#083262]/10"
               >
                 <option value="activity_desc">Last Updated</option>
+                <option value="priority">Referred First</option>
                 <option value="created_desc">Created (Newest)</option>
                 <option value="created_asc">Created (Oldest)</option>
               </select>
@@ -451,6 +452,11 @@ const CandidateList = ({
                   >
                     {candidate.is_active === false ? "Inactive" : "Active"}
                   </span>
+                  {candidate.priority_review_at && (
+                    <span className="px-1.5 py-0.5 rounded-md border bg-orange-50 border-orange-200 text-orange-600 text-[9px] font-bold">
+                      Referred · Priority
+                    </span>
+                  )}
                   {candidate.email_verified && (
                     <div className="flex items-center gap-1">
                     <span className="w-3.5 h-3.5 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100 text-emerald-600">

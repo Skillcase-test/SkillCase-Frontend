@@ -106,6 +106,7 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
     actions_pending: 0,
     active_candidates: 0,
     inactive_candidates: 0,
+    referred: 0,
   });
 
   const [listLoading, setListLoading] = useState(true);
@@ -851,13 +852,19 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
           />
         ) : activeTab === "candidates" ? (
           <div className="h-full min-h-0 flex flex-col gap-3">
-            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2 shrink-0">
+            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2 shrink-0">
               {[
                 {
                   key: "total",
                   label: "Total Users",
                   value: summary.total_users,
                   tone: "border-slate-200 bg-white text-slate-900 hover:border-slate-300",
+                },
+                {
+                  key: "referred",
+                  label: "Referred",
+                  value: summary.referred,
+                  tone: "border-orange-200 bg-orange-50 text-orange-900 hover:border-orange-300",
                 },
                 {
                   key: "initiated",

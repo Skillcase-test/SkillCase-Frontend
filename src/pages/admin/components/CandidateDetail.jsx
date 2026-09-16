@@ -682,6 +682,17 @@ const CandidateDetail = ({
     });
   };
 
+  const handleClearPriorityReview = () => {
+    openConfirmModal({
+      title: "Clear Referral Priority?",
+      message:
+        "This removes the candidate's fast-forwarded review priority flag (granted because a friend joined via their referral link). The referral record itself is kept for audit. Use this if the referral looks fraudulent.",
+      onConfirm: () => {
+        onUpdate(candidate.user_id, { reset_priority_review: true });
+      },
+    });
+  };
+
   const handleResetAdditionalDocs = () => {
     openConfirmModal({
       title: "Reset Additional Documents Checkpoint?",
@@ -2140,6 +2151,56 @@ const CandidateDetail = ({
                             Recruiter review evaluation of candidate
                             submissions.
                           </p>
+
+                          {/* Referral fast-forward banner */}
+                          {(candidate.priority_review_at ||
+                            candidate.referral?.code) && (
+                            <div className="p-3 bg-orange-50 border border-orange-200 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold text-orange-700 uppercase tracking-wider">
+                                  {candidate.priority_review_at
+                                    ? "Referred · Priority Review"
+                                    : "Referral Link Active"}
+                                </span>
+                                {candidate.priority_review_at && (
+                                  <span className="text-[9px] font-semibold text-orange-600">
+                                    since{" "}
+                                    {new Date(
+                                      candidate.priority_review_at,
+                                    ).toLocaleDateString()}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-orange-800/80 space-y-0.5">
+                                {candidate.referral?.code && (
+                                  <p>
+                                    Code{" "}
+                                    <span className="font-mono font-bold">
+                                      {candidate.referral.code}
+                                    </span>{" "}
+                                    · {candidate.referral?.stats?.clicked ?? 0}{" "}
+                                    clicks ·{" "}
+                                    {candidate.referral?.stats?.completed ?? 0}{" "}
+                                    friends joined
+                                  </p>
+                                )}
+                                <p>
+                                  A friend completed onboarding via this
+                                  candidate's link — their review has been
+                                  fast-forwarded. Please handle urgently.
+                                </p>
+                              </div>
+                              {candidate.priority_review_at && (
+                                <button
+                                  type="button"
+                                  onClick={handleClearPriorityReview}
+                                  className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1 rounded-lg transition-all"
+                                >
+                                  Clear Priority Flag
+                                </button>
+                              )}
+                            </div>
+                          )}
 
                           {candidate.interview_submitted ? (
                             <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg space-y-1.5">

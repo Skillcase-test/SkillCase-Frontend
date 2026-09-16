@@ -2,6 +2,8 @@ import api from "./axios";
 
 export const getProgress = () => api.get("/job-screening/progress");
 
+export const getReferralDetails = () => api.get("/job-screening/referral");
+
 export const completeWelcome = () =>
   api.post("/job-screening/welcome-complete");
 

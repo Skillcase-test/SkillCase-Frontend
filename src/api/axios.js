@@ -12,6 +12,10 @@ import {
   getTelemetryRequestContext,
   recordEvent,
 } from "../telemetry";
+import {
+  getReferralAttribution,
+  clearReferralAttribution,
+} from "../utils/referralAttribution";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL,
@@ -392,6 +396,18 @@ api.interceptors.request.use((config) => {
   };
 
   const requestMethod = (config.method || "get").toLowerCase();
+  // Referral attribution rides along on onboarding completion — injected here
+  // so every caller (job-screening, scholarship, learn/practice) is covered
+  // without the onboarding screens knowing anything about referrals.
+  if (
+    requestMethod === "post" &&
+    String(config.url || "").endsWith("/user/complete-onboarding-profile") &&
+    config.data &&
+    typeof config.data === "object" &&
+    !(config.data instanceof FormData)
+  ) {
+    config.data = { ...getReferralAttribution(), ...config.data };
+  }
   if (requestMethod !== "get") {
     const invalidationTags = normalizeCacheTags(config.meta.invalidateCacheTags);
     if (invalidationTags.length) {
@@ -430,6 +446,16 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => {
     const method = (response?.config?.method || "get").toLowerCase();
+    // Onboarding completed — the referral (if any) has been attributed
+    // server-side; clear the stash so a later signup cannot re-claim it.
+    if (
+      method === "post" &&
+      String(response?.config?.url || "").endsWith(
+        "/user/complete-onboarding-profile",
+      )
+    ) {
+      clearReferralAttribution();
+    }
     if (method !== "get") {
       // Tagged learning writes invalidate only their related GETs. Untagged
       // mutations keep the existing full-clear fallback until migrated;

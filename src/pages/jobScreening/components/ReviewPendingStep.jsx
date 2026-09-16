@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   FileSearch,
@@ -15,12 +16,18 @@ import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { motion } from "framer-motion";
 import { trackFlowAction } from "../../../telemetry/flow";
 import RejectionNote from "../../../components/RejectionNote";
+import ReferralPromoCard from "./ReferralPromoCard";
 
 const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
+  const navigate = useNavigate();
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
   const isCompleted = progress?.current_step_id !== "review_pending";
+  const referralRewarded = Boolean(progress?.priority_review_at);
+  const referralCompletedCount =
+    progress?.referral?.stats?.completed ||
+    (referralRewarded ? 1 : 0);
 
   useEffect(() => {
     if (isCompleted) {
@@ -361,6 +368,15 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
             </div>
           </div>
         </div>
+
+        {/* Referral fast-forward card — only while genuinely still waiting */}
+        {!isCompleted && (
+          <ReferralPromoCard
+            rewarded={referralRewarded}
+            completedCount={referralCompletedCount}
+            onRefer={() => navigate("/job-screening/refer")}
+          />
+        )}
 
         {/* Please note card */}
         <div className="w-full bg-gradient-to-r from-[#e0f2fe] to-[#c3e7ff] rounded-2xl border border-blue-200 flex items-center gap-3.5 shadow-sm text-left overflow-hidden">

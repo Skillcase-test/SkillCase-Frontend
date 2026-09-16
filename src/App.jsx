@@ -130,6 +130,10 @@ import {
   sanitizePath,
   setTelemetryIdentity,
 } from "./telemetry";
+import {
+  captureInstallReferrer,
+  captureReferralParamFromUrl,
+} from "./utils/referralAttribution";
 
 //Hard Core Test
 const FlashcardStudyPage = lazy(() => import("./pages/flashcard/FlashCard"));
@@ -326,6 +330,10 @@ const NotePreviewPage = lazy(() => import("./pages/notes/NotePreviewPage"));
 const DeepLinkRedirect = lazy(
   () => import("./pages/deepLink/DeepLinkRedirect"),
 );
+const ReferralPage = lazy(() => import("./pages/jobScreening/ReferralPage"));
+const ReferralRedirect = lazy(
+  () => import("./pages/referral/ReferralRedirect"),
+);
 
 const MAX_RETRY_ATTEMPTS = 5;
 
@@ -366,6 +374,18 @@ function AppContent() {
   useEffect(() => {
     // Hide the native Capacitor splash screen smoothly once the web view has mounted
     SplashScreen.hide({ fadeOutDuration: 250 }).catch(() => {});
+  }, []);
+
+  // Referral attribution capture — runs once at boot:
+  //  • ?ref=CODE in any entry URL (shared web links landing on iOS/desktop)
+  //  • Play Install Referrer on freshly installed Android builds
+  // Both stash to localStorage; onboarding completion reads and clears it.
+  useEffect(() => {
+    captureReferralParamFromUrl(location.search);
+    captureInstallReferrer();
+    // Only the initial URL matters — later ?ref params are captured too, but
+    // re-running on every route change would be wasteful.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const navigate = useNavigate();
@@ -428,7 +448,10 @@ function AppContent() {
   ];
   const isPublicAcquisitionRoute =
     publicAcquisitionRoutes.some((route) => location.pathname.startsWith(route)) ||
-    /^\/interview\/[^/]+$/.test(location.pathname);
+    /^\/interview\/[^/]+$/.test(location.pathname) ||
+    // Referral share links (learner.skillcase.in/r/CODE) must stay public —
+    // the referred friend is by definition not authenticated yet.
+    /^\/r\/[^/]+$/.test(location.pathname);
 
   // Public routes that don't require auth (includes auth entrypoints & terms)
   const publicRoutes = [
@@ -1325,6 +1348,20 @@ function AppContent() {
                   <Route
                     path="/job-screening"
                     element={lazyScreen(<JobScreening />, "Loading Jobs...")}
+                  />
+                  <Route
+                    path="/job-screening/refer"
+                    element={lazyScreen(
+                      <ReferralPage />,
+                      "Loading Referral...",
+                    )}
+                  />
+                  <Route
+                    path="/r/:code"
+                    element={lazyScreen(
+                      <ReferralRedirect />,
+                      "Redirecting...",
+                    )}
                   />
                   {/* A1/A2 locked jobs teaser — B1/B2 redirect to the pipeline */}
                   <Route

@@ -15,6 +15,7 @@ import ProfileCompletionStep from "./components/ProfileCompletionStep";
 import InterviewStep from "./components/InterviewStep";
 import RegistrationStep from "./components/RegistrationStep";
 import ReviewPendingStep from "./components/ReviewPendingStep";
+import ReferralPromoCard from "./components/ReferralPromoCard";
 import MeetingStep from "./components/MeetingStep";
 import OfferLetterStep from "./components/OfferLetterStep";
 import AdditionalDocumentsStep from "./components/AdditionalDocumentsStep";
@@ -1133,6 +1134,18 @@ const JobScreening = () => {
                               : "locked"}
                       </span>
                     </div>
+
+                    {/* Referral fast-forward promo — review_pending only */}
+                    {step.id === "review_pending" && (isActive || isReview) && (
+                      <ReferralPromoCard
+                        rewarded={Boolean(progress?.priority_review_at)}
+                        completedCount={
+                          progress?.referral?.stats?.completed ||
+                          (progress?.priority_review_at ? 1 : 0)
+                        }
+                        onRefer={() => navigate("/job-screening/refer")}
+                      />
+                    )}
 
                     {/* Action Button inside active pending step card */}
                     <AnimatePresence>
