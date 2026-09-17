@@ -1,14 +1,17 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowUpRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import CourseOptedIn from "./CourseOptedIn";
 import OpportunityDetailView from "../../../components/opportunity/OpportunityDetailView";
-import { oppAlpha, oppShade } from "../../../components/opportunity/opportunityTheme";
+import {
+  oppAlpha,
+  oppShade,
+} from "../../../components/opportunity/opportunityTheme";
 import {
   getOpportunities,
   selectOpportunity,
 } from "../../../api/jobScreeningApi";
-
+import mayaThumbsup from "../../../assets/onboarding/mayaThumbsup.webp";
 // select_opportunity step — candidate browses up to 3 admin-authored
 // opportunities, opens one to read its dynamic content, and picks it.
 // Selection never completes the step: the candidate stays here until admin
@@ -115,7 +118,7 @@ const SelectOpportunityStep = ({ progress, onComplete, onBack }) => {
     <div className="w-full min-h-[calc(100vh-4rem)] bg-white flex flex-col">
       <SubHeader title="Pathways" onBack={onBack} />
       <div className="flex-1 px-4 sm:px-6 pt-6 pb-10 bg-gradient-to-l from-white to-[#eff6ff] flex flex-col gap-6">
-        <div className="flex items-end gap-4">
+        <div className="flex items-end gap-1">
           <div className="flex-1 flex flex-col gap-2 text-left">
             <h1 className="text-[#002856] text-xl font-bold tracking-tight leading-snug">
               You are eligible for these paths
@@ -125,9 +128,9 @@ const SelectOpportunityStep = ({ progress, onComplete, onBack }) => {
             </p>
           </div>
           <img
-            src="/mayaShocked.webp"
+            src={mayaThumbsup}
             alt=""
-            className="w-16 h-24 object-contain shrink-0 select-none"
+            className="w-24 h-24 object-contain shrink-0 select-none"
             draggable="false"
           />
         </div>

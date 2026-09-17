@@ -26,26 +26,29 @@ export const BLOCK_CATALOG = [
     hint: "Grid of icon + label + value cells (duration, fee…)",
     factory: () => ({
       type: "stats_grid",
+      title: "",
       items: [{ icon: "clock", label: "", value: "" }],
     }),
   },
   {
     type: "kv_table",
     label: "Details rows",
-    hint: "Two columns — label on the left, value + icon on the right",
+    hint: "Two columns — icon + label on the left, value on the right",
     factory: () => ({
       type: "kv_table",
+      title: "",
       rows: [{ label: "", value: "", icon: "" }],
     }),
   },
   {
     type: "table",
     label: "Table",
-    hint: "Header row + body rows, 1–4 columns",
+    hint: "Header row + body rows, 1–4 columns; first column can carry an icon",
     factory: () => ({
       type: "table",
+      title: "",
       columns: ["", ""],
-      rows: [["", ""]],
+      rows: [{ icon: "", cells: ["", ""] }],
     }),
   },
   {
@@ -54,6 +57,7 @@ export const BLOCK_CATALOG = [
     hint: "Titles chained with arrows; row label on the right + optional note",
     factory: () => ({
       type: "flow",
+      title: "",
       rows: [{ label: "", items: ["", ""] }],
       note: "",
     }),
@@ -64,6 +68,7 @@ export const BLOCK_CATALOG = [
     hint: "Vertical numbered steps — title + up to 4 points each",
     factory: () => ({
       type: "process",
+      title: "",
       items: [{ title: "", points: [""] }],
     }),
   },

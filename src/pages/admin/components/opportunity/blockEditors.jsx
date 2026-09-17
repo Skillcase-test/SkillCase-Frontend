@@ -119,15 +119,19 @@ const KVTableEditor = ({ block, onChange, disabled }) => {
 
 const TableEditor = ({ block, onChange, disabled }) => {
   const columns = block.columns || [];
-  const rows = block.rows || [];
+  // Rows are {icon, cells[]} — first column shows the icon. Legacy plain
+  // string-array rows are normalized for editing.
+  const rows = (block.rows || []).map((r) =>
+    Array.isArray(r) ? { icon: "", cells: r } : { icon: "", cells: [], ...(r || {}) },
+  );
   const set = (patch) => onChange({ ...block, ...patch });
 
   const setColumns = (cols) => {
     // Keep every body row aligned with the column count.
     const rows2 = rows.map((r) => {
-      const next = r.slice(0, cols.length);
+      const next = (r.cells || []).slice(0, cols.length);
       while (next.length < cols.length) next.push("");
-      return next;
+      return { ...r, cells: next };
     });
     set({ columns: cols, rows: rows2 });
   };
@@ -159,15 +163,25 @@ const TableEditor = ({ block, onChange, disabled }) => {
       </div>
       {rows.map((r, ri) => (
         <div key={ri} className="flex items-center gap-1.5">
+          <IconPicker
+            value={r.icon}
+            disabled={disabled}
+            onChange={(icon) => set({ rows: patchAt(rows, ri, { ...r, icon }) })}
+          />
           {columns.map((_, ci) => (
             <input
               key={ci}
               className={`${inputCls} flex-1`}
               placeholder={columns[ci] || `Cell ${ci + 1}`}
-              value={r[ci] || ""}
+              value={(r.cells || [])[ci] || ""}
               disabled={disabled}
               onChange={(e) =>
-                set({ rows: patchAt(rows, ri, patchAt(r, ci, e.target.value)) })
+                set({
+                  rows: patchAt(rows, ri, {
+                    ...r,
+                    cells: patchAt(r.cells || [], ci, e.target.value),
+                  }),
+                })
               }
             />
           ))}
@@ -177,7 +191,9 @@ const TableEditor = ({ block, onChange, disabled }) => {
       <div>
         <AddBtn
           disabled={disabled || rows.length >= L.TABLE_ROWS_MAX}
-          onClick={() => set({ rows: [...rows, columns.map(() => "")] })}
+          onClick={() =>
+            set({ rows: [...rows, { icon: "", cells: columns.map(() => "") }] })
+          }
         >
           Row ({rows.length}/{L.TABLE_ROWS_MAX})
         </AddBtn>
@@ -355,7 +371,18 @@ const BlockEditor = ({ block, onChange, disabled }) => {
       </p>
     );
   }
-  return <Cmp block={block} onChange={onChange} disabled={disabled} />;
+  return (
+    <div className="flex flex-col gap-2">
+      <input
+        className={inputCls}
+        placeholder="Block title (optional — shown above the block)"
+        value={block.title || ""}
+        disabled={disabled}
+        onChange={(e) => onChange({ ...block, title: e.target.value })}
+      />
+      <Cmp block={block} onChange={onChange} disabled={disabled} />
+    </div>
+  );
 };
 
 export default BlockEditor;
