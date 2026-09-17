@@ -10,6 +10,7 @@ import {
   Save,
 } from "lucide-react";
 import BlockEditor from "./blockEditors";
+import IconPicker from "./IconPicker";
 import OpportunityDetailView from "../../../../components/opportunity/OpportunityDetailView";
 import { oppAlpha, oppShade } from "../../../../components/opportunity/opportunityTheme";
 import {
@@ -17,6 +18,7 @@ import {
   OPPORTUNITY_LIMITS as L,
   blockMeta,
   newOpportunityDraft,
+  normalizePoint,
   validateOpportunity,
 } from "./opportunityForm";
 
@@ -51,7 +53,9 @@ const OpportunityEditor = ({
   const [form, setForm] = useState(() => ({
     ...newOpportunityDraft(),
     ...(record || {}),
-    points: record?.points?.length ? [...record.points] : [""],
+    points: record?.points?.length
+      ? record.points.map(normalizePoint)
+      : [{ icon: "", text: "" }],
     blocks: (record?.blocks || []).map((b) => ({ ...b })),
   }));
   const fileRef = useRef(null);
@@ -71,8 +75,12 @@ const OpportunityEditor = ({
   const removeBlock = (i) =>
     set({ blocks: form.blocks.filter((_, idx) => idx !== i) });
 
-  const setPoint = (i, v) =>
-    set({ points: form.points.map((p, idx) => (idx === i ? v : p)) });
+  const setPoint = (i, patch) =>
+    set({
+      points: form.points.map((p, idx) =>
+        idx === i ? { ...normalizePoint(p), ...patch } : p,
+      ),
+    });
 
   return (
     <div className="h-full min-h-0 flex flex-col gap-3">
@@ -224,32 +232,42 @@ const OpportunityEditor = ({
             </div>
             <div className="flex flex-col gap-1.5">
               <FieldLabel>Points (max 3, up to 4 words each)</FieldLabel>
-              {form.points.map((p, i) => (
-                <div key={i} className="flex items-center gap-1.5">
-                  <input
-                    className={inputCls}
-                    placeholder={`Point ${i + 1}`}
-                    value={p}
-                    disabled={!canEdit}
-                    onChange={(e) => setPoint(i, e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    disabled={!canEdit || form.points.length <= 1}
-                    onClick={() =>
-                      set({ points: form.points.filter((_, idx) => idx !== i) })
-                    }
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 cursor-pointer disabled:opacity-40"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
+              {form.points.map((p, i) => {
+                const pt = normalizePoint(p);
+                return (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <IconPicker
+                      value={pt.icon}
+                      disabled={!canEdit}
+                      onChange={(icon) => setPoint(i, { icon })}
+                    />
+                    <input
+                      className={inputCls}
+                      placeholder={`Point ${i + 1}`}
+                      value={pt.text}
+                      disabled={!canEdit}
+                      onChange={(e) => setPoint(i, { text: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      disabled={!canEdit || form.points.length <= 1}
+                      onClick={() =>
+                        set({ points: form.points.filter((_, idx) => idx !== i) })
+                      }
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 cursor-pointer disabled:opacity-40"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
               {form.points.length < L.POINTS_MAX && (
                 <button
                   type="button"
                   disabled={!canEdit}
-                  onClick={() => set({ points: [...form.points, ""] })}
+                  onClick={() =>
+                    set({ points: [...form.points, { icon: "", text: "" }] })
+                  }
                   className="h-7 px-2.5 self-start flex items-center gap-1 rounded-lg border border-dashed border-slate-300 text-[10px] font-bold text-slate-500 hover:border-[#083262]/50 hover:text-[#083262] cursor-pointer disabled:opacity-40"
                 >
                   <Plus className="w-3 h-3" /> Add point

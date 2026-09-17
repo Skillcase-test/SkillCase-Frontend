@@ -85,11 +85,16 @@ export const newOpportunityDraft = () => ({
   title: "",
   short_description: "",
   color: "#2563eb",
-  points: [""],
+  points: [{ icon: "", text: "" }],
   blocks: [],
   is_active: false,
   image_download_url: null,
 });
+
+// Points are {icon, text} objects; legacy plain strings normalize on read.
+export const normalizePoint = (p) =>
+  typeof p === "string" ? { icon: "", text: p } : { icon: "", text: "", ...(p || {}) };
+export const pointText = (p) => (typeof p === "string" ? p : p?.text);
 
 const countWords = (s) =>
   String(s || "")
@@ -108,12 +113,12 @@ export const validateOpportunity = (form) => {
       `Short description is over ${OPPORTUNITY_LIMITS.SHORT_DESC_MAX_WORDS} words`,
     );
   }
-  const points = (form.points || []).filter((p) => String(p).trim());
+  const points = (form.points || []).filter((p) => String(pointText(p) || "").trim());
   if (points.length > OPPORTUNITY_LIMITS.POINTS_MAX) {
     errors.push(`At most ${OPPORTUNITY_LIMITS.POINTS_MAX} points are allowed`);
   }
   points.forEach((p, i) => {
-    if (countWords(p) > OPPORTUNITY_LIMITS.POINT_MAX_WORDS) {
+    if (countWords(pointText(p)) > OPPORTUNITY_LIMITS.POINT_MAX_WORDS) {
       errors.push(`Point ${i + 1} is over ${OPPORTUNITY_LIMITS.POINT_MAX_WORDS} words`);
     }
   });

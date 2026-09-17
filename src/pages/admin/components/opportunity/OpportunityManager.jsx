@@ -34,7 +34,7 @@ import {
 } from "../../../../api/jobScreeningAdminApi";
 import OpportunityEditor from "./OpportunityEditor";
 import { oppAlpha, oppShade } from "../../../../components/opportunity/opportunityTheme";
-import { OPPORTUNITY_LIMITS as L } from "./opportunityForm";
+import { OPPORTUNITY_LIMITS as L, pointText } from "./opportunityForm";
 
 // Opportunities tab — drafts are unlimited, at most L.ACTIVE_MAX may be live.
 // Rows are drag-reordered; that order is also the candidate listing order.
@@ -200,7 +200,7 @@ const OpportunityManager = ({ canEdit }) => {
         title: form.title,
         short_description: form.short_description,
         color: form.color,
-        points: (form.points || []).filter((p) => String(p).trim()),
+        points: (form.points || []).filter((p) => String(pointText(p) || "").trim()),
         blocks: form.blocks,
         is_active: !!form.is_active,
       };

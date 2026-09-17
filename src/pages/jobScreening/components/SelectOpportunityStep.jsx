@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, ChevronRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import CourseOptedIn from "./CourseOptedIn";
+import OpportunityIcon from "../../../components/opportunity/OpportunityIcon";
 import OpportunityDetailView from "../../../components/opportunity/OpportunityDetailView";
 import {
   oppAlpha,
@@ -210,18 +211,30 @@ const SelectOpportunityStep = ({ progress, onBack }) => {
                 </div>
                 {opp.points?.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
-                    {opp.points.map((point, j) => (
-                      <span
-                        key={j}
-                        className="px-2 py-0.5 rounded-full text-[8.5px] font-semibold leading-tight whitespace-nowrap"
-                        style={{
-                          backgroundColor: oppAlpha(opp.color, 0.1),
-                          color: oppShade(opp.color, 0.4),
-                        }}
-                      >
-                        {point}
-                      </span>
-                    ))}
+                    {opp.points.map((point, j) => {
+                      const pt =
+                        typeof point === "string"
+                          ? { icon: null, text: point }
+                          : point || {};
+                      return (
+                        <span
+                          key={j}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[8.5px] font-semibold leading-tight whitespace-nowrap"
+                          style={{
+                            backgroundColor: oppAlpha(opp.color, 0.1),
+                            color: oppShade(opp.color, 0.4),
+                          }}
+                        >
+                          {pt.icon && (
+                            <OpportunityIcon
+                              name={pt.icon}
+                              className="w-3 h-3 shrink-0"
+                            />
+                          )}
+                          {pt.text}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
               </motion.button>
