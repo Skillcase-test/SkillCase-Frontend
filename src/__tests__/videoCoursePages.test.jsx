@@ -412,6 +412,48 @@ describe("VideoPlayerPage", () => {
 
     expect(await screen.findByText("Video not found.")).toBeInTheDocument();
   });
+
+  test("scrubbing keeps controls up; video tap still toggles them", async () => {
+    getVideoCourseVideo.mockResolvedValueOnce({
+      data: { data: { video, timestamps: [] } },
+    });
+
+    // jsdom can't actually play media — stub it so togglePlay's play branch runs.
+    const playMock = vi
+      .spyOn(window.HTMLMediaElement.prototype, "play")
+      .mockResolvedValue(undefined);
+
+    try {
+      renderPlayer();
+      const playBtn = await screen.findByRole("button", { name: /^play$/i });
+      const overlay = playBtn.parentElement;
+
+      // While playing, overlay visibility is driven by showControls alone.
+      fireEvent.click(playBtn);
+      expect(playMock).toHaveBeenCalled();
+      expect(overlay.className).toContain("opacity-100");
+
+      // A scrubber click/drag must not collapse the controls.
+      const bar = screen.getByTestId("progress-bar");
+      fireEvent.pointerDown(bar, { clientX: 50, pointerId: 1 });
+      fireEvent.pointerUp(bar, { clientX: 50, pointerId: 1 });
+      fireEvent.click(bar);
+      // Wait out the scrub guard (300ms) and the settled-visibility window
+      // (600ms) so the next tap counts as "controls already visible".
+      await new Promise((r) => setTimeout(r, 700));
+      expect(overlay.className).toContain("opacity-100");
+
+      // A tap on the video surface still toggles controls off and back on.
+      fireEvent.click(screen.getByTestId("course-video"));
+      await waitFor(() => expect(overlay.className).toContain("opacity-0"));
+      // Keep the next tap a distinct single-tap (>260ms after the last one).
+      await new Promise((r) => setTimeout(r, 300));
+      fireEvent.click(screen.getByTestId("course-video"));
+      await waitFor(() => expect(overlay.className).toContain("opacity-100"));
+    } finally {
+      playMock.mockRestore();
+    }
+  });
 });
 
 describe("VideoPlayerPage — first-visit tour", () => {
