@@ -15,6 +15,7 @@ import ProfileCompletionStep from "./components/ProfileCompletionStep";
 import InterviewStep from "./components/InterviewStep";
 import RegistrationStep from "./components/RegistrationStep";
 import ReviewPendingStep from "./components/ReviewPendingStep";
+import SelectOpportunityStep from "./components/SelectOpportunityStep";
 import ReferralPromoCard from "./components/ReferralPromoCard";
 import MeetingStep from "./components/MeetingStep";
 import OfferLetterStep from "./components/OfferLetterStep";
@@ -60,6 +61,10 @@ const STEP_DESCRIPTIONS = {
   review_pending: {
     subtitle: "wait for recruiters to review your application",
     desc: "Our recruitment partners will evaluate your profile details.",
+  },
+  select_opportunity: {
+    subtitle: "choose the path that fits you",
+    desc: "Browse the open pathways and pick how you want to move ahead.",
   },
   additional_documents: {
     subtitle: "submit supporting credentials",
@@ -727,6 +732,14 @@ const JobScreening = () => {
       case "review_pending":
         return (
           <ReviewPendingStep
+            progress={progress}
+            onComplete={handleStepComplete}
+            onBack={handleExitStep}
+          />
+        );
+      case "select_opportunity":
+        return (
+          <SelectOpportunityStep
             progress={progress}
             onComplete={handleStepComplete}
             onBack={handleExitStep}

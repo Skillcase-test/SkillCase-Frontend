@@ -109,3 +109,24 @@ export const adminGetSettings = () => api.get("/admin/job-screening/settings");
 
 export const adminUpdateSettings = (payload) =>
   api.post("/admin/job-screening/settings", payload);
+
+// Select Opportunity step — admin-authored opportunities (max 3 active).
+export const adminListOpportunities = () =>
+  api.get("/admin/job-screening/opportunities");
+
+export const adminCreateOpportunity = (payload) =>
+  api.post("/admin/job-screening/opportunities", payload);
+
+export const adminUpdateOpportunity = (id, payload) =>
+  api.put(`/admin/job-screening/opportunities/${id}`, payload);
+
+export const adminReorderOpportunities = (ids) =>
+  api.put("/admin/job-screening/opportunities/order", { ids });
+
+export const adminDeleteOpportunity = (id) =>
+  api.delete(`/admin/job-screening/opportunities/${id}`);
+
+export const adminUploadOpportunityImage = (id, formData) =>
+  api.post(`/admin/job-screening/opportunities/${id}/image`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });

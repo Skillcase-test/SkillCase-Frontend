@@ -585,6 +585,17 @@ const CandidateDetail = ({
     });
   };
 
+  const handleResetOpportunity = () => {
+    openConfirmModal({
+      title: "Reset Opportunity Selection?",
+      message:
+        "This will clear the candidate's chosen path so they can pick a different opportunity. The step itself stays open until you skip it.",
+      onConfirm: () => {
+        onUpdate(candidate.user_id, { reset_opportunity: true });
+      },
+    });
+  };
+
   const handlePassReview = () => {
     onUpdate(candidate.user_id, { overall_review_status: "shortlisted" });
   };
@@ -800,8 +811,11 @@ const CandidateDetail = ({
   const handleToggleSkippable = (stepId, shouldSkip) => {
     const updatedSteps = steps.map((s) => {
       if (s.id === stepId) {
+        // Strip auto_skipped — an explicit admin skip/unskip is permanent and
+        // must not revive when dynamic conditions change (select_opportunity).
+        const { auto_skipped, ...rest } = s;
         return {
-          ...s,
+          ...rest,
           is_skippable: shouldSkip,
           status: shouldSkip ? "skipped" : "pending",
         };
@@ -1595,6 +1609,7 @@ const CandidateDetail = ({
               const isRecruiterStatus = step.id === "recruiter_status";
               const isRecruiter = step.id === "recruiter_interview";
               const isOffer = step.id === "offer_letter";
+              const isSelectOpportunity = step.id === "select_opportunity";
 
               const isSkipped = step.status === "skipped";
               const isCompleted =
@@ -2372,6 +2387,47 @@ const CandidateDetail = ({
                         </div>
                       )}
 
+                      {isSelectOpportunity && (
+                        <div className="space-y-3">
+                          <p>
+                            Candidate browses the live pathways and picks one.
+                            This step stays open until you skip it.
+                          </p>
+                          {candidate.selected_opportunity ? (
+                            <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">
+                                  Path Selected
+                                </span>
+                                <span className="text-[9px] font-semibold text-indigo-500">
+                                  {formatScreeningTimestamp(
+                                    candidate.selected_opportunity.selected_at,
+                                  )}
+                                </span>
+                              </div>
+                              <p className="text-[11px] font-bold text-indigo-900">
+                                {candidate.selected_opportunity.title}
+                              </p>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  onClick={handleResetOpportunity}
+                                  className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1 rounded-lg transition-all"
+                                >
+                                  Reset Selection
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            isActive && (
+                              <p className="text-[10px] text-slate-400 font-semibold">
+                                Waiting for the candidate to pick a path.
+                              </p>
+                            )
+                          )}
+                        </div>
+                      )}
+
                       {isAdditionalDocs && (
                         <div className="space-y-3">
                           <p>
@@ -2660,7 +2716,7 @@ const CandidateDetail = ({
                               <div className="relative border border-dashed border-slate-350 rounded-xl p-4 bg-slate-50/30 hover:border-[#083262] transition-all flex flex-col items-center justify-center cursor-pointer">
                                 <input
                                   type="file"
-                                  accept="image/png, image/jpeg, image/jpg"
+                                  accept="image/png, image/jpeg, image/jpg, image/webp"
                                   onChange={(e) => {
                                     const file = e.target.files[0];
                                     if (file) {
@@ -3245,7 +3301,7 @@ const CandidateDetail = ({
                                                     <div className="relative border border-dashed border-slate-300 rounded p-2.5 bg-slate-50/30 hover:border-[#083262] transition-all flex flex-col items-center justify-center cursor-pointer">
                                                       <input
                                                         type="file"
-                                                        accept="image/png, image/jpeg, image/jpg"
+                                                        accept="image/png, image/jpeg, image/jpg, image/webp"
                                                         onChange={(e) => {
                                                           const file =
                                                             e.target.files[0];
@@ -3936,7 +3992,7 @@ const CandidateDetail = ({
                                             <div className="relative border border-dashed border-slate-350 rounded-xl p-3 bg-slate-50/30 hover:border-[#083262] transition-all flex flex-col items-center justify-center cursor-pointer">
                                               <input
                                                 type="file"
-                                                accept="image/png, image/jpeg, image/jpg"
+                                                accept="image/png, image/jpeg, image/jpg, image/webp"
                                                 onChange={(e) => {
                                                   const file =
                                                     e.target.files[0];

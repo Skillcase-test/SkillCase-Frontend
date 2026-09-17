@@ -2,10 +2,11 @@ import React from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import { motion } from "framer-motion";
 
-// Shown after a held candidate opts into the crash course — and on every
-// revisit of the review_pending step afterwards (course_optin_at is set).
+// Shared "confirmed + what happens next" success screen. Used by the crash
+// course opt-in (course_optin_at is set) and the select_opportunity thank-you
+// state — copy is overridable via props; defaults preserve the course copy.
 // `onDone` is the "Okay got it" action: back to the lobby/step container.
-const NEXT_STEPS = [
+const DEFAULT_NEXT_STEPS = [
   {
     state: "done",
     title: "Course opt-in confirmed",
@@ -20,7 +21,14 @@ const NEXT_STEPS = [
   },
 ];
 
-const CourseOptedIn = ({ onDone, onBack }) => {
+const CourseOptedIn = ({
+  onDone,
+  onBack,
+  heading = "Thank you for opting the crash course",
+  subtext = "Our team will reach out to you within next 24 hours.",
+  steps = DEFAULT_NEXT_STEPS,
+  ctaLabel = "Okay got it",
+}) => {
   const handleBack = onBack || onDone;
 
   return (
@@ -55,16 +63,16 @@ const CourseOptedIn = ({ onDone, onBack }) => {
         {/* Headings */}
         <div className="text-center w-full">
           <h2 className="text-[#002856] text-xl sm:text-2xl font-bold tracking-tight leading-tight max-w-[260px] mx-auto">
-            Thank you for opting the crash course
+            {heading}
           </h2>
           <p className="text-[#002856]/70 text-xs sm:text-sm font-medium mt-1.5 max-w-[260px] mx-auto leading-relaxed">
-            Our team will reach out to you within next 24 hours.
+            {subtext}
           </p>
         </div>
 
         {/* What happens next — done / active / pending timeline */}
         <div className="w-full flex flex-col pl-2 sm:pl-4 mt-1">
-          {NEXT_STEPS.map((step, idx) => (
+          {steps.map((step, idx) => (
             <div key={step.title} className="flex gap-3 items-start w-full">
               <div className="flex flex-col items-center shrink-0 w-6">
                 {step.state === "done" ? (
@@ -78,7 +86,7 @@ const CourseOptedIn = ({ onDone, onBack }) => {
                 ) : (
                   <div className="w-5.5 h-5.5 rounded-full border-2 border-slate-400 bg-white" />
                 )}
-                {idx < NEXT_STEPS.length - 1 && (
+                {idx < steps.length - 1 && (
                   <div className="w-0 my-1 border-l-2 border-dashed border-slate-300 h-6.5" />
                 )}
               </div>
@@ -97,7 +105,7 @@ const CourseOptedIn = ({ onDone, onBack }) => {
           onClick={onDone}
           className="w-full h-12 bg-[#002856] hover:bg-[#07192f] text-white rounded-xl font-bold text-sm sm:text-base transition-all shadow-sm cursor-pointer border-none flex items-center justify-center mt-1"
         >
-          Okay got it
+          {ctaLabel}
         </button>
       </div>
     </div>

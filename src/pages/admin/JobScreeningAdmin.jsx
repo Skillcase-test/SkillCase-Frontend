@@ -33,6 +33,7 @@ import {
 } from "../../api/jobScreeningAdminApi";
 import CandidateList from "./components/CandidateList";
 import CandidateDetail from "./components/CandidateDetail";
+import OpportunityManager from "./components/opportunity/OpportunityManager";
 
 // Normalizes the settings API payload into the shape globalSettings uses, so
 // the saved snapshot and the editable state are directly comparable.
@@ -799,6 +800,17 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
               >
                 Global Settings
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("opportunities")}
+                className={`px-4 py-1.5 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer ${
+                  activeTab === "opportunities"
+                    ? "bg-[#083262] text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                Opportunities
+              </button>
             </div>
 
             {activeTab === "candidates" && (
@@ -996,6 +1008,8 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
               />
             </div>
           </div>
+        ) : activeTab === "opportunities" ? (
+          <OpportunityManager canEdit={canEdit} />
         ) : (
           <div ref={settingsScrollRef} className="h-full overflow-y-auto pr-1 pb-10">
             {/* Header & Save Action */}
