@@ -17,7 +17,7 @@ const OpportunityDetailView = ({
   <div
     className={`flex-1 ${preview ? "px-4" : "px-4 sm:px-6"} pt-6 pb-8 flex flex-col gap-5 min-h-full`}
     style={{
-      background: `linear-gradient(270deg, #ffffff 0%, ${oppAlpha(opportunity?.color, 0.14)} 100%)`,
+      background: `linear-gradient(180deg, ${oppAlpha(opportunity?.color, 0.14)} 0%, #ffffff 100%)`,
     }}
   >
     <OpportunityHeader opportunity={opportunity} />

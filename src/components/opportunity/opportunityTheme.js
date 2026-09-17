@@ -39,3 +39,13 @@ export const oppIsDark = (hex) => {
   // Relative luminance approximation
   return 0.299 * r + 0.587 * g + 0.114 * b < 150;
 };
+
+// Solid opaque tint blended over white (prevents transparent alpha stacking/darkening artifacts)
+export const oppSolidTint = (hex, weight = 0.15) => {
+  const { r, g, b } = hexToRgb(hex);
+  const w = Math.min(1, Math.max(0, weight));
+  const sr = Math.round(r * w + 255 * (1 - w));
+  const sg = Math.round(g * w + 255 * (1 - w));
+  const sb = Math.round(b * w + 255 * (1 - w));
+  return `rgb(${sr}, ${sg}, ${sb})`;
+};

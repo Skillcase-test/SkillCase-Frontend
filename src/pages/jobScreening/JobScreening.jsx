@@ -887,24 +887,33 @@ const JobScreening = () => {
 
   // 2. Active Step Execution screen (clean standalone full-screen layout with safe area padding)
   if (isExecutingStep) {
+    const activeStepKey = executingStepId || currentStepId;
+    const isFullBleed = activeStepKey === "select_opportunity";
+
     return (
       <div
         ref={activeStepContainerRef}
         className="min-h-screen bg-white w-full flex flex-col items-center overflow-y-auto"
-        style={{
-          paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))",
-          paddingBottom: "calc(3rem + env(safe-area-inset-bottom, 0px))",
-        }}
+        style={
+          isFullBleed
+            ? undefined
+            : {
+                paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))",
+                paddingBottom: "calc(3rem + env(safe-area-inset-bottom, 0px))",
+              }
+        }
       >
-        <div className="w-full max-w-md px-4">
+        <div
+          className={`w-full max-w-md ${isFullBleed ? "flex-1 flex flex-col min-h-screen" : "px-4"}`}
+        >
           <AnimatePresence mode="wait">
             <motion.div
-              key={executingStepId || currentStepId}
+              key={activeStepKey}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.2 }}
-              className="w-full"
+              className={`w-full ${isFullBleed ? "flex-1 flex flex-col min-h-screen" : ""}`}
             >
               {renderActiveStepComponent()}
             </motion.div>

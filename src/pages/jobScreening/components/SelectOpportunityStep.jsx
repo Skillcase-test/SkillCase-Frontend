@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, ArrowUpRight, Loader2 } from "lucide-react";
+import { ArrowLeft, ChevronRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import CourseOptedIn from "./CourseOptedIn";
 import OpportunityDetailView from "../../../components/opportunity/OpportunityDetailView";
@@ -24,21 +24,27 @@ const SELECTED_STEPS = [
 ];
 
 const SubHeader = ({ title, onBack }) => (
-  <div className="w-full px-4 sm:px-6 py-3 flex items-center gap-3 border-b border-slate-200/80 bg-white/80 backdrop-blur-md sticky top-0 z-20">
+  <div
+    className="w-full px-4 sm:px-6 pb-3 bg-white flex items-center justify-start gap-3 border-b border-slate-200/80 sticky top-0 z-20 shrink-0"
+    style={{ paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))" }}
+  >
     <button
       type="button"
       onClick={onBack}
-      className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 text-[#002856] rounded-xl active:scale-95 transition-all cursor-pointer shadow-2xs"
+      className="w-7 h-7 flex items-center justify-center rounded-md border-2 border-slate-400 text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer shrink-0"
+      aria-label="Back"
     >
-      <ArrowLeft className="w-4.5 h-4.5" />
+      <ArrowLeft className="w-4 h-4" />
     </button>
-    <h2 className="text-base font-bold text-[#002856] tracking-tight">
+    <h2 className="text-base font-semibold text-[#002856] tracking-tight truncate">
       {title}
     </h2>
   </div>
 );
 
-const SelectOpportunityStep = ({ progress, onComplete, onBack }) => {
+// onComplete is part of the shared step contract but intentionally unused:
+// this step never self-completes (admin skips it from the candidate panel).
+const SelectOpportunityStep = ({ progress, onBack }) => {
   const selected = progress?.selected_opportunity || null;
   const [opportunities, setOpportunities] = useState(null); // null = loading
   const [view, setView] = useState("list"); // list | detail
@@ -67,14 +73,22 @@ const SelectOpportunityStep = ({ progress, onComplete, onBack }) => {
 
   if (selectedOpp) {
     return (
-      <CourseOptedIn
-        heading="Thank you for your interest"
-        subtext={`You have selected to go with “${selectedOpp.title}”. Our team will reach out to you within the next 24 hours.`}
-        steps={SELECTED_STEPS}
-        ctaLabel="Okay got it"
-        onBack={onBack}
-        onDone={onBack}
-      />
+      <div
+        className="w-full min-h-screen flex-1 bg-white flex flex-col px-4 pb-12"
+        style={{
+          paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))",
+          paddingBottom: "calc(3rem + env(safe-area-inset-bottom, 0px))",
+        }}
+      >
+        <CourseOptedIn
+          heading="Thank you for your interest"
+          subtext={`You have selected to go with “${selectedOpp.title}”. Our team will reach out to you within the next 24 hours.`}
+          steps={SELECTED_STEPS}
+          ctaLabel="Okay got it"
+          onBack={onBack}
+          onDone={onBack}
+        />
+      </div>
     );
   }
 
@@ -100,8 +114,8 @@ const SelectOpportunityStep = ({ progress, onComplete, onBack }) => {
   // ---- Detail view ----------------------------------------------------------
   if (view === "detail" && activeOpp) {
     return (
-      <div className="w-full min-h-[calc(100vh-4rem)] bg-white flex flex-col">
-        <SubHeader title="Pathways" onBack={() => setView("list")} />
+      <div className="w-full min-h-screen flex-1 bg-white flex flex-col">
+        <SubHeader title="German Pathways" onBack={() => setView("list")} />
         <OpportunityDetailView
           opportunity={activeOpp}
           choosing={selecting}
@@ -115,9 +129,9 @@ const SelectOpportunityStep = ({ progress, onComplete, onBack }) => {
 
   // ---- Listing view ----------------------------------------------------------
   return (
-    <div className="w-full min-h-[calc(100vh-4rem)] bg-white flex flex-col">
-      <SubHeader title="Pathways" onBack={onBack} />
-      <div className="flex-1 px-4 sm:px-6 pt-6 pb-10 bg-gradient-to-l from-white to-[#eff6ff] flex flex-col gap-6">
+    <div className="w-full min-h-screen flex-1 bg-white flex flex-col">
+      <SubHeader title="German Pathways" onBack={onBack} />
+      <div className="flex-1 px-4 sm:px-6 pt-6 pb-12 bg-gradient-to-b from-[#eff6ff] to-white flex flex-col gap-6">
         <div className="flex items-end gap-1">
           <div className="flex-1 flex flex-col gap-2 text-left">
             <h1 className="text-[#002856] text-xl font-bold tracking-tight leading-snug">
@@ -182,7 +196,7 @@ const SelectOpportunityStep = ({ progress, onComplete, onBack }) => {
                       <h3 className="flex-1 text-slate-900 text-sm font-bold leading-snug">
                         {opp.title}
                       </h3>
-                      <ArrowUpRight
+                      <ChevronRight
                         className="w-4.5 h-4.5 shrink-0 mt-0.5"
                         style={{ color: oppShade(opp.color, 0.5) }}
                       />

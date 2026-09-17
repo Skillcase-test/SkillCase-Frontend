@@ -358,12 +358,12 @@ const OpportunityEditor = ({
             style={{ width: 414, height: 896 }}
           >
             <div className="w-full h-full overflow-y-auto flex flex-col">
-              <div className="w-full px-4 py-3 flex items-center gap-3 border-b border-slate-200/80 bg-white/80 sticky top-0 z-10">
-                <div className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 text-[#002856] rounded-xl shadow-2xs">
-                  <ArrowLeft className="w-4.5 h-4.5" />
+              <div className="w-full px-4 pt-4 pb-3 flex items-center justify-start gap-3 border-b border-slate-200/80 bg-white sticky top-0 z-10 shrink-0">
+                <div className="w-7 h-7 flex items-center justify-center rounded-md border-2 border-slate-400 text-slate-500 shrink-0">
+                  <ArrowLeft className="w-4 h-4" />
                 </div>
-                <span className="text-base font-bold text-[#002856] tracking-tight">
-                  Pathways
+                <span className="text-base font-semibold text-[#002856] tracking-tight">
+                  German Pathways
                 </span>
               </div>
               <OpportunityDetailView opportunity={form} preview />
