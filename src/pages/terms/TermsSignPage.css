@@ -48,6 +48,67 @@
   line-height: 1;
   scroll-margin-top: 120px;
   scroll-margin-bottom: 45vh;
+  box-shadow: inset 0 1px 2px rgba(5, 150, 105, 0.05);
+  transition: all 0.15s ease-in-out;
+}
+
+.terms-overlay-field.active .terms-overlay-input,
+.terms-overlay-field.active .terms-overlay-textarea {
+  min-width: 140px !important;
+  height: 140% !important;
+  font-size: 11px !important;
+  position: absolute;
+  top: -20%;
+  z-index: 50;
+  background: #ffffff !important;
+  border: 1.5px solid #059669 !important;
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.16) !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+}
+
+/* Default active expansion alignment (extends to the right) */
+.terms-overlay-field.active.expand-right .terms-overlay-input,
+.terms-overlay-field.active.expand-right .terms-overlay-textarea {
+  left: 0;
+  right: auto;
+}
+
+/* Inward active expansion alignment (extends to the left) */
+.terms-overlay-field.active.expand-left .terms-overlay-input,
+.terms-overlay-field.active.expand-left .terms-overlay-textarea {
+  left: auto;
+  right: 0;
+}
+
+/* Position adjustment for date inputs to ensure they have enough space */
+.terms-overlay-field.active .terms-overlay-input[type="date"] {
+  min-width: 160px !important;
+}
+
+/* Hide Webkit calendar picker icon to prevent squishing text inside small input boxes */
+.terms-overlay-input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none;
+  -webkit-appearance: none;
+}
+
+/* Hide spin buttons inside Webkit date inputs */
+.terms-overlay-input[type="date"]::-webkit-inner-spin-button,
+.terms-overlay-input[type="date"]::-webkit-clear-button {
+  display: none;
+  -webkit-appearance: none;
+}
+
+/* iOS Safari / WebKit date input vertical alignment and height fix */
+.terms-overlay-input[type="date"]::-webkit-date-and-time-value {
+  min-height: 1em;
+  text-align: inherit;
+  line-height: normal;
+}
+
+.terms-overlay-input[type="date"] {
+  line-height: normal;
+  box-sizing: border-box;
 }
 
 .terms-overlay-input-wrap {
@@ -58,22 +119,32 @@
 
 .terms-overlay-placeholder-bubble {
   position: absolute;
-  top: -14px;
-  left: 2px;
-  z-index: 6;
+  top: -26px;
+  z-index: 60;
   width: max-content;
-  max-width: none;
+  max-width: 220px;
   overflow: visible;
   text-overflow: clip;
   white-space: nowrap;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.9);
+  border-radius: 4px;
+  background: #064e3b;
   color: #fff;
-  padding: 1px 6px;
+  padding: 3px 7px;
   font-size: 10px;
   line-height: 1.2;
-  font-weight: 600;
+  font-weight: 650;
   pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.terms-overlay-field.expand-right .terms-overlay-placeholder-bubble {
+  left: 0;
+  right: auto;
+}
+
+.terms-overlay-field.expand-left .terms-overlay-placeholder-bubble {
+  left: auto;
+  right: 0;
 }
 
 .terms-overlay-input:focus {
@@ -124,6 +195,8 @@
   font-weight: 500;
   padding: 0 4px;
   font-size: 68cqh;
+  white-space: nowrap;
+  line-height: 1;
 }
 
 .terms-overlay-checkbox-readonly {
@@ -240,10 +313,13 @@
     height: 10px;
   }
 
-  .terms-overlay-input,
   .terms-overlay-label,
-  .terms-overlay-signature,
-  .terms-overlay-textarea {
+  .terms-overlay-signature {
+    font-size: var(--terms-field-font-size) !important;
+  }
+
+  .terms-overlay-input:not(:focus),
+  .terms-overlay-textarea:not(:focus) {
     font-size: var(--terms-field-font-size) !important;
   }
 
