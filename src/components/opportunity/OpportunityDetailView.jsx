@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from "react";
-import { Loader2 } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { OpportunityHeader, OpportunityBlocks } from "./OpportunityBlocks";
 import { oppAlpha } from "./opportunityTheme";
 
@@ -7,10 +8,10 @@ import { oppAlpha } from "./opportunityTheme";
 // select_opportunity step and the admin 414×896 live preview so the preview
 // is pixel-accurate. `preview` mode disables the actions (no writes).
 // `status` is the candidate's pick state for this path:
-//   null      → untouched, "Choose this path"
-//   chosen    → picked, awaiting admin decision — locked "Already Chosen"
-//   qualified → green "You're Qualified" → opens the congratulations screen
-//   rejected  → disabled rose "Rejected"
+//   null        → untouched, "Choose this path"
+//   chosen      → picked, awaiting admin decision — locked "Already Chosen"
+//   shortlisted → green "You're Shortlisted" → opens the congratulations screen
+//   rejected    → disabled rose "Rejected"
 const CTA_BY_STATUS = {
   rejected: {
     label: "Rejected",
@@ -18,8 +19,8 @@ const CTA_BY_STATUS = {
     className:
       "bg-rose-100 text-rose-600 border border-rose-200 cursor-not-allowed",
   },
-  qualified: {
-    label: "You're Qualified",
+  shortlisted: {
+    label: "You're Shortlisted",
     className:
       "bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer border-none",
   },
@@ -37,12 +38,13 @@ const OpportunityDetailView = ({
   choosing = false,
   error = "",
   onChoose,
-  onQualified,
+  onShortlisted,
   onBack,
   preview = false,
   scrollToCta = false,
 }) => {
   const ctaRef = useRef(null);
+  const [ctaVisible, setCtaVisible] = useState(null);
 
   useEffect(() => {
     if (!scrollToCta || preview) return;
@@ -52,6 +54,21 @@ const OpportunityDetailView = ({
     );
     return () => clearTimeout(t);
   }, [scrollToCta, preview]);
+
+  // Track whether the CTA is on-screen so the scroll nudge only exists while
+  // the button is below the fold. null = not yet observed (renders nothing,
+  // so short pages never flash it).
+  useEffect(() => {
+    if (preview) return undefined;
+    const el = ctaRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return undefined;
+    const obs = new IntersectionObserver(
+      ([entry]) => setCtaVisible(entry.isIntersecting),
+      { threshold: 0.01 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [preview]);
 
   const cta = CTA_BY_STATUS[status];
   const ctaLabel = cta
@@ -63,7 +80,7 @@ const OpportunityDetailView = ({
     ? cta.className
     : "bg-[#002856] hover:bg-[#07192f] disabled:opacity-60 text-white cursor-pointer border-none";
   const ctaDisabled = preview || (cta ? cta.disabled : choosing);
-  const ctaClick = status === "qualified" ? onQualified : onChoose;
+  const ctaClick = status === "shortlisted" ? onShortlisted : onChoose;
 
   return (
     <div
@@ -99,6 +116,31 @@ const OpportunityDetailView = ({
           Go back to other options
         </button>
       </div>
+      {/* Tiny bottom-right scroll cue — portaled to body so it anchors to the
+          real viewport (nested overflow/transform ancestors would otherwise
+          capture it). Exists only while the CTA is off-screen. Purely a
+          visual hint: non-interactive, tinted to the path's status. */}
+      {!preview &&
+        ctaVisible === false &&
+        createPortal(
+          <div
+            aria-hidden="true"
+            className={`fixed z-40 w-6 h-6 rounded-full text-white shadow-md shadow-slate-900/20 flex items-center justify-center pointer-events-none ${
+              status === "shortlisted"
+                ? "bg-emerald-500"
+                : status === "rejected"
+                  ? "bg-rose-500"
+                  : "bg-[#002856]"
+            }`}
+            style={{
+              right: "1rem",
+              bottom: "max(1rem, env(safe-area-inset-bottom, 0px))",
+            }}
+          >
+            <ChevronDown className="w-3.5 h-3.5" />
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };

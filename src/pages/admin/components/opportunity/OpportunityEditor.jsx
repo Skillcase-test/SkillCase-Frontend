@@ -229,6 +229,37 @@ const OpportunityEditor = ({
               </p>
             </div>
             <div className="flex flex-col gap-1.5">
+              <FieldLabel>Candidate level</FieldLabel>
+              <div className="flex gap-1.5">
+                {[
+                  { value: "all", label: "All levels" },
+                  { value: "b1", label: "B1" },
+                  { value: "b2", label: "B2" },
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    disabled={!canEdit}
+                    onClick={() => set({ level: opt.value })}
+                    className={`h-8 px-3.5 rounded-lg text-[11px] font-extrabold border transition-all cursor-pointer disabled:opacity-50 ${
+                      (form.level || "all") === opt.value
+                        ? "bg-[#083262] text-white border-[#083262]"
+                        : "bg-white text-slate-500 border-slate-200 hover:border-[#083262]/40 hover:text-[#083262]"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[9px] font-semibold text-slate-400">
+                {form.level === "b1"
+                  ? "Only B1 candidates see this path"
+                  : form.level === "b2"
+                    ? "Only B2 candidates see this path"
+                    : "Every candidate sees this path"}
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5">
               <FieldLabel>Points (max 3, up to 4 words each)</FieldLabel>
               {form.points.map((p, i) => {
                 const pt = normalizePoint(p);

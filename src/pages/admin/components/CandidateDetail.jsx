@@ -35,11 +35,16 @@ import {
   CalendarDays,
   StickyNote,
   Plus,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import SortableStepItem from "./SortableStepItem";
 import { toast } from "react-hot-toast";
 import { exploreCandidatesAdminApi } from "../../../api/exploreCandidatesAdminApi";
-import { adminSetOpportunityDecision } from "../../../api/jobScreeningAdminApi";
+import {
+  adminSetOpportunityDecision,
+  adminSetOpportunityVisibility,
+} from "../../../api/jobScreeningAdminApi";
 
 const formatToLocalDateTimeString = (dateInput) => {
   if (!dateInput) return "";
@@ -597,12 +602,12 @@ const CandidateDetail = ({
     });
   };
 
-  // qualify | reject | chosen (resets a decision back to undecided) — the
-  // candidate gets a push on qualify/reject, so each action confirms first.
+  // shortlist | reject | chosen (resets a decision back to undecided) — the
+  // candidate gets a push on shortlist/reject, so each action confirms first.
   const handleOpportunityDecision = (sel, status) => {
     const verb =
-      status === "qualified"
-        ? "Qualify"
+      status === "shortlisted"
+        ? "Shortlist"
         : status === "rejected"
           ? "Reject"
           : "Reset decision on";
@@ -623,6 +628,37 @@ const CandidateDetail = ({
           );
         }
       },
+    });
+  };
+
+  // Hides one pathway from this candidate's list without touching their
+  // pick/decision — reversible, so unhide skips the confirm.
+  const handleOpportunityVisibility = (opp) => {
+    const unhiding = opp.is_hidden;
+    const run = async () => {
+      try {
+        await adminSetOpportunityVisibility(
+          candidate.user_id,
+          opp.id,
+          !unhiding,
+        );
+        toast.success(unhiding ? "Pathway visible again" : "Pathway hidden");
+        onRefresh?.();
+      } catch (err) {
+        toast.error(
+          err.response?.data?.message || "Failed to update visibility",
+        );
+      }
+    };
+    if (unhiding) {
+      run();
+      return;
+    }
+    openConfirmModal({
+      title: `Hide "${opp.title}"?`,
+      message:
+        "The pathway disappears from this candidate's list. Their existing selection stays on record and can still be decided here.",
+      onConfirm: run,
     });
   };
 
@@ -2420,108 +2456,154 @@ const CandidateDetail = ({
                       {isSelectOpportunity && (
                         <div className="space-y-3">
                           <p>
-                            Candidate browses the live pathways and can pick
-                            several. Qualify or reject each pick — the
-                            candidate is notified. This step stays open until
-                            you skip it.
+                            Every live pathway for this candidate — shortlist
+                            or reject their picks, or hide a path they
+                            shouldn't see. This step stays open until you skip
+                            it.
                           </p>
-                          {(candidate.selected_opportunities || []).length >
-                          0 ? (
-                            <div className="space-y-2">
-                              {candidate.selected_opportunities.map((sel) => {
-                                const chipCls =
-                                  sel.status === "qualified"
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : sel.status === "rejected"
-                                      ? "bg-rose-100 text-rose-600"
-                                      : "bg-indigo-100 text-indigo-700";
+                          {(candidate.opportunities || []).length > 0 ? (
+                            <div className="space-y-1.5">
+                              {candidate.opportunities.map((opp) => {
+                                const chip =
+                                  opp.status === "shortlisted"
+                                    ? {
+                                        label: "Shortlisted",
+                                        cls: "bg-emerald-100 text-emerald-700",
+                                      }
+                                    : opp.status === "rejected"
+                                      ? {
+                                          label: "Rejected",
+                                          cls: "bg-rose-100 text-rose-600",
+                                        }
+                                      : opp.status === "chosen"
+                                        ? {
+                                            label: "Selected",
+                                            cls: "bg-indigo-100 text-indigo-700",
+                                          }
+                                        : null;
                                 return (
                                   <div
-                                    key={sel.id}
-                                    className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl space-y-2"
+                                    key={opp.id}
+                                    className={`px-2.5 py-2 rounded-lg border flex items-center gap-2 ${
+                                      opp.is_hidden
+                                        ? "bg-slate-50 border-slate-200 opacity-70"
+                                        : "bg-white border-slate-200"
+                                    }`}
                                   >
-                                    <div className="flex items-center justify-between gap-2">
-                                      <span
-                                        className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${chipCls}`}
-                                      >
-                                        {sel.status === "chosen"
-                                          ? "Selected"
-                                          : sel.status}
-                                      </span>
-                                      <span className="text-[9px] font-semibold text-indigo-500">
-                                        {formatScreeningTimestamp(
-                                          sel.selected_at,
-                                        )}
-                                      </span>
+                                    <span
+                                      className="w-2 h-2 rounded-full shrink-0"
+                                      style={{
+                                        backgroundColor:
+                                          opp.color || "#6366f1",
+                                      }}
+                                    />
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[11px] font-bold text-slate-800 truncate">
+                                        {opp.title}
+                                      </p>
+                                      <p className="text-[9px] font-semibold text-slate-400">
+                                        {opp.level === "all"
+                                          ? "All levels"
+                                          : String(opp.level).toUpperCase()}
+                                        {opp.selected_at &&
+                                          ` · picked ${formatScreeningTimestamp(opp.selected_at)}`}
+                                        {opp.is_hidden && " · hidden"}
+                                      </p>
                                     </div>
-                                    <p className="text-[11px] font-bold text-indigo-900">
-                                      {sel.title}
-                                    </p>
+                                    {chip && (
+                                      <span
+                                        className={`shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${chip.cls}`}
+                                      >
+                                        {chip.label}
+                                      </span>
+                                    )}
                                     {canEdit && (
-                                      <div className="flex items-center gap-1.5 pt-0.5">
-                                        {sel.status !== "qualified" && (
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              handleOpportunityDecision(
-                                                sel,
-                                                "qualified",
-                                              )
-                                            }
-                                            className="text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition-all"
-                                          >
-                                            Qualify
-                                          </button>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {opp.status === "chosen" && (
+                                          <>
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                handleOpportunityDecision(
+                                                  opp,
+                                                  "shortlisted",
+                                                )
+                                              }
+                                              className="text-[9px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md transition-all"
+                                            >
+                                              Shortlist
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() =>
+                                                handleOpportunityDecision(
+                                                  opp,
+                                                  "rejected",
+                                                )
+                                              }
+                                              className="text-[9px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2 py-0.5 rounded-md transition-all"
+                                            >
+                                              Reject
+                                            </button>
+                                          </>
                                         )}
-                                        {sel.status !== "rejected" && (
+                                        {(opp.status === "shortlisted" ||
+                                          opp.status === "rejected") && (
                                           <button
                                             type="button"
                                             onClick={() =>
                                               handleOpportunityDecision(
-                                                sel,
-                                                "rejected",
-                                              )
-                                            }
-                                            className="text-[10px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-lg transition-all"
-                                          >
-                                            Reject
-                                          </button>
-                                        )}
-                                        {sel.status !== "chosen" && (
-                                          <button
-                                            type="button"
-                                            onClick={() =>
-                                              handleOpportunityDecision(
-                                                sel,
+                                                opp,
                                                 "chosen",
                                               )
                                             }
-                                            className="text-[10px] font-bold text-slate-500 bg-white hover:bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg transition-all"
+                                            className="text-[9px] font-bold text-slate-500 bg-white hover:bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md transition-all"
                                           >
                                             Reset
                                           </button>
                                         )}
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleOpportunityVisibility(opp)
+                                          }
+                                          title={
+                                            opp.is_hidden
+                                              ? "Show to candidate"
+                                              : "Hide from candidate"
+                                          }
+                                          className="w-6 h-6 flex items-center justify-center rounded-md border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
+                                        >
+                                          {opp.is_hidden ? (
+                                            <EyeOff className="w-3 h-3" />
+                                          ) : (
+                                            <Eye className="w-3 h-3" />
+                                          )}
+                                        </button>
                                       </div>
                                     )}
                                   </div>
                                 );
                               })}
-                              {canEdit && (
-                                <button
-                                  type="button"
-                                  onClick={handleResetOpportunity}
-                                  className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1 rounded-lg transition-all"
-                                >
-                                  Reset All Selections
-                                </button>
-                              )}
+                              {canEdit &&
+                                candidate.opportunities.some(
+                                  (o) => o.status,
+                                ) && (
+                                  <button
+                                    type="button"
+                                    onClick={handleResetOpportunity}
+                                    className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1 rounded-lg transition-all"
+                                  >
+                                    Reset All Selections
+                                  </button>
+                                )}
                             </div>
                           ) : (
-                            isActive && (
-                              <p className="text-[10px] text-slate-400 font-semibold">
-                                Waiting for the candidate to pick a path.
-                              </p>
-                            )
+                            <p className="text-[10px] text-slate-400 font-semibold">
+                              {isActive
+                                ? "No live pathways right now — the candidate sees the step skipped until one is published."
+                                : "No live pathways."}
+                            </p>
                           )}
                         </div>
                       )}

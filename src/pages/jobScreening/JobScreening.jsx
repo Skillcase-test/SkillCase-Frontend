@@ -16,7 +16,9 @@ import InterviewStep from "./components/InterviewStep";
 import RegistrationStep from "./components/RegistrationStep";
 import ReviewPendingStep from "./components/ReviewPendingStep";
 import SelectOpportunityStep from "./components/SelectOpportunityStep";
+import OpportunityListSkeleton from "./components/OpportunityListSkeleton";
 import ReferralPromoCard from "./components/ReferralPromoCard";
+import ShortlistedPromoCard from "./components/ShortlistedPromoCard";
 import MeetingStep from "./components/MeetingStep";
 import OfferLetterStep from "./components/OfferLetterStep";
 import AdditionalDocumentsStep from "./components/AdditionalDocumentsStep";
@@ -387,6 +389,12 @@ const JobScreening = () => {
   }, []);
 
   if (loading || redirecting) {
+    // The pathway page has its own look — white, full-height, its own
+    // fetching state once mounted. Landing on ?step=select_opportunity
+    // shouldn't flash the blue lobby skeleton underneath it.
+    if (executingStepId === "select_opportunity") {
+      return <OpportunityListSkeleton />;
+    }
     return (
       <div
         className={`w-full ${pipelineMinHeightClass} bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] pt-6 pb-28 px-4 flex flex-col items-center overflow-y-auto`}
@@ -1172,6 +1180,13 @@ const JobScreening = () => {
                         onRefer={() => navigate("/job-screening/refer")}
                       />
                     )}
+
+                    {/* Emerald rocket card once any pathway pick is
+                        shortlisted — informational only, no CTA inside. */}
+                    {step.id === "select_opportunity" &&
+                      (progress?.selected_opportunities || []).some(
+                        (s) => s.status === "shortlisted",
+                      ) && <ShortlistedPromoCard />}
 
                     {/* Action Button inside active pending step card */}
                     <AnimatePresence>

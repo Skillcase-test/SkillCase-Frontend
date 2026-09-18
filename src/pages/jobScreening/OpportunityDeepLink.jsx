@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 import SelectOpportunityStep from "./components/SelectOpportunityStep";
+import OpportunityListSkeleton from "./components/OpportunityListSkeleton";
 import { getProgress } from "../../api/jobScreeningApi";
 
 // /job-screening/opportunity/:id — deep link target shared by admins (web
@@ -30,13 +30,7 @@ const OpportunityDeepLink = () => {
   }, []);
 
   if (failed) return <Navigate to="/job-screening" replace />;
-  if (!progress) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-[#002856]/50" />
-      </div>
-    );
-  }
+  if (!progress) return <OpportunityListSkeleton />;
 
   const step = (progress?.steps_config || []).find(
     (s) => s.id === "select_opportunity",

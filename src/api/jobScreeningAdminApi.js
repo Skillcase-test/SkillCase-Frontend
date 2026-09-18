@@ -136,3 +136,9 @@ export const adminSetOpportunityDecision = (userId, opportunityId, status) =>
     `/admin/job-screening/candidates/${userId}/opportunities/${opportunityId}/decision`,
     { status },
   );
+
+export const adminSetOpportunityVisibility = (userId, opportunityId, hidden) =>
+  api.put(
+    `/admin/job-screening/candidates/${userId}/opportunities/${opportunityId}/visibility`,
+    { hidden },
+  );

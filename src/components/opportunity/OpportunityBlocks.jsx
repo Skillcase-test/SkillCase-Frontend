@@ -39,30 +39,6 @@ const ScrollWrapper = ({ children, className = "" }) => {
     }
   }, [checkScroll]);
 
-  // Desktop wheels scroll vertically, which never moves an overflow-x
-  // container — translate the dominant delta into scrollLeft. Native
-  // non-passive listener is required: React's synthetic onWheel is passive
-  // and cannot preventDefault. At the scroll edges the wheel passes through
-  // untouched so the page itself keeps scrolling.
-  React.useEffect(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const onWheel = (e) => {
-      if (el.scrollWidth <= el.clientWidth + 1) return;
-      const unit = e.deltaMode === 1 ? 16 : 1;
-      const delta =
-        (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * unit;
-      if (!delta) return;
-      const atStart = el.scrollLeft <= 0;
-      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
-      if ((delta < 0 && atStart) || (delta > 0 && atEnd)) return;
-      e.preventDefault();
-      el.scrollLeft += delta;
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, []);
-
   // Grab-and-drag scrolling for pointer users — the desktop equivalent of the
   // touch swipe these strips already support. Listeners live on window so the
   // drag keeps tracking even when the cursor leaves the strip.

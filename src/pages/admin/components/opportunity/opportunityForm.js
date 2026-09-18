@@ -84,6 +84,7 @@ export const newOpportunityDraft = () => ({
   title: "",
   short_description: "",
   color: "#2563eb",
+  level: "all",
   points: [{ icon: "", text: "" }],
   blocks: [],
   is_active: false,

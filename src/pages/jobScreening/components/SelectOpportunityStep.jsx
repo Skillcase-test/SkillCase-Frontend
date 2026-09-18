@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
-  CheckCircle2,
   ChevronRight,
-  Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import CourseOptedIn from "./CourseOptedIn";
+import OpportunityStatusModal from "./OpportunityStatusModal";
+import OpportunityListSkeleton from "./OpportunityListSkeleton";
 import OpportunityIcon from "../../../components/opportunity/OpportunityIcon";
 import OpportunityImage from "../../../components/opportunity/OpportunityImage";
 import OpportunityDetailView from "../../../components/opportunity/OpportunityDetailView";
@@ -21,8 +21,8 @@ import {
 import mayaThumbsup from "../../../assets/onboarding/mayaThumbsup.webp";
 // select_opportunity step — candidate browses the admin-authored pathways,
 // opens one to read its dynamic content, and picks it. Multiple paths may be
-// chosen; each pick is independent. Admins mark chosen paths qualified (green,
-// floats to top) or rejected (rose, sinks to bottom). Selection never
+// chosen; each pick is independent. Admins mark chosen paths shortlisted
+// (green, floats to top) or rejected (rose, sinks to bottom). Selection never
 // completes the step: the candidate stays here until admin skips it.
 
 const SELECTED_STEPS = [
@@ -31,8 +31,8 @@ const SELECTED_STEPS = [
   { state: "pending", title: "Your onboarding begins" },
 ];
 
-const QUALIFIED_STEPS = [
-  { state: "done", title: "You're qualified" },
+const SHORTLISTED_STEPS = [
+  { state: "done", title: "You're shortlisted" },
   { state: "active", title: "Our team guides you very soon" },
   { state: "pending", title: "Your onboarding begins" },
 ];
@@ -58,15 +58,22 @@ const SubHeader = ({ title, onBack }) => (
 
 // Subtle status washes — never full red/green, just a hue over white.
 const CARD_STYLE = {
-  qualified:
+  shortlisted:
     "bg-gradient-to-br from-emerald-50 to-white border-emerald-300",
   rejected: "bg-gradient-to-br from-rose-50 to-white border-rose-300",
 };
 
 const STATUS_CHIP = {
-  qualified: { label: "Qualified", cls: "bg-emerald-100 text-emerald-700" },
+  shortlisted: {
+    label: "Shortlisted",
+    cls: "bg-emerald-100 text-emerald-700",
+  },
   rejected: { label: "Rejected", cls: "bg-rose-100 text-rose-600" },
+  chosen: { label: "Selected", cls: "bg-indigo-100 text-indigo-700" },
 };
+
+// Statuses that trigger the one-shot Maya popup when a detail page opens.
+const DECIDED = new Set(["shortlisted", "rejected"]);
 
 // `progress`/`onComplete` from the shared step contract are intentionally
 // unused: opportunities come from getOpportunities(), and this step never
@@ -79,6 +86,7 @@ const SelectOpportunityStep = ({ onBack, initialOpportunityId }) => {
   const [selectError, setSelectError] = useState("");
   const [thanksOpp, setThanksOpp] = useState(null);
   const [ctaScroll, setCtaScroll] = useState(false);
+  const [statusModal, setStatusModal] = useState(null); // 'shortlisted' | 'rejected'
   const deepLinkDone = useRef(false);
 
   useEffect(() => {
@@ -107,6 +115,7 @@ const SelectOpportunityStep = ({ onBack, initialOpportunityId }) => {
     if (!found) return;
     deepLinkDone.current = true;
     setCtaScroll(true);
+    setStatusModal(DECIDED.has(found.my_status) ? found.my_status : null);
     setActiveOpp(found);
     setView("detail");
   }, [initialOpportunityId, opportunities]);
@@ -114,12 +123,14 @@ const SelectOpportunityStep = ({ onBack, initialOpportunityId }) => {
   const openDetail = (opp) => {
     setCtaScroll(false);
     setSelectError("");
+    setStatusModal(DECIDED.has(opp.my_status) ? opp.my_status : null);
     setActiveOpp(opp);
     setView("detail");
   };
 
   const backToList = () => {
     setSelectError("");
+    setStatusModal(null);
     setView("list");
   };
 
@@ -179,7 +190,7 @@ const SelectOpportunityStep = ({ onBack, initialOpportunityId }) => {
     );
   }
 
-  // ---- Congratulations (qualified CTA tapped) ------------------------------
+  // ---- Congratulations (shortlisted CTA tapped) ----------------------------
   if (view === "congrats" && activeOpp) {
     return (
       <div
@@ -191,8 +202,8 @@ const SelectOpportunityStep = ({ onBack, initialOpportunityId }) => {
       >
         <CourseOptedIn
           heading="Congratulations!"
-          subtext="You are selected for this opportunity and our team will guide you very very soon."
-          steps={QUALIFIED_STEPS}
+          subtext="You are shortlisted for this opportunity and our team will guide you very very soon."
+          steps={SHORTLISTED_STEPS}
           ctaLabel="View all pathways"
           onBack={onBack}
           onDone={() => setView("list")}
@@ -212,10 +223,21 @@ const SelectOpportunityStep = ({ onBack, initialOpportunityId }) => {
           choosing={selecting}
           error={selectError}
           onChoose={handleChoose}
-          onQualified={() => setView("congrats")}
+          onShortlisted={() => setView("congrats")}
           onBack={backToList}
           scrollToCta={ctaScroll}
         />
+        {statusModal && (
+          <OpportunityStatusModal
+            status={statusModal}
+            title={activeOpp.title}
+            onDismiss={() => setStatusModal(null)}
+            onCheckOthers={() => {
+              setStatusModal(null);
+              backToList();
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -243,9 +265,7 @@ const SelectOpportunityStep = ({ onBack, initialOpportunityId }) => {
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12 text-[#002856]/50">
-            <Loader2 className="w-5 h-5 animate-spin" />
-          </div>
+          <OpportunityListSkeleton cardsOnly />
         ) : opportunities.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-6 text-center">
             <p className="text-xs font-semibold text-slate-500">
@@ -298,11 +318,6 @@ const SelectOpportunityStep = ({ onBack, initialOpportunityId }) => {
                           >
                             {chip.label}
                           </span>
-                        ) : opp.my_status === "chosen" ? (
-                          <CheckCircle2
-                            className="w-4.5 h-4.5 shrink-0 mt-0.5"
-                            style={{ color: oppShade(opp.color, 0.5) }}
-                          />
                         ) : (
                           <ChevronRight
                             className="w-4.5 h-4.5 shrink-0 mt-0.5"
