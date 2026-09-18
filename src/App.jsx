@@ -332,6 +332,9 @@ const DeepLinkRedirect = lazy(
 );
 const ReferralPage = lazy(() => import("./pages/jobScreening/ReferralPage"));
 const CoursePage = lazy(() => import("./pages/jobScreening/CoursePage"));
+const OpportunityDeepLink = lazy(
+  () => import("./pages/jobScreening/OpportunityDeepLink"),
+);
 const ReferralRedirect = lazy(
   () => import("./pages/referral/ReferralRedirect"),
 );
@@ -611,6 +614,43 @@ function AppContent() {
     });
     return () => listener?.remove?.();
   }, []);
+
+  // Custom-scheme deep links (skillcase://app<route>) — admin-shared app
+  // links and the Android /redirect trampoline land here. Without this the
+  // OS delivers the URL to the app but the route is dropped on the floor.
+  // Covers warm starts (appUrlOpen) and cold starts (getLaunchUrl).
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return undefined;
+
+    const routeFromSchemeUrl = (url) => {
+      try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== "skillcase:" || parsed.host !== "app") {
+          return null;
+        }
+        return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+      } catch {
+        return null;
+      }
+    };
+
+    let listener;
+    CapApp.addListener("appUrlOpen", ({ url }) => {
+      const route = routeFromSchemeUrl(url);
+      if (route) navigate(route);
+    }).then((handle) => {
+      listener = handle;
+    });
+
+    CapApp.getLaunchUrl()
+      .then((res) => {
+        const route = res?.url ? routeFromSchemeUrl(res.url) : null;
+        if (route) navigate(route);
+      })
+      .catch(() => {});
+
+    return () => listener?.remove?.();
+  }, [navigate]);
 
   // Helper function to open Play Store
   const openPlayStore = async () => {
@@ -1052,6 +1092,10 @@ function AppContent() {
 
   const isJobScreeningAllowedRoute =
     location.pathname.startsWith("/job-screening") ||
+    // Public acquisition routes — including the /redirect deep-link
+    // trampoline and /r/:code referral links — stay reachable; the
+    // trampoline's target is guarded again once it lands.
+    isPublicAcquisitionRoute ||
     // Recruitment enrollments reuse /terms/sign for the agreement + details
     // wizard; a screening candidate enrolled by an admin must still be able
     // to open it instead of being bounced back into the pipeline.
@@ -1349,6 +1393,13 @@ function AppContent() {
                   <Route
                     path="/job-screening"
                     element={lazyScreen(<JobScreening />, "Loading Jobs...")}
+                  />
+                  <Route
+                    path="/job-screening/opportunity/:id"
+                    element={lazyScreen(
+                      <OpportunityDeepLink />,
+                      "Loading Pathway...",
+                    )}
                   />
                   <Route
                     path="/job-screening/refer"

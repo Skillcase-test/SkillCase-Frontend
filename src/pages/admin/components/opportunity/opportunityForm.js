@@ -16,7 +16,6 @@ export const OPPORTUNITY_LIMITS = {
   PROCESS_ITEMS_MAX: 8,
   PROCESS_POINTS_MAX: 4,
   BLOCKS_MAX: 12,
-  ACTIVE_MAX: 3,
 };
 
 export const BLOCK_CATALOG = [

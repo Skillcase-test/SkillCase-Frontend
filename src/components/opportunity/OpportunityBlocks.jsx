@@ -1,6 +1,7 @@
 import React from "react";
 import { ArrowRight, Info, ChevronRight } from "lucide-react";
 import OpportunityIcon from "./OpportunityIcon";
+import OpportunityImage from "./OpportunityImage";
 import {
   oppAlpha,
   oppShade,
@@ -14,11 +15,13 @@ import {
 const ScrollWrapper = ({ children, className = "" }) => {
   const scrollRef = React.useRef(null);
   const [canScrollRight, setCanScrollRight] = React.useState(false);
+  const [scrollable, setScrollable] = React.useState(false);
 
   const checkScroll = React.useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
     const { scrollLeft, scrollWidth, clientWidth } = el;
+    setScrollable(scrollWidth > clientWidth + 1);
     setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 6);
   }, []);
 
@@ -36,12 +39,71 @@ const ScrollWrapper = ({ children, className = "" }) => {
     }
   }, [checkScroll]);
 
+  // Desktop wheels scroll vertically, which never moves an overflow-x
+  // container — translate the dominant delta into scrollLeft. Native
+  // non-passive listener is required: React's synthetic onWheel is passive
+  // and cannot preventDefault. At the scroll edges the wheel passes through
+  // untouched so the page itself keeps scrolling.
+  React.useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onWheel = (e) => {
+      if (el.scrollWidth <= el.clientWidth + 1) return;
+      const unit = e.deltaMode === 1 ? 16 : 1;
+      const delta =
+        (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * unit;
+      if (!delta) return;
+      const atStart = el.scrollLeft <= 0;
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1;
+      if ((delta < 0 && atStart) || (delta > 0 && atEnd)) return;
+      e.preventDefault();
+      el.scrollLeft += delta;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  // Grab-and-drag scrolling for pointer users — the desktop equivalent of the
+  // touch swipe these strips already support. Listeners live on window so the
+  // drag keeps tracking even when the cursor leaves the strip.
+  const [dragging, setDragging] = React.useState(false);
+  const dragRef = React.useRef({ startX: 0, startLeft: 0 });
+
+  const onMouseDown = (e) => {
+    const el = scrollRef.current;
+    if (e.button !== 0 || !el || el.scrollWidth <= el.clientWidth + 1) return;
+    dragRef.current = { startX: e.clientX, startLeft: el.scrollLeft };
+    setDragging(true);
+  };
+
+  React.useEffect(() => {
+    if (!dragging) return undefined;
+    const el = scrollRef.current;
+    const onMove = (e) => {
+      // A drag always wins over text selection — drop any selection the
+      // press started before it became a swipe.
+      window.getSelection?.().removeAllRanges();
+      el.scrollLeft =
+        dragRef.current.startLeft - (e.clientX - dragRef.current.startX);
+    };
+    const onUp = () => setDragging(false);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [dragging]);
+
   return (
     <div className="relative w-full overflow-hidden">
       <div
         ref={scrollRef}
         onScroll={checkScroll}
-        className={`w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${className}`}
+        onMouseDown={onMouseDown}
+        className={`w-full overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
+          scrollable ? (dragging ? "cursor-grabbing" : "cursor-grab") : ""
+        } ${dragging ? "select-none" : ""} ${className}`}
       >
         {children}
       </div>
@@ -80,14 +142,11 @@ export const OpportunityHeader = ({ opportunity }) => (
         </p>
       ) : null}
     </div>
-    {opportunity?.image_download_url && (
-      <img
-        src={opportunity.image_download_url}
-        alt={opportunity.title || "Opportunity"}
-        className="w-24 h-24 object-contain shrink-0 select-none"
-        draggable="false"
-      />
-    )}
+    <OpportunityImage
+      src={opportunity?.image_download_url}
+      alt={opportunity?.title || "Opportunity"}
+      className="w-24 h-24 shrink-0"
+    />
   </div>
 );
 

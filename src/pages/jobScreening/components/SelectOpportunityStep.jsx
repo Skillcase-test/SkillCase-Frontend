@@ -1,8 +1,14 @@
-import { useEffect, useState } from "react";
-import { ArrowLeft, ChevronRight, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ChevronRight,
+  Loader2,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import CourseOptedIn from "./CourseOptedIn";
 import OpportunityIcon from "../../../components/opportunity/OpportunityIcon";
+import OpportunityImage from "../../../components/opportunity/OpportunityImage";
 import OpportunityDetailView from "../../../components/opportunity/OpportunityDetailView";
 import {
   oppAlpha,
@@ -13,14 +19,21 @@ import {
   selectOpportunity,
 } from "../../../api/jobScreeningApi";
 import mayaThumbsup from "../../../assets/onboarding/mayaThumbsup.webp";
-// select_opportunity step — candidate browses up to 3 admin-authored
-// opportunities, opens one to read its dynamic content, and picks it.
-// Selection never completes the step: the candidate stays here until admin
-// skips the step (or resets the selection) from the candidate panel.
+// select_opportunity step — candidate browses the admin-authored pathways,
+// opens one to read its dynamic content, and picks it. Multiple paths may be
+// chosen; each pick is independent. Admins mark chosen paths qualified (green,
+// floats to top) or rejected (rose, sinks to bottom). Selection never
+// completes the step: the candidate stays here until admin skips it.
 
 const SELECTED_STEPS = [
   { state: "done", title: "Path selected" },
   { state: "active", title: "Our team reaches out within 24 hours" },
+  { state: "pending", title: "Your onboarding begins" },
+];
+
+const QUALIFIED_STEPS = [
+  { state: "done", title: "You're qualified" },
+  { state: "active", title: "Our team guides you very soon" },
   { state: "pending", title: "Your onboarding begins" },
 ];
 
@@ -43,22 +56,32 @@ const SubHeader = ({ title, onBack }) => (
   </div>
 );
 
-// onComplete is part of the shared step contract but intentionally unused:
-// this step never self-completes (admin skips it from the candidate panel).
-const SelectOpportunityStep = ({ progress, onBack }) => {
-  const selected = progress?.selected_opportunity || null;
+// Subtle status washes — never full red/green, just a hue over white.
+const CARD_STYLE = {
+  qualified:
+    "bg-gradient-to-br from-emerald-50 to-white border-emerald-300",
+  rejected: "bg-gradient-to-br from-rose-50 to-white border-rose-300",
+};
+
+const STATUS_CHIP = {
+  qualified: { label: "Qualified", cls: "bg-emerald-100 text-emerald-700" },
+  rejected: { label: "Rejected", cls: "bg-rose-100 text-rose-600" },
+};
+
+// `progress`/`onComplete` from the shared step contract are intentionally
+// unused: opportunities come from getOpportunities(), and this step never
+// self-completes (admin skips it from the candidate panel).
+const SelectOpportunityStep = ({ onBack, initialOpportunityId }) => {
   const [opportunities, setOpportunities] = useState(null); // null = loading
-  const [view, setView] = useState("list"); // list | detail
+  const [view, setView] = useState("list"); // list | detail | thanks | congrats
   const [activeOpp, setActiveOpp] = useState(null);
   const [selecting, setSelecting] = useState(false);
   const [selectError, setSelectError] = useState("");
-  const [justSelected, setJustSelected] = useState(null);
-
-  // Thank-you state: persisted (progress.selected_opportunity) or just picked.
-  const selectedOpp = justSelected || selected;
+  const [thanksOpp, setThanksOpp] = useState(null);
+  const [ctaScroll, setCtaScroll] = useState(false);
+  const deepLinkDone = useRef(false);
 
   useEffect(() => {
-    if (selectedOpp) return; // already chosen — no need to fetch the list
     let alive = true;
     getOpportunities()
       .then((res) => {
@@ -70,36 +93,55 @@ const SelectOpportunityStep = ({ progress, onBack }) => {
     return () => {
       alive = false;
     };
-  }, [selectedOpp]);
+  }, []);
 
-  if (selectedOpp) {
-    return (
-      <div
-        className="w-full min-h-screen flex-1 bg-white flex flex-col px-4 pb-12"
-        style={{
-          paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))",
-          paddingBottom: "calc(3rem + env(safe-area-inset-bottom, 0px))",
-        }}
-      >
-        <CourseOptedIn
-          heading="Thank you for your interest"
-          subtext={`You have selected to go with “${selectedOpp.title}”. Our team will reach out to you within the next 24 hours.`}
-          steps={SELECTED_STEPS}
-          ctaLabel="Okay got it"
-          onBack={onBack}
-          onDone={onBack}
-        />
-      </div>
+  // Deep link: land straight on a path's detail page, scrolled to the CTA.
+  // deepLinkDone makes it a one-shot — otherwise returning to the list (or the
+  // opportunities refresh after a pick) would reopen the detail forever.
+  useEffect(() => {
+    if (deepLinkDone.current || !initialOpportunityId || !opportunities?.length)
+      return;
+    const found = opportunities.find(
+      (o) => o.id === Number(initialOpportunityId),
     );
-  }
+    if (!found) return;
+    deepLinkDone.current = true;
+    setCtaScroll(true);
+    setActiveOpp(found);
+    setView("detail");
+  }, [initialOpportunityId, opportunities]);
+
+  const openDetail = (opp) => {
+    setCtaScroll(false);
+    setSelectError("");
+    setActiveOpp(opp);
+    setView("detail");
+  };
+
+  const backToList = () => {
+    setSelectError("");
+    setView("list");
+  };
+
+  const markChosen = (oppId) =>
+    setOpportunities((prev) =>
+      (prev || []).map((o) =>
+        o.id === oppId ? { ...o, my_status: "chosen" } : o,
+      ),
+    );
 
   const handleChoose = async () => {
     if (!activeOpp || selecting) return;
     setSelecting(true);
     setSelectError("");
     try {
-      const res = await selectOpportunity(activeOpp.id);
-      setJustSelected(res.data?.data?.selected || activeOpp);
+      await selectOpportunity(activeOpp.id);
+      markChosen(activeOpp.id);
+      setActiveOpp((prev) =>
+        prev ? { ...prev, my_status: "chosen" } : prev,
+      );
+      setThanksOpp(activeOpp);
+      setView("thanks");
     } catch (err) {
       setSelectError(
         err?.response?.data?.message ||
@@ -112,17 +154,67 @@ const SelectOpportunityStep = ({ progress, onBack }) => {
 
   const loading = opportunities === null;
 
+  // ---- Thank-you (just picked) --------------------------------------------
+  if (view === "thanks" && thanksOpp) {
+    return (
+      <div
+        className="w-full min-h-screen flex-1 bg-white flex flex-col px-4 pb-12"
+        style={{
+          paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))",
+          paddingBottom: "calc(3rem + env(safe-area-inset-bottom, 0px))",
+        }}
+      >
+        <CourseOptedIn
+          heading="Thank you for your interest"
+          subtext={`You have selected to go with “${thanksOpp.title}”. Our team will reach out to you within the next 24 hours.`}
+          steps={SELECTED_STEPS}
+          ctaLabel="View all pathways"
+          onBack={onBack}
+          onDone={() => {
+            setThanksOpp(null);
+            setView("list");
+          }}
+        />
+      </div>
+    );
+  }
+
+  // ---- Congratulations (qualified CTA tapped) ------------------------------
+  if (view === "congrats" && activeOpp) {
+    return (
+      <div
+        className="w-full min-h-screen flex-1 bg-white flex flex-col px-4 pb-12"
+        style={{
+          paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))",
+          paddingBottom: "calc(3rem + env(safe-area-inset-bottom, 0px))",
+        }}
+      >
+        <CourseOptedIn
+          heading="Congratulations!"
+          subtext="You are selected for this opportunity and our team will guide you very very soon."
+          steps={QUALIFIED_STEPS}
+          ctaLabel="View all pathways"
+          onBack={onBack}
+          onDone={() => setView("list")}
+        />
+      </div>
+    );
+  }
+
   // ---- Detail view ----------------------------------------------------------
   if (view === "detail" && activeOpp) {
     return (
       <div className="w-full min-h-screen flex-1 bg-white flex flex-col">
-        <SubHeader title="German Pathways" onBack={() => setView("list")} />
+        <SubHeader title="German Pathways" onBack={backToList} />
         <OpportunityDetailView
           opportunity={activeOpp}
+          status={activeOpp.my_status || null}
           choosing={selecting}
           error={selectError}
           onChoose={handleChoose}
-          onBack={() => setView("list")}
+          onQualified={() => setView("congrats")}
+          onBack={backToList}
+          scrollToCta={ctaScroll}
         />
       </div>
     );
@@ -162,83 +254,100 @@ const SelectOpportunityStep = ({ progress, onBack }) => {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {opportunities.map((opp, i) => (
-              <motion.button
-                key={opp.id}
-                type="button"
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06 }}
-                onClick={() => {
-                  setActiveOpp(opp);
-                  setView("detail");
-                }}
-                className="w-full p-3 bg-white rounded-2xl border text-left flex flex-col gap-3 cursor-pointer active:scale-[0.99] transition-transform"
-                style={{ borderColor: oppAlpha(opp.color, 0.5) }}
-              >
-                <div className="flex items-center gap-3.5">
-                  <div className="w-20 h-16 rounded-xl overflow-hidden shrink-0 flex items-center justify-center">
-                    {opp.image_download_url ? (
-                      <img
+            {opportunities.map((opp, i) => {
+              const chip = STATUS_CHIP[opp.my_status];
+              return (
+                <motion.button
+                  key={opp.id}
+                  type="button"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.06 }}
+                  onClick={() => openDetail(opp)}
+                  className={`w-full p-3 rounded-2xl border text-left flex flex-col gap-3 cursor-pointer active:scale-[0.99] transition-transform ${CARD_STYLE[opp.my_status] || "bg-white"}`}
+                  style={
+                    CARD_STYLE[opp.my_status]
+                      ? undefined
+                      : { borderColor: oppAlpha(opp.color, 0.5) }
+                  }
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-20 h-16 rounded-xl overflow-hidden shrink-0 flex items-center justify-center">
+                      <OpportunityImage
                         src={opp.image_download_url}
                         alt={opp.title}
-                        className="w-full h-full object-contain select-none"
-                        draggable="false"
-                      />
-                    ) : (
-                      <div
                         className="w-full h-full"
-                        style={{ backgroundColor: oppAlpha(opp.color, 0.12) }}
-                      />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0 flex flex-col gap-1">
-                    <div className="flex items-start gap-2">
-                      <h3 className="flex-1 text-slate-900 text-sm font-bold leading-snug">
-                        {opp.title}
-                      </h3>
-                      <ChevronRight
-                        className="w-4.5 h-4.5 shrink-0 mt-0.5"
-                        style={{ color: oppShade(opp.color, 0.5) }}
+                        placeholder={
+                          <div
+                            className="w-full h-full"
+                            style={{
+                              backgroundColor: oppAlpha(opp.color, 0.12),
+                            }}
+                          />
+                        }
                       />
                     </div>
-                    {opp.short_description && (
-                      <p className="text-slate-600/80 text-[11px] font-medium leading-snug">
-                        {opp.short_description}
-                      </p>
-                    )}
+                    <div className="flex-1 min-w-0 flex flex-col gap-1">
+                      <div className="flex items-start gap-2">
+                        <h3 className="flex-1 text-slate-900 text-sm font-bold leading-snug">
+                          {opp.title}
+                        </h3>
+                        {chip ? (
+                          <span
+                            className={`shrink-0 px-1.5 py-0.5 rounded-md text-[8.5px] font-bold uppercase tracking-wide ${chip.cls}`}
+                          >
+                            {chip.label}
+                          </span>
+                        ) : opp.my_status === "chosen" ? (
+                          <CheckCircle2
+                            className="w-4.5 h-4.5 shrink-0 mt-0.5"
+                            style={{ color: oppShade(opp.color, 0.5) }}
+                          />
+                        ) : (
+                          <ChevronRight
+                            className="w-4.5 h-4.5 shrink-0 mt-0.5"
+                            style={{ color: oppShade(opp.color, 0.5) }}
+                          />
+                        )}
+                      </div>
+                      {opp.short_description && (
+                        <p className="text-slate-600/80 text-[11px] font-medium leading-snug">
+                          {opp.short_description}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-                {opp.points?.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {opp.points.map((point, j) => {
-                      const pt =
-                        typeof point === "string"
-                          ? { icon: null, text: point }
-                          : point || {};
-                      return (
-                        <span
-                          key={j}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[8.5px] font-semibold leading-tight whitespace-nowrap"
-                          style={{
-                            backgroundColor: oppAlpha(opp.color, 0.1),
-                            color: oppShade(opp.color, 0.4),
-                          }}
-                        >
-                          {pt.icon && (
-                            <OpportunityIcon
-                              name={pt.icon}
-                              className="w-3 h-3 shrink-0"
-                            />
-                          )}
-                          {pt.text}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-              </motion.button>
-            ))}
+                  {opp.points?.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {opp.points.map((point, j) => {
+                        const pt =
+                          typeof point === "string"
+                            ? { icon: null, text: point }
+                            : point || {};
+                        return (
+                          <span
+                            key={j}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[8.5px] font-semibold leading-tight whitespace-nowrap"
+                            style={{
+                              backgroundColor: oppAlpha(opp.color, 0.1),
+                              color: oppShade(opp.color, 0.4),
+                            }}
+                          >
+                            {pt.icon && (
+                              <OpportunityIcon
+                                name={pt.icon}
+                                className="w-3 h-3 shrink-0"
+                              />
+                            )}
+                            {pt.text}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </motion.button>
+              );
+            })}
           </div>
         )}
       </div>

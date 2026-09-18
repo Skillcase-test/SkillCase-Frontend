@@ -7,6 +7,8 @@ import {
   Trash2,
   Loader2,
   RefreshCw,
+  Globe,
+  Check,
 } from "lucide-react";
 import {
   DndContext,
@@ -33,13 +35,29 @@ import {
   adminUploadOpportunityImage,
 } from "../../../../api/jobScreeningAdminApi";
 import OpportunityEditor from "./OpportunityEditor";
+import OpportunityImage from "../../../../components/opportunity/OpportunityImage";
 import { oppAlpha, oppShade } from "../../../../components/opportunity/opportunityTheme";
-import { OPPORTUNITY_LIMITS as L, pointText } from "./opportunityForm";
+import { pointText } from "./opportunityForm";
 
-// Opportunities tab — drafts are unlimited, at most L.ACTIVE_MAX may be live.
+// Opportunities tab — drafts and live opportunities are both unlimited.
 // Rows are drag-reordered; that order is also the candidate listing order.
 
-const SortableRow = ({ item, canEdit, busy, onEdit, onToggleActive, onDelete }) => {
+// Share link for a live opportunity — bounces through the /redirect handler
+// (in-app on Capacitor, scheme+store fallback on Android web, direct on the
+// rest), so it stays clickable everywhere an https link works.
+const opportunityWebLink = (id) =>
+  `${window.location.origin}/redirect?route=${encodeURIComponent(`/job-screening/opportunity/${id}`)}`;
+
+const SortableRow = ({
+  item,
+  canEdit,
+  busy,
+  copiedKey,
+  onEdit,
+  onToggleActive,
+  onDelete,
+  onCopyLink,
+}) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
   return (
@@ -66,18 +84,17 @@ const SortableRow = ({ item, canEdit, busy, onEdit, onToggleActive, onDelete }) 
           backgroundColor: oppAlpha(item.color, 0.08),
         }}
       >
-        {item.image_download_url ? (
-          <img
-            src={item.image_download_url}
-            alt=""
-            className="w-full h-full object-contain"
-          />
-        ) : (
-          <span
-            className="w-2.5 h-2.5 rounded-full"
-            style={{ backgroundColor: oppShade(item.color, 0.7) }}
-          />
-        )}
+        <OpportunityImage
+          src={item.image_download_url}
+          alt=""
+          className="w-full h-full"
+          placeholder={
+            <span
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ backgroundColor: oppShade(item.color, 0.7) }}
+            />
+          }
+        />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs font-extrabold text-slate-800 truncate">
@@ -100,6 +117,20 @@ const SortableRow = ({ item, canEdit, busy, onEdit, onToggleActive, onDelete }) 
         {item.selection_count || 0} picked
       </span>
       <div className="flex items-center gap-1">
+        {item.is_active && (
+          <button
+            type="button"
+            title="Copy share link"
+            onClick={() => onCopyLink(item)}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-[#083262] hover:bg-blue-50 cursor-pointer"
+          >
+            {copiedKey === item.id ? (
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+            ) : (
+              <Globe className="w-3.5 h-3.5" />
+            )}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => onToggleActive(item)}
@@ -134,6 +165,7 @@ const SortableRow = ({ item, canEdit, busy, onEdit, onToggleActive, onDelete }) 
 
 const OpportunityManager = ({ canEdit }) => {
   const [items, setItems] = useState(null);
+  const [copiedKey, setCopiedKey] = useState(null); // opportunity id of the just-copied row
   const [editing, setEditing] = useState(undefined); // undefined=list, null=new, record=edit
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -163,11 +195,22 @@ const OpportunityManager = ({ canEdit }) => {
 
   const activeCount = (items || []).filter((o) => o.is_active).length;
 
+  const handleCopyLink = async (item) => {
+    const link = opportunityWebLink(item.id);
+    try {
+      await navigator.clipboard.writeText(link);
+    } catch {
+      // clipboard API can fail outside secure contexts — surface the link so
+      // it can still be copied manually.
+      toast(link, { icon: "🔗", duration: 6000 });
+      return;
+    }
+    setCopiedKey(item.id);
+    setTimeout(() => setCopiedKey((k) => (k === item.id ? null : k)), 1600);
+  };
+
   const handleToggleActive = async (item) => {
     if (!canEdit) return toast.error("You have view-only access to Job Screening");
-    if (!item.is_active && activeCount >= L.ACTIVE_MAX) {
-      return toast.error(`Only ${L.ACTIVE_MAX} opportunities can be live at once`);
-    }
     setBusy(true);
     try {
       await adminUpdateOpportunity(item.id, { is_active: !item.is_active });
@@ -274,8 +317,8 @@ const OpportunityManager = ({ canEdit }) => {
     <div className="h-full min-h-0 flex flex-col gap-3">
       <div className="flex items-center justify-between shrink-0">
         <p className="text-[11px] font-semibold text-slate-500">
-          {activeCount}/{L.ACTIVE_MAX} live · drafts are unlimited · drag to set
-          candidate listing order
+          {activeCount} live · drafts are unlimited · drag to set candidate
+          listing order
         </p>
         <div className="flex items-center gap-2">
           <button
@@ -326,9 +369,11 @@ const OpportunityManager = ({ canEdit }) => {
                   item={item}
                   canEdit={canEdit}
                   busy={busy}
+                  copiedKey={copiedKey}
                   onEdit={(it) => setEditing(it)}
                   onToggleActive={handleToggleActive}
                   onDelete={setConfirmDelete}
+                  onCopyLink={handleCopyLink}
                 />
               ))}
             </SortableContext>

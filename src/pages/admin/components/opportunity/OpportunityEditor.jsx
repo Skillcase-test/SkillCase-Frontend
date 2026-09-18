@@ -12,6 +12,7 @@ import {
 import BlockEditor from "./blockEditors";
 import IconPicker from "./IconPicker";
 import OpportunityDetailView from "../../../../components/opportunity/OpportunityDetailView";
+import OpportunityImage from "../../../../components/opportunity/OpportunityImage";
 import { oppAlpha, oppShade } from "../../../../components/opportunity/opportunityTheme";
 import {
   BLOCK_CATALOG,
@@ -157,15 +158,12 @@ const OpportunityEditor = ({
                   backgroundColor: oppAlpha(form.color, 0.06),
                 }}
               >
-                {form.image_download_url ? (
-                  <img
-                    src={form.image_download_url}
-                    alt=""
-                    className="w-full h-full object-contain"
-                  />
-                ) : (
-                  <Upload className="w-4 h-4 text-slate-300" />
-                )}
+                <OpportunityImage
+                  src={form.image_download_url}
+                  alt=""
+                  className="w-full h-full"
+                  placeholder={<Upload className="w-4 h-4 text-slate-300" />}
+                />
               </div>
               <div className="flex flex-col gap-1">
                 <button

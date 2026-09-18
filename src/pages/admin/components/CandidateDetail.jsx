@@ -39,6 +39,7 @@ import {
 import SortableStepItem from "./SortableStepItem";
 import { toast } from "react-hot-toast";
 import { exploreCandidatesAdminApi } from "../../../api/exploreCandidatesAdminApi";
+import { adminSetOpportunityDecision } from "../../../api/jobScreeningAdminApi";
 
 const formatToLocalDateTimeString = (dateInput) => {
   if (!dateInput) return "";
@@ -587,11 +588,40 @@ const CandidateDetail = ({
 
   const handleResetOpportunity = () => {
     openConfirmModal({
-      title: "Reset Opportunity Selection?",
+      title: "Reset All Opportunity Selections?",
       message:
-        "This will clear the candidate's chosen path so they can pick a different opportunity. The step itself stays open until you skip it.",
+        "This clears every path the candidate picked (and its decision) so they can choose again. The step itself stays open until you skip it.",
       onConfirm: () => {
         onUpdate(candidate.user_id, { reset_opportunity: true });
+      },
+    });
+  };
+
+  // qualify | reject | chosen (resets a decision back to undecided) — the
+  // candidate gets a push on qualify/reject, so each action confirms first.
+  const handleOpportunityDecision = (sel, status) => {
+    const verb =
+      status === "qualified"
+        ? "Qualify"
+        : status === "rejected"
+          ? "Reject"
+          : "Reset decision on";
+    openConfirmModal({
+      title: `${verb} "${sel.title}"?`,
+      message:
+        status === "chosen"
+          ? "The admin decision is cleared; the candidate keeps this path selected. No notification is sent."
+          : "The candidate gets a push notification that their pathway status changed.",
+      onConfirm: async () => {
+        try {
+          await adminSetOpportunityDecision(candidate.user_id, sel.id, status);
+          toast.success("Decision saved");
+          onRefresh?.();
+        } catch (err) {
+          toast.error(
+            err.response?.data?.message || "Failed to save decision",
+          );
+        }
       },
     });
   };
@@ -2390,31 +2420,99 @@ const CandidateDetail = ({
                       {isSelectOpportunity && (
                         <div className="space-y-3">
                           <p>
-                            Candidate browses the live pathways and picks one.
-                            This step stays open until you skip it.
+                            Candidate browses the live pathways and can pick
+                            several. Qualify or reject each pick — the
+                            candidate is notified. This step stays open until
+                            you skip it.
                           </p>
-                          {candidate.selected_opportunity ? (
-                            <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl space-y-2">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">
-                                  Path Selected
-                                </span>
-                                <span className="text-[9px] font-semibold text-indigo-500">
-                                  {formatScreeningTimestamp(
-                                    candidate.selected_opportunity.selected_at,
-                                  )}
-                                </span>
-                              </div>
-                              <p className="text-[11px] font-bold text-indigo-900">
-                                {candidate.selected_opportunity.title}
-                              </p>
+                          {(candidate.selected_opportunities || []).length >
+                          0 ? (
+                            <div className="space-y-2">
+                              {candidate.selected_opportunities.map((sel) => {
+                                const chipCls =
+                                  sel.status === "qualified"
+                                    ? "bg-emerald-100 text-emerald-700"
+                                    : sel.status === "rejected"
+                                      ? "bg-rose-100 text-rose-600"
+                                      : "bg-indigo-100 text-indigo-700";
+                                return (
+                                  <div
+                                    key={sel.id}
+                                    className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl space-y-2"
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span
+                                        className={`text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${chipCls}`}
+                                      >
+                                        {sel.status === "chosen"
+                                          ? "Selected"
+                                          : sel.status}
+                                      </span>
+                                      <span className="text-[9px] font-semibold text-indigo-500">
+                                        {formatScreeningTimestamp(
+                                          sel.selected_at,
+                                        )}
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] font-bold text-indigo-900">
+                                      {sel.title}
+                                    </p>
+                                    {canEdit && (
+                                      <div className="flex items-center gap-1.5 pt-0.5">
+                                        {sel.status !== "qualified" && (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleOpportunityDecision(
+                                                sel,
+                                                "qualified",
+                                              )
+                                            }
+                                            className="text-[10px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-lg transition-all"
+                                          >
+                                            Qualify
+                                          </button>
+                                        )}
+                                        {sel.status !== "rejected" && (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleOpportunityDecision(
+                                                sel,
+                                                "rejected",
+                                              )
+                                            }
+                                            className="text-[10px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-1 rounded-lg transition-all"
+                                          >
+                                            Reject
+                                          </button>
+                                        )}
+                                        {sel.status !== "chosen" && (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleOpportunityDecision(
+                                                sel,
+                                                "chosen",
+                                              )
+                                            }
+                                            className="text-[10px] font-bold text-slate-500 bg-white hover:bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg transition-all"
+                                          >
+                                            Reset
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                               {canEdit && (
                                 <button
                                   type="button"
                                   onClick={handleResetOpportunity}
                                   className="text-[10px] font-bold text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-2.5 py-1 rounded-lg transition-all"
                                 >
-                                  Reset Selection
+                                  Reset All Selections
                                 </button>
                               )}
                             </div>

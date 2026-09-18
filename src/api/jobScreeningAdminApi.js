@@ -130,3 +130,9 @@ export const adminUploadOpportunityImage = (id, formData) =>
   api.post(`/admin/job-screening/opportunities/${id}/image`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+
+export const adminSetOpportunityDecision = (userId, opportunityId, status) =>
+  api.put(
+    `/admin/job-screening/candidates/${userId}/opportunities/${opportunityId}/decision`,
+    { status },
+  );
