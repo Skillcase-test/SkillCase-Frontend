@@ -77,6 +77,23 @@ const STATUS_CHIP = {
 // Statuses that trigger the one-shot Maya popup when a detail page opens.
 const DECIDED = new Set(["shortlisted", "rejected"]);
 
+// The popup shows once per opportunity+status — a dismissed modal stays
+// dismissed on revisit, but a reset→re-decide shows again (status is in the key).
+// Storage can throw in restricted webviews/private mode — degrade to
+// show-every-time rather than break the card tap.
+const decisionPopupFor = (opp) => {
+  const status = opp?.my_status;
+  if (!DECIDED.has(status)) return null;
+  try {
+    const key = `opp_status_seen:${opp.id}:${status}`;
+    if (localStorage.getItem(key)) return null;
+    localStorage.setItem(key, "1");
+  } catch {
+    // fall through — show the popup anyway
+  }
+  return status;
+};
+
 // `onComplete` from the shared step contract is intentionally unused: this
 // step never self-completes (admin skips it from the candidate panel).
 // `progress` supplies step_notes — admin opportunity notes are stored there
@@ -118,7 +135,7 @@ const SelectOpportunityStep = ({ progress, onBack, initialOpportunityId }) => {
     if (!found) return;
     deepLinkDone.current = true;
     setCtaScroll(true);
-    setStatusModal(DECIDED.has(found.my_status) ? found.my_status : null);
+    setStatusModal(decisionPopupFor(found));
     setActiveOpp(found);
     setView("detail");
   }, [initialOpportunityId, opportunities]);
@@ -126,7 +143,7 @@ const SelectOpportunityStep = ({ progress, onBack, initialOpportunityId }) => {
   const openDetail = (opp) => {
     setCtaScroll(false);
     setSelectError("");
-    setStatusModal(DECIDED.has(opp.my_status) ? opp.my_status : null);
+    setStatusModal(decisionPopupFor(opp));
     setActiveOpp(opp);
     setView("detail");
   };
@@ -205,7 +222,7 @@ const SelectOpportunityStep = ({ progress, onBack, initialOpportunityId }) => {
       >
         <CourseOptedIn
           heading="Congratulations!"
-          subtext="You are shortlisted for this opportunity and our team will guide you very very soon."
+          subtext="You are shortlisted for this opportunity and our team will guide you very soon."
           steps={SHORTLISTED_STEPS}
           ctaLabel="View all opportunities"
           onBack={onBack}

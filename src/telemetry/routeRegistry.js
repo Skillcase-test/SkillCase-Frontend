@@ -5,6 +5,8 @@ const RULES = [
   [/^\/job-screening/, "job_screening", "funnel"],
   // A1/A2 users land on the locked jobs teaser instead of the pipeline.
   [/^\/jobs/, "job_screening", "jobs_board"],
+  // /r/:code — public referral landing for job-screening invite links.
+  [/^\/r\//, "job_screening", "referral"],
   // Subscription funnel — kept ahead of the generic /profile rule so checkout,
   // plan management and receipts don't disappear into profile analytics.
   [/^\/trial-offer/, "payments", "trial_offer"],

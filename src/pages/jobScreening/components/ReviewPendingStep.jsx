@@ -46,6 +46,11 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
         if (data?.success) {
           const hasStepChanged =
             data.data?.current_step_id !== "review_pending";
+          // A rejected candidate can be un-reviewed without leaving the step —
+          // the status flip alone must refresh what they see.
+          const hasStatusChanged =
+            data.data?.interview_review_status !==
+            progress?.interview_review_status;
           trackFlowAction(
             "job_screening",
             "review_pending",
@@ -53,10 +58,11 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
             "success",
             {
               poll_type: "automatic",
-              state: hasStepChanged ? "changed" : "pending",
+              state:
+                hasStepChanged || hasStatusChanged ? "changed" : "pending",
             },
           );
-          if (hasStepChanged) {
+          if (hasStepChanged || hasStatusChanged) {
             onComplete(data.data, false);
           }
         }
@@ -134,6 +140,21 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
     }
     return (
       <div className="w-full">
+        {/* Sub-header lives here so admin notes don't push it mid-page */}
+        <div className="w-full flex items-center justify-between mb-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back</span>
+          </button>
+          <span className="text-slate-400 text-sm font-semibold">
+            Job Progress
+          </span>
+        </div>
+
         {progress?.interview_rejection_message && (
           <div className="w-full mb-4 text-left">
             <RejectionNote
@@ -157,6 +178,10 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
         <LowScoreCoursePrompt
           onBack={onBack}
           onExplore={() => navigate("/job-screening/course")}
+          weakness={progress?.interview_overall_weakness}
+          hideHeader
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
         />
       </div>
     );

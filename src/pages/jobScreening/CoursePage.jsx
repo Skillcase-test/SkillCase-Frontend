@@ -7,13 +7,7 @@ import { getProgress, optInCrashCourse } from "../../api/jobScreeningApi";
 import { trackFeatureEvent } from "../../telemetry/events";
 import CourseOptedIn from "./components/CourseOptedIn";
 import mayaShocked from "../../assets/onboarding/mayaShocked.webp";
-
-const COURSE = {
-  title: "Germany Interview Preparation",
-  meta: "21 live sessions · 10 hours",
-  image:
-    "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1789804197/WhatsApp_Image_2026-09-18_at_8.34.12_PM_cxowwa.jpg",
-};
+import { COURSE } from "../../config/course";
 
 const INCLUDED = [
   "Grammar & sentence correction",
@@ -140,13 +134,13 @@ const CoursePage = () => {
           >
             <img
               src={COURSE.image}
-              alt={COURSE.title}
+              alt={COURSE.name}
               className="w-full aspect-[16/9] rounded-2xl object-cover shadow-xs border border-blue-200/40 select-none"
               draggable="false"
             />
             <div className="flex flex-col gap-1 text-left">
               <h2 className="text-[#002856] text-2xl sm:text-3xl font-bold tracking-tight leading-tight">
-                {COURSE.title}
+                {COURSE.name}
               </h2>
               <p className="text-[#002856]/70 text-sm sm:text-base font-medium">
                 {COURSE.meta}

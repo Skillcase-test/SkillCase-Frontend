@@ -3,7 +3,6 @@ import { RefreshCw, ArrowLeft, Check, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getProgress, markStepNoteViewed } from "../../../api/jobScreeningApi";
 import FillDetailsStep from "./FillDetailsStep";
-import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { trackFlowAction } from "../../../telemetry/flow";
 import RejectionNote from "../../../components/RejectionNote";
 

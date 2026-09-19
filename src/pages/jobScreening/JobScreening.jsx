@@ -267,13 +267,6 @@ const JobScreening = () => {
   }, [progress, isExecutingStep]);
 
   const fetchProgress = async () => {
-    const isTopTourCompleted = Boolean(
-      !user?.user_id ||
-        user?.top_switcher_tour_completed ||
-        (user?.user_id &&
-          localStorage.getItem(`top_switcher_tour_completed_${user.user_id}`) === "true"),
-    );
-
     const isTourActive =
       Boolean(typeof window !== "undefined" && window.__topSwitcherTourActive) ||
       (typeof sessionStorage !== "undefined" &&
@@ -459,7 +452,6 @@ const JobScreening = () => {
       lifecycle: "succeeded",
       attributes: { stage: executingStepId || progress?.current_step_id },
     });
-    const completedStepId = executingStepId;
     setProgress(updatedData);
     if (shouldExitStep) {
       setIsExecutingStep(false);
@@ -1171,9 +1163,12 @@ const JobScreening = () => {
                       </span>
                     </div>
 
-                    {/* Referral fast-forward promo — review_pending only */}
+                    {/* Referral fast-forward promo — review_pending only, and
+                        never for a failed review (their review already ran;
+                        there is no queue left to skip) */}
                     {step.id === "review_pending" &&
-                      (isActive || isReview) && (
+                      (isActive || isReview) &&
+                      progress?.interview_review_status !== "rejected" && (
                       <ReferralPromoCard
                         rewarded={Boolean(progress?.priority_review_at)}
                         completedCount={

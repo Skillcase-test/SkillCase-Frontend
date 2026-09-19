@@ -45,6 +45,7 @@ import {
   adminSetOpportunityDecision,
   adminSetOpportunityVisibility,
 } from "../../../api/jobScreeningAdminApi";
+import { COURSE } from "../../../config/course";
 
 const formatToLocalDateTimeString = (dateInput) => {
   if (!dateInput) return "";
@@ -169,11 +170,7 @@ const CandidateDetail = ({
   const [trainingTime, setTrainingTime] = useState("");
   const [trainingMeet, setTrainingMeet] = useState("");
 
-  const [recruiterTime, setRecruiterTime] = useState("");
-  const [recruiterMeet, setRecruiterMeet] = useState("");
-
   const [steps, setSteps] = useState([]);
-  const [selectedRecruiterId, setSelectedRecruiterId] = useState("");
 
   const [paywallEnabled, setPaywallEnabled] = useState("");
   const [paywallPaid, setPaywallPaid] = useState(false);
@@ -312,13 +309,6 @@ const CandidateDetail = ({
         : "",
     );
     setTrainingMeet(candidate.training_meet_link || "");
-
-    setRecruiterTime(
-      candidate.recruiter_slot_time
-        ? formatToLocalDateTimeString(candidate.recruiter_slot_time)
-        : "",
-    );
-    setRecruiterMeet(candidate.recruiter_meet_link || "");
 
     // The backend resolver is the source of truth for step status and order.
     // Always sync this state after saves, resets, and background refreshes.
@@ -494,35 +484,6 @@ const CandidateDetail = ({
         ? new Date(trainingTime).toISOString()
         : null,
       training_meet_link: trainingMeet,
-    });
-  };
-
-  const handleSaveRecruiterSchedule = (e) => {
-    e.preventDefault();
-    onUpdate(candidate.user_id, {
-      recruiter_slot_time: recruiterTime
-        ? new Date(recruiterTime).toISOString()
-        : null,
-      recruiter_meet_link: recruiterMeet,
-    });
-  };
-
-  const handleVerifyEmail = () => {
-    onUpdate(candidate.user_id, { email_verified: true });
-  };
-
-  const handleRejectProfile = () => {
-    openConfirmModal({
-      title: "Reject Profile Documents?",
-      message:
-        "This will mark the profile as unverified and permanently clear the candidate's uploaded resume and language certificate PDFs from storage. The candidate will need to re-upload their files.",
-      onConfirm: () => {
-        onUpdate(candidate.user_id, {
-          resume_url: "clear",
-          lang_cert_url: "clear",
-          email_verified: false,
-        });
-      },
     });
   };
 
@@ -722,32 +683,6 @@ const CandidateDetail = ({
     });
   };
 
-  const handlePassRecruiter = () => {
-    onUpdate(candidate.user_id, { recruiter_interview_passed: true });
-  };
-
-  const handleFailRecruiter = () => {
-    openConfirmModal({
-      title: "Fail Recruiter Interview?",
-      message:
-        "This will mark the candidate as failed for the recruiter interview checkpoint.",
-      onConfirm: () => {
-        onUpdate(candidate.user_id, { recruiter_interview_passed: false });
-      },
-    });
-  };
-
-  const handleResetRecruiter = () => {
-    openConfirmModal({
-      title: "Reset Recruiter Checkpoint?",
-      message:
-        "This will clear the recruiter interview decision, slot timing, and meet link.",
-      onConfirm: () => {
-        onUpdate(candidate.user_id, { reset_recruiter: true });
-      },
-    });
-  };
-
   const handleResetReview = () => {
     openConfirmModal({
       title: "Reset Interview Review?",
@@ -771,10 +706,10 @@ const CandidateDetail = ({
   };
 
   const handleMarkReviewed = () => {
+    const minScore = candidate?.globalSettings?.interview_min_score ?? 6.5;
     openConfirmModal({
       title: "Mark Candidate Reviewed?",
-      message:
-        "The review outcome is derived from the interview score: 6.5 or above passes, below fails the candidate.",
+      message: `The review outcome is derived from the interview score: ${minScore} or above passes, below fails the candidate.`,
       onConfirm: () => {
         onUpdate(candidate.user_id, { mark_reviewed: true });
       },
@@ -794,9 +729,8 @@ const CandidateDetail = ({
 
   const handleResetCourseOptin = () => {
     openConfirmModal({
-      title: "Reset Crash Course Opt-In?",
-      message:
-        "This clears the candidate's crash course opt-in so they see the course prompt again.",
+      title: "Reset Course Opt-In?",
+      message: `This clears the candidate's ${COURSE.name} opt-in so they see the course prompt again.`,
       onConfirm: () => {
         onUpdate(candidate.user_id, { reset_course_optin: true });
       },
@@ -837,17 +771,6 @@ const CandidateDetail = ({
           action: "reject",
           rejectionReason: reason,
         });
-      },
-    });
-  };
-
-  const handleDeleteOfferLetter = () => {
-    openConfirmModal({
-      title: "Delete Offer Letter?",
-      message:
-        "This will permanently delete the uploaded offer letter PDF file from storage.",
-      onConfirm: () => {
-        onUpdate(candidate.user_id, { offer_letter_url: "clear" });
       },
     });
   };
@@ -1695,15 +1618,12 @@ const CandidateDetail = ({
               const isAdditionalDocs = step.id === "additional_documents";
               const isTraining = step.id === "interview_training";
               const isRecruiterStatus = step.id === "recruiter_status";
-              const isRecruiter = step.id === "recruiter_interview";
-              const isOffer = step.id === "offer_letter";
               const isSelectOpportunity = step.id === "select_opportunity";
 
               const isSkipped = step.status === "skipped";
               const isCompleted =
                 step.status === "completed" || isSkipped;
               const isActive = step.id === candidate.current_step_id;
-              const isLocked = !isCompleted && !isActive;
               const stepTimestamps = candidate.step_timestamps?.[step.id] || {};
               const approvedByName =
                 typeof stepTimestamps.approved_by === "string"

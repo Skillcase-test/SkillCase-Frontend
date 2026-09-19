@@ -1,5 +1,6 @@
 import js from '@eslint/js'
 import globals from 'globals'
+import react from 'eslint-plugin-react'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
@@ -13,6 +14,9 @@ export default defineConfig([
       reactHooks.configs['recommended-latest'],
       reactRefresh.configs.vite,
     ],
+    plugins: {
+      react,
+    },
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
@@ -23,6 +27,9 @@ export default defineConfig([
       },
     },
     rules: {
+      // Marks identifiers used inside JSX (<motion.div>, <Foo />) as
+      // referenced — without it no-unused-vars reports every JSX-only import.
+      'react/jsx-uses-vars': 'error',
       'no-unused-vars': [
         'error',
         {

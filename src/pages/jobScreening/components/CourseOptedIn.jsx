@@ -1,6 +1,7 @@
 import React from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import { motion } from "framer-motion";
+import { COURSE } from "../../../config/course";
 
 // Shared "confirmed + what happens next" success screen. Used by the crash
 // course opt-in (course_optin_at is set) and the select_opportunity thank-you
@@ -24,7 +25,7 @@ const DEFAULT_NEXT_STEPS = [
 const CourseOptedIn = ({
   onDone,
   onBack,
-  heading = "Thank you for opting the crash course",
+  heading = `Thank you for opting in to ${COURSE.name}`,
   subtext = "Our team will reach out to you within next 24 hours.",
   steps = DEFAULT_NEXT_STEPS,
   ctaLabel = "Okay got it",

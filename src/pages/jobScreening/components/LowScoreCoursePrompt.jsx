@@ -1,19 +1,27 @@
 import React from "react";
-import { ArrowLeft, X } from "lucide-react";
+import { ArrowLeft, RefreshCw, X } from "lucide-react";
 import { motion } from "framer-motion";
 import mayaSad from "../../../assets/onboarding/mayaSad.webp";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { trackFeatureEvent } from "../../../telemetry/events";
+import { COURSE } from "../../../config/course";
 
 // Shown on review_pending when the interview review outcome is negative —
-// offers the German crash course opt-in as the way forward.
+// offers the course opt-in as the way forward.
 const ASSESSMENT_POINTS = [
   "Speaking fluency needs more practice",
   "Interview answers lacked structure",
   "Core German vocabulary felt limited",
 ];
 
-const LowScoreCoursePrompt = ({ onBack, onExplore }) => {
+const LowScoreCoursePrompt = ({
+  onBack,
+  onExplore,
+  weakness,
+  hideHeader = false,
+  onRefresh,
+  refreshing = false,
+}) => {
   const handleExplore = () => {
     trackFeatureEvent("job_screening", "low_score_course_explore", {
       entityType: "funnel_step",
@@ -23,22 +31,32 @@ const LowScoreCoursePrompt = ({ onBack, onExplore }) => {
     onExplore?.();
   };
 
+  // Reviewer-written weakness lines (one per line) become the assessment
+  // bullets when present; otherwise the generic fallback points are shown.
+  const assessmentPoints = (weakness || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
   return (
     <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative">
-      {/* Sub-header — same pattern as the step's normal view */}
-      <div className="w-full flex items-center justify-between mb-4">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back</span>
-        </button>
-        <span className="text-slate-400 text-sm font-semibold">
-          Job Progress
-        </span>
-      </div>
+      {/* Sub-header — same pattern as the step's normal view. The wrapper can
+          lift it above sibling content via hideHeader. */}
+      {!hideHeader && (
+        <div className="w-full flex items-center justify-between mb-4">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back</span>
+          </button>
+          <span className="text-slate-400 text-sm font-semibold">
+            Job Progress
+          </span>
+        </div>
+      )}
 
       {/* Main light blue gradient container */}
       <div className="w-full px-5 pt-8 pb-6 bg-gradient-to-b from-[#dbeafe] to-[#eff6ff] rounded-lg border border-blue-100/60 flex flex-col items-center gap-5 text-center shadow-xs">
@@ -75,7 +93,10 @@ const LowScoreCoursePrompt = ({ onBack, onExplore }) => {
             Interview assessment
           </h3>
           <div className="flex flex-col gap-2">
-            {ASSESSMENT_POINTS.map((point) => (
+            {(assessmentPoints.length
+              ? assessmentPoints
+              : ASSESSMENT_POINTS
+            ).map((point) => (
               <div key={point} className="flex items-center gap-2.5">
                 <span className="w-3 h-3 rounded-full bg-red-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
                   <X className="w-2 h-2 stroke-[3.5]" />
@@ -104,7 +125,7 @@ const LowScoreCoursePrompt = ({ onBack, onExplore }) => {
               Our recommendation
             </h4>
             <p className="text-slate-500 text-[11px] sm:text-xs mt-0.5 leading-snug">
-              Opt our German speaking crash course to improve your fluency.
+              Join our {COURSE.name} programme to improve your fluency.
             </p>
           </div>
         </div>
@@ -125,6 +146,19 @@ const LowScoreCoursePrompt = ({ onBack, onExplore }) => {
           >
             Back to job progress
           </button>
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={refreshing}
+              className="w-full h-9 bg-transparent text-slate-500 hover:text-[#002856] rounded-xl font-semibold text-xs transition-all cursor-pointer border-none flex items-center justify-center gap-1.5 disabled:opacity-50"
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`}
+              />
+              {refreshing ? "Syncing status…" : "Refresh status"}
+            </button>
+          )}
         </div>
       </div>
     </div>

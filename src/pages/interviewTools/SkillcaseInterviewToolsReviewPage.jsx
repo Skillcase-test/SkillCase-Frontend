@@ -5,6 +5,15 @@ import { skillcaseInterviewToolsApi } from "../../api/skillcaseInterviewToolsApi
 import InterviewVideoPlayer from "./shared/InterviewVideoPlayer";
 
 const REVIEW_STATUSES = ["completed", "in_review", "shortlisted", "rejected"];
+// Reviewer-facing labels — "completed" resolves to pass/fail from the score
+// server-side, so the dropdown says what it actually does rather than naming
+// the raw stored status.
+const REVIEW_STATUS_LABELS = {
+  completed: "Reviewed (score decides)",
+  in_review: "In review",
+  shortlisted: "Pass (override)",
+  rejected: "Fail",
+};
 // Half-point rating scale: 0.5, 1, 1.5, … 9.5, 10 — mirrors the backend's
 // accepted admin_score range.
 const SCORE_OPTIONS = Array.from({ length: 20 }, (_, i) => (i + 1) / 2);
@@ -399,10 +408,15 @@ export default function SkillcaseInterviewToolsReviewPage({
               >
                 {REVIEW_STATUSES.map((item) => (
                   <option key={item} value={item}>
-                    {item}
+                    {REVIEW_STATUS_LABELS[item] || item}
                   </option>
                 ))}
               </select>
+              <p className="mt-1.5 ml-1 text-[10px] font-medium leading-snug text-slate-400">
+                "Reviewed" resolves from the score —{" "}
+                {detail?.review_min_score ?? 6.5} or above passes, below fails.
+                "Pass" overrides the score.
+              </p>
               <div className="mt-3 flex items-center gap-2">
                 <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400 ml-1">
                   Calculated Average:
