@@ -858,7 +858,7 @@ const CandidateDetail = ({
         ? `Edit Note for "${stepTitle}"`
         : `Add Note for "${stepTitle}"`,
       message:
-        "This note will be displayed to the candidate on this step using the note card.",
+        "This note will be displayed to the candidate using the note card.",
       requireReason: true,
       initialReason: initialMessage,
       onConfirm: (message) => {
@@ -2528,109 +2528,181 @@ const CandidateDetail = ({
                                         }
                                       : opp.status === "chosen"
                                         ? {
-                                            label: "Selected",
+                                            label: "Applied",
                                             cls: "bg-indigo-100 text-indigo-700",
                                           }
                                         : null;
+                                // Pathway notes reuse the step_notes JSONB
+                                // under "opportunity:<id>" keys — the
+                                // candidate sees them on the path's detail
+                                // page, under the header.
+                                const oppNoteKey = `opportunity:${opp.id}`;
+                                const oppNote = stepNotes[oppNoteKey];
+                                const isNotesSupported =
+                                  isStepNotesCompatible(
+                                    candidate?.app_version,
+                                  );
                                 return (
                                   <div
                                     key={opp.id}
-                                    className={`px-2.5 py-2 rounded-lg border flex items-center gap-2 ${
+                                    className={`px-2.5 py-2 rounded-lg border flex flex-col gap-1.5 ${
                                       opp.is_hidden
                                         ? "bg-slate-50 border-slate-200 opacity-70"
                                         : "bg-white border-slate-200"
                                     }`}
                                   >
-                                    <span
-                                      className="w-2 h-2 rounded-full shrink-0"
-                                      style={{
-                                        backgroundColor:
-                                          opp.color || "#6366f1",
-                                      }}
-                                    />
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-[11px] font-bold text-slate-800 truncate">
-                                        {opp.title}
-                                      </p>
-                                      <p className="text-[9px] font-semibold text-slate-400">
-                                        {opp.level === "all"
-                                          ? "All levels"
-                                          : String(opp.level).toUpperCase()}
-                                        {opp.selected_at &&
-                                          ` · picked ${formatScreeningTimestamp(opp.selected_at)}`}
-                                        {opp.is_hidden && " · hidden"}
-                                      </p>
-                                    </div>
-                                    {chip && (
+                                    <div className="flex items-center gap-2">
                                       <span
-                                        className={`shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${chip.cls}`}
-                                      >
-                                        {chip.label}
-                                      </span>
-                                    )}
-                                    {canEdit && (
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        {opp.status === "chosen" && (
-                                          <>
+                                        className="w-2 h-2 rounded-full shrink-0"
+                                        style={{
+                                          backgroundColor:
+                                            opp.color || "#6366f1",
+                                        }}
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-[11px] font-bold text-slate-800 truncate">
+                                          {opp.title}
+                                        </p>
+                                        <p className="text-[9px] font-semibold text-slate-400">
+                                          {opp.level === "all"
+                                            ? "All levels"
+                                            : String(opp.level).toUpperCase()}
+                                          {opp.selected_at &&
+                                            ` · picked ${formatScreeningTimestamp(opp.selected_at)}`}
+                                          {opp.is_hidden && " · hidden"}
+                                        </p>
+                                      </div>
+                                      {chip && (
+                                        <span
+                                          className={`shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md ${chip.cls}`}
+                                        >
+                                          {chip.label}
+                                        </span>
+                                      )}
+                                      {canEdit && (
+                                        <div className="flex items-center gap-1 shrink-0">
+                                          {opp.status === "chosen" && (
+                                            <>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  handleOpportunityDecision(
+                                                    opp,
+                                                    "shortlisted",
+                                                  )
+                                                }
+                                                className="text-[9px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md transition-all"
+                                              >
+                                                Shortlist
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() =>
+                                                  handleOpportunityDecision(
+                                                    opp,
+                                                    "rejected",
+                                                  )
+                                                }
+                                                className="text-[9px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2 py-0.5 rounded-md transition-all"
+                                              >
+                                                Reject
+                                              </button>
+                                            </>
+                                          )}
+                                          {(opp.status === "shortlisted" ||
+                                            opp.status === "rejected") && (
                                             <button
                                               type="button"
                                               onClick={() =>
                                                 handleOpportunityDecision(
                                                   opp,
-                                                  "shortlisted",
+                                                  "chosen",
                                                 )
                                               }
-                                              className="text-[9px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md transition-all"
+                                              className="text-[9px] font-bold text-slate-500 bg-white hover:bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md transition-all"
                                             >
-                                              Shortlist
+                                              Reset
                                             </button>
-                                            <button
-                                              type="button"
-                                              onClick={() =>
-                                                handleOpportunityDecision(
-                                                  opp,
-                                                  "rejected",
-                                                )
-                                              }
-                                              className="text-[9px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2 py-0.5 rounded-md transition-all"
-                                            >
-                                              Reject
-                                            </button>
-                                          </>
-                                        )}
-                                        {(opp.status === "shortlisted" ||
-                                          opp.status === "rejected") && (
+                                          )}
+                                          <button
+                                            type="button"
+                                            disabled={!isNotesSupported}
+                                            onClick={() =>
+                                              handleOpenStepNoteModal(
+                                                oppNoteKey,
+                                                opp.title,
+                                                oppNote?.message || "",
+                                              )
+                                            }
+                                            title={
+                                              !isNotesSupported
+                                                ? `Requires candidate app version 1.2.5+ (current: v${candidate?.app_version || "unknown"})`
+                                                : oppNote
+                                                  ? "Edit pathway note"
+                                                  : "Add pathway note"
+                                            }
+                                            className={`w-6 h-6 flex items-center justify-center rounded-md border transition-all ${
+                                              !isNotesSupported
+                                                ? "border-slate-200 text-slate-300 cursor-not-allowed opacity-60"
+                                                : oppNote
+                                                  ? "border-amber-300 bg-amber-50 text-amber-600 hover:bg-amber-100"
+                                                  : "border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+                                            }`}
+                                          >
+                                            <StickyNote className="w-3 h-3" />
+                                          </button>
                                           <button
                                             type="button"
                                             onClick={() =>
-                                              handleOpportunityDecision(
-                                                opp,
-                                                "chosen",
+                                              handleOpportunityVisibility(opp)
+                                            }
+                                            title={
+                                              opp.is_hidden
+                                                ? "Show to candidate"
+                                                : "Hide from candidate"
+                                            }
+                                            className="w-6 h-6 flex items-center justify-center rounded-md border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
+                                          >
+                                            {opp.is_hidden ? (
+                                              <EyeOff className="w-3 h-3" />
+                                            ) : (
+                                              <Eye className="w-3 h-3" />
+                                            )}
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                    {oppNote && (
+                                      <div className="ml-4 flex items-start gap-1.5 bg-amber-50/80 border border-amber-200/80 rounded-md px-2 py-1.5">
+                                        <StickyNote className="w-3 h-3 text-amber-600 shrink-0 mt-px" />
+                                        <p className="flex-1 text-[10px] font-medium text-amber-950 leading-snug whitespace-pre-wrap">
+                                          {oppNote.message}
+                                        </p>
+                                        <span
+                                          className={`shrink-0 px-1 py-px rounded-full text-[8px] font-bold uppercase ${
+                                            oppNote.viewed_at
+                                              ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                              : "bg-amber-200/80 text-amber-900 border border-amber-300"
+                                          }`}
+                                        >
+                                          {oppNote.viewed_at
+                                            ? "Seen"
+                                            : "Unseen"}
+                                        </span>
+                                        {canEdit && (
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              handleDeleteStepNote(
+                                                oppNoteKey,
+                                                opp.title,
                                               )
                                             }
-                                            className="text-[9px] font-bold text-slate-500 bg-white hover:bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md transition-all"
+                                            className="shrink-0 text-[9px] font-bold text-rose-700 hover:underline cursor-pointer"
                                           >
-                                            Reset
+                                            Delete
                                           </button>
                                         )}
-                                        <button
-                                          type="button"
-                                          onClick={() =>
-                                            handleOpportunityVisibility(opp)
-                                          }
-                                          title={
-                                            opp.is_hidden
-                                              ? "Show to candidate"
-                                              : "Hide from candidate"
-                                          }
-                                          className="w-6 h-6 flex items-center justify-center rounded-md border border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all"
-                                        >
-                                          {opp.is_hidden ? (
-                                            <EyeOff className="w-3 h-3" />
-                                          ) : (
-                                            <Eye className="w-3 h-3" />
-                                          )}
-                                        </button>
                                       </div>
                                     )}
                                   </div>
@@ -4321,7 +4393,11 @@ const CandidateDetail = ({
                           )}
                         </div>
                       )}
-                      {/* Step Reviewer Note Section */}
+                      {/* Step Reviewer Note Section — skipped for
+                          select_opportunity: pathways carry their own
+                          per-opportunity notes. A legacy note still
+                          surfaces so it can be viewed or deleted. */}
+                      {(!isSelectOpportunity || currentStepNote) && (
                       <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-2">
                         {(() => {
                           const isNotesSupported = isStepNotesCompatible(
@@ -4438,6 +4514,7 @@ const CandidateDetail = ({
                           );
                         })()}
                       </div>
+                      )}
                     </div>
                   </div>
                 </div>

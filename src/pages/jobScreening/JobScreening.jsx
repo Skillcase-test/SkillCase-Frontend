@@ -1042,6 +1042,12 @@ const JobScreening = () => {
               step.id === "welcome";
 
             const stepDesc = STEP_DESCRIPTIONS[step.id]?.desc || "";
+            // Doc-upload steps: once files are in, the card opens the
+            // under-review/summary view — the CTA reads "View", not "Upload".
+            const docsUploaded =
+              (step.id === "profile_completion" &&
+                (progress?.resume_url || progress?.lang_cert_url)) ||
+              (step.id === "additional_documents" && isReview);
             const circleBg = isCompleted
               ? "#15803d"
               : isActive || isReview
@@ -1209,6 +1215,8 @@ const JobScreening = () => {
                                 <RefreshCw className="w-4 h-4 animate-spin text-white" />
                                 <span>Checking status...</span>
                               </>
+                            ) : docsUploaded ? (
+                              "View Status"
                             ) : step.button_title ? (
                               step.button_title
                             ) : isReview || step.id === "review_pending" ? (

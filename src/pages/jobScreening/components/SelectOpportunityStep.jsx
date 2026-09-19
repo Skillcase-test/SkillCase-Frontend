@@ -17,6 +17,7 @@ import {
 import {
   getOpportunities,
   selectOpportunity,
+  markStepNoteViewed,
 } from "../../../api/jobScreeningApi";
 import mayaThumbsup from "../../../assets/onboarding/mayaThumbsup.webp";
 // select_opportunity step — candidate browses the admin-authored pathways,
@@ -26,7 +27,7 @@ import mayaThumbsup from "../../../assets/onboarding/mayaThumbsup.webp";
 // completes the step: the candidate stays here until admin skips it.
 
 const SELECTED_STEPS = [
-  { state: "done", title: "Path selected" },
+  { state: "done", title: "Path applied" },
   { state: "active", title: "Our team reaches out within 24 hours" },
   { state: "pending", title: "Your onboarding begins" },
 ];
@@ -69,16 +70,17 @@ const STATUS_CHIP = {
     cls: "bg-emerald-100 text-emerald-700",
   },
   rejected: { label: "Rejected", cls: "bg-rose-100 text-rose-600" },
-  chosen: { label: "Selected", cls: "bg-indigo-100 text-indigo-700" },
+  chosen: { label: "Applied", cls: "bg-indigo-100 text-indigo-700" },
 };
 
 // Statuses that trigger the one-shot Maya popup when a detail page opens.
 const DECIDED = new Set(["shortlisted", "rejected"]);
 
-// `progress`/`onComplete` from the shared step contract are intentionally
-// unused: opportunities come from getOpportunities(), and this step never
-// self-completes (admin skips it from the candidate panel).
-const SelectOpportunityStep = ({ onBack, initialOpportunityId }) => {
+// `onComplete` from the shared step contract is intentionally unused: this
+// step never self-completes (admin skips it from the candidate panel).
+// `progress` supplies step_notes — admin pathway notes are stored there
+// under "opportunity:<id>" keys, reusing the step-note pipeline.
+const SelectOpportunityStep = ({ progress, onBack, initialOpportunityId }) => {
   const [opportunities, setOpportunities] = useState(null); // null = loading
   const [view, setView] = useState("list"); // list | detail | thanks | congrats
   const [activeOpp, setActiveOpp] = useState(null);
@@ -177,7 +179,7 @@ const SelectOpportunityStep = ({ onBack, initialOpportunityId }) => {
       >
         <CourseOptedIn
           heading="Thank you for your interest"
-          subtext={`You have selected to go with “${thanksOpp.title}”. Our team will reach out to you within the next 24 hours.`}
+          subtext={`You have applied for “${thanksOpp.title}”. Our team will reach out to you within the next 24 hours.`}
           steps={SELECTED_STEPS}
           ctaLabel="View all pathways"
           onBack={onBack}
@@ -214,6 +216,8 @@ const SelectOpportunityStep = ({ onBack, initialOpportunityId }) => {
 
   // ---- Detail view ----------------------------------------------------------
   if (view === "detail" && activeOpp) {
+    const oppNoteKey = `opportunity:${activeOpp.id}`;
+    const oppNote = progress?.step_notes?.[oppNoteKey] || null;
     return (
       <div className="w-full min-h-screen flex-1 bg-white flex flex-col">
         <SubHeader title="German Pathways" onBack={backToList} />
@@ -226,6 +230,8 @@ const SelectOpportunityStep = ({ onBack, initialOpportunityId }) => {
           onShortlisted={() => setView("congrats")}
           onBack={backToList}
           scrollToCta={ctaScroll}
+          note={oppNote}
+          onNoteView={() => markStepNoteViewed(oppNoteKey)}
         />
         {statusModal && (
           <OpportunityStatusModal

@@ -3,13 +3,14 @@ import { createPortal } from "react-dom";
 import { ChevronDown, Loader2 } from "lucide-react";
 import { OpportunityHeader, OpportunityBlocks } from "./OpportunityBlocks";
 import { oppAlpha } from "./opportunityTheme";
+import RejectionNote from "../RejectionNote";
 
 // The candidate opportunity detail page body — shared between the real
 // select_opportunity step and the admin 414×896 live preview so the preview
 // is pixel-accurate. `preview` mode disables the actions (no writes).
 // `status` is the candidate's pick state for this path:
-//   null        → untouched, "Choose this path"
-//   chosen      → picked, awaiting admin decision — locked "Already Chosen"
+//   null        → untouched, "Apply for this path"
+//   chosen      → picked, awaiting admin decision — locked "Already Applied"
 //   shortlisted → green "You're Shortlisted" → opens the congratulations screen
 //   rejected    → disabled rose "Rejected"
 const CTA_BY_STATUS = {
@@ -25,7 +26,7 @@ const CTA_BY_STATUS = {
       "bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer border-none",
   },
   chosen: {
-    label: "Already Chosen",
+    label: "Already Applied",
     disabled: true,
     className:
       "bg-slate-100 text-slate-500 border border-slate-200 cursor-not-allowed",
@@ -42,6 +43,8 @@ const OpportunityDetailView = ({
   onBack,
   preview = false,
   scrollToCta = false,
+  note = null,
+  onNoteView,
 }) => {
   const ctaRef = useRef(null);
   const [ctaVisible, setCtaVisible] = useState(null);
@@ -74,8 +77,8 @@ const OpportunityDetailView = ({
   const ctaLabel = cta
     ? cta.label
     : choosing
-      ? "Selecting…"
-      : "Choose this path";
+      ? "Applying…"
+      : "Apply for this path";
   const ctaClass = cta
     ? cta.className
     : "bg-[#002856] hover:bg-[#07192f] disabled:opacity-60 text-white cursor-pointer border-none";
@@ -90,6 +93,15 @@ const OpportunityDetailView = ({
       }}
     >
       <OpportunityHeader opportunity={opportunity} />
+      {/* Admin pathway note — sits directly under the header, tracked the
+          same way as step notes (viewed_at via markStepNoteViewed). */}
+      {note?.message ? (
+        <RejectionNote
+          message={note.message}
+          viewedAt={note.viewed_at}
+          onView={onNoteView}
+        />
+      ) : null}
       <OpportunityBlocks
         blocks={opportunity?.blocks}
         color={opportunity?.color}
