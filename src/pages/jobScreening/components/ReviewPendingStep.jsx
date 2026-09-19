@@ -5,7 +5,6 @@ import {
   FileSearch,
   Check,
   RefreshCw,
-  AlertCircle,
 } from "lucide-react";
 import {
   getProgress,
@@ -25,10 +24,6 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
   const [error, setError] = useState("");
 
   const isCompleted = progress?.current_step_id !== "review_pending";
-  // Below-threshold hold: review passed but under INTERVIEW_MIN_SCORE — the
-  // pipeline parks here until an admin releases it. Opted-in candidates see
-  // the thank-you screen on every revisit.
-  const lowScoreHeld = Boolean(progress?.interview_below_threshold);
   const courseOptedIn = Boolean(progress?.course_optin_at);
   const referralRewarded = Boolean(progress?.priority_review_at);
   const referralCompletedCount =
@@ -133,22 +128,12 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
   };
 
   if (isRejected) {
+    // Opted-in candidates see the thank-you screen on every revisit.
+    if (courseOptedIn) {
+      return <CourseOptedIn onDone={onBack} onBack={onBack} />;
+    }
     return (
-      <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative ">
-        {/* Sub-Header bar */}
-        <div className="w-full flex items-center justify-between mb-4">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-1 text-slate-800 text-sm font-semibold hover:text-black cursor-pointer bg-transparent border-none p-0"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
-          </button>
-          <span className="text-slate-400 text-sm font-semibold">
-            Job Progress
-          </span>
-        </div>
-
+      <div className="w-full">
         {progress?.interview_rejection_message && (
           <div className="w-full mb-4 text-left">
             <RejectionNote
@@ -169,74 +154,11 @@ const ReviewPendingStep = ({ progress, onComplete, onBack }) => {
           </div>
         )}
 
-        {/* Red Rejected Card block */}
-        <div className="w-full px-5 pt-10 pb-5 bg-gradient-to-b from-red-50 to-red-100/50 rounded-2xl border border-red-200/30 flex flex-col items-center gap-4">
-          {/* Rejected Icon */}
-          <div className="w-12 h-12 bg-red-600 rounded-xl flex items-center justify-center text-white shrink-0">
-            <AlertCircle className="w-6 h-6" />
-          </div>
-
-          {/* Heading */}
-          <div className="text-center w-full">
-            <h2 className="text-red-700 text-2xl font-bold tracking-tight">
-              Interview review failed
-            </h2>
-            <p className="text-red-700/80 text-xs sm:text-sm font-medium mt-2 max-w-[280px] mx-auto leading-relaxed">
-              Unfortunately, your Skillcase video interview did not pass our
-              review. We are here to support your growth. Reach out to Skillcase
-              support to receive detailed feedback and guidance on next steps.
-            </p>
-          </div>
-
-          {/* Call Support Action */}
-          <a
-            href="tel:+919731462667"
-            className="w-full h-12 bg-[#002856] hover:bg-[#07192f] text-white rounded-xl font-bold text-sm sm:text-base transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer border-none"
-          >
-            Call Skillcase Support
-          </a>
-
-          {error && (
-            <div className="w-full flex items-start gap-2.5 text-red-500 text-xs font-semibold p-3 bg-red-50/50 rounded-xl border border-red-100 text-left">
-              <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Refresh Status Button */}
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="w-full h-12 bg-white hover:bg-slate-50 text-[#002856] border border-[#002856] rounded-xl font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-sm cursor-pointer"
-          >
-            {refreshing ? (
-              <>
-                <RefreshCw className="animate-spin w-4 h-4 text-[#002856]" />
-                <span>Syncing status...</span>
-              </>
-            ) : (
-              <>
-                <RefreshCw className="w-4 h-4 text-[#002856]" />
-                <span>Refresh status</span>
-              </>
-            )}
-          </button>
-        </div>
+        <LowScoreCoursePrompt
+          onBack={onBack}
+          onExplore={() => navigate("/job-screening/course")}
+        />
       </div>
-    );
-  }
-
-  // Held candidates never reach isCompleted — the silent poll above still
-  // runs, so an admin hold-release advances them automatically.
-  if (lowScoreHeld) {
-    if (courseOptedIn) {
-      return <CourseOptedIn onDone={onBack} onBack={onBack} />;
-    }
-    return (
-      <LowScoreCoursePrompt
-        onBack={onBack}
-        onExplore={() => navigate("/job-screening/course")}
-      />
     );
   }
 

@@ -33,8 +33,8 @@ const CoursePage = () => {
     getProgress()
       .then(({ data }) => {
         if (!active) return;
-        // Only held candidates belong here — anyone else bounces to the lobby.
-        if (!data?.data?.interview_below_threshold) {
+        // Only failed candidates belong here — anyone else bounces to the lobby.
+        if (data?.data?.interview_review_status !== "rejected") {
           navigate("/job-screening", { replace: true });
           return;
         }

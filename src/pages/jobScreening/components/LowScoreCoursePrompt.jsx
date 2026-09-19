@@ -5,9 +5,8 @@ import mayaSad from "../../../assets/onboarding/mayaSad.webp";
 import mayaShocked from "../../../assets/onboarding/mayaShocked.webp";
 import { trackFeatureEvent } from "../../../telemetry/events";
 
-// Shown on review_pending when the interview review passed but the score is
-// below INTERVIEW_MIN_SCORE — the pipeline holds here until the candidate
-// opts into the crash course and an admin releases the hold.
+// Shown on review_pending when the interview review outcome is negative —
+// offers the German crash course opt-in as the way forward.
 const ASSESSMENT_POINTS = [
   "Speaking fluency needs more practice",
   "Interview answers lacked structure",

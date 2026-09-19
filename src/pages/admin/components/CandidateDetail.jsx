@@ -770,13 +770,35 @@ const CandidateDetail = ({
     });
   };
 
-  const handleReleaseLowScoreHold = () => {
+  const handleMarkReviewed = () => {
     openConfirmModal({
-      title: "Release Low-Score Hold?",
+      title: "Mark Candidate Reviewed?",
       message:
-        "This candidate's interview passed but scored below the minimum benchmark, so they're parked on the review step with the crash-course screens. Releasing the hold lets their pipeline continue as if the review passed normally.",
+        "The review outcome is derived from the interview score: 6.5 or above passes, below fails the candidate.",
       onConfirm: () => {
-        onUpdate(candidate.user_id, { release_low_score_hold: true });
+        onUpdate(candidate.user_id, { mark_reviewed: true });
+      },
+    });
+  };
+
+  const handleMarkUnreviewed = () => {
+    openConfirmModal({
+      title: "Mark Candidate Unreviewed?",
+      message:
+        "The interview review decision is cleared and the candidate returns to review pending. Scores and remarks are kept as the reviewer's draft.",
+      onConfirm: () => {
+        onUpdate(candidate.user_id, { mark_unreviewed: true });
+      },
+    });
+  };
+
+  const handleResetCourseOptin = () => {
+    openConfirmModal({
+      title: "Reset Crash Course Opt-In?",
+      message:
+        "This clears the candidate's crash course opt-in so they see the course prompt again.",
+      onConfirm: () => {
+        onUpdate(candidate.user_id, { reset_course_optin: true });
       },
     });
   };
@@ -2244,37 +2266,6 @@ const CandidateDetail = ({
                             submissions.
                           </p>
 
-                          {/* Low-score hold banner — review passed but under
-                              INTERVIEW_MIN_SCORE; candidate is parked on the
-                              crash-course screens until released */}
-                          {candidate.interview_below_threshold && (
-                            <div className="p-3 bg-sky-50 border border-sky-200 rounded-xl space-y-2">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-[10px] font-bold text-sky-700 uppercase tracking-wider">
-                                  Held · Low Interview Score
-                                </span>
-                                {candidate.course_optin_at && (
-                                  <span className="text-[9px] font-semibold text-sky-600">
-                                    course opted-in
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-[10px] text-sky-800/80">
-                                Review passed but the score is below the
-                                benchmark — the candidate is seeing the crash
-                                course screens. Release the hold to let their
-                                pipeline continue.
-                              </p>
-                              <button
-                                type="button"
-                                onClick={handleReleaseLowScoreHold}
-                                className="text-[10px] font-bold text-white bg-sky-600 hover:bg-sky-700 px-2.5 py-1 rounded-lg transition-all"
-                              >
-                                Release Hold
-                              </button>
-                            </div>
-                          )}
-
                           {/* Referral fast-forward banner */}
                           {(candidate.priority_review_at ||
                             candidate.referral?.code) && (
@@ -2334,12 +2325,18 @@ const CandidateDetail = ({
                                 </span>
                                 <span
                                   className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${
-                                    candidate.interview_is_fully_reviewed
+                                    candidate.interview_is_fully_reviewed ||
+                                    ["shortlisted", "rejected"].includes(
+                                      candidate.interview_review_status,
+                                    )
                                       ? "bg-emerald-50 text-emerald-700 border-emerald-100"
                                       : "bg-red-50 text-red-700 border-red-100"
                                   }`}
                                 >
-                                  {candidate.interview_is_fully_reviewed
+                                  {candidate.interview_is_fully_reviewed ||
+                                  ["shortlisted", "rejected"].includes(
+                                    candidate.interview_review_status,
+                                  )
                                     ? "Reviewed"
                                     : "Not Reviewed"}
                                 </span>
@@ -2415,29 +2412,83 @@ const CandidateDetail = ({
                             </p>
                           )}
 
-                          {isActive && candidate.interview_submitted && (
-                            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2.5">
-                              <span className="font-bold text-[#083262] block">
-                                Evaluation Decision
-                              </span>
-                              <div className="flex gap-2">
+                          {candidate.interview_submitted &&
+                            (() => {
+                              const reviewStatus =
+                                candidate.interview_review_status;
+                              // 'completed' alone isn't proof of a review —
+                              // it's the column default. A decision counts
+                              // when the review form is complete or an admin
+                              // explicitly passed/failed the candidate.
+                              const reviewDecided =
+                                Boolean(candidate.interview_is_fully_reviewed) ||
+                                reviewStatus === "shortlisted" ||
+                                reviewStatus === "rejected";
+                              const reviewPassed =
+                                reviewStatus === "completed" ||
+                                reviewStatus === "shortlisted";
+                              return (
+                                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2.5">
+                                  <span className="font-bold text-[#083262] block">
+                                    Evaluation Decision
+                                  </span>
+                                  <div className="flex gap-2 flex-wrap">
+                                    {!reviewDecided && (
+                                      <button
+                                        type="button"
+                                        onClick={handleMarkReviewed}
+                                        className="px-3 py-1.5 bg-[#083262] text-white hover:bg-[#052243] text-[10px] font-bold rounded-lg transition-all"
+                                      >
+                                        Mark Reviewed
+                                      </button>
+                                    )}
+                                    {reviewDecided && (
+                                      <button
+                                        type="button"
+                                        onClick={handleMarkUnreviewed}
+                                        className="px-3 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200 text-[10px] font-bold rounded-lg transition-all"
+                                      >
+                                        Mark Unreviewed
+                                      </button>
+                                    )}
+                                    {!reviewPassed && (
+                                      <button
+                                        type="button"
+                                        onClick={handlePassReview}
+                                        className="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 text-[10px] font-bold rounded-lg transition-all"
+                                      >
+                                        Pass Candidate
+                                      </button>
+                                    )}
+                                    {reviewStatus !== "rejected" && (
+                                      <button
+                                        type="button"
+                                        onClick={handleFailReview}
+                                        className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100 text-[10px] font-bold rounded-lg transition-all"
+                                      >
+                                        Fail Candidate
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+
+                          {candidate.interview_submitted &&
+                            candidate.course_optin_at && (
+                              <div className="p-2.5 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-semibold text-sky-800">
+                                  Crash course opted-in
+                                </span>
                                 <button
                                   type="button"
-                                  onClick={handlePassReview}
-                                  className="px-3 py-1.5 bg-emerald-600 text-white hover:bg-emerald-700 text-[10px] font-bold rounded-lg transition-all"
+                                  onClick={handleResetCourseOptin}
+                                  className="text-[10px] font-bold text-sky-700 bg-white hover:bg-sky-100 border border-sky-200 px-2.5 py-1 rounded-lg transition-all"
                                 >
-                                  Pass Candidate
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={handleFailReview}
-                                  className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100 text-[10px] font-bold rounded-lg transition-all"
-                                >
-                                  Fail Candidate
+                                  Reset Opt-In
                                 </button>
                               </div>
-                            </div>
-                          )}
+                            )}
 
                           {isCompleted && (
                             <button
