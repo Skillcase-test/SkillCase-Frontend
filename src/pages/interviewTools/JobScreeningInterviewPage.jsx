@@ -173,6 +173,10 @@ export default function JobScreeningInterviewPage() {
   const [globalTimeLeft, setGlobalTimeLeft] = useState(null);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const pendingNavigationRef = useRef(null);
+  // Safety net for the back-button leave path: history.go() silently no-ops
+  // when the interview was opened in a fresh tab (direct invite link), so a
+  // timer pushes the candidate out to home when the jump cannot happen.
+  const leaveFallbackRef = useRef(null);
   const [stage, setStage] = useState("loading");
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [thinkingRemaining, setThinkingRemaining] = useState(0);
@@ -203,7 +207,6 @@ export default function JobScreeningInterviewPage() {
   const {
     stream,
     recordedBlob,
-    isRecording,
     recordingSeconds,
     recordingHasAudioSignal,
     audioMonitorReliable,
@@ -271,15 +274,35 @@ export default function JobScreeningInterviewPage() {
   useEffect(() => {
     if (!isInterviewActive) return;
     window.history.pushState({ interviewGuard: true }, "");
+    const clearLeaveFallback = () => {
+      if (leaveFallbackRef.current) {
+        clearTimeout(leaveFallbackRef.current);
+        leaveFallbackRef.current = null;
+      }
+    };
     const handlePopstate = () => {
       if (ACTIVE_STAGES.has(stageRef.current)) {
         window.history.pushState({ interviewGuard: true }, "");
-        pendingNavigationRef.current = () => window.history.go(-2);
+        pendingNavigationRef.current = () => {
+          window.history.go(-2);
+          // Fresh-tab/direct-link opens have no earlier entry, so the jump
+          // above does nothing — guarantee the candidate still leaves.
+          leaveFallbackRef.current = window.setTimeout(() => {
+            window.location.assign("/");
+          }, 400);
+        };
         setShowLeaveModal(true);
       }
     };
     window.addEventListener("popstate", handlePopstate);
-    return () => window.removeEventListener("popstate", handlePopstate);
+    // A frozen (bfcache) page keeps pending timers — clear ours on the way out
+    // so a forward-navigation back can never fire a stale redirect.
+    window.addEventListener("pagehide", clearLeaveFallback);
+    return () => {
+      window.removeEventListener("popstate", handlePopstate);
+      window.removeEventListener("pagehide", clearLeaveFallback);
+      clearLeaveFallback();
+    };
   }, [isInterviewActive]);
 
   // Intercept in-app link clicks (navbar, etc.) in the capture phase.
@@ -1120,15 +1143,17 @@ export default function JobScreeningInterviewPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={async () => {
-                    setShowLeaveModal(false);
-                    if (isRecording) {
-                      try {
-                        await stopRecording();
-                      } catch (_) {}
-                    }
-                    pendingNavigationRef.current?.();
+                  onClick={() => {
+                    const navigate = pendingNavigationRef.current;
                     pendingNavigationRef.current = null;
+                    setShowLeaveModal(false);
+                    // stopTracks releases camera/mic synchronously. Awaiting
+                    // stopRecording() can hang forever when the recorder's
+                    // onstop never fires (dead stream, iOS), which trapped
+                    // candidates on this modal.
+                    stopTracks();
+                    if (navigate) navigate();
+                    else window.location.assign("/");
                   }}
                   className="w-full rounded-full border border-slate-200 px-6 py-3.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
                 >
@@ -1380,17 +1405,48 @@ export default function JobScreeningInterviewPage() {
             <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#002856] mb-3">
               Before You Begin
             </div>
-            <h2 className="text-3xl font-extrabold text-[#002856] tracking-tight">
+            <h2 className="text-xl font-extrabold text-[#002856] tracking-tight">
               You&apos;re almost ready.
             </h2>
-            <p className="mt-6 text-sm font-medium leading-relaxed text-slate-500">
-              Listen carefully to each question before you begin answering. Once
-              the prompt ends, your response will be recorded automatically.
-            </p>
-            <p className="mt-3 text-sm font-medium leading-relaxed text-slate-500">
-              You&apos;ll have a short preparation window before each answer —
-              use it to gather your thoughts. Your recorded responses will be
-              reviewed by our team.
+            <div className="mt-10 w-full max-w-md text-left">
+              {[
+                {
+                  step: "01",
+                  title: "Listen carefully",
+                  body: "Each question will be played once. Listen to the complete question before answering.",
+                },
+                {
+                  step: "02",
+                  title: "Take a moment",
+                  body: "You\u2019ll have a short preparation window before each answer. Use it to gather your thoughts.",
+                },
+                {
+                  step: "03",
+                  title: "Speak naturally",
+                  body: "Answer in your own words. There\u2019s no need to memorise anything.",
+                },
+              ].map((item) => (
+                <div
+                  key={item.step}
+                  className="flex gap-4 border-b border-slate-100 py-4 first:pt-0 last:border-b-0 last:pb-0"
+                >
+                  <span className="shrink-0 pt-0.5 text-[10px] font-bold tracking-wider text-[#002856]">
+                    {item.step} ·
+                  </span>
+                  <div>
+                    <p className="text-[12px] font-bold text-slate-800">
+                      {item.title}
+                    </p>
+                    <p className="mt-1 text-xs font-medium leading-relaxed text-slate-500">
+                      {item.body}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-8 max-w-md text-[12px] font-medium leading-relaxed text-slate-400">
+              Your response will be recorded automatically and reviewed by our
+              team.
             </p>
             <div className="mt-10 w-16 h-0.5 rounded-full bg-slate-250" />
             <button

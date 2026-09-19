@@ -49,6 +49,10 @@ export default function InterviewVideoPlayer({
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [loadError, setLoadError] = useState("");
+  // True while playback is expected but starved of data — covers the initial
+  // fetch, autoplay still pending, and mid-play stalls. Without this the
+  // candidate sees a frozen frame and cannot tell loading from a broken video.
+  const [videoBusy, setVideoBusy] = useState(false);
   const [forceNativeControls, setForceNativeControls] = useState(false);
   const [knownDuration, setKnownDuration] = useState(
     Number.isFinite(initialDurationSeconds) && initialDurationSeconds > 0
@@ -66,6 +70,7 @@ export default function InterviewVideoPlayer({
     completionReportedRef.current = false;
     setPlaying(false);
     setLoadError("");
+    setVideoBusy(Boolean(src && autoPlay));
     setForceNativeControls(false);
     setProgress(0);
     setDuration(0);
@@ -75,7 +80,7 @@ export default function InterviewVideoPlayer({
         ? Number(initialDurationSeconds)
         : 0,
     );
-  }, [src]);
+  }, [src, autoPlay]);
 
   const reportCompletion = () => {
     if (completionReportedRef.current) return;
@@ -139,6 +144,7 @@ export default function InterviewVideoPlayer({
     const video = videoRef.current;
     if (!video || !src || !autoPlay) return;
 
+    setVideoBusy(true);
     video.play().then(() => {
       setPlaying(true);
     }).catch((error) => {
@@ -148,6 +154,7 @@ export default function InterviewVideoPlayer({
         console.error("Video autoplay failed:", error);
       }
       setPlaying(false);
+      setVideoBusy(false);
     });
   }, [autoPlay, src]);
 
@@ -182,6 +189,7 @@ export default function InterviewVideoPlayer({
 
     if (video.paused) {
       try {
+        setVideoBusy(true);
         await video.play();
         setPlaying(true);
         setLoadError("");
@@ -190,6 +198,7 @@ export default function InterviewVideoPlayer({
           console.error("Video play failed:", error);
         }
         setPlaying(false);
+        setVideoBusy(false);
         setLoadError("This video could not be played in your browser.");
       }
       return;
@@ -227,7 +236,8 @@ export default function InterviewVideoPlayer({
       message: mediaError?.message,
     });
     setPlaying(false);
-    
+    setVideoBusy(false);
+
     if (mediaError?.code === 4) {
       setForceNativeControls(false);
       setLoadError("This video appears to be corrupted or incomplete. The candidate's recording may have been interrupted.");
@@ -252,6 +262,7 @@ export default function InterviewVideoPlayer({
     if (finalDuration > 0) setKnownDuration(finalDuration);
     setProgress(100);
     setPlaying(false);
+    setVideoBusy(false);
     reportCompletion();
   };
 
@@ -282,9 +293,21 @@ export default function InterviewVideoPlayer({
           onCanPlay={updateTimingState}
           onProgress={updateTimingState}
           onPlay={() => setPlaying(true)}
-          onPause={() => setPlaying(false)}
+          onPlaying={() => setVideoBusy(false)}
+          onPause={() => {
+            setPlaying(false);
+            setVideoBusy(false);
+          }}
           onEnded={handleEnded}
           onError={handleVideoError}
+          onLoadStart={() => {
+            if (autoPlay || !videoRef.current?.paused) setVideoBusy(true);
+          }}
+          onWaiting={() => setVideoBusy(true)}
+          onStalled={() => {
+            if (videoRef.current && !videoRef.current.paused) setVideoBusy(true);
+          }}
+          onSuspend={() => setVideoBusy(false)}
           playsInline
           controls={forceNativeControls}
           preload="metadata"
@@ -304,7 +327,14 @@ export default function InterviewVideoPlayer({
           </div>
         ) : null}
 
-        {!playing && !loadError ? (
+        {videoBusy && !loadError ? (
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/40">
+            <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-white/25 border-t-white" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/85">
+              Loading video&hellip;
+            </span>
+          </div>
+        ) : !playing && !loadError ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 text-slate-900 shadow-lg">
               <Play className="ml-0.5 h-5 w-5 fill-current" />

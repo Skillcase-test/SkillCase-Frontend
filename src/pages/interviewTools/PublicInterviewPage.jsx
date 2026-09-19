@@ -121,7 +121,9 @@ export default function PublicInterviewPage() {
     setForm((prev) => ({ ...prev, ...supplied }));
     setPrefilledFields((prev) => ({
       ...prev,
-      ...Object.fromEntries(Object.keys(supplied).map((field) => [field, true])),
+      ...Object.fromEntries(
+        Object.keys(supplied).map((field) => [field, true]),
+      ),
     }));
   };
 
@@ -138,6 +140,10 @@ export default function PublicInterviewPage() {
   const [globalTimeLeft, setGlobalTimeLeft] = useState(null);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const pendingNavigationRef = useRef(null);
+  // Safety net for the back-button leave path: history.go() silently no-ops
+  // when the interview was opened in a fresh tab (direct invite link), so a
+  // timer pushes the candidate out to home when the jump cannot happen.
+  const leaveFallbackRef = useRef(null);
   const [stage, setStage] = useState("loading");
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [thinkingRemaining, setThinkingRemaining] = useState(0);
@@ -190,7 +196,6 @@ export default function PublicInterviewPage() {
   const {
     stream,
     recordedBlob,
-    isRecording,
     recordingSeconds,
     recordingHasAudioSignal,
     audioMonitorReliable,
@@ -250,15 +255,35 @@ export default function PublicInterviewPage() {
   useEffect(() => {
     if (!isInterviewActive) return;
     window.history.pushState({ interviewGuard: true }, "");
+    const clearLeaveFallback = () => {
+      if (leaveFallbackRef.current) {
+        clearTimeout(leaveFallbackRef.current);
+        leaveFallbackRef.current = null;
+      }
+    };
     const handlePopstate = () => {
       if (ACTIVE_STAGES.has(stageRef.current)) {
         window.history.pushState({ interviewGuard: true }, "");
-        pendingNavigationRef.current = () => window.history.go(-2);
+        pendingNavigationRef.current = () => {
+          window.history.go(-2);
+          // Fresh-tab/direct-link opens have no earlier entry, so the jump
+          // above does nothing — guarantee the candidate still leaves.
+          leaveFallbackRef.current = window.setTimeout(() => {
+            window.location.assign("/");
+          }, 400);
+        };
         setShowLeaveModal(true);
       }
     };
     window.addEventListener("popstate", handlePopstate);
-    return () => window.removeEventListener("popstate", handlePopstate);
+    // A frozen (bfcache) page keeps pending timers — clear ours on the way out
+    // so a forward-navigation back can never fire a stale redirect.
+    window.addEventListener("pagehide", clearLeaveFallback);
+    return () => {
+      window.removeEventListener("popstate", handlePopstate);
+      window.removeEventListener("pagehide", clearLeaveFallback);
+      clearLeaveFallback();
+    };
   }, [isInterviewActive]);
 
   // Intercept in-app link clicks (navbar, etc.) in the capture phase.
@@ -442,7 +467,8 @@ export default function PublicInterviewPage() {
     retakesUsed < Number(position?.allowed_retakes || 0) && !!recordedBlob;
   // The monitor listened and heard nothing — a genuinely unusable answer,
   // as opposed to a monitor that could not run at all.
-  const recordingSoundedSilent = audioMonitorReliable && !recordingHasAudioSignal;
+  const recordingSoundedSilent =
+    audioMonitorReliable && !recordingHasAudioSignal;
 
   // Uploads one recorded answer, transparently retrying dropped connections.
   const uploadAnswerBlob = async ({
@@ -1060,17 +1086,17 @@ export default function PublicInterviewPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={async () => {
-                    setShowLeaveModal(false);
-                    if (isRecording) {
-                      try {
-                        await stopRecording();
-                      } catch {
-                        // Leaving must not be trapped if recorder cleanup has already happened.
-                      }
-                    }
-                    pendingNavigationRef.current?.();
+                  onClick={() => {
+                    const navigate = pendingNavigationRef.current;
                     pendingNavigationRef.current = null;
+                    setShowLeaveModal(false);
+                    // stopTracks releases camera/mic synchronously. Awaiting
+                    // stopRecording() can hang forever when the recorder's
+                    // onstop never fires (dead stream, iOS), which trapped
+                    // candidates on this modal.
+                    stopTracks();
+                    if (navigate) navigate();
+                    else window.location.assign("/");
                   }}
                   className="w-full rounded-full border border-slate-200 px-6 py-3.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"
                 >
@@ -1200,7 +1226,10 @@ export default function PublicInterviewPage() {
                     </label>
                     <input
                       value={form.candidate_name}
-                      disabled={isJobScreeningCandidate && prefilledFields.candidate_name}
+                      disabled={
+                        isJobScreeningCandidate &&
+                        prefilledFields.candidate_name
+                      }
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
@@ -1217,7 +1246,10 @@ export default function PublicInterviewPage() {
                     </label>
                     <input
                       value={form.candidate_email}
-                      disabled={isJobScreeningCandidate && prefilledFields.candidate_email}
+                      disabled={
+                        isJobScreeningCandidate &&
+                        prefilledFields.candidate_email
+                      }
                       onChange={(e) =>
                         setForm((prev) => ({
                           ...prev,
@@ -1234,7 +1266,10 @@ export default function PublicInterviewPage() {
                     </label>
                     <input
                       value={form.candidate_phone}
-                      disabled={isJobScreeningCandidate && prefilledFields.candidate_phone}
+                      disabled={
+                        isJobScreeningCandidate &&
+                        prefilledFields.candidate_phone
+                      }
                       onChange={(e) => {
                         const val = e.target.value
                           .replace(/\D/g, "")
@@ -1310,25 +1345,55 @@ export default function PublicInterviewPage() {
 
         {stage === "instructions" ? (
           <div className="mx-auto flex w-full max-w-5xl flex-1 items-center justify-center md:p-4">
-            <div className="w-full bg-white rounded-none md:rounded-3xl shadow-none md:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col items-center justify-center text-center px-8 py-16 md:px-16 md:py-20 min-h-[500px]">
+            <div className="w-full bg-white rounded-none md:rounded-3xl shadow-none md:shadow-[0_20px_50px_-12px_rgba(0,0,0,0.1)] overflow-hidden flex flex-col items-center justify-center text-center px-8 py-4 md:px-16 md:py-20 min-h-[500px]">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#083262]/[0.07] mb-8">
                 <Mic className="h-7 w-7 text-[#083262]" />
               </div>
               <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#083262] mb-3">
                 Before You Begin
               </div>
-              <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight max-w-lg">
+              <h2 className="text-xl md:text-4xl font-extrabold text-slate-900 tracking-tight max-w-lg">
                 You&apos;re almost ready.
               </h2>
-              <p className="mt-6 text-[15px] font-medium leading-relaxed text-slate-500 max-w-xl">
-                Listen carefully to each question before you begin answering.
-                Once the prompt ends, your response will be recorded
-                automatically.
-              </p>
-              <p className="mt-3 text-[15px] font-medium leading-relaxed text-slate-500 max-w-xl">
-                You&apos;ll have a short preparation window before each answer —
-                use it to gather your thoughts. Your recorded responses will be
-                reviewed by our team.
+              <div className="mt-10 w-full max-w-md text-left">
+                {[
+                  {
+                    step: "01",
+                    title: "Listen carefully",
+                    body: "Each question will be played once. Listen to the complete question before answering.",
+                  },
+                  {
+                    step: "02",
+                    title: "Take a moment",
+                    body: "You\u2019ll have a short preparation window before each answer. Use it to gather your thoughts.",
+                  },
+                  {
+                    step: "03",
+                    title: "Speak naturally",
+                    body: "Answer in your own words. There\u2019s no need to memorise anything.",
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.step}
+                    className="flex gap-4 border-b border-slate-100 py-4 first:pt-0 last:border-b-0 last:pb-0"
+                  >
+                    <span className="shrink-0 pt-0.5 text-[10px] font-bold tracking-wider text-[#083262]">
+                      {item.step} ·
+                    </span>
+                    <div>
+                      <p className="text-[12px] font-bold text-slate-800">
+                        {item.title}
+                      </p>
+                      <p className="mt-1 text-xs font-medium leading-relaxed text-slate-500">
+                        {item.body}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-8 max-w-md text-[13px] font-medium leading-relaxed text-slate-400">
+                Your response will be recorded automatically and reviewed by our
+                team.
               </p>
               <div className="mt-10 w-16 h-0.5 rounded-full bg-slate-200" />
               <button
