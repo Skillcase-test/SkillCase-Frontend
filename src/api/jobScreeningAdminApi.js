@@ -126,6 +126,9 @@ export const adminReorderOpportunities = (ids) =>
 export const adminDeleteOpportunity = (id) =>
   api.delete(`/admin/job-screening/opportunities/${id}`);
 
+export const adminDuplicateOpportunity = (id) =>
+  api.post(`/admin/job-screening/opportunities/${id}/duplicate`);
+
 export const adminUploadOpportunityImage = (id, formData) =>
   api.post(`/admin/job-screening/opportunities/${id}/image`, formData, {
     headers: { "Content-Type": "multipart/form-data" },

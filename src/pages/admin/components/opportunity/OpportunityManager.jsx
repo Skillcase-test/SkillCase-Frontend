@@ -8,6 +8,7 @@ import {
   RefreshCw,
   Globe,
   Check,
+  Copy,
 } from "lucide-react";
 import {
   DndContext,
@@ -31,6 +32,7 @@ import {
   adminUpdateOpportunity,
   adminReorderOpportunities,
   adminDeleteOpportunity,
+  adminDuplicateOpportunity,
   adminUploadOpportunityImage,
 } from "../../../../api/jobScreeningAdminApi";
 import OpportunityEditor from "./OpportunityEditor";
@@ -77,6 +79,7 @@ const SortableRow = ({
   onToggleActive,
   onDelete,
   onCopyLink,
+  onDuplicate,
 }) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.id });
@@ -178,6 +181,15 @@ const SortableRow = ({
         </button>
         <button
           type="button"
+          onClick={() => onDuplicate(item)}
+          disabled={!canEdit || busy}
+          className="h-7 px-2.5 rounded-lg text-[10px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 cursor-pointer disabled:opacity-40 flex items-center gap-1"
+        >
+          <Copy className="w-3 h-3" />
+          Duplicate
+        </button>
+        <button
+          type="button"
           onClick={() => onDelete(item)}
           disabled={!canEdit || busy}
           className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 cursor-pointer disabled:opacity-40"
@@ -196,6 +208,7 @@ const OpportunityManager = ({ canEdit }) => {
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmDuplicate, setConfirmDuplicate] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const sensors = useSensors(
@@ -304,6 +317,28 @@ const OpportunityManager = ({ canEdit }) => {
     }
   };
 
+  const handleDuplicate = async () => {
+    const item = confirmDuplicate;
+    setConfirmDuplicate(null);
+    if (!canEdit) return toast.error("You have view-only access to Job Screening");
+    setBusy(true);
+    try {
+      const res = await adminDuplicateOpportunity(item.id);
+      toast.success(`Duplicated "${item.title}" as a draft`);
+      // Open the copy in the editor — the draft is what the admin almost
+      // always wants to touch next (title, image, publish). If the response
+      // is malformed just refresh the list rather than open the "new" editor.
+      if (res.data?.data?.id) {
+        setEditing(res.data.data);
+      }
+      refresh();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Duplicate failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleDelete = async () => {
     const item = confirmDelete;
     setConfirmDelete(null);
@@ -403,10 +438,43 @@ const OpportunityManager = ({ canEdit }) => {
                   onToggleActive={handleToggleActive}
                   onDelete={setConfirmDelete}
                   onCopyLink={handleCopyLink}
+                  onDuplicate={setConfirmDuplicate}
                 />
               ))}
             </SortableContext>
           </DndContext>
+        </div>
+      )}
+
+      {confirmDuplicate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40">
+          <div className="bg-white rounded-2xl shadow-xl p-5 w-80 flex flex-col gap-3">
+            <h4 className="text-sm font-extrabold text-slate-800">
+              Duplicate “{confirmDuplicate.title}”?
+            </h4>
+            <p className="text-[11px] font-medium text-slate-500">
+              A draft copy will be created with its own image — edits and
+              deletions won't affect the original. It won't be live until you
+              publish it.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDuplicate(null)}
+                className="h-8 px-3 rounded-lg border border-slate-200 text-[11px] font-bold text-slate-600 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDuplicate}
+                className="h-8 px-3 rounded-lg bg-indigo-600 text-white text-[11px] font-bold cursor-pointer flex items-center gap-1.5"
+              >
+                <Copy className="w-3 h-3" />
+                Duplicate
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
