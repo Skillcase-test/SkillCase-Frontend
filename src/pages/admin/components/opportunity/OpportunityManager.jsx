@@ -134,7 +134,7 @@ const SortableRow = ({
         {item.is_active ? "Live" : "Draft"}
       </span>
       <span
-        title="Candidate level this path targets"
+        title="Candidate level this opportunity targets"
         className="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wide bg-indigo-50 text-indigo-600 border border-indigo-200"
       >
         {item.level === "all" ? "All" : String(item.level || "all").toUpperCase()}

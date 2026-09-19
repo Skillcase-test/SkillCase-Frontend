@@ -6,7 +6,7 @@ import { getProgress } from "../../api/jobScreeningApi";
 
 // /job-screening/opportunity/:id — deep link target shared by admins (web
 // link via /redirect?route=… and the skillcase://app scheme) and by the
-// status-change push notification. The pathway page only exists while the
+// status-change push notification. The opportunity page only exists while the
 // candidate's select_opportunity step is live; anything else falls back to
 // the screening pipeline root.
 const OpportunityDeepLink = () => {
@@ -48,6 +48,7 @@ const OpportunityDeepLink = () => {
     <div className="min-h-screen bg-white w-full flex flex-col items-center overflow-y-auto">
       <div className="w-full max-w-md flex-1 flex flex-col min-h-screen">
         <SelectOpportunityStep
+          progress={progress}
           initialOpportunityId={id}
           onBack={() => navigate("/job-screening")}
         />

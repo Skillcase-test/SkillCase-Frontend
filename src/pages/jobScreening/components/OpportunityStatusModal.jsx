@@ -4,9 +4,9 @@ import ModalPortal from "../../../components/common/ModalPortal";
 import mayaThumbsup from "../../../assets/onboarding/mayaThumbsup.webp";
 import mayaSad from "../../../assets/onboarding/mayaSad.webp";
 
-// Status popup shown once when a candidate opens a pathway whose admin
+// Status popup shown once when a candidate opens an opportunity whose admin
 // decision already landed — shortlisted celebrates with thumbs-up Maya,
-// rejected shows sad Maya and routes them back to the remaining paths.
+// rejected shows sad Maya and routes them back to the remaining options.
 const CONTENT = {
   shortlisted: {
     image: mayaThumbsup,
@@ -20,10 +20,10 @@ const CONTENT = {
   rejected: {
     image: mayaSad,
     imageBg: "bg-rose-100",
-    heading: "Pathway update",
+    heading: "Profile Not Shortlisted",
     body: (title) =>
-      `Your status for “${title}” has been changed and this path is no longer moving ahead. Explore the other pathways that match your goals.`,
-    cta: "Check other pathways",
+      `Your profile was not shortlisted for “${title}”. Explore other opportunities on Skillcase.`,
+    cta: "Explore Other Opportunities",
     ctaClass: "bg-[#002856] hover:bg-[#07192f] text-white",
   },
 };

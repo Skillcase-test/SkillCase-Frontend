@@ -8,8 +8,8 @@ import RejectionNote from "../RejectionNote";
 // The candidate opportunity detail page body — shared between the real
 // select_opportunity step and the admin 414×896 live preview so the preview
 // is pixel-accurate. `preview` mode disables the actions (no writes).
-// `status` is the candidate's pick state for this path:
-//   null        → untouched, "Apply for this path"
+// `status` is the candidate's pick state for this opportunity:
+//   null        → untouched, "Apply for this opportunity"
 //   chosen      → picked, awaiting admin decision — locked "Already Applied"
 //   shortlisted → green "You're Shortlisted" → opens the congratulations screen
 //   rejected    → disabled rose "Rejected"
@@ -78,7 +78,7 @@ const OpportunityDetailView = ({
     ? cta.label
     : choosing
       ? "Applying…"
-      : "Apply for this path";
+      : "Apply for this opportunity";
   const ctaClass = cta
     ? cta.className
     : "bg-[#002856] hover:bg-[#07192f] disabled:opacity-60 text-white cursor-pointer border-none";
@@ -93,7 +93,7 @@ const OpportunityDetailView = ({
       }}
     >
       <OpportunityHeader opportunity={opportunity} />
-      {/* Admin pathway note — sits directly under the header, tracked the
+      {/* Admin opportunity note — sits directly under the header, tracked the
           same way as step notes (viewed_at via markStepNoteViewed). */}
       {note?.message ? (
         <RejectionNote
@@ -131,7 +131,7 @@ const OpportunityDetailView = ({
       {/* Tiny bottom-right scroll cue — portaled to body so it anchors to the
           real viewport (nested overflow/transform ancestors would otherwise
           capture it). Exists only while the CTA is off-screen. Purely a
-          visual hint: non-interactive, tinted to the path's status. */}
+          visual hint: non-interactive, tinted to the opportunity's status. */}
       {!preview &&
         ctaVisible === false &&
         createPortal(

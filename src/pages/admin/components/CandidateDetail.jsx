@@ -595,7 +595,7 @@ const CandidateDetail = ({
     openConfirmModal({
       title: "Reset All Opportunity Selections?",
       message:
-        "This clears every path the candidate picked (and its decision) so they can choose again. The step itself stays open until you skip it.",
+        "This clears every opportunity the candidate applied for (and its decision) so they can apply again. The step itself stays open until you skip it.",
       onConfirm: () => {
         onUpdate(candidate.user_id, { reset_opportunity: true });
       },
@@ -615,8 +615,8 @@ const CandidateDetail = ({
       title: `${verb} "${sel.title}"?`,
       message:
         status === "chosen"
-          ? "The admin decision is cleared; the candidate keeps this path selected. No notification is sent."
-          : "The candidate gets a push notification that their pathway status changed.",
+          ? "The admin decision is cleared; the candidate keeps this opportunity applied. No notification is sent."
+          : "The candidate gets a push notification that their opportunity status changed.",
       onConfirm: async () => {
         try {
           await adminSetOpportunityDecision(candidate.user_id, sel.id, status);
@@ -631,7 +631,7 @@ const CandidateDetail = ({
     });
   };
 
-  // Hides one pathway from this candidate's list without touching their
+  // Hides one opportunity from this candidate's list without touching their
   // pick/decision — reversible, so unhide skips the confirm.
   const handleOpportunityVisibility = (opp) => {
     const unhiding = opp.is_hidden;
@@ -642,7 +642,7 @@ const CandidateDetail = ({
           opp.id,
           !unhiding,
         );
-        toast.success(unhiding ? "Pathway visible again" : "Pathway hidden");
+        toast.success(unhiding ? "Opportunity visible again" : "Opportunity hidden");
         onRefresh?.();
       } catch (err) {
         toast.error(
@@ -657,7 +657,7 @@ const CandidateDetail = ({
     openConfirmModal({
       title: `Hide "${opp.title}"?`,
       message:
-        "The pathway disappears from this candidate's list. Their existing selection stays on record and can still be decided here.",
+        "The opportunity disappears from this candidate's list. Their existing selection stays on record and can still be decided here.",
       onConfirm: run,
     });
   };
@@ -2507,9 +2507,10 @@ const CandidateDetail = ({
                       {isSelectOpportunity && (
                         <div className="space-y-3">
                           <p>
-                            Every live pathway for this candidate — shortlist
-                            or reject their picks, or hide a path they
-                            shouldn't see. This step stays open until you skip
+                            Every live opportunity for this candidate — shortlist
+                            or reject their picks, or hide an opportunity
+                            they shouldn't see. This step stays open until
+                            you skip
                             it.
                           </p>
                           {(candidate.opportunities || []).length > 0 ? (
@@ -2532,10 +2533,10 @@ const CandidateDetail = ({
                                             cls: "bg-indigo-100 text-indigo-700",
                                           }
                                         : null;
-                                // Pathway notes reuse the step_notes JSONB
-                                // under "opportunity:<id>" keys — the
-                                // candidate sees them on the path's detail
-                                // page, under the header.
+                                // Opportunity notes reuse the step_notes
+                                // JSONB under "opportunity:<id>" keys — the
+                                // candidate sees them on the opportunity's
+                                // detail page, under the header.
                                 const oppNoteKey = `opportunity:${opp.id}`;
                                 const oppNote = stepNotes[oppNoteKey];
                                 const isNotesSupported =
@@ -2638,8 +2639,8 @@ const CandidateDetail = ({
                                               !isNotesSupported
                                                 ? `Requires candidate app version 1.2.5+ (current: v${candidate?.app_version || "unknown"})`
                                                 : oppNote
-                                                  ? "Edit pathway note"
-                                                  : "Add pathway note"
+                                                  ? "Edit opportunity note"
+                                                  : "Add opportunity note"
                                             }
                                             className={`w-6 h-6 flex items-center justify-center rounded-md border transition-all ${
                                               !isNotesSupported
@@ -2724,8 +2725,8 @@ const CandidateDetail = ({
                           ) : (
                             <p className="text-[10px] text-slate-400 font-semibold">
                               {isActive
-                                ? "No live pathways right now — the candidate sees the step skipped until one is published."
-                                : "No live pathways."}
+                                ? "No live opportunities right now — the candidate sees the step skipped until one is published."
+                                : "No live opportunities."}
                             </p>
                           )}
                         </div>
@@ -4394,7 +4395,7 @@ const CandidateDetail = ({
                         </div>
                       )}
                       {/* Step Reviewer Note Section — skipped for
-                          select_opportunity: pathways carry their own
+                          select_opportunity: opportunities carry their own
                           per-opportunity notes. A legacy note still
                           surfaces so it can be viewed or deleted. */}
                       {(!isSelectOpportunity || currentStepNote) && (

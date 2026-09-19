@@ -101,7 +101,7 @@ const OpportunityEditor = ({
             </h3>
             <p className="text-[10px] font-semibold text-slate-400">
               {record?.selection_count || 0} candidate
-              {record?.selection_count === 1 ? "" : "s"} selected this path
+              {record?.selection_count === 1 ? "" : "s"} applied for this opportunity
             </p>
           </div>
         </div>
@@ -253,10 +253,10 @@ const OpportunityEditor = ({
               </div>
               <p className="text-[9px] font-semibold text-slate-400">
                 {form.level === "b1"
-                  ? "Only B1 candidates see this path"
+                  ? "Only B1 candidates see this opportunity"
                   : form.level === "b2"
-                    ? "Only B2 candidates see this path"
-                    : "Every candidate sees this path"}
+                    ? "Only B2 candidates see this opportunity"
+                    : "Every candidate sees this opportunity"}
               </p>
             </div>
             <div className="flex flex-col gap-1.5">
@@ -410,7 +410,7 @@ const OpportunityEditor = ({
                   <ArrowLeft className="w-4 h-4" />
                 </div>
                 <span className="text-base font-semibold text-[#002856] tracking-tight">
-                  German Pathways
+                  Opportunities
                 </span>
               </div>
               <OpportunityDetailView opportunity={form} preview />

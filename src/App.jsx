@@ -1398,7 +1398,7 @@ function AppContent() {
                     path="/job-screening/opportunity/:id"
                     element={lazyScreen(
                       <OpportunityDeepLink />,
-                      "Loading Pathway...",
+                      "Loading Opportunity...",
                     )}
                   />
                   <Route

@@ -1,6 +1,6 @@
 import React from "react";
 
-// Skeleton for the pathway screen while opportunities/progress fetch —
+// Skeleton for the opportunity screen while opportunities/progress fetch —
 // mirrors the real list layout (sub-header, intro row, cards) so nothing
 // jumps when data lands. `cardsOnly` renders just the card stack for use
 // inside SelectOpportunityStep, whose header is static and already visible.

@@ -65,8 +65,8 @@ const STEP_DESCRIPTIONS = {
     desc: "Our recruitment partners will evaluate your profile details.",
   },
   select_opportunity: {
-    subtitle: "choose the path that fits you",
-    desc: "Browse the open pathways and pick how you want to move ahead.",
+    subtitle: "choose the opportunity that fits you",
+    desc: "Browse the open opportunities and pick how you want to move ahead.",
   },
   additional_documents: {
     subtitle: "submit supporting credentials",
@@ -389,7 +389,7 @@ const JobScreening = () => {
   }, []);
 
   if (loading || redirecting) {
-    // The pathway page has its own look — white, full-height, its own
+    // The opportunity page has its own look — white, full-height, its own
     // fetching state once mounted. Landing on ?step=select_opportunity
     // shouldn't flash the blue lobby skeleton underneath it.
     if (executingStepId === "select_opportunity") {
@@ -1184,7 +1184,7 @@ const JobScreening = () => {
                       />
                     )}
 
-                    {/* Emerald rocket card once any pathway pick is
+                    {/* Emerald rocket card once any opportunity pick is
                         shortlisted — informational only, no CTA inside. */}
                     {step.id === "select_opportunity" &&
                       (progress?.selected_opportunities || []).some(

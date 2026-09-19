@@ -20,14 +20,15 @@ import {
   markStepNoteViewed,
 } from "../../../api/jobScreeningApi";
 import mayaThumbsup from "../../../assets/onboarding/mayaThumbsup.webp";
-// select_opportunity step — candidate browses the admin-authored pathways,
-// opens one to read its dynamic content, and picks it. Multiple paths may be
-// chosen; each pick is independent. Admins mark chosen paths shortlisted
-// (green, floats to top) or rejected (rose, sinks to bottom). Selection never
-// completes the step: the candidate stays here until admin skips it.
+// select_opportunity step — candidate browses the admin-authored
+// opportunities, opens one to read its dynamic content, and applies for it.
+// Multiple opportunities may be applied for; each pick is independent.
+// Admins mark applied ones shortlisted (green, floats to top) or rejected
+// (rose, sinks to bottom). Applying never completes the step: the candidate
+// stays here until admin skips it.
 
 const SELECTED_STEPS = [
-  { state: "done", title: "Path applied" },
+  { state: "done", title: "Application sent" },
   { state: "active", title: "Our team reaches out within 24 hours" },
   { state: "pending", title: "Your onboarding begins" },
 ];
@@ -78,7 +79,7 @@ const DECIDED = new Set(["shortlisted", "rejected"]);
 
 // `onComplete` from the shared step contract is intentionally unused: this
 // step never self-completes (admin skips it from the candidate panel).
-// `progress` supplies step_notes — admin pathway notes are stored there
+// `progress` supplies step_notes — admin opportunity notes are stored there
 // under "opportunity:<id>" keys, reusing the step-note pipeline.
 const SelectOpportunityStep = ({ progress, onBack, initialOpportunityId }) => {
   const [opportunities, setOpportunities] = useState(null); // null = loading
@@ -105,7 +106,7 @@ const SelectOpportunityStep = ({ progress, onBack, initialOpportunityId }) => {
     };
   }, []);
 
-  // Deep link: land straight on a path's detail page, scrolled to the CTA.
+  // Deep link: land straight on an opportunity's detail page, scrolled to the CTA.
   // deepLinkDone makes it a one-shot — otherwise returning to the list (or the
   // opportunities refresh after a pick) would reopen the detail forever.
   useEffect(() => {
@@ -158,7 +159,7 @@ const SelectOpportunityStep = ({ progress, onBack, initialOpportunityId }) => {
     } catch (err) {
       setSelectError(
         err?.response?.data?.message ||
-          "Could not select this path. Please try again.",
+          "Could not apply for this opportunity. Please try again.",
       );
     } finally {
       setSelecting(false);
@@ -181,7 +182,7 @@ const SelectOpportunityStep = ({ progress, onBack, initialOpportunityId }) => {
           heading="Thank you for your interest"
           subtext={`You have applied for “${thanksOpp.title}”. Our team will reach out to you within the next 24 hours.`}
           steps={SELECTED_STEPS}
-          ctaLabel="View all pathways"
+          ctaLabel="View all opportunities"
           onBack={onBack}
           onDone={() => {
             setThanksOpp(null);
@@ -206,7 +207,7 @@ const SelectOpportunityStep = ({ progress, onBack, initialOpportunityId }) => {
           heading="Congratulations!"
           subtext="You are shortlisted for this opportunity and our team will guide you very very soon."
           steps={SHORTLISTED_STEPS}
-          ctaLabel="View all pathways"
+          ctaLabel="View all opportunities"
           onBack={onBack}
           onDone={() => setView("list")}
         />
@@ -220,7 +221,7 @@ const SelectOpportunityStep = ({ progress, onBack, initialOpportunityId }) => {
     const oppNote = progress?.step_notes?.[oppNoteKey] || null;
     return (
       <div className="w-full min-h-screen flex-1 bg-white flex flex-col">
-        <SubHeader title="German Pathways" onBack={backToList} />
+        <SubHeader title="Opportunities" onBack={backToList} />
         <OpportunityDetailView
           opportunity={activeOpp}
           status={activeOpp.my_status || null}
@@ -251,12 +252,12 @@ const SelectOpportunityStep = ({ progress, onBack, initialOpportunityId }) => {
   // ---- Listing view ----------------------------------------------------------
   return (
     <div className="w-full min-h-screen flex-1 bg-white flex flex-col">
-      <SubHeader title="German Pathways" onBack={onBack} />
+      <SubHeader title="Opportunities" onBack={onBack} />
       <div className="flex-1 px-4 sm:px-6 pt-6 pb-12 bg-gradient-to-b from-[#eff6ff] to-white flex flex-col gap-6">
         <div className="flex items-end gap-1">
           <div className="flex-1 flex flex-col gap-2 text-left">
             <h1 className="text-[#002856] text-xl font-bold tracking-tight leading-snug">
-              You are eligible for these paths
+              You are eligible for these opportunities
             </h1>
             <p className="text-[#002856]/70 text-xs font-medium leading-relaxed">
               Choose how you want to move ahead and get placed
@@ -275,7 +276,7 @@ const SelectOpportunityStep = ({ progress, onBack, initialOpportunityId }) => {
         ) : opportunities.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs p-6 text-center">
             <p className="text-xs font-semibold text-slate-500">
-              No paths are open right now — check back soon.
+              No opportunities are open right now — check back soon.
             </p>
           </div>
         ) : (

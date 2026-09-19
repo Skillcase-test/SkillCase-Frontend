@@ -17,8 +17,8 @@ const ShortlistedPromoCard = () => (
         </h4>
       </div>
       <p className="text-[#14532d]/80 text-[11px] sm:text-xs font-normal leading-relaxed mt-1">
-        Congratulations! A pathway has shortlisted you. Open it to view your
-        next steps.
+        Congratulations! An opportunity has shortlisted you. Open it to view
+        your next steps.
       </p>
     </div>
 
