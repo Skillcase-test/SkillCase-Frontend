@@ -4,6 +4,9 @@ import { interviewToolsApi } from "../../api/interviewToolsApi";
 import InterviewVideoPlayer from "./shared/InterviewVideoPlayer";
 
 const REVIEW_STATUSES = ["completed", "in_review", "shortlisted", "rejected"];
+// Half-point rating scale: 0.5, 1, 1.5, … 9.5, 10 — mirrors the backend's
+// accepted admin_score range.
+const SCORE_OPTIONS = Array.from({ length: 20 }, (_, i) => (i + 1) / 2);
 
 export default function InterviewToolsReviewPage({
   selectedInterviewPositionId,
@@ -261,8 +264,8 @@ export default function InterviewToolsReviewPage({
               <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-1">
                 Answer Rating
               </label>
-              <div className="flex flex-wrap gap-1.5">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((score) => {
+              <div className="grid grid-cols-10 gap-1.5">
+                {SCORE_OPTIONS.map((score) => {
                   const armed =
                     pendingScore?.questionId === activeAnswer.question_id &&
                     pendingScore?.score === score;
@@ -273,7 +276,7 @@ export default function InterviewToolsReviewPage({
                       onClick={() =>
                         updateAnswerScore(activeAnswer.question_id, score)
                       }
-                      className={`flex h-9 min-w-[2.5rem] flex-1 items-center justify-center rounded-lg border text-xs font-bold transition shadow-sm ${
+                      className={`flex h-9 items-center justify-center rounded-lg border text-xs font-bold transition shadow-sm ${
                         armed
                           ? "border-amber-300 bg-amber-50 text-amber-700 scale-105"
                           : Number(activeAnswer.admin_score) === score
@@ -318,7 +321,7 @@ export default function InterviewToolsReviewPage({
               </div>
               <input
                 type="number"
-                min="1"
+                min="0.5"
                 max="10"
                 step="0.01"
                 value={manualScore}

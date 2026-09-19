@@ -293,6 +293,7 @@ export default function SkillcaseInterviewToolsPositionsPage({
                         icon={Link2}
                         label="Copy"
                         confirmLabel="Copied"
+                        alwaysShowLabel
                         title={`Copy public link\n${publicLink}`}
                         onClick={() =>
                           navigator.clipboard.writeText(publicLink)
@@ -305,6 +306,7 @@ export default function SkillcaseInterviewToolsPositionsPage({
                           icon={Users}
                           label="Learners"
                           title="View learners"
+                          alwaysShowLabel
                           onClick={() => openCandidates(position.position_id)}
                         />
 

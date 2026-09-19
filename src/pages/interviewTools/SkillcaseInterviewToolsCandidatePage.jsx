@@ -705,6 +705,7 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                         icon={Eye}
                         label="Review"
                         tone="primary"
+                        alwaysShowLabel
                         title="Review submission"
                         onClick={() => {
                           setSelectedInterviewSubmissionId(item.submission_id);

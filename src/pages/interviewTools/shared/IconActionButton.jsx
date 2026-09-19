@@ -12,8 +12,9 @@ const TONE = {
 const FEEDBACK_TONE = "border-emerald-300 bg-emerald-50 text-emerald-700";
 
 // Compact table action button: shows only the icon until hovered, then expands
-// to reveal the label. `confirmLabel` flashes a success state after click —
-// use it for inline actions (copy, etc.) that produce no other visible result.
+// to reveal the label. `alwaysShowLabel` pins the label open at a constant
+// width for high-traffic actions. `confirmLabel` flashes a success state after
+// click — use it for inline actions (copy, etc.) with no other visible result.
 export default function IconActionButton({
   icon: Icon,
   label,
@@ -21,6 +22,7 @@ export default function IconActionButton({
   tone = "default",
   disabled = false,
   confirmLabel = null,
+  alwaysShowLabel = false,
   title,
 }) {
   const [confirmed, setConfirmed] = useState(false);
@@ -38,7 +40,7 @@ export default function IconActionButton({
   };
 
   const ActiveIcon = confirmed ? Check : Icon;
-  const labelVisible = confirmed;
+  const labelVisible = confirmed || alwaysShowLabel;
 
   return (
     <button
@@ -47,8 +49,8 @@ export default function IconActionButton({
       disabled={disabled}
       title={title || label}
       className={`group/ib inline-flex h-8 cursor-pointer items-center justify-center rounded-lg border px-2 transition-all duration-300 ease-in-out disabled:cursor-not-allowed disabled:opacity-60 ${
-        confirmed ? FEEDBACK_TONE : TONE[tone]
-      }`}
+        alwaysShowLabel ? "shrink-0" : ""
+      } ${confirmed ? FEEDBACK_TONE : TONE[tone]}`}
     >
       <ActiveIcon className="h-4 w-4 shrink-0" />
       <span
