@@ -13,7 +13,7 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
   const [error, setError] = useState("");
 
   const interviewStep = progress?.steps_config?.find(
-    (s) => s.id === "interview_attempt"
+    (s) => s.id === "interview_attempt",
   );
   const isInterviewCompleted = interviewStep?.status === "completed";
 
@@ -32,9 +32,15 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
           phone: progress.candidate_phone,
         },
       });
-      trackFlowAction("job_screening", "interview_attempt", "redirected", "success", {
-        state: "assigned",
-      });
+      trackFlowAction(
+        "job_screening",
+        "interview_attempt",
+        "redirected",
+        "success",
+        {
+          state: "assigned",
+        },
+      );
     }
   }, [progress, navigate, isInterviewCompleted]);
 
@@ -78,7 +84,8 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
               Interview completed!
             </h2>
             <p className="text-[#002856]/70 text-xs sm:text-sm font-medium mt-2 max-w-[285px] mx-auto leading-relaxed">
-              Your interview assessment has been successfully submitted and is under evaluation.
+              Your interview assessment has been successfully submitted and is
+              under evaluation.
             </p>
           </div>
 
@@ -97,7 +104,8 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
                   Interview Submitted
                 </h4>
                 <p className="text-slate-500 text-[11px] sm:text-xs mt-1 leading-normal">
-                  Your video and voice answers have been uploaded to our servers.
+                  Your video and voice answers have been uploaded to our
+                  servers.
                 </p>
               </div>
             </div>
@@ -114,27 +122,10 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
                   Evaluation in progress
                 </h4>
                 <p className="text-slate-500 text-[11px] sm:text-xs mt-1 leading-normal">
-                  Our recruiting team will evaluate your assessment result shortly.
+                  Our recruiting team will evaluate your assessment result
+                  shortly.
                 </p>
               </div>
-            </div>
-          </div>
-
-          {/* Please note card - RED color with mascot */}
-          <div className="w-full bg-white rounded-2xl border border-rose-200 flex items-center gap-3.5 shadow-sm text-left">
-            <img
-              src={mayaShocked}
-              alt="Mascot Alert"
-              className="w-20 h-20 object-contain shrink-0 select-none"
-              draggable="false"
-            />
-            <div className="min-w-0 flex-1 pr-4 py-2">
-              <h5 className="text-rose-700 text-xs sm:text-sm font-bold">
-                Attention Required
-              </h5>
-              <p className="text-rose-600 text-[10px] sm:text-xs mt-0.5 leading-normal font-semibold">
-                The next candidate agreement step is very important. Please fill out the candidate agreement to know the review of your interview.
-              </p>
             </div>
           </div>
 
@@ -167,20 +158,34 @@ const InterviewStep = ({ progress, onComplete, onBack }) => {
       setError("");
       const { data } = await getProgress();
       if (data?.success) {
-        trackFlowAction("job_screening", "interview_attempt", "refresh", "success", {
-          state: data?.data?.assigned_interview_slug ? "assigned" : "pending",
-        });
+        trackFlowAction(
+          "job_screening",
+          "interview_attempt",
+          "refresh",
+          "success",
+          {
+            state: data?.data?.assigned_interview_slug ? "assigned" : "pending",
+          },
+        );
         onComplete(data.data);
       } else {
-        trackFlowAction("job_screening", "interview_attempt", "refresh", "failed");
+        trackFlowAction(
+          "job_screening",
+          "interview_attempt",
+          "refresh",
+          "failed",
+        );
         setError("Failed to refresh status");
       }
     } catch (err) {
-      trackFlowAction("job_screening", "interview_attempt", "refresh", "failed");
-      console.error(err);
-      setError(
-        err.response?.data?.message || "Failed to sync status",
+      trackFlowAction(
+        "job_screening",
+        "interview_attempt",
+        "refresh",
+        "failed",
       );
+      console.error(err);
+      setError(err.response?.data?.message || "Failed to sync status");
     } finally {
       setRefreshing(false);
     }

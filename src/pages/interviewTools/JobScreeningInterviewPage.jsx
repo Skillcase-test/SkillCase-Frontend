@@ -233,7 +233,12 @@ export default function JobScreeningInterviewPage() {
         step_id: "interview_attempt",
       },
     });
-  }, [activeQuestionIndex, position?.position_id, stage, submission?.submission_id]);
+  }, [
+    activeQuestionIndex,
+    position?.position_id,
+    stage,
+    submission?.submission_id,
+  ]);
   useEffect(() => {
     submissionRef.current = submission;
   }, [submission]);
@@ -498,12 +503,20 @@ export default function JobScreeningInterviewPage() {
         step_id: "interview_attempt",
       },
     });
-  }, [activeQuestion, activeQuestionIndex, position?.position_id, questions.length, submission?.submission_id]);
+  }, [
+    activeQuestion,
+    activeQuestionIndex,
+    position?.position_id,
+    questions.length,
+    submission?.submission_id,
+  ]);
 
   useEffect(() => {
     if (!recorderError) return;
     captureTelemetryError(
-      recorderError instanceof Error ? recorderError : new Error(String(recorderError)),
+      recorderError instanceof Error
+        ? recorderError
+        : new Error(String(recorderError)),
       {
         domain: "job_screening",
         feature: "interview.recording",
@@ -517,7 +530,8 @@ export default function JobScreeningInterviewPage() {
     retakesUsed < Number(position?.allowed_retakes || 0) && !!recordedBlob;
   // The monitor listened and heard nothing — a genuinely unusable answer,
   // as opposed to a monitor that could not run at all.
-  const recordingSoundedSilent = audioMonitorReliable && !recordingHasAudioSignal;
+  const recordingSoundedSilent =
+    audioMonitorReliable && !recordingHasAudioSignal;
 
   // Uploads one recorded answer, transparently retrying dropped connections.
   const uploadAnswerBlob = async ({
@@ -1177,8 +1191,8 @@ export default function JobScreeningInterviewPage() {
                     Your Skillcase interview
                   </h1>
                   <p className="text-blue-950/70 text-sm font-medium leading-relaxed">
-                    This assessment helps us evaluate your language
-                    fluency and communication skills for the nursing placement.
+                    This assessment helps us evaluate your language fluency and
+                    communication skills for the nursing placement.
                   </p>
                 </div>
 
@@ -1740,26 +1754,6 @@ export default function JobScreeningInterviewPage() {
                       shortly. It might take 24 - 48 hours.
                     </p>
                   </div>
-                </div>
-              </div>
-
-              {/* Please note card - RED color with mascot */}
-              <div className="w-full bg-white rounded-2xl border border-rose-200 flex items-center gap-3.5 shadow-sm text-left">
-                <img
-                  src={mayaShocked}
-                  alt="Mascot Alert"
-                  className="w-20 h-20 object-contain shrink-0 select-none"
-                  draggable="false"
-                />
-                <div className="min-w-0 flex-1 pr-4 py-2">
-                  <h5 className="text-rose-700 text-xs sm:text-sm font-bold">
-                    Attention Required
-                  </h5>
-                  <p className="text-rose-600 text-[10px] sm:text-xs mt-0.5 leading-normal font-semibold">
-                    The next candidate agreement step is very important. Please
-                    fill out the candidate agreement to know the review of your
-                    interview.
-                  </p>
                 </div>
               </div>
 

@@ -1,11 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ArrowLeft,
-  Copy,
-  Check,
-  MoreHorizontal,
-} from "lucide-react";
+import { ArrowLeft, Copy, Check, MoreHorizontal } from "lucide-react";
 import { FaWhatsapp, FaFacebookF, FaInstagram } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { toast } from "react-hot-toast";
@@ -56,8 +51,7 @@ const ReferralPage = () => {
           return;
         }
         setError(
-          err.response?.data?.message ||
-            "Failed to load your referral link.",
+          err.response?.data?.message || "Failed to load your referral link.",
         );
       })
       .finally(() => {
@@ -70,10 +64,7 @@ const ReferralPage = () => {
 
   const shareUrl = details?.share_url || "";
   const referralCode = details?.code || "";
-  const shareText = useMemo(
-    () => `${SHARE_MESSAGE} ${shareUrl}`,
-    [shareUrl],
-  );
+  const shareText = useMemo(() => `${SHARE_MESSAGE} ${shareUrl}`, [shareUrl]);
 
   const copyLink = async (source) => {
     const textToCopy = shareUrl || referralCode;
@@ -225,9 +216,7 @@ const ReferralPage = () => {
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
-          <h1 className="text-base font-semibold text-[#002856]">
-            Referral
-          </h1>
+          <h1 className="text-base font-semibold text-[#002856]">Referral</h1>
         </div>
       </div>
 
@@ -249,7 +238,7 @@ const ReferralPage = () => {
             {rewardApplied && (
               <p className="mt-2.5 inline-flex items-center gap-1.5 bg-green-100 text-[#15803d] text-[11px] font-bold px-2.5 py-1 rounded-full">
                 <Check className="w-3.5 h-3.5" />
-                Fast-forwarded — {stats.completed} friend
+                {stats.completed} friend
                 {stats.completed === 1 ? "" : "s"} joined
               </p>
             )}
@@ -302,7 +291,6 @@ const ReferralPage = () => {
           </div>
           {stats.clicked > 0 && (
             <p className="text-slate-400 text-[11px] font-medium mt-1">
-              {stats.clicked} click{stats.clicked === 1 ? "" : "s"} ·{" "}
               {stats.completed} joined
             </p>
           )}
@@ -370,9 +358,7 @@ const ReferralPage = () => {
               <span className="w-12 h-12 rounded-full bg-white border border-slate-300 text-slate-700 flex items-center justify-center shadow-xs group-active:scale-95 transition-transform">
                 <MoreHorizontal className="w-6 h-6" />
               </span>
-              <span className="text-xs font-normal text-slate-700">
-                More
-              </span>
+              <span className="text-xs font-normal text-slate-700">More</span>
             </button>
           </div>
         </motion.div>

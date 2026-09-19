@@ -496,7 +496,7 @@ const AdditionalDocumentsStep = ({ progress, onComplete, onBack }) => {
               className="w-20 h-20 object-contain shrink-0 select-none"
               draggable="false"
             />
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 pr-3">
               <h5 className="text-slate-800 text-xs sm:text-sm font-bold">
                 {isCompleted ? "Verification complete" : "Please note"}
               </h5>

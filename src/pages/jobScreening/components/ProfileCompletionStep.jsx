@@ -428,14 +428,14 @@ const ProfileCompletionStep = ({ progress, onComplete, onBack }) => {
           </div>
 
           {/* Please note card */}
-          <div className="w-full bg-white rounded-2xl border border-slate-200/80 flex items-center gap-3.5 shadow-sm text-left">
+          <div className="w-full bg-white rounded-2xl border border-slate-200/80 flex items-center gap-2.5 shadow-sm text-left">
             <img
               src={mayaShocked}
               alt="Mascot Alert"
               className="w-20 h-20 object-contain shrink-0 select-none"
               draggable="false"
             />
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 pr-3">
               <h5 className="text-slate-800 text-xs sm:text-sm font-bold">
                 {isProfileCompleted ? "Verification complete" : "Please note"}
               </h5>
