@@ -15,12 +15,9 @@ import {
   Minimize2,
   Pause,
   Play,
-  RotateCcw,
-  RotateCw,
   Settings,
   SkipBack,
   SkipForward,
-  Sparkles,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -209,6 +206,8 @@ export default function VideoPlayerPage() {
   const clickTimerRef = useRef(null);
   const dismissTimerRef = useRef(null);
   const accumulatedSecondsRef = useRef(0);
+  const lastScrubEndRef = useRef(0);
+  const controlsShownAtRef = useRef(0);
   const [dtFeedback, setDtFeedback] = useState({
     side: null, // 'left' | 'right' | null
     seconds: 10,
@@ -450,6 +449,12 @@ export default function VideoPlayerPage() {
     };
   }, [resetControlsTimeout]);
 
+  // Stamps only the hidden→visible transition — re-arms while already
+  // visible (mousemove, taps) must not refresh it.
+  useEffect(() => {
+    if (showControls) controlsShownAtRef.current = performance.now();
+  }, [showControls]);
+
   const tourRefs = useMemo(
     () => ({
       videoContainer: videoContainerRef,
@@ -562,10 +567,14 @@ export default function VideoPlayerPage() {
   };
 
   const handlePlayerTap = (e) => {
-    // If clicking on settings menu or top/bottom interactive buttons, let those handle it
+    // If clicking on settings menu, the scrubber, or top/bottom interactive
+    // buttons, let those handle it. Also swallow the click that ends a scrub
+    // drag so seeking never toggles the controls.
     if (
       settingsButtonRef.current?.contains(e.target) ||
-      settingsMenuRef.current?.contains(e.target)
+      settingsMenuRef.current?.contains(e.target) ||
+      progressBarRef.current?.contains(e.target) ||
+      performance.now() - lastScrubEndRef.current < 300
     ) {
       return;
     }
@@ -610,7 +619,14 @@ export default function VideoPlayerPage() {
       clickTimerRef.current = setTimeout(() => {
         clickCountRef.current = 0;
         setShowControls((prev) => {
-          const nextState = !prev;
+          // A mousemove (real or the synthetic one mobile browsers fire
+          // before every tap) reveals the controls just before the click
+          // lands. Only hide when they were already settled-visible —
+          // otherwise a "tap to show" reads as "already shown" and
+          // instantly hides them again.
+          const settled =
+            prev && performance.now() - controlsShownAtRef.current > 600;
+          const nextState = !settled;
           if (nextState) resetControlsTimeout();
           return nextState;
         });
@@ -742,6 +758,9 @@ export default function VideoPlayerPage() {
     }
     const target = getTimeFromPointer(e.clientX);
     const el = videoRef.current;
+    // A scrub is not a tap — drop any pending single/double-tap detection.
+    clickCountRef.current = 0;
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current);
     wasPlayingBeforeDragRef.current = el ? !el.paused : false;
     if (el && !el.paused) el.pause();
     if (dubAudioRef.current && !dubAudioRef.current.paused) {
@@ -753,6 +772,7 @@ export default function VideoPlayerPage() {
     if (el) el.currentTime = target;
     if (dubAudioRef.current) dubAudioRef.current.currentTime = target;
     setCurrentTime(target);
+    resetControlsTimeout();
   };
 
   const handlePointerMove = (e) => {
@@ -780,6 +800,8 @@ export default function VideoPlayerPage() {
     if (dubAudioRef.current) dubAudioRef.current.currentTime = target;
     setCurrentTime(target);
     setIsDragging(false);
+    lastScrubEndRef.current = performance.now();
+    resetControlsTimeout();
 
     trackLearningEvent("media_seeked", {
       level,
@@ -1032,7 +1054,7 @@ export default function VideoPlayerPage() {
                 {/* Top Right Controls Overlay: Volume + Gear Settings (Transparent Background) */}
                 <div
                   className={`absolute top-2 right-2.5 flex items-center gap-3 z-30 transition-opacity duration-300 ${
-                    showControls || !isPlaying || settingsOpen
+                    showControls || !isPlaying || settingsOpen || isDragging
                       ? "opacity-100 pointer-events-auto"
                       : "opacity-0 pointer-events-none"
                   }`}
@@ -1068,7 +1090,7 @@ export default function VideoPlayerPage() {
                 {/* Center Translucent Controls (Figma Style: Prev, Play/Pause, Next) */}
                 <div
                   className={`absolute inset-0 flex items-center justify-center gap-3 transition-opacity duration-300 z-20 ${
-                    showControls || !isPlaying
+                    showControls || !isPlaying || isDragging
                       ? "opacity-100 pointer-events-auto"
                       : "opacity-0 pointer-events-none"
                   }`}
@@ -1121,7 +1143,9 @@ export default function VideoPlayerPage() {
                 {/* Bottom Overlay Row on Video: Time in Black on Left, White Screen Extender on Right */}
                 <div
                   className={`absolute bottom-3.5 left-3 right-3 flex items-center justify-between z-20 pointer-events-none transition-opacity duration-300 ${
-                    showControls || !isPlaying ? "opacity-100" : "opacity-0"
+                    showControls || !isPlaying || isDragging
+                      ? "opacity-100"
+                      : "opacity-0"
                   }`}
                 >
                   <span className="text-slate-900 text-xs font-semibold tracking-tight select-none">
@@ -1146,6 +1170,7 @@ export default function VideoPlayerPage() {
                 {/* Edge-to-Edge Draggable Red Scrubber Progress Bar with elevated z-index */}
                 <div
                   ref={progressBarRef}
+                  data-testid="progress-bar"
                   onPointerDown={handlePointerDown}
                   onPointerMove={handlePointerMove}
                   onPointerUp={handlePointerUp}

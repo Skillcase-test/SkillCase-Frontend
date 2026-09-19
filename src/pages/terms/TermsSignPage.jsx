@@ -1046,6 +1046,15 @@ export default function TermsSignPage() {
             value={fieldValues[key] || ""}
             onChange={(e) => setValue(key, e.target.value)}
             onFocus={() => setActiveFieldId(id)}
+            onClick={(e) => {
+              if (typeof e.target.showPicker === "function") {
+                try {
+                  e.target.showPicker();
+                } catch (err) {
+                  console.warn("showPicker error:", err);
+                }
+              }
+            }}
             className="terms-overlay-control terms-overlay-input"
           />
         </div>
@@ -2162,15 +2171,18 @@ export default function TermsSignPage() {
                           }
                         />
                         <div className="terms-overlay-layer">
-                          {pageFields.map((field) => (
-                            <div
-                              key={field.field_id}
-                              className={`terms-overlay-field ${activeFieldId === String(field.field_id) ? "active" : ""}`}
-                              style={getFieldBoxStyle(field, true)}
-                            >
-                              {renderOverlayFieldControl(field)}
-                            </div>
-                          ))}
+                          {pageFields.map((field) => {
+                            const isRightSide = Number(field.x || 0) > 0.55;
+                            return (
+                              <div
+                                key={field.field_id}
+                                className={`terms-overlay-field ${activeFieldId === String(field.field_id) ? "active" : ""} ${isRightSide ? "expand-left" : "expand-right"}`}
+                                style={getFieldBoxStyle(field, true)}
+                              >
+                                {renderOverlayFieldControl(field)}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
@@ -2333,15 +2345,18 @@ export default function TermsSignPage() {
                         }
                       />
                       <div className="terms-overlay-layer">
-                        {pageFields.map((field) => (
-                          <div
-                            key={field.field_id}
-                            className="terms-overlay-field"
-                            style={getFieldBoxStyle(field, false)}
-                          >
-                            {renderOverlayFieldControl(field)}
-                          </div>
-                        ))}
+                        {pageFields.map((field) => {
+                          const isRightSide = Number(field.x || 0) > 0.55;
+                          return (
+                            <div
+                              key={field.field_id}
+                              className={`terms-overlay-field ${activeFieldId === String(field.field_id) ? "active" : ""} ${isRightSide ? "expand-left" : "expand-right"}`}
+                              style={getFieldBoxStyle(field, false)}
+                            >
+                              {renderOverlayFieldControl(field)}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
