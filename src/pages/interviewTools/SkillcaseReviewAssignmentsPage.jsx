@@ -108,24 +108,36 @@ export default function SkillcaseReviewAssignmentsPage({ setActivePage }) {
                     className="hover:bg-slate-50 transition-colors"
                   >
                     <td className="px-4 py-4">
-                      <div className="font-bold text-slate-900">
+                      <div
+                        className="max-w-[200px] truncate font-bold text-slate-900"
+                        title={item.candidate_name}
+                      >
                         {item.candidate_name}
                       </div>
-                      <div className="mt-0.5 text-xs text-slate-500">
+                      <div
+                        className="mt-0.5 max-w-[200px] truncate text-xs text-slate-500"
+                        title={item.candidate_email}
+                      >
                         {item.candidate_email}
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <div className="font-semibold text-slate-900">
+                      <div
+                        className="max-w-[200px] truncate font-semibold text-slate-900"
+                        title={item.position_title}
+                      >
                         {item.position_title}
                       </div>
                       {item.position_role ? (
-                        <div className="mt-0.5 text-xs text-slate-500">
+                        <div
+                          className="mt-0.5 max-w-[200px] truncate text-xs text-slate-500"
+                          title={item.position_role}
+                        >
                           {item.position_role}
                         </div>
                       ) : null}
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                           STATUS_STYLE[item.submission_status] ||
@@ -140,7 +152,7 @@ export default function SkillcaseReviewAssignmentsPage({ setActivePage }) {
                         </span>
                       ) : null}
                     </td>
-                    <td className="px-4 py-4 text-xs text-slate-600">
+                    <td className="px-4 py-4 text-xs text-slate-600 whitespace-nowrap">
                       {item.assigned_by_name || "-"}
                     </td>
                     <td className="px-4 py-4 text-xs text-slate-600 whitespace-nowrap">

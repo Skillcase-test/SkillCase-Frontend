@@ -580,7 +580,10 @@ export default function SkillcaseInterviewToolsCandidatesPage({
               {sortedRows.map((item) => (
                 <tr key={item.submission_id} className="hover:bg-gray-50">
                   <td className="px-4 py-4">
-                    <div className="font-semibold text-gray-900">
+                    <div
+                      className="max-w-[200px] truncate font-semibold text-gray-900"
+                      title={item.candidate_name}
+                    >
                       {item.candidate_name}
                     </div>
                     {item.active_assignment_id ? (

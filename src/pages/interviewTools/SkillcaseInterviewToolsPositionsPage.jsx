@@ -254,18 +254,33 @@ export default function SkillcaseInterviewToolsPositionsPage({
                     className="hover:bg-slate-50 transition-colors"
                   >
                     <td className="px-4 py-4 align-top">
-                      <div className="font-bold text-slate-900">
+                      <div
+                        className="max-w-[260px] truncate font-bold text-slate-900"
+                        title={position.title}
+                      >
                         {position.title}
                       </div>
-                      <div className="mt-1 text-xs text-slate-500 font-medium">
+                      <div
+                        className="mt-1 max-w-[260px] truncate text-xs text-slate-500 font-medium"
+                        title={position.details || position.role_title}
+                      >
                         {position.details || position.role_title}
                       </div>
                     </td>
                     {canViewAll ? (
                       <td className="px-4 py-4 align-top text-xs text-slate-500 font-medium">
-                        {position.created_by_username ||
-                          position.created_by ||
-                          "-"}
+                        <div
+                          className="max-w-[140px] truncate"
+                          title={
+                            position.created_by_username ||
+                            position.created_by ||
+                            "-"
+                          }
+                        >
+                          {position.created_by_username ||
+                            position.created_by ||
+                            "-"}
+                        </div>
                       </td>
                     ) : null}
                     {canViewAll ? (
