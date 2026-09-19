@@ -9,17 +9,17 @@ import CourseOptedIn from "./components/CourseOptedIn";
 import mayaShocked from "../../assets/onboarding/mayaShocked.webp";
 
 const COURSE = {
-  title: "German Speaking Crash Course",
+  title: "Germany Interview Preparation",
   meta: "21 live sessions · 10 hours",
   image:
-    "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1789565264/course_phzpsh.webp",
+    "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1789804197/WhatsApp_Image_2026-09-18_at_8.34.12_PM_cxowwa.jpg",
 };
 
 const INCLUDED = [
-  "Daily live speaking practice with trainers",
-  "Mock job interview drills and feedback",
-  "Fluency coaching and core vocabulary",
-  "Doubt support on WhatsApp",
+  "Grammar & sentence correction",
+  "German response practice",
+  "Work on your identified weak areas",
+  "Mock interviews & personalised feedback",
 ];
 
 const CoursePage = () => {
@@ -208,7 +208,7 @@ const CoursePage = () => {
               Expert Advice
             </h4>
             <p className="text-slate-500 text-[11px] sm:text-xs mt-0.5 leading-snug">
-              Opt our German speaking crash course to improve your fluency.
+              Focus on your gaps and prepare for your next attempt.
             </p>
           </div>
         </motion.div>
@@ -226,7 +226,7 @@ const CoursePage = () => {
             disabled={optingIn}
             className="w-full h-12 bg-[#002856] hover:bg-[#07192f] text-white rounded-xl font-bold text-sm sm:text-base transition-all shadow-sm cursor-pointer border-none flex items-center justify-center disabled:opacity-60"
           >
-            {optingIn ? "Starting course..." : "Start the course"}
+            {optingIn ? "Starting..." : "Start your preparation"}
           </button>
           <button
             type="button"
