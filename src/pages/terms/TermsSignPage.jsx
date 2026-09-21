@@ -36,6 +36,26 @@ function hashString(input) {
   return Math.abs(hash);
 }
 
+function formatDateDisplay(value) {
+  if (!value) return "";
+  const str = String(value).trim();
+  if (/^\d{2}-\d{2}-\d{4}$/.test(str)) {
+    return str;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const [y, m, d] = str.split("-");
+    return `${d}-${m}-${y}`;
+  }
+  const parsed = new Date(str);
+  if (!Number.isNaN(parsed.getTime())) {
+    const d = String(parsed.getDate()).padStart(2, "0");
+    const m = String(parsed.getMonth() + 1).padStart(2, "0");
+    const y = parsed.getFullYear();
+    return `${d}-${m}-${y}`;
+  }
+  return str;
+}
+
 function createTypedSignatureImageDataUrl(signatureText, fontFamily) {
   const text = String(signatureText || "").trim();
   if (!text) return "";
@@ -949,7 +969,9 @@ export default function TermsSignPage() {
     if (field.field_type === "label") {
       return (
         <div className="terms-overlay-control terms-overlay-label">
-          {field.label || ""}
+          <span className="truncate w-full select-none pointer-events-none">
+            {field.label || ""}
+          </span>
         </div>
       );
     }
@@ -980,9 +1002,20 @@ export default function TermsSignPage() {
           </div>
         );
       }
+      if (field.field_type === "date") {
+        return (
+          <div className="terms-overlay-control terms-overlay-readonly terms-overlay-date-text">
+            <span className="w-full text-center select-none pointer-events-none">
+              {formatDateDisplay(value)}
+            </span>
+          </div>
+        );
+      }
       return (
         <div className="terms-overlay-control terms-overlay-readonly">
-          {String(value || "")}
+          <span className="truncate w-full select-none pointer-events-none">
+            {String(value || "")}
+          </span>
         </div>
       );
     }
@@ -1030,20 +1063,31 @@ export default function TermsSignPage() {
     }
 
     if (field.field_type === "date") {
+      const dateVal = fieldValues[key] || "";
+      const displayDate = dateVal ? formatDateDisplay(dateVal) : "";
       return (
-        <div className="terms-overlay-input-wrap">
+        <div className="terms-overlay-input-wrap relative flex items-center">
           {showBubble ? (
             <div className="terms-overlay-placeholder-bubble">
               {placeholder}
             </div>
           ) : null}
+          <div className="terms-overlay-control terms-overlay-input terms-overlay-date-text">
+            <span className="w-full text-center select-none pointer-events-none">
+              {displayDate || (
+                <span className="text-slate-400 font-normal opacity-70">
+                  {placeholder}
+                </span>
+              )}
+            </span>
+          </div>
           <input
             ref={(node) => {
               if (node) inputRefMap.current.set(id, node);
               else inputRefMap.current.delete(id);
             }}
             type="date"
-            value={fieldValues[key] || ""}
+            value={dateVal}
             onChange={(e) => setValue(key, e.target.value)}
             onFocus={() => setActiveFieldId(id)}
             onClick={(e) => {
@@ -1055,7 +1099,7 @@ export default function TermsSignPage() {
                 }
               }
             }}
-            className="terms-overlay-control terms-overlay-input"
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
           />
         </div>
       );

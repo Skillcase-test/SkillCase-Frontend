@@ -35,7 +35,8 @@
   color: #334155;
   padding: 0 4px;
   font-weight: 500;
-  font-size: 72cqh;
+  font-size: min(72cqh, 14px);
+  line-height: 1;
 }
 
 .terms-overlay-input {
@@ -44,7 +45,7 @@
   color: #0f172a;
   padding: 0 4px;
   font: inherit;
-  font-size: 68cqh;
+  font-size: min(68cqh, 14px);
   line-height: 1;
   scroll-margin-top: 120px;
   scroll-margin-bottom: 45vh;
@@ -155,6 +156,8 @@
 .terms-overlay-textarea {
   resize: none;
   line-height: 1.2;
+  font-size: min(60cqh, 13px);
+  padding: 2px 4px;
 }
 
 .terms-overlay-checkbox-wrap {
@@ -181,7 +184,7 @@
   background: rgba(239, 246, 255, 0.95);
   color: #1d4ed8;
   font-weight: 700;
-  font-size: 95cqh;
+  font-size: min(85cqh, 14px);
   padding: 0 4px;
 }
 
@@ -193,8 +196,8 @@
   background: transparent;
   color: #0f172a;
   font-weight: 500;
-  padding: 0 4px;
-  font-size: 68cqh;
+  padding: 0 3px;
+  font-size: min(68cqh, 14px);
   white-space: nowrap;
   line-height: 1;
 }
@@ -297,11 +300,38 @@
   height: auto !important;
 }
 
+.terms-overlay-date-text {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 0 1px !important;
+  font-size: min(65cqh, 15cqw) !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  pointer-events: none;
+}
+
+.terms-overlay-date-text span {
+  display: inline-block;
+  width: 100%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 639px) {
   .terms-pdf-frame {
-    --terms-field-font-size: clamp(5.5px, 1.8vw, 7.5px);
-    --terms-field-pad-x: 1px;
-    --terms-field-pad-y: 0;
+    --terms-field-pad-x: 2px;
+    --terms-field-pad-y: 1px;
   }
 
   .terms-overlay-control {
@@ -311,16 +341,6 @@
   .terms-overlay-checkbox-wrap input {
     width: 10px;
     height: 10px;
-  }
-
-  .terms-overlay-label,
-  .terms-overlay-signature {
-    font-size: var(--terms-field-font-size) !important;
-  }
-
-  .terms-overlay-input:not(:focus),
-  .terms-overlay-textarea:not(:focus) {
-    font-size: var(--terms-field-font-size) !important;
   }
 
   .terms-toast {
@@ -333,17 +353,17 @@
 
 @media (min-width: 640px) and (max-width: 1023px) {
   .terms-pdf-frame {
-    --terms-field-font-size: clamp(8px, 1.5vw, 10px);
-    --terms-field-pad-x: 3px;
-    --terms-field-pad-y: 1px;
+    --terms-field-font-size: clamp(11px, 2vw, 14px);
+    --terms-field-pad-x: 4px;
+    --terms-field-pad-y: 2px;
   }
 }
 
 @media (min-width: 1024px) {
   .terms-pdf-frame {
-    --terms-field-font-size: clamp(10px, 0.85vw, 12px);
-    --terms-field-pad-x: 4px;
-    --terms-field-pad-y: 1px;
+    --terms-field-font-size: clamp(12px, 1.2vw, 15px);
+    --terms-field-pad-x: 6px;
+    --terms-field-pad-y: 2px;
   }
 }
 
