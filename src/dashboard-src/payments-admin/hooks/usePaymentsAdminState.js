@@ -150,6 +150,8 @@ export function usePaymentsAdminState() {
   const [allBatchFilter, setAllBatchFilter] = useState("");
   const [allLeadOwnerFilter, setAllLeadOwnerFilter] = useState("");
   const [monthLeadOwnerFilter, setMonthLeadOwnerFilter] = useState("");
+  const [allProfessionFilter, setAllProfessionFilter] = useState("");
+  const [monthProfessionFilter, setMonthProfessionFilter] = useState("");
   const [allSortBy, setAllSortBy] = useState("created_at");
   const [allSortOrder, setAllSortOrder] = useState("desc");
   const [paymentSortBy, setPaymentSortBy] = useState("paid_at");
@@ -325,6 +327,7 @@ export function usePaymentsAdminState() {
           status: allStatusFilter || undefined,
           batch_id: allBatchFilter || undefined,
           lead_owner: allLeadOwnerFilter || undefined,
+          profession: allProfessionFilter || undefined,
           sortBy: allSortBy,
           sortOrder: allSortOrder,
           candidate_type: tab === "recruitment" ? "recruitment" : "student",
@@ -351,6 +354,7 @@ export function usePaymentsAdminState() {
           limit: rowsPerPage,
           search: debouncedMonthSearch || undefined,
           lead_owner: monthLeadOwnerFilter || undefined,
+          profession: monthProfessionFilter || undefined,
           sortBy: monthSortBy,
           sortOrder: monthSortOrder,
         });
@@ -600,10 +604,12 @@ export function usePaymentsAdminState() {
     (tab === "all" || tab === "recruitment") ? allStatusFilter : null,
     (tab === "all" || tab === "recruitment") ? allBatchFilter : null,
     (tab === "all" || tab === "recruitment") ? allLeadOwnerFilter : null,
+    (tab === "all" || tab === "recruitment") ? allProfessionFilter : null,
     (tab === "all" || tab === "recruitment") ? allSortBy : null,
     (tab === "all" || tab === "recruitment") ? allSortOrder : null,
     tab === "month" ? debouncedMonthSearch : null,
     tab === "month" ? monthLeadOwnerFilter : null,
+    tab === "month" ? monthProfessionFilter : null,
     tab === "month" ? monthSortBy : null,
     tab === "month" ? monthSortOrder : null,
     tab === "fee" ? debouncedFeeSearch : null,
@@ -789,6 +795,10 @@ export function usePaymentsAdminState() {
     setAllLeadOwnerFilter,
     monthLeadOwnerFilter,
     setMonthLeadOwnerFilter,
+    allProfessionFilter,
+    setAllProfessionFilter,
+    monthProfessionFilter,
+    setMonthProfessionFilter,
     allSortBy,
     setAllSortBy,
     allSortOrder,

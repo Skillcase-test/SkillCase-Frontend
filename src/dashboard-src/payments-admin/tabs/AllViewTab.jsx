@@ -2,7 +2,7 @@ import { ActionChip, ControlDropdown } from "../components/controls";
 import { StatCard } from "../components/common";
 import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
 import { ArrowUp, ArrowDown, ArrowUpDown, Check } from "lucide-react";
-import { LEAD_OWNER_OPTIONS } from "../utils/constants";
+import { LEAD_OWNER_OPTIONS, PROFESSION_OPTIONS } from "../utils/constants";
 
 function lifecycleActionsForRow(row) {
   const s = String(row.lifecycle_state || row.status || "").toLowerCase();
@@ -32,6 +32,8 @@ export function AllViewTab({
   setAllBatchFilter,
   allLeadOwnerFilter,
   setAllLeadOwnerFilter,
+  allProfessionFilter,
+  setAllProfessionFilter,
   batches,
   openLifecycleModal,
   handleChangeCandidateBatch,
@@ -89,7 +91,7 @@ export function AllViewTab({
         <StatCard label="Total Hold" value={allSummary?.total_hold || 0} tone="blue" />
       </div>
 
-      <div className="grid gap-2 md:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-4">
         <ControlDropdown
           value={allStatusFilter}
           onChange={setAllStatusFilter}
@@ -107,6 +109,12 @@ export function AllViewTab({
           onChange={setAllLeadOwnerFilter}
           options={[{ value: "", label: "All Lead Owners" }, ...LEAD_OWNER_OPTIONS]}
           placeholder="Filter by lead owner"
+        />
+        <ControlDropdown
+          value={allProfessionFilter}
+          onChange={setAllProfessionFilter}
+          options={[{ value: "", label: "All Professions" }, ...PROFESSION_OPTIONS]}
+          placeholder="Filter by profession"
         />
       </div>
 

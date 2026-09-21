@@ -15,7 +15,7 @@ import {
   Trash2,
   Briefcase,
 } from "lucide-react";
-import { LEAD_OWNER_OPTIONS } from "../utils/constants";
+import { LEAD_OWNER_OPTIONS, PROFESSION_OPTIONS } from "../utils/constants";
 
 export function MonthViewTab({
   rows,
@@ -37,6 +37,8 @@ export function MonthViewTab({
   setMonthSortOrder,
   monthLeadOwnerFilter,
   setMonthLeadOwnerFilter,
+  monthProfessionFilter,
+  setMonthProfessionFilter,
 }) {
   const [copiedEnrollmentId, setCopiedEnrollmentId] = useState("");
   const [activeActionMenuId, setActiveActionMenuId] = useState(null);
@@ -111,12 +113,18 @@ export function MonthViewTab({
 
   return (
     <div className="space-y-3">
-      <div className="grid gap-2 md:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-2">
         <ControlDropdown
           value={monthLeadOwnerFilter}
           onChange={setMonthLeadOwnerFilter}
           options={[{ value: "", label: "All Lead Owners" }, ...LEAD_OWNER_OPTIONS]}
           placeholder="Filter by lead owner"
+        />
+        <ControlDropdown
+          value={monthProfessionFilter}
+          onChange={setMonthProfessionFilter}
+          options={[{ value: "", label: "All Professions" }, ...PROFESSION_OPTIONS]}
+          placeholder="Filter by profession"
         />
       </div>
       <div className="overflow-x-auto rounded-xl border border-slate-200">

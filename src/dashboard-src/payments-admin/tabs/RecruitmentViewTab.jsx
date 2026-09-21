@@ -19,7 +19,7 @@ import {
   X,
   Loader2,
 } from "lucide-react";
-import { LEAD_OWNER_OPTIONS } from "../utils/constants";
+import { LEAD_OWNER_OPTIONS, PROFESSION_OPTIONS } from "../utils/constants";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 
 export function RecruitmentViewTab({
@@ -44,6 +44,8 @@ export function RecruitmentViewTab({
   setAllBatchFilter,
   allLeadOwnerFilter,
   setAllLeadOwnerFilter,
+  allProfessionFilter,
+  setAllProfessionFilter,
   allSortBy,
   allSortOrder,
   setAllSortBy,
@@ -147,7 +149,7 @@ export function RecruitmentViewTab({
         />
       </div>
 
-      <div className="grid gap-2 md:grid-cols-3">
+      <div className="grid gap-2 md:grid-cols-4">
         <ControlDropdown
           value={allStatusFilter}
           onChange={setAllStatusFilter}
@@ -165,6 +167,12 @@ export function RecruitmentViewTab({
           onChange={setAllLeadOwnerFilter}
           options={[{ value: "", label: "All Lead Owners" }, ...LEAD_OWNER_OPTIONS]}
           placeholder="Filter by lead owner"
+        />
+        <ControlDropdown
+          value={allProfessionFilter}
+          onChange={setAllProfessionFilter}
+          options={[{ value: "", label: "All Professions" }, ...PROFESSION_OPTIONS]}
+          placeholder="Filter by profession"
         />
       </div>
 

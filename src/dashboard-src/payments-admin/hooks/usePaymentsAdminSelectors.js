@@ -23,6 +23,8 @@ export function usePaymentsAdminSelectors(state) {
     state.allBatchFilter,
     state.allLeadOwnerFilter,
     state.monthLeadOwnerFilter,
+    state.allProfessionFilter,
+    state.monthProfessionFilter,
     state.batchFilter,
     state.feeFilter,
     state.cohortFilter,

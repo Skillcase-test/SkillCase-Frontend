@@ -41,3 +41,8 @@ export const LEAD_OWNER_OPTIONS = [
   { value: "Harshita", label: "Harshita" },
   { value: "-", label: "None" },
 ];
+
+export const PROFESSION_OPTIONS = [
+  { value: "nurse", label: "Nurse" },
+  { value: "physio", label: "Physiotherapist" },
+];

@@ -782,6 +782,10 @@ export default function PaymentsAdmin() {
                   setAllLeadOwnerFilter: state.setAllLeadOwnerFilter,
                   monthLeadOwnerFilter: state.monthLeadOwnerFilter,
                   setMonthLeadOwnerFilter: state.setMonthLeadOwnerFilter,
+                  allProfessionFilter: state.allProfessionFilter,
+                  setAllProfessionFilter: state.setAllProfessionFilter,
+                  monthProfessionFilter: state.monthProfessionFilter,
+                  setMonthProfessionFilter: state.setMonthProfessionFilter,
                   discountForm: state.discountForm,
                   setDiscountForm: state.setDiscountForm,
                   canApproveDiscounts:
