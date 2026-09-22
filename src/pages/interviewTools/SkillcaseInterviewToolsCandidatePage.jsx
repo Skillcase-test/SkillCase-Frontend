@@ -565,6 +565,9 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                 <CandidateSortableTh column="reviewed" sort={sort} onToggle={toggleSort} className="px-4 py-3">
                   Reviewed
                 </CandidateSortableTh>
+                <CandidateSortableTh column="evaluated_at" sort={sort} onToggle={toggleSort} className="px-4 py-3">
+                  Evaluated At
+                </CandidateSortableTh>
                 <CandidateSortableTh column="score" sort={sort} onToggle={toggleSort} className="px-4 py-3">
                   Score
                 </CandidateSortableTh>
@@ -653,6 +656,9 @@ export default function SkillcaseInterviewToolsCandidatesPage({
                         <CircleDashed className="h-4 w-4 text-gray-300" />
                       )}
                     </span>
+                  </td>
+                  <td className="px-4 py-4 text-xs text-gray-600 whitespace-nowrap">
+                    {item.evaluated_at ? formatDateTimeIST(item.evaluated_at) : "-"}
                   </td>
                   <td className="px-4 py-4 font-semibold text-gray-900">
                     {item.overall_score || item.calculated_score || "-"}

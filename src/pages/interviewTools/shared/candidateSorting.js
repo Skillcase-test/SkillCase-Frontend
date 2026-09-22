@@ -45,6 +45,11 @@ export const CANDIDATE_SORT_COLUMNS = {
     get: (row) => row.is_fully_reviewed,
     defaultDir: "desc",
   },
+  evaluated_at: {
+    type: "date",
+    get: (row) => row.evaluated_at,
+    defaultDir: "desc",
+  },
   // Mirrors the displayed "overall_score || calculated_score" cell value.
   score: {
     type: "number",
