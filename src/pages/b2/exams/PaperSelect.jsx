@@ -162,7 +162,10 @@ export default function PaperSelect() {
       </div>
 
       {/* Exam type pills */}
-      <div className="self-stretch px-4 pt-3 pb-1 flex items-center gap-2 shrink-0">
+      <div
+        id="b2-exam-type-pills"
+        className="self-stretch px-4 pt-3 pb-1 flex items-center gap-2 shrink-0"
+      >
         {EXAM_FILTERS.map((filter) => {
           const isActive = activeFilter === filter.key;
           return (
@@ -201,13 +204,14 @@ export default function PaperSelect() {
             No papers uploaded for {activeFilter.toUpperCase()} yet.
           </div>
         ) : (
-          visiblePapers.map((paper) => {
+          visiblePapers.map((paper, index) => {
             const isStarting = startingPaperId === paper.id;
             const status = paper.submission_status; // 'in_progress' or 'completed' or null
 
             return (
               <div
                 key={paper.id}
+                id={index === 0 ? "b2-exam-first-paper" : undefined}
                 onClick={() => !isStarting && handlePaperClick(paper.id)}
                 className={`w-full p-3 bg-white rounded-xl border border-zinc-200 flex justify-start items-start gap-3 transition-all shrink-0 ${
                   usageLocked ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:shadow-md hover:scale-[1.01] active:scale-[0.99]"

@@ -177,7 +177,10 @@ export default function ExerciseSelect() {
         </div>
 
         {/* Tag pills — All aggregates every exercise; each shows its count */}
-        <div className="self-stretch flex justify-start items-center gap-2">
+        <div
+          id={`b2-${module}-tag-pills`}
+          className="self-stretch flex justify-start items-center gap-2"
+        >
           {TAG_FILTERS.map((filter) => (
             <button
               key={filter.key}

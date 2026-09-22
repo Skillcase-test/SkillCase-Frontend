@@ -52,6 +52,11 @@ const authSlice = createSlice({
         state.user.b1_onboarding_completed = true;
       }
     },
+    setB2OnboardingComplete: (state) => {
+      if (state.user) {
+        state.user.b2_onboarding_completed = true;
+      }
+    },
     setTopSwitcherTourComplete: (state) => {
       if (state.user) {
         state.user.top_switcher_tour_completed = true;
@@ -74,6 +79,7 @@ export const {
   setA1OnboardingComplete,
   setA2OnboardingComplete,
   setB1OnboardingComplete,
+  setB2OnboardingComplete,
   setTopSwitcherTourComplete,
   logout,
 } = authSlice.actions;
