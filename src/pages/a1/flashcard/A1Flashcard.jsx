@@ -27,7 +27,7 @@ import api from "../../../api/axios";
 
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
-import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import FlashcardDeckSkeleton from "../../../components/common/FlashcardDeckSkeleton";
 import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
 import { useFlashcardTelemetry } from "../../../telemetry/learning";

@@ -19,7 +19,7 @@ import {
   startB1ExamSubmission,
 } from "../../../api/b1Api";
 import AudioPlayer from "../describe-speak/components/AudioPlayer";
-import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import toast, { Toaster } from "react-hot-toast";
 import { useQuestionPositionTelemetry } from "../../../telemetry/learning";
 

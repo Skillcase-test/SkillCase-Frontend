@@ -14,7 +14,6 @@ import jobsIcon from "./images/jobIcon.svg";
 import menuIcon from "./images/menuCard.svg";
 import skillcaseLogo from "./images/skillcaseLogo.svg";
 import headerBackground from "./images/headerBackground.webp";
-import news from "./images/news.webp";
 import chevronLeftIcon from "./images/chevronLeftIcon.svg";
 import chevronRightIcon from "./images/chevronRightIcon.svg";
 
@@ -30,7 +29,6 @@ export const images = {
   vocabulary,
   interview,
   grammar,
-  news,
 
   // Section Images
   demoCards,

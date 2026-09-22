@@ -1,13 +1,5 @@
 import api from "./axios";
 
-// Migration
-export const getA1MigrationStatus = () =>
-  api.cachedGet("/a1-migration/status", {}, "SHORT_PRIVATE");
-export const saveA1MigrationDecision = (action) =>
-  api.post("/a1-migration/decision", { action });
-export const getA1EntryRoute = () =>
-  api.cachedGet("/a1-migration/entry-route", {}, "SHORT_PRIVATE");
-
 // Flashcard
 // These responses are cached, but the flashcard tag is invalidated after
 // writes so the embedded user progress is not reused stale.

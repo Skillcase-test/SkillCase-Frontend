@@ -7,7 +7,6 @@ import { MemoryRouter } from "react-router-dom";
 import LandingPage from "../pages/landing/LandingPage";
 import DemoClassSection from "../pages/landing/components/DemoClassSection";
 import * as landingApi from "../api/landingPageApi";
-import * as a1Api from "../api/a1Api";
 import api from "../api/axios";
 
 function renderWithStore(ui, { initialState } = {}) {
@@ -105,10 +104,6 @@ describe("LandingPage dynamic sections and paid gating", () => {
 
   beforeEach(() => {
     vi.spyOn(api, "get").mockResolvedValue({ data: [] });
-
-    vi.spyOn(a1Api, "getA1MigrationStatus").mockResolvedValue({
-      data: { status: "revamp_opted_in", showModal: false },
-    });
 
     vi.spyOn(landingApi, "fetchSectionsByLevel").mockResolvedValue({
       data: mockSections,

@@ -63,7 +63,7 @@ describe('ContinuePractice - A2 Redirection Logic', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/a2/flashcard/101', { replace: true });
     });
 
-    test('should redirect A1 user to /practice route when isA2 is false', async () => {
+    test('should redirect A1 user to revamp /a1/flashcard route when isA2 is false', async () => {
       useSelector.mockReturnValue({
         user: { user_id: 'a1-user', user_prof_level: 'A1' }
       });
@@ -72,6 +72,7 @@ describe('ContinuePractice - A2 Redirection Logic', () => {
         data: {
           hasProgress: true,
           isA2: false,
+          chapterId: 5,
           setId: 5,
           setName: 'Chapter 5',
           currentIndex: 10,
@@ -81,24 +82,26 @@ describe('ContinuePractice - A2 Redirection Logic', () => {
       });
 
       const response = await mockGet('/streak/last-chapter');
-      const { isA2, proficiencyLevel, setId, setName, currentIndex } = response.data;
+      const { isA2, chapterId, setId, setName, currentIndex } = response.data;
 
       // Simulate the component's redirect logic
       if (isA2) {
         // This should NOT execute for A1 users
         mockNavigate('/a2/flashcard/invalid');
       } else {
+        const targetChapterId = chapterId || setId;
         mockNavigate(
-          `/practice/${proficiencyLevel}/${setId}?set_name=${encodeURIComponent(setName)}&start_index=${currentIndex}`,
+          `/a1/flashcard/${targetChapterId}?start_index=${currentIndex || 0}&name=${encodeURIComponent(setName || 'Chapter')}`,
           { replace: true }
         );
       }
 
       expect(mockNavigate).toHaveBeenCalledWith(
-        '/practice/A1/5?set_name=Chapter%205&start_index=10',
+        '/a1/flashcard/5?start_index=10&name=Chapter%205',
         { replace: true }
       );
       expect(mockNavigate).not.toHaveBeenCalledWith(expect.stringContaining('/a2/flashcard'));
+      expect(mockNavigate).not.toHaveBeenCalledWith(expect.stringContaining('/practice'));
     });
 
     test('should redirect A2 user with no progress to /a2/flashcard base route', async () => {
@@ -114,18 +117,15 @@ describe('ContinuePractice - A2 Redirection Logic', () => {
       const userLevel = 'A2';
 
       // Simulate the component's fallback redirect logic
+      const LEVEL_HOME = { A1: '/a1/flashcard', A2: '/a2/flashcard' };
       if (!response.data.hasProgress) {
-        if (userLevel.toUpperCase() === 'A2') {
-          mockNavigate('/a2/flashcard', { replace: true });
-        } else {
-          mockNavigate(`/practice/${userLevel}`, { replace: true });
-        }
+        mockNavigate(LEVEL_HOME[userLevel.toUpperCase()] || '/', { replace: true });
       }
 
       expect(mockNavigate).toHaveBeenCalledWith('/a2/flashcard', { replace: true });
     });
 
-    test('should redirect A1 user with no progress to /practice/A1', async () => {
+    test('should redirect A1 user with no progress to /a1/flashcard', async () => {
       useSelector.mockReturnValue({
         user: { user_id: 'a1-new-user', user_prof_level: 'A1' }
       });
@@ -137,15 +137,13 @@ describe('ContinuePractice - A2 Redirection Logic', () => {
       const response = await mockGet('/streak/last-chapter');
       const userLevel = 'A1';
 
+      const LEVEL_HOME = { A1: '/a1/flashcard', A2: '/a2/flashcard' };
       if (!response.data.hasProgress) {
-        if (userLevel.toUpperCase() === 'A2') {
-          mockNavigate('/a2/flashcard', { replace: true });
-        } else {
-          mockNavigate(`/practice/${userLevel}`, { replace: true });
-        }
+        mockNavigate(LEVEL_HOME[userLevel.toUpperCase()] || '/', { replace: true });
       }
 
-      expect(mockNavigate).toHaveBeenCalledWith('/practice/A1', { replace: true });
+      expect(mockNavigate).toHaveBeenCalledWith('/a1/flashcard', { replace: true });
+      expect(mockNavigate).not.toHaveBeenCalledWith(expect.stringContaining('/practice'));
     });
 
     test('should handle API error and redirect to home', async () => {

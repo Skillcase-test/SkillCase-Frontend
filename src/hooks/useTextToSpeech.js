@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import api from "../../../api/axios";
+import api from "../api/axios";
 
 async function getBlobErrorMessage(blob) {
   if (!blob || typeof blob.text !== "function") return "";

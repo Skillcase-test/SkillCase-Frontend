@@ -14,7 +14,7 @@ import {
   getB1ExamSubmissionStatus,
   getB1ExamSectionContent,
 } from "../../../api/b1Api";
-import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 
 export default function ExamReadingResults() {
   const navigate = useNavigate();

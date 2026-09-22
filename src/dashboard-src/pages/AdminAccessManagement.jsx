@@ -16,8 +16,6 @@ const MODULE_OPTIONS = [
   { key: "notes_content", label: "Notes" },
   { key: "learn_german", label: "Learn German" },
   { key: "events", label: "Events" },
-  { key: "stories", label: "Stories" },
-  { key: "conversations", label: "Conversations" },
   { key: "interview_tools", label: "Interview Tools" },
   { key: "skillcase_interviews", label: "Skillcase Interviews" },
   { key: "explore_candidates", label: "Explore Candidates" },

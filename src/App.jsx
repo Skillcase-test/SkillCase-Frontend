@@ -40,10 +40,7 @@ import { SplashScreen } from "@capacitor/splash-screen";
 import { useDispatch, useSelector } from "react-redux";
 import SupportWidget from "./components/SupportWidget";
 import api from "./api/axios";
-import {
-  isB1PracticeLevel,
-  isPracticeSuiteLevel,
-} from "./utils/b1Progress";
+import { isPracticeSuiteLevel } from "./utils/b1Progress";
 import {
   isShellRoute,
   isPaymentRoute,
@@ -113,7 +110,6 @@ import { LiveUpdate } from "@capawesome/capacitor-live-update";
 import { App as CapApp } from "@capacitor/app";
 import { initPushNotifications } from "./notifications/pushNotifications";
 import { FirebaseAnalytics } from "@capacitor-firebase/analytics";
-import ProductTour from "./tour/ProductTour";
 import { usePullToRefresh } from "./hooks/usePullToRefresh";
 import {
   getMaintenanceStatus,
@@ -140,13 +136,7 @@ import {
 } from "./utils/referralAttribution";
 
 //Hard Core Test
-const FlashcardStudyPage = lazy(() => import("./pages/flashcard/FlashCard"));
-const ChapterSelect = lazy(() => import("./pages/flashcard/ChapterSelect"));
-const TestSelect = lazy(() => import("./pages/testSelect"));
-const PronounceSelect = lazy(() => import("./pages/pronounce/PronounceSelect"));
-const Pronounce = lazy(() => import("./pages/pronounce/Pronounce"));
-const ShortStoryHome = lazy(() => import("./pages/ShortStoryHome"));
-const StoryPage = lazy(() => import("./pages/StoryPage"));
+
 const ThankYouPage = lazy(() => import("./pages/ThankYouPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const UpgradePlanPage = lazy(() => import("./pages/payments/UpgradePlanPage"));
@@ -155,8 +145,6 @@ const ManagePlanPage = lazy(() => import("./pages/payments/ManagePlanPage"));
 const TransactionHistoryPage = lazy(
   () => import("./pages/payments/TransactionHistoryPage"),
 );
-const ConversationSelect = lazy(() => import("./pages/ConversationSelect"));
-const ConversationPlayer = lazy(() => import("./pages/ConversationPlayer"));
 const NursingGermanyLanding = lazy(
   () => import("./pages/NursingGermanyLanding"),
 );
@@ -231,8 +219,7 @@ const ScholarshipResult = lazy(
 const ScholarshipExamPage = lazy(
   () => import("./pages/scholarship/ScholarshipExamPage"),
 );
-const NewsHome = lazy(() => import("./pages/news/NewsHome"));
-const NewsPage = lazy(() => import("./pages/news/NewsPage"));
+
 const PublicInterviewPage = lazy(
   () => import("./pages/interviewTools/PublicInterviewPage"),
 );
@@ -541,7 +528,6 @@ function AppContent() {
       // exam screen mid-attempt and drops any answer still waiting on its
       // debounce. The hub keeps pull-to-refresh — it has something to refresh.
       /^\/scholarship\/[^/]+\/take$/.test(location.pathname) ||
-      location.pathname.startsWith("/news") ||
       location.pathname.startsWith("/learn-german/lesson") ||
       location.pathname.startsWith("/video-course/") ||
       location.pathname.startsWith("/video-courses/") ||
@@ -589,7 +575,6 @@ function AppContent() {
       import("./pages/learnGerman/LearnGermanHome");
       import("./pages/jobScreening/JobScreening");
       import("./pages/videoCourses/CourseSelectPage");
-      import("./pages/flashcard/FlashCard");
       import("./pages/a2/flashcard/A2Flashcard");
       import("./pages/a1/listening/A1ListeningContent");
       import("./pages/a2/listening/A2ListeningContent");
@@ -1268,11 +1253,10 @@ function AppContent() {
           </>
         )}
 
-        <ProductTour>
-          <A1ProductTour>
-            <A2ProductTour>
-              <B1ProductTour>
-                <B2ProductTour>
+        <A1ProductTour>
+          <A2ProductTour>
+            <B1ProductTour>
+              <B2ProductTour>
                 <GoogleAnalyticsTracker />
                 <ScrollToTop />
                 <Toaster
@@ -1339,83 +1323,32 @@ function AppContent() {
                       )
                     }
                   />
+                  {/* Legacy A1 routes (practice/pronounce/test/stories/
+                      conversation/news) were sunset; stale deep links land
+                      on the practice hub. */}
+                  <Route
+                    path="/practice/*"
+                    element={<Navigate to="/" replace />}
+                  />
+                  <Route
+                    path="/pronounce/*"
+                    element={<Navigate to="/" replace />}
+                  />
                   <Route
                     path="/test/:prof_level"
-                    element={lazyScreen(<TestSelect />, "Loading Tests...")}
+                    element={<Navigate to="/" replace />}
                   />
-                  {/* <Route path ='/interview/:prof_level' element = {<InterviewSelect/>}/> */}
+                  <Route path="/stories" element={<Navigate to="/" replace />} />
+                  <Route path="/story/*" element={<Navigate to="/" replace />} />
                   <Route
-                    path="/practice/:prof_level"
-                    element={lazyScreen(
-                      <ChapterSelect />,
-                      "Loading Chapters...",
-                    )}
+                    path="/conversation/*"
+                    element={<Navigate to="/" replace />}
                   />
-                  <Route
-                    path="/pronounce/:prof_level"
-                    element={lazyScreen(
-                      <PronounceSelect />,
-                      "Loading Pronunciation...",
-                    )}
-                  />
-                  <Route
-                    path="/practice/:prof_level/:set_id"
-                    element={
-                      <Suspense
-                        fallback={
-                          <RouteScreenSkeleton title="Loading Flashcards..." />
-                        }
-                      >
-                        <FlashcardStudyPage />
-                      </Suspense>
-                    }
-                  />
+                  <Route path="/news" element={<Navigate to="/" replace />} />
+                  <Route path="/news/*" element={<Navigate to="/" replace />} />
                   <Route
                     path="/admin/*"
                     element={lazyScreen(<Dashboard />, "Loading Admin...")}
-                  />
-                  <Route
-                    path="/pronounce/:prof_level/:pronounce_id"
-                    element={lazyScreen(
-                      <Pronounce />,
-                      "Loading Pronunciation...",
-                    )}
-                  />
-                  {/* <Route path="/Login" element={<LoginSignupPage />} /> */}
-                  <Route
-                    path="/stories"
-                    element={lazyScreen(
-                      <ShortStoryHome />,
-                      "Loading Stories...",
-                    )}
-                  />
-                  <Route
-                    path="/story/:slug"
-                    element={lazyScreen(<StoryPage />, "Loading Story...")}
-                  />
-
-                  {/* <Route path="/resume" element={<ResumePage />} />
-        <Route path="/resume/ai-builder" element={<AIResumeBuilder />} />
-        <Route
-          path="/resume/manual-builder"
-          element={<ManualResumeBuilder />}
-        />
-        <Route path="/resume/my-resumes" element={<MyResumes />} />
-        <Route path="/resume/edit/:resumeId" element={<AIResumeBuilder />} /> */}
-
-                  <Route
-                    path="/conversation/:prof_level"
-                    element={lazyScreen(
-                      <ConversationSelect />,
-                      "Loading Conversation...",
-                    )}
-                  />
-                  <Route
-                    path="/conversation/:prof_level/:conversation_id"
-                    element={lazyScreen(
-                      <ConversationPlayer />,
-                      "Loading Conversation...",
-                    )}
                   />
                   <Route
                     path="/register"
@@ -1838,16 +1771,6 @@ function AppContent() {
                       <ScholarshipResult />,
                       "Loading Result...",
                     )}
-                  />
-
-                  {/* News Module */}
-                  <Route
-                    path="/news"
-                    element={lazyScreen(<NewsHome />, "Loading News...")}
-                  />
-                  <Route
-                    path="/news/:newsId"
-                    element={lazyScreen(<NewsPage />, "Loading News...")}
                   />
 
                   {/* Interview */}
@@ -2326,7 +2249,6 @@ function AppContent() {
               </B1ProductTour>
             </A2ProductTour>
           </A1ProductTour>
-        </ProductTour>
       </div>
     </div>
   );
@@ -2374,7 +2296,6 @@ function ConditionalFooter() {
     location.pathname === "/thank-you" ||
     location.pathname === "/internal/lead-form" ||
     location.pathname.startsWith("/terms/sign") ||
-    location.pathname.startsWith("/news") ||
     location.pathname.startsWith("/onboarding") ||
     location.pathname.startsWith("/learn-german") ||
     location.pathname.startsWith("/job-screening") ||

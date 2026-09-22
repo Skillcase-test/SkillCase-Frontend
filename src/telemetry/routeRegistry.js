@@ -35,12 +35,10 @@ const RULES = [
   // Standalone scholarship exam funnel — hub, take and result screens.
   [/^\/scholarship/, "exam", "scholarship_exam"],
 
-  [/^\/test/, "exam", "legacy_exam"],
-  [/^\/news/, "news", "news"],
-  [/^\/practice/, "learning", "legacy_flashcard"],
-  [/^\/pronounce/, "learning", "pronunciation"],
-  [/^\/conversation/, "learning", "conversation"],
-  [/^\/stor(y|ies)/, "learning", "stories"],
+  // Sunset legacy-A1 stack — these paths now redirect to "/" but still render
+  // as routes, so classify hits (stale deep links) instead of "unclassified".
+  [/^\/(practice|pronounce|test|stories|story|conversation|news)(\/|$)/, "navigation", "legacy_redirect"],
+  [/^\/b2\//, "learning", "b2_module"],
   [/^\/terms/, "terms", "terms_signing"],
   [/^\/events/, "events", "events"],
   [/^\/manage-event/, "events", "event_management"],

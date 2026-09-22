@@ -52,7 +52,7 @@ import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import { useUsageLimitGate } from "../../../hooks/useUsageLimits";
-import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
 import { useLearningQuestionJourney } from "../../../telemetry/learning";
 import { trackLearningEvent } from "../../../telemetry/events";

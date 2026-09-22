@@ -3,7 +3,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ChevronLeft, Loader2, Volume2 } from "lucide-react";
 import { getB1ReadingContent, submitB1ReadingQuiz } from "../../../api/b1Api";
-import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import toast, { Toaster } from "react-hot-toast";
 import { trackLearningEvent } from "../../../telemetry/events";
 import { useUsageLimitGate } from "../../../hooks/useUsageLimits";

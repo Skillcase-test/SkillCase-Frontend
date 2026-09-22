@@ -16,11 +16,7 @@ import { useFeatureFlags } from "../../../hooks/useFeatureFlags";
 /* Feature Cards */
 
 // Maps a feature card's id to the (level, module_key) the backend gates it
-// under (see SkillCase-backend/util/usageLimits.js MODULE_REGISTRY). Only
-// the revamp A1/A2/B1 module routes are actually usage-limited today — the
-// legacy a1Features/pronounce/conversation/stories/news tiles aren't wired
-// to any usageLimitMiddleware mount, so they're intentionally left out here
-// rather than showing a lock badge nothing backs up.
+// under (see SkillCase-backend/util/usageLimits.js MODULE_REGISTRY).
 const MODULE_MAP = {
   "a1-revamp-flashcard": { level: "A1", module_key: "flashcard" },
   "a1-revamp-grammar": { level: "A1", module_key: "grammar" },
@@ -55,7 +51,7 @@ const studyNotesFeature = {
   enabled: true,
 };
 
-export default function FeatureCardsGrid({ useRevampA1 = false }) {
+export default function FeatureCardsGrid() {
   const { user } = useSelector((state) => state.auth);
   const { isFeatureEnabled } = useFeatureFlags();
   const profLevel = user?.user_prof_level || "A1";
@@ -64,66 +60,6 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
   const isB1 = isB1PracticeLevel(normalizedProfLevel);
   const isB2 = isB2PracticeLevel(normalizedProfLevel);
   const isA2 = normalizedProfLevel === "a2";
-
-  const a1Features = [
-    {
-      id: "flashcards",
-      title: "Flashcards",
-      description: "Practice basic German using Flashcards",
-      image: images.flashcards,
-      link: `/practice/${profLevel}`,
-      enabled: true,
-    },
-    {
-      id: "vocabulary",
-      title: "Vocabulary Practice",
-      description: "Build your German vocabulary",
-      image: images.vocabulary,
-      link: `/pronounce/${profLevel}`,
-      enabled: true,
-    },
-    {
-      id: "mock-test",
-      title: "Mock Test",
-      description: "Test your German knowledge",
-      image: images.mockTest,
-      link: `/test/${profLevel}`,
-      enabled: true,
-    },
-    {
-      id: "listener",
-      title: "Listener",
-      description: "Listen the conversations",
-      image: images.speakToAI,
-      link: `/conversation/${profLevel}`,
-      enabled: true,
-    },
-    {
-      id: "stories",
-      title: "Short Stories",
-      description: "Read engaging stories",
-      image: images.grammar,
-      link: `/stories`,
-      enabled: true,
-    },
-    {
-      id: "news",
-      title: "News",
-      description: "Read top headlines in German and English",
-      image: images.news,
-      link: `/news`,
-      enabled: true,
-    },
-    {
-      id: "interview",
-      title: "Interview Practice",
-      description: "Prepare for job interviews",
-      image: images.interview,
-      link: `#`,
-      enabled: false,
-      comingSoon: true,
-    },
-  ];
 
   // A2 features
   const a2Features = [
@@ -173,14 +109,6 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
       description: "Test your A2 knowledge",
       image: images.mockTest,
       link: "/a2/test",
-      enabled: true,
-    },
-    {
-      id: "a2-news",
-      title: "News",
-      description: "Daily India headlines with language toggle",
-      image: images.news,
-      link: "/news",
       enabled: true,
     },
   ];
@@ -234,14 +162,6 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
       link: "/a1/test",
       enabled: true,
     },
-    {
-      id: "news",
-      title: "News",
-      description: "Read top headlines in German and English",
-      image: images.news,
-      link: "/news",
-      enabled: true,
-    },
   ];
 
   const b1Features = [
@@ -287,14 +207,6 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
       image:
         "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781600945/maya_ylcppy.webp",
       link: "/b1/maya",
-      enabled: true,
-    },
-    {
-      id: "news",
-      title: "News",
-      description: "Read top headlines in German and English",
-      image: images.news,
-      link: "/news",
       enabled: true,
     },
   ];
@@ -348,14 +260,6 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
       link: "/b2/exams",
       enabled: true,
     },
-    {
-      id: "news",
-      title: "News",
-      description: "Read top headlines in German and English",
-      image: images.news,
-      link: "/news",
-      enabled: true,
-    },
   ];
 
   const features = [
@@ -365,29 +269,18 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
         ? b1Features
         : isA2
           ? a2Features
-          : useRevampA1
-            ? a1RevampFeatures
-            : a1Features),
+          : a1RevampFeatures),
     ...(isFeatureEnabled("study_notes") ? [studyNotesFeature] : []),
   ];
 
   const getTourId = (id) => {
-    if (isB1 && id === "news") return "b1-news-card";
-
     const tourIds = {
-      flashcards: "flashcard-card",
-      vocabulary: "pronunciation-card",
-      "mock-test": "test-card",
-      listener: "listener-card",
-      stories: "stories-card",
-      news: "news-card",
       "a2-flashcards": "a2-flashcard-card",
       "a2-grammar": "a2-grammar-card",
       "a2-listening": "a2-listening-card",
       "a2-speaking": "a2-speaking-card",
       "a2-reading": "a2-reading-card",
       "a2-test": "a2-test-card",
-      "a2-news": "a2-news-card",
       "a1-revamp-flashcard": "a1-revamp-flashcard-card",
       "a1-revamp-grammar": "a1-revamp-grammar-card",
       "a1-revamp-listening": "a1-revamp-listening-card",
