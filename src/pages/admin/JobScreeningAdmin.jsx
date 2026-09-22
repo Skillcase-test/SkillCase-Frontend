@@ -28,6 +28,8 @@ import {
   getAdminDropdownOptions,
   adminGetSettings,
   adminUpdateSettings,
+  adminGetStepSkippablePreview,
+  adminSetStepSkippable,
   adminUploadTrainingScheduleImage,
   adminUploadRecruiterScheduleImage,
 } from "../../api/jobScreeningAdminApi";
@@ -78,6 +80,13 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
   const [savedSettingsSnapshot, setSavedSettingsSnapshot] = useState(null);
   const [profileFieldCatalog, setProfileFieldCatalog] = useState([]);
   const [docMapTargets, setDocMapTargets] = useState([]);
+  const [skippableModal, setSkippableModal] = useState({
+    isOpen: false,
+    step: null,
+    checked: false,
+    counts: null,
+    saving: null, // null | "all" | "others" | "stop" — which button is working
+  });
 
   const [selectedCandidateId, setSelectedCandidateId] = useState(null);
   const [selectedCandidateDetail, setSelectedCandidateDetail] = useState(null);
@@ -654,6 +663,106 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
     }
   };
 
+  // Global "Skippable" toggle is a two-step action: the checkbox click opens a
+  // confirmation showing how many candidates currently sit on that step; the
+  // confirm hits a dedicated endpoint that saves the flag AND propagates it
+  // into every candidate's steps_config in one shot — the same semantics as
+  // the per-candidate skip in CandidateDetail.
+  const handleSkippableToggle = async (step, checked) => {
+    if (blockIfReadOnly()) return;
+    try {
+      const { data } = await adminGetStepSkippablePreview(step.id);
+      if (!data?.success) {
+        toast.error("Failed to load candidate counts for this step");
+        return;
+      }
+      setSkippableModal({
+        isOpen: true,
+        step,
+        checked,
+        counts: data.data?.counts || {},
+        saving: null,
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err.response?.data?.message || "Failed to load candidate counts",
+      );
+    }
+  };
+
+  const closeSkippableModal = () => {
+    if (skippableModal.saving) return;
+    setSkippableModal({
+      isOpen: false,
+      step: null,
+      checked: false,
+      counts: null,
+      saving: null,
+    });
+  };
+
+  // action: "all" = skip everyone · "others" = keep on-step candidates ·
+  // "stop" = unmark. Only the clicked button shows its spinner.
+  const confirmSkippableToggle = async (action) => {
+    const { step, checked } = skippableModal;
+    if (!step || skippableModal.saving) return;
+    const excludeOnStep = action === "others";
+    try {
+      setSkippableModal((prev) => ({ ...prev, saving: action }));
+      const { data } = await adminSetStepSkippable(
+        step.id,
+        checked,
+        excludeOnStep,
+      );
+      if (data?.success) {
+        // Flip only this step's flag on both the editable state and the saved
+        // snapshot — the response's steps_config is the stored version, so
+        // assigning it wholesale would wipe unsaved edits to other steps
+        // (button titles, reordering).
+        const newFlag = Boolean(data.data?.is_skippable);
+        const patchFlag = (list) =>
+          (list || []).map((s) =>
+            s.id === step.id ? { ...s, is_skippable: newFlag } : s,
+          );
+        setGlobalSettings((prev) => ({
+          ...prev,
+          steps_config: patchFlag(prev.steps_config),
+        }));
+        setSavedSettingsSnapshot((prev) =>
+          prev ? { ...prev, steps_config: patchFlag(prev.steps_config) } : prev,
+        );
+        const skipped = data.data?.skipped_candidates ?? 0;
+        const kept = data.data?.kept_on_step ?? 0;
+        const plural = (n) => `candidate${n === 1 ? "" : "s"}`;
+        toast.success(
+          !checked
+            ? `"${step.title}" is no longer skippable.`
+            : excludeOnStep
+              ? `"${step.title}" is now skippable — skipped for ${skipped} ${plural(skipped)}, ${kept} still on the step.`
+              : `"${step.title}" is now skippable — skipped for ${skipped} ${plural(skipped)}.`,
+        );
+        setSkippableModal({
+          isOpen: false,
+          step: null,
+          checked: false,
+          counts: null,
+          saving: null,
+        });
+        fetchList();
+      } else {
+        toast.error("Failed to update step skippability");
+        setSkippableModal((prev) => ({ ...prev, saving: null }));
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err.response?.data?.message || "Error updating step skippability",
+      );
+      setSkippableModal((prev) => ({ ...prev, saving: null }));
+    }
+  };
+
   const [newDocTitle, setNewDocTitle] = useState("");
   const [newDocMapsTo, setNewDocMapsTo] = useState("");
   const [newDocExts, setNewDocExts] = useState({
@@ -753,6 +862,12 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
   const settingsDirty =
     savedSettingsSnapshot !== null &&
     JSON.stringify(globalSettings) !== JSON.stringify(savedSettingsSnapshot);
+
+  const skippableCounts = skippableModal.counts || {};
+  const skippableOnStep =
+    (skippableCounts.pending || 0) + (skippableCounts.review || 0);
+  const skippableCompleted = skippableCounts.completed || 0;
+  const skippableAlreadySkipped = skippableCounts.skipped || 0;
 
   return (
     <div className="flex flex-col gap-6 h-full ">
@@ -1312,20 +1427,7 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
                               id={step.id}
                               step={step}
                               index={idx}
-                              onToggleSkippable={(stepId, isChecked) => {
-                                const updatedSteps = (
-                                  globalSettings.steps_config || []
-                                ).map((s) => {
-                                  if (s.id === stepId) {
-                                    return { ...s, is_skippable: isChecked };
-                                  }
-                                  return s;
-                                });
-                                setGlobalSettings((prev) => ({
-                                  ...prev,
-                                  steps_config: updatedSteps,
-                                }));
-                              }}
+                              onToggleSkippable={handleSkippableToggle}
                               onUpdateButtonTitle={(stepId, newTitle) => {
                                 const updatedSteps = (
                                   globalSettings.steps_config || []
@@ -1628,6 +1730,106 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
           </div>
         )}
       </div>
+
+      {/* Global "Skippable" two-step confirmation — mirrors the per-candidate
+          skip semantics in CandidateDetail. */}
+      {skippableModal.isOpen && skippableModal.step && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-slate-100">
+            <h3 className="text-sm font-bold text-slate-900 mb-2">
+              {skippableModal.checked
+                ? `Mark "${skippableModal.step.title}" skippable?`
+                : `Remove skippable from "${skippableModal.step.title}"?`}
+            </h3>
+            <div className="text-[11px] text-zinc-500 leading-relaxed mb-4 space-y-1.5">
+              {skippableModal.checked ? (
+                <>
+                  {skippableOnStep > 0 && (
+                    <p>
+                      <span className="font-bold text-slate-800">
+                        {skippableOnStep}
+                      </span>{" "}
+                      {skippableOnStep === 1 ? "candidate is" : "candidates are"}{" "}
+                      currently on this step.
+                    </p>
+                  )}
+                  {skippableCompleted > 0 && (
+                    <p>
+                      <span className="font-bold text-slate-800">
+                        {skippableCompleted}
+                      </span>{" "}
+                      already completed it and won&apos;t be affected.
+                    </p>
+                  )}
+                  <p>
+                    New candidates will skip this step automatically.
+                    {skippableOnStep > 0 &&
+                      " Choose whether the ones on it now should skip too, or keep going."}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p>New and upcoming candidates will have to complete it.</p>
+                  {skippableAlreadySkipped > 0 && (
+                    <p>
+                      <span className="font-bold text-slate-800">
+                        {skippableAlreadySkipped}
+                      </span>{" "}
+                      {skippableAlreadySkipped === 1
+                        ? "candidate who"
+                        : "candidates who"}{" "}
+                      already skipped it will stay skipped.
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+            <div className="flex gap-2 justify-end flex-wrap">
+              <button
+                type="button"
+                onClick={closeSkippableModal}
+                disabled={!!skippableModal.saving}
+                className="px-4 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 text-slate-600 font-bold text-[11px] transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              {skippableModal.checked && skippableOnStep > 0 && (
+                <button
+                  type="button"
+                  onClick={() => confirmSkippableToggle("others")}
+                  disabled={!!skippableModal.saving}
+                  className="px-4 py-2 bg-[#083262] hover:bg-[#052243] text-white rounded-xl font-bold text-[11px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {skippableModal.saving === "others"
+                    ? "Applying..."
+                    : `Skip others — ${skippableOnStep} stay${
+                        skippableOnStep === 1 ? "s" : ""
+                      }`}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() =>
+                  confirmSkippableToggle(
+                    skippableModal.checked ? "all" : "stop",
+                  )
+                }
+                disabled={!!skippableModal.saving}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-[11px] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {skippableModal.saving === "all" ||
+                skippableModal.saving === "stop"
+                  ? "Applying..."
+                  : skippableModal.checked
+                    ? skippableOnStep > 0
+                      ? "Skip for all"
+                      : "Mark skippable"
+                    : "Remove skippable"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1683,7 +1885,7 @@ const SortableGlobalStepItem = ({
           <input
             type="checkbox"
             checked={!!step.is_skippable}
-            onChange={(e) => onToggleSkippable(step.id, e.target.checked)}
+            onChange={(e) => onToggleSkippable(step, e.target.checked)}
             className="rounded border-slate-200 text-[#083262] focus:ring-0 w-3.5 h-3.5 cursor-pointer"
           />
           <span className="text-[9px] font-bold text-slate-500">Skippable</span>

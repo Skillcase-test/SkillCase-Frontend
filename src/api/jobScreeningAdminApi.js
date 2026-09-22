@@ -110,6 +110,18 @@ export const adminGetSettings = () => api.get("/admin/job-screening/settings");
 export const adminUpdateSettings = (payload) =>
   api.post("/admin/job-screening/settings", payload);
 
+export const adminGetStepSkippablePreview = (stepId) =>
+  api.get("/admin/job-screening/settings/step-skippable-preview", {
+    params: { step_id: stepId },
+  });
+
+export const adminSetStepSkippable = (stepId, isSkippable, excludeOnStep) =>
+  api.post("/admin/job-screening/settings/step-skippable", {
+    step_id: stepId,
+    is_skippable: isSkippable,
+    exclude_on_step: !!excludeOnStep,
+  });
+
 // Select Opportunity step — admin-authored opportunities (max 3 active).
 export const adminListOpportunities = () =>
   api.get("/admin/job-screening/opportunities");
