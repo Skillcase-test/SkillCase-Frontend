@@ -26,14 +26,28 @@ const countChapterItems = (items) => {
   );
 };
 
+// B1 owns only B1 now — B2/C1/C2 learners live in the separate /b2 suite.
 export function isB1PracticeLevel(level) {
+  return String(level || "").toLowerCase() === "b1";
+}
+
+export function isB2PracticeLevel(level) {
   const normalized = String(level || "").toLowerCase();
-  return normalized === "b1" || normalized === "b2";
+  return normalized === "b2" || normalized === "c1" || normalized === "c2";
+}
+
+// The shared "practice suite" segment (top mode switcher, jobs tab, app
+// shell). B1 and B2 users get identical chrome — only the content differs.
+export function isPracticeSuiteLevel(level) {
+  return isB1PracticeLevel(level) || isB2PracticeLevel(level);
 }
 
 export function getPracticeHomeForLevel(level) {
   const normalized = String(level || "A1").toLowerCase();
   if (normalized === "a2") return "/a2";
+  // B2 has no dedicated hub page — the landing feature cards deep-link into
+  // /b2/<module>, so its home is the landing page itself.
+  if (isB2PracticeLevel(normalized)) return "/";
   if (isB1PracticeLevel(normalized)) return "/b1";
   return "/a1";
 }

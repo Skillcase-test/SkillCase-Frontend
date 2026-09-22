@@ -13,7 +13,11 @@ import {
 } from "../../api/a1Api";
 import A1MigrationModal from "../../components/a1/A1MigrationModal";
 import ModalPortal from "../../components/common/ModalPortal";
-import { isB1PracticeLevel } from "../../utils/b1Progress";
+import {
+  isB1PracticeLevel,
+  isB2PracticeLevel,
+  isPracticeSuiteLevel,
+} from "../../utils/b1Progress";
 import { trackFeatureEvent } from "../../telemetry/events";
 import { getLandingVisibility } from "../../api/scholarshipExamApi";
 import ScholarshipEntryCard, {
@@ -45,9 +49,11 @@ export default function LandingPage() {
   const rawLevel = (user?.user_prof_level || "A1").toUpperCase();
   const contentLevel = isB1PracticeLevel(rawLevel)
     ? "B1"
-    : ["A1", "A2", "B1", "B2"].includes(rawLevel)
-      ? rawLevel
-      : "A1";
+    : isB2PracticeLevel(rawLevel)
+      ? "B2"
+      : ["A1", "A2", "B1", "B2"].includes(rawLevel)
+        ? rawLevel
+        : "A1";
   const { sections } = useLandingSections(contentLevel);
   const isPaidUser = Boolean(user?.is_paid);
   const showLandingSections = !isPaidUser;
@@ -96,7 +102,7 @@ export default function LandingPage() {
   // B1/B2 users own the mode switcher (Exam & Practice / Jobs) and may keep
   // their saved mode as job_screening while viewing the practice hub — only
   // non-B1 job candidates get force-redirected into the pipeline here.
-  const isB1User = isB1PracticeLevel(user?.user_prof_level);
+  const isB1User = isPracticeSuiteLevel(user?.user_prof_level);
 
   // German Classes is a client-side-only mode (the /user/lg-mode server
   // whitelist has no such value) — selecting its tab persists "courses" in

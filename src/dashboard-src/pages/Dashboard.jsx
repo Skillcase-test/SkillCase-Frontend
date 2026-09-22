@@ -111,6 +111,16 @@ const B1ArticleAdd = lazy(() => import("./b1/article/add"));
 const B1ArticleManage = lazy(() => import("./b1/article/manage"));
 const B1ExamsAdd = lazy(() => import("./b1/exams/add"));
 const B1ExamsManage = lazy(() => import("./b1/exams/manage"));
+const B2ReadingAdd = lazy(() => import("./b2/reading/add"));
+const B2ReadingManage = lazy(() => import("./b2/reading/manage"));
+const B2ListeningAdd = lazy(() => import("./b2/listening/add"));
+const B2ListeningManage = lazy(() => import("./b2/listening/manage"));
+const B2SpeakingAdd = lazy(() => import("./b2/speaking/add"));
+const B2SpeakingManage = lazy(() => import("./b2/speaking/manage"));
+const B2WritingAdd = lazy(() => import("./b2/writing/add"));
+const B2WritingManage = lazy(() => import("./b2/writing/manage"));
+const B2ExamsAdd = lazy(() => import("./b2/exams/add"));
+const B2ExamsManage = lazy(() => import("./b2/exams/manage"));
 
 const VideoCourseAdd = lazy(() => import("./videoCourses/add"));
 const VideoCourseManage = lazy(() => import("./videoCourses/manage"));
@@ -496,6 +506,7 @@ function ContentModuleTree({
   a1Modules,
   a2Modules,
   b1Modules = [],
+  b2Modules = [],
   videoModules = [],
   extraItems = [],
   onLinkClick,
@@ -505,6 +516,7 @@ function ContentModuleTree({
     a1Modules.length > 0 ||
     a2Modules.length > 0 ||
     b1Modules.length > 0 ||
+    b2Modules.length > 0 ||
     videoModules.length > 0 ||
     extraItems.length > 0;
   const [open, setOpen] = useState(false);
@@ -519,10 +531,13 @@ function ContentModuleTree({
     const matchesB1 = b1Modules.some((m) =>
       location.pathname.startsWith(m.basePath),
     );
+    const matchesB2 = b2Modules.some((m) =>
+      location.pathname.startsWith(m.basePath),
+    );
     const matchesVideo = videoModules.some((m) =>
       location.pathname.startsWith(m.basePath),
     );
-    if (matchesA1 || matchesA2 || matchesB1 || matchesVideo) {
+    if (matchesA1 || matchesA2 || matchesB1 || matchesB2 || matchesVideo) {
       setOpen(true);
     }
     if (extraItems.some((item) => location.pathname.startsWith(item.path))) {
@@ -533,6 +548,7 @@ function ContentModuleTree({
     a1Modules,
     a2Modules,
     b1Modules,
+    b2Modules,
     videoModules,
     extraItems,
   ]);
@@ -577,6 +593,13 @@ function ContentModuleTree({
             <ModuleGroup
               title="B1"
               modules={b1Modules}
+              onLinkClick={onLinkClick}
+            />
+          )}
+          {b2Modules.length > 0 && (
+            <ModuleGroup
+              title="B2"
+              modules={b2Modules}
               onLinkClick={onLinkClick}
             />
           )}
@@ -1058,6 +1081,36 @@ export default function Dashboard() {
         ]
       : [];
 
+    const b2Modules = hasPermission(me, "b2_content", "view")
+      ? [
+          {
+            key: "b2-reading",
+            label: "B2 Reading",
+            basePath: "/admin/b2/reading",
+          },
+          {
+            key: "b2-listening",
+            label: "B2 Listening",
+            basePath: "/admin/b2/listening",
+          },
+          {
+            key: "b2-speaking",
+            label: "B2 Speaking",
+            basePath: "/admin/b2/speaking",
+          },
+          {
+            key: "b2-writing",
+            label: "B2 Writing",
+            basePath: "/admin/b2/writing",
+          },
+          {
+            key: "b2-exams",
+            label: "B2 Exams",
+            basePath: "/admin/b2/exams",
+          },
+        ]
+      : [];
+
     const videoCoursesModules = hasPermission(
       me,
       "video_course_content",
@@ -1108,6 +1161,7 @@ export default function Dashboard() {
       a1Modules,
       a2Modules,
       b1Modules,
+      b2Modules,
       videoCoursesModules,
       extraContentItems,
       superAdmin,
@@ -1120,6 +1174,7 @@ export default function Dashboard() {
     (sections.a1Modules[0] ? `${sections.a1Modules[0].basePath}/add` : null) ||
     (sections.a2Modules[0] ? `${sections.a2Modules[0].basePath}/add` : null) ||
     (sections.b1Modules[0] ? `${sections.b1Modules[0].basePath}/add` : null) ||
+    (sections.b2Modules?.[0] ? `${sections.b2Modules[0].basePath}/add` : null) ||
     (sections.videoCoursesModules[0]
       ? `${sections.videoCoursesModules[0].basePath}/add`
       : null) ||
@@ -1212,6 +1267,7 @@ export default function Dashboard() {
                 a1Modules={sections.a1Modules}
                 a2Modules={sections.a2Modules}
                 b1Modules={sections.b1Modules}
+                b2Modules={sections.b2Modules}
                 videoModules={sections.videoCoursesModules}
                 extraItems={sections.extraContentItems}
               />
@@ -1244,6 +1300,7 @@ export default function Dashboard() {
                 a1Modules={sections.a1Modules}
                 a2Modules={sections.a2Modules}
                 b1Modules={sections.b1Modules}
+                b2Modules={sections.b2Modules}
                 videoModules={sections.videoCoursesModules}
                 extraItems={sections.extraContentItems}
                 onLinkClick={closeMobileSidebar}
@@ -1825,6 +1882,88 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "b1_content", "edit")}>
                     <B1ExamsManage />
+                  </Guard>
+                }
+              />
+
+              {/* B2 Routes */}
+              <Route
+                path="b2/reading/add"
+                element={
+                  <Guard allowed={hasPermission(me, "b2_content", "edit")}>
+                    <B2ReadingAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b2/reading/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "b2_content", "edit")}>
+                    <B2ReadingManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b2/listening/add"
+                element={
+                  <Guard allowed={hasPermission(me, "b2_content", "edit")}>
+                    <B2ListeningAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b2/listening/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "b2_content", "edit")}>
+                    <B2ListeningManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b2/speaking/add"
+                element={
+                  <Guard allowed={hasPermission(me, "b2_content", "edit")}>
+                    <B2SpeakingAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b2/speaking/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "b2_content", "edit")}>
+                    <B2SpeakingManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b2/writing/add"
+                element={
+                  <Guard allowed={hasPermission(me, "b2_content", "edit")}>
+                    <B2WritingAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b2/writing/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "b2_content", "edit")}>
+                    <B2WritingManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b2/exams/add"
+                element={
+                  <Guard allowed={hasPermission(me, "b2_content", "edit")}>
+                    <B2ExamsAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="b2/exams/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "b2_content", "edit")}>
+                    <B2ExamsManage />
                   </Guard>
                 }
               />

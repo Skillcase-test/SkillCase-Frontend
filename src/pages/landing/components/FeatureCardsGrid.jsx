@@ -6,7 +6,10 @@ import { images } from "../../../assets/images.js";
 import { useState } from "react";
 import FeatureStatusChip from "../../../components/ui/FeatureStatusChip";
 import { hapticLight } from "../../../utils/haptics";
-import { isB1PracticeLevel } from "../../../utils/b1Progress";
+import {
+  isB1PracticeLevel,
+  isB2PracticeLevel,
+} from "../../../utils/b1Progress";
 import { useUsageLimits } from "../../../hooks/useUsageLimits";
 import { useFeatureFlags } from "../../../hooks/useFeatureFlags";
 
@@ -36,6 +39,11 @@ const MODULE_MAP = {
   "b1-describe-speak": { level: "B1", module_key: "describe_speak" },
   "b1-exams": { level: "B1", module_key: "exams" },
   "b1-maya": { level: "B1", module_key: "maya" },
+  "b2-reading": { level: "B2", module_key: "reading" },
+  "b2-listening": { level: "B2", module_key: "listening" },
+  "b2-writing": { level: "B2", module_key: "writing" },
+  "b2-speaking": { level: "B2", module_key: "speaking" },
+  "b2-exams": { level: "B2", module_key: "exams" },
 };
 
 const studyNotesFeature = {
@@ -54,6 +62,7 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
 
   const normalizedProfLevel = profLevel.toLowerCase();
   const isB1 = isB1PracticeLevel(normalizedProfLevel);
+  const isB2 = isB2PracticeLevel(normalizedProfLevel);
   const isA2 = normalizedProfLevel === "a2";
 
   const a1Features = [
@@ -290,14 +299,75 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
     },
   ];
 
+  // B2 suite — five features: 4 practice modules (tag-filtered exercise
+  // lists) + full TELC/Goethe exam papers. Card visuals are B1-styled
+  // placeholders until the dedicated B2 card design lands.
+  const b2Features = [
+    {
+      id: "b2-reading",
+      title: "Reading",
+      description: "B2 reading comprehension practice",
+      image:
+        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090498/read_listen_pwnige.webp",
+      link: "/b2/reading",
+      enabled: true,
+    },
+    {
+      id: "b2-listening",
+      title: "Listening",
+      description: "B2 audio comprehension practice",
+      image:
+        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090498/read_listen_pwnige.webp",
+      link: "/b2/listening",
+      enabled: true,
+    },
+    {
+      id: "b2-writing",
+      title: "Writing",
+      description: "Exam-style essays with AI feedback",
+      image:
+        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090503/describe_speak_dtdpvf.webp",
+      link: "/b2/writing",
+      enabled: true,
+    },
+    {
+      id: "b2-speaking",
+      title: "Speaking",
+      description: "B2 speaking prompts with AI scoring",
+      image:
+        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090503/describe_speak_dtdpvf.webp",
+      link: "/b2/speaking",
+      enabled: true,
+    },
+    {
+      id: "b2-exams",
+      title: "Exam Papers",
+      description: "Full TELC & Goethe mock exams",
+      image:
+        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090510/exam_isoiv2.webp",
+      link: "/b2/exams",
+      enabled: true,
+    },
+    {
+      id: "news",
+      title: "News",
+      description: "Read top headlines in German and English",
+      image: images.news,
+      link: "/news",
+      enabled: true,
+    },
+  ];
+
   const features = [
-    ...(isB1
-      ? b1Features
-      : isA2
-        ? a2Features
-        : useRevampA1
-          ? a1RevampFeatures
-          : a1Features),
+    ...(isB2
+      ? b2Features
+      : isB1
+        ? b1Features
+        : isA2
+          ? a2Features
+          : useRevampA1
+            ? a1RevampFeatures
+            : a1Features),
     ...(isFeatureEnabled("study_notes") ? [studyNotesFeature] : []),
   ];
 
@@ -329,6 +399,11 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
       "b1-describe-speak": "b1-describe-speak-card",
       "b1-exams": "b1-exams-card",
       "b1-maya": "b1-maya-card",
+      "b2-reading": "b2-reading-card",
+      "b2-listening": "b2-listening-card",
+      "b2-writing": "b2-writing-card",
+      "b2-speaking": "b2-speaking-card",
+      "b2-exams": "b2-exams-card",
     };
     return tourIds[id] || undefined;
   };
@@ -336,11 +411,13 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
   return (
     <div
       id={
-        isB1
-          ? "b1-feature-cards-grid"
-          : isA2
-            ? "a2-feature-cards-grid"
-            : "feature-cards-grid"
+        isB2
+          ? "b2-feature-cards-grid"
+          : isB1
+            ? "b1-feature-cards-grid"
+            : isA2
+              ? "a2-feature-cards-grid"
+              : "feature-cards-grid"
       }
       className="px-4 pt-2 pb-4"
     >

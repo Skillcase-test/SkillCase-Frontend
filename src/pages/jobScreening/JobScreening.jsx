@@ -37,7 +37,7 @@ import { setUser } from "../../redux/auth/authSlice";
 import { trackFeatureEvent } from "../../telemetry/events";
 import { captureTelemetryError } from "../../telemetry";
 import { trackFlowAction } from "../../telemetry/flow";
-import { isB1PracticeLevel } from "../../utils/b1Progress";
+import { isPracticeSuiteLevel } from "../../utils/b1Progress";
 
 const STEP_DESCRIPTIONS = {
   welcome: {
@@ -110,7 +110,7 @@ const syncPreferredModeCache = (user = {}) => {
 // the bottom of the screen. Legacy (non-B1) candidates keep the original
 // heights tuned for the 55px/72px white JobScreeningNavbar.
 const getPipelineMinHeightClass = (user = {}) =>
-  isB1PracticeLevel(user?.user_prof_level)
+  isPracticeSuiteLevel(user?.user_prof_level)
     ? "min-h-[calc(100vh-124px)] lg:min-h-[calc(100vh-124px)]"
     : "min-h-[calc(100vh-55px)] lg:min-h-[calc(100vh-72px)]";
 
@@ -272,7 +272,7 @@ const JobScreening = () => {
       (typeof sessionStorage !== "undefined" &&
         sessionStorage.getItem("top_switcher_tour_active") === "true");
 
-    const isB1User = isB1PracticeLevel(user?.user_prof_level);
+    const isB1User = isPracticeSuiteLevel(user?.user_prof_level);
 
     // If user is no longer a job screening candidate, redirect to home
     // (B1/B2 users have legitimate access via the switcher, and tour preview must never be bounced)

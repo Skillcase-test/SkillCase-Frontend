@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { images } from "../assets/images.js";
-import { isB1PracticeLevel } from "../utils/b1Progress";
+import { isPracticeSuiteLevel } from "../utils/b1Progress";
 import { hapticLight, hapticMedium } from "../utils/haptics";
 import { Gem, Gift, GraduationCap } from "lucide-react";
 import { isPremiumUser, isTrialActive, trialDaysLeft } from "../utils/premium";
@@ -43,7 +43,7 @@ export default function Navbar({ disableNavigation = false }) {
   // mode may stay job_screening while they browse the practice hub, so the
   // white job-screening chrome must be path-based for them, not mode-based.
   const isB1User =
-    isAuthenticated && user && isB1PracticeLevel(user?.user_prof_level);
+    isAuthenticated && user && isPracticeSuiteLevel(user?.user_prof_level);
   // B1/B2 users own the navy mode-switcher shell everywhere — including the
   // job-screening pipeline, where the switcher flips between Exam & Practice
   // and Jobs. Only legacy (non-B1) job-screening candidates get the white

@@ -22,6 +22,12 @@ const RULES = [
   [/^\/b1\/describe-speak/, "learning", "b1_describe_speak"],
   [/^\/b1\/flashcard/, "learning", "b1_flashcard"],
   [/^\/b1\/maya/, "maya", "maya"],
+  [/^\/b2\/exams/, "learning", "b2_exam_papers"],
+  [/^\/b2\/reading/, "learning", "b2_reading"],
+  [/^\/b2\/listening/, "learning", "b2_listening"],
+  [/^\/b2\/writing/, "learning", "b2_writing"],
+  [/^\/b2\/speaking/, "learning", "b2_speaking"],
+  [/^\/b2admin/, "internal", "internal"],
   [/^\/notes/, "learning", "notes"],
   [/^\/video-courses?(?:\/|$)/, "learning", "video_courses"],
 
@@ -40,9 +46,9 @@ const RULES = [
   [/^\/manage-event/, "events", "event_management"],
   [/^\/interview/, "interview", "interview"],
   [/^\/signup|^\/login/, "auth", "authentication"],
-  [/^\/admin|^\/b1admin|^\/internal/, "internal", "internal"],
+  [/^\/admin|^\/b1admin|^\/b2admin|^\/internal/, "internal", "internal"],
   [/^\/start-now|^\/register|^\/thank-you|^\/open-app|^\/continue|^\/redirect/, "acquisition", "acquisition"],
-  [/^\/(a1|a2|b1)\/?$/, "learning", "level_home"],
+  [/^\/(a1|a2|b1|b2)\/?$/, "learning", "level_home"],
   [/^\/$/, "home", "landing"],
 ];
 

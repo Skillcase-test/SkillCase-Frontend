@@ -40,7 +40,10 @@ import { SplashScreen } from "@capacitor/splash-screen";
 import { useDispatch, useSelector } from "react-redux";
 import SupportWidget from "./components/SupportWidget";
 import api from "./api/axios";
-import { isB1PracticeLevel } from "./utils/b1Progress";
+import {
+  isB1PracticeLevel,
+  isPracticeSuiteLevel,
+} from "./utils/b1Progress";
 import {
   isShellRoute,
   isPaymentRoute,
@@ -315,6 +318,66 @@ const B1MayaPage = lazy(() => import("./pages/b1/maya/B1MayaPage"));
 const VideoReader = lazy(() => import("./pages/b1/read-listen/VideoReader"));
 const VideoSuccess = lazy(() => import("./pages/b1/read-listen/VideoSuccess"));
 const B1AdminPage = lazy(() => import("./pages/b1/B1AdminPage"));
+// B2 suite — fully separate components from B1 (no shared page imports).
+const B2ExerciseSelect = lazy(
+  () => import("./pages/b2/modules/ExerciseSelect"),
+);
+const B2ReadingWorkspace = lazy(
+  () => import("./pages/b2/modules/ReadingWorkspace"),
+);
+const B2ReadingResults = lazy(
+  () => import("./pages/b2/modules/ReadingResults"),
+);
+const B2ListeningWorkspace = lazy(
+  () => import("./pages/b2/modules/ListeningWorkspace"),
+);
+const B2ListeningResults = lazy(
+  () => import("./pages/b2/modules/ListeningResults"),
+);
+const B2WritingWorkspace = lazy(
+  () => import("./pages/b2/modules/WritingWorkspace"),
+);
+const B2WritingResults = lazy(
+  () => import("./pages/b2/modules/WritingResults"),
+);
+const B2SpeakingWorkspace = lazy(
+  () => import("./pages/b2/modules/SpeakingWorkspace"),
+);
+const B2SpeakingResults = lazy(
+  () => import("./pages/b2/modules/SpeakingResults"),
+);
+const B2PaperSelect = lazy(() => import("./pages/b2/exams/PaperSelect"));
+const B2ExamBlockSelector = lazy(
+  () => import("./pages/b2/exams/ExamBlockSelector"),
+);
+const B2ExamReadingWorkspace = lazy(
+  () => import("./pages/b2/exams/ExamReadingWorkspace"),
+);
+const B2ExamReadingResults = lazy(
+  () => import("./pages/b2/exams/ExamReadingResults"),
+);
+const B2ExamListeningWorkspace = lazy(
+  () => import("./pages/b2/exams/ExamListeningWorkspace"),
+);
+const B2ExamListeningResults = lazy(
+  () => import("./pages/b2/exams/ExamListeningResults"),
+);
+const B2ExamWritingWorkspace = lazy(
+  () => import("./pages/b2/exams/ExamWritingWorkspace"),
+);
+const B2ExamWritingResults = lazy(
+  () => import("./pages/b2/exams/ExamWritingResults"),
+);
+const B2ExamSpeakingWorkspace = lazy(
+  () => import("./pages/b2/exams/ExamSpeakingWorkspace"),
+);
+const B2ExamSpeakingResults = lazy(
+  () => import("./pages/b2/exams/ExamSpeakingResults"),
+);
+const B2ExamCongratulations = lazy(
+  () => import("./pages/b2/exams/ExamCongratulations"),
+);
+const B2AdminPage = lazy(() => import("./pages/b2/B2AdminPage"));
 
 // Video Courses & Notes (standalone course browsing + PDF study notes + playback + AI chat)
 const CourseSelectPage = lazy(
@@ -1073,7 +1136,7 @@ function AppContent() {
   }
 
   const isB1User =
-    isAuthenticated && user && isB1PracticeLevel(user?.user_prof_level);
+    isAuthenticated && user && isPracticeSuiteLevel(user?.user_prof_level);
 
   const isJobScreeningUser =
     isAuthenticated &&
@@ -1115,6 +1178,7 @@ function AppContent() {
     (isB1User &&
       (location.pathname === "/" ||
         location.pathname.startsWith("/b1") ||
+        location.pathname.startsWith("/b2") ||
         location.pathname.startsWith("/video-courses") ||
         location.pathname.startsWith("/video-course/")));
 
@@ -1976,6 +2040,172 @@ function AppContent() {
                       </LearningRoute>
                     }
                   />
+                  {/* B2 Practice Suite — 4 tag-filtered modules + exam papers.
+                      No /b2 hub page — the landing feature cards route directly
+                      to each module; redirect stale links home. */}
+                  <Route path="/b2" element={<Navigate to="/" replace />} />
+                  <Route
+                    path="/b2/exams"
+                    element={
+                      <LearningRoute>
+                        <B2PaperSelect />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/exams/papers/:paperId/dashboard"
+                    element={
+                      <LearningRoute>
+                        <B2ExamBlockSelector />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/exams/papers/:paperId/reading"
+                    element={
+                      <LearningRoute>
+                        <B2ExamReadingWorkspace />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/exams/papers/:paperId/reading/results"
+                    element={
+                      <LearningRoute>
+                        <B2ExamReadingResults />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/exams/papers/:paperId/writing"
+                    element={
+                      <LearningRoute>
+                        <B2ExamWritingWorkspace />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/exams/papers/:paperId/writing/results"
+                    element={
+                      <LearningRoute>
+                        <B2ExamWritingResults />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/exams/papers/:paperId/listening"
+                    element={
+                      <LearningRoute>
+                        <B2ExamListeningWorkspace />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/exams/papers/:paperId/listening/results"
+                    element={
+                      <LearningRoute>
+                        <B2ExamListeningResults />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/exams/papers/:paperId/speaking"
+                    element={
+                      <LearningRoute>
+                        <B2ExamSpeakingWorkspace />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/exams/papers/:paperId/speaking/results"
+                    element={
+                      <LearningRoute>
+                        <B2ExamSpeakingResults />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/exams/papers/:paperId/congratulations"
+                    element={
+                      <LearningRoute>
+                        <B2ExamCongratulations />
+                      </LearningRoute>
+                    }
+                  />
+                  {/* B2 module exercise lists + workspaces. Static module
+                      paths win over /b2/exams via router ranking. */}
+                  <Route
+                    path="/b2/:module"
+                    element={
+                      <LearningRoute>
+                        <B2ExerciseSelect />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/reading/:exerciseId"
+                    element={
+                      <LearningRoute>
+                        <B2ReadingWorkspace />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/reading/:exerciseId/results"
+                    element={
+                      <LearningRoute>
+                        <B2ReadingResults />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/listening/:exerciseId"
+                    element={
+                      <LearningRoute>
+                        <B2ListeningWorkspace />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/listening/:exerciseId/results"
+                    element={
+                      <LearningRoute>
+                        <B2ListeningResults />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/writing/:exerciseId"
+                    element={
+                      <LearningRoute>
+                        <B2WritingWorkspace />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/writing/:exerciseId/results"
+                    element={
+                      <LearningRoute>
+                        <B2WritingResults />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/speaking/:exerciseId"
+                    element={
+                      <LearningRoute>
+                        <B2SpeakingWorkspace />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
+                    path="/b2/speaking/:exerciseId/results"
+                    element={
+                      <LearningRoute>
+                        <B2SpeakingResults />
+                      </LearningRoute>
+                    }
+                  />
                   {/* B1 Flashcards Routes */}
                   <Route
                     path="/b1/flashcard"
@@ -2079,6 +2309,10 @@ function AppContent() {
                     path="/b1admin"
                     element={lazyScreen(<B1AdminPage />, "Loading B1 Admin...")}
                   />
+                  <Route
+                    path="/b2admin"
+                    element={lazyScreen(<B2AdminPage />, "Loading B2 Admin...")}
+                  />
                 </Routes>
 
                 <ConditionalBottomTabBar />
@@ -2122,7 +2356,7 @@ function RouteScreenSkeleton({ title }) {
 
 function LearningRoute({ children }) {
   return (
-    <Suspense fallback={<RouteScreenSkeleton title="Loading B1 Practice..." />}>
+    <Suspense fallback={<RouteScreenSkeleton title="Loading Practice..." />}>
       {children}
     </Suspense>
   );
@@ -2146,6 +2380,7 @@ function ConditionalFooter() {
     location.pathname.startsWith("/admin") ||
     location.pathname.startsWith("/exam") ||
     location.pathname.startsWith("/b1/exams") ||
+    location.pathname.startsWith("/b2/exams") ||
     // New app-shell screens carry the floating bottom tab bar instead.
     location.pathname === "/" ||
     location.pathname.startsWith("/scholarship") ||
@@ -2162,7 +2397,7 @@ function AppHeaderShell() {
     location.pathname === "/login" ||
     location.pathname === "/signup" ||
     (location.pathname.startsWith("/job-screening") &&
-      !isB1PracticeLevel(user?.user_prof_level));
+      !isPracticeSuiteLevel(user?.user_prof_level));
 
   return (
     <div
@@ -2230,7 +2465,7 @@ function ConditionalTopSwitcher() {
   // modes is the whole point of their two-tab switcher. The scholarship hub
   // renders the single-tab "Scholarship Exam" switcher variant. The focused
   // interview / terms flows keep their own chrome.
-  const isB1 = isB1PracticeLevel(user?.user_prof_level);
+  const isB1 = isPracticeSuiteLevel(user?.user_prof_level);
   const showSwitcher = isScholarshipRoute(location.pathname)
     ? location.pathname === "/scholarship"
     : isB1
@@ -2261,7 +2496,7 @@ function ConditionalBottomTabBar() {
   // keep the white pipeline chrome, so the tab bar stays off /job-screening
   // for them; B1/B2 users get it on the lobby (Jobs tab active) so Home is
   // always one tap away.
-  const isB1 = isB1PracticeLevel(user?.user_prof_level);
+  const isB1 = isPracticeSuiteLevel(user?.user_prof_level);
   const showTabBar =
     isShellRoute(location.pathname) &&
     (isB1 || location.pathname !== "/job-screening");

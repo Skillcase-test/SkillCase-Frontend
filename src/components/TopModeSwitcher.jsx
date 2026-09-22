@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import { getLGMode, setLGMode } from "../api/learnGermanApi";
 import { trackClarityEvent } from "../observability/clarity";
 import { hapticLight } from "../utils/haptics";
-import { isB1PracticeLevel } from "../utils/b1Progress";
+import { isPracticeSuiteLevel } from "../utils/b1Progress";
 import { syncModeIntoRedux } from "../utils/lgMode";
 import {
   isScholarshipRoute,
@@ -66,7 +66,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
   const showGermanClasses = isFeatureEnabled("german_classes");
   // B1/B2 users get a two-tab switcher: Exam & Practice + Jobs. The Jobs tab
   // is the gateway into the job-screening pipeline (and back via practice).
-  const isB1 = isB1PracticeLevel(user?.user_prof_level);
+  const isB1 = isPracticeSuiteLevel(user?.user_prof_level);
   const [localTourActive, setLocalTourActive] = useState(false);
 
   useEffect(() => {
