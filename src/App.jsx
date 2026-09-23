@@ -2314,8 +2314,10 @@ function ConditionalFooter() {
     location.pathname.startsWith("/interview") ||
     location.pathname.startsWith("/admin") ||
     location.pathname.startsWith("/exam") ||
-    location.pathname.startsWith("/b1/exams") ||
-    location.pathname.startsWith("/b2/exams") ||
+    location.pathname.startsWith("/b1") ||
+    location.pathname.startsWith("/b2") ||
+    location.pathname.startsWith("/a1") ||
+    location.pathname.startsWith("/a2") ||
     // New app-shell screens carry the floating bottom tab bar instead.
     location.pathname === "/" ||
     location.pathname.startsWith("/scholarship") ||

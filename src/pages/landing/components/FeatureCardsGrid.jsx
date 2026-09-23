@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import Badge from "../../../components/ui/Badge";
 import ExamCards from "../../exam/ExamCards";
 import B2TestBanner from "../../../components/b2/B2TestBanner";
+import mayaFull from "../../../assets/onboarding/mayaFull.webp";
 import { images } from "../../../assets/images.js";
 import { useState, useEffect } from "react";
 import { ChevronRight } from "lucide-react";
@@ -256,8 +257,8 @@ export default function FeatureCardsGrid() {
     },
     {
       id: "b2-exams",
-      title: "Exam Papers",
-      description: "Full TELC & Goethe mock exams",
+      title: "Timed Exam Paper",
+      description: "Full Length mock exams",
       image:
         "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090510/exam_isoiv2.webp",
       link: "/b2/exams",
@@ -279,11 +280,18 @@ export default function FeatureCardsGrid() {
   // B2 test hub overview — drives the Maya test banner above the grid and the
   // paper count on the full-width exams card. One fetch shared by both.
   const [b2Overview, setB2Overview] = useState(null);
+  const [b2Loading, setB2Loading] = useState(true);
+
   useEffect(() => {
-    if (!isB2 || !user?.user_id) return;
+    if (!isB2 || !user?.user_id) {
+      setB2Loading(false);
+      return;
+    }
+    setB2Loading(true);
     getB2TestOverview()
       .then((r) => setB2Overview(r.data || null))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setB2Loading(false));
   }, [isB2, user?.user_id]);
 
   const getTourId = (id) => {
@@ -329,7 +337,7 @@ export default function FeatureCardsGrid() {
     >
       {isB2 ? (
         <>
-          <B2TestBanner overview={b2Overview} />
+          <B2TestBanner overview={b2Overview} loading={b2Loading} />
           <div id="feature-cards-grid" className="grid grid-cols-2 gap-2.5">
             {features
               .filter((feature) => feature.id !== "b2-exams")
@@ -350,7 +358,6 @@ export default function FeatureCardsGrid() {
                 {...feature}
                 tourId={getTourId(feature.id)}
                 moduleInfo={MODULE_MAP[feature.id]}
-                totalPapers={b2Overview?.total}
               />
             ))}
           <ExamCards />
@@ -372,18 +379,16 @@ export default function FeatureCardsGrid() {
   );
 }
 
-// Full-width navy banner for the B2 "Exam Papers" entry — mirrors the product
-// design (timed full-length papers) and keeps the same usage-limit locking as
-// the regular FeatureCard.
+// Full-width banner for the B2 "Exam Papers" entry — styled in the signature
+// navy-to-blue gradient with upper-body Maya, matching the platform's
+// hardcore exam/demo cards and keeping usage-limit locking.
 function B2ExamsWideCard({
   title,
   description,
-  image,
   link,
   enabled,
   tourId,
   moduleInfo,
-  totalPapers,
 }) {
   const { eligible, getState } = useUsageLimits();
   const moduleState = moduleInfo
@@ -420,7 +425,7 @@ function B2ExamsWideCard({
       to={clickable ? link : undefined}
       onClick={isLocked ? openLockModal : undefined}
       onTouchStart={() => clickable && hapticLight()}
-      className={`mt-2.5 rounded-2xl bg-[#0a1f44] px-4 py-4 flex items-center gap-3 transition-all ${
+      className={`mt-2.5 rounded-2xl bg-gradient-to-r from-[#002856] to-[#1E5CA2] px-4 pt-3 pb-0 flex items-end justify-between gap-3 overflow-hidden shadow-sm transition-all ${
         clickable
           ? "cursor-pointer hover:shadow-lg active:scale-[0.99]"
           : isLocked
@@ -428,33 +433,39 @@ function B2ExamsWideCard({
             : "opacity-60 cursor-not-allowed"
       }`}
     >
-      <img
-        src={image}
-        alt={title}
-        loading="lazy"
-        decoding="async"
-        className="w-14 h-14 rounded-xl object-cover shrink-0"
-      />
-      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-        <h3 className="text-white text-sm font-bold leading-5">
-          {title}
-        </h3>
-        <p className="text-white/60 text-[11px] font-medium leading-4">
-          {description}
-          {typeof totalPapers === "number" && totalPapers > 0
-            ? ` · ${totalPapers} available`
-            : ""}
-        </p>
+      <div className="flex-1 flex flex-col justify-between py-1 pb-4 min-w-0">
+        <div className="flex flex-col gap-1">
+          <h3 className="text-white text-base sm:text-lg font-bold leading-snug">
+            {title}
+          </h3>
+          <p className="text-white/80 text-xs sm:text-sm font-normal leading-normal">
+            {description}
+          </p>
+        </div>
+
         {eligible && moduleState && (
-          <div className="pt-1">
+          <div className="pt-2">
             <FeatureStatusChip state={moduleState} />
           </div>
         )}
+
+        <div className="mt-3">
+          <span className="inline-flex items-center justify-center px-4 py-2 bg-amber-400 hover:bg-amber-300 text-[#002856] text-xs font-bold rounded-xl shadow-sm transition-all gap-1">
+            Start
+            <ChevronRight className="w-3.5 h-3.5" />
+          </span>
+        </div>
       </div>
-      <span className="shrink-0 px-4 py-2 rounded-xl bg-amber-400 text-[#0a1f44] text-xs font-bold flex items-center gap-1">
-        Start
-        <ChevronRight className="w-3.5 h-3.5" />
-      </span>
+
+      <div className="w-20 sm:w-24 h-28 sm:h-32 relative flex items-start justify-center shrink-0 self-end overflow-hidden">
+        <img
+          src={mayaFull}
+          alt="Maya"
+          loading="lazy"
+          decoding="async"
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-auto h-[175%] max-w-none object-contain select-none pointer-events-none"
+        />
+      </div>
     </CardWrapper>
   );
 }

@@ -4,12 +4,15 @@ import { useSelector } from "react-redux";
 import {
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Loader2,
   Lock,
   AlertCircle,
 } from "lucide-react";
 import { getB2TestOverview, startB2ExamSubmission } from "../../../api/b2Api";
 import { hapticLight } from "../../../utils/haptics";
+import toast from "react-hot-toast";
+import { useUsageLimits } from "../../../hooks/useUsageLimits";
 
 const SKILLS = [
   { key: "reading", label: "Reading" },
@@ -75,7 +78,30 @@ export default function B2TestScreen() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const [starting, setStarting] = useState(false);
-  const [reportNote, setReportNote] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const { getState } = useUsageLimits();
+  const examUsageState = getState("B2", "exams");
+  const isExamLocked = Boolean(examUsageState?.locked);
+
+  const openUsageLimitModal = (moduleKey, state) => {
+    window.dispatchEvent(
+      new CustomEvent("skillcase:usage-limit", {
+        detail: {
+          locked: true,
+          reason: "usage_limit",
+          module_key: moduleKey,
+          level: "B2",
+          limit_value: state?.limit_value,
+          periods: state?.periods,
+          reset_at: state?.reset_at,
+          msg: state?.hard_locked
+            ? "This feature is currently locked."
+            : "Your limit for this feature has been reached.",
+        },
+      }),
+    );
+  };
 
   const fetchOverview = async () => {
     setLoading(true);
@@ -98,18 +124,37 @@ export default function B2TestScreen() {
 
   const handleStartTest = async () => {
     if (!overview?.nextPaper || starting) return;
+    if (isExamLocked) {
+      openUsageLimitModal("exams", examUsageState);
+      return;
+    }
     setStarting(true);
     try {
       await startB2ExamSubmission(overview.nextPaper.paperId);
       navigate(`/b2/exams/papers/${overview.nextPaper.paperId}/dashboard`);
     } catch (err) {
       console.error("Error starting B2 test:", err);
+      const resData = err.response?.data || {};
+      if (err.response?.status === 403 && resData.alreadyCompleted) {
+        navigate(
+          `/b2/exams/papers/${overview.nextPaper.paperId}/congratulations`,
+        );
+      } else if (err.response?.status !== 402) {
+        // 402 usage-limit responses are surfaced globally by the axios
+        // interceptor — anything else is a genuine failure.
+        toast.error("Failed to start test session. Please try again.");
+      }
       setStarting(false);
     }
   };
 
   const openExercise = (item) => {
     if (!item) return;
+    const modState = getState("B2", item.module);
+    if (modState?.locked) {
+      openUsageLimitModal(item.module, modState);
+      return;
+    }
     hapticLight();
     navigate(`/b2/${item.module}/${item.exerciseId}`);
   };
@@ -123,7 +168,10 @@ export default function B2TestScreen() {
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden shadow-sm relative">
       {/* Header */}
-      <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
+      <div
+        className="self-stretch px-4 pb-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white"
+        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
+      >
         <div className="self-stretch inline-flex justify-between items-center">
           <button
             onClick={() => navigate("/")}
@@ -161,8 +209,8 @@ export default function B2TestScreen() {
         </div>
       ) : (
         <div className="self-stretch px-4 pt-2 pb-8 flex flex-col gap-5 overflow-y-auto">
-          {/* Hero — next test */}
-          {overview?.nextPaper && (
+          {/* Hero — next test OR all completed */}
+          {overview?.nextPaper ? (
             <div className="w-full rounded-2xl bg-[#0a1f44] px-5 py-5 flex flex-col gap-3">
               <span className="text-amber-400 text-[10px] font-bold tracking-widest uppercase">
                 Test {Math.min(overview.completed + 1, overview.total)} of{" "}
@@ -173,8 +221,8 @@ export default function B2TestScreen() {
                   Take your next test
                 </h2>
                 <p className="text-white/60 text-xs font-medium leading-4">
-                  {overview.nextPaper.durationMinutes} minutes · Reading,
-                  Listening, Writing, Speaking
+                  {overview.nextPaper.durationMinutes ?? 120} minutes ·
+                  Reading, Listening, Writing, Speaking
                 </p>
               </div>
               <button
@@ -194,86 +242,125 @@ export default function B2TestScreen() {
                 )}
               </button>
             </div>
-          )}
+          ) : overview?.completed > 0 && overview?.completed >= overview?.total ? (
+            <div className="w-full rounded-2xl bg-[#0a1f44] px-5 py-5 flex flex-col gap-3">
+              <span className="text-emerald-400 text-[10px] font-bold tracking-widest uppercase">
+                All {overview.total} Tests Completed
+              </span>
+              <div className="flex flex-col gap-1">
+                <h2 className="text-white text-xl font-bold leading-7">
+                  Great work! You finished every test
+                </h2>
+                <p className="text-white/60 text-xs font-medium leading-4">
+                  Review your performance or choose any exam paper to practice again.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate("/b2/exams")}
+                className="w-full mt-1 py-3 bg-amber-400 active:scale-[0.99] text-[#002856] text-sm font-bold rounded-xl border border-amber-300 cursor-pointer flex justify-center items-center gap-2 transition-all"
+              >
+                View Exam Papers
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          ) : null}
 
           {/* Last test card */}
           {latest ? (
             <div className="w-full rounded-2xl border border-zinc-200 bg-white p-5 flex flex-col gap-4">
-              <div className="flex items-center gap-4">
-                <ScoreRing score={latest.overallScore} />
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  <h3 className="text-sky-950 text-base font-bold leading-5">
-                    Your last test
-                  </h3>
-                  <p className="text-neutral-500 text-xs font-medium">
-                    Test {latest.testNumber} · {formatDate(latest.finishedAt)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3">
-                {SKILLS.map(({ key, label }) => {
-                  const entry = latest.bySkill?.[key];
-                  return (
-                    <div key={key} className="flex flex-col gap-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-slate-700 text-xs font-semibold">
-                          {label}
-                        </span>
-                        {entry?.measured ? (
-                          <span
-                            className={`text-xs font-bold ${bandColor(entry.score)}`}
-                          >
-                            {entry.score}%
-                          </span>
-                        ) : (
-                          <span className="text-neutral-400 text-xs font-medium">
-                            Not measured yet
-                          </span>
-                        )}
-                      </div>
-                      <div className="h-1.5 w-full rounded-full bg-zinc-100 overflow-hidden">
-                        {entry?.measured && (
-                          <div
-                            className={`h-full rounded-full ${bandBar(entry.score)}`}
-                            style={{ width: `${entry.score}%` }}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {latest.summary && (
-                <p className="text-slate-600 text-xs font-medium leading-4">
-                  {latest.summary}
-                </p>
-              )}
-
-              {/* Locked detailed report */}
-              <button
-                onClick={() => setReportNote((v) => !v)}
-                className="w-full rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-3 flex items-center gap-3 cursor-pointer text-left"
+              <div
+                onClick={() => {
+                  hapticLight();
+                  setExpanded((v) => !v);
+                }}
+                className="flex items-center justify-between gap-4 cursor-pointer select-none"
               >
-                <Lock className="w-4 h-4 text-neutral-400 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sky-950 text-xs font-bold leading-4">
-                    Detailed report
-                  </p>
-                  <p className="text-neutral-500 text-[10px] font-medium leading-4">
-                    Item-by-item breakdown for this test
-                  </p>
+                <div className="flex items-center gap-4 min-w-0">
+                  <ScoreRing score={latest.overallScore} />
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <h3 className="text-sky-950 text-base font-bold leading-5">
+                      Your last test
+                    </h3>
+                    <p className="text-neutral-500 text-xs font-medium">
+                      Test {latest.testNumber} · {formatDate(latest.finishedAt)}
+                    </p>
+                  </div>
                 </div>
-                <span className="shrink-0 px-2 py-0.5 rounded-md bg-amber-400/15 text-amber-600 text-[9px] font-bold tracking-wide uppercase">
-                  Premium
-                </span>
-              </button>
-              {reportNote && (
-                <p className="text-neutral-500 text-[11px] leading-4 -mt-2 px-1">
-                  A deeper, item-by-item report is planned but not yet available
-                  — this screen doesn&apos;t process payments.
-                </p>
+                <div className="p-1 rounded-full text-slate-500 hover:bg-slate-100 transition-colors shrink-0">
+                  <ChevronDown
+                    className={`w-5 h-5 text-slate-600 transition-transform duration-200 ${
+                      expanded ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {expanded && (
+                <>
+                  <div className="flex flex-col gap-3 pt-1">
+                    {SKILLS.map(({ key, label }) => {
+                      const entry = latest.bySkill?.[key];
+                      return (
+                        <div key={key} className="flex flex-col gap-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-700 text-xs font-semibold">
+                              {label}
+                            </span>
+                            {entry?.measured ? (
+                              <span
+                                className={`text-xs font-bold ${bandColor(entry.score)}`}
+                              >
+                                {entry.score}%
+                              </span>
+                            ) : (
+                              <span className="text-neutral-400 text-xs font-medium">
+                                Not measured yet
+                              </span>
+                            )}
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-zinc-100 overflow-hidden">
+                            {entry?.measured && (
+                              <div
+                                className={`h-full rounded-full ${bandBar(entry.score)}`}
+                                style={{ width: `${entry.score}%` }}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {latest.summary && (
+                    <p className="text-slate-600 text-xs font-medium leading-4">
+                      {latest.summary}
+                    </p>
+                  )}
+
+                  {/* Locked detailed report */}
+                  <button
+                    onClick={() =>
+                      toast(
+                        "A deeper, item-by-item report is planned but not yet available.",
+                        { icon: "🔒" },
+                      )
+                    }
+                    className="w-full rounded-xl border border-dashed border-zinc-300 bg-zinc-50 px-4 py-3 flex items-center gap-3 cursor-pointer text-left"
+                  >
+                    <Lock className="w-4 h-4 text-neutral-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sky-950 text-xs font-bold leading-4">
+                        Detailed report
+                      </p>
+                      <p className="text-neutral-500 text-[10px] font-medium leading-4">
+                        Item-by-item breakdown for this test
+                      </p>
+                    </div>
+                    <span className="shrink-0 px-2 py-0.5 rounded-md bg-amber-400/15 text-amber-600 text-[9px] font-bold tracking-wide uppercase">
+                      Premium
+                    </span>
+                  </button>
+                </>
               )}
             </div>
           ) : (
@@ -340,7 +427,12 @@ export default function B2TestScreen() {
                     </span>
                   </div>
                   <button
-                    onClick={() => setReportNote(true)}
+                    onClick={() =>
+                      toast(
+                        "Item-by-item reports are planned but not yet available.",
+                        { icon: "🔒" },
+                      )
+                    }
                     className="shrink-0 px-2.5 py-1.5 rounded-lg bg-amber-400/15 text-amber-600 text-[10px] font-bold flex items-center gap-1 cursor-pointer border-0"
                   >
                     <Lock className="w-3 h-3" />

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { ChevronLeft, ChevronRight, Loader2, Compass } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Compass, Lock } from "lucide-react";
 import { getB2Exercises, getB2TestOverview } from "../../../api/b2Api";
-import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
+import { useUsageLimitModule, useUsageLimits } from "../../../hooks/useUsageLimits";
 
 const MODULE_META = {
   reading: {
@@ -49,6 +49,7 @@ export default function ExerciseSelect() {
 
   const meta = MODULE_META[module] || MODULE_META.reading;
   const { locked: usageLocked } = useUsageLimitModule("B2", module);
+  const { getState } = useUsageLimits();
 
   const [activeTag, setActiveTag] = useState("all");
   const [exercises, setExercises] = useState([]);
@@ -57,6 +58,8 @@ export default function ExerciseSelect() {
   // Global top-1 suggested practice from the test hub — the weakest skill's
   // next unattempted exercise. Null until the user finishes a first test.
   const [suggested, setSuggested] = useState(null);
+  const suggestedState = suggested?.module ? getState("B2", suggested.module) : null;
+  const isSuggestedLocked = Boolean(suggestedState?.locked);
 
   useEffect(() => {
     if (!user?.user_id) return;
@@ -191,18 +194,43 @@ export default function ExerciseSelect() {
           <button
             id="b2-suggested-practice"
             onClick={() => {
-              if (suggested.module === module && usageLocked) return;
+              if (isSuggestedLocked) {
+                window.dispatchEvent(
+                  new CustomEvent("skillcase:usage-limit", {
+                    detail: {
+                      locked: true,
+                      reason: "usage_limit",
+                      module_key: suggested.module,
+                      level: "B2",
+                      limit_value: suggestedState?.limit_value,
+                      reset_at: suggestedState?.reset_at,
+                      periods: suggestedState?.periods,
+                      msg: suggestedState?.hard_locked
+                        ? "This feature is currently locked."
+                        : "Your limit for this feature has been reached.",
+                    },
+                  }),
+                );
+                return;
+              }
               navigate(`/b2/${suggested.module}/${suggested.exerciseId}`);
             }}
-            className="self-stretch rounded-xl border border-sky-100 bg-sky-50 px-3.5 py-3 flex items-center gap-3 cursor-pointer hover:shadow-md active:scale-[0.99] transition-all text-left"
+            className={`self-stretch rounded-xl border border-sky-100 bg-sky-50 px-3.5 py-3 flex items-center gap-3 cursor-pointer hover:shadow-md active:scale-[0.99] transition-all text-left ${
+              isSuggestedLocked ? "opacity-80" : ""
+            }`}
           >
-            <Compass className="w-4 h-4 text-sky-950 shrink-0" />
+            {isSuggestedLocked ? (
+              <Lock className="w-4 h-4 text-amber-600 shrink-0" />
+            ) : (
+              <Compass className="w-4 h-4 text-sky-950 shrink-0" />
+            )}
             <div className="flex-1 min-w-0 flex flex-col gap-0.5">
               <span className="text-slate-900 text-sm font-semibold leading-5 truncate">
                 {suggested.title}
               </span>
               <span className="text-neutral-500 text-[11px] font-medium leading-4 truncate">
                 Suggested · {suggested.skillLabel}
+                {isSuggestedLocked ? " · Locked" : ""}
               </span>
             </div>
             <ChevronRight className="w-4 h-4 text-neutral-400 shrink-0" />
