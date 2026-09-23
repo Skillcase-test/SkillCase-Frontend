@@ -16,7 +16,7 @@ export default function B2TestBanner({ overview, loading }) {
     <Link
       to="/b2/test"
       onTouchStart={hapticLight}
-      className="mb-3 rounded-2xl bg-gradient-to-r from-white to-slate-100 border border-slate-200/80 pl-3 pr-4 py-0 overflow-hidden flex items-end gap-3 cursor-pointer hover:shadow-md active:scale-[0.99] transition-all"
+      className="mb-3 rounded-2xl bg-gradient-to-r from-slate-100 to-slate-200 border border-slate-200/80 pl-3 pr-4 py-0 overflow-hidden flex items-end gap-3 cursor-pointer hover:shadow-md active:scale-[0.99] transition-all shadow-sm/10"
     >
       <div className="w-16 h-18 sm:w-20 sm:h-20 relative flex items-end justify-center shrink-0 self-end -mb-0.5">
         <img

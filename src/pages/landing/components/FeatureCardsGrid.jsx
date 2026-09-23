@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import Badge from "../../../components/ui/Badge";
 import ExamCards from "../../exam/ExamCards";
 import B2TestBanner from "../../../components/b2/B2TestBanner";
+import B2ExamGate from "../../../components/b2/B2ExamGate";
 import mayaFull from "../../../assets/onboarding/mayaFull.webp";
 import { images } from "../../../assets/images.js";
 import { useState, useEffect } from "react";
@@ -216,15 +217,14 @@ export default function FeatureCardsGrid() {
   ];
 
   // B2 suite — five features: 4 practice modules (tag-filtered exercise
-  // lists) + full TELC/Goethe exam papers. Card visuals are B1-styled
-  // placeholders until the dedicated B2 card design lands.
+  // lists) + full TELC/Goethe exam papers. Card visuals reuse the same
+  // module images the other level packs use.
   const b2Features = [
     {
       id: "b2-reading",
       title: "Reading",
       description: "B2 reading comprehension practice",
-      image:
-        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090498/read_listen_pwnige.webp",
+      image: images.grammar,
       link: "/b2/reading",
       enabled: true,
     },
@@ -232,8 +232,7 @@ export default function FeatureCardsGrid() {
       id: "b2-listening",
       title: "Listening",
       description: "B2 audio comprehension practice",
-      image:
-        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090498/read_listen_pwnige.webp",
+      image: images.speakToAI,
       link: "/b2/listening",
       enabled: true,
     },
@@ -241,8 +240,7 @@ export default function FeatureCardsGrid() {
       id: "b2-writing",
       title: "Writing",
       description: "Exam-style essays with AI feedback",
-      image:
-        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090503/describe_speak_dtdpvf.webp",
+      image: images.vocabulary,
       link: "/b2/writing",
       enabled: true,
     },
@@ -250,8 +248,7 @@ export default function FeatureCardsGrid() {
       id: "b2-speaking",
       title: "Speaking",
       description: "B2 speaking prompts with AI scoring",
-      image:
-        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090503/describe_speak_dtdpvf.webp",
+      image: images.interview,
       link: "/b2/speaking",
       enabled: true,
     },
@@ -259,8 +256,7 @@ export default function FeatureCardsGrid() {
       id: "b2-exams",
       title: "Timed Exam Paper",
       description: "Full Length mock exams",
-      image:
-        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090510/exam_isoiv2.webp",
+      image: images.mockTest,
       link: "/b2/exams",
       enabled: true,
     },
@@ -293,6 +289,12 @@ export default function FeatureCardsGrid() {
       .catch(() => {})
       .finally(() => setB2Loading(false));
   }, [isB2, user?.user_id]);
+
+  // First-arrival gate: shown once per learner — the first time a B2 user
+  // reaches the suite. Answering (start or skip) persists
+  // app_user.b2_exam_gate_seen and it never shows again.
+  const showB2Gate =
+    isB2 && !b2Loading && user?.b2_exam_gate_seen !== true;
 
   const getTourId = (id) => {
     const tourIds = {
@@ -337,6 +339,7 @@ export default function FeatureCardsGrid() {
     >
       {isB2 ? (
         <>
+          {showB2Gate && <B2ExamGate overview={b2Overview} />}
           <B2TestBanner overview={b2Overview} loading={b2Loading} />
           <div id="feature-cards-grid" className="grid grid-cols-2 gap-2.5">
             {features
@@ -347,6 +350,7 @@ export default function FeatureCardsGrid() {
                   {...feature}
                   tourId={getTourId(feature.id)}
                   moduleInfo={MODULE_MAP[feature.id]}
+                  aspectVideo
                 />
               ))}
           </div>
@@ -479,6 +483,7 @@ function FeatureCard({
   comingSoon,
   tourId,
   moduleInfo,
+  aspectVideo,
 }) {
   const { eligible, getState } = useUsageLimits();
   const moduleState = moduleInfo
@@ -540,7 +545,9 @@ function FeatureCard({
       `}
     >
       {/* Image */}
-      <div className="h-16 md:h-40 rounded-md overflow-hidden">
+      <div
+        className={`${aspectVideo ? "aspect-video" : "h-16 md:h-40"} rounded-md overflow-hidden`}
+      >
         <img
           src={image}
           alt={title}
