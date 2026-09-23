@@ -67,6 +67,10 @@ export const uploadB2ExerciseOcr = (formData) =>
 
 // ─── STUDENT ENDPOINTS — Exam Papers ─────────────────────────────────────────
 
+// Test hub overview — latest test, history, next paper, suggestions.
+// Plain get: changes after every exam/exercise, must never serve stale.
+export const getB2TestOverview = () => api.get("/b2/test/overview");
+
 export const uploadB2ExamOcr = (formData) =>
   api.post("/b2/exams/upload-ocr", formData, {
     headers: { "Content-Type": "multipart/form-data" },

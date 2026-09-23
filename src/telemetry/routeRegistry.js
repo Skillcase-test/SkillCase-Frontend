@@ -23,6 +23,7 @@ const RULES = [
   [/^\/b1\/flashcard/, "learning", "b1_flashcard"],
   [/^\/b1\/maya/, "maya", "maya"],
   [/^\/b2\/exams/, "learning", "b2_exam_papers"],
+  [/^\/b2\/test/, "learning", "b2_exam_papers"],
   [/^\/b2\/reading/, "learning", "b2_reading"],
   [/^\/b2\/listening/, "learning", "b2_listening"],
   [/^\/b2\/writing/, "learning", "b2_writing"],

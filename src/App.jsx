@@ -335,6 +335,7 @@ const B2SpeakingResults = lazy(
   () => import("./pages/b2/modules/SpeakingResults"),
 );
 const B2PaperSelect = lazy(() => import("./pages/b2/exams/PaperSelect"));
+const B2TestScreen = lazy(() => import("./pages/b2/test/B2TestScreen"));
 const B2ExamBlockSelector = lazy(
   () => import("./pages/b2/exams/ExamBlockSelector"),
 );
@@ -1969,6 +1970,16 @@ function AppContent() {
                       No /b2 hub page — the landing feature cards route directly
                       to each module; redirect stale links home. */}
                   <Route path="/b2" element={<Navigate to="/" replace />} />
+                  {/* B2 test hub — "Your Test" screen (scores, practise next,
+                      previous tests). Static path wins over /b2/:module. */}
+                  <Route
+                    path="/b2/test"
+                    element={
+                      <LearningRoute>
+                        <B2TestScreen />
+                      </LearningRoute>
+                    }
+                  />
                   <Route
                     path="/b2/exams"
                     element={

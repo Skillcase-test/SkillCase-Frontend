@@ -71,7 +71,7 @@ export const getB2LandingSteps = (onSkip) => [
       title: `${ICONS.penLine} Writing`,
       description: "Write emails and essays. AI gives detailed feedback.",
       side: "bottom",
-      align: "end",
+      align: "start",
     },
   },
   {
@@ -80,7 +80,7 @@ export const getB2LandingSteps = (onSkip) => [
       title: `${ICONS.mic} Speaking`,
       description: "Record answers, get instant pronunciation feedback.",
       side: "top",
-      align: "start",
+      align: "end",
     },
   },
   {

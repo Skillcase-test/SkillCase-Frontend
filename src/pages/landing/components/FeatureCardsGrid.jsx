@@ -2,10 +2,13 @@ import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Badge from "../../../components/ui/Badge";
 import ExamCards from "../../exam/ExamCards";
+import B2TestBanner from "../../../components/b2/B2TestBanner";
 import { images } from "../../../assets/images.js";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { ChevronRight } from "lucide-react";
 import FeatureStatusChip from "../../../components/ui/FeatureStatusChip";
 import { hapticLight } from "../../../utils/haptics";
+import { getB2TestOverview } from "../../../api/b2Api";
 import {
   isB1PracticeLevel,
   isB2PracticeLevel,
@@ -273,6 +276,16 @@ export default function FeatureCardsGrid() {
     ...(isFeatureEnabled("study_notes") ? [studyNotesFeature] : []),
   ];
 
+  // B2 test hub overview — drives the Maya test banner above the grid and the
+  // paper count on the full-width exams card. One fetch shared by both.
+  const [b2Overview, setB2Overview] = useState(null);
+  useEffect(() => {
+    if (!isB2 || !user?.user_id) return;
+    getB2TestOverview()
+      .then((r) => setB2Overview(r.data || null))
+      .catch(() => {});
+  }, [isB2, user?.user_id]);
+
   const getTourId = (id) => {
     const tourIds = {
       "a2-flashcards": "a2-flashcard-card",
@@ -314,18 +327,135 @@ export default function FeatureCardsGrid() {
       }
       className="px-4 pt-2 pb-4"
     >
-      <div id="feature-cards-grid" className="grid grid-cols-3 gap-2.5">
-        {features.map((feature) => (
-          <FeatureCard
-            key={feature.id}
-            {...feature}
-            tourId={getTourId(feature.id)}
-            moduleInfo={MODULE_MAP[feature.id]}
-          />
-        ))}
-        <ExamCards />
-      </div>
+      {isB2 ? (
+        <>
+          <B2TestBanner overview={b2Overview} />
+          <div id="feature-cards-grid" className="grid grid-cols-2 gap-2.5">
+            {features
+              .filter((feature) => feature.id !== "b2-exams")
+              .map((feature) => (
+                <FeatureCard
+                  key={feature.id}
+                  {...feature}
+                  tourId={getTourId(feature.id)}
+                  moduleInfo={MODULE_MAP[feature.id]}
+                />
+              ))}
+          </div>
+          {features
+            .filter((feature) => feature.id === "b2-exams")
+            .map((feature) => (
+              <B2ExamsWideCard
+                key={feature.id}
+                {...feature}
+                tourId={getTourId(feature.id)}
+                moduleInfo={MODULE_MAP[feature.id]}
+                totalPapers={b2Overview?.total}
+              />
+            ))}
+          <ExamCards />
+        </>
+      ) : (
+        <div id="feature-cards-grid" className="grid grid-cols-3 gap-2.5">
+          {features.map((feature) => (
+            <FeatureCard
+              key={feature.id}
+              {...feature}
+              tourId={getTourId(feature.id)}
+              moduleInfo={MODULE_MAP[feature.id]}
+            />
+          ))}
+          <ExamCards />
+        </div>
+      )}
     </div>
+  );
+}
+
+// Full-width navy banner for the B2 "Exam Papers" entry — mirrors the product
+// design (timed full-length papers) and keeps the same usage-limit locking as
+// the regular FeatureCard.
+function B2ExamsWideCard({
+  title,
+  description,
+  image,
+  link,
+  enabled,
+  tourId,
+  moduleInfo,
+  totalPapers,
+}) {
+  const { eligible, getState } = useUsageLimits();
+  const moduleState = moduleInfo
+    ? getState(moduleInfo.level, moduleInfo.module_key)
+    : null;
+  const isLocked = Boolean(moduleState?.locked);
+
+  const clickable = enabled && !isLocked;
+  const CardWrapper = clickable ? Link : "div";
+
+  const openLockModal = () => {
+    if (!isLocked || !moduleState) return;
+    window.dispatchEvent(
+      new CustomEvent("skillcase:usage-limit", {
+        detail: {
+          locked: true,
+          reason: "usage_limit",
+          module_key: moduleInfo.module_key,
+          level: moduleInfo.level,
+          limit_value: moduleState.limit_value,
+          periods: moduleState.periods,
+          reset_at: moduleState.reset_at,
+          msg: moduleState.hard_locked
+            ? "This feature is currently locked."
+            : "Your limit for this feature has been reached.",
+        },
+      }),
+    );
+  };
+
+  return (
+    <CardWrapper
+      id={tourId}
+      to={clickable ? link : undefined}
+      onClick={isLocked ? openLockModal : undefined}
+      onTouchStart={() => clickable && hapticLight()}
+      className={`mt-2.5 rounded-2xl bg-[#0a1f44] px-4 py-4 flex items-center gap-3 transition-all ${
+        clickable
+          ? "cursor-pointer hover:shadow-lg active:scale-[0.99]"
+          : isLocked
+            ? "cursor-pointer"
+            : "opacity-60 cursor-not-allowed"
+      }`}
+    >
+      <img
+        src={image}
+        alt={title}
+        loading="lazy"
+        decoding="async"
+        className="w-14 h-14 rounded-xl object-cover shrink-0"
+      />
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+        <h3 className="text-white text-sm font-bold leading-5">
+          {title}
+        </h3>
+        <p className="text-white/60 text-[11px] font-medium leading-4">
+          {description}
+          {typeof totalPapers === "number" && totalPapers > 0
+            ? ` · ${totalPapers} available`
+            : ""}
+        </p>
+        {eligible && moduleState && (
+          <div className="pt-1">
+            <FeatureStatusChip state={moduleState} />
+          </div>
+        )}
+      </div>
+      <span className="shrink-0 px-4 py-2 rounded-xl bg-amber-400 text-[#0a1f44] text-xs font-bold flex items-center gap-1">
+        Start
+        <ChevronRight className="w-3.5 h-3.5" />
+      </span>
+    </CardWrapper>
   );
 }
 

@@ -326,7 +326,7 @@ export default function ExamCongratulations() {
           {/* Action buttons */}
           <div className="w-full flex flex-col gap-2 mt-2">
             <button
-              onClick={() => navigate("/b2/exams")}
+              onClick={() => navigate("/b2/test")}
               className="w-full py-3 bg-[#0a1f44] hover:bg-[#06142c] active:scale-[0.99] text-white text-base font-semibold rounded-lg shadow-md border-0 cursor-pointer flex justify-center items-center"
             >
               Start Next Exam

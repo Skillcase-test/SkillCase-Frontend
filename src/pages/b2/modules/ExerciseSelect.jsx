@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { ChevronLeft, Loader2 } from "lucide-react";
-import { getB2Exercises } from "../../../api/b2Api";
+import { ChevronLeft, ChevronRight, Loader2, Compass } from "lucide-react";
+import { getB2Exercises, getB2TestOverview } from "../../../api/b2Api";
 import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 
 const MODULE_META = {
@@ -54,6 +54,16 @@ export default function ExerciseSelect() {
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
+  // Global top-1 suggested practice from the test hub — the weakest skill's
+  // next unattempted exercise. Null until the user finishes a first test.
+  const [suggested, setSuggested] = useState(null);
+
+  useEffect(() => {
+    if (!user?.user_id) return;
+    getB2TestOverview()
+      .then((r) => setSuggested(r.data?.suggested || null))
+      .catch(() => {});
+  }, [user?.user_id]);
 
   // Single fetch — "all" is the aggregate view; tag pills filter client-side
   // and each pill shows its exercise count.
@@ -175,6 +185,29 @@ export default function ExerciseSelect() {
             {meta.subtitle}
           </p>
         </div>
+
+        {/* Suggested practice — global weakest-skill pick, only after a test */}
+        {suggested && (
+          <button
+            id="b2-suggested-practice"
+            onClick={() => {
+              if (suggested.module === module && usageLocked) return;
+              navigate(`/b2/${suggested.module}/${suggested.exerciseId}`);
+            }}
+            className="self-stretch rounded-xl border border-sky-100 bg-sky-50 px-3.5 py-3 flex items-center gap-3 cursor-pointer hover:shadow-md active:scale-[0.99] transition-all text-left"
+          >
+            <Compass className="w-4 h-4 text-sky-950 shrink-0" />
+            <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+              <span className="text-slate-900 text-sm font-semibold leading-5 truncate">
+                {suggested.title}
+              </span>
+              <span className="text-neutral-500 text-[11px] font-medium leading-4 truncate">
+                Suggested · {suggested.skillLabel}
+              </span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-neutral-400 shrink-0" />
+          </button>
+        )}
 
         {/* Tag pills — All aggregates every exercise; each shows its count */}
         <div
