@@ -202,18 +202,6 @@ export default function SpeakingResults() {
     };
   });
 
-  const getMetricColor = (val) => {
-    if (val >= 75) return "bg-green-600";
-    if (val >= 50) return "bg-amber-300";
-    return "bg-red-500";
-  };
-
-  const getMetricTextColor = (val) => {
-    if (val >= 75) return "text-green-700";
-    if (val >= 50) return "text-orange-500";
-    return "text-red-500";
-  };
-
   const formatSeconds = (totalSec) => {
     const m = Math.floor(totalSec / 60);
     const s = totalSec % 60;
@@ -237,15 +225,6 @@ export default function SpeakingResults() {
     reviewBlockIndex !== null ? flatQuestions[reviewBlockIndex] : null;
 
   const qObj = currentBlock?.questions?.[0] || {};
-  const promptType = currentBlock
-    ? qObj.prompt_type ||
-      (currentBlock.passage_text
-        ? "paragraph"
-        : currentBlock.speaking_prompt_image
-        ? "image"
-        : "text")
-    : null;
-
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden shadow-sm relative pb-24">
       {/* Navigation bar */}
@@ -480,11 +459,7 @@ export default function SpeakingResults() {
                   </div>
                   <AudioPlayer
                     isPlaying={isPlayingBack}
-                    onPlayPause={() =>
-                      handlePlaybackPlayPause(
-                        currentBlockData.userAns.audio_url,
-                      )
-                    }
+                    onPlayPause={handlePlayPause}
                     playbackTime={playbackTime}
                     playbackDuration={
                       playbackDuration ||

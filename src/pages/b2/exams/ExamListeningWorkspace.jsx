@@ -15,7 +15,6 @@ import {
   submitB2ExamListeningAnswers,
   startB2ExamSubmission,
 } from "../../../api/b2Api";
-import { images } from "../../../assets/images";
 import toast from "react-hot-toast";
 import { useQuestionPositionTelemetry } from "../../../telemetry/learning";
 

@@ -13,7 +13,7 @@ import {
   submitB2ExerciseAnswers,
 } from "../../../api/b2Api";
 import toast, { Toaster } from "react-hot-toast";
-import useTextToSpeech from "../hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import { useQuestionPositionTelemetry } from "../../../telemetry/learning";
 
 export default function ReadingWorkspace() {
@@ -875,7 +875,9 @@ function ClozeTestLayout({ block, answers, onSelect }) {
                   if (showFirstTimeHint) {
                     try {
                       localStorage.setItem("b2_reading_cloze_guide_shown", "1");
-                    } catch {}
+                    } catch {
+                      // Storage unavailable (private mode) — hint just reappears.
+                    }
                     setShowFirstTimeHint(false);
                   }
                   setActiveGapIdx(isActive ? null : part.number);

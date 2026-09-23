@@ -120,9 +120,10 @@ export default function B2ExamsAdd() {
           Add B2 Exam Paper
         </h1>
         <p className="text-sm text-gray-600 mt-1">
-          Upload a TELC/Goethe JSON configuration file along with a ZIP of media
-          assets (images and audio). Writing/speaking questions accept a hidden
-          expected_answer field used only for AI scoring.
+          Upload a paper JSON (exam_type telc, goethe or skillcase; one block
+          per section type: reading, listening, writing, speaking) along with a
+          ZIP of media assets (images and audio). Writing/speaking questions
+          accept a hidden expected_answer field used only for AI scoring.
         </p>
       </div>
 

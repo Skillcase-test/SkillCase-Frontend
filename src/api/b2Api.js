@@ -15,12 +15,10 @@ export const getB2Exercises = (module, tag = "all") =>
     "MEDIUM_PRIVATE",
   );
 
+// Uncached: the payload carries the learner's submission and, once completed,
+// review-only answer keys — it changes with every submit/reset.
 export const getB2Exercise = (exerciseId) =>
-  api.cachedGet(
-    `/b2/exercises/${exerciseId}`,
-    { meta: { cacheTags: [B2_EXERCISE_CACHE_TAG] } },
-    "MEDIUM_PRIVATE",
-  );
+  api.get(`/b2/exercises/${exerciseId}`);
 
 // Reading / Listening objective submit
 export const submitB2ExerciseAnswers = (exerciseId, data) =>
@@ -130,8 +128,11 @@ export const toggleB2Exercise = (id) =>
   api.put(`/admin/b2/exercises/${id}/toggle`, null, {
     meta: { invalidateCacheTags: [B2_EXERCISE_CACHE_TAG] },
   });
-export const deleteB2Exercise = (id) =>
+// `force` is required when learners have attempts (the API answers 409 with
+// requiresForce) — deleting cascades their results; deactivating keeps them.
+export const deleteB2Exercise = (id, { force = false } = {}) =>
   api.delete(`/admin/b2/exercises/${id}`, {
+    params: force ? { force: "true" } : undefined,
     meta: { invalidateCacheTags: [B2_EXERCISE_CACHE_TAG] },
   });
 
@@ -141,7 +142,31 @@ export const uploadB2ExamPaper = (formData) =>
     meta: { invalidateCacheTags: [B2_EXAM_CACHE_TAG] },
   });
 export const getB2ExamPapersAdmin = () => api.get("/admin/b2/exams/papers");
-export const deleteB2ExamPaper = (id) =>
-  api.delete(`/admin/b2/exams/papers/${id}`, {
+export const toggleB2ExamPaper = (id) =>
+  api.put(`/admin/b2/exams/papers/${id}/toggle`, null, {
     meta: { invalidateCacheTags: [B2_EXAM_CACHE_TAG] },
   });
+export const deleteB2ExamPaper = (id, { force = false } = {}) =>
+  api.delete(`/admin/b2/exams/papers/${id}`, {
+    params: force ? { force: "true" } : undefined,
+    meta: { invalidateCacheTags: [B2_EXAM_CACHE_TAG] },
+  });
+
+// Runs a delete; if learners have attempts, asks before forcing it through.
+// Resolves true when deleted, false when the admin backed out.
+export async function deleteWithAttemptGuard(deleteFn, id) {
+  try {
+    await deleteFn(id);
+    return true;
+  } catch (err) {
+    if (err.response?.status !== 409 || !err.response.data?.requiresForce) {
+      throw err;
+    }
+    const confirmed = window.confirm(
+      `${err.response.data.error}\n\nDelete anyway? This cannot be undone.`,
+    );
+    if (!confirmed) return false;
+    await deleteFn(id, { force: true });
+    return true;
+  }
+}

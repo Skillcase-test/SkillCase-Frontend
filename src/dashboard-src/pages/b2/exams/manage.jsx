@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, Power } from "lucide-react";
 import {
   getB2ExamPapersAdmin,
+  toggleB2ExamPaper,
   deleteB2ExamPaper,
+  deleteWithAttemptGuard,
 } from "../../../../api/b2Api";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -35,14 +37,26 @@ export default function B2ExamsManage() {
     )
       return;
     try {
-      const res = await deleteB2ExamPaper(id);
-      if (res.data?.success) {
+      if (await deleteWithAttemptGuard(deleteB2ExamPaper, id)) {
         toast.success("Exam paper deleted successfully");
         fetchPapers();
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to delete exam paper");
+      toast.error(err.response?.data?.error || "Failed to delete exam paper");
+    }
+  };
+
+  // Deactivating hides a paper from learners but keeps their attempts and
+  // test history — the safe way to retire a paper.
+  const handleToggle = async (id) => {
+    try {
+      await toggleB2ExamPaper(id);
+      toast.success("Paper visibility toggled");
+      fetchPapers();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to toggle exam paper");
     }
   };
 
@@ -55,7 +69,7 @@ export default function B2ExamsManage() {
             Manage B2 Exam Papers
           </h1>
           <p className="text-sm text-gray-600 mt-1">
-            List and delete existing B2 TELC &amp; Goethe exam papers.
+            Show, hide or delete B2 telc, Goethe and Skillcase placement papers.
           </p>
         </div>
         <button
@@ -105,6 +119,11 @@ export default function B2ExamsManage() {
                     </td>
                     <td className="px-6 py-4 font-bold text-slate-800">
                       {paper.title}
+                      {paper.is_active === false && (
+                        <span className="ml-2 text-[10px] font-bold text-red-400 uppercase">
+                          Hidden
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-[10px] px-2 py-0.5 bg-slate-100 rounded text-slate-600 font-bold uppercase">
@@ -120,6 +139,17 @@ export default function B2ExamsManage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => handleToggle(paper.id)}
+                        className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                          paper.is_active
+                            ? "text-green-600 hover:bg-green-50"
+                            : "text-slate-300 hover:bg-slate-100"
+                        }`}
+                        title={paper.is_active ? "Hide paper" : "Show paper"}
+                      >
+                        <Power className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => handleDelete(paper.id, paper.title)}
                         className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"

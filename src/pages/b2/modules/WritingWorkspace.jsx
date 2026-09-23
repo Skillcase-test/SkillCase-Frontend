@@ -76,7 +76,13 @@ export default function WritingWorkspace() {
       navigate(`/b2/writing/${exerciseId}/results`);
     } catch (err) {
       console.error("Error submitting writing answers:", err);
-      toast.error("Failed to evaluate writing. Please try again.");
+      // 402 usage-limit responses are surfaced by the global interceptor.
+      if (err.response?.status !== 402) {
+        toast.error(
+          err.response?.data?.error ||
+            "Failed to evaluate writing. Please try again.",
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -178,17 +184,6 @@ export default function WritingWorkspace() {
 
   const padZero = (num) => {
     return String(num || 0).padStart(2, "0");
-  };
-
-  const getDifficultyBadgeStyle = (diff) => {
-    const d = String(diff).toLowerCase();
-    if (d === "easy") {
-      return "bg-green-700/10 border-green-700/20 text-green-700";
-    }
-    if (d === "medium" || d === "intermediate") {
-      return "bg-amber-100/60 border-orange-400/20 text-orange-500";
-    }
-    return "bg-red-100 border-red-500/20 text-red-500";
   };
 
   const currentBlock = questions[currentBlockIndex];

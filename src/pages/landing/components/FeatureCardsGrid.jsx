@@ -293,8 +293,10 @@ export default function FeatureCardsGrid() {
   // First-arrival gate: shown once per learner — the first time a B2 user
   // reaches the suite. Answering (start or skip) persists
   // app_user.b2_exam_gate_seen and it never shows again.
+  // Strict `=== false`: the slim OTP-login payload omits the flag until
+  // /user/me hydrates, and an unknown value must not re-show the gate.
   const showB2Gate =
-    isB2 && !b2Loading && user?.b2_exam_gate_seen !== true;
+    isB2 && !b2Loading && user?.b2_exam_gate_seen === false;
 
   const getTourId = (id) => {
     const tourIds = {

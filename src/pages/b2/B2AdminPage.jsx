@@ -15,7 +15,9 @@ import {
   deleteB2Exercise,
   uploadB2ExamPaper,
   getB2ExamPapersAdmin,
+  toggleB2ExamPaper,
   deleteB2ExamPaper,
+  deleteWithAttemptGuard,
 } from "../../api/b2Api";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -125,19 +127,23 @@ export default function B2AdminPage() {
     }
   };
 
+  const isPapers = activeModule === "exam-papers";
+  const itemType = isPapers ? "exam paper" : "exercise";
+
+  // Deactivating hides content from learners but keeps their attempts and
+  // history — the safe way to retire content.
   const handleToggle = async (id) => {
     try {
-      await toggleB2Exercise(id);
-      toast.success("Exercise visibility toggled.");
+      await (isPapers ? toggleB2ExamPaper(id) : toggleB2Exercise(id));
+      toast.success(`${isPapers ? "Paper" : "Exercise"} visibility toggled.`);
       fetchItems();
     } catch (err) {
       console.error("Toggle error:", err);
-      toast.error("Failed to toggle exercise.");
+      toast.error(`Failed to toggle ${itemType}.`);
     }
   };
 
   const handleDelete = async (id) => {
-    const itemType = activeModule === "exam-papers" ? "exam paper" : "exercise";
     if (
       !window.confirm(
         `Are you sure you want to delete this ${itemType} permanently?`,
@@ -147,11 +153,11 @@ export default function B2AdminPage() {
     }
 
     try {
-      const res =
-        activeModule === "exam-papers"
-          ? await deleteB2ExamPaper(id)
-          : await deleteB2Exercise(id);
-      if (res.data?.success) {
+      const deleted = await deleteWithAttemptGuard(
+        isPapers ? deleteB2ExamPaper : deleteB2Exercise,
+        id,
+      );
+      if (deleted) {
         toast.success(
           `${itemType.charAt(0).toUpperCase() + itemType.slice(1)} deleted successfully.`,
         );
@@ -159,7 +165,7 @@ export default function B2AdminPage() {
       }
     } catch (err) {
       console.error("Delete error:", err);
-      toast.error(`Failed to delete ${itemType}.`);
+      toast.error(err.response?.data?.error || `Failed to delete ${itemType}.`);
     }
   };
 
@@ -231,8 +237,8 @@ export default function B2AdminPage() {
 
               <p className="text-[10px] text-slate-400 font-semibold">
                 {activeModule === "exam-papers"
-                  ? "JSON must contain exam_type (telc/goethe), paper title and sections[]. Writing/speaking items accept hidden expected_answer."
-                  : "JSON must contain module, tag (all|telc|goethe), title and content.blocks[]. Writing/speaking items accept hidden expected_answer."}
+                  ? "JSON must contain exam_type (telc | goethe | skillcase), a paper object with a title, and blocks[] — one per section type (reading, listening, writing, speaking). Writing/speaking items accept a hidden expected_answer."
+                  : "JSON must contain module, tag (all | telc | goethe), title and blocks[]. Writing/speaking items accept a hidden expected_answer."}
               </p>
 
               {/* JSON file */}
@@ -340,19 +346,17 @@ export default function B2AdminPage() {
                       </p>
                     </div>
                     <div className="flex items-center gap-1 shrink-0 ml-3">
-                      {activeModule !== "exam-papers" && (
-                        <button
-                          onClick={() => handleToggle(item.id)}
-                          title={item.is_active ? "Hide exercise" : "Show exercise"}
-                          className={`p-1.5 rounded-lg transition-all ${
-                            item.is_active
-                              ? "text-green-600 hover:bg-green-50"
-                              : "text-slate-300 hover:bg-slate-100"
-                          }`}
-                        >
-                          <Power className="w-4 h-4" />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => handleToggle(item.id)}
+                        title={item.is_active ? `Hide ${itemType}` : `Show ${itemType}`}
+                        className={`p-1.5 rounded-lg transition-all ${
+                          item.is_active
+                            ? "text-green-600 hover:bg-green-50"
+                            : "text-slate-300 hover:bg-slate-100"
+                        }`}
+                      >
+                        <Power className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={() => handleDelete(item.id)}
                         title="Delete"

@@ -14,7 +14,7 @@ import {
   getB2ExamSubmissionStatus,
   getB2ExamSectionContent,
 } from "../../../api/b2Api";
-import useTextToSpeech from "../hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 
 export default function ExamReadingResults() {
   const navigate = useNavigate();

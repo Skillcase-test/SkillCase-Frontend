@@ -19,7 +19,7 @@ import {
   submitB2ExerciseSpeaking,
 } from "../../../api/b2Api";
 import AudioPlayer from "../components/AudioPlayer";
-import useTextToSpeech from "../hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import toast, { Toaster } from "react-hot-toast";
 import { useQuestionPositionTelemetry } from "../../../telemetry/learning";
 
@@ -157,7 +157,7 @@ export default function SpeakingWorkspace() {
           return prev + 1;
         });
       }, 1000);
-    } catch (err) {
+    } catch {
       toast.error(
         "Please allow microphone access to record speaking responses.",
       );
@@ -242,7 +242,20 @@ export default function SpeakingWorkspace() {
         await submitB2ExerciseSpeakingAnswer(exerciseId, formData);
       } catch (err) {
         console.error("Error saving speaking answer:", err);
-        toast.error("Failed to evaluate and save speech. Please try again.");
+        if (err.response?.status === 409 && err.response.data?.alreadyCompleted) {
+          navigate(`/b2/speaking/${exerciseId}/results`);
+          return;
+        }
+        // 402 usage-limit responses are surfaced by the global interceptor.
+        if (err.response?.status !== 402) {
+          toast.error(
+            err.response?.data?.error ||
+              "Failed to evaluate and save speech. Please try again.",
+          );
+        }
+        // Stay on this prompt — the recording was not saved, so advancing
+        // would silently turn it into a skipped answer.
+        return;
       } finally {
         setIsEvaluating(false);
       }
@@ -264,7 +277,12 @@ export default function SpeakingWorkspace() {
       navigate(`/b2/speaking/${exerciseId}/results`);
     } catch (err) {
       console.error("Error finalizing speaking exercise:", err);
-      toast.error("Failed to finalize speaking exercise. Please try again.");
+      if (err.response?.status !== 402) {
+        toast.error(
+          err.response?.data?.error ||
+            "Failed to finalize speaking exercise. Please try again.",
+        );
+      }
     } finally {
       setIsEvaluating(false);
     }
@@ -335,14 +353,6 @@ export default function SpeakingWorkspace() {
 
   const qObj = currentBlock.questions?.[0] || {};
   const speechLimit = Number(qObj.speech_time_limit) || 60;
-  const promptType =
-    qObj.prompt_type ||
-    (currentBlock.passage_text
-      ? "paragraph"
-      : currentBlock.speaking_prompt_image
-        ? "image"
-        : "text");
-
   const isLastBlock = currentBlockIndex === questions.length - 1;
 
   return (

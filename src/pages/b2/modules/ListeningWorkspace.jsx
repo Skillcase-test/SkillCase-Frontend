@@ -14,7 +14,6 @@ import {
   getB2Exercise,
   submitB2ExerciseAnswers,
 } from "../../../api/b2Api";
-import { images } from "../../../assets/images";
 import toast from "react-hot-toast";
 import { useQuestionPositionTelemetry } from "../../../telemetry/learning";
 

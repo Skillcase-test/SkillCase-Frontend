@@ -160,7 +160,9 @@ export default function B2ProductTour({ children }) {
         setTourState(
           Object.fromEntries(ALL_PHASES.map((phase) => [phase, Boolean(parsed?.[phase])])),
         );
-      } catch {}
+      } catch {
+        // Corrupt stored tour state — fall back to the default (all unseen).
+      }
     }
   }, [user?.user_id]);
 

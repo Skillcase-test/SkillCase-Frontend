@@ -11,7 +11,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { getB2Exercise } from "../../../api/b2Api";
-import useTextToSpeech from "../hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 
 export default function ReadingResults() {
   const navigate = useNavigate();

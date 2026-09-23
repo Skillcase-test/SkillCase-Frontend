@@ -11,7 +11,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { getB2Exercise } from "../../../api/b2Api";
-import useTextToSpeech from "../hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import ScoreRing from "../components/ScoreRing";
 import MetricBar from "../components/MetricBar";
 
@@ -30,8 +30,7 @@ export default function WritingResults() {
   const [reviewMode, setReviewMode] = useState(false);
   const [reviewBlockIndex, setReviewBlockIndex] = useState(null);
 
-  const { isSpeaking, isLoadingAudio, speakText, cancelSpeech } =
-    useTextToSpeech();
+  const { cancelSpeech } = useTextToSpeech();
 
   const renderHighlights = (originalText, highlights) => {
     if (!originalText) return null;
@@ -128,14 +127,6 @@ export default function WritingResults() {
     handleBackToDashboard();
   };
 
-  const handleListen = (passageText) => {
-    if (isSpeaking) {
-      cancelSpeech();
-    } else if (passageText) {
-      speakText(passageText, "de-DE");
-    }
-  };
-
   if (loading) {
     return (
       <div className="w-full max-w-md mx-auto min-h-screen flex items-center justify-center bg-white shadow-sm">
@@ -226,38 +217,9 @@ export default function WritingResults() {
     };
   });
 
-  const getMetricColor = (val) => {
-    if (val >= 75) return "bg-green-600";
-    if (val >= 50) return "bg-amber-300";
-    return "bg-red-500";
-  };
-
-  const getMetricTextColor = (val) => {
-    if (val >= 75) return "text-green-700";
-    if (val >= 50) return "text-orange-500";
-    return "text-red-500";
-  };
-
-  const getDifficultyBadgeStyle = (diff) => {
-    const d = String(diff).toLowerCase();
-    if (d === "easy") {
-      return "bg-green-700/10 border-green-700/20 text-green-700";
-    }
-    if (d === "medium" || d === "intermediate") {
-      return "bg-amber-100/60 border-orange-400/20 text-orange-500";
-    }
-    return "bg-red-100 border-red-500/20 text-red-500";
-  };
-
   const padZero = (num) => {
     return String(num || 0).padStart(2, "0");
   };
-
-  const size = 120;
-  const strokeWidth = 10;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (score / 100) * circumference;
 
   const getGreeting = () => {
     if (score >= 70) return "Good job";
@@ -269,8 +231,6 @@ export default function WritingResults() {
     reviewBlockIndex !== null ? questions[reviewBlockIndex] : null;
   const currentBlockData =
     reviewBlockIndex !== null ? flatQuestions[reviewBlockIndex] : null;
-  const wordLimit = currentBlock?.questions?.[0]?.word_limit || 80;
-
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden shadow-sm relative">
       {/* Navigation bar */}

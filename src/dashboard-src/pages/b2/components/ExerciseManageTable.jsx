@@ -4,6 +4,7 @@ import {
   getB2ExercisesAdmin,
   toggleB2Exercise,
   deleteB2Exercise,
+  deleteWithAttemptGuard,
 } from "../../../../api/b2Api";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -61,14 +62,13 @@ export default function ExerciseManageTable({ module }) {
     )
       return;
     try {
-      const res = await deleteB2Exercise(id);
-      if (res.data?.success) {
+      if (await deleteWithAttemptGuard(deleteB2Exercise, id)) {
         toast.success("Exercise deleted successfully");
         fetchExercises();
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to delete exercise");
+      toast.error(err.response?.data?.error || "Failed to delete exercise");
     }
   };
 
