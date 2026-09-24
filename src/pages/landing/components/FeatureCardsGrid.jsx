@@ -5,7 +5,7 @@ import ExamCards from "../../exam/ExamCards";
 import B2TestBanner from "../../../components/b2/B2TestBanner";
 import NursingBanner from "../../../components/a1/nursing/NursingBanner";
 import B2ExamGate from "../../../components/b2/B2ExamGate";
-import mayaFull from "../../../assets/onboarding/mayaFull.webp";
+import mockicon from "../../../assets/onboarding/mockicon.webp";
 import { images } from "../../../assets/images.js";
 import { useState, useEffect } from "react";
 import { ChevronRight } from "lucide-react";
@@ -470,13 +470,13 @@ function B2ExamsWideCard({
         </div>
       </div>
 
-      <div className="w-20 sm:w-24 h-28 sm:h-32 relative flex items-start justify-center shrink-0 self-end overflow-hidden">
+      <div className="w-32 shrink-0 self-end relative">
         <img
-          src={mayaFull}
-          alt="Maya"
+          src={mockicon}
+          alt="B2 mock exam"
           loading="lazy"
           decoding="async"
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-auto h-[175%] max-w-none object-contain select-none pointer-events-none"
+          className="absolute bottom-0 right-0 w-28 h-auto rounded-t-xl object-cover select-none pointer-events-none"
         />
       </div>
     </CardWrapper>
