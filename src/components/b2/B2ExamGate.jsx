@@ -1,32 +1,33 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { Check, Loader2 } from "lucide-react";
-import toast from "react-hot-toast";
+import { BookOpen, Headphones, PenLine, Mic } from "lucide-react";
 import mayaWave from "../../assets/onboarding/mayaWave.webp";
-import { startB2ExamSubmission } from "../../api/b2Api";
+import ExamGetReady from "../../pages/b2/exams/ExamGetReady";
 import api from "../../api/axios";
 import { setB2ExamGateSeen } from "../../redux/auth/authSlice";
 import { useUsageLimits } from "../../hooks/useUsageLimits";
 import { hapticLight } from "../../utils/haptics";
 
-const TAKEAWAYS = [
-  "Your level in reading, listening, writing and speaking",
-  "Your strong and weak areas, side by side",
-  "A clear starting point for your practice",
+const SKILLS = [
+  { label: "Reading", Icon: BookOpen },
+  { label: "Listening", Icon: Headphones },
+  { label: "Writing", Icon: PenLine },
+  { label: "Speaking", Icon: Mic },
 ];
 
 /**
  * First-arrival gate for B2 practice: shown over the feature grid the first
  * time a B2 learner reaches the suite (app_user.b2_exam_gate_seen = false).
- * "Start exam" launches the next unattempted paper; "Skip" continues to
- * practice. Either answer marks the gate seen — it is never asked again.
+ * "Start my test" routes to the get-ready countdown which creates the
+ * submission; "Later" continues to practice. Either answer marks the gate
+ * seen — it is never asked again.
  */
 export default function B2ExamGate({ overview }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { getState } = useUsageLimits();
-  const [starting, setStarting] = useState(false);
+  const [showReady, setShowReady] = useState(false);
 
   const nextPaper = overview?.nextPaper;
   const examState = getState("B2", "exams");
@@ -43,14 +44,13 @@ export default function B2ExamGate({ overview }) {
     markSeen();
   };
 
-  const handleStart = async () => {
-    if (starting) return;
+  const handleStart = () => {
     // No direct-start paper (none active / all completed / overview failed)
-    // — still mark seen and land the learner on the paper list.
+    // — still mark seen and land the learner on the test hub.
     if (!nextPaper) {
       hapticLight();
       markSeen();
-      navigate("/b2/exams");
+      navigate("/b2/test");
       return;
     }
     if (examState?.locked) {
@@ -73,85 +73,92 @@ export default function B2ExamGate({ overview }) {
       return;
     }
     hapticLight();
-    setStarting(true);
-    try {
-      await startB2ExamSubmission(nextPaper.paperId);
-      markSeen();
-      navigate(`/b2/exams/papers/${nextPaper.paperId}/dashboard`);
-    } catch (err) {
-      console.error("Error starting B2 exam from gate:", err);
-      const resData = err.response?.data || {};
-      if (err.response?.status === 403 && resData.alreadyCompleted) {
-        markSeen();
-        navigate(`/b2/exams/papers/${nextPaper.paperId}/congratulations`);
-      } else if (err.response?.status !== 402) {
-        // 402 usage-limit responses are surfaced globally by the axios
-        // interceptor — anything else is a genuine failure.
-        toast.error("Failed to start exam. Please try again.");
-      }
-      setStarting(false);
-    }
+    // Swap to the countdown inside this overlay — no route change, so the
+    // gate never flashes the home page. The gate is marked seen when the
+    // test actually starts (onStarted) or the user backs out (onBack).
+    setShowReady(true);
   };
 
+  if (showReady) {
+    return (
+      <ExamGetReady
+        overview={overview}
+        onBack={markSeen}
+        onStarted={markSeen}
+      />
+    );
+  }
+
   return (
-    <div className="fixed inset-0 z-[110] bg-white overflow-y-auto">
-      <div className="w-full max-w-md lg:max-w-none mx-auto min-h-full flex flex-col px-5 pt-4 pb-6">
-        <div className="flex items-start gap-3 mt-6">
+    <div className="fixed inset-0 z-[110] bg-gradient-to-b from-[#CFE3FF] to-[#E4EFFF] overflow-y-auto">
+      <div className="w-full max-w-md lg:max-w-none mx-auto min-h-full flex flex-col">
+        <div className="h-14 shrink-0 flex items-center justify-between px-4 bg-white border-b border-[#EFEFEF]">
           <img
-            src={mayaWave}
-            alt="Maya"
-            className="w-16 h-16 object-cover shrink-0"
+            src="/mainlogo.webp"
+            alt="Skillcase"
+            className="h-24 w-24 object-contain"
           />
-          <div className="bg-white border border-zinc-200 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
-            <p className="text-sky-950 text-sm font-medium leading-snug">
-              Hi! Ready to find out where you stand? The first exam takes
-              about {nextPaper?.durationMinutes ?? 15} minutes.
+          <span className="text-xs font-semibold text-[#083262] bg-[#E4EFFF] rounded-full px-2.5 py-1">
+            B2 · for nurses
+          </span>
+        </div>
+
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-end gap-2 px-4 pt-4">
+          <div className="bg-white border border-[#E9EAEB] rounded-xl px-3.5 py-2 shadow-[0_4px_13px_rgba(0,0,0,0.12)]">
+            <p className="font-medium text-base text-[#414651]">
+              Hallo! I'm Maya.
             </p>
           </div>
+          <img
+            src={mayaWave}
+            alt="Maya waving"
+            className="flex-1 min-h-28 max-h-52 w-auto object-contain object-bottom select-none pointer-events-none"
+          />
         </div>
 
-        <p className="mt-8 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
-          After this, you'll know
-        </p>
-        <ul className="mt-3 flex flex-col gap-3">
-          {TAKEAWAYS.map((line) => (
-            <li key={line} className="flex items-start gap-2.5">
-              <Check
-                className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0"
-                strokeWidth={3}
-              />
-              <span className="text-sky-950 text-sm leading-snug">{line}</span>
-            </li>
-          ))}
-        </ul>
+        <div className="shrink-0 bg-white rounded-t-3xl px-4 pt-6 pb-6 flex flex-col gap-4">
+          <div className="flex flex-col gap-2 text-center">
+            <h1 className="font-semibold text-xl leading-tight text-[#002856]">
+              Well done! You made it to B2.
+            </h1>
+            <p className="text-xs leading-relaxed text-slate-400">
+              First, a {nextPaper?.durationMinutes ?? 15}-minute test. It
+              shows us where you currently stand.
+            </p>
+          </div>
 
-        <div className="mt-6 bg-black/5 rounded-2xl px-4 py-3.5">
-          <p className="text-slate-500 text-xs leading-relaxed">
-            You get a real score, not just a label. That score shapes every
-            practice suggestion that follows.
-          </p>
-        </div>
+          <div className="grid grid-cols-4 gap-2">
+            {SKILLS.map(({ label, Icon }) => (
+              <div
+                key={label}
+                className="flex flex-col items-center gap-1.5"
+              >
+                <span className="w-12 h-12 rounded-xl bg-[#E4EFFF] text-[#083262] flex items-center justify-center">
+                  <Icon className="w-[22px] h-[22px]" strokeWidth={2} />
+                </span>
+                <span className="text-xs font-medium text-[#414651]">
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
 
-        <div className="flex-1" />
-
-        <div className="flex gap-3 pt-8">
-          <button
-            type="button"
-            onClick={handleSkip}
-            disabled={starting}
-            className="flex-1 py-3.5 rounded-xl border border-zinc-300 text-slate-500 text-sm font-semibold hover:bg-slate-50 active:scale-[0.98] transition-all disabled:opacity-50 shadow-sm"
-          >
-            Skip
-          </button>
-          <button
-            type="button"
-            onClick={handleStart}
-            disabled={starting}
-            className="flex-[2] py-3.5 rounded-xl bg-[#002856] text-white text-sm font-semibold hover:bg-[#003a73] active:scale-[0.98] transition-all disabled:opacity-60 flex items-center justify-center gap-2 shadow-sm"
-          >
-            {starting && <Loader2 className="w-4 h-4 animate-spin" />}
-            Start exam
-          </button>
+          <div className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={handleStart}
+              className="h-12 rounded-lg bg-[#EDB843] text-[#083262] text-base font-semibold hover:bg-[#e0aa2f] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              Start my test
+            </button>
+            <button
+              type="button"
+              onClick={handleSkip}
+              className="h-11 rounded-lg text-[#535862] text-[15px] font-medium hover:bg-slate-50 active:scale-[0.98] transition-all"
+            >
+              Later
+            </button>
+          </div>
         </div>
       </div>
     </div>

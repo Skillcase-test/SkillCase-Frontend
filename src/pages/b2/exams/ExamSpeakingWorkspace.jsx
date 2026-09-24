@@ -379,7 +379,7 @@ export default function ExamSpeakingWorkspace() {
           Failed to load Speaking tasks.
         </p>
         <button
-          onClick={() => navigate(`/b2/exams/papers/${paperId}/dashboard`)}
+          onClick={() => navigate("/b2/test")}
           className="px-4 py-2 bg-sky-950 text-white rounded-lg text-xs font-semibold border-0 outline-none cursor-pointer"
         >
           Return to Dashboard
@@ -401,7 +401,7 @@ export default function ExamSpeakingWorkspace() {
       >
         <div className="self-stretch inline-flex justify-between items-center">
           <button
-            onClick={() => navigate(`/b2/exams/papers/${paperId}/dashboard`)}
+            onClick={() => navigate("/b2/test")}
             className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
           >
             <ChevronLeft className="w-4 h-4 text-slate-900" />
