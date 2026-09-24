@@ -41,11 +41,11 @@ export default function A1NursingSelect() {
 
   const getProgress = (chapter) => {
     const total = chapter.card_count || 0;
-    const passed = !!chapter.quiz_passed;
+    if (chapter.quiz_passed) return { completed: total, total };
+    // current_index is null for never-opened chapters — treat as 0 done.
+    const idx = chapter.current_index;
     return {
-      completed: passed
-        ? total
-        : Math.min((chapter.current_index || 0) + 1, total),
+      completed: idx == null ? 0 : Math.min(idx + 1, total),
       total,
     };
   };

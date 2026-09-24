@@ -114,6 +114,21 @@ export default function A1NursingChapter() {
       return;
     }
 
+    // Route stays mounted on param change — drop the previous chapter's
+    // run state or the old result screen re-renders over the new chapter.
+    setPhase("cards");
+    setQuizResult(null);
+    setQuizQuestions([]);
+    setQuizType(null);
+    setPendingIndex(null);
+    setLocked(false);
+    setOverlayDoc(null);
+    setIsFlipped(false);
+    setSwipeDirection(null);
+    setDeckRotation(0);
+    savedCardRef.current = null;
+    window.scrollTo({ top: 0 });
+
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -712,6 +727,16 @@ export default function A1NursingChapter() {
                   >
                     Review cards
                   </button>
+                  {nextChapter && (
+                    <button
+                      onClick={() =>
+                        navigate(`/a1/nursing/${nextChapter.id}`)
+                      }
+                      className="w-full py-2 text-[13px] font-semibold text-[#535862] underline underline-offset-2"
+                    >
+                      Continue to Chapter {nextChapter.chapter_number} anyway
+                    </button>
+                  )}
                 </>
               )}
             </div>
