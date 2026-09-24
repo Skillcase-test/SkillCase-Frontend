@@ -2,13 +2,11 @@ import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Badge from "../../../components/ui/Badge";
 import ExamCards from "../../exam/ExamCards";
-import B2TestBanner from "../../../components/b2/B2TestBanner";
+import B2PracticeHome from "./B2PracticeHome";
 import NursingBanner from "../../../components/a1/nursing/NursingBanner";
 import B2ExamGate from "../../../components/b2/B2ExamGate";
-import mockicon from "../../../assets/onboarding/mockicon.webp";
 import { images } from "../../../assets/images.js";
 import { useState, useEffect } from "react";
-import { ChevronRight } from "lucide-react";
 import FeatureStatusChip from "../../../components/ui/FeatureStatusChip";
 import { hapticLight } from "../../../utils/haptics";
 import { getB2TestOverview } from "../../../api/b2Api";
@@ -42,11 +40,6 @@ const MODULE_MAP = {
   "b1-describe-speak": { level: "B1", module_key: "describe_speak" },
   "b1-exams": { level: "B1", module_key: "exams" },
   "b1-maya": { level: "B1", module_key: "maya" },
-  "b2-reading": { level: "B2", module_key: "reading" },
-  "b2-listening": { level: "B2", module_key: "listening" },
-  "b2-writing": { level: "B2", module_key: "writing" },
-  "b2-speaking": { level: "B2", module_key: "speaking" },
-  "b2-exams": { level: "B2", module_key: "exams" },
 };
 
 const studyNotesFeature = {
@@ -218,65 +211,13 @@ export default function FeatureCardsGrid() {
     },
   ];
 
-  // B2 suite — five features: 4 practice modules (tag-filtered exercise
-  // lists) + full TELC/Goethe exam papers. Card visuals reuse the same
-  // module images the other level packs use.
-  const b2Features = [
-    {
-      id: "b2-reading",
-      title: "Reading",
-      description: "B2 reading comprehension practice",
-      image: images.b2Reading,
-      link: "/b2/reading",
-      enabled: true,
-    },
-    {
-      id: "b2-listening",
-      title: "Listening",
-      description: "B2 audio comprehension practice",
-      image: images.b2Listening,
-      link: "/b2/listening",
-      enabled: true,
-    },
-    {
-      id: "b2-writing",
-      title: "Writing",
-      description: "Exam-style essays with AI feedback",
-      image: images.b2Writing,
-      link: "/b2/writing",
-      enabled: true,
-    },
-    {
-      id: "b2-speaking",
-      title: "Speaking",
-      description: "B2 speaking prompts with AI scoring",
-      image: images.b2Speaking,
-      link: "/b2/speaking",
-      enabled: true,
-    },
-    {
-      id: "b2-exams",
-      title: "Timed Exam Paper",
-      description: "Full Length mock exams",
-      image: images.mockTest,
-      link: "/b2/exams",
-      enabled: true,
-    },
-  ];
-
   const features = [
-    ...(isB2
-      ? b2Features
-      : isB1
-        ? b1Features
-        : isA2
-          ? a2Features
-          : a1RevampFeatures),
+    ...(isB1 ? b1Features : isA2 ? a2Features : a1RevampFeatures),
     ...(isFeatureEnabled("study_notes") ? [studyNotesFeature] : []),
   ];
 
-  // B2 test hub overview — drives the Maya test banner above the grid and the
-  // paper count on the full-width exams card. One fetch shared by both.
+  // B2 test hub overview — drives the practice home (Your test card,
+  // Practise next suggestion) and the first-arrival gate.
   const [b2Overview, setB2Overview] = useState(null);
   const [b2Loading, setB2Loading] = useState(true);
 
@@ -319,11 +260,6 @@ export default function FeatureCardsGrid() {
       "b1-describe-speak": "b1-describe-speak-card",
       "b1-exams": "b1-exams-card",
       "b1-maya": "b1-maya-card",
-      "b2-reading": "b2-reading-card",
-      "b2-listening": "b2-listening-card",
-      "b2-writing": "b2-writing-card",
-      "b2-speaking": "b2-speaking-card",
-      "b2-exams": "b2-exams-card",
     };
     return tourIds[id] || undefined;
   };
@@ -344,30 +280,7 @@ export default function FeatureCardsGrid() {
       {isB2 ? (
         <>
           {showB2Gate && <B2ExamGate overview={b2Overview} />}
-          <B2TestBanner overview={b2Overview} loading={b2Loading} />
-          <div id="feature-cards-grid" className="grid grid-cols-2 gap-2.5">
-            {features
-              .filter((feature) => feature.id !== "b2-exams")
-              .map((feature) => (
-                <FeatureCard
-                  key={feature.id}
-                  {...feature}
-                  tourId={getTourId(feature.id)}
-                  moduleInfo={MODULE_MAP[feature.id]}
-                  aspectVideo
-                />
-              ))}
-          </div>
-          {features
-            .filter((feature) => feature.id === "b2-exams")
-            .map((feature) => (
-              <B2ExamsWideCard
-                key={feature.id}
-                {...feature}
-                tourId={getTourId(feature.id)}
-                moduleInfo={MODULE_MAP[feature.id]}
-              />
-            ))}
+          <B2PracticeHome overview={b2Overview} />
           <ExamCards />
         </>
       ) : (
@@ -392,97 +305,6 @@ export default function FeatureCardsGrid() {
   );
 }
 
-// Full-width banner for the B2 "Exam Papers" entry — styled in the signature
-// navy-to-blue gradient with upper-body Maya, matching the platform's
-// hardcore exam/demo cards and keeping usage-limit locking.
-function B2ExamsWideCard({
-  title,
-  description,
-  link,
-  enabled,
-  tourId,
-  moduleInfo,
-}) {
-  const { eligible, getState } = useUsageLimits();
-  const moduleState = moduleInfo
-    ? getState(moduleInfo.level, moduleInfo.module_key)
-    : null;
-  const isLocked = Boolean(moduleState?.locked);
-
-  const clickable = enabled && !isLocked;
-  const CardWrapper = clickable ? Link : "div";
-
-  const openLockModal = () => {
-    if (!isLocked || !moduleState) return;
-    window.dispatchEvent(
-      new CustomEvent("skillcase:usage-limit", {
-        detail: {
-          locked: true,
-          reason: "usage_limit",
-          module_key: moduleInfo.module_key,
-          level: moduleInfo.level,
-          limit_value: moduleState.limit_value,
-          periods: moduleState.periods,
-          reset_at: moduleState.reset_at,
-          msg: moduleState.hard_locked
-            ? "This feature is currently locked."
-            : "Your limit for this feature has been reached.",
-        },
-      }),
-    );
-  };
-
-  return (
-    <CardWrapper
-      id={tourId}
-      to={clickable ? link : undefined}
-      onClick={isLocked ? openLockModal : undefined}
-      onTouchStart={() => clickable && hapticLight()}
-      className={`mt-2.5 rounded-2xl bg-gradient-to-r from-[#002856] to-[#1E5CA2] px-4 pt-3 pb-0 flex items-end justify-between gap-3 overflow-hidden shadow-sm transition-all ${
-        clickable
-          ? "cursor-pointer hover:shadow-lg active:scale-[0.99]"
-          : isLocked
-            ? "cursor-pointer"
-            : "opacity-60 cursor-not-allowed"
-      }`}
-    >
-      <div className="flex-1 flex flex-col justify-between py-1 pb-4 min-w-0">
-        <div className="flex flex-col gap-1">
-          <h3 className="text-white text-base sm:text-lg font-bold leading-snug">
-            {title}
-          </h3>
-          <p className="text-white/80 text-xs sm:text-sm font-normal leading-normal">
-            {description}
-          </p>
-        </div>
-
-        {eligible && moduleState && (
-          <div className="pt-2">
-            <FeatureStatusChip state={moduleState} />
-          </div>
-        )}
-
-        <div className="mt-3">
-          <span className="inline-flex items-center justify-center px-4 py-2 bg-amber-400 hover:bg-amber-300 text-[#002856] text-xs font-bold rounded-xl shadow-sm transition-all gap-1">
-            Start
-            <ChevronRight className="w-3.5 h-3.5" />
-          </span>
-        </div>
-      </div>
-
-      <div className="w-32 shrink-0 self-end relative">
-        <img
-          src={mockicon}
-          alt="B2 mock exam"
-          loading="lazy"
-          decoding="async"
-          className="absolute bottom-0 right-0 w-28 h-auto rounded-t-xl object-cover select-none pointer-events-none"
-        />
-      </div>
-    </CardWrapper>
-  );
-}
-
 function FeatureCard({
   title,
   description,
@@ -492,7 +314,6 @@ function FeatureCard({
   comingSoon,
   tourId,
   moduleInfo,
-  aspectVideo,
 }) {
   const { eligible, getState } = useUsageLimits();
   const moduleState = moduleInfo
@@ -555,7 +376,7 @@ function FeatureCard({
     >
       {/* Image */}
       <div
-        className={`${aspectVideo ? "aspect-video" : "h-16 md:h-40"} rounded-md overflow-hidden`}
+        className="h-16 md:h-40 rounded-md overflow-hidden"
       >
         <img
           src={image}

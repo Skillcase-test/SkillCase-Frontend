@@ -342,8 +342,9 @@ const B2SpeakingResults = lazy(
 );
 const B2PaperSelect = lazy(() => import("./pages/b2/exams/PaperSelect"));
 const B2TestScreen = lazy(() => import("./pages/b2/test/B2TestScreen"));
-const B2ExamBlockSelector = lazy(
-  () => import("./pages/b2/exams/ExamBlockSelector"),
+const B2ExamGetReady = lazy(() => import("./pages/b2/exams/ExamGetReady"));
+const B2ExamSectionRedirect = lazy(
+  () => import("./pages/b2/exams/ExamSectionRedirect"),
 );
 const B2ExamReadingWorkspace = lazy(
   () => import("./pages/b2/exams/ExamReadingWorkspace"),
@@ -369,9 +370,7 @@ const B2ExamSpeakingWorkspace = lazy(
 const B2ExamSpeakingResults = lazy(
   () => import("./pages/b2/exams/ExamSpeakingResults"),
 );
-const B2ExamCongratulations = lazy(
-  () => import("./pages/b2/exams/ExamCongratulations"),
-);
+const B2Result = lazy(() => import("./pages/b2/exams/B2Result"));
 const B2AdminPage = lazy(() => import("./pages/b2/B2AdminPage"));
 
 // Video Courses & Notes (standalone course browsing + PDF study notes + playback + AI chat)
@@ -2003,6 +2002,14 @@ function AppContent() {
                     }
                   />
                   <Route
+                    path="/b2/test/ready"
+                    element={
+                      <LearningRoute>
+                        <B2ExamGetReady />
+                      </LearningRoute>
+                    }
+                  />
+                  <Route
                     path="/b2/exams"
                     element={
                       <LearningRoute>
@@ -2014,7 +2021,7 @@ function AppContent() {
                     path="/b2/exams/papers/:paperId/dashboard"
                     element={
                       <LearningRoute>
-                        <B2ExamBlockSelector />
+                        <B2ExamSectionRedirect />
                       </LearningRoute>
                     }
                   />
@@ -2086,7 +2093,7 @@ function AppContent() {
                     path="/b2/exams/papers/:paperId/congratulations"
                     element={
                       <LearningRoute>
-                        <B2ExamCongratulations />
+                        <B2Result />
                       </LearningRoute>
                     }
                   />
