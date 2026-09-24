@@ -16,7 +16,7 @@ import A1FlashcardDeck from "../../../components/a1/A1FlashcardDeck";
 import NursingCard from "../../../components/a1/nursing/NursingCard";
 import NursingQuiz from "../../../components/a1/nursing/NursingQuiz";
 import NursingDocumentSheet from "../../../components/a1/nursing/NursingDocumentSheet";
-import ProgressBar from "../../../components/a2/ProgressBar";
+import NursingSegmentedBar from "../../../components/a1/nursing/NursingSegmentedBar";
 import {
   getNursingChapter,
   saveNursingProgress,
@@ -87,6 +87,10 @@ export default function A1NursingChapter() {
   const quickCheckEvery =
     Number(chapter?.rules?.quick_check_every_cards) || QUICK_CHECK_EVERY;
   const passMark = Number(chapter?.rules?.quiz_pass_mark) || 0.7;
+  const emergencyCount = Number(
+    chapter?.rules?.quiz_composition?.emergency_translate,
+  );
+  const isEmergency = emergencyCount > 0;
 
   const recordNavigation = useFlashcardTelemetry({
     level: "A1",
@@ -119,9 +123,20 @@ export default function A1NursingChapter() {
         setCards(data.cards || []);
         setQuizPassed(!!data.progress?.quiz_passed);
         const resume = Number(data.progress?.current_index) || 0;
-        setCurrentCard(
-          Math.min(resume, Math.max((data.cards || []).length - 1, 0)),
+        const resumeIdx = Math.min(
+          resume,
+          Math.max((data.cards || []).length - 1, 0),
         );
+        setCurrentCard(resumeIdx);
+        // Re-offer a checkpoint the learner reached but never completed.
+        const every =
+          Number(data.chapter?.rules?.quick_check_every_cards) ||
+          QUICK_CHECK_EVERY;
+        const done = (data.progress?.checkpoints_done || []).map(Number);
+        if (resumeIdx > 0 && resumeIdx % every === 0 && !done.includes(resumeIdx)) {
+          setPendingIndex(resumeIdx);
+          setPhase("quickPrompt");
+        }
         analytics?.capture("learning_module_started", {
           module: MODULE_LABEL,
           level: "A1",
@@ -500,7 +515,7 @@ export default function A1NursingChapter() {
               <span>Back</span>
             </button>
             <span className="text-sm font-semibold text-[#7b7b7b]">
-              {isFinal ? "Chapter Quiz" : "Quick Check"}
+              {isFinal ? (isEmergency ? "Emergency drill" : "Chapter Quiz") : "Quick Check"}
             </span>
           </div>
         </div>
@@ -514,25 +529,31 @@ export default function A1NursingChapter() {
               )}
             </div>
             <h2 className="text-2xl font-bold text-[#002856] mb-2">
-              {isFinal ? "Chapter Quiz!" : "Quick Check!"}
+              {isFinal ? (isEmergency ? "Emergency drill!" : "Chapter Quiz!") : "Quick Check!"}
             </h2>
             <p className="text-sm text-[#7b7b7b] mb-2">
               {isFinal
-                ? `Finish ${chapter?.title_en || "this chapter"} to unlock the next one.`
+                ? isEmergency
+                  ? "Timed emergency situations — answer before the clock runs out."
+                  : `Finish ${chapter?.title_en || "this chapter"} to unlock the next one.`
                 : `You've seen ${pendingIndex} cards — let's check a few.`}
             </p>
             <div className="flex items-center justify-center gap-2 mb-6">
               <div className="px-3 py-1 bg-[#f0f0f0] rounded-full">
                 <span className="text-xs font-medium text-[#002856]">
                   {isFinal
-                    ? `${chapter?.rules?.quiz_questions_per_attempt || 12} questions`
+                    ? isEmergency
+                      ? `${emergencyCount} situations`
+                      : `${chapter?.rules?.quiz_questions_per_attempt || 12} questions`
                     : `${chapter?.rules?.quick_check_questions || 5} questions`}
                 </span>
               </div>
               {isFinal && (
                 <div className="px-3 py-1 bg-[#f0f0f0] rounded-full">
                   <span className="text-xs font-medium text-[#002856]">
-                    {Math.round(passMark * 100)}% to pass
+                    {isEmergency
+                      ? "8s each"
+                      : `${Math.round(passMark * 100)}% to pass`}
                   </span>
                 </div>
               )}
@@ -584,7 +605,13 @@ export default function A1NursingChapter() {
         >
           <NursingQuiz
             questions={quizQuestions}
-            title={quizType === "final" ? "Chapter Quiz" : "Quick Check"}
+            title={
+              quizType === "final"
+                ? isEmergency
+                  ? "Emergency drill"
+                  : "Chapter Quiz"
+                : "Quick Check"
+            }
             chapterId={chapter?.id}
             onFinish={finishQuiz}
             onExit={exitQuiz}
@@ -718,7 +745,11 @@ export default function A1NursingChapter() {
       </div>
 
       <div className="px-4">
-        <ProgressBar current={currentCard + 1} total={totalCards} />
+        <NursingSegmentedBar
+          current={currentCard + 1}
+          total={totalCards}
+          every={quickCheckEvery}
+        />
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-6">

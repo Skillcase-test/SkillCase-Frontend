@@ -25,6 +25,12 @@ export default function ChapterSelectTemplate({
   isChapterLocked,
   backPath = "/",
   showTourIds = false,
+  headerTitle = "German Language Level",
+  unitLabel = "Ch.",
+  getComplete, // (chapter, { completed, total }) => bool — overrides done-state
+  getBadge, // (chapter, ctx) => { label, bg, text } — overrides row badge
+  currentChapterId, // gold ring on the row learners should tap next
+  continueCta, // { label, onClick } — pinned bottom action
 }) {
   const navigate = useNavigate();
   const resolvedHeaderImage =
@@ -41,8 +47,9 @@ export default function ChapterSelectTemplate({
     };
   };
   const isChapterComplete = (chapter) => {
-    const { completed, total } = getChapterData(chapter);
-    return completed >= total && total > 0;
+    const data = getChapterData(chapter);
+    if (typeof getComplete === "function") return getComplete(chapter, data);
+    return data.completed >= data.total && data.total > 0;
   };
   const getBadgeStyle = (completed, total) => {
     if (completed === total && total > 0) {
@@ -84,7 +91,7 @@ export default function ChapterSelectTemplate({
             A1
           </h1>
           <span className="text-base font-semibold text-[#002856]">
-            German Language Level
+            {headerTitle}
           </span>
         </div>
         <p className="text-xs text-black opacity-70 mb-4">
@@ -123,7 +130,7 @@ export default function ChapterSelectTemplate({
                   />
                 </div>
                 <span className="text-[10px] font-medium text-[#002856] whitespace-nowrap">
-                  Ch. {chapter.module_number || index + 1}
+                  {unitLabel} {chapter.module_number || index + 1}
                 </span>
               </div>
             );
@@ -156,17 +163,30 @@ export default function ChapterSelectTemplate({
         ) : (
           chapters.map((chapter, index) => {
             const { completed, total } = getChapterData(chapter);
-            const badgeStyle = getBadgeStyle(completed, total);
             const isLocked =
               typeof isChapterLocked === "function"
                 ? isChapterLocked(chapter)
                 : !!(chapter?.is_locked || chapter?.locked);
+            const isComplete = isChapterComplete(chapter);
+            const badge =
+              typeof getBadge === "function"
+                ? getBadge(chapter, { completed, total, isLocked, isComplete })
+                : null;
+            const badgeStyle = badge || getBadgeStyle(completed, total);
+            const isCurrent =
+              currentChapterId !== undefined &&
+              currentChapterId !== null &&
+              String(chapter.id) === String(currentChapterId);
             return (
               <div
                 key={chapter.id || index}
                 id={showTourIds && index === 0 ? "A1-first-chapter" : undefined}
                 onClick={() => !isLocked && onChapterClick(chapter)}
-                className={`bg-white border border-[#dbdbdb] rounded-xl px-3 py-5 transition-shadow ${
+                className={`bg-white border rounded-xl px-3 py-5 transition-shadow ${
+                  isCurrent
+                    ? "border-[#edb843] shadow-[inset_0_0_0_1px_#edb843]"
+                    : "border-[#dbdbdb]"
+                } ${
                   isLocked
                     ? "opacity-60 cursor-not-allowed"
                     : "cursor-pointer hover:shadow-md"
@@ -187,7 +207,11 @@ export default function ChapterSelectTemplate({
                           isLocked ? "text-gray-500" : badgeStyle.text
                         }`}
                       >
-                        {isLocked ? "Locked" : `${completed}/${total} done`}
+                        {isLocked
+                          ? "Locked"
+                          : badge
+                            ? badge.label
+                            : `${completed}/${total} done`}
                       </span>
                     </div>
                     {isLocked ? (
@@ -202,6 +226,21 @@ export default function ChapterSelectTemplate({
           })
         )}
       </div>
+      {continueCta && !loading && chapters.length > 0 && (
+        <div
+          className="sticky bottom-0 z-10 px-4 pt-6 pb-4 bg-gradient-to-t from-white via-white to-transparent"
+          style={{
+            paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))",
+          }}
+        >
+          <button
+            onClick={continueCta.onClick}
+            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#fde68a] to-[#fcd34d] border border-[#eec139] text-[#172554] font-semibold text-[15px] shadow-sm active:scale-[0.99] transition-transform"
+          >
+            {continueCta.label}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

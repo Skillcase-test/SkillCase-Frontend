@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { RotateCcw, Volume2, Loader2, FileText } from "lucide-react";
+import ArticleText from "./ArticleText";
 
 // Renders one authored nursing card (word/pattern/phrase/emergency/document/
 // spelling) with the same flip interaction as the A1 flashcard deck.
@@ -63,10 +64,17 @@ export default function NursingCard({
           {part.slice(1, -1)}
         </span>
       ) : (
-        <span key={i}>{part}</span>
+        <ArticleText key={i} text={part} />
       ),
     );
   };
+
+  const speakerInitials = (front.speaker_name || "")
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   const frontTag =
     front.label ||
@@ -87,11 +95,14 @@ export default function NursingCard({
           transform:
             isFrontCard && isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
           transition: "transform 0.5s ease-in-out",
+          ...(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+            ? { transition: "none" }
+            : {}),
           pointerEvents: isFrontCard ? (isFlipped ? "none" : "auto") : "none",
           zIndex: isFlipped ? 1 : 2,
         }}
       >
-        <div className="h-1/2 w-full relative overflow-hidden bg-gray-100 flex items-center justify-center pointer-events-none">
+        <div className="w-full aspect-[3/2] relative overflow-hidden bg-[#f3f6fb] flex items-center justify-center pointer-events-none">
           {hasImage ? (
             <img
               src={cardData.image_url}
@@ -101,17 +112,28 @@ export default function NursingCard({
               draggable={false}
               className="w-full h-full object-cover pointer-events-none select-none"
             />
+          ) : speakerInitials ? (
+            <div className="flex flex-col items-center gap-2">
+              <span className="w-[72px] h-[72px] rounded-full bg-[#E4EFFF] text-[#002856] flex items-center justify-center text-[22px] font-semibold shadow-[inset_0_0_0_2px_#fff]">
+                {speakerInitials}
+              </span>
+              {front.speaker_name && (
+                <span className="text-[11px] font-bold tracking-[0.08em] uppercase text-[#535862]">
+                  {front.speaker_name}
+                </span>
+              )}
+            </div>
           ) : (
             <FileText className="w-12 h-12 text-gray-300" />
           )}
           {frontTag && (
-            <span className="absolute top-2 left-2 bg-white/90 text-[#002856] text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full shadow-sm">
+            <span className="absolute bottom-2 left-2 max-w-[calc(100%-16px)] truncate bg-[#002856]/80 text-white text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full">
               {frontTag}
             </span>
           )}
         </div>
 
-        <div className="h-1/2 w-full flex flex-col items-center justify-center px-4 text-center">
+        <div className="flex-1 w-full flex flex-col items-center justify-center px-4 pb-9 text-center">
           {front.speaker_name && (
             <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-1">
               {front.speaker_name}
@@ -121,18 +143,19 @@ export default function NursingCard({
             {renderGerman(front.german)}
           </p>
           {speakerButton(audio.front, "front")}
-          <div
-            className="flex items-center justify-center gap-2 transition-opacity duration-300 mt-4"
-            style={{
-              opacity: !swipeDirection && isFrontCard ? 0.4 : 0,
-              pointerEvents: "none",
-            }}
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-[#002856]" />
-            <span className="text-[10px] font-bold text-[#002856] uppercase tracking-[0.1em]">
-              Tap to flip
-            </span>
-          </div>
+        </div>
+
+        <div
+          className="absolute bottom-3.5 left-0 right-0 flex items-center justify-center gap-2 transition-opacity duration-300"
+          style={{
+            opacity: !swipeDirection && isFrontCard ? 0.4 : 0,
+            pointerEvents: "none",
+          }}
+        >
+          <RotateCcw className="w-3.5 h-3.5 text-[#002856]" />
+          <span className="text-[10px] font-bold text-[#002856] uppercase tracking-[0.1em]">
+            Tap to flip
+          </span>
         </div>
       </div>
 
@@ -148,6 +171,9 @@ export default function NursingCard({
             willChange: "transform",
             transform: isFlipped ? "rotateY(0deg)" : "rotateY(-180deg)",
             transition: "transform 0.5s ease-in-out",
+            ...(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+              ? { transition: "none" }
+              : {}),
             pointerEvents: isFlipped ? "auto" : "none",
             zIndex: isFlipped ? 2 : 1,
           }}

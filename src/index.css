@@ -165,6 +165,28 @@ select {
   }
 }
 
+/* Nursing quiz result sheet */
+@keyframes nursingSheetRise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-nursing-sheet {
+  animation: nursingSheetRise 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-nursing-sheet {
+    animation: none;
+  }
+}
+
 /* 3D Card Flip */
 .perspective-1000 {
   perspective: 1000px;

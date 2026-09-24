@@ -1,16 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import {
-  X,
-  Volume2,
-  Loader2,
-  Check,
-  RotateCcw,
-  Timer,
-  Maximize2,
-} from "lucide-react";
+import { X, Volume2, Loader2, Check, Timer, Maximize2 } from "lucide-react";
 import NursingDocumentSheet from "./NursingDocumentSheet";
+import NursingSegmentedBar from "./NursingSegmentedBar";
+import ArticleText from "./ArticleText";
 import { checkNursingAnswer } from "../../../api/a1NursingApi";
+
+const OPTION_LETTERS = ["A", "B", "C", "D", "E", "F"];
 
 function shuffleOptions(options) {
   const a = [...(options || [])];
@@ -99,14 +95,15 @@ export default function NursingQuiz({
 
   if (!question) return null;
 
-  const checkAnswer = async () => {
-    if (selected === null || phase !== "pick") return;
+  const checkAnswer = async (answer = selected) => {
+    if (answer === null || answer === undefined || phase !== "pick") return;
     if (firstAnswersRef.current[question.id] === undefined) {
-      firstAnswersRef.current[question.id] = selected;
+      firstAnswersRef.current[question.id] = answer;
     }
+    setSelected(answer);
     setPhase("checking");
     try {
-      const res = await checkNursingAnswer(chapterId, question.id, selected);
+      const res = await checkNursingAnswer(chapterId, question.id, answer);
       const data = res?.data || {};
       setReveal({
         answer: data.answer ?? null,
@@ -118,8 +115,9 @@ export default function NursingQuiz({
         if (data.feedback_de) speak?.(data.feedback_de, "de-DE");
         return;
       }
-      // Second miss reveals the answer — keeps the quiz from dead-ending.
-      setPhase(attempts >= 1 ? "revealed" : "wrong");
+      // Timed drills and second misses reveal the answer — one shot per
+      // situation, and no dead-end retry loop.
+      setPhase(timeLimit > 0 || attempts >= 1 ? "revealed" : "wrong");
       setAttempts((a) => a + 1);
     } catch (err) {
       console.error("Error checking nursing answer:", err);
@@ -164,9 +162,43 @@ export default function NursingQuiz({
     return "border-gray-200 bg-white text-gray-500";
   };
 
+  const sheet = (() => {
+    if (phase === "correct")
+      return {
+        ok: true,
+        title: "Richtig!",
+        answerText: reveal?.answer || selected,
+        line: reveal?.feedback_en || reveal?.feedback_de || null,
+        button: isLast ? "Finish" : "Next",
+        onAction: next,
+      };
+    if (phase === "wrong")
+      return {
+        ok: false,
+        title: "Incorrect!",
+        answerText: selected,
+        line: "is not the right answer. Try once more.",
+        button: "Try again",
+        onAction: () => {
+          setPhase("pick");
+          setSelected(null);
+        },
+      };
+    if (phase === "revealed" || phase === "timeout")
+      return {
+        ok: false,
+        title: phase === "timeout" ? "Time's up!" : "Incorrect!",
+        answerText: null,
+        revealText: reveal?.answer,
+        button: isLast ? "Finish" : "Next",
+        onAction: next,
+      };
+    return null;
+  })();
+
   return (
     <div className="w-full max-w-md mx-auto flex flex-col">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-1.5">
         <button
           onClick={onExit}
           className="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 text-gray-600"
@@ -191,6 +223,12 @@ export default function NursingQuiz({
           <span className="w-8" />
         )}
       </div>
+      <NursingSegmentedBar
+        current={index + 1}
+        total={questions.length}
+        every={20}
+      />
+      <div className="mb-3" />
 
       <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
         {question.label && (
@@ -200,7 +238,7 @@ export default function NursingQuiz({
         )}
 
         {question.image_url && (
-          <div className="w-full h-36 rounded-xl overflow-hidden bg-gray-100 mb-3">
+          <div className="w-full aspect-[3/2] max-h-[190px] rounded-xl overflow-hidden bg-[#f3f6fb] mb-3">
             <img
               src={question.image_url}
               alt=""
@@ -266,31 +304,43 @@ export default function NursingQuiz({
         )}
 
         <div className="mt-4 space-y-2">
-          {options.map((opt, i) => (
-            <button
-              key={i}
-              onClick={() => {
-                if (phase === "pick" || phase === "wrong") {
-                  setSelected(opt);
+          {options.map((opt, i) => {
+            const inResult =
+              phase === "correct" ||
+              phase === "revealed" ||
+              phase === "timeout";
+            return (
+              <button
+                key={i}
+                onClick={() => {
                   if (phase === "wrong") setPhase("pick");
+                  else if (phase !== "pick") return;
+                  // Timed questions answer on tap — no Check step under 8s.
+                  if (timeLimit > 0) checkAnswer(opt);
+                  else setSelected(opt);
+                }}
+                disabled={
+                  phase === "checking" ||
+                  phase === "correct" ||
+                  phase === "timeout" ||
+                  phase === "revealed"
                 }
-              }}
-              disabled={
-                phase === "checking" ||
-                phase === "correct" ||
-                phase === "timeout" ||
-                phase === "revealed"
-              }
-              className={`w-full text-left px-4 py-3 rounded-xl border-2 text-[14px] font-medium transition-all ${optionClass(opt)}`}
-            >
-              {opt}
-            </button>
-          ))}
+                className={`w-full text-left px-3 py-3 rounded-xl border-2 text-[14px] font-medium transition-all flex items-center gap-3 ${optionClass(opt)}`}
+              >
+                <span className="w-7 h-7 flex-none flex items-center justify-center rounded-lg bg-black/5 text-[13px] font-semibold">
+                  {OPTION_LETTERS[i]}
+                </span>
+                <span className="flex-1">
+                  {inResult ? opt : <ArticleText text={opt} />}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
-        {(phase === "pick" || phase === "checking") && (
+        {!timeLimit && (phase === "pick" || phase === "checking") && (
           <button
-            onClick={checkAnswer}
+            onClick={() => checkAnswer()}
             disabled={selected === null || phase === "checking"}
             className="mt-4 w-full py-3 rounded-xl bg-[#002856] text-white text-sm font-bold disabled:opacity-40 flex items-center justify-center gap-2"
           >
@@ -301,80 +351,74 @@ export default function NursingQuiz({
             )}
           </button>
         )}
-
-        {phase === "correct" && (
-          <div className="mt-4">
-            <div className="flex items-center gap-2 text-[#019035] text-sm font-bold mb-1">
-              <Check className="w-4 h-4" /> Correct
-            </div>
-            {reveal?.feedback_de && (
-              <p className="text-[13px] text-gray-700 italic">
-                {reveal.feedback_de}
-              </p>
-            )}
-            {reveal?.feedback_en && (
-              <p className="text-[12px] text-gray-500">{reveal.feedback_en}</p>
-            )}
-            <button
-              onClick={next}
-              className="mt-3 w-full py-3 rounded-xl bg-[#019035] text-white text-sm font-bold"
-            >
-              {isLast ? "Finish" : "Next"}
-            </button>
-          </div>
-        )}
-
-        {phase === "wrong" && (
-          <div className="mt-4">
-            <p className="text-[#d92d20] text-sm font-bold mb-2">
-              Not quite — try again
-            </p>
-            <button
-              onClick={() => {
-                setPhase("pick");
-                setSelected(null);
-              }}
-              className="w-full py-3 rounded-xl bg-[#002856] text-white text-sm font-bold flex items-center justify-center gap-2"
-            >
-              <RotateCcw className="w-4 h-4" /> Try again
-            </button>
-          </div>
-        )}
-
-        {phase === "revealed" && (
-          <div className="mt-4">
-            <p className="text-[#d92d20] text-sm font-bold mb-1">
-              The correct answer is:
-            </p>
-            <p className="text-[15px] font-bold text-[#019035]">
-              {reveal?.answer}
-            </p>
-            <button
-              onClick={next}
-              className="mt-3 w-full py-3 rounded-xl bg-[#002856] text-white text-sm font-bold"
-            >
-              {isLast ? "Finish" : "Next"}
-            </button>
-          </div>
-        )}
-
-        {phase === "timeout" && (
-          <div className="mt-4">
-            <p className="text-[#d92d20] text-sm font-bold mb-1">
-              Time's up — the answer was:
-            </p>
-            <p className="text-[15px] font-bold text-[#019035]">
-              {reveal?.answer}
-            </p>
-            <button
-              onClick={next}
-              className="mt-3 w-full py-3 rounded-xl bg-[#002856] text-white text-sm font-bold"
-            >
-              {isLast ? "Finish" : "Next"}
-            </button>
-          </div>
-        )}
       </div>
+
+      {sheet &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[998] flex items-end justify-center bg-black/35 px-4"
+            style={{
+              paddingBottom: "calc(1rem + env(safe-area-inset-bottom, 0px))",
+            }}
+          >
+            <div
+              className={`animate-nursing-sheet w-full max-w-md rounded-3xl px-5 pt-5 pb-5 flex flex-col items-center text-center shadow-2xl ${
+                sheet.ok ? "bg-[#f0fdf4]" : "bg-[#fef2f2]"
+              }`}
+            >
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center mb-2.5 ${
+                  sheet.ok ? "bg-[#22c55e]" : "bg-[#ef4444]"
+                }`}
+              >
+                {sheet.ok ? (
+                  <Check className="w-6 h-6 text-white" />
+                ) : (
+                  <X className="w-6 h-6 text-white" />
+                )}
+              </div>
+              <h3
+                className={`text-2xl font-bold ${
+                  sheet.ok ? "text-[#166534]" : "text-[#991b1b]"
+                }`}
+              >
+                {sheet.title}
+              </h3>
+              {sheet.answerText && (
+                <p
+                  className={`text-[15px] font-semibold mt-0.5 ${
+                    sheet.ok ? "text-[#14532d]" : "text-[#7f1d1d]"
+                  }`}
+                >
+                  {sheet.answerText}
+                </p>
+              )}
+              {sheet.revealText && (
+                <p className="text-[15px] font-semibold text-[#019035] mt-0.5">
+                  Right answer: “{sheet.revealText}”
+                </p>
+              )}
+              {sheet.line && (
+                <p
+                  className={`text-[13px] mt-0.5 opacity-80 ${
+                    sheet.ok ? "text-[#166534]" : "text-[#991b1b]"
+                  }`}
+                >
+                  {sheet.line}
+                </p>
+              )}
+              <button
+                onClick={sheet.onAction}
+                className={`mt-4 w-full py-3.5 rounded-xl text-white text-[15px] font-bold ${
+                  sheet.ok ? "bg-[#15803d]" : "bg-[#ef4444]"
+                }`}
+              >
+                {sheet.button}
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
 
       {overlayDoc &&
         createPortal(

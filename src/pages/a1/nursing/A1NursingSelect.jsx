@@ -50,10 +50,32 @@ export default function A1NursingSelect() {
     };
   };
 
+  const currentChapter = chapters.find((c) => !c.is_locked && !c.quiz_passed);
+  const currentStarted = (currentChapter?.current_index || 0) > 0;
+
+  const getBadge = (chapter, { completed, total }) => {
+    if (chapter.quiz_passed) {
+      return {
+        label: `${total}/${total} done`,
+        bg: "bg-[rgba(1,144,53,0.12)]",
+        text: "text-[#019035]",
+      };
+    }
+    if (completed >= total && total > 0) {
+      return {
+        label: "Quiz left",
+        bg: "bg-[rgba(255,235,192,0.65)]",
+        text: "text-[#ac8121]",
+      };
+    }
+    return null;
+  };
+
   return (
     <ChapterSelectTemplate
       title="Nursing German"
       subtitle="German for your first weeks on the ward — one chapter at a time"
+      headerTitle="Nursing German"
       headerImage={images.nursingGerman}
       chapters={chapters.map((c) => ({
         ...c,
@@ -63,6 +85,15 @@ export default function A1NursingSelect() {
       loading={loading || flagsLoading}
       onChapterClick={handleChapterClick}
       getProgress={getProgress}
+      getComplete={(chapter) => !!chapter.quiz_passed}
+      getBadge={getBadge}
+      currentChapterId={currentChapter?.id}
+      continueCta={
+        currentChapter && {
+          label: `${currentStarted ? "Continue" : "Start"} Chapter ${currentChapter.chapter_number} · ${currentChapter.title_en}`,
+          onClick: () => handleChapterClick(currentChapter),
+        }
+      }
       isChapterLocked={(chapter) => usageLocked || !!chapter?.is_locked}
       backPath="/"
     />

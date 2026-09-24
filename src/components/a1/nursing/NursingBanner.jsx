@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
-import { images } from "../../../assets/images";
+import mayaThumbsup from "../../../assets/onboarding/mayaThumbsup.webp";
 import { getNursingChapters } from "../../../api/a1NursingApi";
 import { useUsageLimits } from "../../../hooks/useUsageLimits";
 import FeatureStatusChip from "../../ui/FeatureStatusChip";
 import { hapticLight } from "../../../utils/haptics";
 
-// Top banner above the A1 grid — deep-links into the nursing chapter hub and
-// shows live path progress ("Chapter X of 22").
+// Top banner above the A1 grid — same slate+Maya language as the B2 test
+// banner. Deep-links into the nursing chapter hub and shows live path
+// progress ("Chapter X of 22").
 export default function NursingBanner() {
   const { eligible, getState } = useUsageLimits();
   const moduleState = getState("A1", "nursing");
@@ -45,49 +46,49 @@ export default function NursingBanner() {
   };
 
   const Wrapper = isLocked ? "div" : Link;
-  const started = overview?.chapters?.some((c) => c.quiz_passed || c.current_index > 0);
+  const started = overview?.chapters?.some(
+    (c) => c.quiz_passed || c.current_index > 0,
+  );
 
   return (
     <Wrapper
       to={isLocked ? undefined : "/a1/nursing"}
       onClick={isLocked ? openLockModal : undefined}
       onTouchStart={() => !isLocked && hapticLight()}
-      className="mb-3 rounded-2xl bg-gradient-to-r from-[#002856] to-[#1E5CA2] px-4 py-0 flex items-center justify-between gap-3 overflow-hidden shadow-sm cursor-pointer hover:shadow-lg active:scale-[0.99] transition-all"
+      className="mb-3 rounded-2xl bg-gradient-to-r from-slate-100 to-slate-200 border border-slate-200/80 pl-3 pr-4 py-0 overflow-hidden flex items-end gap-3 cursor-pointer hover:shadow-md active:scale-[0.99] transition-all shadow-sm/10"
     >
-      <div className="flex-1 flex flex-col justify-between py-3 min-w-0">
-        <div className="flex flex-col gap-1">
-          <h3 className="text-white text-base font-bold leading-snug">
-            Nursing German
-          </h3>
-          <p className="text-white/80 text-xs font-normal leading-normal">
-            {loading
-              ? "German for your first weeks on the ward"
-              : started && overview?.current_chapter
-                ? `Chapter ${overview.current_chapter} of ${overview.total_chapters}`
-                : "German for your first weeks on the ward"}
-          </p>
-        </div>
-        {eligible && moduleState && (
-          <div className="pt-2">
-            <FeatureStatusChip state={moduleState} />
-          </div>
-        )}
-        <div className="mt-2">
-          <span className="inline-flex items-center justify-center px-4 py-1.5 bg-amber-400 text-[#002856] text-xs font-bold rounded-xl shadow-sm gap-1">
-            {started ? "Continue" : "Start"}
-            <ChevronRight className="w-3.5 h-3.5" />
-          </span>
-        </div>
-      </div>
-      <div className="w-20 h-24 sm:w-24 sm:h-28 relative shrink-0 self-end overflow-hidden rounded-xl">
+      <div className="w-16 h-18 sm:w-20 sm:h-20 relative flex items-end justify-center shrink-0 self-end -mb-0.5">
         <img
-          src={images.nursingGerman}
-          alt="Nursing German"
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+          src={mayaThumbsup}
+          alt="Maya"
+          className="w-full h-full object-contain object-bottom select-none pointer-events-none"
         />
       </div>
+      <div className="flex-1 min-w-0 flex flex-col gap-1 py-3 self-center">
+        {loading ? (
+          <>
+            <div className="h-4 w-28 bg-slate-200 rounded animate-pulse" />
+            <div className="h-3 w-44 bg-slate-200/70 rounded animate-pulse" />
+          </>
+        ) : (
+          <>
+            <span className="text-slate-900 text-sm font-bold leading-5">
+              Nursing German
+            </span>
+            <span className="text-slate-500 text-[11px] font-medium leading-4">
+              {started && overview?.current_chapter
+                ? `Chapter ${overview.current_chapter} of ${overview.total_chapters} — keep going`
+                : "German for your first weeks on the ward"}
+            </span>
+            {eligible && moduleState && (
+              <div className="pt-0.5">
+                <FeatureStatusChip state={moduleState} />
+              </div>
+            )}
+          </>
+        )}
+      </div>
+      <ChevronRight className="w-5 h-5 text-slate-700 shrink-0 self-center" />
     </Wrapper>
   );
 }
