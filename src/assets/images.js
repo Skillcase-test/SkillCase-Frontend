@@ -17,6 +17,10 @@ import headerBackground from "./images/headerBackground.webp";
 import chevronLeftIcon from "./images/chevronLeftIcon.svg";
 import chevronRightIcon from "./images/chevronRightIcon.svg";
 import nursingGerman from "./images/nursingGerman.webp";
+import b2Speaking from "./images/b2speaking.webp";
+import b2Reading from "./images/b2reading.webp";
+import b2Listening from "./images/b2listening.webp";
+import b2Writing from "./images/b2writing.webp";
 
 export const images = {
   // Avatars
