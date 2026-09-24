@@ -85,6 +85,8 @@ const A1SpeakingAdd = lazy(() => import("./a1/speaking/add"));
 const A1SpeakingManage = lazy(() => import("./a1/speaking/manage"));
 const A1TestAdd = lazy(() => import("./a1/test/add"));
 const A1TestManage = lazy(() => import("./a1/test/manage"));
+const A1NursingAdd = lazy(() => import("./a1/nursing/add"));
+const A1NursingManage = lazy(() => import("./a1/nursing/manage"));
 
 const A2FlashcardAdd = lazy(() => import("./a2/flashcard/add"));
 const A2FlashcardManage = lazy(() => import("./a2/flashcard/manage"));
@@ -1012,6 +1014,11 @@ export default function Dashboard() {
             basePath: "/admin/a1/speaking",
           },
           { key: "a1-test", label: "A1 Test", basePath: "/admin/a1/test" },
+          {
+            key: "a1-nursing",
+            label: "A1 Nursing German",
+            basePath: "/admin/a1/nursing",
+          },
         ]
       : [];
 
@@ -1687,6 +1694,22 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "content", "edit")}>
                     <A1TestManage />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a1/nursing/add"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A1NursingAdd />
+                  </Guard>
+                }
+              />
+              <Route
+                path="a1/nursing/manage"
+                element={
+                  <Guard allowed={hasPermission(me, "content", "edit")}>
+                    <A1NursingManage />
                   </Guard>
                 }
               />

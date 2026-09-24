@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import Badge from "../../../components/ui/Badge";
 import ExamCards from "../../exam/ExamCards";
 import B2TestBanner from "../../../components/b2/B2TestBanner";
+import NursingBanner from "../../../components/a1/nursing/NursingBanner";
 import B2ExamGate from "../../../components/b2/B2ExamGate";
 import mayaFull from "../../../assets/onboarding/mayaFull.webp";
 import { images } from "../../../assets/images.js";
@@ -29,6 +30,7 @@ const MODULE_MAP = {
   "a1-revamp-speaking": { level: "A1", module_key: "speaking" },
   "a1-revamp-reading": { level: "A1", module_key: "reading" },
   "a1-revamp-test": { level: "A1", module_key: "test" },
+  "a1-revamp-nursing": { level: "A1", module_key: "nursing" },
   "a2-flashcards": { level: "A2", module_key: "flashcard" },
   "a2-grammar": { level: "A2", module_key: "grammar" },
   "a2-listening": { level: "A2", module_key: "listening" },
@@ -369,17 +371,22 @@ export default function FeatureCardsGrid() {
           <ExamCards />
         </>
       ) : (
-        <div id="feature-cards-grid" className="grid grid-cols-3 gap-2.5">
-          {features.map((feature) => (
-            <FeatureCard
-              key={feature.id}
-              {...feature}
-              tourId={getTourId(feature.id)}
-              moduleInfo={MODULE_MAP[feature.id]}
-            />
-          ))}
-          <ExamCards />
-        </div>
+        <>
+          {!isB1 && !isA2 && isFeatureEnabled("nursing_german") && (
+            <NursingBanner />
+          )}
+          <div id="feature-cards-grid" className="grid grid-cols-3 gap-2.5">
+            {features.map((feature) => (
+              <FeatureCard
+                key={feature.id}
+                {...feature}
+                tourId={getTourId(feature.id)}
+                moduleInfo={MODULE_MAP[feature.id]}
+              />
+            ))}
+            <ExamCards />
+          </div>
+        </>
       )}
     </div>
   );

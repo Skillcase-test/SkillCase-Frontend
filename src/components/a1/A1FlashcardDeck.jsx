@@ -24,6 +24,8 @@ export default function A1FlashcardDeck({
   isSpeaking,
   isLoadingAudio,
   containerId = "A1-flashcard-container",
+  CardComponent = A1FlashcardCard,
+  cardExtraProps,
 }) {
   // useRef for drag tracking — avoids stale closure bug with useState
   const dragStartRef = useRef(null);
@@ -218,7 +220,7 @@ export default function A1FlashcardDeck({
             onClick={isFrontCard ? triggerFlip : undefined}
           >
             {position >= 1 && cardData && (
-              <A1FlashcardCard
+              <CardComponent
                 cardData={cardData}
                 isFrontCard={isFrontCard}
                 isFlipped={isFlipped}
@@ -227,6 +229,7 @@ export default function A1FlashcardDeck({
                 onSpeak={onSpeak}
                 isSpeaking={isSpeaking}
                 isLoadingAudio={isLoadingAudio}
+                {...cardExtraProps}
               />
             )}
           </div>

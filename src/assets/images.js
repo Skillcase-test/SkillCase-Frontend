@@ -16,6 +16,7 @@ import skillcaseLogo from "./images/skillcaseLogo.svg";
 import headerBackground from "./images/headerBackground.webp";
 import chevronLeftIcon from "./images/chevronLeftIcon.svg";
 import chevronRightIcon from "./images/chevronRightIcon.svg";
+import nursingGerman from "./images/nursingGerman.jpg";
 
 export const images = {
   // Avatars
@@ -46,4 +47,5 @@ export const images = {
   headerBackground,
   chevronLeftIcon,
   chevronRightIcon,
+  nursingGerman,
 };

@@ -207,6 +207,12 @@ const A1Speaking = lazy(() => import("./pages/a1/speaking/A1Speaking"));
 const A1TestSelect = lazy(() => import("./pages/a1/test/A1TestSelect"));
 const A1TestLevel = lazy(() => import("./pages/a1/test/A1TestLevel"));
 const A1TestQuestions = lazy(() => import("./pages/a1/test/A1TestQuestions"));
+const A1NursingSelect = lazy(
+  () => import("./pages/a1/nursing/A1NursingSelect"),
+);
+const A1NursingChapter = lazy(
+  () => import("./pages/a1/nursing/A1NursingChapter"),
+);
 const ExamLobby = lazy(() => import("./pages/exam/ExamLobby"));
 const ExamPage = lazy(() => import("./pages/exam/ExamPage"));
 const ExamResult = lazy(() => import("./pages/exam/ExamResult"));
@@ -1587,6 +1593,22 @@ function AppContent() {
                     element={lazyScreen(
                       <A1TestQuestions />,
                       "Loading A1 Questions...",
+                    )}
+                  />
+
+                  {/* A1 Nursing German */}
+                  <Route
+                    path="/a1/nursing"
+                    element={lazyScreen(
+                      <A1NursingSelect />,
+                      "Loading Nursing German...",
+                    )}
+                  />
+                  <Route
+                    path="/a1/nursing/:chapterId"
+                    element={lazyScreen(
+                      <A1NursingChapter />,
+                      "Loading Nursing German...",
                     )}
                   />
 
