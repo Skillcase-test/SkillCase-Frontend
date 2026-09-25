@@ -312,13 +312,16 @@ export default function SkillcaseInterviewToolsReviewPage({
 
       {activeAnswer ? (
         <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-          <div className="space-y-6">
+          {/* min-w-0: a bare fr track can be blown out by unbreakable content
+              (long names, AI transcript tokens) — without it the videos column
+              gets squeezed to a sliver on some submissions. */}
+          <div className="space-y-6 min-w-0">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
+              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight truncate" title={detail.submission.candidate_name}>
                 {detail.submission.candidate_name}
               </h2>
               {isSuperAdmin && detail.active_assignment ? (
-                <p className="mt-1.5 text-xs font-semibold text-slate-500">
+                <p className="mt-1.5 text-xs font-semibold text-slate-500 break-words">
                   Assigned to{" "}
                   <span className="text-slate-800">
                     {detail.active_assignment.assigned_to_name}
@@ -488,7 +491,7 @@ export default function SkillcaseInterviewToolsReviewPage({
                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1 ml-1">
                           Reasoning
                         </p>
-                        <p className="text-xs text-slate-700 leading-relaxed">
+                        <p className="text-xs text-slate-700 leading-relaxed break-words">
                           {activeAnswer.ai_reasoning}
                         </p>
                       </div>
@@ -499,7 +502,7 @@ export default function SkillcaseInterviewToolsReviewPage({
                         <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-1 ml-1">
                           Strengths
                         </p>
-                        <p className="text-xs text-slate-700 leading-relaxed">
+                        <p className="text-xs text-slate-700 leading-relaxed break-words">
                           {activeAnswer.ai_strengths}
                         </p>
                       </div>
@@ -510,7 +513,7 @@ export default function SkillcaseInterviewToolsReviewPage({
                         <p className="text-[10px] font-bold uppercase tracking-widest text-rose-400 mb-1 ml-1">
                           Weaknesses
                         </p>
-                        <p className="text-xs text-slate-700 leading-relaxed">
+                        <p className="text-xs text-slate-700 leading-relaxed break-words">
                           {activeAnswer.ai_weaknesses}
                         </p>
                       </div>
@@ -521,7 +524,7 @@ export default function SkillcaseInterviewToolsReviewPage({
                         <summary className="cursor-pointer text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1 select-none hover:text-slate-600 transition">
                           Transcript
                         </summary>
-                        <p className="mt-2 text-xs text-slate-500 leading-relaxed whitespace-pre-wrap border border-slate-100 rounded-lg p-3 bg-slate-50">
+                        <p className="mt-2 text-xs text-slate-500 leading-relaxed whitespace-pre-wrap break-words border border-slate-100 rounded-lg p-3 bg-slate-50">
                           {activeAnswer.ai_transcript}
                         </p>
                       </details>
@@ -552,7 +555,7 @@ export default function SkillcaseInterviewToolsReviewPage({
             ) : null}
           </div>
 
-          <div className="space-y-6 flex flex-col h-full">
+          <div className="space-y-6 flex flex-col h-full min-w-0">
             <div className="grid lg:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <InterviewVideoPlayer
@@ -589,8 +592,8 @@ export default function SkillcaseInterviewToolsReviewPage({
                     )}
                   />
                 ) : (
-                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    <div className="relative flex aspect-video flex-col items-center justify-center gap-3 bg-slate-50 px-6 text-center">
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm h-full">
+                    <div className="relative flex h-full min-h-[180px] flex-col items-center justify-center gap-3 bg-slate-50 px-6 text-center">
                       <span className="absolute left-4 top-4 rounded-full bg-slate-200/80 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
                         Learner Answer
                       </span>

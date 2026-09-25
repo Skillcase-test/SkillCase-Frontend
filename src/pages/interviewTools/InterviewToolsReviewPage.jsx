@@ -227,12 +227,15 @@ export default function InterviewToolsReviewPage({
 
       {activeAnswer ? (
         <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-          <div className="space-y-6">
+          {/* min-w-0: a bare fr track can be blown out by unbreakable content
+              (long emails, names) — without it the videos column gets squeezed
+              to a sliver on some submissions. */}
+          <div className="space-y-6 min-w-0">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
+              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight truncate" title={detail.submission.candidate_name}>
                 {detail.submission.candidate_name}
               </h2>
-              <p className="mt-1.5 text-xs font-semibold text-slate-500">
+              <p className="mt-1.5 text-xs font-semibold text-slate-500 break-all">
                 {detail.submission.candidate_email}
               </p>
               <p className="mt-0.5 text-xs font-medium text-slate-400">
@@ -361,7 +364,7 @@ export default function InterviewToolsReviewPage({
             </div>
           </div>
 
-          <div className="space-y-6 flex flex-col h-full">
+          <div className="space-y-6 flex flex-col h-full min-w-0">
             <div className="grid lg:grid-cols-2 gap-4">
               <div className="space-y-3">
                 <InterviewVideoPlayer
@@ -397,8 +400,8 @@ export default function InterviewToolsReviewPage({
                     )}
                   />
                 ) : (
-                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                    <div className="relative flex aspect-video flex-col items-center justify-center gap-3 bg-slate-50 px-6 text-center">
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm h-full">
+                    <div className="relative flex h-full min-h-[180px] flex-col items-center justify-center gap-3 bg-slate-50 px-6 text-center">
                       <span className="absolute left-4 top-4 rounded-full bg-slate-200/80 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
                         Candidate Answer
                       </span>
