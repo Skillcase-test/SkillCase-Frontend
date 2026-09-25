@@ -282,6 +282,10 @@ export default function InterviewVideoPlayer({
         onClick={togglePlay}
       >
         <video
+          // Remount on src change — a media element can retain its last
+          // decoded frame after the src attribute is removed, which would
+          // show the previous question's video on an unanswered one.
+          key={src}
           ref={videoRef}
           src={src}
           poster={poster}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Download, Save } from "lucide-react";
+import { ArrowLeft, Download, Save, VideoOff } from "lucide-react";
 import { interviewToolsApi } from "../../api/interviewToolsApi";
 import InterviewVideoPlayer from "./shared/InterviewVideoPlayer";
 
@@ -260,9 +260,10 @@ export default function InterviewToolsReviewPage({
                       {item.question_order}. {item.title}
                     </span>
                     <span
-                      className={`ml-2 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${activeIndex === index ? "bg-white/20" : "bg-white border border-slate-200"}`}
+                      title={item.answer_id ? undefined : "Not answered"}
+                      className={`ml-2 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold ${activeIndex === index ? "bg-white/20" : "bg-white border border-slate-200"} ${!item.answer_id ? "text-slate-400" : ""}`}
                     >
-                      {item.admin_score || "-"}
+                      {item.answer_id ? item.admin_score || "-" : "NA"}
                     </span>
                   </button>
                 ))}
@@ -282,10 +283,11 @@ export default function InterviewToolsReviewPage({
                     <button
                       key={score}
                       type="button"
+                      disabled={!activeAnswer.answer_id}
                       onClick={() =>
                         updateAnswerScore(activeAnswer.question_id, score)
                       }
-                      className={`flex h-9 items-center justify-center rounded-lg border text-xs font-bold transition shadow-sm ${
+                      className={`flex h-9 items-center justify-center rounded-lg border text-xs font-bold transition shadow-sm disabled:cursor-not-allowed disabled:opacity-60 ${
                         armed
                           ? "border-amber-300 bg-amber-50 text-amber-700 scale-105"
                           : Number(activeAnswer.admin_score) === score
@@ -301,6 +303,12 @@ export default function InterviewToolsReviewPage({
               {pendingScore?.questionId === activeAnswer.question_id ? (
                 <p className="mt-2 text-[10px] font-semibold text-amber-600 ml-1">
                   Tap "{pendingScore.score}" again to replace score {activeAnswer.admin_score}
+                </p>
+              ) : null}
+              {!activeAnswer.answer_id ? (
+                <p className="mt-2 text-[10px] font-semibold text-slate-400 ml-1">
+                  The candidate did not answer this question — scoring
+                  unavailable.
                 </p>
               ) : null}
             </div>
@@ -380,13 +388,33 @@ export default function InterviewToolsReviewPage({
                 ) : null}
               </div>
               <div className="space-y-3">
-                <InterviewVideoPlayer
-                  src={activeAnswer.answer_video_url}
-                  title="Candidate Answer"
-                  initialDurationSeconds={Number(
-                    activeAnswer.answer_duration_seconds || 0,
-                  )}
-                />
+                {activeAnswer.answer_video_url ? (
+                  <InterviewVideoPlayer
+                    src={activeAnswer.answer_video_url}
+                    title="Candidate Answer"
+                    initialDurationSeconds={Number(
+                      activeAnswer.answer_duration_seconds || 0,
+                    )}
+                  />
+                ) : (
+                  <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                    <div className="relative flex aspect-video flex-col items-center justify-center gap-3 bg-slate-50 px-6 text-center">
+                      <span className="absolute left-4 top-4 rounded-full bg-slate-200/80 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                        Candidate Answer
+                      </span>
+                      <VideoOff className="h-8 w-8 text-slate-300" />
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+                          No answer submitted
+                        </p>
+                        <p className="mt-1 text-[11px] font-medium text-slate-400">
+                          The candidate did not record a response for this
+                          question.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {activeAnswer.answer_video_download_url ||
                 activeAnswer.answer_video_url ? (
                   <a
