@@ -122,6 +122,29 @@ export const adminSetStepSkippable = (stepId, isSkippable, excludeOnStep) =>
     exclude_on_step: !!excludeOnStep,
   });
 
+// Directory view — flat candidate listing + free-text recruiter assignment.
+export const adminGetDirectory = (params) =>
+  api.get("/admin/job-screening/directory", { params });
+
+export const adminSetDirectoryRecruiter = (userId, recruiter) =>
+  api.put(`/admin/job-screening/directory/${userId}/recruiter`, { recruiter });
+
+export const adminGetRecruiterOptions = () =>
+  api.get("/admin/job-screening/recruiter-options");
+
+export const adminAddRecruiterOption = (optionValue) =>
+  api.post("/admin/job-screening/recruiter-options", {
+    option_value: optionValue,
+  });
+
+export const adminUpdateRecruiterOption = (id, optionValue) =>
+  api.patch(`/admin/job-screening/recruiter-options/${id}`, {
+    option_value: optionValue,
+  });
+
+export const adminDeleteRecruiterOption = (id) =>
+  api.delete(`/admin/job-screening/recruiter-options/${id}`);
+
 // Select Opportunity step — admin-authored opportunities (max 3 active).
 export const adminListOpportunities = () =>
   api.get("/admin/job-screening/opportunities");

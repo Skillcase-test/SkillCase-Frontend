@@ -35,6 +35,7 @@ import {
 } from "../../api/jobScreeningAdminApi";
 import CandidateList from "./components/CandidateList";
 import CandidateDetail from "./components/CandidateDetail";
+import DirectoryView from "./components/DirectoryView";
 import OpportunityManager from "./components/opportunity/OpportunityManager";
 
 // Normalizes the settings API payload into the shape globalSettings uses, so
@@ -90,6 +91,8 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
 
   const [selectedCandidateId, setSelectedCandidateId] = useState(null);
   const [selectedCandidateDetail, setSelectedCandidateDetail] = useState(null);
+  const [directoryRefreshKey, setDirectoryRefreshKey] = useState(0);
+  const [directoryLoading, setDirectoryLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("candidates");
 
   const [searchVal, setSearchVal] = useState("");
@@ -892,6 +895,29 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
 
         {!selectedCandidateId && (
           <div className="flex items-center gap-3">
+            {(activeTab === "candidates" || activeTab === "directory") && (
+              <button
+                type="button"
+                onClick={() =>
+                  activeTab === "candidates"
+                    ? fetchList()
+                    : setDirectoryRefreshKey((k) => k + 1)
+                }
+                disabled={
+                  activeTab === "candidates" ? listLoading : directoryLoading
+                }
+                className="p-2 hover:bg-slate-50 border border-slate-150 rounded-xl text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1.5 text-[11px] font-bold disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${
+                    (activeTab === "candidates" ? listLoading : directoryLoading)
+                      ? "animate-spin"
+                      : ""
+                  }`}
+                />
+                Refresh List
+              </button>
+            )}
             <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/40">
               <button
                 type="button"
@@ -903,6 +929,17 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
                 }`}
               >
                 Candidates List
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("directory")}
+                className={`px-4 py-1.5 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer ${
+                  activeTab === "directory"
+                    ? "bg-[#083262] text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                Directory
               </button>
               <button
                 type="button"
@@ -927,20 +964,6 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
                 Opportunities
               </button>
             </div>
-
-            {activeTab === "candidates" && (
-              <button
-                type="button"
-                onClick={fetchList}
-                disabled={listLoading}
-                className="p-2 hover:bg-slate-50 border border-slate-150 rounded-xl text-slate-500 hover:text-slate-700 transition-all flex items-center gap-1.5 text-[11px] font-bold disabled:opacity-50 cursor-pointer"
-              >
-                <RefreshCw
-                  className={`w-3.5 h-3.5 ${listLoading ? "animate-spin" : ""}`}
-                />
-                Refresh List
-              </button>
-            )}
           </div>
         )}
       </div>
@@ -1123,6 +1146,14 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
               />
             </div>
           </div>
+        ) : activeTab === "directory" ? (
+          <DirectoryView
+            canEdit={canEdit}
+            onOpenCandidate={(id) => setSelectedCandidateId(id)}
+            fieldOptions={options?.field_options}
+            refreshKey={directoryRefreshKey}
+            onLoadingChange={setDirectoryLoading}
+          />
         ) : activeTab === "opportunities" ? (
           <OpportunityManager canEdit={canEdit} />
         ) : (
