@@ -504,9 +504,15 @@ const DirectoryView = ({ canEdit, onOpenCandidate, fieldOptions, refreshKey, onL
         dir,
         ...Object.fromEntries(
           Object.entries(filters).filter(
-            ([, v]) => (Array.isArray(v) ? v.length > 0 : v !== ""),
+            ([k, v]) =>
+              k !== "departments" && (Array.isArray(v) ? v.length > 0 : v !== ""),
           ),
         ),
+        // JSON-encoded like the candidates list — departments[] keys get
+        // flattened inconsistently by the query parser.
+        departments: filters.departments.length
+          ? JSON.stringify(filters.departments)
+          : undefined,
       });
       if (id !== reqRef.current) return;
       setRows(res.data?.data || []);
