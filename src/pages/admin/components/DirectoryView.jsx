@@ -53,13 +53,13 @@ const AVATAR_TONES = [
   "bg-cyan-100 text-cyan-700",
   "bg-indigo-100 text-indigo-700",
 ];
-const avatarTone = (key = "") => {
+const avatarTone = (key) => {
   let h = 0;
-  for (const c of key) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  for (const c of String(key || "")) h = (h * 31 + c.charCodeAt(0)) >>> 0;
   return AVATAR_TONES[h % AVATAR_TONES.length];
 };
-const initials = (name = "") =>
-  name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "–";
+const initials = (name) =>
+  String(name || "").trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "–";
 
 const certDisplay = (r) => {
   const lvl = String(r.language_level || "").toUpperCase().trim();
@@ -71,8 +71,8 @@ const certDisplay = (r) => {
   };
 };
 
-const maskEmail = (email = "") => {
-  const [local, domain] = email.split("@");
+const maskEmail = (email) => {
+  const [local, domain] = String(email || "").split("@");
   if (!domain) return "••••••";
   return `${local[0] || "•"}••••@${domain}`;
 };
