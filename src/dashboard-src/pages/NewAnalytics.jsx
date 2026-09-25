@@ -173,6 +173,15 @@ function shiftDate(date, days) {
   return parsed.toISOString().slice(0, 10);
 }
 
+// Same value the catalog reports as default_date, computed locally so data
+// requests can fire in parallel with the catalog instead of waiting on it.
+function yesterdayIst() {
+  return shiftDate(
+    new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }),
+    -1,
+  );
+}
+
 // Presets are expressed as a day count ending on the latest completed IST day,
 // which is what the catalog reports as default_date.
 const RANGE_PRESETS = [
@@ -1320,7 +1329,7 @@ export default function NewAnalytics({ me }) {
     // The journeys tab stays on a single day because a journey timeline is
     // stored per day. The features tab reads an inclusive window, defaulting
     // to that same single day so existing links keep working.
-    const date = params.get("date") || catalog?.default_date || "";
+    const date = params.get("date") || catalog?.default_date || yesterdayIst();
     const latest = catalog?.default_date || "";
     const earliest = catalog?.available_from || "";
     // Clamp to the window the API will actually accept, so a stale bookmark or
@@ -1359,6 +1368,22 @@ export default function NewAnalytics({ me }) {
       ),
     [catalog, filters.level],
   );
+
+  // feature/level/app_version values are validated against catalog lists, so
+  // deep links carrying them still wait for the catalog; the default view
+  // fetches immediately in parallel with it.
+  const dataReady =
+    Boolean(catalog) ||
+    !(
+      params.get("feature") ||
+      params.get("level") ||
+      params.get("app_version")
+    );
+
+  // Memoized on the serialized values: the catalog landing rebuilds filters
+  // even when every value stayed the same, and that must not refire the fetch.
+  const filtersKey = JSON.stringify(filters);
+  const dataParams = useMemo(() => JSON.parse(filtersKey), [filtersKey]);
 
   const update = useCallback(
     (key, val) => {
@@ -1450,41 +1475,32 @@ export default function NewAnalytics({ me }) {
   }, []);
 
   useEffect(() => {
-    if (!filters.date) return;
+    if (!dataReady) return;
     let live = true;
     setLoading(true);
     setError("");
     const request =
       tab === "features"
         ? Promise.all([
-            newAnalyticsApi.metrics(filters),
-            // One call per visible feature so the overview table can show every
-            // feature side by side, independent of which single feature is
-            // selected in the drill-down dropdown above.
-            Promise.all(
-              visibleFeatures.map((feature) =>
-                newAnalyticsApi
-                  .metrics({ ...filters, feature: feature.key })
-                  .then(({ data }) => ({ ...data, feature }))
-                  .catch(() => null),
-              ),
-            ),
-            newAnalyticsApi.modules(filters),
+            newAnalyticsApi.metrics(dataParams),
+            // One grouped request covers the whole overview table.
+            newAnalyticsApi.overview(dataParams),
+            newAnalyticsApi.modules(dataParams),
           ])
         : newAnalyticsApi.journeys({
-            date: filters.date_to,
-            page: filters.page,
-            limit: filters.limit,
-            app_version: filters.app_version,
-            trial_status: filters.trial_status,
+            date: dataParams.date_to,
+            page: dataParams.page,
+            limit: dataParams.limit,
+            app_version: dataParams.app_version,
+            trial_status: dataParams.trial_status,
           });
     request
       .then((result) => {
         if (!live) return;
         if (tab === "features") {
-          const [metricsRes, tableRows, modulesRes] = result;
+          const [metricsRes, overviewRes, modulesRes] = result;
           setMetrics(metricsRes.data);
-          setFeatureTable(tableRows.filter(Boolean));
+          setFeatureTable(overviewRes.data?.rows || []);
           setModuleRows(modulesRes.data?.rows || []);
         } else {
           setJourneys(result.data);
@@ -1500,7 +1516,7 @@ export default function NewAnalytics({ me }) {
     return () => {
       live = false;
     };
-  }, [filters, tab, reloadToken, visibleFeatures]);
+  }, [dataParams, tab, reloadToken, dataReady]);
 
   const openJourney = async (subjectId) => {
     setDetail(null);

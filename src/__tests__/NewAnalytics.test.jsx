@@ -6,6 +6,7 @@ vi.mock("../api/newAnalyticsApi", () => ({
   newAnalyticsApi: {
     catalog: vi.fn(),
     metrics: vi.fn(),
+    overview: vi.fn(),
     modules: vi.fn(),
     moduleUsers: vi.fn(),
     journeys: vi.fn(),
@@ -94,6 +95,18 @@ describe("NewAnalytics", () => {
     vi.clearAllMocks();
     newAnalyticsApi.catalog.mockResolvedValue({ data: catalog });
     newAnalyticsApi.metrics.mockResolvedValue({ data: metrics });
+    newAnalyticsApi.overview.mockResolvedValue({
+      data: {
+        rows: catalog.features.map((feature) => ({
+          feature,
+          eligible_users: 100,
+          users: 40,
+          adoption_percentage: 40,
+          completion_percentage: 50,
+          averages: { session_minutes: 8.5, accuracy_percentage: 80 },
+        })),
+      },
+    });
     newAnalyticsApi.modules.mockResolvedValue({ data: { rows: [] } });
     newAnalyticsApi.journeys.mockResolvedValue({
       data: {

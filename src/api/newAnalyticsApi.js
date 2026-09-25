@@ -1,8 +1,11 @@
 import api from "./axios";
 
 export const newAnalyticsApi = {
-  catalog: () => api.get("/admin/new-analytics/catalog"),
+  catalog: () =>
+    api.cachedGet("/admin/new-analytics/catalog", {}, "SHORT_PRIVATE"),
   metrics: (params) => api.get("/admin/new-analytics/metrics", { params }),
+  overview: (params) =>
+    api.get("/admin/new-analytics/metrics/overview", { params }),
   modules: (params) => api.get("/admin/new-analytics/modules", { params }),
   moduleUsers: (params) =>
     api.get("/admin/new-analytics/modules/users", { params }),
