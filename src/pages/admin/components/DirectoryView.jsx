@@ -12,6 +12,8 @@ import {
   Pencil,
   Trash2,
   X,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "react-hot-toast";
 import {
@@ -61,13 +63,18 @@ const initials = (name = "") =>
 
 const certDisplay = (r) => {
   const lvl = String(r.language_level || "").toUpperCase().trim();
-  if (!r.has_lang_cert)
-    return { text: lvl || "—", tone: "text-slate-400", dot: "bg-slate-300" };
-  if (r.lang_cert_status === "approved")
-    return { text: lvl ? `${lvl} Completed` : "Completed", tone: "text-emerald-700", dot: "bg-emerald-500" };
-  if (r.lang_cert_status === "rejected")
-    return { text: lvl ? `${lvl} Rejected` : "Rejected", tone: "text-rose-600", dot: "bg-rose-500" };
-  return { text: lvl ? `${lvl} In Progress` : "In Progress", tone: "text-amber-600", dot: "bg-amber-400" };
+  if (!lvl) return { text: "—", tone: "text-slate-300", dot: "bg-slate-300" };
+  return {
+    text: `${lvl} Completed`,
+    tone: "text-emerald-700",
+    dot: "bg-emerald-500",
+  };
+};
+
+const maskEmail = (email = "") => {
+  const [local, domain] = email.split("@");
+  if (!domain) return "••••••";
+  return `${local[0] || "•"}••••@${domain}`;
 };
 
 const scoreTone = (s) =>
@@ -218,7 +225,7 @@ const FilterDropdown = ({
 
 // Compact fixed-width recruiter picker. Popover is position:fixed so the
 // scrollable table can't clip it; closes on scroll/outside click/Escape.
-const RecruiterCell = ({ value, options, disabled, onSelect, onAdd, onEditOption, onDeleteOption }) => {
+const RecruiterCell = ({ value, options, disabled, masked, onSelect, onAdd, onEditOption, onDeleteOption }) => {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
@@ -326,7 +333,7 @@ const RecruiterCell = ({ value, options, disabled, onSelect, onAdd, onEditOption
         {busy ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : (
-          <span className="truncate">{value || "Assign"}</span>
+          <span className="truncate">{masked && value ? "••••••" : value || "Assign"}</span>
         )}
         <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-50" />
       </button>
@@ -442,7 +449,7 @@ const RecruiterCell = ({ value, options, disabled, onSelect, onAdd, onEditOption
   );
 };
 
-const DirectoryView = ({ canEdit, onOpenCandidate, fieldOptions, refreshKey, onLoadingChange }) => {
+const DirectoryView = ({ canEdit, onOpenCandidate, fieldOptions, refreshKey, onLoadingChange, summary }) => {
   const [rows, setRows] = useState([]);
   const [pagination, setPagination] = useState({ total: 0, totalPages: 1, page: 1 });
   const [loading, setLoading] = useState(true);
@@ -462,6 +469,7 @@ const DirectoryView = ({ canEdit, onOpenCandidate, fieldOptions, refreshKey, onL
     min_score: "",
   });
   const [recruiterOptions, setRecruiterOptions] = useState([]);
+  const [maskPII, setMaskPII] = useState(false);
   const reqRef = useRef(0);
 
   useEffect(() => {
@@ -634,8 +642,39 @@ const DirectoryView = ({ canEdit, onOpenCandidate, fieldOptions, refreshKey, onL
     ...recruiterOptions.map((o) => ({ value: o.option_value, label: o.option_value })),
   ];
 
+  const statCards = summary
+    ? [
+        { label: "Total Users", value: summary.total_users, tone: "border-slate-200 bg-white text-slate-900" },
+        { label: "Referred", value: summary.referred, tone: "border-orange-200 bg-orange-50 text-orange-900" },
+        { label: "Initiated", value: summary.initiated, tone: "border-purple-200 bg-purple-50 text-purple-900" },
+        { label: "Profile Updated", value: summary.profile_updated, tone: "border-cyan-200 bg-cyan-50 text-cyan-900" },
+        { label: "Interview Completed", value: summary.interview_completed, tone: "border-blue-200 bg-blue-50 text-blue-900" },
+        { label: "Actions Pending", value: summary.actions_pending, tone: "border-amber-200 bg-amber-50 text-amber-900" },
+        { label: "Active Candidates", value: summary.active_candidates, tone: "border-emerald-200 bg-emerald-50 text-emerald-900" },
+        { label: "Inactive Candidates", value: summary.inactive_candidates, tone: "border-rose-200 bg-rose-50 text-rose-900" },
+      ]
+    : null;
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
+      {statCards && (
+        <div className="grid shrink-0 grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8">
+          {statCards.map((item) => (
+            <div
+              key={item.label}
+              className={`flex min-w-0 flex-col justify-between rounded-xl border px-3 py-2.5 text-left shadow-sm ${item.tone}`}
+            >
+              <span className="min-h-6 text-[9px] font-semibold uppercase leading-3 tracking-wide opacity-80">
+                {item.label}
+              </span>
+              <span className="mt-1 block text-lg font-bold leading-none tabular-nums">
+                {Number(item.value) || 0}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="rounded-2xl border border-slate-200/60 bg-gradient-to-br from-white to-slate-50/80 p-3.5">
         <div className="flex flex-wrap items-end gap-2.5">
@@ -693,6 +732,19 @@ const DirectoryView = ({ canEdit, onOpenCandidate, fieldOptions, refreshKey, onL
               Clear
             </button>
           )}
+
+          <button
+            type="button"
+            onClick={() => setMaskPII((v) => !v)}
+            title={maskPII ? "Show emails & recruiters" : "Mask emails & recruiters"}
+            className={`ml-auto flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border transition ${
+              maskPII
+                ? "border-[#083262] bg-[#083262] text-white shadow-sm"
+                : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+            }`}
+          >
+            {maskPII ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
         </div>
 
         {filtersOpen && (
@@ -853,7 +905,7 @@ const DirectoryView = ({ canEdit, onOpenCandidate, fieldOptions, refreshKey, onL
                             {r.fullname || "—"}
                           </div>
                           <div className="truncate text-[10px] font-medium text-slate-400">
-                            {r.email}
+                            {maskPII ? maskEmail(r.email) : r.email}
                           </div>
                         </div>
                       </div>
@@ -924,6 +976,7 @@ const DirectoryView = ({ canEdit, onOpenCandidate, fieldOptions, refreshKey, onL
                         value={r.assigned_recruiter}
                         options={recruiterOptions}
                         disabled={!canEdit}
+                        masked={maskPII}
                         onSelect={(val) => assignRecruiter(r.user_id, val)}
                         onAdd={async (name) => {
                           const ok = await addRecruiterOption(name);

@@ -1153,6 +1153,7 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
             fieldOptions={options?.field_options}
             refreshKey={directoryRefreshKey}
             onLoadingChange={setDirectoryLoading}
+            summary={summary}
           />
         ) : activeTab === "opportunities" ? (
           <OpportunityManager canEdit={canEdit} />
