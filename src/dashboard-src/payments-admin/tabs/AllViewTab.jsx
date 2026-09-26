@@ -69,6 +69,7 @@ export function AllViewTab({
 
   const batchOptions = [
     { value: "", label: "All Batches" },
+    { value: "unassigned", label: "Unassigned" },
     ...batches.map((b) => ({ value: b.batch_id, label: b.batch_name })),
   ];
   const statusOptions = [
@@ -306,7 +307,11 @@ export function AllViewTab({
                     </div>
                   </td>
                   <td className="px-2 py-2">
-                    {r.lifecycle_state === "dropped" ? (
+                    {r.notes?.reverted_to_enrollment_id ? (
+                      <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700">
+                        Moved to Recruitment
+                      </span>
+                    ) : r.lifecycle_state === "dropped" ? (
                       <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
                         Dropped
                       </span>

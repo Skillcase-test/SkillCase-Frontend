@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { ActionChip, ControlDropdown } from "../components/controls";
+import AnchoredMenu from "../components/AnchoredMenu";
 import { StatCard } from "../components/common";
 import { formatInrFromPaise, formatIstDateTime } from "../utils/formatters";
 import {
@@ -18,6 +19,7 @@ import {
   FileText,
   X,
   Loader2,
+  ArrowRightLeft,
 } from "lucide-react";
 import { LEAD_OWNER_OPTIONS, PROFESSION_OPTIONS } from "../utils/constants";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
@@ -31,6 +33,7 @@ export function RecruitmentViewTab({
   handleSendAgreement,
   handleGenerateDetailsLink,
   handleDeleteCandidate,
+  handleRevertToRecruitment,
   savingEnrollmentId,
   sendingAgreementEnrollmentId,
   batches = [],
@@ -50,37 +53,25 @@ export function RecruitmentViewTab({
   allSortOrder,
   setAllSortBy,
   setAllSortOrder,
+  loadTabData,
 }) {
   const [copiedEnrollmentId, setCopiedEnrollmentId] = useState("");
   const [receiptCandidate, setReceiptCandidate] = useState(null);
+  const [convertCandidate, setConvertCandidate] = useState(null);
   const [activeActionMenuId, setActiveActionMenuId] = useState(null);
-  const actionMenuRef = useRef(null);
+  const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState(null);
 
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
-        setActiveActionMenuId(null);
-      }
-    }
-    function handleKeyDown(e) {
-      if (e.key === "Escape") {
-        setActiveActionMenuId(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
+  const closeActionMenu = () => {
+    setActiveActionMenuId(null);
+    setActionMenuAnchorEl(null);
+  };
 
   const handleCopyLink = (enrollmentId, url, studentName) => {
     navigator.clipboard.writeText(url).then(() => {
       setCopiedEnrollmentId(enrollmentId);
       setNotice?.(`Agreement link for ${studentName || "candidate"} copied to clipboard!`);
       setTimeout(() => setCopiedEnrollmentId(""), 2500);
-      setTimeout(() => setActiveActionMenuId(null), 600);
+      setTimeout(() => closeActionMenu(), 600);
     }).catch(() => {
       setCopiedEnrollmentId(enrollmentId);
       setTimeout(() => setCopiedEnrollmentId(""), 2000);
@@ -112,6 +103,7 @@ export function RecruitmentViewTab({
 
   const batchOptions = [
     { value: "", label: "All Batches" },
+    { value: "unassigned", label: "Unassigned" },
     ...batches.map((b) => ({ value: b.batch_id, label: b.batch_name })),
   ];
   const statusOptions = [
@@ -375,7 +367,11 @@ export function RecruitmentViewTab({
                     </div>
                   </td>
                   <td className="px-2 py-2">
-                    {r.lifecycle_state === "dropped" ? (
+                    {r.notes?.converted_to_enrollment_id ? (
+                      <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700">
+                        Moved to Training
+                      </span>
+                    ) : r.lifecycle_state === "dropped" ? (
                       <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
                         Dropped
                       </span>
@@ -429,7 +425,7 @@ export function RecruitmentViewTab({
                       )}
                       {r.agreement_state === "signed" && (
                         <>
-                          <span className="inline-flex items-center rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
+                          <span className="inline-flex items-center rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-[#002856] ring-1 ring-inset ring-indigo-700/10">
                             Signed
                           </span>
                           <span className="inline-flex items-center rounded-md bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700 ring-1 ring-inset ring-sky-700/10">
@@ -439,7 +435,7 @@ export function RecruitmentViewTab({
                       )}
                       {r.agreement_state === "details_viewed" && (
                         <>
-                          <span className="inline-flex items-center rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-indigo-700 ring-1 ring-inset ring-indigo-700/10">
+                          <span className="inline-flex items-center rounded-md bg-indigo-100 px-2 py-0.5 text-xs font-semibold text-[#002856] ring-1 ring-inset ring-indigo-700/10">
                             Signed
                           </span>
                           <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-inset ring-amber-600/20">
@@ -454,17 +450,17 @@ export function RecruitmentViewTab({
                       )}
 
                       {/* Consolidated Actions Dropdown */}
-                      <div
-                        className="relative inline-block text-left"
-                        ref={activeActionMenuId === r.enrollment_id ? actionMenuRef : null}
-                      >
+                      <div className="relative inline-block text-left">
                         <button
                           type="button"
-                          onClick={() =>
-                            setActiveActionMenuId(
-                              activeActionMenuId === r.enrollment_id ? null : r.enrollment_id,
-                            )
-                          }
+                          onClick={(e) => {
+                            if (activeActionMenuId === r.enrollment_id) {
+                              closeActionMenu();
+                            } else {
+                              setActionMenuAnchorEl(e.currentTarget);
+                              setActiveActionMenuId(r.enrollment_id);
+                            }
+                          }}
                           className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold shadow-sm transition-colors cursor-pointer ${
                             copiedEnrollmentId === r.enrollment_id
                               ? "border-emerald-300 bg-emerald-50 text-emerald-700"
@@ -489,13 +485,16 @@ export function RecruitmentViewTab({
                           )}
                         </button>
 
-                        {activeActionMenuId === r.enrollment_id && (
-                          <div className="absolute right-0 top-full z-50 mt-1.5 w-52 origin-top-right rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl ring-1 ring-black/5">
+                        {activeActionMenuId === r.enrollment_id && actionMenuAnchorEl && (
+                          <AnchoredMenu
+                            anchorEl={actionMenuAnchorEl}
+                            onClose={closeActionMenu}
+                          >
                             {/* 1. Edit Details */}
                             <button
                               type="button"
                               onClick={() => {
-                                setActiveActionMenuId(null);
+                                closeActionMenu();
                                 setEditDraft({
                                   ...r,
                                   total_fee_inr: r?.notes?.total_fee_inr || 60000,
@@ -513,7 +512,7 @@ export function RecruitmentViewTab({
                             <button
                               type="button"
                               onClick={() => {
-                                setActiveActionMenuId(null);
+                                closeActionMenu();
                                 setReceiptCandidate(r);
                               }}
                               className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors text-left cursor-pointer"
@@ -521,6 +520,41 @@ export function RecruitmentViewTab({
                               <FileText size={13} className="text-slate-400" />
                               <span>Receipts</span>
                             </button>
+
+                            {/* 2b. Move to Training (active, not yet converted) */}
+                            {["pending", "finalized"].includes(r.status) &&
+                              !r.notes?.converted_to_enrollment_id && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    closeActionMenu();
+                                    setConvertCandidate(r);
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-[#002856] hover:bg-indigo-50 transition-colors text-left cursor-pointer"
+                                >
+                                  <ArrowRightLeft size={13} className="text-indigo-500" />
+                                  <span>Move to Training</span>
+                                </button>
+                              )}
+
+                            {/* 2c. Move back to Recruitment */}
+                            {r.notes?.converted_from_enrollment_id &&
+                              !r.notes?.reverted_to_enrollment_id &&
+                              r.status !== "refunded" &&
+                              r.lifecycle_state !== "refunded" && (
+                                <button
+                                  type="button"
+                                  disabled={savingEnrollmentId === r.enrollment_id}
+                                  onClick={() => {
+                                    closeActionMenu();
+                                    handleRevertToRecruitment?.(r.enrollment_id, r.student_name);
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-violet-700 hover:bg-violet-50 transition-colors text-left disabled:opacity-50 cursor-pointer"
+                                >
+                                  <ArrowRightLeft size={13} className="text-violet-500" />
+                                  <span>Move back to Recruitment</span>
+                                </button>
+                              )}
 
                             {/* 3. Send / Resend Agreement */}
                             {r.status !== "archived" &&
@@ -531,7 +565,7 @@ export function RecruitmentViewTab({
                                   type="button"
                                   disabled={sendingAgreementEnrollmentId === r.enrollment_id}
                                   onClick={() => {
-                                    setActiveActionMenuId(null);
+                                    closeActionMenu();
                                     handleSendAgreement?.(r);
                                   }}
                                   className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors text-left disabled:opacity-50 cursor-pointer"
@@ -584,7 +618,7 @@ export function RecruitmentViewTab({
                                   type="button"
                                   disabled={sendingAgreementEnrollmentId === r.enrollment_id}
                                   onClick={() => {
-                                    setActiveActionMenuId(null);
+                                    closeActionMenu();
                                     handleGenerateDetailsLink?.(r);
                                   }}
                                   className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors text-left disabled:opacity-50 cursor-pointer"
@@ -604,7 +638,7 @@ export function RecruitmentViewTab({
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setActiveActionMenuId(null);
+                                  closeActionMenu();
                                   window.open(r.agreement_signed_url, "_blank");
                                 }}
                                 className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors text-left cursor-pointer"
@@ -620,7 +654,7 @@ export function RecruitmentViewTab({
                                 type="button"
                                 disabled={savingEnrollmentId === r.enrollment_id}
                                 onClick={() => {
-                                  setActiveActionMenuId(null);
+                                  closeActionMenu();
                                   const confirmed = window.confirm(
                                     `Are you sure you want to finalize candidate "${
                                       r.student_name || "this candidate"
@@ -641,30 +675,34 @@ export function RecruitmentViewTab({
                               </button>
                             )}
 
-                            <div className="my-1 border-t border-slate-100" />
-
                             {/* 8. Delete Candidate (Danger) */}
-                            <button
-                              type="button"
-                              disabled={savingEnrollmentId === r.enrollment_id}
-                              onClick={() => {
-                                setActiveActionMenuId(null);
-                                if (
-                                  window.confirm(
-                                    `Data for candidate "${
-                                      r.student_name || "this candidate"
-                                    }" will be permanently deleted. Are you sure?`,
-                                  )
-                                ) {
-                                  handleDeleteCandidate?.(r.enrollment_id);
-                                }
-                              }}
-                              className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-rose-700 hover:bg-rose-50 transition-colors text-left disabled:opacity-50 cursor-pointer"
-                            >
-                              <Trash2 size={13} className="text-rose-600" />
-                              <span>Delete Candidate</span>
-                            </button>
-                          </div>
+                            {!(r.notes?.converted_from_enrollment_id &&
+                              !r.notes?.reverted_to_enrollment_id) && (
+                              <>
+                                <div className="my-1 border-t border-slate-100" />
+                                <button
+                                  type="button"
+                                  disabled={savingEnrollmentId === r.enrollment_id}
+                                  onClick={() => {
+                                    closeActionMenu();
+                                    if (
+                                      window.confirm(
+                                        `Data for candidate "${
+                                          r.student_name || "this candidate"
+                                        }" will be permanently deleted. Are you sure?`,
+                                      )
+                                    ) {
+                                      handleDeleteCandidate?.(r.enrollment_id);
+                                    }
+                                  }}
+                                  className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-rose-700 hover:bg-rose-50 transition-colors text-left disabled:opacity-50 cursor-pointer"
+                                >
+                                  <Trash2 size={13} className="text-rose-600" />
+                                  <span>Delete Candidate</span>
+                                </button>
+                              </>
+                            )}
+                          </AnchoredMenu>
                         )}
                       </div>
                     </div>
@@ -680,6 +718,18 @@ export function RecruitmentViewTab({
         <ReceiptPaymentsModal
           candidate={receiptCandidate}
           onClose={() => setReceiptCandidate(null)}
+        />
+      )}
+
+      {convertCandidate && (
+        <ConvertToTrainingModal
+          candidate={convertCandidate}
+          onClose={() => setConvertCandidate(null)}
+          onDone={(msg) => {
+            setConvertCandidate(null);
+            setNotice?.(msg);
+            loadTabData?.();
+          }}
         />
       )}
     </div>
@@ -710,12 +760,13 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
     }
   };
 
-  const handleGenerate = async (paymentId) => {
-    setActionLoading(paymentId);
+  const handleGenerate = async (payment) => {
+    setActionLoading(payment.payment_id);
     try {
       await paymentsAdminApi.generateReceipt({
         enrollment_id: candidate.enrollment_id,
-        payment_id: paymentId,
+        payment_id: payment.payment_id,
+        split_id: payment.recruitment_split_id || undefined,
         state: candidate.notes?.state || "Karnataka",
       });
       await loadCandidatePayments();
@@ -843,6 +894,8 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
                   {payments.map((p) => {
                     const hasReceipt = !!p.receipt_id;
                     const isSent = p.receipt_status === "sent";
+                    const movedToTraining =
+                      !p.recruitment_split_id && Number(p.training_split_paise) > 0;
                     const isLoading =
                       !!actionLoading &&
                       (actionLoading === p.receipt_id ||
@@ -860,7 +913,25 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
                           {p.razorpay_payment_id || p.payment_id}
                         </td>
                         <td className="px-4 py-3 font-semibold text-slate-800">
-                          {formatInrFromPaise(p.amount_paise)}
+                          {p.recruitment_split_id ? (
+                            <span>
+                              {formatInrFromPaise(p.recruitment_split_paise)}
+                              <span className="block text-[10px] font-medium text-slate-400">
+                                of {formatInrFromPaise(p.amount_paise)}
+                                {Number(p.training_split_paise) > 0 &&
+                                  ` · ${formatInrFromPaise(p.training_split_paise)} → training`}
+                              </span>
+                            </span>
+                          ) : movedToTraining ? (
+                            <span>
+                              {formatInrFromPaise(0)}
+                              <span className="block text-[10px] font-medium text-slate-400">
+                                {formatInrFromPaise(p.training_split_paise)} → training
+                              </span>
+                            </span>
+                          ) : (
+                            formatInrFromPaise(p.amount_paise)
+                          )}
                         </td>
                         <td className="px-4 py-3 text-slate-600">
                           {p.payment_method || "Online"}
@@ -886,9 +957,13 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
                           <div className="flex justify-end items-center gap-1.5">
                             {isLoading ? (
                               <Loader2 className="h-4 w-4 text-blue-600 animate-spin mr-3" />
+                            ) : movedToTraining && !hasReceipt ? (
+                              <span className="text-xs font-medium text-violet-600">
+                                Invoiced in training
+                              </span>
                             ) : !hasReceipt ? (
                               <ActionChip
-                                onClick={() => handleGenerate(p.payment_id)}
+                                onClick={() => handleGenerate(p)}
                                 variant="primary"
                               >
                                 Generate
@@ -905,7 +980,7 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
                                   <>
                                     <ActionChip
                                       onClick={() =>
-                                        handleGenerate(p.payment_id)
+                                        handleGenerate(p)
                                       }
                                       variant="secondary"
                                     >
@@ -956,6 +1031,272 @@ function ReceiptPaymentsModal({ candidate, onClose }) {
             className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-colors"
           >
             Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConvertToTrainingModal({ candidate, onClose, onDone }) {
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [trainingInputs, setTrainingInputs] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await paymentsAdminApi.getCandidatePaymentsWithReceipts(
+          candidate.enrollment_id,
+        );
+        const rows = res.data.rows || [];
+        if (cancelled) return;
+        setPayments(rows);
+        const init = {};
+        for (const p of rows) {
+          init[p.payment_id] = (Number(p.amount_paise || 0) / 100).toString();
+        }
+        setTrainingInputs(init);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load candidate payments");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [candidate.enrollment_id]);
+
+  const parsedSplits = payments.map((p) => {
+    const amountPaise = Number(p.amount_paise || 0);
+    const trnPaise = Math.round(
+      Math.max(0, Number(trainingInputs[p.payment_id]) || 0) * 100,
+    );
+    return {
+      payment_id: p.payment_id,
+      payment: p,
+      trainingPaise: trnPaise,
+      recruitmentPaise: Math.max(0, amountPaise - trnPaise),
+      overAmount: trnPaise > amountPaise,
+      locked:
+        p.receipt_status === "sent" ||
+        !!p.recruitment_split_id ||
+        Number(p.training_split_paise) > 0 ||
+        !!p.booked_amount_id,
+    };
+  });
+
+  const unlocked = parsedSplits.filter((s) => !s.locked);
+  const activeSplits = unlocked.filter((s) => s.trainingPaise > 0);
+  const anyOver = unlocked.some((s) => s.overAmount);
+  const totalRecruitment = unlocked.reduce((sum, s) => sum + s.recruitmentPaise, 0);
+  const totalTraining = activeSplits.reduce((sum, s) => sum + s.trainingPaise, 0);
+
+  const handleConfirm = async () => {
+    setError("");
+    if (anyOver) {
+      setError("Training amount cannot exceed the payment amount.");
+      return;
+    }
+    const confirmed = window.confirm(
+      `Convert "${candidate.student_name || "this candidate"}" to Training?\n\n` +
+        `• The recruitment record is kept (archived).\n` +
+        `• A new training candidate is created with the same details.\n` +
+        (totalTraining > 0
+          ? `• ${formatInrFromPaise(totalTraining)} counts as paid toward training — book it later via Book Amount for the invoice.\n`
+          : "") +
+        (totalRecruitment > 0
+          ? `• ${formatInrFromPaise(totalRecruitment)} stays receiptable as recruitment fee.\n`
+          : ""),
+    );
+    if (!confirmed) return;
+
+    setSubmitting(true);
+    try {
+      await paymentsAdminApi.convertToTraining(candidate.enrollment_id, {
+        splits: activeSplits.map((s) => ({
+          payment_id: s.payment_id,
+          training_paise: s.trainingPaise,
+        })),
+      });
+      onDone?.(
+        `${candidate.student_name || "Candidate"} converted to training${
+          totalTraining > 0
+            ? ` — ${formatInrFromPaise(totalTraining)} carried over, unbooked`
+            : ""
+        }.`,
+      );
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.msg || "Conversion failed");
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden flex flex-col max-h-[85vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800">
+              Move to Training
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              <span className="font-semibold text-slate-700">
+                {candidate.student_name}
+              </span>{" "}
+              — recruitment record is kept; a training candidate is created and
+              each payment can be split between a recruitment{" "}
+              <span className="font-medium">receipt</span> and a training{" "}
+              <span className="font-medium">invoice</span>.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 overflow-y-auto flex-1 space-y-4">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-3">
+              <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+              <span className="text-sm text-slate-500 font-medium">
+                Fetching payments...
+              </span>
+            </div>
+          ) : (
+            <>
+              {payments.length === 0 ? (
+                <div className="text-center py-10 text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  No payments to split — the candidate will be converted without
+                  moving any money.
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-slate-200">
+                  <table className="min-w-full text-sm text-left">
+                    <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold uppercase text-slate-600">
+                      <tr>
+                        <th className="px-4 py-3">Paid Date</th>
+                        <th className="px-4 py-3">Transaction</th>
+                        <th className="px-4 py-3">Amount</th>
+                        <th className="px-4 py-3">Recruitment ₹ (receipt)</th>
+                        <th className="px-4 py-3">Training ₹ (invoice)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {parsedSplits.map((s) => {
+                        return (
+                          <tr
+                            key={s.payment_id}
+                            className={
+                              s.locked ? "opacity-60 bg-slate-50" : ""
+                            }
+                          >
+                            <td className="px-4 py-3 font-medium text-slate-700 whitespace-nowrap">
+                              {s.payment.paid_at
+                                ? formatIstDateTime(s.payment.paid_at)
+                                : "-"}
+                            </td>
+                            <td className="px-4 py-3 font-mono text-xs text-slate-500">
+                              {s.payment.razorpay_payment_id || s.payment_id}
+                            </td>
+                            <td className="px-4 py-3 font-semibold text-slate-800 whitespace-nowrap">
+                              {formatInrFromPaise(s.payment.amount_paise)}
+                            </td>
+                            {s.locked ? (
+                              <td
+                                colSpan={2}
+                                className="px-4 py-3 text-xs text-slate-500"
+                              >
+                                {s.payment.receipt_status === "sent"
+                                  ? "Receipt already sent — cannot split"
+                                  : s.payment.booked_amount_id
+                                    ? "Already booked — unbook it first to split"
+                                    : `Already split — ${formatInrFromPaise(s.payment.recruitment_split_paise || 0)} recruitment · ${formatInrFromPaise(s.payment.training_split_paise)} training`}
+                              </td>
+                            ) : (
+                              <>
+                                <td className="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">
+                                  {s.overAmount
+                                    ? "—"
+                                    : formatInrFromPaise(s.recruitmentPaise)}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={trainingInputs[s.payment_id] ?? "0"}
+                                    onChange={(e) =>
+                                      setTrainingInputs((prev) => ({
+                                        ...prev,
+                                        [s.payment_id]: e.target.value,
+                                      }))
+                                    }
+                                    className={`w-28 rounded-lg border px-2.5 py-1.5 text-sm focus:outline-none ${
+                                      s.overAmount
+                                        ? "border-rose-400 focus:border-rose-500"
+                                        : "border-slate-300 focus:border-slate-500"
+                                    }`}
+                                  />
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {payments.length > 0 && (
+                <div className="flex flex-wrap items-center gap-4 text-xs">
+                  <span className="text-slate-500">
+                    Whatever is not moved to training stays as recruitment fee.
+                  </span>
+                  <span className="ml-auto font-semibold text-slate-400">
+                    Recruitment total: {formatInrFromPaise(totalRecruitment)}
+                  </span>
+                  <span className="font-semibold text-[#002856]">
+                    Training total: {formatInrFromPaise(totalTraining)}
+                  </span>
+                </div>
+              )}
+
+              {error && (
+                <p className="text-xs font-medium text-rose-600">{error}</p>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            className="px-4 py-2 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={submitting || loading || anyOver}
+            className="px-4 py-2 text-sm font-semibold text-white bg-[#002856] rounded-xl transition-colors disabled:opacity-50 inline-flex items-center gap-2"
+          >
+            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {submitting ? "Converting..." : "Convert to Training"}
           </button>
         </div>
       </div>

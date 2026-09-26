@@ -178,6 +178,10 @@ export const paymentsAdminApi = {
 
   getCandidatePaymentsWithReceipts: (enrollmentId) =>
     api.get(`/admin/payments/recruitment/candidates/${enrollmentId}/payments-with-receipts`),
+  convertToTraining: (enrollmentId, payload) =>
+    api.post(`/admin/payments/recruitment/candidates/${enrollmentId}/convert-to-training`, payload),
+  revertToRecruitment: (enrollmentId, payload) =>
+    api.post(`/admin/payments/training/candidates/${enrollmentId}/revert-to-recruitment`, payload),
   generateReceipt: (payload) =>
     api.post("/admin/payments/recruitment/receipts/generate", payload),
   sendReceipt: (payload) =>

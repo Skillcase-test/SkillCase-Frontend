@@ -1667,7 +1667,7 @@ export function InvoiceViewTab({
 
                       return filtered.map((r, idx) => (
                         <tr
-                          key={r.payment_id}
+                          key={r.split_id || r.payment_id}
                           className={
                             idx % 2 === 0
                               ? "bg-white hover:bg-slate-50/50"
@@ -1701,6 +1701,11 @@ export function InvoiceViewTab({
                             <div className="text-[10px] text-slate-400 uppercase font-semibold">
                               {r.payment_method || "-"}
                             </div>
+                            {r.is_split && (
+                              <div className="mt-0.5 inline-block rounded bg-violet-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-700 border border-violet-200">
+                                Training split
+                              </div>
+                            )}
                           </td>
                           <td className="px-2 py-3 text-right font-semibold text-slate-700">
                             {formatInrFromPaise(r.amount_paise)}

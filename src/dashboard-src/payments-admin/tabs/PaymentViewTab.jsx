@@ -60,6 +60,7 @@ export function PaymentViewTab({
       !r.is_payment_link &&
       r.enrollment_id &&
       !r.booked_amount_id &&
+      !r.has_splits &&
       ["captured", "authorized", "processed"].includes(r.payment_status) &&
       Number(r.signed_amount_paise ?? r.amount_paise) > 0,
   ) : [];
@@ -361,6 +362,7 @@ export function PaymentViewTab({
                   {canManagePayments && !r.is_payment_link &&
                   r.enrollment_id &&
                   !r.booked_amount_id &&
+                  !r.has_splits &&
                   ["captured", "authorized", "processed"].includes(
                     r.payment_status,
                   ) &&
@@ -463,6 +465,26 @@ export function PaymentViewTab({
                             Booked:{" "}
                             {MONTH_NAMES[r.booked_month] || r.booked_month}{" "}
                             {r.booked_year}
+                          </span>
+                        ) : r.has_splits ? (
+                          <span className="inline-flex items-center gap-1.5">
+                            <span
+                              className="rounded-lg bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700 border border-violet-200"
+                              title="Amount split between recruitment receipt and training invoice"
+                            >
+                              Split
+                            </span>
+                            {canManagePayments && r.has_unbooked_splits && (
+                              <ActionChip
+                                onClick={() =>
+                                  setBookAmountModal({ open: true, payment: r })
+                                }
+                                variant="success"
+                                title="Book the unbooked split share for a billing month"
+                              >
+                                Book
+                              </ActionChip>
+                            )}
                           </span>
                         ) : canManagePayments && r.enrollment_id ? (
                           ["captured", "authorized", "processed"].includes(

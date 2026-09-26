@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { ControlDropdown } from "../components/controls";
+import AnchoredMenu from "../components/AnchoredMenu";
 import { formatInrFromPaise, formatIstDate } from "../utils/formatters";
 import {
   ArrowUp,
@@ -26,6 +27,7 @@ export function MonthViewTab({
   handleSendAgreement,
   handleDeleteCandidate,
   handleTagRecruitment,
+  handleRevertToRecruitment,
   savingEnrollmentId,
   sendingAgreementEnrollmentId,
   batches = [],
@@ -42,33 +44,19 @@ export function MonthViewTab({
 }) {
   const [copiedEnrollmentId, setCopiedEnrollmentId] = useState("");
   const [activeActionMenuId, setActiveActionMenuId] = useState(null);
-  const actionMenuRef = useRef(null);
+  const [actionMenuAnchorEl, setActionMenuAnchorEl] = useState(null);
 
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (actionMenuRef.current && !actionMenuRef.current.contains(e.target)) {
-        setActiveActionMenuId(null);
-      }
-    }
-    function handleKeyDown(e) {
-      if (e.key === "Escape") {
-        setActiveActionMenuId(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
+  const closeActionMenu = () => {
+    setActiveActionMenuId(null);
+    setActionMenuAnchorEl(null);
+  };
 
   const handleCopyLink = (enrollmentId, url, studentName) => {
     navigator.clipboard.writeText(url).then(() => {
       setCopiedEnrollmentId(enrollmentId);
       setNotice?.(`Agreement link for ${studentName || "candidate"} copied to clipboard!`);
       setTimeout(() => setCopiedEnrollmentId(""), 2500);
-      setTimeout(() => setActiveActionMenuId(null), 600);
+      setTimeout(() => closeActionMenu(), 600);
     }).catch(() => {
       setCopiedEnrollmentId(enrollmentId);
       setTimeout(() => setCopiedEnrollmentId(""), 2000);
@@ -274,7 +262,11 @@ export function MonthViewTab({
                 <td className="px-2 py-2">{formatIstDate(r.created_at)}</td>
                 <td className="px-2 py-2">{formatInrFromPaise(r.paid_paise)}</td>
                 <td className="px-2 py-2">
-                  {r.lifecycle_state === "dropped" ? (
+                  {r.notes?.reverted_to_enrollment_id ? (
+                    <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-700">
+                      Moved to Recruitment
+                    </span>
+                  ) : r.lifecycle_state === "dropped" ? (
                     <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-700">
                       Dropped
                     </span>
@@ -350,17 +342,17 @@ export function MonthViewTab({
                     )}
 
                     {/* Consolidated Actions Dropdown */}
-                    <div
-                      className="relative inline-block text-left"
-                      ref={activeActionMenuId === r.enrollment_id ? actionMenuRef : null}
-                    >
+                    <div className="relative inline-block text-left">
                       <button
                         type="button"
-                        onClick={() =>
-                          setActiveActionMenuId(
-                            activeActionMenuId === r.enrollment_id ? null : r.enrollment_id,
-                          )
-                        }
+                        onClick={(e) => {
+                          if (activeActionMenuId === r.enrollment_id) {
+                            closeActionMenu();
+                          } else {
+                            setActionMenuAnchorEl(e.currentTarget);
+                            setActiveActionMenuId(r.enrollment_id);
+                          }
+                        }}
                         className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold shadow-sm transition-colors cursor-pointer ${
                           copiedEnrollmentId === r.enrollment_id
                             ? "border-emerald-300 bg-emerald-50 text-emerald-700"
@@ -385,13 +377,16 @@ export function MonthViewTab({
                         )}
                       </button>
 
-                      {activeActionMenuId === r.enrollment_id && (
-                        <div className="absolute right-0 top-full z-50 mt-1.5 w-52 origin-top-right rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl ring-1 ring-black/5">
+                      {activeActionMenuId === r.enrollment_id && actionMenuAnchorEl && (
+                        <AnchoredMenu
+                          anchorEl={actionMenuAnchorEl}
+                          onClose={closeActionMenu}
+                        >
                           {/* 1. Edit Details */}
                           <button
                             type="button"
                             onClick={() => {
-                              setActiveActionMenuId(null);
+                              closeActionMenu();
                               setEditDraft({
                                 ...r,
                                 total_fee_inr: r?.notes?.total_fee_inr || 60000,
@@ -414,7 +409,7 @@ export function MonthViewTab({
                                 type="button"
                                 disabled={sendingAgreementEnrollmentId === r.enrollment_id}
                                 onClick={() => {
-                                  setActiveActionMenuId(null);
+                                  closeActionMenu();
                                   handleSendAgreement?.(r);
                                 }}
                                 className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors text-left disabled:opacity-50 cursor-pointer"
@@ -464,7 +459,7 @@ export function MonthViewTab({
                             <button
                               type="button"
                               onClick={() => {
-                                setActiveActionMenuId(null);
+                                closeActionMenu();
                                 window.open(r.agreement_signed_url, "_blank");
                               }}
                               className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors text-left cursor-pointer"
@@ -480,7 +475,7 @@ export function MonthViewTab({
                               type="button"
                               disabled={savingEnrollmentId === r.enrollment_id}
                               onClick={() => {
-                                setActiveActionMenuId(null);
+                                closeActionMenu();
                                 const confirmed = window.confirm(
                                   `Are you sure you want to finalize candidate "${
                                     r.student_name || "this candidate"
@@ -501,15 +496,32 @@ export function MonthViewTab({
                             </button>
                           )}
 
-                          {/* 6. Tag as Recruitment (if not yet recruitment) */}
-                          {r.notes?.candidate_type !== "recruitment" &&
+                          {/* 6. Move back to Recruitment, or Tag as Recruitment */}
+                          {r.notes?.converted_from_enrollment_id &&
+                          !r.notes?.reverted_to_enrollment_id &&
+                          r.status !== "refunded" &&
+                          r.lifecycle_state !== "refunded" ? (
+                            <button
+                              type="button"
+                              disabled={savingEnrollmentId === r.enrollment_id}
+                              onClick={() => {
+                                closeActionMenu();
+                                handleRevertToRecruitment?.(r.enrollment_id, r.student_name);
+                              }}
+                              className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-violet-700 hover:bg-violet-50 transition-colors text-left disabled:opacity-50 cursor-pointer"
+                            >
+                              <Briefcase size={13} className="text-violet-600" />
+                              <span>Move back to Recruitment</span>
+                            </button>
+                          ) : (
+                            r.notes?.candidate_type !== "recruitment" &&
                             r.status !== "archived" &&
                             r.lifecycle_state !== "archived" && (
                               <button
                                 type="button"
                                 disabled={savingEnrollmentId === r.enrollment_id}
                                 onClick={() => {
-                                  setActiveActionMenuId(null);
+                                  closeActionMenu();
                                   handleTagRecruitment?.(r.enrollment_id, r.student_name);
                                 }}
                                 className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-50 transition-colors text-left disabled:opacity-50 cursor-pointer"
@@ -517,32 +529,37 @@ export function MonthViewTab({
                                 <Briefcase size={13} className="text-indigo-600" />
                                 <span>Tag as Recruitment</span>
                               </button>
-                            )}
-
-                          <div className="my-1 border-t border-slate-100" />
+                            )
+                          )}
 
                           {/* 7. Delete Candidate (Danger) */}
-                          <button
-                            type="button"
-                            disabled={savingEnrollmentId === r.enrollment_id}
-                            onClick={() => {
-                              setActiveActionMenuId(null);
-                              if (
-                                window.confirm(
-                                  `Data for candidate "${
-                                    r.student_name || "this candidate"
-                                  }" will be permanently deleted. Are you sure?`,
-                                )
-                              ) {
-                                handleDeleteCandidate?.(r.enrollment_id);
-                              }
-                            }}
-                            className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-rose-700 hover:bg-rose-50 transition-colors text-left disabled:opacity-50 cursor-pointer"
-                          >
-                            <Trash2 size={13} className="text-rose-600" />
-                            <span>Delete Candidate</span>
-                          </button>
-                        </div>
+                          {!(r.notes?.converted_from_enrollment_id &&
+                            !r.notes?.reverted_to_enrollment_id) && (
+                            <>
+                              <div className="my-1 border-t border-slate-100" />
+                              <button
+                                type="button"
+                                disabled={savingEnrollmentId === r.enrollment_id}
+                                onClick={() => {
+                                  closeActionMenu();
+                                  if (
+                                    window.confirm(
+                                      `Data for candidate "${
+                                        r.student_name || "this candidate"
+                                      }" will be permanently deleted. Are you sure?`,
+                                    )
+                                  ) {
+                                    handleDeleteCandidate?.(r.enrollment_id);
+                                  }
+                                }}
+                                className="flex w-full items-center gap-2 px-3.5 py-2 text-xs font-medium text-rose-700 hover:bg-rose-50 transition-colors text-left disabled:opacity-50 cursor-pointer"
+                              >
+                                <Trash2 size={13} className="text-rose-600" />
+                                <span>Delete Candidate</span>
+                              </button>
+                            </>
+                          )}
+                        </AnchoredMenu>
                       )}
                     </div>
                   </div>

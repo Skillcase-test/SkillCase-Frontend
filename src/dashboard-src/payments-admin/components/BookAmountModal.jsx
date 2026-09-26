@@ -32,11 +32,11 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
 
       if (modal.isBulk && Array.isArray(modal.payments)) {
         setPayments(modal.payments);
-        setSelectedIds(modal.payments.map((p) => p.payment_id));
+        setSelectedIds(modal.payments.map((p) => p.split_id || p.payment_id));
         setFetching(false);
       } else if (modal.payment) {
         const p = modal.payment;
-        setSelectedIds([p.payment_id]);
+        setSelectedIds([]);
         setPayments([]);
 
         // Fetch all capture/processed unbooked transactions for this phone number
@@ -45,7 +45,19 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
           paymentsAdminApi
             .getBookedAmountCandidatePayments(p.student_phone)
             .then((res) => {
-              setPayments(res.data.rows || []);
+              const rows = res.data.rows || [];
+              setPayments(rows);
+              // Preselect the opened row — split payments map to their unbooked share
+              const splitMatch = rows.find(
+                (r) => r.is_split && String(r.payment_id) === String(p.payment_id),
+              );
+              if (splitMatch) {
+                setSelectedIds([splitMatch.split_id]);
+              } else if (
+                rows.some((r) => String(r.payment_id) === String(p.payment_id))
+              ) {
+                setSelectedIds([p.payment_id]);
+              }
             })
             .catch((err) => {
               setError(err?.response?.data?.msg || "Failed to load candidate payments");
@@ -82,10 +94,16 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
         year,
         month,
       }));
-    } else if (modal.payment?.enrollment_id) {
-      const eid = String(modal.payment.enrollment_id);
-      nameByEnrollment[eid] = modal.payment.student_name || "";
-      items = [{ enrollment_id: eid, year, month }];
+    } else if (payments.length) {
+      const eids = new Set();
+      for (const p of payments) {
+        const eid = String(p.enrollment_id || "");
+        if (eid) {
+          eids.add(eid);
+          if (!nameByEnrollment[eid]) nameByEnrollment[eid] = p.student_name || "";
+        }
+      }
+      items = [...eids].map((eid) => ({ enrollment_id: eid, year, month }));
     }
     if (!items.length) {
       setExistingGroups([]);
@@ -120,18 +138,21 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
         setMergeTarget({});
       })
       .finally(() => setExistingLoading(false));
-  }, [modal, year, month]);
+  }, [modal, year, month, payments]);
 
   if (!modal || !modal.open) return null;
   if (!modal.isBulk && !modal.payment) return null;
 
   const initialPayment = modal.payment;
 
-  const toggleSelect = (paymentId) => {
+  const rowKey = (r) => r.split_id || r.payment_id;
+  const selectedRows = payments.filter((p) =>
+    selectedIds.includes(rowKey(p)),
+  );
+
+  const toggleSelect = (key) => {
     setSelectedIds((prev) =>
-      prev.includes(paymentId)
-        ? prev.filter((id) => id !== paymentId)
-        : [...prev, paymentId]
+      prev.includes(key) ? prev.filter((id) => id !== key) : [...prev, key],
     );
   };
 
@@ -182,13 +203,20 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
     setLoading(true);
     setError("");
     try {
+      const paymentIds = selectedRows
+        .filter((r) => !r.is_split)
+        .map((r) => r.payment_id);
+      const splitIds = selectedRows
+        .filter((r) => r.is_split)
+        .map((r) => r.split_id);
       if (modal.isBulk) {
         const mergeMap = {};
         for (const [eid, targetId] of Object.entries(mergeTarget)) {
           if (targetId) mergeMap[eid] = [targetId];
         }
         await onConfirm({
-          payment_ids: selectedIds,
+          payment_ids: paymentIds,
+          split_ids: splitIds,
           year,
           month,
           notes,
@@ -196,10 +224,20 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
           merge_map: mergeMap,
         });
       } else {
-        const eid = String(initialPayment.enrollment_id);
+        const eids = [
+          ...new Set(selectedRows.map((r) => String(r.enrollment_id || ""))),
+        ].filter(Boolean);
+        if (eids.length !== 1) {
+          setError(
+            "Selected items must belong to a single candidate — book each candidate separately.",
+          );
+          return;
+        }
+        const eid = eids[0];
         await onConfirm({
-          enrollment_id: initialPayment.enrollment_id,
-          payment_ids: selectedIds,
+          enrollment_id: eid,
+          payment_ids: paymentIds,
+          split_ids: splitIds,
           year,
           month,
           notes,
@@ -214,9 +252,10 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
     }
   };
 
-  const totalPaise = payments
-    .filter((p) => selectedIds.includes(p.payment_id))
-    .reduce((sum, p) => sum + Number(p.amount_paise || 0), 0);
+  const totalPaise = selectedRows.reduce(
+    (sum, p) => sum + Number(p.amount_paise || 0),
+    0,
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -308,11 +347,12 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
             ) : (
               <div className="border border-slate-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto divide-y divide-slate-100">
                 {payments.map((p) => {
+                  const key = rowKey(p);
                   const txId = p.razorpay_payment_id || p.payment_id.slice(0, 8);
-                  const isChecked = selectedIds.includes(p.payment_id);
+                  const isChecked = selectedIds.includes(key);
                   return (
                     <label
-                      key={p.payment_id}
+                      key={key}
                       className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-slate-50/50 transition-colors select-none ${
                         isChecked ? "bg-slate-50" : ""
                       }`}
@@ -320,12 +360,20 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
                       <input
                         type="checkbox"
                         checked={isChecked}
-                        onChange={() => toggleSelect(p.payment_id)}
+                        onChange={() => toggleSelect(key)}
                         className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-slate-800">
                           {formatInrFromPaise(p.amount_paise)}
+                          {p.is_split && (
+                            <span
+                              className="ml-2 rounded bg-violet-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-700 border border-violet-200"
+                              title="Training share split from a recruitment payment"
+                            >
+                              Training split
+                            </span>
+                          )}
                         </p>
                         <p className="text-[10px] text-slate-400 font-mono truncate">
                           ID: {txId} | Date: {formatIstDate(p.paid_at)}

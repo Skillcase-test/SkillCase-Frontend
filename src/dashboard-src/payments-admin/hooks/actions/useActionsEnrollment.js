@@ -350,6 +350,26 @@ export function useActionsEnrollment(state) {
     }
   }
 
+  async function handleRevertToRecruitment(enrollmentId, studentName) {
+    if (!enrollmentId) return;
+    const confirmed = window.confirm(
+      `Move "${studentName || ""}" back to Recruitment? This restores the original recruitment record and archives this one. Its bookings are unbooked and unsent invoices are removed.`,
+    );
+    if (!confirmed) return;
+    setError("");
+    setNotice?.("");
+    setSavingEnrollmentId(enrollmentId);
+    try {
+      await paymentsAdminApi.revertToRecruitment(enrollmentId, {});
+      setNotice?.(`Candidate "${studentName || ""}" moved back to Recruitment.`);
+      await loadTabData();
+    } catch (err) {
+      setError(err?.response?.data?.msg || "Move back to Recruitment failed");
+    } finally {
+      setSavingEnrollmentId("");
+    }
+  }
+
   async function handleTagRecruitment(enrollmentId, studentName) {
     if (!enrollmentId) return;
     const confirmed = window.confirm(
@@ -380,5 +400,6 @@ export function useActionsEnrollment(state) {
     handleSendAgreement,
     handleGenerateDetailsLink,
     handleTagRecruitment,
+    handleRevertToRecruitment,
   };
 }
