@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { ArrowLeft, UserPlus, Library, Sparkles, Trash2, Edit } from "lucide-react";
+import { ArrowLeft, UserPlus, Library, Sparkles, Trash2, Edit, Mail } from "lucide-react";
 import { exploreCandidatesAdminApi } from "../../../api/exploreCandidatesAdminApi";
 import {
   PageCard,
@@ -37,6 +37,7 @@ export function AccountProfilesPage() {
   const [statusError, setStatusError] = useState("");
   const [statusData, setStatusData] = useState(null);
   const [statusToggling, setStatusToggling] = useState({});
+  const [assignIntent, setAssignIntent] = useState(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [confirmModal, setConfirmModal] = useState({
@@ -261,6 +262,52 @@ export function AccountProfilesPage() {
     }
   }
 
+  async function handleAssign(notifyRecruiter = false) {
+    const [selectedSource, selectedIdRaw] = String(pickId).split(":");
+    const selectedId =
+      selectedSource === "job_screening"
+        ? selectedIdRaw
+        : Number(selectedIdRaw || 0);
+    setAssignIntent(notifyRecruiter ? "notify" : "assign");
+    try {
+      const assignRes = ["explore_php", "main_php", "job_screening"].includes(
+        selectedSource,
+      )
+        ? await exploreCandidatesAdminApi.assignBridgeProfile(
+            accountId,
+            selectedId,
+            selectedSource,
+            notifyRecruiter,
+          )
+        : await exploreCandidatesAdminApi.assignProfile(
+            accountId,
+            selectedId,
+            0,
+            notifyRecruiter,
+          );
+      setPickId("");
+      setPickQuery("");
+      await load();
+      if (notifyRecruiter) {
+        if (assignRes?.data?.email_sent) {
+          toast.success("Candidate assigned & recruiter emailed");
+        } else {
+          toast.error(
+            assignRes?.data?.email_error
+              ? `Candidate assigned, but the email failed: ${assignRes.data.email_error}`
+              : "Candidate assigned, but the recruiter email could not be sent",
+          );
+        }
+      } else {
+        toast.success("Candidate assigned to recruiter account");
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to assign candidate");
+    } finally {
+      setAssignIntent(null);
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Header & Assign Bar */}
@@ -317,43 +364,21 @@ export function AccountProfilesPage() {
           </div>
 
           <PrimaryButton
-            disabled={!pickId}
+            disabled={!pickId || assignIntent !== null}
             icon={UserPlus}
-            onClick={async () => {
-              const [selectedSource, selectedIdRaw] = String(pickId).split(":");
-              const selectedId =
-                selectedSource === "job_screening"
-                  ? selectedIdRaw
-                  : Number(selectedIdRaw || 0);
-              try {
-                if (
-                  ["explore_php", "main_php", "job_screening"].includes(
-                    selectedSource,
-                  )
-                ) {
-                  await exploreCandidatesAdminApi.assignBridgeProfile(
-                    accountId,
-                    selectedId,
-                    selectedSource,
-                  );
-                } else {
-                  await exploreCandidatesAdminApi.assignProfile(
-                    accountId,
-                    selectedId,
-                    0,
-                  );
-                }
-                setPickId("");
-                setPickQuery("");
-                await load();
-                toast.success("Candidate assigned to recruiter account");
-              } catch (err) {
-                toast.error(err?.response?.data?.message || "Failed to assign candidate");
-              }
-            }}
+            loading={assignIntent === "assign"}
+            onClick={() => handleAssign(false)}
           >
             Assign Candidate
           </PrimaryButton>
+          <SecondaryButton
+            disabled={!pickId || assignIntent !== null}
+            icon={Mail}
+            loading={assignIntent === "notify"}
+            onClick={() => handleAssign(true)}
+          >
+            Assign &amp; Email
+          </SecondaryButton>
         </div>
       </PageCard>
 

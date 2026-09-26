@@ -4,7 +4,7 @@
  *    attach/detach calls
  *  - AccessRequestsPage: status counts, approve (confirm) and decline (prompt note)
  */
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { describe, test, expect, vi, beforeEach } from "vitest";
 
@@ -214,7 +214,7 @@ describe("AccountProfilesPage (In-line candidate search)", () => {
         ],
       },
     });
-    api.assignProfile.mockResolvedValue({ data: { success: true } });
+    api.assignProfile.mockResolvedValue({ data: { success: true, email_sent: true } });
     api.listRecruiterLoginEvents.mockResolvedValue({
       data: {
         data: [
@@ -249,12 +249,27 @@ describe("AccountProfilesPage (In-line candidate search)", () => {
     const candidateOption = await screen.findByRole("option", { name: /Priya Patel/ });
     fireEvent.click(candidateOption);
 
-    // Assign button is enabled and called
+    // Assign button is enabled and called (notify flag off)
     const assignButton = screen.getByRole("button", { name: "Assign Candidate" });
     fireEvent.click(assignButton);
 
     await waitFor(() =>
-      expect(api.assignProfile).toHaveBeenCalledWith("42", 202, 0),
+      expect(api.assignProfile).toHaveBeenCalledWith("42", 202, 0, false),
+    );
+  });
+
+  test("assign & email assigns with the recruiter notification flag on", async () => {
+    renderAt("/accounts/42/profiles");
+    await screen.findByText("Aarav Sharma");
+
+    fireEvent.click(screen.getByText("Choose candidate to assign..."));
+    const candidateOption = await screen.findByRole("option", { name: /Priya Patel/ });
+    fireEvent.click(candidateOption);
+
+    fireEvent.click(screen.getByRole("button", { name: "Assign & Email" }));
+
+    await waitFor(() =>
+      expect(api.assignProfile).toHaveBeenCalledWith("42", 202, 0, true),
     );
   });
 
@@ -310,6 +325,81 @@ describe("AccountsPage (Hierarchy Tree UI)", () => {
 
     // Nested sub-account row is auto-expanded
     expect(screen.getByText("Sub Account")).toBeInTheDocument();
+  });
+});
+
+describe("AccountsPage mask contacts notify", () => {
+  const MASKED_ACCOUNT = {
+    id: 42,
+    email: "masked@corp.com",
+    parent_account_id: null,
+    parent_email: null,
+    total_profiles: 0,
+    total_sub_accounts: 0,
+    status: 1,
+    mask_contacts_enabled: true,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    api.listAccounts.mockResolvedValue({ data: { data: [MASKED_ACCOUNT] } });
+    api.listRecruiterLoginEvents.mockResolvedValue({ data: { data: [] } });
+    api.updateAccountSettings.mockResolvedValue({
+      data: { data: MASKED_ACCOUNT, email_sent: true },
+    });
+  });
+
+  async function maskSwitchFor(email) {
+    const row = (await screen.findByText(email)).closest("tr");
+    return within(row).getAllByRole("switch")[0];
+  }
+
+  test("unmasking asks first; 'Turn Off & Email' sends with notify on", async () => {
+    renderAt("/");
+    fireEvent.click(await maskSwitchFor("masked@corp.com"));
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Turn Off & Email" }),
+    );
+
+    await waitFor(() =>
+      expect(api.updateAccountSettings).toHaveBeenCalledWith(42, {
+        mask_contacts_enabled: false,
+        notify_recruiter: true,
+      }),
+    );
+  });
+
+  test("'Turn Off Silently' unmasks without the email", async () => {
+    renderAt("/");
+    fireEvent.click(await maskSwitchFor("masked@corp.com"));
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Turn Off Silently" }),
+    );
+
+    await waitFor(() =>
+      expect(api.updateAccountSettings).toHaveBeenCalledWith(42, {
+        mask_contacts_enabled: false,
+        notify_recruiter: false,
+      }),
+    );
+  });
+
+  test("masking back on applies directly with no prompt", async () => {
+    api.listAccounts.mockResolvedValue({
+      data: { data: [{ ...MASKED_ACCOUNT, mask_contacts_enabled: false }] },
+    });
+    renderAt("/");
+    fireEvent.click(await maskSwitchFor("masked@corp.com"));
+
+    await waitFor(() =>
+      expect(api.updateAccountSettings).toHaveBeenCalledWith(42, {
+        mask_contacts_enabled: true,
+        notify_recruiter: false,
+      }),
+    );
+    expect(screen.queryByText("Turn off contact masking?")).not.toBeInTheDocument();
   });
 });
 

@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Eye,
   Lock,
+  Mail,
   Sparkles,
 } from "lucide-react";
 import { exploreCandidatesAdminApi } from "../../../api/exploreCandidatesAdminApi";
@@ -85,6 +86,7 @@ export function ProfileFormPage({ mode }) {
   const [createVideos, setCreateVideos] = useState([]);
   const [createDocs, setCreateDocs] = useState([]);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [saveIntent, setSaveIntent] = useState(null);
   const [videoUploadState, setVideoUploadState] = useState({});
   const [videoViewState, setVideoViewState] = useState({});
   const [docInputKey, setDocInputKey] = useState(0);
@@ -219,13 +221,14 @@ export function ProfileFormPage({ mode }) {
     });
   }, [mode, profileId]);
 
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = async (notifyRecruiter = false) => {
     if (isMainPhpReadOnly || savingProfile) return;
     if (!form.fullname || !String(form.fullname).trim()) {
       toast.error("Full Name is required");
       return;
     }
     setSavingProfile(true);
+    setSaveIntent(notifyRecruiter ? "notify" : "save");
     try {
       const payload = {
         fullname: form.fullname,
@@ -286,12 +289,25 @@ export function ProfileFormPage({ mode }) {
       }
 
       if (accountId && profile?.id) {
-        await exploreCandidatesAdminApi.assignProfile(
+        const assignRes = await exploreCandidatesAdminApi.assignProfile(
           accountId,
           profile.id,
           0,
+          notifyRecruiter,
         );
-        toast.success("Profile saved and assigned successfully");
+        if (notifyRecruiter) {
+          if (assignRes?.data?.email_sent) {
+            toast.success("Profile saved, assigned & recruiter emailed");
+          } else {
+            toast.error(
+              assignRes?.data?.email_error
+                ? `Profile saved & assigned, but the email failed: ${assignRes.data.email_error}`
+                : "Profile saved & assigned, but the recruiter email could not be sent",
+            );
+          }
+        } else {
+          toast.success("Profile saved and assigned successfully");
+        }
         navigate(
           `/admin/explore-candidates/accounts/${accountId}/profiles`,
         );
@@ -305,6 +321,7 @@ export function ProfileFormPage({ mode }) {
       );
     } finally {
       setSavingProfile(false);
+      setSaveIntent(null);
     }
   };
 
@@ -315,7 +332,7 @@ export function ProfileFormPage({ mode }) {
       ? videos.some((v) => v.video_file)
       : createVideos.some((v) => v.file);
 
-  const requestSaveProfile = () => {
+  const requestSaveProfile = (notifyRecruiter = false) => {
     if (isMainPhpReadOnly || savingProfile) return;
     if (!hasVideo) {
       setConfirmModal({
@@ -333,13 +350,13 @@ export function ProfileFormPage({ mode }) {
             onConfirm: null,
             loading: false,
           });
-          handleSaveProfile();
+          handleSaveProfile(notifyRecruiter);
         },
         loading: false,
       });
       return;
     }
-    handleSaveProfile();
+    handleSaveProfile(notifyRecruiter);
   };
 
   const title =
@@ -1270,11 +1287,21 @@ export function ProfileFormPage({ mode }) {
             <PrimaryButton
               icon={Save}
               disabled={savingProfile || !form.fullname?.trim()}
-              loading={savingProfile}
-              onClick={requestSaveProfile}
+              loading={savingProfile && saveIntent !== "notify"}
+              onClick={() => requestSaveProfile(false)}
             >
               {mode === "edit" ? "Save Changes" : "Create Profile"}
             </PrimaryButton>
+            {mode === "create" && accountId && (
+              <SecondaryButton
+                icon={Mail}
+                disabled={savingProfile || !form.fullname?.trim()}
+                loading={savingProfile && saveIntent === "notify"}
+                onClick={() => requestSaveProfile(true)}
+              >
+                Create & Email Recruiter
+              </SecondaryButton>
+            )}
           </div>
         </div>
       )}

@@ -76,6 +76,7 @@ export const exploreCandidatesAdminApi = {
     formData.append("email", payload.email || "");
     if (payload.password) formData.append("password", payload.password);
     formData.append("status", String(payload.status ?? 1));
+    if (payload.notify_recruiter) formData.append("notify_recruiter", "true");
     if (payload.partner_logo_file instanceof File) {
       formData.append("partner_logo_file", payload.partner_logo_file);
     }
@@ -138,15 +139,17 @@ export const exploreCandidatesAdminApi = {
 
   getAccountProfiles: (accountId) =>
     api.get(`/admin/explore-candidates/accounts/${accountId}/profiles`),
-  assignProfile: (accountId, profileId, display_order = 0) =>
+  assignProfile: (accountId, profileId, display_order = 0, notify_recruiter = false) =>
     api.post(`/admin/explore-candidates/accounts/${accountId}/assign`, {
       profile_id: profileId,
       display_order,
+      notify_recruiter,
     }),
-  assignBridgeProfile: (accountId, source_profile_id, source = "explore_php") =>
+  assignBridgeProfile: (accountId, source_profile_id, source = "explore_php", notify_recruiter = false) =>
     api.post(`/admin/explore-candidates/accounts/${accountId}/assign-bridge`, {
       source,
       source_profile_id,
+      notify_recruiter,
     }),
   addBridgeProfileToLocal: (source_profile_id, source = "explore_php") =>
     api.post(`/admin/explore-candidates/library-profiles/add-to-local`, {

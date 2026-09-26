@@ -28,6 +28,7 @@ import {
 } from "../components/common";
 import {
   PrimaryButton,
+  SecondaryButton,
   ActionButton,
   SearchInput,
 } from "../components/controls";
@@ -40,6 +41,7 @@ export function AccountsPage() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [savingAccount, setSavingAccount] = useState(false);
+  const [createIntent, setCreateIntent] = useState(null);
   const [toggling, setToggling] = useState({});
   const [subModalAccount, setSubModalAccount] = useState(null);
   const [expandedAccountIds, setExpandedAccountIds] = useState({});
@@ -51,11 +53,14 @@ export function AccountsPage() {
     title: "",
     description: "",
     variant: "danger",
+    confirmText: "",
+    cancelText: "",
     input: false,
     inputLabel: "",
     inputPlaceholder: "",
     defaultValue: "",
     onConfirm: null,
+    onCancelAction: null,
     loading: false,
   });
   const [form, setForm] = useState({
@@ -87,6 +92,99 @@ export function AccountsPage() {
       [accountId]: !prev[accountId],
     }));
   };
+
+  async function handleCreateAccount(notifyRecruiter = false) {
+    setSavingAccount(true);
+    setCreateIntent(notifyRecruiter ? "notify" : "create");
+    try {
+      const res = await exploreCandidatesAdminApi.upsertAccount({
+        ...form,
+        notify_recruiter: notifyRecruiter,
+      });
+      const accountCreated = res?.data?.account_created;
+      setForm({
+        email: "",
+        password: "",
+        partner_logo_file: null,
+        status: 1,
+      });
+      await load();
+      if (notifyRecruiter) {
+        if (res?.data?.email_sent) {
+          toast.success("Recruiter account created & welcome email sent");
+        } else {
+          toast.error(
+            res?.data?.email_error
+              ? `Account saved, but the welcome email was not sent: ${res.data.email_error}`
+              : "Account saved, but the welcome email could not be sent",
+          );
+        }
+      } else {
+        toast.success(
+          accountCreated === false
+            ? "Recruiter account updated"
+            : form.password
+              ? "Recruiter account created (password sign-in enabled)"
+              : "Recruiter account created",
+        );
+      }
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message || "Could not save account",
+      );
+    } finally {
+      setSavingAccount(false);
+      setCreateIntent(null);
+    }
+  }
+
+  async function applyMaskSetting(account, val, notifyRecruiter) {
+    setToggling((prev) => ({ ...prev, [`mask-${account.id}`]: true }));
+    try {
+      const res = await exploreCandidatesAdminApi.updateAccountSettings(
+        account.id,
+        { mask_contacts_enabled: val, notify_recruiter: notifyRecruiter },
+      );
+      await load();
+      if (notifyRecruiter) {
+        if (res?.data?.email_sent) {
+          toast.success("Contacts unmasked & recruiter emailed");
+        } else {
+          toast.error(
+            res?.data?.email_error
+              ? `Contacts unmasked, but the email failed: ${res.data.email_error}`
+              : "Contacts unmasked, but the recruiter email could not be sent",
+          );
+        }
+      } else {
+        toast.success("Mask contacts setting updated");
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Could not update setting");
+    } finally {
+      setToggling((prev) => ({ ...prev, [`mask-${account.id}`]: false }));
+    }
+  }
+
+  function handleMaskToggle(account, val) {
+    if (val === false) {
+      setConfirmModal({
+        open: true,
+        title: "Turn off contact masking?",
+        description: `Candidate contact details will become visible to ${account.email}.\n\nSend them an account-upgraded notification email?`,
+        variant: "info",
+        confirmText: "Turn Off & Email",
+        cancelText: "Turn Off Silently",
+        onConfirm: () => {
+          setConfirmModal((v) => ({ ...v, open: false }));
+          applyMaskSetting(account, false, true);
+        },
+        onCancelAction: () => applyMaskSetting(account, false, false),
+      });
+      return;
+    }
+    applyMaskSetting(account, val, false);
+  }
 
   // Generates a fresh password; the only copy is the clipboard + toast shown here.
   async function handleResetPassword(account) {
@@ -263,37 +361,24 @@ export function AccountsPage() {
             />
           </div>
 
-          <PrimaryButton
-            disabled={savingAccount || !form.email.trim()}
-            loading={savingAccount}
-            icon={Plus}
-            onClick={async () => {
-              setSavingAccount(true);
-              try {
-                await exploreCandidatesAdminApi.upsertAccount(form);
-                setForm({
-                  email: "",
-                  password: "",
-                  partner_logo_file: null,
-                  status: 1,
-                });
-                await load();
-                toast.success(
-                  form.password
-                    ? "Recruiter account created (password sign-in enabled)"
-                    : "Recruiter account created",
-                );
-              } catch (error) {
-                toast.error(
-                  error?.response?.data?.message || "Could not save account",
-                );
-              } finally {
-                setSavingAccount(false);
-              }
-            }}
-          >
-            Create Recruiter Account
-          </PrimaryButton>
+          <div className="flex flex-wrap gap-2">
+            <PrimaryButton
+              disabled={savingAccount || !form.email.trim()}
+              loading={savingAccount && createIntent === "create"}
+              icon={Plus}
+              onClick={() => handleCreateAccount(false)}
+            >
+              Create Recruiter Account
+            </PrimaryButton>
+            <SecondaryButton
+              disabled={savingAccount || !form.email.trim()}
+              loading={savingAccount && createIntent === "notify"}
+              icon={Mail}
+              onClick={() => handleCreateAccount(true)}
+            >
+              Create &amp; Send Welcome Email
+            </SecondaryButton>
+          </div>
         </div>
       </PageCard>
 
@@ -426,29 +511,7 @@ export function AccountsPage() {
                             <ToggleSwitch
                               checked={Boolean(account.mask_contacts_enabled)}
                               disabled={toggling[`mask-${account.id}`]}
-                              onChange={async (val) => {
-                                setToggling((prev) => ({
-                                  ...prev,
-                                  [`mask-${account.id}`]: true,
-                                }));
-                                try {
-                                  await exploreCandidatesAdminApi.updateAccountSettings(
-                                    account.id,
-                                    {
-                                      mask_contacts_enabled: val,
-                                    },
-                                  );
-                                  await load();
-                                  toast.success("Mask contacts setting updated");
-                                } catch (err) {
-                                  toast.error(err?.response?.data?.message || "Could not update setting");
-                                } finally {
-                                  setToggling((prev) => ({
-                                    ...prev,
-                                    [`mask-${account.id}`]: false,
-                                  }));
-                                }
-                              }}
+                              onChange={(val) => handleMaskToggle(account, val)}
                             />
                             {toggling[`mask-${account.id}`] && (
                               <Spinner size="sm" color="text-[#083262]" />
@@ -872,14 +935,19 @@ export function AccountsPage() {
         title={confirmModal.title}
         description={confirmModal.description}
         variant={confirmModal.variant}
-        confirmText={confirmModal.confirmText}
+        confirmText={confirmModal.confirmText || "Confirm"}
+        cancelText={confirmModal.cancelText || "Cancel"}
         input={confirmModal.input}
         inputLabel={confirmModal.inputLabel}
         inputPlaceholder={confirmModal.inputPlaceholder}
         defaultValue={confirmModal.defaultValue}
         loading={confirmModal.loading}
         onConfirm={confirmModal.onConfirm}
-        onCancel={() => setConfirmModal((v) => ({ ...v, open: false, loading: false }))}
+        onCancel={() => {
+          const action = confirmModal.onCancelAction;
+          setConfirmModal((v) => ({ ...v, open: false, loading: false }));
+          action?.();
+        }}
       />
     </div>
   );
