@@ -149,6 +149,9 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
   const selectedRows = payments.filter((p) =>
     selectedIds.includes(rowKey(p)),
   );
+  const selectedEnrollmentId = selectedRows.length
+    ? String(selectedRows[0].enrollment_id || "")
+    : "";
 
   const toggleSelect = (key) => {
     setSelectedIds((prev) =>
@@ -350,16 +353,29 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
                   const key = rowKey(p);
                   const txId = p.razorpay_payment_id || p.payment_id.slice(0, 8);
                   const isChecked = selectedIds.includes(key);
+                  // Split shares invoice differently per record — one candidate per booking
+                  const otherEnrollment =
+                    !modal.isBulk &&
+                    selectedEnrollmentId &&
+                    String(p.enrollment_id) !== selectedEnrollmentId;
                   return (
                     <label
                       key={key}
-                      className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-slate-50/50 transition-colors select-none ${
-                        isChecked ? "bg-slate-50" : ""
-                      }`}
+                      className={`flex items-center gap-3 px-3 py-2.5 transition-colors select-none ${
+                        otherEnrollment
+                          ? "opacity-40 cursor-not-allowed"
+                          : "cursor-pointer hover:bg-slate-50/50"
+                      } ${isChecked ? "bg-slate-50" : ""}`}
                     >
                       <input
                         type="checkbox"
                         checked={isChecked}
+                        disabled={Boolean(otherEnrollment)}
+                        title={
+                          otherEnrollment
+                            ? "Booked under a different candidate — book each record separately"
+                            : undefined
+                        }
                         onChange={() => toggleSelect(key)}
                         className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
                       />
@@ -368,10 +384,20 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
                           {formatInrFromPaise(p.amount_paise)}
                           {p.is_split && (
                             <span
-                              className="ml-2 rounded bg-violet-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-violet-700 border border-violet-200"
-                              title="Training share split from a recruitment payment"
+                              className={`ml-2 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide border ${
+                                p.split_purpose === "recruitment"
+                                  ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                                  : "bg-violet-50 text-violet-700 border-violet-200"
+                              }`}
+                              title={
+                                p.split_purpose === "recruitment"
+                                  ? "Recruitment share — books a Job Assistance invoice"
+                                  : "Training share split from a recruitment payment"
+                              }
                             >
-                              Training split
+                              {p.split_purpose === "recruitment"
+                                ? "Recruitment split"
+                                : "Training split"}
                             </span>
                           )}
                         </p>

@@ -353,7 +353,7 @@ export function useActionsEnrollment(state) {
   async function handleRevertToRecruitment(enrollmentId, studentName) {
     if (!enrollmentId) return;
     const confirmed = window.confirm(
-      `Move "${studentName || ""}" back to Recruitment? This restores the original recruitment record and archives this one. Its bookings are unbooked and unsent invoices are removed.`,
+      `Move "${studentName || ""}" back to Recruitment? This restores the original recruitment record and archives this one. Booked amounts and invoices stay on the archived record; only unbooked shares return to recruitment.`,
     );
     if (!confirmed) return;
     setError("");
