@@ -240,7 +240,12 @@ export default function B2MayaRoom({ meta, focus }) {
       URL.revokeObjectURL(workletUrl);
       const node = new AudioWorkletNode(ctx, "pcm16");
       ctx.createMediaStreamSource(stream).connect(node);
-      const ws = new WebSocket(`${b2MayaRelayUrl()}?ticket=${encodeURIComponent(res.ticket)}`);
+      const wsUrl = b2MayaRelayUrl();
+      const ws = new WebSocket(wsUrl);
+      // The sealed ticket goes as the first message, not the URL — it's ~9 KB, over nginx's
+      // request-line limit, and URLs shouldn't carry sealed credentials anyway.
+      ws.onopen = () => ws.send(JSON.stringify({ type: "maya.auth", ticket: res.ticket }));
+      ws.onerror = () => console.error("[maya] ws failed:", wsUrl);
       wsRef.current = ws;
       node.port.onmessage = (e) => {
         const pcm = new Int16Array(e.data);
@@ -286,6 +291,7 @@ export default function B2MayaRoom({ meta, focus }) {
       };
       ws.onclose = (ev) => {
         if (endedRef.current) return;
+        console.error("[maya] ws closed:", ev.code, ev.reason || "(no reason)");
         if (ev.code >= 4000) {
           setError(ev.reason || "The practice couldn't start.");
           setScreen("failed");
