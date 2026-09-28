@@ -1,0 +1,904 @@
+import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { startB2Maya, b2MayaRelayUrl } from "../../../api/b2MayaApi";
+import { SpokenCaption } from "../../../utils/b2MayaCaption";
+import { VoicePlayer } from "../../../utils/b2MayaVoice";
+import { BottomNav, Brand, Footer, Header, Icon, Main, MayaFrame, MayaHero, MayaLive, MayaMark, Steps, Title } from "./sp";
+
+/*
+ * The B2 speaking flow: one decision at a time before the call (practice, topic, consent,
+ * microphone), a calm call screen with a clear turn status, and the report on its own view
+ * afterwards (?session=…). The call itself runs over the relay WebSocket.
+ */
+
+const ROOM_NOTE = {
+  good: "Sound detected. Your room is quiet.",
+  some_noise: "Sound detected. There's a little background noise; headphones with a microphone help.",
+  noisy: "It's noisy where you are. Voices or a TV in the background can stop Maya from noticing when you've finished. Move somewhere quieter if you can.",
+  quiet_voice: "Your voice is quiet compared to the room. Move closer to the microphone.",
+  no_voice: "We couldn't hear you. Check that the right microphone is selected and not muted, then try again.",
+};
+
+const isBeginner = (level) => level === "A1" || level === "A2";
+
+/** Captures the microphone as 24 kHz mono PCM16 in ~100 ms chunks, the format Voice Live expects. */
+const WORKLET = `
+class Pcm16 extends AudioWorkletProcessor {
+  constructor() { super(); this.buf = new Int16Array(2400); this.n = 0; }
+  process(inputs) {
+    const ch = inputs[0] && inputs[0][0];
+    if (ch) for (let i = 0; i < ch.length; i++) {
+      const s = Math.max(-1, Math.min(1, ch[i]));
+      this.buf[this.n++] = s < 0 ? s * 0x8000 : s * 0x7fff;
+      if (this.n === this.buf.length) { this.port.postMessage(this.buf.slice(0).buffer, []); this.n = 0; }
+    }
+    return true;
+  }
+}
+registerProcessor("pcm16", Pcm16);`;
+
+/** Maya's question on screen: her last one or two sentences, starting cleanly at a sentence. */
+function lastSentences(text, max = 220) {
+  const sentences = text.match(/[^.!?…]+(?:[.!?…]+["“”„]?\s*|$)/g) ?? [text];
+  let out = sentences.slice(-2).join("").trimStart();
+  if (sentences.length >= 3 && sentences[sentences.length - 1].trim().length < 12) out = sentences.slice(-3).join("").trimStart();
+  if (out.length <= max) return out;
+  const tail = out.slice(-max);
+  return tail.slice(tail.indexOf(" ") + 1);
+}
+
+function toBase64(buf) {
+  const bytes = new Uint8Array(buf);
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+const clock = (t) => `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
+
+export default function B2MayaRoom({ meta, focus }) {
+  const navigate = useNavigate();
+  const user = useSelector((state) => state.auth.user);
+  const { level, coachName, firstName, modes, minutes: minutesMap, topics, words } = meta;
+  const hasInterview = modes.length > 1;
+  const [screen, setScreen] = useState(focus ? "setup" : "choose");
+  const [mode, setMode] = useState(modes[0]);
+  const interview = mode !== "talk";
+  const [topic, setTopic] = useState(""); // "" = Maya chooses
+  const [customTopic, setCustomTopic] = useState("");
+  // Consent is asked once; returning learners find the box already ticked.
+  const [consent, setConsent] = useState(Boolean(meta.consented));
+  const [devices, setDevices] = useState([]);
+  const [deviceId, setDeviceId] = useState("");
+  const [micLevel, setMicLevel] = useState(0);
+  const [checkStep, setCheckStep] = useState(null);
+  const [room, setRoom] = useState(null);
+  const [noisyRoom, setNoisyRoom] = useState(false);
+  const [error, setError] = useState(null);
+  const [status, setStatus] = useState("thinking");
+  const [caption, setCaption] = useState("");
+  const [seconds, setSeconds] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [sheet, setSheet] = useState(null);
+  const [sessionId, setSessionId] = useState(null);
+  const [flash, setFlash] = useState(null);
+  const [greeting, setGreeting] = useState(true);
+  const minutes = focus ? 3 : minutesMap[mode];
+  const topicLabel = focus ? "Your focused follow-up" : topic || customTopic.trim() || "Maya chooses";
+  const modeName = interview ? "Nursing interview" : "Everyday German";
+
+  const streamRef = useRef(null);
+  const ctxRef = useRef(null);
+  const wsRef = useRef(null);
+  const tickRef = useRef(null);
+  const spokenRef = useRef(new SpokenCaption());
+  const captionTimerRef = useRef(null);
+  const replyRef = useRef(null);
+  const playerRef = useRef(null);
+  const flashTimerRef = useRef(null);
+  const endedRef = useRef(false);
+  const checkStopRef = useRef(null);
+  const micLevelRef = useRef(0);
+
+  const cleanup = () => {
+    if (tickRef.current) clearInterval(tickRef.current);
+    if (captionTimerRef.current) clearInterval(captionTimerRef.current);
+    captionTimerRef.current = null;
+    playerRef.current?.close();
+    playerRef.current = null;
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    ctxRef.current?.close().catch(() => {});
+    if (wsRef.current && wsRef.current.readyState <= 1) wsRef.current.close();
+    streamRef.current = null;
+    ctxRef.current = null;
+    wsRef.current = null;
+    micLevelRef.current = 0;
+  };
+  useEffect(
+    () => () => {
+      checkStopRef.current?.();
+      cleanup();
+    },
+    [],
+  );
+
+  const audioConstraints = () => ({ echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, ...(deviceId ? { deviceId: { exact: deviceId } } : {}) });
+  const micDenied = (e) => e instanceof DOMException && (e.name === "NotAllowedError" || e.name === "SecurityError");
+
+  /**
+   * The microphone check: 3 s of quiet to hear the room, then the learner says a sentence. Other people
+   * talking is what most often breaks a call (Maya can't tell when they've finished), so a noisy room gets
+   * a clear warning.
+   */
+  const checkMic = async () => {
+    setError(null);
+    setRoom(null);
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints() });
+    } catch (e) {
+      if (micDenied(e)) setScreen("mic-blocked");
+      else setError("We couldn't find a microphone. Connect one, then try again.");
+      return;
+    }
+    navigator.mediaDevices
+      .enumerateDevices()
+      .then((all) => setDevices(all.filter((d) => d.kind === "audioinput" && d.deviceId)))
+      .catch(() => {});
+    const ctx = new AudioContext();
+    if (ctx.state !== "running") await ctx.resume().catch(() => {});
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    ctx.createMediaStreamSource(stream).connect(analyser);
+    const data = new Float32Array(analyser.fftSize);
+    const quiet = [];
+    const voice = [];
+    const started = Date.now();
+    let stopped = false;
+    const stop = () => {
+      stopped = true;
+      stream.getTracks().forEach((tr) => tr.stop());
+      void ctx.close().catch(() => {});
+      setMicLevel(0);
+      setCheckStep(null);
+      checkStopRef.current = null;
+    };
+    checkStopRef.current = stop;
+    setCheckStep("quiet");
+    const loop = () => {
+      if (stopped) return;
+      analyser.getFloatTimeDomainData(data);
+      const rms = Math.sqrt(data.reduce((sum, v) => sum + v * v, 0) / data.length);
+      setMicLevel(Math.max(0, Math.min(1, (20 * Math.log10(Math.max(rms, 1e-6)) + 60) / 50)));
+      const t = Date.now() - started;
+      if (t < 3000) quiet.push(rms);
+      else if (t < 7500) {
+        setCheckStep("speak");
+        voice.push(rms);
+      }
+      if (t < 7500) return void requestAnimationFrame(loop);
+      const running = ctx.state === "running";
+      stop();
+      const pick = (xs, p) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length * p)] ?? 0;
+      const floor = pick(quiet, 0.5);
+      const loud = pick(voice, 0.9);
+      const verdict = !running || loud < 0.0005 || loud < floor * 1.5 ? "no_voice" : floor >= 0.01 ? "noisy" : loud < floor * 4 ? "quiet_voice" : floor >= 0.005 ? "some_noise" : "good";
+      setRoom(verdict);
+      if (verdict === "good" || verdict === "some_noise") setScreen("ready");
+    };
+    loop();
+  };
+
+  const start = async () => {
+    setError(null);
+    endedRef.current = false;
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints() });
+    } catch (e) {
+      if (micDenied(e)) setScreen("mic-blocked");
+      else setError("We couldn't use your microphone. Check it's connected, then try again.");
+      return;
+    }
+    streamRef.current = stream;
+    setMuted(false);
+    setScreen("connecting");
+    setSeconds(0);
+    setCaption("");
+    setGreeting(true);
+    let greeted = false;
+    playerRef.current = new VoicePlayer({
+      onStart: () => {
+        spokenRef.current.audio(1, Date.now());
+        if (!greeted) {
+          greeted = true;
+          setTimeout(() => setGreeting(false), 2500);
+        }
+      },
+      onEnd: () => {},
+    });
+    void playerRef.current.resume();
+    const request = focus ? { focus: { sessionId: focus.sessionId, index: focus.index } } : !interview && (topic || customTopic.trim()) ? { topic: topic || customTopic.trim() } : {};
+    let res;
+    try {
+      res = await startB2Maya({ consent, mode: focus ? "talk" : mode, ...request });
+    } catch (e) {
+      cleanup();
+      setError(e?.response?.data?.msg || "We couldn't start the practice. Please try again.");
+      setScreen("ready");
+      return;
+    }
+    setSessionId(res.sessionId);
+    try {
+      const ctx = new AudioContext({ sampleRate: 24000 });
+      ctxRef.current = ctx;
+      if (ctx.state !== "running") await ctx.resume().catch(() => {});
+      const workletUrl = URL.createObjectURL(new Blob([WORKLET], { type: "application/javascript" }));
+      await ctx.audioWorklet.addModule(workletUrl);
+      URL.revokeObjectURL(workletUrl);
+      const node = new AudioWorkletNode(ctx, "pcm16");
+      ctx.createMediaStreamSource(stream).connect(node);
+      const ws = new WebSocket(`${b2MayaRelayUrl()}?ticket=${encodeURIComponent(res.ticket)}`);
+      wsRef.current = ws;
+      node.port.onmessage = (e) => {
+        const pcm = new Int16Array(e.data);
+        let sum = 0;
+        for (let i = 0; i < pcm.length; i++) sum += pcm[i] * pcm[i];
+        micLevelRef.current += (Math.min(1, (Math.sqrt(sum / pcm.length) / 32768) * 7) - micLevelRef.current) * 0.35;
+        if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "input_audio_buffer.append", audio: toBase64(e.data) }));
+      };
+      ws.onmessage = async (ev) => {
+        const m = JSON.parse(ev.data);
+        if (m.type === "session.updated") {
+          if (captionTimerRef.current) return;
+          goLive();
+          ws.send(JSON.stringify({ type: "coach.ready" }));
+        } else if (m.type === "response.audio.delta") {
+          if (!replyRef.current || m.response_id === replyRef.current) playerRef.current?.push(String(m.delta ?? ""));
+        } else if (m.type === "input_audio_buffer.speech_started") {
+          spokenRef.current.stop(Date.now());
+          playerRef.current?.interrupt();
+          setStatus("listening");
+        } else if (m.type === "input_audio_buffer.speech_stopped") setStatus("thinking");
+        else if (m.type === "response.created") {
+          replyRef.current = m.response?.id ?? null;
+          spokenRef.current.reset(Date.now());
+          setStatus("speaking");
+        } else if (m.type === "response.audio_transcript.delta") {
+          if (!replyRef.current || m.response_id === replyRef.current) spokenRef.current.textDelta(m.delta ?? "", Date.now());
+        } else if (m.type === "response.audio_timestamp.delta") {
+          if ((!replyRef.current || m.response_id === replyRef.current) && m.timestamp_type !== "viseme")
+            spokenRef.current.word(String(m.text ?? ""), Number(m.audio_offset_ms) || 0, Date.now(), Number(m.audio_duration_ms) || 0);
+        } else if (m.type === "response.done") spokenRef.current.finish();
+        else if (m.type === "room.noise") setNoisyRoom(Boolean(m.noisy));
+        else if (m.type === "turn.ended") setStatus("thinking");
+        else if (m.type === "coach.answer") {
+          const a = m;
+          if (a.language === "target" && a.smoothness === "smooth" && a.words >= 12) {
+            setFlash("thumbsup");
+            if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+            flashTimerRef.current = setTimeout(() => setFlash(null), 2200);
+          }
+        } else if (m.type === "interview.ended") finished(res.sessionId);
+        else if (m.type === "error") setError(m.message);
+      };
+      ws.onclose = (ev) => {
+        if (endedRef.current) return;
+        if (ev.code >= 4000) {
+          setError(ev.reason || "The practice couldn't start.");
+          setScreen("failed");
+          cleanup();
+          return;
+        }
+        setScreen((s) => {
+          if (s === "connecting") {
+            setError("We couldn't reach Maya. Check your internet connection, then try again.");
+            cleanup();
+            return "failed";
+          }
+          if (s === "live") {
+            cleanup();
+            return "dropped";
+          }
+          return s;
+        });
+      };
+    } catch {
+      setError("We couldn't start the call. Check your microphone and connection, then try again.");
+      setScreen("failed");
+      cleanup();
+    }
+  };
+
+  /** The call has ended: the report view takes over (it waits for the feedback). */
+  const finished = (id) => {
+    endedRef.current = true;
+    cleanup();
+    navigate(`/b2/maya?session=${encodeURIComponent(id)}`);
+  };
+
+  const goLive = () => {
+    setScreen("live");
+    const t0 = Date.now();
+    tickRef.current = setInterval(() => setSeconds(Math.round((Date.now() - t0) / 1000)), 1000);
+    captionTimerRef.current = setInterval(() => {
+      const now = Date.now();
+      if (playerRef.current) spokenRef.current.audio(playerRef.current.level(), now);
+      const text = spokenRef.current.current(now).replace(/[*`]+|__/g, "");
+      if (text) setCaption(lastSentences(text));
+      const lv = micLevelRef.current;
+      setMicLevel((p) => (Math.abs(p - lv) > 0.025 ? lv : p));
+      if (spokenRef.current.finishedSpeaking(now))
+        setStatus((s) => {
+          if (s === "speaking") setGreeting(false);
+          return s === "speaking" ? "listening" : s;
+        });
+    }, 60);
+  };
+
+  const toggleMute = () => {
+    const next = !muted;
+    streamRef.current?.getAudioTracks().forEach((t) => (t.enabled = !next));
+    setMuted(next);
+  };
+  const cancel = () => {
+    endedRef.current = true;
+    cleanup();
+    setScreen("ready");
+  };
+
+  if (screen === "connecting")
+    return (
+      <>
+        <Header title="Connecting" onBack={cancel} />
+        <Main>
+          <div className="call-avatar connecting-avatar">
+            <MayaMark pose="smiling" user={user} />
+          </div>
+          <div className="center">
+            <Title text={<>{coachName} will be<br />right with you.</>} desc="Getting your conversation ready." />
+            <div className="call-status">
+              <span className="spinner" /> Connecting…
+            </div>
+          </div>
+          <div className="info-note">
+            {interview ? "Your interview will begin with a short introduction." : "You don’t need a perfect first sentence. A simple “Hallo” is a good start."}
+          </div>
+        </Main>
+        <Footer>
+          <button key="cancel" type="button" className="secondary" onClick={cancel}>
+            Cancel
+          </button>
+        </Footer>
+      </>
+    );
+
+  if (screen === "live") {
+    const speaking = status === "speaking";
+    const pose = flash ?? (speaking ? (greeting ? "wave" : "smiling") : "looking");
+    return (
+      <>
+        <div className="call-top">
+          <div>
+            <strong>{focus ? "Focused practice" : modeName}</strong>
+            <small>{interview ? "Job interview · Pflegefachkraft" : topicLabel}</small>
+          </div>
+          <span className="time" aria-label="Time">
+            {clock(seconds)} / {String(minutes).padStart(2, "0")}:00
+          </span>
+        </div>
+        <Main className="call-content">
+          <div className={`call-avatar ${speaking ? "talking" : ""}`}>
+            <MayaLive pose={pose} user={user} />
+            <span className="voice-indicator" aria-hidden="true">
+              <i />
+              <i />
+              <i />
+              <i />
+            </span>
+          </div>
+          <div className="call-status" role="status">
+            <span className="status-dot" style={muted ? { background: "var(--red)" } : undefined} />
+            {muted ? "Microphone muted" : speaking ? `${coachName} is speaking` : status === "listening" ? `${coachName} is listening` : "Thinking…"}
+          </div>
+          <h1>{muted ? "Take your time." : speaking ? `Listen to ${coachName}.` : `Your turn, ${firstName}.`}</h1>
+          <p className="call-subtitle">
+            {muted ? "Unmute when you’re ready to continue." : speaking ? "Listen first. There’s no rush to answer." : "Speak naturally. You don’t need to tap anything."}
+          </p>
+          <div className="call-question">
+            <small>{interview ? "MAYA’S INTERVIEW QUESTION" : "MAYA’S QUESTION"}</small>
+            <blockquote lang="de" aria-live="polite">
+              {caption}
+            </blockquote>
+          </div>
+          {interview ? (
+            <p style={{ fontSize: 10, margin: "15px 0 0" }}>Your coaching will be ready after the interview.</p>
+          ) : (
+            <button type="button" className="text-button" onClick={() => setSheet("help")}>
+              Need a word?
+              <Icon name="book" />
+            </button>
+          )}
+          {noisyRoom ? (
+            <div className="noise-note" role="status">
+              <strong>It’s noisy around you.</strong> {coachName} may not notice when you’ve finished. Tap “I’m done speaking” after each answer.
+              <button type="button" className="text-button" onClick={() => wsRef.current?.send(JSON.stringify({ type: "turn.end" }))} disabled={speaking}>
+                I’m done speaking
+              </button>
+            </div>
+          ) : null}
+          {error ? (
+            <p className="inline-error" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <div className={`hearing ${muted ? "muted" : ""}`}>
+            <Icon name={muted ? "muted" : "mic"} />
+            {muted ? (
+              "Your microphone is off"
+            ) : (
+              <span className="hearing-live">
+                <span className="hearing-bars" aria-hidden="true">
+                  {[0.55, 1, 0.7, 0.9, 0.6].map((k, i) => (
+                    <i key={i} style={{ transform: `scaleY(${0.2 + micLevel * k})` }} />
+                  ))}
+                </span>
+                {speaking ? "Listening for you" : status === "listening" ? `${coachName} hears you — keep going` : "Ready for your voice"}
+              </span>
+            )}
+          </div>
+        </Main>
+        <div className="call-controls">
+          <button type="button" className={`call-control ${muted ? "on" : ""}`} onClick={toggleMute} aria-pressed={muted} aria-label={muted ? "Unmute microphone" : "Mute microphone"}>
+            <b>
+              <Icon name={muted ? "muted" : "mic"} />
+            </b>
+            {muted ? "Unmute" : "Mute"}
+          </button>
+          <button type="button" className="call-control" onClick={() => wsRef.current?.send(JSON.stringify({ type: "coach.repeat" }))} disabled={speaking}>
+            <b>
+              <Icon name="repeat" />
+            </b>
+            Repeat
+          </button>
+          <button type="button" className="call-control end" onClick={() => setSheet("end")}>
+            <b>
+              <Icon name="end" />
+            </b>
+            Finish
+          </button>
+        </div>
+        <p className="call-footer">{coachName} is an AI coach · Voice only</p>
+        {sheet ? (
+          <div className="overlay" onClick={(e) => e.target === e.currentTarget && setSheet(null)}>
+            {sheet === "help" ? (
+              <section className="sheet" role="dialog" aria-modal="true" aria-labelledby="help-title">
+                <div className="sheet-handle" />
+                <button type="button" className="icon-button sheet-close" onClick={() => setSheet(null)} aria-label="Close word help">
+                  <Icon name="close" />
+                </button>
+                <h2 id="help-title">A word to keep you going.</h2>
+                <p>
+                  You can always ask {coachName} aloud:
+                  <br />
+                  <span lang="de">„Wie sagt man … auf Deutsch?“</span>
+                </p>
+                {(words?.length ? words.slice(0, 3) : HELP_PHRASES).map((w) => (
+                  <div className="hint-card" key={w.german}>
+                    <small>{words?.length ? "A word you’re learning" : "Useful in any conversation"}</small>
+                    <strong lang="de">{w.german}</strong>
+                    <p>{w.english}</p>
+                  </div>
+                ))}
+                <button type="button" className="primary" onClick={() => setSheet(null)}>
+                  Back to our conversation
+                </button>
+              </section>
+            ) : (
+              <section className="sheet" role="dialog" aria-modal="true" aria-labelledby="end-title">
+                <div className="sheet-handle" />
+                <h2 id="end-title">Finish for today?</h2>
+                <p>{coachName} will review your conversation and put together your feedback.</p>
+                <div className="context-row">
+                  <Icon name="clock" />
+                  <div>
+                    <strong>Every conversation is practice</strong>
+                    <small>You can come back for another anytime.</small>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => {
+                    setSheet(null);
+                    wsRef.current?.send(JSON.stringify({ type: "interview.end" }));
+                  }}
+                >
+                  Finish &amp; see feedback
+                </button>
+                <button type="button" className="text-button full" onClick={() => setSheet(null)}>
+                  Keep talking
+                </button>
+              </section>
+            )}
+          </div>
+        ) : null}
+      </>
+    );
+  }
+
+  if (screen === "dropped")
+    return (
+      <>
+        <Header title="Conversation paused" />
+        <Main>
+          <div className="device-hero warning">
+            <Icon name="wifi" />
+          </div>
+          <Title text={<>The connection<br />dropped.</>} desc="Check your internet connection. What you said before the drop is usually saved." />
+          <div className="context-row">
+            <MayaMark user={user} />
+            <div>
+              <strong>Your conversation</strong>
+              <small>
+                {focus ? "Focused practice" : interview ? "Nursing interview" : topicLabel} · {clock(seconds)}
+              </small>
+            </div>
+          </div>
+          <div className="info-note">Your last words may not have reached {coachName}. You can see feedback for what was saved, or start a new conversation.</div>
+        </Main>
+        <Footer>
+          {sessionId ? (
+            <button type="button" className="primary" onClick={() => navigate(`/b2/maya?session=${encodeURIComponent(sessionId)}`)}>
+              See my feedback
+              <Icon name="arrow" />
+            </button>
+          ) : null}
+          <button type="button" className="text-button full" onClick={() => setScreen("ready")}>
+            Start a new conversation
+          </button>
+        </Footer>
+      </>
+    );
+
+  if (screen === "failed")
+    return (
+      <>
+        <Header title="Something went wrong" onBack={() => setScreen("ready")} />
+        <Main>
+          <div className="device-hero warning">
+            <Icon name="info" />
+          </div>
+          <Title text="We couldn’t start the conversation." desc={error ?? "Please try again in a moment."} />
+        </Main>
+        <Footer>
+          <button type="button" className="primary" onClick={() => setScreen("ready")}>
+            Try again
+            <Icon name="repeat" />
+          </button>
+        </Footer>
+      </>
+    );
+
+  if (screen === "topics")
+    return (
+      <>
+        <Header title="Your conversation" onBack={() => setScreen("choose")} />
+        <Main>
+          <Steps n={1} />
+          <Title text="What’s on your mind?" desc={`Pick a topic you feel like talking about.${isBeginner(level) ? " Maya keeps it simple and helps you with words." : ""}`} />
+          <div className="topic-grid" role="group" aria-label="Conversation topic">
+            {topics.map((t) => (
+              <button
+                type="button"
+                key={t.id}
+                className={`topic ${topic === t.label ? "selected" : ""}`}
+                aria-pressed={topic === t.label}
+                onClick={() => {
+                  setTopic(topic === t.label ? "" : t.label);
+                  setCustomTopic("");
+                }}
+              >
+                <Icon name={t.icon} />
+                {t.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              className={`topic ${!topic && !customTopic.trim() ? "selected" : ""}`}
+              aria-pressed={!topic && !customTopic.trim()}
+              onClick={() => {
+                setTopic("");
+                setCustomTopic("");
+              }}
+            >
+              <Icon name="shuffle" />
+              Surprise me
+            </button>
+          </div>
+          <label className="field-label" htmlFor="custom-topic">
+            Or bring your own topic
+          </label>
+          <input
+            id="custom-topic"
+            className="input"
+            maxLength={100}
+            placeholder="e.g. My favourite festival"
+            value={customTopic}
+            onChange={(e) => {
+              setCustomTopic(e.target.value);
+              if (e.target.value.trim()) setTopic("");
+            }}
+          />
+          <div className="info-note">{coachName} will follow your pace and help you find the words.</div>
+        </Main>
+        <Footer note={`About ${minutes} minutes · ${level} practice`}>
+          <button type="button" className="primary" onClick={() => setScreen(consent && room ? "ready" : "setup")}>
+            Continue
+            <Icon name="arrow" />
+          </button>
+        </Footer>
+      </>
+    );
+
+  if (screen === "setup")
+    return (
+      <>
+        <Header title="Before you start" onBack={focus ? () => navigate(-1) : () => setScreen(interview ? "choose" : "topics")} />
+        <Main>
+          <Steps n={2} />
+          <Title text="A moment to get ready." desc="A quiet space and a working microphone are all you need." />
+          <div className="context-row">
+            <Icon name={focus ? "repeat" : interview ? "bag" : "chat"} />
+            <div>
+              <strong>{focus ? "Your focused follow-up" : interview ? "Nursing interview" : topicLabel}</strong>
+              <small>
+                {focus ? "Maya coaches one sentence pattern" : interview ? "Feedback at the end" : "Tips as you go"} · About {minutes} min
+              </small>
+            </div>
+          </div>
+          <ul className="checklist">
+            <li>
+              <Icon name="headphones" />
+              <div>
+                <strong>Find a quiet spot</strong>
+                <span>Headphones help, but aren’t required. Voices or a TV in the background make it hard for Maya to hear you.</span>
+              </div>
+            </li>
+            <li>
+              <Icon name="chat" />
+              <div>
+                <strong>Speak in German, at your pace</strong>
+                <span>
+                  {interview
+                    ? "Answer as you would in a real interview. Maya will give you feedback afterward."
+                    : isBeginner(level)
+                      ? "Short answers are fine. Stuck? Say it in English and Maya will help."
+                      : "Full sentences are great. Stuck? Ask Maya: “Wie sagt man …?”"}
+                </span>
+              </div>
+            </li>
+            <li>
+              <Icon name="camera" />
+              <div>
+                <strong>Just your voice</strong>
+                <span>Your camera stays off throughout.</span>
+              </div>
+            </li>
+          </ul>
+          <label className="consent">
+            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+            <span>I understand that Maya is AI. My conversation will be transcribed, and Skillcase will keep the transcript and feedback to track my progress.</span>
+          </label>
+          <p className="privacy-note">You choose when the microphone starts and can mute or end the call anytime.</p>
+        </Main>
+        <Footer note={consent ? "A quick sound check, then you’re ready." : "Tick the box to continue."}>
+          <button type="button" className="primary" disabled={!consent} onClick={() => setScreen(room === "good" || room === "some_noise" ? "ready" : "mic-test")}>
+            Check my microphone
+            <Icon name="arrow" />
+          </button>
+        </Footer>
+      </>
+    );
+
+  if (screen === "mic-test")
+    return (
+      <>
+        <Header
+          title="Microphone check"
+          onBack={() => {
+            checkStopRef.current?.();
+            setScreen("setup");
+          }}
+          tag="Step 2 of 3"
+        />
+        <Main>
+          <MayaHero pose="looking" badge="mic" user={user} />
+          <Title text="Let’s hear you." desc="Stay quiet for a moment so we can hear your room, then say the sentence below." />
+          <div className="signal-box">
+            <span className="eyebrow">Say this in German</span>
+            <div className="quote-prompt" lang="de">
+              „Hallo {coachName}, ich bin bereit.“
+            </div>
+            <div className={`bars ${checkStep ? "active" : ""} ${checkStep === "quiet" ? "blue" : ""}`} aria-hidden="true">
+              {[10, 18, 25, 17, 36, 27, 44, 31, 20, 35, 25, 15, 29, 18, 10].map((h, i) => (
+                <i key={i} style={{ "--h": `${Math.max(6, Math.round(h * (checkStep ? 0.3 + micLevel : 0.3)))}px`, "--i": i }} />
+              ))}
+            </div>
+            <p role="status">{checkStep === "quiet" ? "Stay quiet for a moment…" : checkStep === "speak" ? "Now say the sentence." : room ? ROOM_NOTE[room] : "Ready when you are"}</p>
+          </div>
+          {devices.length > 1 ? (
+            <>
+              <label className="field-label" htmlFor="microphone">
+                Microphone
+              </label>
+              <select className="input" id="microphone" value={deviceId} onChange={(e) => setDeviceId(e.target.value)}>
+                <option value="">System default microphone</option>
+                {devices.map((d, i) => (
+                  <option key={d.deviceId} value={d.deviceId}>
+                    {d.label || `Microphone ${i + 1}`}
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : null}
+          {error ? (
+            <p className="inline-error" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <button type="button" className="text-button full" onClick={() => setScreen("mic-blocked")}>
+            No sound? Get help
+          </button>
+        </Main>
+        <Footer note="Your app may ask for microphone access.">
+          {room === "noisy" || room === "quiet_voice" ? (
+            <>
+              <button type="button" className="primary" onClick={checkMic} disabled={checkStep !== null}>
+                Check again
+                <Icon name="repeat" />
+              </button>
+              <button type="button" className="text-button full" onClick={() => setScreen("ready")}>
+                Continue anyway
+              </button>
+            </>
+          ) : (
+            <button type="button" className="primary" onClick={checkMic} disabled={checkStep !== null}>
+              {checkStep ? "Checking your microphone…" : room === "no_voice" ? "Check again" : "Enable & check microphone"}
+              <Icon name="mic" />
+            </button>
+          )}
+        </Footer>
+      </>
+    );
+
+  if (screen === "mic-blocked")
+    return (
+      <>
+        <Header title="Microphone access" onBack={() => setScreen("mic-test")} />
+        <Main>
+          <div className="device-hero warning">
+            <Icon name="muted" />
+          </div>
+          <Title text={<>Your microphone<br />needs permission.</>} desc="Maya can’t hear you yet. You can turn on access in your device settings." />
+          <ol className="numbered">
+            <li>Open the site or app settings for Skillcase.</li>
+            <li>Find Microphone and choose Allow.</li>
+            <li>Return here and try the microphone check again.</li>
+          </ol>
+          <div className="info-note">If access is already allowed, check your device settings or close other apps using the microphone.</div>
+        </Main>
+        <Footer>
+          <button type="button" className="primary" onClick={() => setScreen("mic-test")}>
+            Try microphone again
+            <Icon name="repeat" />
+          </button>
+          <button type="button" className="text-button full" onClick={() => setScreen("choose")}>
+            Back to practice
+          </button>
+        </Footer>
+      </>
+    );
+
+  if (screen === "ready")
+    return (
+      <>
+        <Header title="Ready to start" onBack={() => setScreen("mic-test")} />
+        <Main>
+          <MayaHero pose="thumbsup" badge="check" user={user} />
+          <Title text="You’re ready to talk." desc={`${coachName} will introduce herself and help you get started.`} />
+          <div className="result-row">
+            <Icon name="check" />
+            <strong>Microphone</strong>
+            <span>{room === "noisy" ? "Noisy room" : room === "quiet_voice" ? "Quiet voice" : "Sound detected"}</span>
+          </div>
+          <div className="result-row">
+            <Icon name="check" />
+            <strong>Camera</strong>
+            <span>Always off</span>
+          </div>
+          <div className="result-row">
+            <Icon name="clock" />
+            <strong>Conversation</strong>
+            <span>About {minutes} min</span>
+          </div>
+          <div className="ready-info">
+            <strong>{focus ? "Your focused follow-up" : interview ? "Your nursing interview" : `Your practice: ${topicLabel}`}</strong>
+            <p>
+              {focus
+                ? `“${focus.better}”. ${coachName} will ask short questions so you can use this pattern, and help you get it right.`
+                : interview
+                  ? `Take your time. ${coachName} will ask one question at a time, with all coaching saved for the end.`
+                  : `It’s okay to pause or make mistakes. ${coachName} is here to help you practise.`}
+            </p>
+          </div>
+          {error ? (
+            <p className="inline-error" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </Main>
+        <Footer note="You can end the conversation at any time.">
+          <button type="button" className="primary gold" onClick={start}>
+            Start with {coachName}
+            <Icon name="arrow" />
+          </button>
+        </Footer>
+      </>
+    );
+
+  /* "choose": the start screen — the mode selection the feature card opens. */
+  const card = (id, name, copy, metaText, ico) => (
+    <button type="button" key={id} className={`mode ${mode === id ? "active" : ""}`} role="radio" aria-checked={mode === id} onClick={() => setMode(id)}>
+      <span className="mode-symbol">
+        <Icon name={ico} />
+      </span>
+      <span className="mode-copy">
+        <span className="mode-title">{name}</span>
+        <span className="mode-description">{copy}</span>
+        <span className="mode-meta">{metaText}</span>
+      </span>
+      <span className="radio-mark" aria-hidden="true" />
+    </button>
+  );
+  return (
+    <>
+      <Brand level={level} />
+      <Main className="flush-top">
+        <div className="intro welcome-intro">
+          <p className="eyebrow">Guten Tag, {firstName}</p>
+          <div className="welcome-heading">
+            <h1>
+              Speak German
+              <br />
+              with {coachName}
+            </h1>
+            <MayaFrame pose="wave" className="welcome-maya" user={user} />
+          </div>
+          <p>Build confidence in German with your AI speaking coach.</p>
+        </div>
+        <div className="section-label">{hasInterview ? "What would you like to practise?" : "Your practice"}</div>
+        <div role="radiogroup" aria-label="Practice mode">
+          {card("talk", "Everyday German", "Talk about everyday life and whatever interests you.", `Live tips · About ${minutesMap.talk} min`, "chat")}
+          {hasInterview ? card(modes[1], "Nursing interview", "Get comfortable with a job interview in Germany.", `Feedback after · About ${minutesMap[modes[1]]} min`, "bag") : null}
+        </div>
+      </Main>
+      <Footer note="Voice only. Your camera stays off.">
+        <button type="button" className="primary gold" onClick={() => setScreen(interview ? (consent && room ? "ready" : "setup") : "topics")}>
+          {interview ? "Prepare for my interview" : "Let’s practise"}
+          <Icon name="arrow" />
+        </button>
+      </Footer>
+      <BottomNav current="practice" />
+    </>
+  );
+}
+
+/** "Need a word?" when the learner has no words in their word bank yet. */
+const HELP_PHRASES = [
+  { german: "Wie sagt man … auf Deutsch?", english: "How do you say … in German?" },
+  { german: "Können Sie das bitte wiederholen?", english: "Could you repeat that, please?" },
+  { german: "Langsamer, bitte.", english: "Slower, please." },
+];

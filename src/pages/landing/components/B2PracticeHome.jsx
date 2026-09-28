@@ -7,6 +7,7 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { images } from "../../../assets/images";
+import { getMayaImage } from "../../../utils/mayaAvatars";
 import useB2Access from "../../../hooks/useB2Access";
 import useB2PracticeResume from "../../../hooks/useB2PracticeResume";
 import { B2Button, B2ScoreRing, B2State } from "../../../components/b2/B2UI";
@@ -43,7 +44,8 @@ const skills = [
 ];
 export default function B2PracticeHome({ overview, loading = false, onRetry }) {
   const open = useB2Access();
-  const userId = useSelector((state) => state.auth.user?.user_id);
+  const user = useSelector((state) => state.auth.user);
+  const userId = user?.user_id;
   const savedPractice = useB2PracticeResume(userId);
   const next = overview?.nextPaper,
     suggested = overview?.suggested,
@@ -198,6 +200,22 @@ export default function B2PracticeHome({ overview, loading = false, onRetry }) {
               <p>Goethe &amp; telc</p>
             </div>
           </Link>
+          {/* Talk to Maya — live voice practice; mode choice happens inside. */}
+          <button
+            type="button"
+            id="b2-maya-card"
+            className="b2-skill-card"
+            onClick={() => open("maya", "/b2/maya")}
+            aria-label="Talk to Maya, live German speaking practice"
+          >
+            <span className="b2-skill-card-media b2-skill-card-media-maya">
+              <img src={getMayaImage("wave", user)} alt="" />
+            </span>
+            <div>
+              <strong>Talk to Maya</strong>
+              <p>Everyday talk &amp; interviews</p>
+            </div>
+          </button>
         </div>
       </section>
     </section>

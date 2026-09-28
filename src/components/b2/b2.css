@@ -401,6 +401,8 @@
   font-size: 13px;
   line-height: 1.45;
 }
+.b2-skill-card-media-maya { background: #dceafa; }
+.b2-skill-card-media-maya img { object-fit: contain; object-position: center bottom; }
 .b2-skill-card:hover {
   border-color: #789bc3;
   box-shadow: 0 3px 12px #0028560a;

@@ -366,6 +366,7 @@ const B2ExamSpeakingResults = lazy(
 );
 const B2Result = lazy(() => import("./pages/b2/exams/B2Result"));
 const B2AdminPage = lazy(() => import("./pages/b2/B2AdminPage"));
+const B2MayaPage = lazy(() => import("./pages/b2/maya/B2MayaPage"));
 
 // Video Courses & Notes (standalone course browsing + PDF study notes + playback + AI chat)
 const CourseSelectPage = lazy(
@@ -2072,6 +2073,16 @@ function AppContent() {
                     element={
                       <LearningRoute>
                         <B2Result />
+                      </LearningRoute>
+                    }
+                  />
+                  {/* Talk to Maya — B2 voice coach. Static path wins over
+                      /b2/:module (router ranking). */}
+                  <Route
+                    path="/b2/maya"
+                    element={
+                      <LearningRoute>
+                        <B2MayaPage />
                       </LearningRoute>
                     }
                   />
