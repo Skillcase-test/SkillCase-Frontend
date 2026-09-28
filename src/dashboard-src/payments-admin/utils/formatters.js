@@ -24,7 +24,7 @@ export function formatIstDateTime(value) {
   }).formatToParts(date);
   const get = (type) => parts.find((p) => p.type === type)?.value || "";
   const day = get("day");
-  const month = get("month");
+  const month = get("month").slice(0, 3);
   const year = get("year");
   const hour = get("hour");
   const minute = get("minute");
@@ -44,7 +44,7 @@ export function formatIstDate(value) {
   }).formatToParts(date);
   const get = (type) => parts.find((p) => p.type === type)?.value || "";
   const day = get("day");
-  const month = get("month");
+  const month = get("month").slice(0, 3);
   const year = get("year");
   return `${day} ${month} ${year}`;
 }

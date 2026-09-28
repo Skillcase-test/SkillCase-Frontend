@@ -8,6 +8,7 @@ import {
   ControlSelect,
 } from "./controls";
 import { LEAD_OWNER_OPTIONS } from "../utils/constants";
+import { formatIstDateTime } from "../utils/formatters";
 import { MandateBadge } from "./MandateBadge";
 
 const personalFields = [
@@ -929,13 +930,7 @@ export function CandidateDetailsForm({
                   const payload = log.payload_json || {};
                   const fromBatch = payload.previous_batch_name || "Unassigned";
                   const toBatch = payload.next_batch_name || "Unassigned";
-                  const dateStr = log.received_at
-                    ? new Date(log.received_at).toLocaleString("en-IN", {
-                        timeZone: "Asia/Kolkata",
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })
-                    : "-";
+                  const dateStr = formatIstDateTime(log.received_at);
                   const effectiveMonthYear = log.received_at
                     ? new Date(log.received_at).toLocaleString("en-IN", {
                         timeZone: "Asia/Kolkata",
@@ -988,13 +983,7 @@ export function CandidateDetailsForm({
             ) : statusLogs.length > 0 ? (
               <div className="space-y-2.5">
                 {statusLogs.map((log) => {
-                  const dateStr = log.received_at
-                    ? new Date(log.received_at).toLocaleString("en-IN", {
-                        timeZone: "Asia/Kolkata",
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })
-                    : "-";
+                  const dateStr = formatIstDateTime(log.received_at);
                   return (
                     <div
                       key={log.raw_log_id}
