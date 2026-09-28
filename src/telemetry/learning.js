@@ -11,6 +11,7 @@ export function useFlashcardTelemetry({
   cardId,
   isFlipped,
   loading,
+  module = "flashcard",
 }) {
   const shownAtRef = useRef(null);
   const previousFlipRef = useRef(isFlipped);
@@ -21,7 +22,7 @@ export function useFlashcardTelemetry({
     shownAtRef.current = shownAt;
     recordEvent("learning.flashcard.presented", {
       domain: "learning",
-      feature: `${level.toLowerCase()}.flashcard`,
+      feature: `${level.toLowerCase()}.${module}`,
       entity_type: "flashcard",
       entity_id: cardId || `${setId || chapterId}:${currentCard}`,
       item_index: currentCard,
@@ -30,7 +31,7 @@ export function useFlashcardTelemetry({
       lifecycle: "observed",
       attributes: {
         level,
-        module: "flashcard",
+        module,
         chapter_id: chapterId,
         set_id: setId,
         current_index: currentCard,
@@ -40,7 +41,7 @@ export function useFlashcardTelemetry({
     return () => {
       recordEvent("learning.flashcard.left", {
         domain: "learning",
-        feature: `${level.toLowerCase()}.flashcard`,
+        feature: `${level.toLowerCase()}.${module}`,
         entity_type: "flashcard",
         entity_id: cardId || `${setId || chapterId}:${currentCard}`,
         item_index: currentCard,
@@ -50,7 +51,7 @@ export function useFlashcardTelemetry({
         active_ms: Math.max(0, Math.round(performance.now() - shownAt)),
         attributes: {
           level,
-          module: "flashcard",
+          module,
           chapter_id: chapterId,
           set_id: setId,
           current_index: currentCard,
@@ -58,7 +59,7 @@ export function useFlashcardTelemetry({
         },
       });
     };
-  }, [cardId, chapterId, currentCard, level, loading, setId, totalCards]);
+  }, [cardId, chapterId, currentCard, level, loading, module, setId, totalCards]);
 
   useEffect(() => {
     if (loading || previousFlipRef.current === isFlipped) return;
@@ -66,7 +67,7 @@ export function useFlashcardTelemetry({
     previousFlipRef.current = isFlipped;
     recordEvent("learning.flashcard.flipped", {
       domain: "learning",
-      feature: `${level.toLowerCase()}.flashcard`,
+      feature: `${level.toLowerCase()}.${module}`,
       entity_type: "flashcard",
       entity_id: cardId || `${setId || chapterId}:${currentCard}`,
       item_index: currentCard,
@@ -76,7 +77,7 @@ export function useFlashcardTelemetry({
       outcome: isFlipped ? "back" : "front",
       attributes: {
         level,
-        module: "flashcard",
+        module,
         chapter_id: chapterId,
         set_id: setId,
         current_index: currentCard,
@@ -84,14 +85,14 @@ export function useFlashcardTelemetry({
       },
     });
     if (previous === isFlipped) previousFlipRef.current = isFlipped;
-  }, [cardId, chapterId, currentCard, isFlipped, level, loading, setId, totalCards]);
+  }, [cardId, chapterId, currentCard, isFlipped, level, loading, module, setId, totalCards]);
 
   return useCallback(
     ({ fromIndex, toIndex, inputMethod, direction }) => {
       recordEvent("learning.flashcard.navigation", {
         domain: "learning",
-        feature: `${level.toLowerCase()}.flashcard`,
-        entity_type: "flashcard_set",
+        feature: `${level.toLowerCase()}.${module}`,
+        entity_type: `${module}_set`,
         entity_id: setId || chapterId,
         item_index: toIndex,
         display_position: toIndex + 1,
@@ -101,7 +102,7 @@ export function useFlashcardTelemetry({
         outcome: direction,
         attributes: {
           level,
-          module: "flashcard",
+          module,
           chapter_id: chapterId,
           set_id: setId,
           from_index: fromIndex,
@@ -110,7 +111,7 @@ export function useFlashcardTelemetry({
         },
       });
     },
-    [chapterId, level, setId, totalCards],
+    [chapterId, level, module, setId, totalCards],
   );
 }
 

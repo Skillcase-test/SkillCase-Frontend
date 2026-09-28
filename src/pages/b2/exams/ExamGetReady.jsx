@@ -1,202 +1,237 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { trackB2Action } from "../../../utils/b2Telemetry";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Headphones, MoveRight } from "lucide-react";
-import toast from "react-hot-toast";
-import mayaWave from "../../../assets/onboarding/mayaWave.webp";
+import {
+  Headphones,
+  Mic,
+  Clock3,
+  ArrowRight,
+  Check,
+  Volume2,
+} from "lucide-react";
 import { getB2TestOverview, startB2ExamSubmission } from "../../../api/b2Api";
-
-const RING_R = 48;
-const RING_CIRC = 2 * Math.PI * RING_R; // ~302
-const COUNT_FROM = 3;
-
-// Pre-test interstitial: counts down 3-2-1-Go, then starts the next
-// placement chapter's submission and lands on its section dashboard. Used
-// inline inside B2ExamGate (props passed, no fetch) and standalone at
-// /b2/test/ready (fetches its own overview). The submission is only created
-// at start — backing out leaves nothing behind.
+import useB2Access from "../../../hooks/useB2Access";
+import {
+  B2Page,
+  B2Button,
+  B2SkillStrip,
+  B2State,
+} from "../../../components/b2/B2UI";
 export default function ExamGetReady({
   overview: overviewProp,
   onBack,
   onStarted,
 } = {}) {
-  const navigate = useNavigate();
-  const [overview, setOverview] = useState(overviewProp ?? null);
-  const [loading, setLoading] = useState(!overviewProp);
-  const [count, setCount] = useState(COUNT_FROM);
-  const [starting, setStarting] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const startRef = useRef(false);
-
-  const nextPaper = overview?.nextPaper;
-  const total = overview?.total ?? 0;
-  const testNumber = (overview?.completed ?? 0) + 1;
-
-  useEffect(() => {
-    if (overviewProp) return;
+  const navigate = useNavigate(),
+    open = useB2Access();
+  const [overview, setOverview] = useState(overviewProp ?? null),
+    [loading, setLoading] = useState(!overviewProp),
+    [error, setError] = useState(""),
+    [starting, setStarting] = useState(false),
+    [mic, setMic] = useState(""),
+    [audioChecked, setAudioChecked] = useState(false);
+  const startingRef = useRef(false),
+    mounted = useRef(true);
+  const load = () => {
+    setLoading(true);
+    setError("");
     getB2TestOverview()
-      .then((res) => setOverview(res.data))
-      .catch((err) => {
-        console.error("Failed to load test overview:", err);
-        toast.error("Couldn't load your test. Please try again.");
-      })
+      .then((r) => setOverview(r.data))
+      .catch(() =>
+        setError("We couldn’t load your assessment. Please try again."),
+      )
       .finally(() => setLoading(false));
-  }, [overviewProp]);
-
-  // Nothing left to start (all chapters done / overview empty) — go back to
-  // the test hub rather than sitting on a dead countdown.
+  };
   useEffect(() => {
-    if (!loading && !nextPaper) {
-      if (onBack) onBack();
-      else navigate("/b2/test", { replace: true });
-    }
-  }, [loading, nextPaper, navigate, onBack]);
-
-  const beginTest = useCallback(async () => {
-    if (startRef.current || !nextPaper) return;
-    startRef.current = true;
-    setStarting(true);
+    mounted.current = true;
+    if (!overviewProp) load();
+    return () => {
+      mounted.current = false;
+    };
+  }, [overviewProp]);
+  const next = overview?.nextPaper;
+  const checkMic = async () => {
+    setMic("checking");
     try {
-      await startB2ExamSubmission(nextPaper.paperId);
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach((t) => t.stop());
+      if (mounted.current) setMic("ready");
+    } catch {
+      if (mounted.current) setMic("denied");
+    }
+  };
+  const checkAudio = async () => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioContext();
+      await ctx.resume();
+      const osc = ctx.createOscillator(),
+        gain = ctx.createGain();
+      osc.frequency.value = 523;
+      gain.gain.value = 0.12;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.4);
+      osc.onended = () => ctx.close();
+      setAudioChecked(true);
+    } catch {
+      setError("Sound could not play. Check your device’s audio settings.");
+    }
+  };
+  const begin = async () => {
+    if (startingRef.current || !next || !open("exams")) return;
+    startingRef.current = true;
+    setStarting(true);
+    setError("");
+    try {
+      await startB2ExamSubmission(next.paperId);
+      trackB2Action(
+        next.inProgress ? "assessment_resumed" : "assessment_started",
+        { mode: "assessment", entityId: next.paperId, source: "preparation" },
+      );
       onStarted?.();
-      navigate(`/b2/exams/papers/${nextPaper.paperId}/dashboard`, {
-        replace: true,
-      });
-    } catch (err) {
-      console.error("Error starting B2 test:", err);
-      const resData = err.response?.data || {};
-      if (err.response?.status === 403 && resData.alreadyCompleted) {
-        navigate(`/b2/exams/papers/${nextPaper.paperId}/congratulations`, {
+      navigate(`/b2/exams/papers/${next.paperId}/dashboard`, { replace: true });
+    } catch (e) {
+      if (e.response?.status === 403 && e.response?.data?.alreadyCompleted) {
+        onStarted?.();
+        navigate(`/b2/exams/papers/${next.paperId}/congratulations`, {
           replace: true,
         });
       } else {
-        // 402 usage-limit responses are surfaced globally by the axios
-        // interceptor — anything else is a genuine failure. Let the user
-        // retry via "Start now".
-        if (err.response?.status !== 402) {
-          toast.error("Failed to start the test. Please try again.");
-        }
-        startRef.current = false;
+        setError(
+          e.response?.status === 402
+            ? "Your assessment limit has been reached. You can return to practice."
+            : "Your test couldn’t start. Please try again.",
+        );
+        startingRef.current = false;
         setStarting(false);
-        setFailed(true);
       }
     }
-  }, [nextPaper, navigate, onStarted]);
-
-  // Countdown only runs once the paper is known — 3, 2, 1, then "Go" holds
-  // for a second before the test actually starts. After a failed start the
-  // countdown stops; "Start now" is the retry path.
-  useEffect(() => {
-    if (!nextPaper || starting || failed) return;
-    const t = setTimeout(
-      () => (count > 0 ? setCount((c) => c - 1) : beginTest()),
-      1000,
-    );
-    return () => clearTimeout(t);
-  }, [count, nextPaper, starting, failed, beginTest]);
-
-  const ringOffset = RING_CIRC - (RING_CIRC * (COUNT_FROM - count)) / COUNT_FROM;
-
+  };
   return (
-    <div className="fixed inset-0 z-[110] bg-gradient-to-b from-[#CFE3FF] to-[#E4EFFF] overflow-y-auto">
-      <div className="w-full max-w-md lg:max-w-none mx-auto min-h-full flex flex-col">
-        <div className="h-14 shrink-0 flex items-center justify-between pl-1 pr-2 bg-white border-b border-[#EFEFEF]">
-          <button
-            type="button"
-            onClick={() => (onBack ? onBack() : navigate("/"))}
-            aria-label="Back"
-            className="w-11 h-11 flex items-center justify-center text-[#083262] bg-transparent border-0 cursor-pointer"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <span className="text-xs font-semibold text-[#083262] bg-[#E4EFFF] rounded-full px-3 py-1.5">
-            Test {testNumber} of {total}
-          </span>
-        </div>
-
-        <div className="flex-1 min-h-0 flex flex-col items-center justify-end gap-2.5 px-4 pt-4">
-          <div className="bg-white border border-[#E9EAEB] rounded-xl px-3.5 py-2.5 shadow-[0_4px_13px_rgba(0,0,0,0.12)]">
-            <p className="font-medium text-base text-[#414651]">
-              You can do it!
-            </p>
-          </div>
-          <img
-            src={mayaWave}
-            alt="Maya"
-            className="flex-1 min-h-24 max-h-48 w-auto object-contain object-bottom select-none pointer-events-none"
+    <div className={onBack ? "b2-ui b2-welcome" : undefined}>
+      <B2Page
+        className="b2-preparation"
+        title="Test preparation"
+        back="/b2/test"
+        onBack={onBack}
+      >
+        {loading ? (
+          <B2State loading />
+        ) : !next ? (
+          <B2State
+            title={error ? "Your test didn’t load" : "You’re all caught up"}
+            description={
+              error || "Practise a skill while you wait for your next test."
+            }
+            onRetry={error ? load : () => navigate("/")}
           />
-        </div>
-
-        <div className="shrink-0 bg-white rounded-t-3xl px-4 pt-6 pb-6 flex flex-col items-center gap-5">
-          <div className="flex flex-col items-center gap-3">
-            <span className="font-semibold text-xl text-[#083262]">
-              Your test starts in
-            </span>
-            <div className="relative w-28 h-28">
-              <svg
-                width="112"
-                height="112"
-                viewBox="0 0 112 112"
-                className="-rotate-90"
-              >
-                <circle
-                  cx="56"
-                  cy="56"
-                  r={RING_R}
-                  fill="none"
-                  stroke="#E4EFFF"
-                  strokeWidth="8"
-                />
-                <circle
-                  cx="56"
-                  cy="56"
-                  r={RING_R}
-                  fill="none"
-                  stroke="#EDB843"
-                  strokeWidth="8"
-                  strokeLinecap="round"
-                  strokeDasharray={RING_CIRC}
-                  strokeDashoffset={ringOffset}
-                  className="transition-all duration-1000 ease-linear"
-                />
-              </svg>
-              <span className="absolute inset-0 flex items-center justify-center font-bold text-[44px] text-[#083262]">
-                {count > 0 ? count : "Go"}
+        ) : (
+          <div className="b2-content">
+            <div className="b2-stack">
+              <span className="b2-eyebrow">
+                {next.inProgress
+                  ? "In progress"
+                  : `Assessment ${(overview.completed ?? 0) + 1}${overview.total ? ` of ${overview.total}` : ""}`}
               </span>
+              <h1>
+                {next.inProgress ? "Resume your test" : "Ready for your test?"}
+              </h1>
+              <B2SkillStrip />
+            </div>
+            <div className="b2-panel">
+              <h2>Before you begin</h2>
+              <ul className="b2-steps">
+                <li>
+                  <span className="b2-icon">
+                    <Clock3 size={20} />
+                  </span>
+                  <div>
+                    <strong>
+                      {next.durationMinutes > 0
+                        ? `${next.durationMinutes} min total`
+                        : "Timed sections"}
+                    </strong>
+                    <p>
+                      Each section is timed. The timer keeps running if you
+                      leave.
+                    </p>
+                  </div>
+                </li>
+                <li>
+                  <span className="b2-icon">
+                    <Headphones size={20} />
+                  </span>
+                  <div className="b2-grow">
+                    <strong>Check your sound</strong>
+                    <p>Use headphones in a quiet place.</p>
+                    <button className="b2-back" onClick={checkAudio}>
+                      {audioChecked ? (
+                        <Check size={17} />
+                      ) : (
+                        <Volume2 size={17} />
+                      )}{" "}
+                      {audioChecked ? "Replay sound" : "Test sound"}
+                    </button>
+                  </div>
+                </li>
+                <li>
+                  <span className="b2-icon">
+                    <Mic size={20} />
+                  </span>
+                  <div className="b2-grow">
+                    <strong>Microphone access</strong>
+                    <p>Required for Speaking. You can allow access later.</p>
+                    <button
+                      className="b2-back"
+                      onClick={checkMic}
+                      disabled={mic === "checking"}
+                    >
+                      {mic === "ready" ? (
+                        <Check size={17} />
+                      ) : (
+                        <Mic size={17} />
+                      )}{" "}
+                      {mic === "ready"
+                        ? "Microphone ready"
+                        : mic === "checking"
+                          ? "Checking…"
+                          : "Check microphone"}
+                    </button>
+                    {mic === "denied" && (
+                      <p role="alert" className="b2-note b2-note--warning">
+                        Microphone access is unavailable. Allow it in your
+                        browser settings before Speaking.
+                      </p>
+                    )}
+                  </div>
+                </li>
+              </ul>
+            </div>
+            <div className="b2-note">
+              Unanswered questions count as skipped. Text drafts save here;
+              submit recordings before leaving.
+            </div>
+            {error && (
+              <p role="alert" className="b2-note b2-note--error">
+                {error}
+              </p>
+            )}
+            <div className="b2-prep-actions">
+              <B2Button onClick={begin} disabled={starting}>
+                {starting
+                  ? "Opening test…"
+                  : next.inProgress
+                    ? "Resume test"
+                    : "Start test"}
+                <ArrowRight size={18} />
+              </B2Button>
             </div>
           </div>
-
-          <div className="self-stretch flex flex-col gap-2.5">
-            <div className="flex gap-3 items-center">
-              <span className="w-9 h-9 rounded-[10px] bg-[#E4EFFF] text-[#083262] flex items-center justify-center shrink-0">
-                <Headphones className="w-[18px] h-[18px]" strokeWidth={2} />
-              </span>
-              <span className="text-sm text-[#414651]">
-                Put your headphones on
-              </span>
-            </div>
-            <div className="flex gap-3 items-center">
-              <span className="w-9 h-9 rounded-[10px] bg-[#E4EFFF] text-[#083262] flex items-center justify-center shrink-0">
-                <MoveRight className="w-[18px] h-[18px]" strokeWidth={2} />
-              </span>
-              <span className="text-sm text-[#414651]">
-                Don't know? Tap Skip. You lose no marks.
-              </span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setFailed(false);
-              beginTest();
-            }}
-            disabled={starting || !nextPaper}
-            className="self-stretch h-12 rounded-lg border border-[#DBDBDB] bg-white text-[#083262] text-base font-semibold hover:bg-slate-50 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center"
-          >
-            Start now
-          </button>
-        </div>
-      </div>
+        )}
+      </B2Page>
     </div>
   );
 }

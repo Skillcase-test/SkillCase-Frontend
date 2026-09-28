@@ -1,3 +1,9 @@
+import { trackB2Action } from "../../../utils/b2Telemetry";
+import useB2SubmitGuard from "../../../hooks/useB2SubmitGuard";
+import { B2Page, B2State } from "../../../components/b2/B2UI";
+import useB2Draft from "../../../hooks/useB2Draft";
+import B2WorkspaceHeader from "../../../components/b2/B2WorkspaceHeader";
+import B2PassageAudio from "../../../components/b2/B2PassageAudio";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -6,7 +12,6 @@ import {
   Loader2,
   AlertCircle,
   Clock,
-  Volume2,
   ChevronDown,
 } from "lucide-react";
 import {
@@ -32,8 +37,22 @@ export default function ExamReadingWorkspace() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submitGuard = useB2SubmitGuard({
+    questions,
+    answers,
+    index: currentBlockIndex,
+    skill: "reading",
+  });
+  const draft = useB2Draft({
+    draftKey: `b2-draft:v1:${user?.user_id || "guest"}:assessment:${paperId}:${submission?.id || 0}:reading`,
+    answers,
+    setAnswers,
+    blockIndex: currentBlockIndex,
+    setBlockIndex: setCurrentBlockIndex,
+    loading,
+    totalBlocks: questions.length,
+  });
 
-  // Timer state (seconds remaining)
   const [timeLeft, setTimeLeft] = useState(30 * 60); // Default 30 mins
   const timerRef = useRef(null);
   const answersRef = useRef(answers);
@@ -46,7 +65,6 @@ export default function ExamReadingWorkspace() {
     setLoading(true);
     setFetchError(false);
     try {
-      // Get/start session
       const startRes = await startB2ExamSubmission(paperId);
       setSubmission(startRes.data);
 
@@ -60,7 +78,10 @@ export default function ExamReadingWorkspace() {
         const storedExpire = localStorage.getItem(timerKey);
         if (storedExpire) {
           const expireTime = parseInt(storedExpire, 10);
-          const remaining = Math.max(0, Math.floor((expireTime - Date.now()) / 1000));
+          const remaining = Math.max(
+            0,
+            Math.floor((expireTime - Date.now()) / 1000),
+          );
           setTimeLeft(remaining);
         } else {
           const durationSeconds = list[0].duration_minutes * 60;
@@ -82,7 +103,6 @@ export default function ExamReadingWorkspace() {
     fetchContent();
   }, [user?.user_id, paperId]);
 
-  // Start Section Timer
   useEffect(() => {
     if (loading || fetchError || questions.length === 0) return;
 
@@ -114,7 +134,15 @@ export default function ExamReadingWorkspace() {
       await submitB2ExamReadingAnswers(submission.id, {
         answers: currentAnswers,
       });
-      localStorage.removeItem(`b2_exam_timer_${user?.user_id || "guest"}_${paperId}_reading`);
+      localStorage.removeItem(
+        `b2_exam_timer_${user?.user_id || "guest"}_${paperId}_reading`,
+      );
+      trackB2Action("section_submitted", {
+        skill: "reading",
+        mode: "assessment",
+        entityId: paperId,
+      });
+      draft.clear();
       navigate(`/b2/exams/papers/${paperId}/reading/results`, {
         state: { submissionId: submission.id },
       });
@@ -162,7 +190,7 @@ export default function ExamReadingWorkspace() {
   };
 
   const handleListen = () => {
-    if (isSpeaking) {
+    if (isSpeaking || isLoadingAudio) {
       cancelSpeech();
     } else if (currentBlock?.passage_text) {
       speakText(currentBlock.passage_text, "de-DE");
@@ -174,12 +202,6 @@ export default function ExamReadingWorkspace() {
       cancelSpeech();
     };
   }, [currentBlockIndex]);
-
-  const formatSeconds = (totalSec) => {
-    const m = Math.floor(totalSec / 60);
-    const s = totalSec % 60;
-    return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  };
 
   const getDifficultyBadgeStyle = (diff) => {
     const d = String(diff).toLowerCase();
@@ -205,30 +227,23 @@ export default function ExamReadingWorkspace() {
     loading,
   });
 
-  if (loading) {
+  if (loading)
     return (
-      <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
+      <B2Page title="Reading" back="/b2/test">
+        <B2State loading />
+      </B2Page>
     );
-  }
 
-  if (fetchError || questions.length === 0) {
+  if (fetchError || questions.length === 0)
     return (
-      <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen flex flex-col items-center justify-center gap-3 bg-white px-6">
-        <AlertCircle className="w-6 h-6 text-red-500" />
-        <p className="text-slate-500 text-xs font-semibold text-center">
-          Failed to load Reading questions. Check back later.
-        </p>
-        <button
-          onClick={() => navigate("/b2/test")}
-          className="px-4 py-2 bg-sky-950 text-white rounded-lg text-xs font-semibold border-0 outline-none cursor-pointer"
-        >
-          Return to Dashboard
-        </button>
-      </div>
+      <B2Page title="Reading" back="/b2/test">
+        <B2State
+          title="Reading tasks couldn’t load"
+          description="Your connection may have dropped. Try again when you’re ready."
+          onRetry={fetchContent}
+        />
+      </B2Page>
     );
-  }
 
   const blockQuestions = currentBlock.questions || [];
   const isLastBlock = currentBlockIndex === questions.length - 1;
@@ -306,14 +321,12 @@ export default function ExamReadingWorkspace() {
 
     return (
       <>
-        {/* Text Body */}
         <div className="w-full pt-6 pb-10 bg-white flex flex-col justify-start items-center gap-6 px-5">
           <div className="w-full justify-start text-black text-xs font-normal leading-6 text-left break-words whitespace-pre-line">
             {currentBlock.passage_text}
           </div>
         </div>
 
-        {/* Questions Header */}
         <div className="self-stretch w-full px-4 py-4 bg-black/5 inline-flex justify-center items-center gap-3.5">
           <div className="w-9 h-9 relative bg-blue-950 rounded-sm overflow-hidden flex items-center justify-center shrink-0">
             <span className="text-white text-base font-bold">?</span>
@@ -323,8 +336,7 @@ export default function ExamReadingWorkspace() {
           </h2>
         </div>
 
-        {/* Questions Cards List */}
-        <div className="self-stretch px-4 pt-4 pb-36 bg-black/5 flex flex-col justify-start items-center gap-6">
+        <div className="self-stretch px-4 pt-4 pb-6 bg-black/5 flex flex-col justify-start items-center gap-6">
           {blockQuestions.map((q, qIdx) => {
             const ansKey = `${currentBlock.id}_${qIdx}`;
             const selectedOpt = answers[ansKey];
@@ -342,6 +354,7 @@ export default function ExamReadingWorkspace() {
                   <div className="self-stretch w-full">
                     <input
                       type="text"
+                      aria-label={q.question_text || "Your answer"}
                       value={selectedOpt || ""}
                       onChange={(e) => {
                         setAnswers((prev) => ({
@@ -388,7 +401,9 @@ export default function ExamReadingWorkspace() {
                     }
 
                     return (
-                      <div
+                      <button
+                        type="button"
+                        aria-pressed={isSelected}
                         key={optIdx}
                         onClick={() =>
                           handleOptionSelect(
@@ -398,9 +413,9 @@ export default function ExamReadingWorkspace() {
                             qType,
                           )
                         }
-                        className={`w-full p-2.5 rounded-lg border inline-flex justify-start items-center gap-3 cursor-pointer hover:bg-slate-50/50 transition-all ${cardClass}`}
+                        className={`b2-answer w-full p-2.5 rounded-lg border inline-flex justify-start items-center gap-3 cursor-pointer hover:bg-slate-50/50 transition-all ${cardClass}`}
                       >
-                        <div
+                        <span
                           className={`w-8 h-8 rounded-sm overflow-hidden shrink-0 flex items-center justify-center ${letterContainerClass}`}
                         >
                           <span
@@ -408,15 +423,15 @@ export default function ExamReadingWorkspace() {
                           >
                             {optionLetter}
                           </span>
-                        </div>
-                        <div className="flex-1 flex justify-start items-center gap-2.5 min-w-0">
+                        </span>
+                        <span className="flex-1 flex justify-start items-center gap-2.5 min-w-0">
                           <span
                             className={`flex-1 justify-start text-xs font-medium leading-5 text-left break-words ${optionTextClass}`}
                           >
                             {option}
                           </span>
-                        </div>
-                      </div>
+                        </span>
+                      </button>
                     );
                   })}
                 </div>
@@ -429,61 +444,21 @@ export default function ExamReadingWorkspace() {
   };
 
   return (
-    <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden relative">
+    <div className="b2-ui b2-workspace w-full max-w-md lg:max-w-none mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden relative">
       <Toaster position="top-center" />
 
-      {/* Navigation and Title Bar */}
-      <div
-        className="self-stretch px-4 pb-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white"
-        style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
-      >
-        <div className="self-stretch inline-flex justify-between items-center">
-          <button
-            onClick={() => navigate("/b2/test")}
-            className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
-          >
-            <ChevronLeft className="w-4 h-4 text-slate-900" />
-            <span className="text-center text-slate-900 text-sm font-semibold leading-6">
-              Back
-            </span>
-          </button>
-          <span className="text-center text-neutral-500 text-sm font-semibold leading-6">
-            Reading
-          </span>
-        </div>
-      </div>
+      {submitGuard.confirmation}
+      <B2WorkspaceHeader
+        skill="reading"
+        assessment={true}
+        index={currentBlockIndex}
+        total={questions.length}
+        timeLeft={timeLeft}
+        draftStatus={draft.status}
+        onLeave={() => navigate("/b2/test")}
+      />
 
-      {/* Progress & Time Limit Indicators */}
-      <div className="self-stretch px-4 pt-1 flex flex-col justify-start items-start gap-4 shrink-0 bg-white ">
-        <div className="self-stretch inline-flex justify-between items-center">
-          <span className="text-sky-950 text-base font-semibold leading-5">
-            Question {(currentBlockIndex + 1).toString().padStart(2, "0")} of{" "}
-            {questions.length.toString().padStart(2, "0")}
-          </span>
-          <div className="px-2 py-1 bg-black/5 rounded-[40px] border border-black/5 flex justify-center items-center gap-1.5 shrink-0">
-            <Clock className="w-3.5 h-3.5 text-sky-950" />
-            <span className="text-center text-sky-950 text-xs font-medium leading-5">
-              {formatSeconds(timeLeft)}
-            </span>
-          </div>
-        </div>
-
-        {/* Horizontal progress bar */}
-        <div className="self-stretch flex justify-start items-center gap-1.5 pb-4">
-          {questions.map((_, idx) => (
-            <div
-              key={idx}
-              className={`flex-1 h-2.5 rounded-[200px] transition-all ${
-                idx <= currentBlockIndex ? "bg-amber-300" : "bg-zinc-100"
-              }`}
-            ></div>
-          ))}
-        </div>
-      </div>
-
-      {/* Content Scroll Area */}
       <div className="flex-1 w-full overflow-y-auto">
-        {/* Cover image & Headline section */}
         <div className="self-stretch px-4 pt-4 flex flex-col justify-start items-start gap-4">
           {currentBlock.hero_image_url && (
             <img
@@ -517,39 +492,29 @@ export default function ExamReadingWorkspace() {
               </div>
             </div>
 
-            <button
-              onClick={handleListen}
-              disabled={isLoadingAudio}
-              className="h-7 px-2.5 bg-black/5 hover:bg-blue-950/20 active:scale-95 rounded-lg inline-flex justify-center items-center gap-1.5 cursor-pointer border-0 outline-none transition-all"
-            >
-              <Volume2
-                className={`w-3.5 h-3.5 text-blue-950 ${
-                  isSpeaking ? "animate-pulse" : ""
-                }`}
-              />
-              <span className="text-blue-950 text-xs font-medium">
-                {isSpeaking ? "Stop" : "Listen"}
-              </span>
-            </button>
+            <B2PassageAudio
+              isSpeaking={isSpeaking}
+              isLoadingAudio={isLoadingAudio}
+              onListen={handleListen}
+            />
           </div>
         </div>
 
         {renderContentArea()}
       </div>
 
-      {/* Floating Bottom Button Bar */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white/95 to-transparent flex flex-col gap-2.5 z-40 shrink-0">
+      <div className="b2-actionbar">
         <button
-          onClick={handleNext}
+          onClick={() => submitGuard.request(handleNext)}
           disabled={submitting}
-          className="w-full bg-blue-950 hover:bg-blue-900 active:scale-95 disabled:opacity-50 text-white text-sm font-semibold py-3 rounded-lg shadow-md transition-all outline-none border-0 cursor-pointer flex justify-center items-center"
+          className="b2-submit w-full bg-blue-950 hover:bg-blue-900 active:scale-95 disabled:opacity-50 text-white text-sm font-semibold py-3 rounded-lg shadow-md transition-all outline-none border-0 cursor-pointer flex justify-center items-center"
         >
           {submitting ? (
             <Loader2 className="w-4 h-4 animate-spin text-white" />
           ) : isLastBlock ? (
-            "Finish Reading Test"
+            "Submit section"
           ) : (
-            "Next Question"
+            "Next task"
           )}
         </button>
 
@@ -558,7 +523,7 @@ export default function ExamReadingWorkspace() {
             onClick={handlePrev}
             className="w-full py-3 bg-white hover:bg-slate-50 border border-zinc-300 active:scale-95 text-slate-700 text-sm font-semibold rounded-lg transition-all outline-none cursor-pointer flex justify-center items-center shadow-sm"
           >
-            Previous Question
+            Previous task
           </button>
         )}
       </div>
@@ -566,7 +531,6 @@ export default function ExamReadingWorkspace() {
   );
 }
 
-// Custom Reusable Dropdown Component for B2 Exams
 
 function CustomDropdown({
   options,
@@ -617,7 +581,6 @@ function CustomDropdown({
     "Z",
   ];
 
-  // Find label of currently selected option
   const selectedLabel = value
     ? options.find((_, idx) => alphabet[idx] === value)
     : null;
@@ -695,7 +658,6 @@ function CustomDropdown({
   );
 }
 
-// Custom Layout Modular Components for B2 Exams Rework
 
 function MatchingHeadersLayout({ block, answers, onSelect }) {
   const questions = block.questions || [];
@@ -747,7 +709,6 @@ function MatchingHeadersLayout({ block, answers, onSelect }) {
 
   return (
     <div className="w-full flex flex-col pt-4">
-      {/* Instructions & Reference list */}
       <div className="px-4 flex flex-col gap-4 mb-6">
         {block.passage_text && (
           <div className="w-full text-slate-600 text-xs leading-5 text-left border-l-4 border-amber-400 pl-3 py-1.5 bg-amber-50/30 rounded-r-lg">
@@ -781,7 +742,6 @@ function MatchingHeadersLayout({ block, answers, onSelect }) {
         </div>
       </div>
 
-      {/* Questions Header */}
       <div className="self-stretch w-full px-4 py-4 bg-black/5 inline-flex justify-center items-center gap-3.5">
         <div className="w-9 h-9 relative bg-blue-950 rounded-sm overflow-hidden flex items-center justify-center shrink-0">
           <span className="text-white text-base font-bold">?</span>
@@ -791,8 +751,7 @@ function MatchingHeadersLayout({ block, answers, onSelect }) {
         </h2>
       </div>
 
-      {/* Texts List with Dark Background */}
-      <div className="w-full px-4 pt-4 pb-36 bg-black/5 flex flex-col gap-5">
+      <div className="w-full px-4 pt-4 pb-6 bg-black/5 flex flex-col gap-5">
         {questions.map((q, qIdx) => {
           const ansKey = `${block.id}_${qIdx}`;
           const selectedValue = answers[ansKey] || "";
@@ -841,7 +800,10 @@ function ClozeTestLayout({ block, answers, onSelect }) {
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target)
+      ) {
         setActiveGapIdx(null);
       }
     }
@@ -892,7 +854,10 @@ function ClozeTestLayout({ block, answers, onSelect }) {
     activeQIdx !== -1 && activeQIdx !== null ? questions[activeQIdx] : null;
 
   return (
-    <div ref={containerRef} className="w-full flex flex-col gap-6 px-4 pt-4 pb-36">
+    <div
+      ref={containerRef}
+      className="w-full flex flex-col gap-6 px-4 pt-4 pb-6"
+    >
       <div className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm text-left leading-8 text-xs text-slate-800 whitespace-pre-line relative">
         {parsedParts.map((part, idx) => {
           if (part.type === "text") {
@@ -943,8 +908,8 @@ function ClozeTestLayout({ block, answers, onSelect }) {
                   isActive
                     ? "bg-amber-300 border-amber-500 text-sky-950 scale-105 ring-2 ring-amber-300/40"
                     : selectedLetter
-                    ? "bg-blue-50 border-blue-300 text-blue-700 font-semibold"
-                    : "bg-zinc-100 border-zinc-300 text-zinc-600 hover:bg-zinc-200"
+                      ? "bg-blue-50 border-blue-300 text-blue-700 font-semibold"
+                      : "bg-zinc-100 border-zinc-300 text-zinc-600 hover:bg-zinc-200"
                 }`}
               >
                 <span>{displayWord}</span>
@@ -954,16 +919,13 @@ function ClozeTestLayout({ block, answers, onSelect }) {
         })}
       </div>
 
-      {/* Floating Bottom Window Sheet at screen end when a gap is active */}
       {activeGapIdx !== null && activeQuestion && (
         <div
           onClick={(e) => e.stopPropagation()}
           className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-lg bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-15px_40px_rgba(0,40,86,0.2)] rounded-t-3xl p-4 pb-8 z-[150] flex flex-col gap-3 animate-in slide-in-from-bottom duration-200"
         >
-          {/* Grab Handle */}
           <div className="w-12 h-1 bg-slate-300 rounded-full mx-auto mb-1" />
 
-          {/* Sheet Header */}
           <div className="flex justify-between items-center pb-2 border-b border-slate-100">
             <span className="text-sky-950 font-bold text-xs uppercase tracking-wider">
               Select word for Gap [{activeGapIdx}]
@@ -990,7 +952,6 @@ function ClozeTestLayout({ block, answers, onSelect }) {
             </div>
           </div>
 
-          {/* Options Grid / List */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[240px] overflow-y-auto pr-0.5">
             {(activeQuestion.options || []).map((opt, optIdx) => {
               const letter = String.fromCharCode(65 + optIdx);

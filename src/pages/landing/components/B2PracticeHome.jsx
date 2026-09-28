@@ -1,212 +1,205 @@
-import { Link, useNavigate } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
-import mayaWave from "../../../assets/onboarding/mayaWave.webp";
-import { images } from "../../../assets/images.js";
-import { useUsageLimits } from "../../../hooks/useUsageLimits";
-import { hapticLight } from "../../../utils/haptics";
-
-const SKILLS = [
+import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
+import {
+  ArrowRight,
+  ChevronRight,
+  Clock3,
+  ClipboardList,
+} from "lucide-react";
+import { images } from "../../../assets/images";
+import useB2Access from "../../../hooks/useB2Access";
+import useB2PracticeResume from "../../../hooks/useB2PracticeResume";
+import { B2Button, B2ScoreRing, B2State } from "../../../components/b2/B2UI";
+import { normalizeB2Score } from "../../../utils/b2Scores";
+const skills = [
   {
-    id: "b2-reading-card",
-    moduleKey: "reading",
+    key: "reading",
     label: "Reading",
-    sub: "Texts, emails and grammar",
+    sub: "Texts & emails",
+    description: "Read for key details.",
     image: images.b2Reading,
-    link: "/b2/reading",
   },
   {
-    id: "b2-listening-card",
-    moduleKey: "listening",
+    key: "listening",
     label: "Listening",
-    sub: "Real exam audio",
+    sub: "Conversations",
+    description: "Listen for key details.",
     image: images.b2Listening,
-    link: "/b2/listening",
   },
   {
-    id: "b2-writing-card",
-    moduleKey: "writing",
-    label: "Writing",
-    sub: "Emails and short texts",
-    image: images.b2Writing,
-    link: "/b2/writing",
-  },
-  {
-    id: "b2-speaking-card",
-    moduleKey: "speaking",
+    key: "speaking",
     label: "Speaking",
-    sub: "Speak and get feedback",
+    sub: "Spoken German",
+    description: "Speak with more confidence.",
     image: images.b2Speaking,
-    link: "/b2/speaking",
+  },
+  {
+    key: "writing",
+    label: "Writing",
+    sub: "Written German",
+    description: "Write clear, everyday German.",
+    image: images.b2Writing,
   },
 ];
-
-// B2 landing content ("Home for nurses" design): Your test card → hub,
-// Practise next suggestion, the 2×2 skill grid and the full-exam navy card.
-// Usage-limit locking is preserved from the old feature cards — a locked
-// module opens the shared limit modal instead of navigating.
-export default function B2PracticeHome({ overview }) {
-  const navigate = useNavigate();
-  const { getState } = useUsageLimits();
-
-  const openModule = (moduleKey, link) => {
-    const state = getState("B2", moduleKey);
-    if (state?.locked) {
-      window.dispatchEvent(
-        new CustomEvent("skillcase:usage-limit", {
-          detail: {
-            locked: true,
-            reason: "usage_limit",
-            module_key: moduleKey,
-            level: "B2",
-            limit_value: state.limit_value,
-            periods: state.periods,
-            reset_at: state.reset_at,
-            msg: state.hard_locked
-              ? "This feature is currently locked."
-              : "Your limit for this feature has been reached.",
-          },
-        }),
-      );
-      return;
-    }
-    hapticLight();
-    navigate(link);
-  };
-
-  const completed = overview?.completed ?? 0;
-  const total = overview?.total ?? 0;
-  const nextPaper = overview?.nextPaper;
-  const lastScore = overview?.latest?.overallScore;
-  const suggested = overview?.suggested || null;
-
-  const testTitle =
-    lastScore != null
-      ? `Last test: ${Math.round(lastScore)}%`
-      : `Test ${completed + 1} of ${total || 10}`;
-  const testSub = !nextPaper
-    ? "All tests complete. See your progress."
-    : nextPaper.inProgress
-      ? "Continue where you left off."
-      : completed === 0
-        ? "Your first test is ready."
-        : "Your next test is ready. See your progress.";
-
+export default function B2PracticeHome({ overview, loading = false, onRetry }) {
+  const open = useB2Access();
+  const userId = useSelector((state) => state.auth.user?.user_id);
+  const savedPractice = useB2PracticeResume(userId);
+  const next = overview?.nextPaper,
+    suggested = overview?.suggested,
+    latest = overview?.latest;
+  const resumeTest = !!next?.inProgress;
+  const practice = savedPractice || suggested;
+  const practiceSkillDetails = skills.find(
+    (skill) => skill.key === practice?.module,
+  );
+  const practiceSkill = practiceSkillDetails?.label;
+  const practiceDescription = savedPractice
+    ? "Continue where you left off."
+    : practiceSkillDetails?.description;
+  const practiceTitle = practice?.title ||
+    (String(practice?.exerciseId) === String(suggested?.exerciseId)
+      ? suggested?.title
+      : `${practiceSkill} practice`);
+  const score = normalizeB2Score(latest?.overallScore);
   return (
-    <div className="bg-[#F5F7FA] rounded-t-[20px] p-4 flex flex-col gap-4 -mx-4">
-      {/* Your test */}
-      <Link
-        to="/b2/test"
-        id="b2-test-card"
-        className="flex items-center gap-3 bg-white border border-[#C7DBF7] rounded-xl pl-2 pr-3 py-2.5 min-h-[88px]"
-      >
-        <img
-          src={mayaWave}
-          alt=""
-          className="w-[72px] h-[72px] object-contain shrink-0 select-none pointer-events-none"
-        />
-        <span className="flex flex-col gap-[3px] flex-1 min-w-0">
-          <span className="text-xs font-semibold text-[#717680] uppercase tracking-[0.06em]">
-            Your test
-          </span>
-          <span className="font-semibold text-[17px] text-[#083262]">
-            {testTitle}
-          </span>
-          <span className="text-[13px] leading-snug text-[#535862]">
-            {testSub}
-          </span>
-        </span>
-        <ChevronRight className="w-5 h-5 text-[#083262] shrink-0" />
-      </Link>
-
-      {/* Practise next — weakest skill's suggested exercise */}
-      {suggested && (
-        <button
-          type="button"
-          id="b2-practise-next"
-          onClick={() =>
-            openModule(
-              suggested.module,
-              `/b2/${suggested.module}/${suggested.exerciseId}`,
-            )
-          }
-          className="w-full flex items-center gap-2.5 bg-white border border-[#E9EAEB] rounded-xl px-3 py-2.5 min-h-[52px] text-left cursor-pointer"
-        >
-          <span className="w-2 h-2 rounded-full bg-[#F04438] shrink-0" />
-          <span className="flex flex-col flex-1 min-w-0">
-            <span className="text-[13px] text-[#535862]">
-              Practise next:{" "}
-              <span className="font-semibold text-[#181D27]">
-                {suggested.skillLabel}
-              </span>
-            </span>
-            <span className="font-semibold text-sm text-[#181D27] truncate">
-              {suggested.title}
-            </span>
-          </span>
-          <span className="text-[13px] font-semibold text-[#083262] shrink-0">
-            Start
-          </span>
-        </button>
-      )}
-
-      {/* Practise by skill */}
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-col">
-          <span className="font-semibold text-base text-[#181D27]">
-            Practise by skill
-          </span>
-          <span className="text-[13px] text-[#717680]">
-            Short practice from real exams
-          </span>
+    <section className="b2-ui b2-home">
+      <h1 className="sr-only">B2 practice</h1>
+      {loading ? (
+        <B2State loading />
+      ) : !overview ? (
+        <div className="b2-note b2-note--warning">
+          Progress couldn’t load. You can still practise below.
+          {onRetry && (
+            <B2Button variant="quiet" onClick={onRetry}>
+              Reload progress
+            </B2Button>
+          )}
         </div>
-        <div className="grid grid-cols-2 gap-2.5">
-          {SKILLS.map((skill) => (
-            <button
-              key={skill.id}
-              type="button"
-              id={skill.id}
-              onClick={() => openModule(skill.moduleKey, skill.link)}
-              className="flex flex-col gap-1.5 bg-white border border-[#E9EAEB] rounded-xl p-1 text-left cursor-pointer hover:shadow-sm active:scale-[0.99] transition-all"
+      ) : next || latest ? (
+        <div className="b2-home-test" id="b2-test-card">
+          <Link
+            className="b2-home-test-progress"
+            to="/b2/test"
+            aria-label={score !== null
+              ? `Last test ${score}%, view assessment progress`
+              : "View test progress"}
+          >
+            <div className="b2-home-test-score" data-chart={!!latest} aria-hidden="true">
+              {latest ? <B2ScoreRing score={score} size={44} /> : <ClipboardList size={23} />}
+            </div>
+            <span className="b2-home-test-copy">
+              <strong>
+                {latest ? "Your last test" : resumeTest ? "Test in progress" : "Your first test"}
+              </strong>
+              <span>
+                {latest || resumeTest ? (
+                  <>View progress <ChevronRight size={13} aria-hidden="true" /></>
+                ) : (
+                  <><Clock3 size={13} aria-hidden="true" /> About {next.durationMinutes || 15} min</>
+                )}
+              </span>
+            </span>
+          </Link>
+          {next && (
+            <B2Button
+              className="b2-home-compact-action"
+              variant={practice ? "secondary" : "primary"}
+              aria-label={resumeTest ? "Resume test" : latest ? "Take next test" : "Prepare for test"}
+              onClick={() => open("exams", "/b2/test/ready")}
             >
-              <div className="rounded-lg overflow-hidden h-16 md:h-40">
-                <img
-                  src={skill.image}
-                  alt=""
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover select-none pointer-events-none"
-                />
+              {resumeTest ? "Resume test" : latest ? "Next test" : "Prepare"}
+            </B2Button>
+          )}
+        </div>
+      ) : null}
+      {practice && (
+        <div
+          className="b2-focus b2-home-recommendation"
+          id="b2-practise-next"
+        >
+          <div className="b2-home-recommendation-meta">
+            <span className="b2-eyebrow">
+              {savedPractice
+                ? `Continue ${practiceSkill?.toLowerCase()}`
+                : `Recommended ${practiceSkill?.toLowerCase()}`}
+            </span>
+            {savedPractice ? (
+              <span className="b2-home-duration">Saved on this device</span>
+            ) : practice.durationMinutes > 0 && (
+              <span className="b2-home-duration">
+                <Clock3 size={14} aria-hidden="true" />
+                {practice.durationMinutes} min
+              </span>
+            )}
+          </div>
+          <div className="b2-home-recommendation-main">
+            <div className="b2-home-recommendation-copy">
+              <h2>{practiceTitle}</h2>
+              {practiceDescription && <p>{practiceDescription}</p>}
+            </div>
+            <B2Button
+              className="b2-home-compact-action"
+              aria-label={savedPractice ? "Resume practice" : "Start practice"}
+              onClick={() =>
+                open(
+                  practice.module,
+                  `/b2/${practice.module}/${encodeURIComponent(practice.exerciseId)}`,
+                )
+              }
+            >
+              {savedPractice ? "Resume" : "Start"}
+              <ArrowRight size={14} aria-hidden="true" />
+            </B2Button>
+          </div>
+        </div>
+      )}
+      <section className="b2-stack b2-home-skills" id="b2-skills">
+        <div className="b2-home-skills-heading">
+          <h2>Practice</h2>
+          {!next && !latest && (
+            <Link
+              className="b2-progress-link"
+              to="/b2/test"
+              aria-label="Test progress"
+            >
+              <span>Test progress</span>
+              <ChevronRight size={16} aria-hidden="true" />
+            </Link>
+          )}
+        </div>
+        <div className="b2-skill-grid">
+          {skills.map((s) => (
+            <button
+              key={s.key}
+              id={`b2-${s.key}-card`}
+              className="b2-skill-card"
+              onClick={() => open(s.key, `/b2/${s.key}`)}
+            >
+              <span className="b2-skill-card-media"><img src={s.image} alt="" /></span>
+              <div>
+                <strong>{s.label}</strong>
+                <p>{s.sub}</p>
               </div>
-              <span className="font-semibold text-[15px] text-[#181D27] px-1.5">
-                {skill.label}
-              </span>
-              <span className="text-xs leading-snug text-[#535862] px-1.5 pb-1.5">
-                {skill.sub}
-              </span>
             </button>
           ))}
+          <Link
+            id="b2-exams-card"
+            className="b2-skill-card b2-mock-card"
+            to="/b2/exams"
+            aria-label="Mock tests, Goethe and telc, coming soon"
+          >
+            <span className="b2-skill-card-media">
+              <img src={images.mockTest} alt="" />
+              <span className="b2-card-availability">Coming soon</span>
+            </span>
+            <div>
+              <strong>Mock tests</strong>
+              <p>Goethe &amp; telc</p>
+            </div>
+          </Link>
         </div>
-      </div>
-
-      {/* Full exam practice (placeholder for now) */}
-      <button
-        type="button"
-        id="b2-exams-card"
-        onClick={() => openModule("exams", "/b2/exams")}
-        className="w-full flex items-center gap-3 bg-[#083262] rounded-xl p-3.5 text-left cursor-pointer hover:bg-[#0b3d78] active:scale-[0.99] transition-all"
-      >
-        <span className="flex flex-col gap-0.5 flex-1 min-w-0">
-          <span className="font-semibold text-[15px] text-white">
-            Full exam practice
-          </span>
-          <span className="text-xs leading-snug text-white/75">
-            Real Goethe and telc exams, with a timer
-          </span>
-        </span>
-        <span className="h-11 px-[18px] rounded-lg bg-[#EDB843] text-[#083262] font-semibold text-[15px] flex items-center shrink-0">
-          Start
-        </span>
-      </button>
-    </div>
+      </section>
+    </section>
   );
 }

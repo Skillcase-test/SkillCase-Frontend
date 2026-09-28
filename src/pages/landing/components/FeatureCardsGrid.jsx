@@ -6,7 +6,6 @@ import B2PracticeHome from "./B2PracticeHome";
 import B2ExamGate from "../../../components/b2/B2ExamGate";
 import { images } from "../../../assets/images.js";
 import { useState, useEffect } from "react";
-import { ChevronRight } from "lucide-react";
 import FeatureStatusChip from "../../../components/ui/FeatureStatusChip";
 import { hapticLight } from "../../../utils/haptics";
 import { getB2TestOverview } from "../../../api/b2Api";
@@ -279,7 +278,17 @@ export default function FeatureCardsGrid() {
       {isB2 ? (
         <>
           {showB2Gate && <B2ExamGate overview={b2Overview} />}
-          <B2PracticeHome overview={b2Overview} />
+          <B2PracticeHome
+            overview={b2Overview}
+            loading={b2Loading}
+            onRetry={() => {
+              setB2Loading(true);
+              getB2TestOverview()
+                .then((r) => setB2Overview(r.data))
+                .catch(() => setB2Overview(null))
+                .finally(() => setB2Loading(false));
+            }}
+          />
           <ExamCards />
         </>
       ) : (

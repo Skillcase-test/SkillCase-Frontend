@@ -1,13 +1,16 @@
+import B2ResponseReviewCard from "../../../components/b2/B2ResponseReviewCard";
+import { normalizeB2Score } from "../../../utils/b2Scores";
+import { getScoreGreeting } from "../utils/scoreUtils";
+import { B2Page, B2State } from "../../../components/b2/B2UI";
+import B2ResultSummary from "../../../components/b2/B2ResultSummary";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { resolveB2SubmissionId } from "../../../utils/b2Submission";
 import {
   ChevronLeft,
   Loader2,
   AlertCircle,
-  CheckCircle2,
-  XCircle,
-  HelpCircle,
   Play,
   Pause,
   ThumbsUp,
@@ -37,7 +40,6 @@ export default function ExamSpeakingResults() {
   const [reviewBlockIndex, setReviewBlockIndex] = useState(null);
   const [isOverallCompleted, setIsOverallCompleted] = useState(false);
 
-  // Playback states for review
   const [isPlayingBack, setIsPlayingBack] = useState(false);
   const [playbackTime, setPlaybackTime] = useState(0);
   const [playbackDuration, setPlaybackDuration] = useState(0);
@@ -48,11 +50,12 @@ export default function ExamSpeakingResults() {
     setLoading(true);
     setFetchError(false);
     try {
-      if (!submissionId) {
-        throw new Error("No submissionId provided in state");
+      const resolvedId = await resolveB2SubmissionId(paperId, submissionId);
+      if (!resolvedId) {
+        throw new Error("No submission found for this paper");
       }
 
-      const statusRes = await getB2ExamSubmissionStatus(submissionId);
+      const statusRes = await getB2ExamSubmissionStatus(resolvedId);
       setIsOverallCompleted(statusRes.data.submission?.status === "completed");
 
       const sectionsList = Array.isArray(statusRes.data.sections)
@@ -78,7 +81,6 @@ export default function ExamSpeakingResults() {
     fetchResults();
   }, [user?.user_id, paperId, submissionId]);
 
-  // Clean up audio and scroll to top when review question index changes
   useEffect(() => {
     if (playbackAudioRef.current) {
       playbackAudioRef.current.pause();
@@ -154,46 +156,32 @@ export default function ExamSpeakingResults() {
     handleBackToDashboard();
   };
 
-  if (loading) {
+  if (loading)
     return (
-      <div className="w-full max-w-md mx-auto min-h-screen flex items-center justify-center bg-white shadow-sm">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
+      <B2Page title="Speaking" back="/b2/test">
+        <B2State loading />
+      </B2Page>
     );
-  }
 
-  if (fetchError || !sectionData) {
+  if (fetchError || !sectionData)
     return (
-      <div className="w-full max-w-md mx-auto min-h-screen flex flex-col items-center justify-center gap-3 bg-white px-6">
-        <AlertCircle className="w-6 h-6 text-red-500" />
-        <p className="text-slate-500 text-xs font-semibold text-center">
-          Failed to load Speaking results.
-        </p>
-        <button
-          onClick={handleBackToDashboard}
-          className="px-4 py-2 bg-sky-950 text-white rounded-lg text-xs font-semibold border-0 outline-none cursor-pointer"
-        >
-          Return to Dashboard
-        </button>
-      </div>
+      <B2Page title="Speaking" back="/b2/test">
+        <B2State
+          title="Speaking feedback couldn’t load"
+          description="Your connection may have dropped. Try again when you’re ready."
+          onRetry={fetchResults}
+        />
+      </B2Page>
     );
-  }
 
-  const score = Math.round(parseFloat(sectionData.score || 0));
   const answersMap = sectionData.answers || {};
   const feedbackData = sectionData.feedback || {};
 
   const whatWentWell =
-    feedbackData.whatWentWell || "Good sentence flow and clear pronunciation.";
+    feedbackData.whatWentWell || "Feedback is not available yet.";
   const tryToImprove =
     feedbackData.tryToImprove ||
-    "Work on some word stress and vowel sounds to improve.";
-  const overallMetrics = feedbackData.metrics || {
-    pronunciation: score,
-    fluency: score,
-    accuracy: score,
-    completeness: score,
-  };
+    "Open your response to check for available feedback.";
 
   const flatQuestions = questions.map((block) => {
     const userAns = answersMap[block.id] || {};
@@ -201,9 +189,7 @@ export default function ExamSpeakingResults() {
       (feedbackData.questions
         ? feedbackData.questions[block.id]
         : feedbackData[block.id]) || {};
-    const qScore =
-      report.score !== undefined ? Math.round(report.score) : score;
-    const isCorrect = qScore >= 50; // Threshold 50%
+    const qScore = normalizeB2Score(report.score);
     const skipped = !userAns.audio_url;
 
     return {
@@ -211,7 +197,6 @@ export default function ExamSpeakingResults() {
       userAns,
       report,
       qScore,
-      isCorrect,
       skipped,
     };
   });
@@ -222,12 +207,7 @@ export default function ExamSpeakingResults() {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  const getScoreGreeting = (scoreVal) => {
-    const val = Number(scoreVal || 0);
-    if (val >= 70) return "Good job";
-    if (val >= 50) return "Well done!";
-    return "Keep practicing!";
-  };
+
 
   const padZero = (num) => {
     return String(num || 0).padStart(2, "0");
@@ -240,8 +220,7 @@ export default function ExamSpeakingResults() {
 
   const qObj = currentBlock?.questions?.[0] || {};
   return (
-    <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden shadow-sm relative pb-24">
-      {/* Navigation bar */}
+    <div className="b2-ui b2-review w-full max-w-md mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden shadow-sm relative pb-24">
       <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
         <div className="self-stretch inline-flex justify-between items-center">
           <button
@@ -263,83 +242,16 @@ export default function ExamSpeakingResults() {
       </div>
 
       {!reviewMode ? (
-        /* ================= RESULTS DASHBOARD VIEW ================= */
-        <div className="flex-1 w-full overflow-y-auto px-4 py-6 flex flex-col justify-start items-center gap-6">
-          <div className="w-full px-5 pt-10 pb-5 bg-black/5 rounded-xl flex flex-col justify-start items-center gap-9">
-            <div className="flex flex-col justify-start items-center gap-3">
-              <div className="text-center text-sky-950 text-base font-semibold leading-5">
-                Speaking Feedback
-              </div>
-              <div className="text-center text-sky-950 text-3xl font-semibold leading-9">
-                {getScoreGreeting(score)}
-              </div>
-            </div>
-
-            <ScoreRing score={score} label="overall speaking accuracy" />
-
-            {/* Sub-metrics sliders */}
-            <div className="w-full flex flex-col justify-start items-start gap-3">
-              <MetricBar
-                label="Pronunciation"
-                score={overallMetrics.pronunciation}
-              />
-              <MetricBar label="Fluency" score={overallMetrics.fluency} />
-              <MetricBar label="Accuracy" score={overallMetrics.accuracy} />
-              <MetricBar
-                label="Completeness"
-                score={overallMetrics.completeness}
-              />
-            </div>
-
-            {/* Qualitative overall feedback went-well / improve */}
-            <div className="w-full flex flex-col justify-start items-start gap-3">
-              <div className="self-stretch p-3 bg-white rounded-xl border border-zinc-400/50 inline-flex justify-start items-start gap-2 text-left">
-                <div className="w-4 h-4 shrink-0 relative overflow-hidden mt-0.5 text-green-700 font-bold flex items-center justify-center border border-green-700 rounded-full text-[10px]">
-                  ✓
-                </div>
-                <div className="flex-1 inline-flex flex-col justify-start items-start gap-1">
-                  <div className="self-stretch justify-start text-black text-xs font-semibold">
-                    What went well
-                  </div>
-                  <div className="self-stretch justify-start text-black text-xs font-normal leading-relaxed">
-                    {whatWentWell}
-                  </div>
-                </div>
-              </div>
-
-              <div className="self-stretch p-3 bg-white rounded-xl border border-zinc-400/50 inline-flex justify-start items-start gap-2 text-left">
-                <div className="w-4 h-4 shrink-0 relative overflow-hidden mt-0.5 text-red-500 font-bold flex items-center justify-center border border-red-500 rounded-full text-[10px]">
-                  !
-                </div>
-                <div className="flex-1 inline-flex flex-col justify-start items-start gap-1">
-                  <div className="self-stretch justify-start text-black text-xs font-semibold">
-                    Try to improve
-                  </div>
-                  <div className="self-stretch justify-start text-black text-xs font-normal leading-relaxed">
-                    {tryToImprove}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Action buttons inside the card */}
-            <div className="self-stretch flex flex-col gap-2 w-full">
-              <button
-                onClick={() => setReviewMode(true)}
-                className="w-full bg-[#0a1f44] hover:bg-[#06142c] active:scale-95 text-white text-sm font-semibold py-3 rounded-lg shadow-md transition-all cursor-pointer text-center flex items-center justify-center gap-2 border-0 outline-none"
-              >
-                <span>Review Answers</span>
-              </button>
-
-              <button
-                onClick={handleStartNextSection}
-                className="w-full py-3 rounded-lg border border-zinc-300 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm transition-all flex items-center justify-center gap-1.5 outline-none cursor-pointer active:scale-95"
-              >
-                <span>Start Next Section</span>
-              </button>
-            </div>
-          </div>
-        </div>
+        <B2ResultSummary
+          skill="speaking"
+          assessment={true}
+          data={sectionData}
+          onReview={() => {
+            setReviewMode(true);
+            setReviewBlockIndex(null);
+          }}
+          onContinue={handleStartNextSection}
+        />
       ) : reviewBlockIndex === null ? (
         /* ================= REVIEW ANSWER INDEX LIST VIEW ================= */
         <div className="flex-1 w-full overflow-y-auto px-4 py-6 flex flex-col gap-3 pb-24">
@@ -353,53 +265,13 @@ export default function ExamSpeakingResults() {
           </div>
 
           <div className="flex flex-col gap-3">
-            {flatQuestions.map((q, idx) => {
-              const cardBg = q.skipped
-                ? "bg-zinc-50 border-zinc-200 hover:border-zinc-300"
-                : q.isCorrect
-                ? "bg-emerald-50 border-green-700/20 hover:border-green-700/40"
-                : "bg-rose-50 border-red-500/20 hover:border-red-500/40";
-
-              const iconColor = q.skipped
-                ? "text-zinc-400"
-                : q.isCorrect
-                ? "text-green-700"
-                : "text-red-500";
-
-              return (
-                <div
-                  key={idx}
-                  onClick={() => setReviewBlockIndex(idx)}
-                  className={`p-3 rounded-xl border flex justify-between items-center cursor-pointer transition-all ${cardBg}`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
-                        q.skipped
-                          ? "bg-zinc-100 text-zinc-400"
-                          : q.isCorrect
-                          ? "bg-green-700/10 text-green-700"
-                          : "bg-red-500/10 text-red-500"
-                      }`}
-                    >
-                      {(idx + 1).toString().padStart(2, "0")}
-                    </div>
-                    <span className="text-slate-900 text-xs font-semibold leading-snug truncate">
-                      {q.block_title || `Speaking Task ${idx + 1}`}
-                    </span>
-                  </div>
-                  <div className="shrink-0 ml-3">
-                    {q.skipped ? (
-                      <HelpCircle className={`w-5 h-5 ${iconColor}`} />
-                    ) : q.isCorrect ? (
-                      <CheckCircle2 className={`w-5 h-5 ${iconColor}`} />
-                    ) : (
-                      <XCircle className={`w-5 h-5 ${iconColor}`} />
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {flatQuestions.map((q, idx) => (
+              <B2ResponseReviewCard
+                key={idx} index={idx} title={q.block_title || `Speaking Task ${idx + 1}`}
+                score={q.qScore} skipped={q.skipped}
+                onClick={() => setReviewBlockIndex(idx)}
+              />
+            ))}
           </div>
         </div>
       ) : (
@@ -422,11 +294,12 @@ export default function ExamSpeakingResults() {
             </div>
           </div>
 
-          <div ref={scrollContainerRef} className="flex-1 w-full overflow-y-auto pb-52">
-            {/* Dynamic Prompt Render Section (White background) */}
+          <div
+            ref={scrollContainerRef}
+            className="flex-1 w-full overflow-y-auto pb-52"
+          >
             <div className="self-stretch px-4 pt-4 pb-6 flex flex-col justify-start items-start bg-white shrink-0">
               <div className="w-full flex flex-col gap-4 text-left">
-                {/* Prompt Image if present */}
                 {currentBlock.speaking_prompt_image && (
                   <img
                     src={currentBlock.speaking_prompt_image}
@@ -435,12 +308,10 @@ export default function ExamSpeakingResults() {
                   />
                 )}
 
-                {/* Block Title */}
                 <h3 className="text-sky-950 text-base font-semibold leading-6">
                   {currentBlock.block_title}
                 </h3>
 
-                {/* Passage Text (Cues/Opinions context) */}
                 {currentBlock.passage_text && (
                   <div className="w-full p-3 border border-zinc-200 rounded-xl bg-slate-50">
                     <p className="text-slate-750 text-xs font-normal leading-relaxed whitespace-pre-line">
@@ -449,7 +320,6 @@ export default function ExamSpeakingResults() {
                   </div>
                 )}
 
-                {/* Task Question Text */}
                 {qObj.question_text && (
                   <div className="w-full p-3.5 bg-blue-50/40 border border-blue-100 rounded-xl text-left">
                     <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider block mb-1">
@@ -463,9 +333,7 @@ export default function ExamSpeakingResults() {
               </div>
             </div>
 
-            {/* Bottom Content Area */}
             <div className="self-stretch px-4 flex flex-col gap-4">
-              {/* Recorded Speech Audio Player */}
               {currentBlockData.userAns?.audio_url && (
                 <div className="w-full pt-4 pb-6 bg-white flex flex-col justify-start items-start gap-3 mt-4">
                   <div className="w-full text-left text-sky-950 text-sm font-bold leading-5">
@@ -486,7 +354,6 @@ export default function ExamSpeakingResults() {
                 </div>
               )}
 
-              {/* Transcribed Text transcription */}
               {currentBlockData.report?.transcript && (
                 <div className="p-4 bg-white border border-zinc-200 rounded-xl text-left flex flex-col gap-1 shadow-sm mt-4">
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
@@ -498,7 +365,6 @@ export default function ExamSpeakingResults() {
                 </div>
               )}
 
-              {/* Speaking Feedback metrics card */}
               {!currentBlockData.skipped && (
                 <div className="self-stretch pb-6 mt-4">
                   <div className="w-full px-5 pt-10 pb-5 bg-black/5 rounded-xl flex flex-col justify-start items-center gap-9">
@@ -516,47 +382,33 @@ export default function ExamSpeakingResults() {
                       label="overall speaking accuracy"
                     />
 
-                    {/* Metric progress bars */}
                     <div className="w-full flex flex-col justify-start items-start gap-3">
                       <MetricBar
                         label="Pronunciation"
                         score={
-                          currentBlockData.report?.metrics?.pronunciation !==
-                          undefined
-                            ? currentBlockData.report.metrics.pronunciation
-                            : currentBlockData.qScore
+                          currentBlockData.report?.metrics?.pronunciation
                         }
                       />
                       <MetricBar
                         label="Fluency"
                         score={
-                          currentBlockData.report?.metrics?.fluency !==
-                          undefined
-                            ? currentBlockData.report.metrics.fluency
-                            : currentBlockData.qScore
+                          currentBlockData.report?.metrics?.fluency
                         }
                       />
                       <MetricBar
                         label="Accuracy"
                         score={
-                          currentBlockData.report?.metrics?.accuracy !==
-                          undefined
-                            ? currentBlockData.report.metrics.accuracy
-                            : currentBlockData.qScore
+                          currentBlockData.report?.metrics?.accuracy
                         }
                       />
                       <MetricBar
                         label="Completeness"
                         score={
-                          currentBlockData.report?.metrics?.completeness !==
-                          undefined
-                            ? currentBlockData.report.metrics.completeness
-                            : currentBlockData.qScore
+                          currentBlockData.report?.metrics?.completeness
                         }
                       />
                     </div>
 
-                    {/* Qualitative overall feedback went-well / improve */}
                     <div className="w-full flex flex-col justify-start items-start gap-3">
                       {whatWentWell && (
                         <div className="w-full p-4 bg-white rounded-xl border border-zinc-200 inline-flex justify-start items-start gap-3 text-left shadow-sm">
@@ -594,7 +446,6 @@ export default function ExamSpeakingResults() {
         </div>
       )}
 
-      {/* Sticky Bottom Actions */}
       {reviewMode && (
         <div className="absolute bottom-0 inset-x-0 p-4 flex flex-col gap-2 shrink-0 z-10">
           {reviewBlockIndex !== null ? (
@@ -627,7 +478,7 @@ export default function ExamSpeakingResults() {
                 onClick={handleStartNextSection}
                 className="w-full py-3 bg-white hover:bg-slate-50 border border-zinc-300 active:scale-95 text-blue-950 text-sm font-semibold rounded-lg transition-all outline-none cursor-pointer flex justify-center items-center shadow-sm"
               >
-                Start Next Section
+                Continue assessment
               </button>
             </>
           ) : (
@@ -635,7 +486,7 @@ export default function ExamSpeakingResults() {
               onClick={handleStartNextSection}
               className="w-full py-3 bg-blue-950 hover:bg-blue-900 active:scale-95 text-white text-sm font-semibold rounded-lg transition-all outline-none border-0 cursor-pointer flex justify-center items-center"
             >
-              Start Next Section
+              Continue assessment
             </button>
           )}
         </div>

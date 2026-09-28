@@ -1,6 +1,9 @@
+import { B2Page, B2State } from "../../../components/b2/B2UI";
+import B2ResultSummary from "../../../components/b2/B2ResultSummary";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { resolveB2SubmissionId } from "../../../utils/b2Submission";
 import {
   ChevronLeft,
   Loader2,
@@ -36,15 +39,11 @@ export default function ExamListeningResults() {
   const [isOverallCompleted, setIsOverallCompleted] = useState(false);
   const containerRef = useRef(null);
 
-  // Custom audio player states
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioDuration, setAudioDuration] = useState(0);
   const [audioProgress, setAudioProgress] = useState(0);
   const audioRef = useRef(null);
 
-  const score = sectionData
-    ? Math.round(parseFloat(sectionData.score || 0))
-    : 0;
   const answersMap = sectionData ? sectionData.answers || {} : {};
 
   const isExamQuestionCorrect = (userAns, q) => {
@@ -74,7 +73,9 @@ export default function ExamListeningResults() {
 
       let correctArr = [];
       if (Array.isArray(q.correct_option)) {
-        correctArr = q.correct_option.map((v) => String(v).trim().toLowerCase());
+        correctArr = q.correct_option.map((v) =>
+          String(v).trim().toLowerCase(),
+        );
       } else if (typeof q.correct_option === "string") {
         correctArr = q.correct_option
           .split(",")
@@ -155,11 +156,12 @@ export default function ExamListeningResults() {
     setLoading(true);
     setFetchError(false);
     try {
-      if (!submissionId) {
-        throw new Error("No submissionId provided in state");
+      const resolvedId = await resolveB2SubmissionId(paperId, submissionId);
+      if (!resolvedId) {
+        throw new Error("No submission found for this paper");
       }
 
-      const statusRes = await getB2ExamSubmissionStatus(submissionId);
+      const statusRes = await getB2ExamSubmissionStatus(resolvedId);
       setIsOverallCompleted(statusRes.data.submission?.status === "completed");
 
       const sectionsList = Array.isArray(statusRes.data.sections)
@@ -185,7 +187,6 @@ export default function ExamListeningResults() {
     fetchResults();
   }, [user?.user_id, paperId, submissionId]);
 
-  // Audio track initializer
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -231,7 +232,6 @@ export default function ExamListeningResults() {
     }
   }, [reviewBlockIndex, currentBlock?.audio_url]);
 
-  // Scroll to top when review page changes
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = 0;
@@ -267,30 +267,23 @@ export default function ExamListeningResults() {
     handleBackToDashboard();
   };
 
-  if (loading) {
+  if (loading)
     return (
-      <div className="w-full max-w-md mx-auto min-h-screen flex items-center justify-center bg-white shadow-sm">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
+      <B2Page title="Listening" back="/b2/test">
+        <B2State loading />
+      </B2Page>
     );
-  }
 
-  if (fetchError || !sectionData) {
+  if (fetchError || !sectionData)
     return (
-      <div className="w-full max-w-md mx-auto min-h-screen flex flex-col items-center justify-center gap-3 bg-white px-6">
-        <AlertCircle className="w-6 h-6 text-red-500" />
-        <p className="text-slate-500 text-xs font-semibold text-center">
-          Failed to load Listening results.
-        </p>
-        <button
-          onClick={handleBackToDashboard}
-          className="px-4 py-2 bg-sky-950 text-white rounded-lg text-xs font-semibold border-0 outline-none cursor-pointer"
-        >
-          Return to Dashboard
-        </button>
-      </div>
+      <B2Page title="Listening" back="/b2/test">
+        <B2State
+          title="Listening feedback couldn’t load"
+          description="Your connection may have dropped. Try again when you’re ready."
+          onRetry={fetchResults}
+        />
+      </B2Page>
     );
-  }
 
   const formatSeconds = (totalSec) => {
     const m = Math.floor(totalSec / 60);
@@ -298,27 +291,13 @@ export default function ExamListeningResults() {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-
-  const getGreeting = () => {
-    if (score >= 70) return "Good job";
-    if (score >= 50) return "Well done!";
-    return "Keep practicing!";
-  };
-
-  const size = 120;
-  const strokeWidth = 10;
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (score / 100) * circumference;
-
-  // Waveform bars variables
   const totalWaveformBars = 44;
-  const currentPlayedRatio = audioDuration > 0 ? audioProgress / audioDuration : 0;
+  const currentPlayedRatio =
+    audioDuration > 0 ? audioProgress / audioDuration : 0;
   const playedBarsCount = Math.floor(currentPlayedRatio * totalWaveformBars);
 
   return (
-    <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden shadow-sm relative">
-      {/* Navigation bar */}
+    <div className="b2-ui b2-review w-full max-w-md mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden shadow-sm relative">
       <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
         <div className="self-stretch inline-flex justify-between items-center">
           <button
@@ -347,99 +326,16 @@ export default function ExamListeningResults() {
       </div>
 
       {!reviewMode ? (
-        /* ================= RESULTS DASHBOARD VIEW ================= */
-        <div className="flex-1 w-full overflow-y-auto px-4 py-6 flex flex-col justify-start items-center">
-          <div className="w-full max-w-[360px] px-5 pt-8 pb-6 bg-black/5 rounded-xl flex flex-col justify-start items-center gap-6 border border-zinc-200/50">
-            <h2 className="text-center text-sky-950 text-2xl font-semibold leading-9">
-              {getGreeting()}
-            </h2>
-
-            <div className="relative flex items-center justify-center w-32 h-32">
-              <svg width={size} height={size} className="transform -rotate-90">
-                <circle
-                  stroke="#e2e8f0"
-                  fill="transparent"
-                  strokeWidth={strokeWidth}
-                  r={radius}
-                  cx={size / 2}
-                  cy={size / 2}
-                />
-                <circle
-                  stroke="#0BAA45"
-                  fill="transparent"
-                  strokeWidth={strokeWidth}
-                  strokeDasharray={circumference}
-                  strokeDashoffset={strokeDashoffset}
-                  strokeLinecap="round"
-                  r={radius}
-                  cx={size / 2}
-                  cy={size / 2}
-                  className="transition-all duration-500 ease-out"
-                />
-              </svg>
-              <div className="absolute flex flex-col items-center justify-center">
-                <span className="text-2xl font-semibold text-sky-950 leading-none">
-                  {score}%
-                </span>
-                <span className="text-sky-950 text-[8px] font-semibold mt-1 text-center whitespace-nowrap">
-                  {sectionData.correct_count} of {flatQuestions.length} correct
-                </span>
-              </div>
-            </div>
-
-            <div className="self-stretch inline-flex justify-start items-center gap-2">
-              <div className="flex-1 p-2 bg-green-700/10 rounded-md border border-green-700/20 flex justify-center items-center">
-                <div className="w-11 inline-flex flex-col justify-center items-center">
-                  <span className="w-16 text-center text-green-700 text-[10px] font-medium leading-5">
-                    Correct
-                  </span>
-                  <span className="text-center text-green-700 text-xl font-semibold mt-0.5">
-                    {padZero(sectionData.correct_count)}
-                  </span>
-                </div>
-              </div>
-              <div className="flex-1 p-2 bg-red-100 rounded-md border border-red-200/30 flex justify-center items-center">
-                <div className="w-11 inline-flex flex-col justify-center items-center">
-                  <span className="w-16 text-center text-red-500 text-[10px] font-medium leading-5">
-                    Incorrect
-                  </span>
-                  <span className="text-center text-red-500 text-xl font-semibold mt-0.5">
-                    {padZero(sectionData.incorrect_count)}
-                  </span>
-                </div>
-              </div>
-              <div className="flex-1 p-2 bg-neutral-400/20 rounded-md border border-neutral-300/30 flex justify-center items-center">
-                <div className="w-11 inline-flex flex-col justify-center items-center">
-                  <span className="w-16 text-center text-neutral-500 text-[10px] font-medium leading-5">
-                    Skipped
-                  </span>
-                  <span className="text-center text-neutral-500 text-xl font-semibold mt-0.5">
-                    {padZero(sectionData.skipped_count)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="self-stretch flex flex-col justify-start items-start gap-2">
-              <button
-                onClick={() => {
-                  setReviewMode(true);
-                  setReviewBlockIndex(null);
-                }}
-                className="self-stretch px-4 py-3 active:scale-95 text-xs font-semibold leading-5 rounded-lg cursor-pointer outline-none transition-all flex justify-center items-center border-0 bg-[#002856] hover:bg-blue-900 text-white"
-              >
-                Review Answers
-              </button>
-
-              <button
-                onClick={handleStartNextSection}
-                className="self-stretch px-4 py-3 active:scale-95 text-xs font-semibold leading-5 rounded-lg cursor-pointer outline-none transition-all flex justify-center items-center text-blue-950 hover:bg-slate-50 border border-zinc-300"
-              >
-                Start Next Section
-              </button>
-            </div>
-          </div>
-        </div>
+        <B2ResultSummary
+          skill="listening"
+          assessment={true}
+          data={sectionData}
+          onReview={() => {
+            setReviewMode(true);
+            setReviewBlockIndex(null);
+          }}
+          onContinue={handleStartNextSection}
+        />
       ) : reviewBlockIndex === null ? (
         /* ================= REVIEW ANSWER INDEX LIST VIEW ================= */
         <div className="flex-1 w-full overflow-y-auto px-4 py-3 flex flex-col gap-3 pb-24">
@@ -448,7 +344,7 @@ export default function ExamListeningResults() {
               Listening Review
             </h3>
             <p className="text-slate-500 text-xs">
-              Click any question below to see details.
+              Choose a task to review your answers.
             </p>
           </div>
 
@@ -458,38 +354,39 @@ export default function ExamListeningResults() {
               const cardBg = q.isCorrect
                 ? "bg-emerald-50 border-green-700/20 hover:border-green-700/40"
                 : skipped
-                ? "bg-zinc-50 border-zinc-200 hover:border-zinc-300"
-                : "bg-rose-50 border-red-500/20 hover:border-red-500/40";
+                  ? "bg-zinc-50 border-zinc-200 hover:border-zinc-300"
+                  : "bg-rose-50 border-red-500/20 hover:border-red-500/40";
 
               const iconColor = q.isCorrect
                 ? "text-green-700"
                 : skipped
-                ? "text-zinc-400"
-                : "text-red-500";
+                  ? "text-zinc-400"
+                  : "text-red-500";
 
               return (
-                <div
+                <button
+                  type="button"
                   key={idx}
                   onClick={() => setReviewBlockIndex(q.blockIndex)}
                   className={`p-3 rounded-xl border flex justify-between items-center cursor-pointer transition-all ${cardBg}`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div
+                  <span className="flex items-center gap-3 min-w-0">
+                    <span
                       className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
                         q.isCorrect
                           ? "bg-green-700/10 text-green-700"
                           : skipped
-                          ? "bg-zinc-100 text-zinc-400"
-                          : "bg-red-500/10 text-red-500"
+                            ? "bg-zinc-100 text-zinc-400"
+                            : "bg-red-500/10 text-red-500"
                       }`}
                     >
                       {padZero(q.qIdx + 1)}
-                    </div>
+                    </span>
                     <span className="text-slate-900 text-xs font-semibold leading-snug truncate">
                       {q.question_text}
                     </span>
-                  </div>
-                  <div className="shrink-0 ml-3">
+                  </span>
+                  <span className="shrink-0 ml-3">
                     {q.isCorrect ? (
                       <CheckCircle2 className={`w-5 h-5 ${iconColor}`} />
                     ) : skipped ? (
@@ -497,18 +394,18 @@ export default function ExamListeningResults() {
                     ) : (
                       <XCircle className={`w-5 h-5 ${iconColor}`} />
                     )}
-                  </div>
-                </div>
+                  </span>
+                </button>
               );
             })}
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col gap-2.5 z-40 shrink-0">
+          <div className="b2-actionbar">
             <button
               onClick={handleStartNextSection}
               className="w-full max-w-[380px] mx-auto py-3 bg-[#002856] hover:bg-blue-900 active:scale-[0.99] text-white text-base font-semibold rounded-lg shadow-md transition-all outline-none border-0 cursor-pointer flex justify-center items-center"
             >
-              Start Next Section
+              Continue assessment
             </button>
           </div>
         </div>
@@ -532,13 +429,12 @@ export default function ExamListeningResults() {
           </div>
 
           <div className="flex-1 w-full overflow-y-auto">
-            {/* Waveform Player Section */}
             {currentBlock?.audio_url && (
               <div className="self-stretch px-4 pt-3 pb-6 flex flex-col gap-2.5 bg-white shrink-0 border-b border-zinc-100">
-                {/* Player row: play button + waveform bars + duration */}
                 <div className="self-stretch flex items-center gap-4">
-                  {/* Play/Pause Button — large navy circle */}
                   <button
+                    type="button"
+                    aria-label={isPlaying ? "Pause audio" : "Play audio"}
                     onClick={handlePlayPause}
                     className="size-16 bg-[#0a1f44] hover:bg-[#06142c] active:scale-95 text-white rounded-full flex items-center justify-center outline-none border-0 cursor-pointer shadow-md transition-all shrink-0"
                   >
@@ -549,35 +445,35 @@ export default function ExamListeningResults() {
                     )}
                   </button>
 
-                  {/* Waveform bars — centered on middle axis, fills remaining width */}
                   <div className="flex-1 flex items-center justify-between h-8 overflow-hidden">
-                    {Array.from({ length: totalWaveformBars }).map((_, barIdx) => {
-                      const isPlayed = barIdx <= playedBarsCount;
-                      const heights = [
-                        10, 18, 24, 12, 28, 8, 20, 14, 28, 8, 16, 22, 10, 26, 8, 12,
-                        28, 6, 18, 24, 14, 28, 8, 10, 20, 16, 28, 8, 12, 22, 10, 26,
-                        8, 18, 14, 28, 6, 20, 12, 28, 10, 16, 8, 24,
-                      ];
-                      const height = heights[barIdx % heights.length];
-                      return (
-                        <div
-                          key={barIdx}
-                          style={{ height: `${height}px` }}
-                          className={`w-[3px] rounded-full transition-colors shrink-0 ${
-                            isPlayed ? "bg-[#0a1f44]" : "bg-black/20"
-                          }`}
-                        />
-                      );
-                    })}
+                    {Array.from({ length: totalWaveformBars }).map(
+                      (_, barIdx) => {
+                        const isPlayed = barIdx <= playedBarsCount;
+                        const heights = [
+                          10, 18, 24, 12, 28, 8, 20, 14, 28, 8, 16, 22, 10, 26,
+                          8, 12, 28, 6, 18, 24, 14, 28, 8, 10, 20, 16, 28, 8,
+                          12, 22, 10, 26, 8, 18, 14, 28, 6, 20, 12, 28, 10, 16,
+                          8, 24,
+                        ];
+                        const height = heights[barIdx % heights.length];
+                        return (
+                          <div
+                            key={barIdx}
+                            style={{ height: `${height}px` }}
+                            className={`w-[3px] rounded-full transition-colors shrink-0 ${
+                              isPlayed ? "bg-[#0a1f44]" : "bg-black/20"
+                            }`}
+                          />
+                        );
+                      },
+                    )}
                   </div>
 
-                  {/* Duration label */}
                   <span className="text-xs font-semibold text-black/40 shrink-0">
                     {formatSeconds(Math.round(audioDuration || 0))}
                   </span>
                 </div>
 
-                {/* Subtitle — left-aligned, bold, larger */}
                 <p className="self-stretch text-sky-950 text-base font-bold leading-6">
                   Listen to the audio and answer the questions below
                 </p>
@@ -774,14 +670,16 @@ export default function ExamListeningResults() {
                                 Skipped:
                               </span>
                               <p className="text-zinc-500 text-[11px] leading-normal mt-0.5">
-                                You skipped this question. The correct option
-                                is {correctStr}.
+                                You skipped this question. The correct option is{" "}
+                                {correctStr}.
                               </p>
                             </div>
                           );
                         }
 
-                        const displayCorrectOpt = Array.isArray(q.correct_option)
+                        const displayCorrectOpt = Array.isArray(
+                          q.correct_option,
+                        )
                           ? q.correct_option.join(", ")
                           : q.correct_option;
 
@@ -806,7 +704,7 @@ export default function ExamListeningResults() {
                             </span>
                             <p className="text-red-500 text-[11px] leading-normal mt-0.5">
                               {q.explanation ||
-                                  `The correct answer is Option ${displayCorrectOpt}.`}
+                                `The correct answer is Option ${displayCorrectOpt}.`}
                             </p>
                           </div>
                         );
@@ -818,7 +716,7 @@ export default function ExamListeningResults() {
             </div>
           </div>
 
-          <div className="absolute bottom-0 left-0 right-0 p-4 flex flex-col gap-2.5 z-40 shrink-0 bg-transparent">
+          <div className="b2-actionbar">
             <div className="w-full max-w-[380px] flex flex-col gap-2 mx-auto">
               {reviewBlockIndex < questions.length - 1 ? (
                 <button
@@ -840,7 +738,7 @@ export default function ExamListeningResults() {
                 onClick={handleStartNextSection}
                 className="w-full py-3 border border-zinc-300 bg-white text-blue-950 hover:bg-slate-50 active:scale-[0.99] text-xs font-semibold rounded-lg transition-all outline-none cursor-pointer flex justify-center items-center shadow-sm"
               >
-                Start Next Section
+                Continue assessment
               </button>
             </div>
           </div>
