@@ -1,0 +1,106 @@
+/* Passport book chrome — the one place Tailwind utilities genuinely can't go:
+   a page that turns on a spine in 3D. Scoped under .lg2-pb so nothing leaks. */
+
+.lg2-pb { width: min(340px, 92vw); margin: 0 auto; perspective: 1400px; }
+.lg2-pb-book { position: relative; aspect-ratio: 5/7; transform-style: preserve-3d; }
+
+.lg2-pb-page {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(23,51,109,0.045), transparent 70%),
+    #faf6ee;
+  border: 1px solid #e5ddcb; border-radius: 4px 12px 12px 4px;
+  box-shadow: inset 0 0 0 1px #fff, 0 2px 10px rgba(23,51,109,0.08);
+  padding: 14px; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.lg2-pb-page::before { /* spine shadow */
+  content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 18px;
+  background: linear-gradient(90deg, rgba(23,51,109,0.12), transparent);
+}
+.lg2-pb-guilloche {
+  position: absolute; inset: 6px; border: 1px solid rgba(23,51,109,0.14);
+  border-radius: 2px 8px 8px 2px; pointer-events: none;
+}
+.lg2-pb-guilloche::after {
+  content: ""; position: absolute; inset: 3px;
+  border: 1px dashed rgba(23,51,109,0.10); border-radius: 2px 7px 7px 2px;
+}
+
+.lg2-pb-page-no { font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: #8a8fa3; margin-bottom: 8px; }
+.lg2-pb-slots { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-content: center; }
+.lg2-pb-slot { aspect-ratio: 1; display: grid; place-items: center; }
+.lg2-pb-slot svg { width: 96%; height: 96%; }
+.lg2-pb-slot:not(.on) { border: 1.5px dashed rgba(23,51,109,0.18); border-radius: 50%; }
+
+.lg2-pb-data-head { font-size: 11px; font-weight: 800; letter-spacing: .1em; color: #17336d; text-align: center; text-transform: uppercase; margin-bottom: 12px; }
+.lg2-pb-data-row { display: flex; gap: 12px; align-items: flex-start; }
+.lg2-pb-portrait {
+  width: 64px; height: 80px; border-radius: 4px; background: #e8e2d2;
+  border: 1px solid #d8d0ba; display: grid; place-items: center;
+  color: #8a8fa3; font-weight: 800; font-size: 18px; overflow: hidden;
+}
+.lg2-pb-portrait img { width: 100%; height: 100%; object-fit: cover; }
+.lg2-pb-fields { flex: 1; margin: 0; font-size: 11px; }
+.lg2-pb-fields dt { color: #8a8fa3; text-transform: uppercase; letter-spacing: .08em; font-size: 9px; margin-top: 8px; }
+.lg2-pb-fields dt:first-child { margin-top: 0; }
+.lg2-pb-fields dd { margin: 1px 0 0; font-weight: 700; color: #1e293b; font-size: 12px; text-transform: uppercase; }
+.lg2-pb-mrz { margin-top: auto; font-family: ui-monospace, monospace; font-size: 8.5px; letter-spacing: .06em; color: #64748b; line-height: 1.7; word-break: break-all; }
+
+/* Book machinery */
+.lg2-pb-under, .lg2-pb-live { position: absolute; inset: 0; }
+.lg2-pb-live { z-index: 1; }
+.lg2-pb-leaf {
+  position: absolute; inset: 0; z-index: 3; transform-style: preserve-3d;
+  transform-origin: left center;
+}
+.lg2-pb-leaf.next { animation: lg2-pb-turn-next .86s cubic-bezier(.3,.7,.4,1) forwards; }
+.lg2-pb-leaf.prev { animation: lg2-pb-turn-prev .86s cubic-bezier(.3,.7,.4,1) forwards; }
+.lg2-pb-leaf-face { position: absolute; inset: 0; backface-visibility: hidden; }
+.lg2-pb-leaf-face.back { transform: rotateY(180deg); }
+.lg2-pb-leaf-face .lg2-pb-page { position: absolute; inset: 0; }
+.lg2-pb-shade { position: absolute; inset: 0; background: rgba(23,51,109,0); pointer-events: none; }
+.lg2-pb-leaf.next .front .lg2-pb-shade { animation: lg2-pb-shade-out .86s forwards; }
+.lg2-pb-leaf.next .back .lg2-pb-shade { animation: lg2-pb-shade-in .86s forwards; }
+.lg2-pb-undershade { position: absolute; inset: 0; background: rgba(23,51,109,.12); z-index: 2; animation: lg2-pb-shade-in .86s forwards reverse; pointer-events: none; }
+
+.lg2-pb-cover {
+  position: absolute; inset: 0; z-index: 5; transform-origin: left center;
+  transform-style: preserve-3d; transition: transform 1.05s cubic-bezier(.3,.7,.3,1);
+  pointer-events: none;
+}
+.lg2-pb-book.open .lg2-pb-cover { transform: rotateY(-160deg); }
+.lg2-pb-cover-inner {
+  position: absolute; inset: 0; border-radius: 4px 12px 12px 4px;
+  background: linear-gradient(135deg, #1d4287, #17336d 60%, #10254f);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 8px 24px rgba(16,37,79,.35);
+}
+.lg2-pb-crest svg { width: 56px; height: 56px; fill: none; stroke: #EDB843; stroke-width: 2.2; }
+.lg2-pb-cover-brand { color: rgba(255,255,255,.6); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; }
+.lg2-pb-cover-title { color: #fff; font-size: 26px; font-weight: 800; letter-spacing: .02em; }
+.lg2-pb-cover-sub { color: #EDB843; font-size: 11px; letter-spacing: .12em; }
+.lg2-pb-cover-spine { position: absolute; top: 0; bottom: 0; left: 0; width: 12px; background: linear-gradient(90deg, rgba(0,0,0,.35), transparent); }
+
+.lg2-pb-nav { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 14px; }
+.lg2-pb-arrow {
+  width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid #d8d0ba;
+  background: #fff; color: #17336d; display: grid; place-items: center;
+}
+.lg2-pb-arrow:disabled { opacity: .35; }
+.lg2-pb-arrow svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.lg2-pb-dots { display: flex; gap: 5px; }
+.lg2-pb-dots i { width: 6px; height: 6px; border-radius: 50%; background: #d8d0ba; }
+.lg2-pb-dots i.on { background: #17336d; }
+
+@keyframes lg2-pb-turn-next { from { transform: rotateY(0); } to { transform: rotateY(-180deg); } }
+@keyframes lg2-pb-turn-prev { from { transform: rotateY(-180deg); } to { transform: rotateY(0); } }
+@keyframes lg2-pb-shade-out { from { background: rgba(23,51,109,0); } to { background: rgba(23,51,109,.18); } }
+@keyframes lg2-pb-shade-in { from { background: rgba(23,51,109,.22); } to { background: rgba(23,51,109,0); } }
+
+@keyframes lg2-stamp-in {
+  0% { opacity: 0; transform: scale(1.7) rotate(-6deg); }
+  60% { opacity: 1; transform: scale(0.94) rotate(0deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.lg2-pb-slot.landing svg { animation: lg2-stamp-in .45s cubic-bezier(.2,1.4,.4,1) both; }

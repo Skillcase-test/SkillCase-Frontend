@@ -239,9 +239,16 @@ const JobScreeningTermsSignPage = lazy(
   () => import("./pages/terms/JobScreeningTermsSignPage"),
 );
 const Dashboard = lazy(() => import("./dashboard-src/pages/Dashboard"));
-const LearnGermanHome = lazy(
-  () => import("./pages/learnGerman/LearnGermanHome"),
+// /learn-german resolves to v1 or Guided German v2 per the user's assigned
+// variant + the learn_german_v2 flag (see LearnGermanGate).
+const LearnGermanGate = lazy(
+  () => import("./pages/learnGerman/LearnGermanGate"),
 );
+const Lg2LessonPage = lazy(
+  () => import("./pages/learnGermanV2/Lg2LessonPage"),
+);
+const Lg2Recap = lazy(() => import("./pages/learnGermanV2/Lg2Recap"));
+const Lg2Passport = lazy(() => import("./pages/learnGermanV2/Lg2Passport"));
 const JobScreening = lazy(() => import("./pages/jobScreening/JobScreening"));
 const JobsLockedPage = lazy(() => import("./pages/jobs/JobsLockedPage"));
 const JobScreeningAdmin = lazy(() => import("./pages/admin/JobScreeningAdmin"));
@@ -535,6 +542,7 @@ function AppContent() {
       // debounce. The hub keeps pull-to-refresh — it has something to refresh.
       /^\/scholarship\/[^/]+\/take$/.test(location.pathname) ||
       location.pathname.startsWith("/learn-german/lesson") ||
+      location.pathname.startsWith("/learn-german/v2/lesson") ||
       location.pathname.startsWith("/video-course/") ||
       location.pathname.startsWith("/video-courses/") ||
       location.pathname.startsWith("/onboarding"),
@@ -1617,11 +1625,12 @@ function AppContent() {
                     element={<Navigate to="/a2/flashcard" replace />}
                   />
 
-                  {/* Learn German */}
+                  {/* Learn German — the gate picks v1 or Guided German v2 by
+                      the user's stored variant + the learn_german_v2 flag. */}
                   <Route
                     path="/learn-german"
                     element={lazyScreen(
-                      <LearnGermanHome />,
+                      <LearnGermanGate />,
                       "Loading Learn German...",
                     )}
                   />
@@ -1636,6 +1645,21 @@ function AppContent() {
                   <Route
                     path="/learn-german/recap/:chapterId"
                     element={lazyScreen(<RecapScreen />, "Loading Recap...")}
+                  />
+                  {/* Guided German v2 — non-shell routes like v1's lesson
+                      flow. The backend 403s these when the flag is off, and
+                      the pages bounce back to /learn-german. */}
+                  <Route
+                    path="/learn-german/v2/lesson/:topicId/:subKey"
+                    element={lazyScreen(<Lg2LessonPage />, "Loading Lesson...")}
+                  />
+                  <Route
+                    path="/learn-german/v2/recap/:topicId"
+                    element={lazyScreen(<Lg2Recap />, "Loading Recap...")}
+                  />
+                  <Route
+                    path="/learn-german/v2/passport"
+                    element={lazyScreen(<Lg2Passport />, "Loading Passport...")}
                   />
 
                   {/* A2 Flashcard */}

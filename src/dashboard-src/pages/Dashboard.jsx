@@ -66,6 +66,9 @@ const SupportTicketsAdmin = lazy(() => import("./SupportTicketsAdmin"));
 const DynamicLessonAdmin = lazy(
   () => import("../../pages/admin/DynamicLessonAdmin"),
 );
+const LearnGermanV2Admin = lazy(
+  () => import("../../pages/admin/LearnGermanV2Admin"),
+);
 const JobScreeningAdmin = lazy(
   () => import("../../pages/admin/JobScreeningAdmin"),
 );
@@ -1158,6 +1161,11 @@ export default function Dashboard() {
               label: "Learn German",
               path: "/admin/dynamic-lesson",
             },
+            {
+              key: "learn-german-v2",
+              label: "Guided German v2",
+              path: "/admin/learn-german-v2",
+            },
           ]
         : []),
     ];
@@ -1598,6 +1606,14 @@ export default function Dashboard() {
                 element={
                   <Guard allowed={hasPermission(me, "learn_german", "edit")}>
                     <DynamicLessonAdmin />
+                  </Guard>
+                }
+              />
+              <Route
+                path="learn-german-v2"
+                element={
+                  <Guard allowed={hasPermission(me, "learn_german", "edit")}>
+                    <LearnGermanV2Admin />
                   </Guard>
                 }
               />
