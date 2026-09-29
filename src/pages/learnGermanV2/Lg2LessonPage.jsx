@@ -3,11 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import Maya, { MayaSays } from "./components/Maya";
 import ExplainSheet from "./components/ExplainSheet";
-import PassportBook from "./components/PassportBook";
 import Typed from "./components/Typed";
+import Img from "./components/Img";
+import StampReward from "./guided/StampReward";
+import { rememberPassportStamp } from "./guided/journeyModel";
 import {
   shuffle, wordsForStep, pickPraise, pickMindBlown, withName,
-  subKey, nextSub, topicFullyDone, topicDoneCount, rewardLine,
+  subKey, nextSub, topicFullyDone, topicDoneCount,
 } from "./lib/curriculum";
 import StepBody from "./steps";
 import { fanfare, resetStreak, preloadLg2TTS } from "./lib/audio";
@@ -145,10 +147,28 @@ export default function Lg2LessonPage() {
 
   const onExit = () => navigate("/learn-german");
 
-  const isDone = (t, done) => topicFullyDone(t, done);
+  // The stamp ceremony waits on the save: a stamp shown before the server
+  // has the completion would be a stamp that might not exist.
+  const saveCompletion = async ({ topic, sub, secs, accuracy, bestCombo }) => {
+    setRewardInfo((r) => (r ? { ...r, status: "saving" } : r));
+    try {
+      await completeLg2Sub({ topicId: topic.id, subKey: sub.key, secs, accuracy, bestCombo });
+      rememberPassportStamp(user?.user_id, topic.id);
+      setRewardInfo((r) => (r ? { ...r, status: "saved" } : r));
+    } catch (err) {
+      if (!err?.response) {
+        // Network-level failure — queue it for retry, offer Retry saving.
+        enqueueProgress({ kind: "complete", topicId: topic.id, subKey: sub.key, payload: { secs, accuracy, bestCombo } });
+      }
+      // A 4xx means the server heard us and refused — Retry just fails again
+      // honestly; Back to learning leaves the queue to flush next visit.
+      setRewardInfo((r) => (r ? { ...r, status: "failed" } : r));
+    }
+  };
 
   const onSubFinished = async ({ topic, sub, bestCombo, misses, stepsLen, secs }) => {
     const key = subKey(topic, sub);
+    const isNew = !topicFullyDone(topic, learner.done);
     const doneAfter = learner.done.includes(key) ? learner.done : [...learner.done, key];
     const fullyDone = topicFullyDone(topic, doneAfter);
     const accuracy = Math.max(0, Math.round(100 - (misses * 100) / (stepsLen || 1)));
@@ -165,24 +185,24 @@ export default function Lg2LessonPage() {
         newWords: newWords || [],
       });
       setPhase("part");
+      try {
+        await completeLg2Sub({ topicId: topic.id, subKey: sub.key, secs, accuracy, bestCombo });
+      } catch (err) {
+        if (!err?.response) {
+          // Network-level failure — queue it for retry.
+          enqueueProgress({ kind: "complete", topicId: topic.id, subKey: sub.key, payload: { secs, accuracy, bestCombo } });
+        }
+        // A 402/403/404 means the server heard us and refused — nothing to
+        // retry; the backend's own accounting decides what counted.
+      }
     } else {
       const nextTopic = topics.find((t) => !topicFullyDone(t, doneAfter)) || null;
-      setRewardInfo({ topic, accuracy, bestCombo, secs, nextTopic });
+      const words = new Set(
+        (topic.subs || []).flatMap((x) => (x.teaches || []).map((w) => w[0])),
+      ).size;
+      setRewardInfo({ topic, nextTopic, isNew, words, status: "saving", secs, accuracy, bestCombo, sub });
       setPhase("reward");
-    }
-
-    // Send first; if the request dies, the completion waits in localStorage
-    // and flushes on the next save or reconnect — a dead request must not
-    // eat a finished lesson.
-    try {
-      await completeLg2Sub({ topicId: topic.id, subKey: sub.key, secs, accuracy, bestCombo });
-    } catch (err) {
-      if (!err?.response) {
-        // Network-level failure — queue it for retry.
-        enqueueProgress({ kind: "complete", topicId: topic.id, subKey: sub.key, payload: { secs, accuracy, bestCombo } });
-      }
-      // A 402/403/404 means the server heard us and refused — nothing to
-      // retry; the backend's own accounting decides what counted.
+      await saveCompletion({ topic, sub, secs, accuracy, bestCombo });
     }
   };
 
@@ -193,7 +213,17 @@ export default function Lg2LessonPage() {
   };
 
   const goHome = () => navigate("/learn-german");
-  const goPassport = () => navigate("/learn-german/v2/passport");
+  const goPassport = () =>
+    navigate("/learn-german/v2/passport", {
+      state: { earned: rewardInfo?.isNew ? rewardInfo.topic.id : null },
+    });
+  const continueToNextTopic = () => {
+    const next = rewardInfo?.nextTopic;
+    if (!next) { goHome(); return; }
+    const sub = nextSub(next, learner.done) || next.subs?.[0];
+    if (sub) navigate(`/learn-german/v2/lesson/${next.id}/${sub.key}`);
+    else goHome();
+  };
 
   if (phase === "loading") {
     return (
@@ -229,15 +259,17 @@ export default function Lg2LessonPage() {
 
   if (phase === "reward" && rewardInfo) {
     return (
-      <RewardScreen
+      <StampReward
         topic={rewardInfo.topic}
-        stats={rewardInfo}
-        topics={topics}
         done={learner.done}
-        isDone={isDone}
-        userName={userName}
-        onNext={goHome}
+        userId={user?.user_id}
+        status={rewardInfo.status}
+        isNew={rewardInfo.isNew}
+        words={rewardInfo.words}
+        onRetry={() => saveCompletion(rewardInfo)}
+        onClose={goHome}
         onPassport={goPassport}
+        onContinue={continueToNextTopic}
       />
     );
   }
@@ -470,7 +502,10 @@ function LessonEngine({
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-3 pt-3">
+      {/* flex-col keeps step roots as flex items — full-bleed steps (chat,
+          story) size themselves with flex-1 because a percentage height can
+          never resolve against this min-h chain. */}
+      <div className="flex flex-1 flex-col overflow-y-auto px-4 pb-3 pt-3">
         {!MAYA_SKIP.includes(s.t) && (
           <MayaSays mood={MAYA_MOOD[s.t] || "curious"} text={MAYA_LINE[s.t] || "Let's try this one."} />
         )}
@@ -577,7 +612,7 @@ function PartCompleteScreen({
     <section className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-[#17336d]">
       {backdrop && (
         <div className="absolute inset-0" aria-hidden="true">
-          <img src={backdrop} alt="" className="h-full w-full object-cover opacity-30" />
+          <Img src={backdrop} alt="" className="h-full w-full opacity-30" />
         </div>
       )}
       <div className="relative z-10 flex flex-1 items-center justify-center px-5 pt-8">
@@ -628,48 +663,3 @@ function PartCompleteScreen({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* Reward — the passport stamp ceremony after a whole topic is done.     */
-/* ------------------------------------------------------------------ */
-function RewardScreen({ topic = {}, stats = {}, topics = [], done = [], isDone, userName, onNext, onPassport }) {
-  const { accuracy = 100, bestCombo = 0, secs = 0, nextTopic = null } = stats || {};
-  const [landed, setLanded] = useState(false);
-  const proof = withName(topic?.proof, userName ? userName.split(" ")[0] : null);
-
-  return (
-    <section className="lg2 flex min-h-[100dvh] flex-col bg-[#f4f6fb] px-4 pb-6 pt-6">
-      <div className="text-center text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Stamp earned</div>
-
-      <div className="mt-6 flex-1">
-        <PassportBook
-          ceremony
-          landingId={topic?.id}
-          topics={topics}
-          done={done}
-          stats={stats}
-          isDone={isDone}
-          userName={userName}
-          onLanded={() => setLanded(true)}
-        />
-      </div>
-
-      <div className="mt-4 text-center text-[15px] font-semibold text-slate-700">
-        {topic?.capability || proof || "Module complete."}
-      </div>
-
-      <div className="mt-4">
-        <MayaSays text={rewardLine(accuracy, bestCombo, secs)} mood="cheer" />
-        <button
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#17336d] py-3.5 text-[15px] font-bold text-white shadow-md disabled:opacity-40"
-          disabled={!landed}
-          onClick={onNext}
-        >
-          {nextTopic?.title ? `Next: ${nextTopic.title}` : "Back to the path"}
-        </button>
-        <button className="mt-2 w-full text-center text-xs font-semibold text-slate-400" onClick={onPassport}>
-          Open my passport
-        </button>
-      </div>
-    </section>
-  );
-}

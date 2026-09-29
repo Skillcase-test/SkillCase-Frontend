@@ -1,4 +1,5 @@
 import { treatmentFor, tileArt, heroArt } from "../lib/vocabArt";
+import Img from "./Img";
 
 /* One slot, several treatments — photo | numeral | swatch | weekday | usage |
  * contrast — so a screen mixing them reads as a designed set rather than one
@@ -17,7 +18,7 @@ export function WordArt({ de, en, pic, size = 84, variant = "tile" }) {
           variant === "hero" ? "w-full" : "w-full max-w-[220px]"
         }`}
       >
-        <img src={src} alt={en || de} loading="lazy" className="aspect-[4/3] w-full object-cover" />
+        <Img src={src} alt={en || de} loading="lazy" className="aspect-[4/3] w-full" />
       </span>
     );
   }

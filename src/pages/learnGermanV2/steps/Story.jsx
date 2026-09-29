@@ -3,6 +3,7 @@ import { narrate } from "../lib/audio";
 import { moduleBackdrop } from "../lib/vocabArt";
 import Maya from "../components/Maya";
 import Typed from "../components/Typed";
+import Img from "../components/Img";
 
 /* The module opener: full-bleed backdrop, translucent card with the chapter
  * name, Maya typing the line, dots for multi-line beats. Owns its own footer
@@ -30,7 +31,7 @@ export default function Story({ step, ctx }) {
     <div className="relative -mx-4 -my-2 flex min-h-[70vh] flex-col overflow-hidden rounded-b-3xl">
       {backdrop && (
         <div className="absolute inset-0" aria-hidden="true">
-          <img src={backdrop} alt="" className="h-full w-full object-cover" />
+          <Img src={backdrop} alt="" className="h-full w-full" />
           <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black/50 to-transparent" />
         </div>
       )}

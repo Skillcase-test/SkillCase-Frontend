@@ -6,6 +6,7 @@ import { MayaSays } from "../components/Maya";
 import Typed from "../components/Typed";
 import MicButton from "../components/MicButton";
 import Glyph from "../components/Glyph";
+import Img from "../components/Img";
 import { npcFor, npcPortrait, moduleBackdrop, npcFullFor, whoLabel } from "../lib/vocabArt";
 
 const CHAT_HINTS = [
@@ -256,13 +257,16 @@ export default function Chat({ step = {}, ctx = {} }) {
 
   if (!started) {
     const full = npcFullFor(ctx?.topic || ctx?.moduleId, step?.who);
+    // flex-1, not h-full: the step area is a flex column whose height comes
+    // from flex, which percentage heights can't resolve against — h-full
+    // collapsed the scene to 0px and clipped everything inside it.
     return (
-      <div className="flex h-full min-h-0 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col">
         <div className="px-1">
           <MayaSays mood="greet" type text={`Now — try talking to ${whoLabel(step?.who)} in German.`} />
         </div>
         <div className="relative flex-1 overflow-hidden rounded-3xl ring-1 ring-slate-200">
-          {full && <img src={full} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />}
+          {full && <Img src={full} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full" />}
           <div className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-black/60 to-transparent" />
           <div className="absolute inset-x-4 bottom-24">
             <div className="rounded-2xl bg-white/95 px-4 py-3 shadow-lg">
@@ -291,13 +295,13 @@ export default function Chat({ step = {}, ctx = {} }) {
       <div className="relative -mx-4 -mt-2 mb-3 overflow-hidden">
         {backdrop && (
           <div className="absolute inset-0" aria-hidden="true">
-            <img src={backdrop} alt="" className="h-full w-full object-cover" />
+            <Img src={backdrop} alt="" className="h-full w-full" />
             <div className="absolute inset-0 bg-white/70 backdrop-blur-sm" />
           </div>
         )}
         <div className="relative flex items-center gap-3 px-4 py-3">
           {npcImg ? (
-            <img className="h-11 w-11 rounded-full object-cover ring-2 ring-white" src={npcImg} alt="" aria-hidden="true" />
+            <Img className="h-11 w-11 rounded-full ring-2 ring-white" src={npcImg} alt="" aria-hidden="true" />
           ) : (
             <span className="grid h-11 w-11 place-items-center rounded-full bg-slate-200 text-slate-500 ring-2 ring-white">
               <Glyph name="chat" size={20} />
@@ -325,7 +329,7 @@ export default function Chat({ step = {}, ctx = {} }) {
               {m.side === "me" ? (
                 <span className="grid h-8 w-8 place-items-center rounded-full bg-[#17336d] text-xs font-extrabold text-white">{meInitial}</span>
               ) : npcImg ? (
-                <img src={npcImg} alt="" aria-hidden="true" className="h-8 w-8 rounded-full object-cover" />
+                <Img src={npcImg} alt="" aria-hidden="true" className="h-8 w-8 rounded-full" />
               ) : (
                 <span className="grid h-8 w-8 place-items-center rounded-full bg-slate-200 text-slate-500">
                   {step?.avatar || <Glyph name="chat" size={16} />}
@@ -351,7 +355,7 @@ export default function Chat({ step = {}, ctx = {} }) {
         {typing && (
           <div className="flex items-end gap-2">
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-200 text-slate-500">
-              {npcImg ? <img src={npcImg} alt="" aria-hidden="true" className="h-8 w-8 rounded-full object-cover" /> : (step?.avatar || <Glyph name="chat" size={16} />)}
+              {npcImg ? <Img src={npcImg} alt="" aria-hidden="true" className="h-8 w-8 rounded-full" /> : (step?.avatar || <Glyph name="chat" size={16} />)}
             </span>
             <div className="flex gap-1 rounded-2xl rounded-bl-md bg-white px-4 py-3.5 ring-1 ring-slate-200">
               <i className="h-2 w-2 animate-bounce rounded-full bg-slate-300" />

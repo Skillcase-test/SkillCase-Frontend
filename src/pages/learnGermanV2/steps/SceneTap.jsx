@@ -2,6 +2,7 @@ import { useState } from "react";
 import { shuffle } from "../lib/curriculum";
 import { speak, blip } from "../lib/audio";
 import { tapSceneArt } from "../lib/vocabArt";
+import Img from "../components/Img";
 
 const NOT_THAT = ["Not that one.", "Not quite. Try another.", "Close, but no."];
 
@@ -47,7 +48,7 @@ export default function SceneTap({ step, ctx }) {
       <div className="mt-2 flex flex-col items-center gap-2">
         {sceneImg ? (
           <div className={`w-full overflow-hidden rounded-2xl ${step.flip && !revealed ? "opacity-40 blur-sm" : ""}`}>
-            <img src={sceneImg} alt="" className="aspect-[4/3] w-full object-cover" />
+            <Img src={sceneImg} alt="" className="aspect-[4/3] w-full" />
           </div>
         ) : (
           <div className={`text-4xl ${step.flip && !revealed ? "opacity-40 blur-sm" : ""}`}>{step.scene}</div>

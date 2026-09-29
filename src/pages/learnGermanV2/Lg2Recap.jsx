@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { getLg2Art, getLg2Curriculum } from "../../api/learnGermanV2Api";
 import { loadArtManifest, moduleScene } from "./lib/vocabArt";
 import { speak } from "./lib/audio";
+import Img from "./components/Img";
 
 /* What a finished topic gives you back: every word it taught, in the order it
  * taught them, each one speakable on tap, and a way back in. Not a score
@@ -100,7 +101,7 @@ export default function Lg2Recap() {
       <div className="flex-1 overflow-y-auto px-4 pb-4 pt-3">
         {scene && (
           <div className="mb-4 h-36 overflow-hidden rounded-2xl ring-1 ring-slate-200">
-            <img src={scene} alt="" aria-hidden="true" className="h-full w-full object-cover" />
+            <Img src={scene} alt="" aria-hidden="true" className="h-full w-full" />
           </div>
         )}
         <h2 className="text-lg font-extrabold text-slate-800">{topic.title}</h2>

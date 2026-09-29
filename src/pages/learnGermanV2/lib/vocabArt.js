@@ -103,6 +103,14 @@ export const moduleBackdrop = (topicOrId) => {
 // happen in the same place into one leg of the journey.
 export const moduleSetting = (topicOrId) => topicSetting(topicOrId);
 
+// Journey island art — one illustrated cover per topic, hosted as
+// cover-<topicId> in the art manifest.
+export const topicCover = (topicOrId) => {
+  const id =
+    topicOrId && typeof topicOrId === "object" ? topicOrId.id : topicOrId;
+  return id ? artUrl("cover", id) : null;
+};
+
 // Where the learner is, said the way a person would say it.
 const SETTING_NAME = {
   cafe: "The café", street: "Out on the street", shop: "The shop",
