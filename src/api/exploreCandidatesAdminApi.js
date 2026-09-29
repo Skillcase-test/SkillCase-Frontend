@@ -165,6 +165,14 @@ export const exploreCandidatesAdminApi = {
       display_order: displayOrder,
     }),
 
+  // Manual email triggers -- resend without mutating account/assignment state.
+  sendAccountWelcomeEmail: (accountId) =>
+    api.post(`/admin/explore-candidates/accounts/${accountId}/send-welcome-email`),
+  sendAccountUpgradeEmail: (accountId) =>
+    api.post(`/admin/explore-candidates/accounts/${accountId}/send-upgrade-email`),
+  notifyAssignedCandidate: (accountId, profileId) =>
+    api.post(`/admin/explore-candidates/accounts/${accountId}/assign/${profileId}/notify`),
+
   addProfileVideo: async (profileId, payload) => {
     const nextPayload = { ...(payload || {}) };
     if (nextPayload.video_file_upload instanceof File) {

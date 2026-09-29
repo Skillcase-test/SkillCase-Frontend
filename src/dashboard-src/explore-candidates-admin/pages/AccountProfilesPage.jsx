@@ -27,6 +27,7 @@ export function AccountProfilesPage() {
   const { accountId } = useParams();
   const [state, setState] = useState({ assigned: [], available: [] });
   const [loading, setLoading] = useState(true);
+  const [account, setAccount] = useState(null);
   const [pickId, setPickId] = useState("");
   const [pickSource, setPickSource] = useState("local");
   const [pickQuery, setPickQuery] = useState("");
@@ -123,6 +124,24 @@ export function AccountProfilesPage() {
   useEffect(() => {
     load();
     loadLoginEvents();
+  }, [accountId]);
+
+  // Account record (email + mask_contacts_enabled) for the manual email buttons.
+  useEffect(() => {
+    let cancelled = false;
+    exploreCandidatesAdminApi
+      .listAccounts()
+      .then((res) => {
+        if (cancelled) return;
+        const rows = res?.data?.data || [];
+        setAccount(
+          rows.find((a) => String(a.id) === String(accountId)) || null,
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [accountId]);
 
   // Filter login events
@@ -262,6 +281,81 @@ export function AccountProfilesPage() {
     }
   }
 
+  const accountEmail = account?.email || `account #${accountId}`;
+
+  function confirmAndSendEmail({
+    title,
+    description,
+    send,
+    successMessage,
+    failureMessage,
+  }) {
+    setConfirmModal({
+      open: true,
+      title,
+      description,
+      variant: "primary",
+      confirmText: "Send Email",
+      onConfirm: async () => {
+        setConfirmModal((v) => ({ ...v, loading: true }));
+        try {
+          const res = await send();
+          if (res?.data?.email_sent) {
+            toast.success(successMessage);
+          } else {
+            toast.error(res?.data?.email_error || failureMessage);
+          }
+          setConfirmModal((v) => ({ ...v, open: false, loading: false }));
+        } catch (err) {
+          toast.error(err?.response?.data?.message || failureMessage);
+          setConfirmModal((v) => ({ ...v, loading: false }));
+        }
+      },
+      loading: false,
+    });
+  }
+
+  const openWelcomeEmailConfirm = () =>
+    confirmAndSendEmail({
+      title: "Send Welcome Email",
+      description: `Send the recruiter welcome email to ${accountEmail}?`,
+      send: () => exploreCandidatesAdminApi.sendAccountWelcomeEmail(accountId),
+      successMessage: `Welcome email sent to ${accountEmail}`,
+      failureMessage: "Could not send welcome email",
+    });
+
+  const openUpgradeEmailConfirm = () =>
+    confirmAndSendEmail({
+      title: "Send Unmasked Email",
+      description: `Send the "contacts unmasked" account-upgraded email to ${accountEmail}?`,
+      send: () => exploreCandidatesAdminApi.sendAccountUpgradeEmail(accountId),
+      successMessage: `Unmasked notification email sent to ${accountEmail}`,
+      failureMessage: "Could not send unmasked email",
+    });
+
+  function openNotifyCandidateConfirm(profileRow) {
+    // Assigned rows carry "local:<id>" ids; never map a bridge source id onto a local one.
+    const idStr = String(profileRow.id || "");
+    const localProfileId = idStr.startsWith("local:")
+      ? Number(idStr.slice("local:".length))
+      : Number(idStr);
+    if (!localProfileId) {
+      toast.error("Cannot notify for this candidate row");
+      return;
+    }
+    confirmAndSendEmail({
+      title: "Notify Added Candidate",
+      description: `Email ${accountEmail} that "${profileRow.fullname}" was added to their portal?`,
+      send: () =>
+        exploreCandidatesAdminApi.notifyAssignedCandidate(
+          accountId,
+          localProfileId,
+        ),
+      successMessage: `Candidate-added email for "${profileRow.fullname}" sent to ${accountEmail}`,
+      failureMessage: "Could not send notification email",
+    });
+  }
+
   async function handleAssign(notifyRecruiter = false) {
     const [selectedSource, selectedIdRaw] = String(pickId).split(":");
     const selectedId =
@@ -316,6 +410,23 @@ export function AccountProfilesPage() {
         description="Search from the candidate library and map talent to this recruiter portal."
         actions={
           <div className="flex gap-2">
+            <SecondaryButton icon={Mail} onClick={openWelcomeEmailConfirm}>
+              Send Welcome Email
+            </SecondaryButton>
+            <SecondaryButton
+              icon={Mail}
+              disabled={!account || Boolean(account.mask_contacts_enabled)}
+              title={
+                !account
+                  ? "Loading account details..."
+                  : account.mask_contacts_enabled
+                    ? "Contacts are still masked for this account"
+                    : "Send the contacts-unmasked notification email"
+              }
+              onClick={openUpgradeEmailConfirm}
+            >
+              Send Unmasked Email
+            </SecondaryButton>
             <Link to="/admin/explore-candidates/library">
               <SecondaryButton icon={Library}>Master Library</SecondaryButton>
             </Link>
@@ -486,6 +597,14 @@ export function AccountProfilesPage() {
                               : p?.visibility?.is_enabled
                                 ? "Stop Status"
                                 : "Show Status"}
+                          </ActionButton>
+                          <ActionButton
+                            variant="primary"
+                            icon={Mail}
+                            title="Email the recruiter that this candidate was added"
+                            onClick={() => openNotifyCandidateConfirm(p)}
+                          >
+                            Notify
                           </ActionButton>
                           <ActionButton
                             variant="danger"

@@ -16,6 +16,7 @@ export function ConfirmationModal({
   loading = false,
   onConfirm,
   onCancel,
+  onDismiss,
 }) {
   const [val, setVal] = useState(defaultValue);
   const inputRef = useRef(null);
@@ -38,7 +39,7 @@ export function ConfirmationModal({
       <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-150">
         <button
           type="button"
-          onClick={onCancel}
+          onClick={onDismiss || onCancel}
           disabled={loading}
           className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 transition p-1 rounded-lg"
         >

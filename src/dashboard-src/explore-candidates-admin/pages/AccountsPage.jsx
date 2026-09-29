@@ -34,7 +34,6 @@ import {
 } from "../components/controls";
 import { ConfirmationModal } from "../components/ConfirmationModal";
 import { SubAccountsModal } from "../components/SubAccountsModal";
-import { formatIstDateTime } from "../utils/formatters";
 
 export function AccountsPage() {
   const navigate = useNavigate();
@@ -948,6 +947,9 @@ export function AccountsPage() {
           setConfirmModal((v) => ({ ...v, open: false, loading: false }));
           action?.();
         }}
+        onDismiss={() =>
+          setConfirmModal((v) => ({ ...v, open: false, loading: false }))
+        }
       />
     </div>
   );
