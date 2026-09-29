@@ -25,6 +25,7 @@ import {
   Clock3,
   DownloadCloud,
   FileAudio,
+  FileText,
   Filter,
   Loader2,
   MessageSquareText,
@@ -34,6 +35,7 @@ import {
   PhoneOff,
   Play,
   Pause,
+  Printer,
   RefreshCw,
   Search,
   Send,
@@ -348,6 +350,251 @@ function TableAudioPlayer({ url }) {
         <div className="flex items-center justify-between text-[9px] font-semibold text-slate-500 select-none">
           <span>{formatTime(currentTime)}</span>
           <span>{formatTime(duration || 0)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function escapeHtml(s) {
+  return String(s || "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]),
+  );
+}
+
+// Split stored "[Dialer]: ...\n[Candidate]: ..." transcripts (or a single
+// [Unlabeled] block) into { role, text } turns for chat-style rendering.
+function parseTranscriptTurns(text) {
+  const src = String(text || "");
+  const re = /\[(dialer|candidate|unlabeled)\]\s*:/gi;
+  const matches = [...src.matchAll(re)];
+  if (!matches.length) {
+    const flat = src.trim();
+    return flat ? [{ role: "Unlabeled", text: flat }] : [];
+  }
+  const turns = [];
+  matches.forEach((m, i) => {
+    const start = m.index + m[0].length;
+    const end = i + 1 < matches.length ? matches[i + 1].index : src.length;
+    const chunk = src.slice(start, end).trim();
+    if (!chunk) return;
+    const role = m[1][0].toUpperCase() + m[1].slice(1).toLowerCase();
+    const last = turns[turns.length - 1];
+    if (last && last.role === role) last.text += ` ${chunk}`;
+    else turns.push({ role, text: chunk });
+  });
+  const prefix = src.slice(0, matches[0].index).trim();
+  if (prefix) turns.unshift({ role: "Unlabeled", text: prefix });
+  return turns;
+}
+
+function transcriptStatusMessage(status) {
+  if (status === "pending" || status === "processing" || status === "retry") {
+    return "Transcript is being generated for this call — check back shortly.";
+  }
+  if (status === "failed") {
+    return "Transcription failed for this call. Please try again later.";
+  }
+  return "No transcript is available for this call yet.";
+}
+
+function TranscriptModal({ view, onClose }) {
+  const { loading, error, call = {}, transcript } = view;
+  const text = transcript?.text || "";
+  const hasText = Boolean(text.trim());
+  const turns = useMemo(() => parseTranscriptTurns(text), [text]);
+
+  const candId = call.candidateId || call.candidate_id || "-";
+  const dialer = call.dialerName || call.dialer_name || call.dialer_number || "-";
+  const when = call.callDatetime || call.call_datetime;
+  const durationSec = call.durationSec ?? call.duration_sec;
+  const callId = call.callyzerCallId || call.callyzer_call_id || "call";
+  const fileBase = `transcript-${candId !== "-" ? candId : callId}`;
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const transcriptBody = () =>
+    turns.length
+      ? turns.map((t) => `[${t.role}]: ${t.text}`).join("\n\n")
+      : text;
+
+  const downloadTxt = () => {
+    const header = [
+      "Call Transcript",
+      `Candidate: ${candId}`,
+      `Dialer: ${dialer}`,
+      `Date: ${when ? formatDateTime(when) : "-"}`,
+      `Duration: ${formatDuration(durationSec)}`,
+      "",
+    ].join("\n");
+    const blob = new Blob([header + transcriptBody()], {
+      type: "text/plain;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${fileBase}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const downloadPdf = () => {
+    const win = window.open("", "_blank", "width=820,height=900");
+    if (!win) return;
+    const turnsHtml = turns.length
+      ? turns
+          .map(
+            (t) =>
+              `<div class="turn ${t.role.toLowerCase()}"><div class="who">${t.role}</div><div class="bubble">${escapeHtml(t.text)}</div></div>`,
+          )
+          .join("")
+      : `<div class="turn unlabeled"><div class="bubble">${escapeHtml(text)}</div></div>`;
+    win.document.write(`<!doctype html>
+<html><head><meta charset="utf-8"><title>${escapeHtml(fileBase)}</title>
+<style>
+  body{font-family:ui-sans-serif,system-ui,'Segoe UI',Roboto,Arial,sans-serif;margin:32px;color:#0f172a;}
+  h1{font-size:18px;margin:0 0 4px;}
+  .meta{font-size:12px;color:#475569;margin-bottom:20px;}
+  .turn{margin:0 0 12px;}
+  .who{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin-bottom:3px;}
+  .bubble{display:inline-block;max-width:92%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.55;white-space:pre-wrap;}
+  .dialer .bubble{background:#f1f5f9;border:1px solid #e2e8f0;}
+  .candidate{text-align:right;}
+  .candidate .who{color:#1d4ed8;}
+  .candidate .bubble{background:#eff6ff;border:1px solid #bfdbfe;text-align:left;}
+  .unlabeled .bubble{background:#f8fafc;border:1px dashed #cbd5e1;}
+  .actions{margin-bottom:16px;}
+  .actions button{padding:6px 14px;font-size:13px;border:1px solid #cbd5e1;border-radius:8px;background:#0f172a;color:#fff;cursor:pointer;}
+  @media print{.actions{display:none;}}
+</style></head><body>
+<div class="actions"><button onclick="window.print()">Print / Save as PDF</button></div>
+<h1>Call Transcript</h1>
+<div class="meta">Candidate ${escapeHtml(candId)} &middot; Dialer ${escapeHtml(dialer)} &middot; ${escapeHtml(when ? formatDateTime(when) : "-")} &middot; Duration ${escapeHtml(formatDuration(durationSec))}</div>
+${turnsHtml}
+<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},250);});</script>
+</body></html>`);
+    win.document.close();
+    win.focus();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+      <div
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+        onClick={onClose}
+      />
+      <div className="relative w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-2xl flex flex-col max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 p-5">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-slate-900">
+              <MessageSquareText className="h-4 w-4 text-white" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-base font-bold text-slate-900 truncate">
+                Call Transcript
+              </h2>
+              <p className="text-xs text-slate-500 truncate">
+                {candId} &middot; {dialer} &middot;{" "}
+                {when ? formatDateTime(when) : "-"} &middot;{" "}
+                {formatDuration(durationSec)}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto bg-slate-50/50 p-5">
+          {loading ? (
+            <div className="flex flex-col items-center gap-3 py-16 text-slate-400">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <p className="text-sm font-medium">Fetching transcript…</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center gap-2 py-16 text-rose-500">
+              <PhoneOff className="h-6 w-6" />
+              <p className="text-sm font-medium">{error}</p>
+            </div>
+          ) : hasText ? (
+            <div className="space-y-3">
+              {turns.map((t, i) => (
+                <div
+                  key={i}
+                  className={cx(
+                    "flex flex-col",
+                    t.role === "Candidate" ? "items-end" : "items-start",
+                  )}
+                >
+                  <span className="mb-1 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    {t.role}
+                  </span>
+                  <div
+                    className={cx(
+                      "rounded-xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap",
+                      t.role === "Dialer" &&
+                        "max-w-[85%] border border-slate-200 bg-white text-slate-800",
+                      t.role === "Candidate" &&
+                        "max-w-[85%] border border-blue-100 bg-blue-50 text-slate-800",
+                      t.role === "Unlabeled" &&
+                        "w-full border border-dashed border-slate-300 bg-white text-slate-700",
+                    )}
+                  >
+                    {t.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2 py-16 text-slate-400">
+              <MessageSquareText className="h-6 w-6" />
+              <p className="text-sm font-medium">
+                {transcriptStatusMessage(transcript?.status)}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between gap-3 border-t border-slate-100 p-4">
+          <div className="text-[11px] text-slate-400">
+            {transcript?.confidence > 0
+              ? `Transcription confidence: ${Math.round(transcript.confidence * 100)}%`
+              : transcript?.provider
+                ? `Provider: ${transcript.provider}`
+                : ""}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={downloadTxt}
+              disabled={!hasText}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              TXT
+            </button>
+            <button
+              onClick={downloadPdf}
+              disabled={!hasText}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              PDF
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -996,6 +1243,37 @@ function CallEnginePage({ me: propMe } = {}) {
   const [metricLoading, setMetricLoading] = useState(false);
   const [missedStatusFilter, setMissedStatusFilter] = useState("all");
   const [callersLoading, setCallersLoading] = useState(false);
+  const [transcriptView, setTranscriptView] = useState(null);
+
+  const openTranscript = async (row) => {
+    setTranscriptView({ loading: true, error: "", call: row, transcript: null });
+    const isCurrent = (v) =>
+      v && v.loading && v.call?.callyzer_call_id === row.callyzer_call_id;
+    try {
+      const res = await callEngineApi.getTranscript(row.callyzer_call_id);
+      setTranscriptView((v) =>
+        isCurrent(v)
+          ? {
+              loading: false,
+              error: "",
+              call: res.data?.call || row,
+              transcript: res.data?.transcript || null,
+            }
+          : v,
+      );
+    } catch (err) {
+      setTranscriptView((v) =>
+        isCurrent(v)
+          ? {
+              loading: false,
+              error: err?.response?.data?.msg || "Failed to load transcript.",
+              call: row,
+              transcript: null,
+            }
+          : v,
+      );
+    }
+  };
 
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState([
@@ -1603,7 +1881,16 @@ function CallEnginePage({ me: propMe } = {}) {
                       </td>
                       <td className="px-4 py-3">
                         {row.recording_url ? (
-                          <TableAudioPlayer url={row.recording_url} />
+                          <div className="flex items-center gap-2">
+                            <TableAudioPlayer url={row.recording_url} />
+                            <button
+                              onClick={() => openTranscript(row)}
+                              title="View transcript"
+                              className="flex h-8 w-8 flex-none items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-xs transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 cursor-pointer"
+                            >
+                              <MessageSquareText className="h-4 w-4" />
+                            </button>
+                          </div>
                         ) : (
                           <span className="text-xs text-slate-400 italic">
                             No recording
@@ -2122,6 +2409,14 @@ function CallEnginePage({ me: propMe } = {}) {
             )}
           </div>
         </div>
+      )}
+
+      {/* Transcript Preview Modal */}
+      {transcriptView && (
+        <TranscriptModal
+          view={transcriptView}
+          onClose={() => setTranscriptView(null)}
+        />
       )}
     </div>
   );

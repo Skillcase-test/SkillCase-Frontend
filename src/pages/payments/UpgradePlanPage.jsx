@@ -138,7 +138,7 @@ export default function UpgradePlanPage() {
         </div>
 
         {/* UPI only — Razorpay opens on the UPI pane, nothing to pick here. */}
-        <div className="p-2.5 rounded-xl outline-1 outline-offset-[-1px] outline outline-amber-300 bg-white/10 flex items-center gap-3">
+        <div className="p-2.5 rounded-xl outline-offset-[-1px] outline outline-amber-300 bg-white/10 flex items-center gap-3">
           <div className="size-8 bg-white rounded-sm flex items-center justify-center shrink-0">
             <span className="text-[#002856] text-[8px] font-bold">UPI</span>
           </div>
