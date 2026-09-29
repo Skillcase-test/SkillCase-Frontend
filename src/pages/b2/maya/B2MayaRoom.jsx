@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { startB2Maya, b2MayaRelayUrl } from "../../../api/b2MayaApi";
@@ -57,6 +57,19 @@ function toBase64(buf) {
 
 const clock = (t) => `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 
+/** Bar heights (px, at full voice) of the waveforms either side of Maya and of the mic. */
+const STAGE_LEFT = [14, 26, 20, 40, 32, 58, 84];
+const STAGE_RIGHT = [80, 54, 36, 48, 24, 30, 12];
+const MIC_LEFT = [8, 14, 22, 12, 18, 26, 16];
+const MIC_RIGHT = [16, 26, 18, 12, 22, 14, 8];
+const Wave = ({ heights }) => (
+  <span className="wave" aria-hidden="true">
+    {heights.map((h, i) => (
+      <i key={i} style={{ "--h": `${h}px`, "--i": i }} />
+    ))}
+  </span>
+);
+
 export default function B2MayaRoom({ meta, focus }) {
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
@@ -77,6 +90,7 @@ export default function B2MayaRoom({ meta, focus }) {
   const [noisyRoom, setNoisyRoom] = useState(false);
   const [error, setError] = useState(null);
   const [status, setStatus] = useState("thinking");
+  const [userTalking, setUserTalking] = useState(false);
   const [caption, setCaption] = useState("");
   const [seconds, setSeconds] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -99,7 +113,10 @@ export default function B2MayaRoom({ meta, focus }) {
   const flashTimerRef = useRef(null);
   const endedRef = useRef(false);
   const checkStopRef = useRef(null);
-  const micLevelRef = useRef(0);
+  const liveRef = useRef(null);
+  const cardRef = useRef(null);
+  const levelsRef = useRef({ coach: 0, you: 0 });
+  const answeredRef = useRef(false);
 
   const cleanup = () => {
     if (tickRef.current) clearInterval(tickRef.current);
@@ -114,7 +131,6 @@ export default function B2MayaRoom({ meta, focus }) {
     streamRef.current = null;
     ctxRef.current = null;
     wsRef.current = null;
-    micLevelRef.current = 0;
   };
   useEffect(
     () => () => {
@@ -123,6 +139,35 @@ export default function B2MayaRoom({ meta, focus }) {
     },
     [],
   );
+
+  /** Smooths a voice level (fast up, slower down) and draws it on the call screen as --lvl-coach / --lvl-you. */
+  const showLevel = (who, rms) => {
+    const target = Math.min(1, Math.max(0, Math.sqrt(rms) * 2.6 - 0.14));
+    const prev = levelsRef.current[who];
+    const v = target > prev ? prev * 0.3 + target * 0.7 : prev * 0.78 + target * 0.22;
+    levelsRef.current[who] = v;
+    liveRef.current?.style.setProperty(`--lvl-${who}`, v.toFixed(3));
+  };
+
+  useLayoutEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+    el.classList.remove("over");
+    el.classList.toggle("over", el.scrollHeight > el.clientHeight + 1);
+  });
+
+  // A short buzz on phones that support it when the turn passes to the learner (like a walkie-talkie).
+  const handedOver = screen === "live" && status === "listening" && !userTalking && !muted;
+  useEffect(() => {
+    if (handedOver && answeredRef.current) navigator.vibrate?.(40);
+  }, [handedOver]);
+
+  // If a reply never comes after an answer (the turn detector heard a noise, say), hand the turn back.
+  useEffect(() => {
+    if (screen !== "live" || status !== "thinking" || !answeredRef.current) return;
+    const t = setTimeout(() => setStatus((s) => (s === "thinking" ? "listening" : s)), 8000);
+    return () => clearTimeout(t);
+  }, [screen, status]);
 
   const audioConstraints = () => ({ echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, ...(deviceId ? { deviceId: { exact: deviceId } } : {}) });
   const micDenied = (e) => e instanceof DOMException && (e.name === "NotAllowedError" || e.name === "SecurityError");
@@ -208,6 +253,8 @@ export default function B2MayaRoom({ meta, focus }) {
     setSeconds(0);
     setCaption("");
     setGreeting(true);
+    setUserTalking(false);
+    answeredRef.current = false;
     let greeted = false;
     playerRef.current = new VoicePlayer({
       onStart: () => {
@@ -250,8 +297,8 @@ export default function B2MayaRoom({ meta, focus }) {
       node.port.onmessage = (e) => {
         const pcm = new Int16Array(e.data);
         let sum = 0;
-        for (let i = 0; i < pcm.length; i++) sum += pcm[i] * pcm[i];
-        micLevelRef.current += (Math.min(1, (Math.sqrt(sum / pcm.length) / 32768) * 7) - micLevelRef.current) * 0.35;
+        for (let i = 0; i < pcm.length; i += 2) sum += (pcm[i] / 32768) ** 2;
+        showLevel("you", Math.sqrt(sum / Math.max(1, pcm.length / 2)));
         if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "input_audio_buffer.append", audio: toBase64(e.data) }));
       };
       ws.onmessage = async (ev) => {
@@ -266,10 +313,15 @@ export default function B2MayaRoom({ meta, focus }) {
           spokenRef.current.stop(Date.now());
           playerRef.current?.interrupt();
           setStatus("listening");
-        } else if (m.type === "input_audio_buffer.speech_stopped") setStatus("thinking");
-        else if (m.type === "response.created") {
+          answeredRef.current = true;
+          setUserTalking(true);
+        } else if (m.type === "input_audio_buffer.speech_stopped") {
+          setStatus("thinking");
+          setUserTalking(false);
+        } else if (m.type === "response.created") {
           replyRef.current = m.response?.id ?? null;
           spokenRef.current.reset(Date.now());
+          setUserTalking(false);
           setStatus("speaking");
         } else if (m.type === "response.audio_transcript.delta") {
           if (!replyRef.current || m.response_id === replyRef.current) spokenRef.current.textDelta(m.delta ?? "", Date.now());
@@ -278,7 +330,10 @@ export default function B2MayaRoom({ meta, focus }) {
             spokenRef.current.word(String(m.text ?? ""), Number(m.audio_offset_ms) || 0, Date.now(), Number(m.audio_duration_ms) || 0);
         } else if (m.type === "response.done") spokenRef.current.finish();
         else if (m.type === "room.noise") setNoisyRoom(Boolean(m.noisy));
-        else if (m.type === "turn.ended") setStatus("thinking");
+        else if (m.type === "turn.ended") {
+          setStatus("thinking");
+          setUserTalking(false);
+        }
         else if (m.type === "coach.answer") {
           const a = m;
           if (a.language === "target" && a.smoothness === "smooth" && a.words >= 12) {
@@ -331,11 +386,11 @@ export default function B2MayaRoom({ meta, focus }) {
     tickRef.current = setInterval(() => setSeconds(Math.round((Date.now() - t0) / 1000)), 1000);
     captionTimerRef.current = setInterval(() => {
       const now = Date.now();
-      if (playerRef.current) spokenRef.current.audio(playerRef.current.level(), now);
+      const voice = playerRef.current ? playerRef.current.level() : 0;
+      if (playerRef.current) spokenRef.current.audio(voice, now);
+      showLevel("coach", voice);
       const text = spokenRef.current.current(now).replace(/[*`]+|__/g, "");
       if (text) setCaption(lastSentences(text));
-      const lv = micLevelRef.current;
-      setMicLevel((p) => (Math.abs(p - lv) > 0.025 ? lv : p));
       if (spokenRef.current.finishedSpeaking(now))
         setStatus((s) => {
           if (s === "speaking") setGreeting(false);
@@ -384,8 +439,24 @@ export default function B2MayaRoom({ meta, focus }) {
   if (screen === "live") {
     const speaking = status === "speaking";
     const pose = flash ?? (speaking ? (greeting ? "wave" : "smiling") : "looking");
+    // Walkie-talkie turn signal: green on whoever's talking, amber while Maya thinks.
+    const turn = muted ? "muted" : speaking ? "coach" : userTalking ? "you" : status === "listening" ? "yours" : "thinking";
+    const coachLabel = {
+      muted: "Microphone muted",
+      coach: `${coachName} is talking`,
+      yours: `${coachName} is listening`,
+      you: `${coachName} is listening`,
+      thinking: `${coachName} is thinking`,
+    }[turn];
+    const micLabel = {
+      muted: "Your microphone is off",
+      coach: `Wait for ${coachName}`,
+      yours: `Your turn, ${firstName}. Speak now`,
+      you: "Listening to you…",
+      thinking: `Wait for ${coachName}`,
+    }[turn];
     return (
-      <>
+      <div ref={liveRef} className={`call-live turn-${turn} ${noisyRoom ? "noisy" : ""}`}>
         <div className="call-top">
           <div>
             <strong>{focus ? "Focused practice" : modeName}</strong>
@@ -396,65 +467,56 @@ export default function B2MayaRoom({ meta, focus }) {
           </span>
         </div>
         <Main className="call-content">
-          <div className={`call-avatar ${speaking ? "talking" : ""}`}>
-            <MayaLive pose={pose} user={user} />
-            <span className="voice-indicator" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-              <i />
-            </span>
-          </div>
-          <div className="call-status" role="status">
-            <span className="status-dot" style={muted ? { background: "var(--red)" } : undefined} />
-            {muted ? "Microphone muted" : speaking ? `${coachName} is speaking` : status === "listening" ? `${coachName} is listening` : "Thinking…"}
-          </div>
-          <h1>{muted ? "Take your time." : speaking ? `Listen to ${coachName}.` : `Your turn, ${firstName}.`}</h1>
-          <p className="call-subtitle">
-            {muted ? "Unmute when you’re ready to continue." : speaking ? "Listen first. There’s no rush to answer." : "Speak naturally. You don’t need to tap anything."}
-          </p>
-          <div className="call-question">
-            <small>{interview ? "MAYA’S INTERVIEW QUESTION" : "MAYA’S QUESTION"}</small>
-            <blockquote lang="de" aria-live="polite">
-              {caption}
+          <section className={`tile tile-coach ${turn === "coach" ? "on" : ""} ${turn === "thinking" ? "thinking" : ""}`} aria-label={coachName}>
+            <div className="stage">
+              <Wave heights={STAGE_LEFT} />
+              <div className="stage-ring">
+                <MayaLive pose={pose} user={user} />
+              </div>
+              <Wave heights={STAGE_RIGHT} />
+            </div>
+            <div className="turn-pill" role="status">
+              <b />
+              {coachLabel}
+            </div>
+          </section>
+          <div className={`call-question ${turn === "coach" ? "live" : ""}`}>
+            <small>{coachName.toUpperCase()}</small>
+            <blockquote ref={cardRef} lang="de" aria-live="polite">
+              {caption ? (
+                <span>{caption}</span>
+              ) : (
+                <span className="card-dots" aria-label="Waiting">
+                  <i />
+                  <i />
+                  <i />
+                </span>
+              )}
             </blockquote>
           </div>
-          {interview ? (
-            <p style={{ fontSize: 10, margin: "15px 0 0" }}>Your coaching will be ready after the interview.</p>
-          ) : (
-            <button type="button" className="text-button" onClick={() => setSheet("help")}>
-              Need a word?
-              <Icon name="book" />
-            </button>
-          )}
-          {noisyRoom ? (
-            <div className="noise-note" role="status">
-              <strong>It’s noisy around you.</strong> {coachName} may not notice when you’ve finished. Tap “I’m done speaking” after each answer.
-              <button type="button" className="text-button" onClick={() => wsRef.current?.send(JSON.stringify({ type: "turn.end" }))} disabled={speaking}>
-                I’m done speaking
-              </button>
+          <section className={`tile tile-you ${turn === "yours" || turn === "you" ? "on" : ""}`} aria-label={firstName}>
+            {noisyRoom ? (
+              <div className="noise-note" role="status">
+                It’s noisy around you. Tap “I’m done” after each answer.
+                <button type="button" className="text-button" onClick={() => wsRef.current?.send(JSON.stringify({ type: "turn.end" }))} disabled={speaking}>
+                  I’m done
+                </button>
+              </div>
+            ) : null}
+            <div className="turn-mic-row" aria-hidden="true">
+              <Wave heights={MIC_LEFT} />
+              <span className="turn-mic-button">
+                <Icon name={muted ? "muted" : "mic"} />
+              </span>
+              <Wave heights={MIC_RIGHT} />
             </div>
-          ) : null}
+            <p className="turn-mic-label">{micLabel}</p>
+          </section>
           {error ? (
             <p className="inline-error" role="alert">
               {error}
             </p>
           ) : null}
-          <div className={`hearing ${muted ? "muted" : ""}`}>
-            <Icon name={muted ? "muted" : "mic"} />
-            {muted ? (
-              "Your microphone is off"
-            ) : (
-              <span className="hearing-live">
-                <span className="hearing-bars" aria-hidden="true">
-                  {[0.55, 1, 0.7, 0.9, 0.6].map((k, i) => (
-                    <i key={i} style={{ transform: `scaleY(${0.2 + micLevel * k})` }} />
-                  ))}
-                </span>
-                {speaking ? "Listening for you" : status === "listening" ? `${coachName} hears you — keep going` : "Ready for your voice"}
-              </span>
-            )}
-          </div>
         </Main>
         <div className="call-controls">
           <button type="button" className={`call-control ${muted ? "on" : ""}`} onClick={toggleMute} aria-pressed={muted} aria-label={muted ? "Unmute microphone" : "Mute microphone"}>
@@ -469,6 +531,14 @@ export default function B2MayaRoom({ meta, focus }) {
             </b>
             Repeat
           </button>
+          {interview ? null : (
+            <button type="button" className="call-control" onClick={() => setSheet("help")}>
+              <b>
+                <Icon name="book" />
+              </b>
+              Need a word
+            </button>
+          )}
           <button type="button" className="call-control end" onClick={() => setSheet("end")}>
             <b>
               <Icon name="end" />
@@ -476,7 +546,7 @@ export default function B2MayaRoom({ meta, focus }) {
             Finish
           </button>
         </div>
-        <p className="call-footer">{coachName} is an AI coach · Voice only</p>
+        <p className="call-footer">{coachName} is an AI coach · {interview ? "Your coaching comes after the interview" : "Voice only"}</p>
         {sheet ? (
           <div className="overlay" onClick={(e) => e.target === e.currentTarget && setSheet(null)}>
             {sheet === "help" ? (
@@ -531,7 +601,7 @@ export default function B2MayaRoom({ meta, focus }) {
             )}
           </div>
         ) : null}
-      </>
+      </div>
     );
   }
 

@@ -124,19 +124,9 @@
 .sp .call-avatar:before{content:'';position:absolute;inset:12px;border:1px solid #cbd6e4;border-radius:50%}
 .sp .call-avatar .maya-mark{width:124px;height:124px;background:#dceafa;border:3px solid white;box-shadow:0 3px 12px #0028560a;z-index:1}
 .sp .call-status{font-size:13px;font-weight:500;display:flex;gap:7px;justify-content:center;align-items:center;margin-bottom:15px}
-.sp .status-dot{width:6px;height:6px;border-radius:50%;background:#40745a}
-.sp .call-content h1{font-size:26px;margin:0 0 11px}
-.sp .call-content .call-subtitle{font-size:13px;margin:0 0 24px}
 .sp .call-question{margin:0;padding:20px;text-align:left;border-radius:18px;background:white;border:1px solid var(--line)}
 .sp .call-question small{font-size:11px;letter-spacing:1.1px;font-weight:600;color:var(--muted);display:block;margin-bottom:9px}
 .sp .call-question blockquote{margin:0;font-size:16px;line-height:1.65;color:var(--ink);font-weight:500}
-.sp .call-content .text-button{font-size:13px;margin:8px auto}
-.sp .hearing{margin-top:auto;padding-top:20px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--green);font-size:11px}
-.sp .hearing.muted{color:var(--red)}
-.sp .hearing .icon{--icon-size:var(--icon-small)}
-.sp .hearing-live{display:inline-flex;align-items:center;gap:7px}
-.sp .hearing-bars{display:inline-flex;align-items:center;gap:2.5px;height:14px}
-.sp .hearing-bars i{display:block;width:3px;height:12px;border-radius:3px;background:var(--green);transform-origin:center;transition:transform .12s ease-out}
 .sp .call-controls{display:flex;justify-content:center;gap:32px;padding:16px 24px 14px;border-top:1px solid var(--line);background:white}
 .sp .call-control{display:flex;flex-direction:column;align-items:center;gap:8px;background:none;border:0;font-size:12px;color:var(--muted);min-width:56px;padding:0}
 .sp .call-control b{width:52px;height:52px;display:grid;place-items:center;border-radius:50%;background:#edf4fd;color:var(--navy)}
@@ -230,7 +220,6 @@ to{transform:scaleY(1)}
 .sp .mode-title{font-size:14px}
 .sp .mode-description{font-size:12px}
 .sp .call-avatar{width:130px;height:130px;margin-top:6px;margin-bottom:15px}
-.sp .call-content h1{font-size:23px}
 .sp .call-question blockquote{font-size:14px}
 .sp .call-controls{gap:24px}}
 @media(prefers-reduced-motion:reduce){.sp, .sp *, .sp *:before, .sp *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
@@ -253,26 +242,17 @@ to{transform:scaleY(1)}
 .sp .maya-hero-badge{position:absolute;right:-8px;bottom:-8px;z-index:2;display:grid;place-items:center;width:36px;height:36px;background:white;border:1px solid var(--line);border-radius:50%;color:var(--navy);box-shadow:0 2px 4px #0028560a}
 .sp .maya-hero-badge.success{background:#edf7f1;color:var(--green)}
 .sp .connecting-avatar{margin-top:52px}
-.sp .voice-indicator{position:absolute;bottom:0;z-index:2;background:var(--navy);border:3px solid var(--bg);padding:6px 10px;height:30px;border-radius:20px;display:none;gap:3px;align-items:center;justify-content:center}
-.sp .voice-indicator i{width:3px;height:11px;border-radius:3px;background:var(--gold);animation:sp-voice .8s ease-in-out infinite alternate}
-.sp .voice-indicator i:nth-child(2){height:16px;animation-delay:-.25s}
-.sp .voice-indicator i:nth-child(3){height:13px;animation-delay:-.5s}
-.sp .voice-indicator i:nth-child(4){height:7px;animation-delay:-.75s}
-.sp .talking .voice-indicator{display:flex}
-.sp .talking:before{animation:sp-maya-ring 1.6s ease-in-out infinite}
 .sp .feedback-maya{grid-column:2;grid-row:1/3;align-self:center;width:56px;height:56px;border-radius:12px}
 .sp .feedback-header>.session-meta{grid-column:1;grid-row:1;flex-wrap:wrap;gap:2px 6px;margin-bottom:4px}
 .sp .feedback-header>p{grid-column:1/-1;grid-row:3;margin:12px 0 0}
 .sp .turn-label .maya-mark{width:28px;height:28px}
 .sp .empty-practice-art{border-radius:18px;overflow:hidden;margin:24px 0;background:var(--blue);border:1px solid var(--line)}
 .sp .empty-practice-art img{display:block;width:100%;height:158px;object-fit:cover;object-position:center}
-@keyframes sp-maya-ring{0%,100%{transform:scale(.98);opacity:.6}50%{transform:scale(1.06);opacity:1}}
 @media(max-width:360px){.sp .welcome-heading{gap:7px}
 .sp .welcome-heading h1{font-size:24px;letter-spacing:-.6px}
 .sp .welcome-maya{width:78px;height:78px;border-radius:14px}
 .sp .call-avatar .maya-mark{width:106px;height:106px}
 .sp .feedback-header h1{font-size:20px}}
-@media(prefers-reduced-motion:reduce){.sp .talking:before, .sp .voice-indicator i{animation:none!important}}
 
 /* ── Additions for the live app ─────────────────────────────────────── */
 .sp-page{background:#e6edf5;min-height:100dvh}
@@ -280,7 +260,7 @@ to{transform:scaleY(1)}
 .sp a.primary,.sp a.secondary{text-decoration:none}
 .sp .inline-error{margin:12px 0 0;padding:12px 14px;border-radius:12px;background:#fff0ed;color:var(--red);font-size:13px;line-height:1.55}
 .sp .noise-note{margin:14px 0 0;padding:12px 14px;border-radius:12px;background:var(--gold-soft);color:#725015;font-size:12px;line-height:1.55;text-align:left}
-.sp .call-question blockquote:empty:before{content:'…';color:var(--muted)}
+
 .sp .call-video{width:152px;height:152px;border-radius:50%;object-fit:cover;background:#dceafa;z-index:1}
 .sp details.more{border-top:1px solid var(--line)}
 .sp details.more summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:52px;padding:14px 0;font-size:13px;font-weight:600;color:var(--navy)}
@@ -343,4 +323,64 @@ to{transform:scaleY(1)}
 .sp .strength p{color:var(--ink)}
 .sp .maya-live{position:relative}
 .sp .maya-live .maya-image{position:absolute;inset:0;opacity:0;transition:opacity .25s ease}
+
+/* The call: two turn tiles (Maya above, learner below); green follows whoever is talking,
+   amber while Maya thinks. Voice levels arrive as --lvl-coach / --lvl-you (0–1) on .call-live. */
+.sp{--talk:#1f9d57;--talk-soft:#e7f6ee;--talk-ink:#0f5c33;--think:#e0a21a;--think-soft:#fff5df;--think-ink:#7a5308;--idle:#c9d2dc;--idle-soft:#eef1f5}
+.sp .call-live{display:contents;--lvl-coach:0;--lvl-you:0}
+.sp .call-live .call-content{display:flex;flex-direction:column;gap:12px;padding:14px 16px;overflow:hidden;text-align:center}
+.sp .call-live .call-content>*{flex-shrink:0}
+.sp .tile{flex:1 1 0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;position:relative;border-radius:24px;background:white;border:1px solid var(--line);box-shadow:0 2px 10px #0028560a;transition:border-color .35s ease,box-shadow .35s ease;--tone:var(--idle);--tone-soft:var(--idle-soft);--tone-ink:var(--muted);--l:0}
+.sp .tile.on{border-color:var(--talk);box-shadow:0 0 0 3px var(--talk-soft);--tone:var(--talk);--tone-soft:var(--talk-soft);--tone-ink:var(--talk-ink)}
+.sp .tile.thinking{border-color:#f0d08a;box-shadow:0 0 0 3px var(--think-soft);--tone:var(--think);--tone-soft:var(--think-soft);--tone-ink:var(--think-ink)}
+.sp .turn-coach .tile-coach{--l:var(--lvl-coach)}
+.sp .wave{display:flex;align-items:center;gap:5px}
+.sp .wave i{display:block;width:5px;border-radius:5px;background:var(--tone);height:6px;transition:height .1s linear,background-color .35s ease}
+.sp .stage{display:flex;align-items:center;justify-content:center;gap:10px;height:112px;min-height:0}
+.sp .stage .wave{width:70px;height:100px}
+.sp .stage .wave:first-child{justify-content:flex-end}
+/* Maya's waveform follows her voice; the learner's voice moves their own tile below. */
+.sp .turn-coach .stage .wave i{height:calc(6px + (var(--h) - 6px) * (.18 + .82 * var(--l)));animation:sp-wave .55s ease-in-out infinite alternate;animation-delay:calc(var(--i) * -.13s)}
+.sp .turn-thinking .stage .wave i{height:8px;animation:sp-think 1.2s ease-in-out infinite;animation-delay:calc(var(--i) * .1s)}
+.sp .stage-ring{width:104px;height:104px;border-radius:50%;flex-shrink:0;overflow:hidden;background:#dceafa;border:4px solid var(--tone);box-shadow:0 0 0 7px var(--tone-soft);transition:border-color .35s ease,box-shadow .35s ease;display:grid;place-items:center}
+.sp .stage-ring .maya-mark{width:100%;height:100%;border:0;box-shadow:none;border-radius:0;background:none;transition:filter .35s ease,opacity .35s ease}
+.sp .tile-coach:not(.on):not(.thinking) .maya-mark{filter:saturate(.75);opacity:.88}
+.sp .turn-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;font-size:13px;font-weight:600;background:var(--tone-soft);color:var(--tone-ink);transition:background-color .35s ease,color .35s ease}
+.sp .turn-pill b{width:8px;height:8px;border-radius:50%;background:var(--tone);transition:background-color .35s ease}
+.sp .turn-muted .turn-pill{background:#fff0ed;color:var(--red)}
+.sp .turn-muted .turn-pill b{background:var(--red)}
+/* Maya's words, always the same size (3 lines): the latest show; older lines fade out at the top. */
+.sp .call-live .call-question{margin:0;padding:12px 16px;text-align:left;border-radius:18px;background:white;border:1px solid var(--line);transition:border-color .35s ease,box-shadow .35s ease}
+.sp .call-live .call-question.live{border-color:var(--talk);box-shadow:0 0 0 3px var(--talk-soft)}
+.sp .call-live .call-question small{font-size:11px;letter-spacing:1.1px;font-weight:600;color:var(--muted);display:block;margin-bottom:4px}
+.sp .call-live .call-question blockquote{margin:0;height:78px;font-size:16px;line-height:26px;font-weight:500;color:var(--ink);overflow:hidden;display:flex;flex-direction:column;transition:color .3s ease}
+.sp .call-live .call-question blockquote.over{justify-content:flex-end;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 20px);mask-image:linear-gradient(to bottom,transparent 0,#000 20px)}
+.sp .card-dots{display:inline-flex;gap:5px;vertical-align:middle;margin-top:9px}
+.sp .card-dots i{width:7px;height:7px;border-radius:50%;background:#b7c3d0;animation:sp-think 1.2s ease-in-out infinite}
+.sp .card-dots i:nth-child(2){animation-delay:.15s}
+.sp .card-dots i:nth-child(3){animation-delay:.3s}
+.sp .turn-mic-row{display:flex;align-items:center;gap:10px}
+.sp .tile-you .wave{width:66px;height:34px;justify-content:center;gap:4px;opacity:0;transition:opacity .3s ease}
+.sp .tile-you .wave i{width:4px;background:var(--talk)}
+.sp .turn-you .tile-you .wave{opacity:1}
+.sp .turn-you .tile-you .wave i{height:calc(4px + (var(--h) - 4px) * var(--lvl-you));animation:sp-wave .45s ease-in-out infinite alternate;animation-delay:calc(var(--i) * -.11s)}
+.sp .turn-mic-button{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;border:4px solid var(--idle);background:var(--idle-soft);color:#8a98a8;transition:background-color .35s ease,border-color .35s ease,color .35s ease,box-shadow .35s ease,transform .1s linear}
+.sp .turn-mic-button .icon{--icon-size:32px}
+.sp .tile-you.on .turn-mic-button{background:var(--talk);border-color:var(--talk-ink);color:white;box-shadow:0 0 0 10px rgba(31,157,87,.16)}
+.sp .turn-yours .turn-mic-button{animation:sp-your-turn 1.6s ease-in-out infinite}
+.sp .turn-you .turn-mic-button{transform:scale(calc(1 + var(--lvl-you) * .08))}
+.sp .turn-muted .turn-mic-button{background:#fff0ed;border-color:#e8b9b1;color:var(--red)}
+.sp .turn-mic-label{margin:0;font-size:14px;font-weight:600;color:#8a98a8;transition:color .35s ease}
+.sp .tile-you.on .turn-mic-label{color:var(--talk-ink)}
+.sp .turn-muted .turn-mic-label{color:var(--red)}
+.sp .tile .noise-note{position:absolute;top:10px;left:10px;right:10px;margin:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 12px;font-size:12px}
+.sp .tile .noise-note .text-button{min-height:32px;padding:4px 10px;margin:0;border-radius:10px;background:white}
+.sp .call-live .inline-error{margin:0}
+.sp .call-live~.call-controls,.sp .call-live .call-controls{gap:20px}
+@keyframes sp-wave{from{transform:scaleY(.62)}to{transform:scaleY(1)}}
+@keyframes sp-think{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes sp-your-turn{0%,100%{box-shadow:0 0 0 8px rgba(31,157,87,.18)}50%{box-shadow:0 0 0 16px rgba(31,157,87,.06)}}
+/* Shorter phones: the tiles give up height evenly. */
+@media(max-height:740px){.sp .stage{height:92px}.sp .stage-ring{width:84px;height:84px;box-shadow:0 0 0 6px var(--tone-soft)}.sp .stage .wave{height:80px;width:60px}.sp .turn-mic-button{width:68px;height:68px}.sp .turn-mic-button .icon{--icon-size:28px}.sp .tile{gap:8px}}
+@media(max-height:620px){.sp .stage{height:72px}.sp .stage-ring{width:66px;height:66px;border-width:3px;box-shadow:0 0 0 5px var(--tone-soft)}.sp .stage .wave{height:60px;width:52px}.sp .turn-mic-button{width:56px;height:56px}.sp .call-live .call-content{gap:8px;padding:10px 14px}}
 .sp .maya-live .maya-image.on{opacity:1}

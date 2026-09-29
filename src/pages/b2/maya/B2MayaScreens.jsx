@@ -626,7 +626,7 @@ export function ProgressPage({ level, rows, filter, progress }) {
               <small>
                 {when(p.started_at)}
                 {kind === "attempt" ? " · Not enough speech" : p.seconds ? ` · ${Math.max(1, Math.round(p.seconds / 60))} min` : ""}
-                {kind === "completed" && p.feedback?.ok ? ` · ${p.feedback.feedback.estimated_level}` : ""}
+                {kind === "completed" && p.feedback?.ok ? ` · ${p.feedback.level}` : ""}
               </small>
             </span>
             <Icon name="chevron" />
