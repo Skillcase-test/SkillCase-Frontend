@@ -2,15 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import {
-  ArrowLeft,
-  ChevronRight,
-  Gem,
-  CreditCard,
-  Landmark,
-  Wallet,
-  Check,
-} from "lucide-react";
+import { ArrowLeft, ChevronRight, Gem, Check } from "lucide-react";
 import { useAutopayCheckout } from "../../hooks/useAutopayCheckout";
 import PremiumActivatedModal from "../../components/PremiumActivatedModal";
 import diamond from "../../assets/diamond.webp";
@@ -22,52 +14,11 @@ const PLAN_FEATURES = [
   "Unlimited learning & many more",
 ];
 
-const PAYMENT_METHODS = [
-  {
-    key: "razorpay",
-    label: "Razorpay (UPI, Cards, Netbanking etc)",
-    hint: "UPI, Cards, Netbanking, Wallets",
-  },
-  { key: "upi", label: "UPI", hint: "Google Pay, PhonePe, Paytm & more" },
-  { key: "card", label: "Card", hint: "Credit & Debit cards" },
-  { key: "netbanking", label: "Netbanking", hint: "All major banks" },
-  { key: "wallet", label: "Wallet", hint: "Paytm, Mobikwik & more" },
-];
-
-function MethodIcon({ method }) {
-  if (method === "razorpay") {
-    return (
-      <div className="size-8 bg-white rounded-sm flex items-center justify-center shrink-0">
-        <span className="text-[#002856] text-sm font-black">R</span>
-      </div>
-    );
-  }
-  if (method === "upi") {
-    return (
-      <div className="size-8 bg-white rounded-sm flex items-center justify-center shrink-0">
-        <span className="text-[#002856] text-[8px] font-bold">UPI</span>
-      </div>
-    );
-  }
-  const Icon =
-    method === "card"
-      ? CreditCard
-      : method === "netbanking"
-        ? Landmark
-        : Wallet;
-  return (
-    <div className="size-8 bg-white rounded-sm flex items-center justify-center shrink-0">
-      <Icon className="size-4 text-[#002856]" />
-    </div>
-  );
-}
-
 export default function UpgradePlanPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
-  const [method, setMethod] = useState("razorpay");
   const [showSuccess, setShowSuccess] = useState(false);
 
   const { loading, handlePay } = useAutopayCheckout({
@@ -186,62 +137,28 @@ export default function UpgradePlanPage() {
           </div>
         </div>
 
-        {/* Payment Methods */}
-        <div className="flex flex-col gap-3">
-          <h2 className="text-white text-base font-semibold">
-            Choose a payment method
-          </h2>
-          <div className="flex flex-col gap-1">
-            {PAYMENT_METHODS.map((pm) => {
-              const selected = method === pm.key;
-              return (
-                <button
-                  key={pm.key}
-                  type="button"
-                  onClick={() => setMethod(pm.key)}
-                  className={`w-full p-2.5 rounded-xl outline-1 outline-offset-[-1px] flex flex-col gap-2.5 transition-colors cursor-pointer text-left ${
-                    selected
-                      ? "bg-white/10 outline outline-amber-300"
-                      : "bg-transparent outline outline-white/25 hover:bg-white/5"
-                  }`}
-                >
-                  <div className="flex justify-between items-center">
-                    <div className="flex items-center gap-3">
-                      <MethodIcon method={pm.key} />
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-white text-xs font-bold">
-                          {pm.label}
-                        </span>
-                        <span className="text-white text-xs font-normal">
-                          {pm.hint}
-                        </span>
-                      </div>
-                    </div>
-                    <div
-                      className={`size-4 rounded-full border flex items-center justify-center shrink-0 ${
-                        selected ? "border-amber-300" : "border-white/50"
-                      }`}
-                    >
-                      {selected && (
-                        <div className="size-2 bg-white rounded-full" />
-                      )}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+        {/* UPI only — Razorpay opens on the UPI pane, nothing to pick here. */}
+        <div className="p-2.5 rounded-xl outline-1 outline-offset-[-1px] outline outline-amber-300 bg-white/10 flex items-center gap-3">
+          <div className="size-8 bg-white rounded-sm flex items-center justify-center shrink-0">
+            <span className="text-[#002856] text-[8px] font-bold">UPI</span>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <span className="text-white text-xs font-bold">UPI</span>
+            <span className="text-white text-xs font-normal">
+              Google Pay, PhonePe, Paytm, BHIM & more
+            </span>
           </div>
         </div>
 
         {/* Pay */}
         <div className="flex flex-col items-center gap-2">
           <motion.button
-            onClick={() => handlePay(method)}
+            onClick={() => handlePay()}
             disabled={loading}
             whileTap={{ scale: 0.98 }}
             className="w-full px-4 py-3 bg-linear-to-r from-amber-300 to-amber-400 rounded-lg text-[#002856] text-base font-semibold hover:bg-amber-400 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed border border-amber-400/80"
           >
-            {loading ? "Processing..." : "Pay ₹99 Securely"}
+            {loading ? "Processing..." : "Pay ₹99 via UPI"}
           </motion.button>
           <p className="flex items-center gap-1 text-white/60 text-xs font-medium">
             You can cancel it anytime

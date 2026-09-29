@@ -38,6 +38,7 @@ import PullToRefreshIndicator from "./components/PullToRefreshIndicator";
 import AppSplashScreen from "./components/common/AppSplashScreen";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { useDispatch, useSelector } from "react-redux";
+import { store } from "./redux/store";
 import SupportWidget from "./components/SupportWidget";
 import api from "./api/axios";
 import { isB1PracticeLevel } from "./utils/b1Progress";
@@ -609,6 +610,24 @@ function AppContent() {
         lifecycle: "observed",
       });
       if (!isActive) void flushTelemetry({ keepalive: true });
+      // Returning from a UPI app after mandate auth: if the checkout result
+      // was lost (process killed / call unresolved), the webhook may still
+      // have activated the account — refresh once so that state lands.
+      if (isActive) {
+        const u = store.getState().auth?.user;
+        if (
+          u?.razorpay_subscription_id &&
+          !u?.autopay_enabled &&
+          ["created", "pending", "authenticated"].includes(u?.autopay_status)
+        ) {
+          api
+            .post("/user/me", null, { meta: { skipPaywallRefresh: true } })
+            .then((res) => {
+              if (res.data?.user) store.dispatch(setUser(res.data.user));
+            })
+            .catch(() => {});
+        }
+      }
     }).then((handle) => {
       listener = handle;
     });
