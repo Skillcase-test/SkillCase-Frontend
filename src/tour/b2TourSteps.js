@@ -78,7 +78,7 @@ export const getB2LandingSteps = (onSkip) => [
     element: "#b2-speaking-card",
     popover: {
       title: `${ICONS.mic} Speaking`,
-      description: "Record answers, get instant pronunciation feedback.",
+      description: "Record answers, review pronunciation feedback.",
       side: "top",
       align: "end",
     },
@@ -87,7 +87,7 @@ export const getB2LandingSteps = (onSkip) => [
     element: "#b2-exams-card",
     popover: {
       title: `${ICONS.fileText} Exam Papers`,
-      description: "Take full timed TELC and Goethe mock exams.",
+      description: "Full Goethe and telc mock exams are coming soon. You can practise individual skills today.",
       side: "top",
       align: "center",
     },
@@ -118,7 +118,7 @@ export const getB2ModuleSelectSteps = (module) => {
       element: `#b2-${module}-tag-pills`,
       popover: {
         title: `${ICONS.filter} ${copy.title}`,
-        description: `${copy.tagline} Filter by All, TELC or Goethe. Numbers show what's inside.`,
+        description: `${copy.tagline} Filter by All, TELC or Goethe. Choose an exercise, or review one you’ve completed.`,
         side: "bottom",
         align: "center",
       },
@@ -138,20 +138,13 @@ export const getB2ModuleSelectSteps = (module) => {
 
 export const getB2ExamsSelectSteps = () => [
   {
-    element: "#b2-exam-type-pills",
+    element: "#b2-exams-coming-soon",
     popover: {
-      title: `${ICONS.filter} Exam Papers`,
-      description: "Pick TELC or Goethe. Numbers show how many papers each has.",
+      title: `${ICONS.fileText} Mock Exams`,
+      description:
+        "Full timed Goethe and telc papers are coming soon. Your Skillcase assessments live under Your test.",
       side: "bottom",
       align: "center",
-    },
-  },
-  {
-    element: "#b2-exam-first-paper",
-    popover: {
-      title: `${ICONS.tap} Start a Paper`,
-      description: "Tap a paper to begin. It covers all four timed sections.",
-      side: "bottom",
       showButtons: ["next"],
       nextBtnText: "Got it",
     },

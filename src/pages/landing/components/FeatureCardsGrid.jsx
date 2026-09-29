@@ -280,7 +280,17 @@ export default function FeatureCardsGrid() {
       {isB2 ? (
         <>
           {showB2Gate && <B2ExamGate overview={b2Overview} />}
-          <B2PracticeHome overview={b2Overview} />
+          <B2PracticeHome
+            overview={b2Overview}
+            loading={b2Loading}
+            onRetry={() => {
+              setB2Loading(true);
+              getB2TestOverview()
+                .then((r) => setB2Overview(r.data))
+                .catch(() => setB2Overview(null))
+                .finally(() => setB2Loading(false));
+            }}
+          />
           <ExamCards />
         </>
       ) : (

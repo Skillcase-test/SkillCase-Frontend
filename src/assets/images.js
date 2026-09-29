@@ -12,7 +12,6 @@ import salaryImage from "./images/salaryImage.webp";
 import germanFlag from "./images/germanFlag.svg";
 import jobsIcon from "./images/jobIcon.svg";
 import menuIcon from "./images/menuCard.svg";
-import skillcaseLogo from "./images/skillcaseLogo.svg";
 import headerBackground from "./images/headerBackground.webp";
 import chevronLeftIcon from "./images/chevronLeftIcon.svg";
 import chevronRightIcon from "./images/chevronRightIcon.svg";
@@ -21,6 +20,9 @@ import b2Speaking from "./images/b2speaking.webp";
 import b2Reading from "./images/b2reading.webp";
 import b2Listening from "./images/b2listening.webp";
 import b2Writing from "./images/b2writing.webp";
+
+const skillcaseLogo = "/brand/skillcase-on-light.svg";
+const skillcaseLogoOnDark = "/brand/skillcase-on-dark.svg";
 
 export const images = {
   // Avatars
@@ -46,6 +48,7 @@ export const images = {
 
   // Logo
   skillcaseLogo,
+  skillcaseLogoOnDark,
 
   // Chapter Select Page Assets
   headerBackground,

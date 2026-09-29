@@ -1,3 +1,8 @@
+import { trackB2Action } from "../../../utils/b2Telemetry";
+import useB2SubmitGuard from "../../../hooks/useB2SubmitGuard";
+import { B2Page, B2State } from "../../../components/b2/B2UI";
+import useB2Draft from "../../../hooks/useB2Draft";
+import B2WorkspaceHeader from "../../../components/b2/B2WorkspaceHeader";
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -30,8 +35,22 @@ export default function ExamListeningWorkspace() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submitGuard = useB2SubmitGuard({
+    questions,
+    answers,
+    index: currentBlockIndex,
+    skill: "listening",
+  });
+  const draft = useB2Draft({
+    draftKey: `b2-draft:v1:${user?.user_id || "guest"}:assessment:${paperId}:${submission?.id || 0}:listening`,
+    answers,
+    setAnswers,
+    blockIndex: currentBlockIndex,
+    setBlockIndex: setCurrentBlockIndex,
+    loading,
+    totalBlocks: questions.length,
+  });
 
-  // Custom audio waveform player states
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioDuration, setAudioDuration] = useState(0);
   const [audioProgress, setAudioProgress] = useState(0); // seconds
@@ -52,7 +71,6 @@ export default function ExamListeningWorkspace() {
     loading,
   });
 
-  // Section Timer state (seconds remaining)
   const [timeLeft, setTimeLeft] = useState(30 * 60); // Default 30 mins
   const timerRef = useRef(null);
   const answersRef = useRef(answers);
@@ -77,7 +95,10 @@ export default function ExamListeningWorkspace() {
         const storedExpire = localStorage.getItem(timerKey);
         if (storedExpire) {
           const expireTime = parseInt(storedExpire, 10);
-          const remaining = Math.max(0, Math.floor((expireTime - Date.now()) / 1000));
+          const remaining = Math.max(
+            0,
+            Math.floor((expireTime - Date.now()) / 1000),
+          );
           setTimeLeft(remaining);
         } else {
           const durationSeconds = list[0].duration_minutes * 60;
@@ -109,7 +130,6 @@ export default function ExamListeningWorkspace() {
     fetchContent();
   }, [user?.user_id, paperId]);
 
-  // Section Timer
   useEffect(() => {
     if (loading || fetchError || questions.length === 0) return;
 
@@ -131,7 +151,6 @@ export default function ExamListeningWorkspace() {
     // to prevent the timer from restarting if setQuestions is called again
   }, [loading, fetchError, questions.length]);
 
-  // Preload audio and extract metadata whenever current block changes
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.pause();
@@ -165,7 +184,6 @@ export default function ExamListeningWorkspace() {
       audio.addEventListener("ended", handleEnded);
       audio.addEventListener("error", handleError);
 
-      // Preload audio track
       audio.load();
 
       return () => {
@@ -189,7 +207,15 @@ export default function ExamListeningWorkspace() {
       await submitB2ExamListeningAnswers(submission.id, {
         answers: currentAnswers,
       });
-      localStorage.removeItem(`b2_exam_timer_${user?.user_id || "guest"}_${paperId}_listening`);
+      localStorage.removeItem(
+        `b2_exam_timer_${user?.user_id || "guest"}_${paperId}_listening`,
+      );
+      trackB2Action("section_submitted", {
+        skill: "listening",
+        mode: "assessment",
+        entityId: paperId,
+      });
+      draft.clear();
       navigate(`/b2/exams/papers/${paperId}/listening/results`, {
         state: { submissionId: submission.id },
       });
@@ -204,7 +230,9 @@ export default function ExamListeningWorkspace() {
   const handleOptionSelect = (blockId, qIdx, option, qType = "mcq_single") => {
     const ansKey = `${blockId}_${qIdx}`;
     if (qType === "mcq_multi") {
-      const currentSelection = Array.isArray(answers[ansKey]) ? answers[ansKey] : [];
+      const currentSelection = Array.isArray(answers[ansKey])
+        ? answers[ansKey]
+        : [];
       const nextSelection = currentSelection.includes(option)
         ? currentSelection.filter((item) => item !== option)
         : [...currentSelection, option];
@@ -272,30 +300,23 @@ export default function ExamListeningWorkspace() {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  if (loading) {
+  if (loading)
     return (
-      <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
+      <B2Page title="Listening" back="/b2/test">
+        <B2State loading />
+      </B2Page>
     );
-  }
 
-  if (fetchError || questions.length === 0) {
+  if (fetchError || questions.length === 0)
     return (
-      <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen flex flex-col items-center justify-center gap-3 bg-white px-6">
-        <AlertCircle className="w-6 h-6 text-red-500" />
-        <p className="text-slate-500 text-xs font-semibold text-center">
-          Failed to load Listening tasks. Check back later.
-        </p>
-        <button
-          onClick={() => navigate("/b2/test")}
-          className="px-4 py-2 bg-sky-950 text-white rounded-lg text-xs font-semibold border-0 outline-none cursor-pointer"
-        >
-          Return to Dashboard
-        </button>
-      </div>
+      <B2Page title="Listening" back="/b2/test">
+        <B2State
+          title="Listening tasks couldn’t load"
+          description="Your connection may have dropped. Try again when you’re ready."
+          onRetry={fetchContent}
+        />
+      </B2Page>
     );
-  }
 
   const isLastBlock = currentBlockIndex === questions.length - 1;
 
@@ -306,64 +327,27 @@ export default function ExamListeningWorkspace() {
   const playedBarsCount = Math.floor(currentPlayedRatio * totalWaveformBars);
 
   return (
-    <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden relative">
-      {/* Navigation and Title Bar */}
-      <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
-        <div className="self-stretch inline-flex justify-between items-center">
-          <button
-            onClick={() => navigate("/b2/test")}
-            className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
-          >
-            <ChevronLeft className="w-4 h-4 text-slate-900" />
-            <span className="text-center text-slate-900 text-sm font-semibold leading-6">
-              Back
-            </span>
-          </button>
-          <span className="text-center text-neutral-500 text-sm font-semibold leading-6">
-            Listening
-          </span>
-        </div>
-      </div>
+    <div className="b2-ui b2-workspace w-full max-w-md lg:max-w-none mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden relative">
+      {submitGuard.confirmation}
+      <B2WorkspaceHeader
+        skill="listening"
+        assessment={true}
+        index={currentBlockIndex}
+        total={questions.length}
+        timeLeft={timeLeft}
+        draftStatus={draft.status}
+        onLeave={() => navigate("/b2/test")}
+      />
 
-      {/* Progress & Time Limit Indicators */}
-      <div className="self-stretch px-4 pt-1 flex flex-col justify-start items-start gap-1.5 shrink-0 bg-white">
-        <div className="self-stretch inline-flex justify-between items-center">
-          <span className="text-sky-950 text-base font-semibold leading-5">
-            Question {(currentBlockIndex + 1).toString().padStart(2, "0")} of{" "}
-            {questions.length.toString().padStart(2, "0")}
-          </span>
-          <div className="px-2 py-1 bg-[#f5f5f5] rounded-[40px] border border-[#f5f5f5] flex justify-center items-center gap-1 shrink-0">
-            <Clock className="w-3 h-3 text-sky-950" />
-            <span className="text-center text-sky-950 text-xs font-medium leading-5">
-              {formatSeconds(timeLeft)}
-            </span>
-          </div>
-        </div>
-
-        {/* Horizontal progress bar with h-3 and gap-0.5 */}
-        <div className="self-stretch flex justify-start items-center gap-0.5 pb-1">
-          {questions.map((_, idx) => (
-            <div
-              key={idx}
-              className={`flex-1 h-3 rounded-[200px] transition-all ${
-                idx <= currentBlockIndex ? "bg-amber-300" : "bg-zinc-100"
-              }`}
-            ></div>
-          ))}
-        </div>
-      </div>
-
-      {/* Scrollable Content Workspace */}
       <div
         ref={containerRef}
-        className="flex-1 w-full overflow-y-auto pb-48 flex flex-col justify-start items-center bg-[#f5f5f5]"
+        className="flex-1 w-full overflow-y-auto flex flex-col justify-start items-center bg-[#f5f5f5]"
       >
-        {/* Waveform Player Section */}
         <div className="self-stretch px-4 pt-3 pb-6 flex flex-col gap-2.5 bg-white shrink-0">
-          {/* Player row: play button + waveform bars + duration */}
           <div className="self-stretch flex items-center gap-4">
-            {/* Play/Pause Button — large navy circle */}
             <button
+              type="button"
+              aria-label={isPlaying ? "Pause audio" : "Play audio"}
               onClick={handlePlayPause}
               className="size-16 bg-[#0a1f44] hover:bg-[#06142c] active:scale-95 text-white rounded-full flex items-center justify-center outline-none border-0 cursor-pointer shadow-md transition-all shrink-0"
             >
@@ -374,7 +358,6 @@ export default function ExamListeningWorkspace() {
               )}
             </button>
 
-            {/* Waveform bars — centered on middle axis, fills remaining width */}
             <div className="flex-1 flex items-center justify-between h-8 overflow-hidden">
               {Array.from({ length: totalWaveformBars }).map((_, barIdx) => {
                 const isPlayed = barIdx <= playedBarsCount;
@@ -396,19 +379,16 @@ export default function ExamListeningWorkspace() {
               })}
             </div>
 
-            {/* Duration label */}
             <span className="text-xs font-semibold text-black/40 shrink-0">
               {formatSeconds(Math.round(audioDuration || 0))}
             </span>
           </div>
 
-          {/* Subtitle — left-aligned, bold, larger */}
           <p className="self-stretch text-sky-950 text-base font-bold leading-6">
             Listen to the audio and answer the questions below
           </p>
         </div>
 
-        {/* Divider Section with Question Mark box */}
         <div className="self-stretch w-full px-4 py-4 bg-[#f5f5f5] inline-flex justify-center items-center gap-3.5 shrink-0">
           <div className="w-9 h-9 relative bg-blue-950 rounded-sm overflow-hidden flex items-center justify-center shrink-0">
             <span className="text-white text-base font-bold">?</span>
@@ -418,8 +398,7 @@ export default function ExamListeningWorkspace() {
           </h2>
         </div>
 
-        {/* Questions list with light gray background */}
-        <div className="self-stretch px-4 pt-4 pb-12 bg-[#f5f5f5] flex flex-col justify-start items-center gap-6 flex-1 w-full min-h-[300px]">
+        <div className="self-stretch px-4 pt-4 pb-6 bg-[#f5f5f5] flex flex-col justify-start items-center gap-6 flex-1 w-full min-h-[300px]">
           {blockQuestions.map((q, qIdx) => {
             const ansKey = `${currentBlock.id}_${qIdx}`;
             const selectedOpt = answers[ansKey];
@@ -437,6 +416,7 @@ export default function ExamListeningWorkspace() {
                   <div className="self-stretch w-full">
                     <input
                       type="text"
+                      aria-label={q.question_text || "Your answer"}
                       value={selectedOpt || ""}
                       onChange={(e) => {
                         setAnswers((prev) => ({
@@ -464,9 +444,11 @@ export default function ExamListeningWorkspace() {
                 <div className="self-stretch flex flex-col justify-start items-start gap-2 w-full">
                   {(q.options || []).map((option, optIdx) => {
                     const optionLetter = String.fromCharCode(65 + optIdx);
-                    const isSelected = qType === "mcq_multi"
-                      ? (Array.isArray(selectedOpt) && selectedOpt.includes(optionLetter))
-                      : selectedOpt === optionLetter;
+                    const isSelected =
+                      qType === "mcq_multi"
+                        ? Array.isArray(selectedOpt) &&
+                          selectedOpt.includes(optionLetter)
+                        : selectedOpt === optionLetter;
 
                     let cardClass = "bg-white border-zinc-200";
                     let letterContainerClass = "bg-[#f5f5f5] text-gray-900/30";
@@ -481,7 +463,9 @@ export default function ExamListeningWorkspace() {
                     }
 
                     return (
-                      <div
+                      <button
+                        type="button"
+                        aria-pressed={isSelected}
                         key={optIdx}
                         onClick={() =>
                           handleOptionSelect(
@@ -491,9 +475,9 @@ export default function ExamListeningWorkspace() {
                             qType,
                           )
                         }
-                        className={`w-full p-2.5 rounded-lg border inline-flex justify-start items-center gap-3 cursor-pointer hover:bg-slate-50/50 transition-all ${cardClass}`}
+                        className={`b2-answer w-full p-2.5 rounded-lg border inline-flex justify-start items-center gap-3 cursor-pointer hover:bg-slate-50/50 transition-all ${cardClass}`}
                       >
-                        <div
+                        <span
                           className={`w-8 h-8 rounded-sm overflow-hidden shrink-0 flex items-center justify-center ${letterContainerClass}`}
                         >
                           <span
@@ -501,15 +485,15 @@ export default function ExamListeningWorkspace() {
                           >
                             {optionLetter}
                           </span>
-                        </div>
-                        <div className="flex-1 flex justify-start items-center gap-2.5 min-w-0">
+                        </span>
+                        <span className="flex-1 flex justify-start items-center gap-2.5 min-w-0">
                           <span
                             className={`flex-1 justify-start text-xs font-medium leading-5 text-left break-words ${optionTextClass}`}
                           >
                             {option}
                           </span>
-                        </div>
-                      </div>
+                        </span>
+                      </button>
                     );
                   })}
                 </div>
@@ -519,19 +503,18 @@ export default function ExamListeningWorkspace() {
         </div>
       </div>
 
-      {/* Sticky Bottom Actions footer blending with grey background */}
-      <div className="absolute bottom-0 inset-x-0 p-4 flex flex-col gap-2 shrink-0 ">
+      <div className="b2-actionbar">
         <button
-          onClick={handleNext}
+          onClick={() => submitGuard.request(handleNext)}
           disabled={submitting}
           className="w-full py-3 bg-[#0a1f44] hover:bg-[#06142c] active:scale-[0.99] disabled:opacity-50 text-white text-base font-semibold rounded-lg shadow-md transition-all outline-none border-0 cursor-pointer flex justify-center items-center"
         >
           {submitting ? (
             <Loader2 className="w-5 h-5 animate-spin text-white" />
           ) : isLastBlock ? (
-            "Finish Listening Exam"
+            "Submit section"
           ) : (
-            "Next Question"
+            "Next task"
           )}
         </button>
 
@@ -540,7 +523,7 @@ export default function ExamListeningWorkspace() {
             onClick={handlePrev}
             className="w-full py-3 bg-transparent hover:bg-[#f5f5f5] border border-zinc-400 active:scale-[0.99] text-[#0a1f44] text-base font-semibold rounded-lg transition-all outline-none cursor-pointer flex justify-center items-center"
           >
-            Previous Question
+            Previous task
           </button>
         )}
       </div>

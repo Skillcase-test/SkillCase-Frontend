@@ -10,11 +10,8 @@ import {
 // Fixed test sequence — sections are taken one by one, no picker screen.
 const SECTION_ORDER = ["reading", "listening", "speaking", "writing"];
 
-// Replaces the old "choose a section" dashboard: resolves the learner's
-// active submission and forwards straight to the first incomplete section
-// (or the result screen when everything is done). Kept on the /dashboard
-// route so every existing entry point (get-ready, test hub, section
-// results) resumes at the right place automatically.
+// Resolves the active submission and forwards to the first incomplete
+// section, so every entry point (get-ready, test hub, results) resumes correctly.
 export default function ExamSectionRedirect() {
   const navigate = useNavigate();
   const { paperId } = useParams();

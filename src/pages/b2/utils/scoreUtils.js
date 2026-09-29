@@ -1,20 +1,17 @@
+import { getB2ScoreBand } from "../../../utils/b2Scores";
+
 export function getScoreColor(score) {
-  const val = Number(score || 0);
-  if (val >= 70) return "text-green-700 bg-green-600";
-  if (val >= 40) return "text-orange-400 bg-amber-300";
-  return "text-red-500 bg-red-500";
+  return {
+    good: "text-[#17764f] bg-[#17764f]",
+    developing: "text-[#946200] bg-[#b17a00]",
+    practice: "text-[#b3483e] bg-[#b3483e]",
+    pending: "text-[#59687a] bg-[#59687a]",
+  }[getB2ScoreBand(score).key];
 }
-
 export function getScoreStrokeColor(score) {
-  const val = Number(score || 0);
-  if (val >= 70) return "#16A34A";
-  if (val >= 40) return "#F59E0B";
-  return "#EF4444";
+  const band = getB2ScoreBand(score);
+  return band.chartColor || band.color;
 }
-
 export function getScoreGreeting(score) {
-  const val = Number(score || 0);
-  if (val >= 70) return "Good job 🚀";
-  if (val >= 50) return "Well done! 👍";
-  return "Keep practicing! 💪";
+  return { good: "Good progress", developing: "You're making progress", practice: "Keep practising", pending: "Awaiting feedback" }[getB2ScoreBand(score).key];
 }

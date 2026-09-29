@@ -2,7 +2,18 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ChevronRight, Loader2, AlertCircle } from "lucide-react";
-import mayaSmiling from "../../../assets/onboarding/mayaSmilingPhysio.webp";
+import B2MayaPortrait from "../../../components/b2/B2MayaPortrait";
+import {
+  B2Page,
+  B2Button,
+  B2ScoreRing,
+  B2ScoreBars,
+  B2ScoreStatus,
+  B2ScoreGuide,
+  B2State,
+} from "../../../components/b2/B2UI";
+import useB2Access from "../../../hooks/useB2Access";
+import { getB2ScoreBand } from "../../../utils/b2Scores";
 import {
   startB2ExamSubmission,
   getB2ExamSubmissionStatus,
@@ -10,24 +21,13 @@ import {
 } from "../../../api/b2Api";
 import { hapticHeavy, hapticLight } from "../../../utils/haptics";
 
-const SKILL_ORDER = ["reading", "listening", "writing", "speaking"];
+const SKILL_ORDER = ["reading", "listening", "speaking", "writing"];
 const SKILL_LABELS = {
   reading: "Reading",
   listening: "Listening",
   writing: "Writing",
   speaking: "Speaking",
 };
-
-const RING_CIRC = 2 * Math.PI * 42; // ~264
-
-// Decorative confetti pieces floating in the hero (positions from design).
-const CONFETTI = [
-  "top-[34px] left-[42px] w-2.5 h-2.5 rounded-sm bg-[#EDB843] rotate-[20deg]",
-  "top-[72px] left-[86px] w-2 h-2 rounded-full bg-[#083262]",
-  "top-[26px] right-[64px] w-3 h-1.5 rounded-sm bg-[#2E90FA] -rotate-[30deg]",
-  "top-[88px] right-[38px] w-[9px] h-[9px] rounded-sm bg-[#EDB843] rotate-45",
-  "top-[118px] left-[30px] w-[7px] h-[7px] rounded-full bg-[#2E90FA]",
-];
 
 function formatSkillList(items) {
   if (!items?.length) return "";
@@ -43,9 +43,10 @@ function buildSummary(bySkill) {
   for (const skill of SKILL_ORDER) {
     const entry = bySkill[skill];
     if (!entry?.measured) continue;
-    if (entry.score < 42) groups.needsPractice.push(SKILL_LABELS[skill]);
-    else if (entry.score < 62) groups.developing.push(SKILL_LABELS[skill]);
-    else groups.good.push(SKILL_LABELS[skill]);
+    const band = getB2ScoreBand(entry.score).key;
+    if (band === "practice") groups.needsPractice.push(SKILL_LABELS[skill]);
+    else if (band === "developing") groups.developing.push(SKILL_LABELS[skill]);
+    else if (band === "good") groups.good.push(SKILL_LABELS[skill]);
   }
   const parts = [];
   if (groups.needsPractice.length) {
@@ -68,6 +69,7 @@ function buildSummary(bySkill) {
 
 export default function B2Result() {
   const navigate = useNavigate();
+  const open = useB2Access();
   const { paperId } = useParams();
   const { user } = useSelector((state) => state.auth);
 
@@ -140,30 +142,22 @@ export default function B2Result() {
     fetchFinalReport();
   }, [user?.user_id, fetchFinalReport]);
 
-  if (loading) {
+  if (loading)
     return (
-      <div className="w-full max-w-md mx-auto min-h-screen flex items-center justify-center bg-white shadow-sm">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
+      <B2Page title="Assessment results" back="/b2/test">
+        <B2State loading />
+      </B2Page>
     );
-  }
 
-  if (fetchError || !submissionData) {
+  if (fetchError || !submissionData)
     return (
-      <div className="w-full max-w-md mx-auto min-h-screen flex flex-col items-center justify-center gap-3 bg-white px-6">
-        <AlertCircle className="w-6 h-6 text-red-500" />
-        <p className="text-slate-500 text-xs font-semibold text-center">
-          Failed to load final report.
-        </p>
-        <button
-          onClick={() => navigate("/")}
-          className="px-4 py-2 bg-sky-950 text-white rounded-lg text-xs font-semibold border-0 outline-none cursor-pointer"
-        >
-          Go to home
-        </button>
-      </div>
+      <B2Page title="Assessment results" back="/b2/test">
+        <B2State
+          title="Your results couldn’t load"
+          onRetry={fetchFinalReport}
+        />
+      </B2Page>
     );
-  }
 
   // Per-skill measured scores — a section only counts once completed with a
   // finite score, otherwise it shows "Not scored yet".
@@ -180,7 +174,7 @@ export default function B2Result() {
   }
 
   const overallRaw = parseFloat(submissionData.overall_score);
-  const overallScore = isFinite(overallRaw) ? Math.round(overallRaw) : 0;
+  const overallScore = isFinite(overallRaw) ? Math.round(overallRaw) : null;
   const summary = buildSummary(bySkill);
 
   // "Test N" — this submission's position in the completed-test history.
@@ -194,146 +188,79 @@ export default function B2Result() {
   const openSuggested = () => {
     if (!suggested) return;
     hapticLight();
-    navigate(`/b2/${suggested.module}/${suggested.exerciseId}`);
+    open(suggested.module, `/b2/${suggested.module}/${suggested.exerciseId}`);
   };
 
+  const measuredCount = SKILL_ORDER.filter(
+    (skill) => bySkill[skill].measured,
+  ).length;
+  const allComplete =
+    sections.length > 0 &&
+    SKILL_ORDER.every(
+      (skill) =>
+        sections.find((s) => s.section_type === skill)?.status === "completed",
+    );
   return (
-    <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen bg-gradient-to-b from-[#CFE3FF] to-[#E4EFFF] flex flex-col overflow-hidden">
-      {/* Hero: confetti + cheering Maya */}
-      <div className="relative shrink-0 h-[200px] flex items-end justify-center px-4">
-        {CONFETTI.map((cls, i) => (
-          <span key={i} className={`absolute ${cls}`} />
-        ))}
-        <img
-          src={mayaSmiling}
-          alt="Maya cheering"
-          className="w-[150px] h-[180px] object-contain object-bottom select-none pointer-events-none"
-        />
-      </div>
-
-      {/* Result sheet */}
-      <div className="flex-1 bg-white rounded-t-3xl px-4 pt-[22px] pb-6 flex flex-col justify-between">
-        <div className="flex flex-col gap-3.5">
-          <div className="flex flex-col gap-1 items-center text-center">
-            <span className="text-xs font-semibold tracking-[0.08em] uppercase text-[#067647]">
-              {testNumber ? `Test ${testNumber} complete` : "Test complete"}
-            </span>
-            <h1 className="font-semibold text-2xl leading-tight text-[#083262]">
-              Well done! Here is your result.
-            </h1>
-          </div>
-
-          <div className="border border-[#E9EAEB] rounded-xl p-3.5 flex flex-col gap-3">
-            <div className="flex items-center gap-3.5">
-              <div className="relative w-16 h-16 shrink-0">
-                <svg
-                  width="64"
-                  height="64"
-                  viewBox="0 0 96 96"
-                  className="-rotate-90"
-                >
-                  <circle
-                    cx="48"
-                    cy="48"
-                    r="42"
-                    fill="none"
-                    stroke="#E9EAEB"
-                    strokeWidth="10"
-                  />
-                  <circle
-                    cx="48"
-                    cy="48"
-                    r="42"
-                    fill="none"
-                    stroke="#B54708"
-                    strokeWidth="10"
-                    strokeLinecap="round"
-                    strokeDasharray={RING_CIRC}
-                    strokeDashoffset={RING_CIRC * (1 - overallScore / 100)}
-                  />
-                </svg>
-                <span className="absolute inset-0 flex items-center justify-center font-bold text-[17px] text-[#181D27]">
-                  {overallScore}%
-                </span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="font-semibold text-[15px]">
-                  Your starting point
-                </span>
-                <span className="text-[13px] leading-snug text-[#535862]">
-                  Take more tests to see your progress.
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-2.5">
-              {SKILL_ORDER.map((skill) => {
-                const entry = bySkill[skill];
-                const good = entry.measured && entry.score >= 60;
-                return (
-                  <div key={skill} className="flex flex-col gap-1">
-                    <div className="flex justify-between text-[13px]">
-                      <span className="font-medium">
-                        {SKILL_LABELS[skill]}
-                      </span>
-                      {entry.measured ? (
-                        <span
-                          className={`font-semibold ${good ? "text-[#067647]" : "text-[#B42318]"}`}
-                        >
-                          {entry.score}%
-                        </span>
-                      ) : (
-                        <span className="text-[#717680]">Not scored yet</span>
-                      )}
-                    </div>
-                    <div className="h-2 rounded-full bg-[#F0F1F3]">
-                      {entry.measured && (
-                        <div
-                          className={`h-2 rounded-full ${good ? "bg-[#17B26A]" : "bg-[#F04438]"}`}
-                          style={{ width: `${entry.score}%` }}
-                        />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {summary && (
-              <p className="text-sm leading-snug text-[#414651]">{summary}</p>
-            )}
-          </div>
-
-          {suggested && (
-            <button
-              type="button"
-              onClick={openSuggested}
-              className="w-full flex items-center gap-3 border border-[#C7DBF7] bg-[#F4F8FF] rounded-xl px-3.5 py-3 text-left cursor-pointer hover:bg-[#e9f1fe] active:scale-[0.99] transition-all"
-            >
-              <span className="flex flex-col gap-0.5 flex-1 min-w-0">
-                <span className="text-xs font-semibold text-[#717680] uppercase tracking-[0.06em]">
-                  Start here
-                </span>
-                <span className="font-semibold text-[15px] text-[#181D27] truncate">
-                  {suggested.skillLabel}: {suggested.title}
-                </span>
-                <span className="text-[13px] text-[#535862]">
-                  About {suggested.durationMinutes} minutes
-                </span>
-              </span>
-              <ChevronRight className="w-5 h-5 text-[#083262] shrink-0" />
-            </button>
-          )}
+    <B2Page title="Assessment results" back="/b2/test">
+      <div className="b2-content b2-results-content b2-with-primary">
+        <div className="b2-feedback-hero">
+          <B2MayaPortrait user={user} />
+          <span className="b2-eyebrow">
+            {testNumber ? `Assessment ${testNumber}` : "Your assessment"}
+          </span>
+          <h1>{allComplete ? "Test complete" : "Your results so far"}</h1>
         </div>
-
-        <button
-          type="button"
-          onClick={() => navigate("/")}
-          className="w-full h-12 rounded-lg bg-[#EDB843] text-[#083262] text-base font-semibold hover:bg-[#e0aa2f] active:scale-[0.98] transition-all mt-6"
-        >
-          Go to home
-        </button>
+        <section className="b2-panel">
+          <div className="b2-scoreline">
+            <B2ScoreRing score={overallScore} />
+            <div>
+              <h2>{measuredCount < 4 ? "Score so far" : "Overall score"}</h2>
+              {overallScore !== null && <B2ScoreStatus score={overallScore} />}
+              <p className="b2-small">{measuredCount} of 4 skills scored</p>
+            </div>
+          </div>
+          <B2ScoreBars bySkill={bySkill} />
+          {summary && <p className="b2-small b2-feedback-copy">{summary}</p>}
+          {measuredCount < 4 && (
+            <p className="b2-small b2-feedback-copy">
+              {allComplete
+                ? "More scores will appear when ready."
+                : "Finish all sections to complete your results."}
+            </p>
+          )}
+          <B2ScoreGuide />
+        </section>
+        {allComplete && suggested && (
+          <section className="b2-next-practice">
+            <span className="b2-eyebrow">
+              Up next · {" "}
+              {suggested.skillLabel?.toLowerCase() || suggested.module}
+            </span>
+            <h2>{suggested.title}</h2>
+            {suggested.durationMinutes > 0 && (
+              <p className="b2-small">{suggested.durationMinutes} min</p>
+            )}
+          </section>
+        )}
+        <div className="b2-fixed-primary">
+          <B2Button
+            onClick={
+              !allComplete
+                ? () => navigate(`/b2/exams/papers/${paperId}/dashboard`)
+                : suggested
+                  ? openSuggested
+                  : () => navigate("/")
+            }
+          >
+            {!allComplete
+              ? "Continue assessment"
+              : suggested
+                ? `Practise ${suggested.skillLabel?.toLowerCase() || suggested.module}`
+                : "Choose a skill"}
+            <ChevronRight size={18} />
+          </B2Button>
+        </div>
       </div>
-    </div>
+    </B2Page>
   );
 }
