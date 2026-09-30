@@ -90,7 +90,6 @@ export default function Build({ step = {}, ctx = {} }) {
     setUsed((prev) => new Set(prev).add(i));
     setPicked(next);
     setHinted(null);
-    if (!step.fuse) speak(w);
     if (next.length === target.length) submit(next);
   };
 

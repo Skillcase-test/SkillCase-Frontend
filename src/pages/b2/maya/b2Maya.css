@@ -16,8 +16,12 @@
 .sp button:active:not(:disabled){transform:translateY(1px)}
 .sp button:hover:not(:disabled){filter:brightness(.98)}
 .sp{height:calc(100dvh - var(--preview-height));min-height:550px;max-width:460px;background:var(--bg);margin:auto;display:flex;flex-direction:column;position:relative;overflow:hidden}
-.sp .top{height:69px;min-height:69px;display:flex;align-items:center;justify-content:space-between;padding:12px 24px;gap:12px;background:white;border-bottom:1px solid var(--line)}
-.sp .top.compact{padding:12px 20px}
+.sp .top{height:calc(69px + env(safe-area-inset-top));min-height:calc(69px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;padding:calc(12px + env(safe-area-inset-top)) 24px 12px;gap:12px;background:white;border-bottom:1px solid var(--line);position:relative}
+.sp .top.compact{padding:calc(12px + env(safe-area-inset-top)) 20px 12px}
+/* Title centers in the header; when the trailing slot is an empty spacer
+   (no tag pill) it anchors to the right edge instead. */
+.sp .top.compact .top-title{position:absolute;left:50%;top:calc(34.5px + env(safe-area-inset-top));transform:translate(-50%,-50%);max-width:58%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.sp .top.compact.no-tag .top-title{left:auto;right:20px;transform:translateY(-50%)}
 .sp .wordmark{font-size:21px;letter-spacing:-.7px;font-weight:700;color:var(--navy)}
 .sp .wordmark svg{width:20px;height:20px;color:var(--navy)}
 .sp a.wordmark{text-decoration:none;min-height:44px;align-items:center}

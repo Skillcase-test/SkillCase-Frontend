@@ -96,7 +96,7 @@ export const ENCOURAGE = [
   "That's a real German sentence, out loud, from you.",
   "Every word you say now is one you'll never have to learn again.",
   "You didn't wait until you felt ready. That's the actual skill.",
-  "Saying it wrong and saying it anyway -- that's how everyone starts.",
+  "Saying it wrong and saying it anyway — that's how everyone starts.",
   "That sentence didn't exist for you yesterday. Now it does.",
   "Small and out loud beats big and silent, every time.",
   "You're not memorizing anymore. You're using it.",
@@ -107,7 +107,7 @@ export const PRAISE = [
   "Richtig!", "Nailed it.", "That's the one.", "Exactly right.", "Spot on.",
   "Sehr gut!", "You knew that cold.", "Clean.", "That's correct German.",
   "Yep, that's it.", "Genau richtig.", "No hesitation there.", "Right on.",
-  "Correct -- and fast.", "That's how it's said.",
+  "Correct — and fast.", "That's how it's said.",
 ];
 export function pickPraise() { return PRAISE[Math.floor(Math.random() * PRAISE.length)]; }
 

@@ -46,3 +46,19 @@
 .gp-book .gp-stamp > strong { font-size: calc(var(--collection-stamp-size) * .072); letter-spacing: .04em; }
 .gp-book .gp-stamp .gp-stamp-top,
 .gp-book .gp-stamp .gp-stamp-date { font-size: calc(var(--collection-stamp-size) * .044); letter-spacing: 0; }
+
+/* Safe-area: the sticky passport dock assumed the shell navbar was exactly
+   --guided-tabs-height; NewNavbar adds env(safe-area-inset-top) on top of its
+   64px, so on notched devices the dock slid under it mid-scroll. Everything
+   here is scoped under .gp-ui for specificity — these rules land in different
+   bundle chunks than journey-path.css/passport.css, and equal-specificity
+   overrides lose by stylesheet order (that's what this file is for). */
+.gp-ui .gp-passport-dock { top: calc(var(--guided-tabs-height, 0px) + env(safe-area-inset-top)); }
+.gp-ui .gp-map-stop { scroll-margin-top: calc(var(--guided-tabs-height, 0px) + env(safe-area-inset-top) + 100px); }
+
+/* Standalone .gp screens (passport, stamp reward) render without the app
+   navbar — their own headers take the status-bar inset instead. */
+.gp-ui .gp-header { height: calc(60px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); }
+.gp-ui .gp-reward-inner > header { height: calc(54px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); }
+.gp-ui.gp-page { padding-bottom: max(32px, env(safe-area-inset-bottom)); }
+.gp-ui .gp-reward-inner { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }

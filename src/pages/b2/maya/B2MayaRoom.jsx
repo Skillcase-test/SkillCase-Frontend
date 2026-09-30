@@ -75,10 +75,11 @@ export default function B2MayaRoom({ meta, focus }) {
   const user = useSelector((state) => state.auth.user);
   const { level, coachName, firstName, modes, minutes: minutesMap, topics, words } = meta;
   const hasInterview = modes.length > 1;
-  const [screen, setScreen] = useState(focus ? "setup" : "choose");
+  // Consented learners skip the education screen — focused follow-ups start at the mic check.
+  const [screen, setScreen] = useState(focus ? (meta.consented ? "mic-test" : "setup") : "choose");
   const [mode, setMode] = useState(modes[0]);
   const interview = mode !== "talk";
-  const [topic, setTopic] = useState(""); // "" = Maya chooses
+  const [topic, setTopic] = useState(""); // "" = General Conversation
   const [customTopic, setCustomTopic] = useState("");
   // Consent is asked once; returning learners find the box already ticked.
   const [consent, setConsent] = useState(Boolean(meta.consented));
@@ -99,8 +100,12 @@ export default function B2MayaRoom({ meta, focus }) {
   const [flash, setFlash] = useState(null);
   const [greeting, setGreeting] = useState(true);
   const minutes = focus ? 3 : minutesMap[mode];
-  const topicLabel = focus ? "Your focused follow-up" : topic || customTopic.trim() || "Maya chooses";
+  const topicLabel = focus ? "Your focused follow-up" : topic || customTopic.trim() || "General Conversation";
   const modeName = interview ? "Nursing interview" : "Everyday German";
+
+  // Consent is asked once; after that the mic check is the next stop.
+  const nextAfterConsent = () =>
+    consent ? (room === "good" || room === "some_noise" ? "ready" : "mic-test") : "setup";
 
   const streamRef = useRef(null);
   const ctxRef = useRef(null);
@@ -117,8 +122,21 @@ export default function B2MayaRoom({ meta, focus }) {
   const cardRef = useRef(null);
   const levelsRef = useRef({ coach: 0, you: 0 });
   const answeredRef = useRef(false);
+  const wakeLockRef = useRef(null);
+
+  // A sleeping display kills the mic mid-call. The OS auto-releases the lock
+  // when the app hides — `released` flips on the still-truthy sentinel.
+  const requestWakeLock = async () => {
+    if (!("wakeLock" in navigator)) return;
+    if (wakeLockRef.current && !wakeLockRef.current.released) return;
+    try {
+      wakeLockRef.current = await navigator.wakeLock.request("screen");
+    } catch { /* unsupported or denied — the call still works */ }
+  };
 
   const cleanup = () => {
+    wakeLockRef.current?.release().catch(() => {});
+    wakeLockRef.current = null;
     if (tickRef.current) clearInterval(tickRef.current);
     if (captionTimerRef.current) clearInterval(captionTimerRef.current);
     captionTimerRef.current = null;
@@ -168,6 +186,21 @@ export default function B2MayaRoom({ meta, focus }) {
     const t = setTimeout(() => setStatus((s) => (s === "thinking" ? "listening" : s)), 8000);
     return () => clearTimeout(t);
   }, [screen, status]);
+
+  // The screen must not sleep while a call is up — connecting and live both.
+  useEffect(() => {
+    const inCall = screen === "connecting" || screen === "live";
+    if (inCall) requestWakeLock();
+    else {
+      wakeLockRef.current?.release().catch(() => {});
+      wakeLockRef.current = null;
+    }
+    const onVis = () => {
+      if (document.visibilityState === "visible" && inCall) requestWakeLock();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [screen]);
 
   const audioConstraints = () => ({ echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, ...(deviceId ? { deviceId: { exact: deviceId } } : {}) });
   const micDenied = (e) => e instanceof DOMException && (e.name === "NotAllowedError" || e.name === "SecurityError");
@@ -666,6 +699,18 @@ export default function B2MayaRoom({ meta, focus }) {
           <Steps n={1} />
           <Title text="What’s on your mind?" desc={`Pick a topic you feel like talking about.${isBeginner(level) ? " Maya keeps it simple and helps you with words." : ""}`} />
           <div className="topic-grid" role="group" aria-label="Conversation topic">
+            <button
+              type="button"
+              className={`topic ${!topic && !customTopic.trim() ? "selected" : ""}`}
+              aria-pressed={!topic && !customTopic.trim()}
+              onClick={() => {
+                setTopic("");
+                setCustomTopic("");
+              }}
+            >
+              <Icon name="shuffle" />
+              General Conversation
+            </button>
             {topics.map((t) => (
               <button
                 type="button"
@@ -681,18 +726,6 @@ export default function B2MayaRoom({ meta, focus }) {
                 {t.label}
               </button>
             ))}
-            <button
-              type="button"
-              className={`topic ${!topic && !customTopic.trim() ? "selected" : ""}`}
-              aria-pressed={!topic && !customTopic.trim()}
-              onClick={() => {
-                setTopic("");
-                setCustomTopic("");
-              }}
-            >
-              <Icon name="shuffle" />
-              Surprise me
-            </button>
           </div>
           <label className="field-label" htmlFor="custom-topic">
             Or bring your own topic
@@ -711,7 +744,7 @@ export default function B2MayaRoom({ meta, focus }) {
           <div className="info-note">{coachName} will follow your pace and help you find the words.</div>
         </Main>
         <Footer note={`About ${minutes} minutes · ${level} practice`}>
-          <button type="button" className="primary" onClick={() => setScreen(consent && room ? "ready" : "setup")}>
+          <button type="button" className="primary" onClick={() => setScreen(nextAfterConsent())}>
             Continue
             <Icon name="arrow" />
           </button>
@@ -962,7 +995,7 @@ export default function B2MayaRoom({ meta, focus }) {
         </div>
       </Main>
       <Footer note="Voice only. Your camera stays off.">
-        <button type="button" className="primary gold" onClick={() => setScreen(interview ? (consent && room ? "ready" : "setup") : "topics")}>
+        <button type="button" className="primary gold" onClick={() => setScreen(interview ? nextAfterConsent() : "topics")}>
           {interview ? "Prepare for my interview" : "Let’s practise"}
           <Icon name="arrow" />
         </button>

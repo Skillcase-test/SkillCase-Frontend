@@ -26,7 +26,6 @@ export default function Keypad({ step, ctx }) {
     if (ctx.answered) return;
     const next = [...picked, i];
     setPicked(next);
-    speak(word(i)[0]);
     if (next.length === target.length) submit(next);
   };
 

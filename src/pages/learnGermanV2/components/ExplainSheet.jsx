@@ -21,7 +21,7 @@ export default function ExplainSheet({ tokens = [], topics = [], onClose }) {
   const genderNote = { der: "masculine", die: "feminine", das: "neuter" }[clean];
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#f4f6fb] px-4 pb-4 pt-3">
+    <div className="flex h-full min-h-0 flex-col bg-[#f4f6fb] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
       <div className="mb-3 flex items-center">
         <button
           className="grid h-9 w-9 place-items-center rounded-full bg-white text-lg text-slate-600 ring-1 ring-slate-200"

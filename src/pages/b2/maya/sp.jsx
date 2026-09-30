@@ -95,7 +95,7 @@ export function Header({ title, back, onBack, tag }) {
     </>
   );
   return (
-    <header className="top compact">
+    <header className={`top compact${tag ? "" : " no-tag"}`}>
       {back ? (
         <Link className="back-button" to={back}>
           {inner}

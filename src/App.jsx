@@ -557,7 +557,6 @@ function AppContent() {
     usePullToRefresh(
       refreshWholeApp,
       Capacitor.isNativePlatform() && !disablePullToRefresh && !maintenanceOpen,
-      { activationY: 96 },
     );
 
   const containerRef = useRef(null);

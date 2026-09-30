@@ -1114,7 +1114,6 @@ const OnboardingFlow = () => {
               className="absolute inset-0 bg-gradient-to-b from-[#002856] to-[#1A4B9F] flex flex-col items-center justify-between pt-16 pb-0 overflow-hidden select-none"
               style={{
                 paddingTop: "max(env(safe-area-inset-top), 4rem)",
-                paddingBottom: "max(env(safe-area-inset-bottom), 0px)",
               }}
             >
               {/* Ambient background glow orbs */}

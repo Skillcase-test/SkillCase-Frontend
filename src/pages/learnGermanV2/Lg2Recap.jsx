@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getLg2Art, getLg2Curriculum } from "../../api/learnGermanV2Api";
 import { loadArtManifest, moduleScene } from "./lib/vocabArt";
-import { speak } from "./lib/audio";
+import { speak, stopPlayback } from "./lib/audio";
 import Img from "./components/Img";
 
 /* What a finished topic gives you back: every word it taught, in the order it
@@ -38,6 +38,9 @@ export default function Lg2Recap() {
     };
   }, [topicId]);
 
+  // A word playing when the learner leaves shouldn't follow them home.
+  useEffect(() => () => stopPlayback(), []);
+
   // The topic's words, in teaching order, de-duplicated: a word taught in
   // learn1 and used again in apply is one word she owns, not two.
   const words = useMemo(() => {
@@ -63,7 +66,7 @@ export default function Lg2Recap() {
         aria-label="Loading recap"
         role="status"
       >
-        <div className="flex items-center gap-3 px-4 pt-3">
+        <div className="flex items-center gap-3 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
           <div className="h-9 w-9 shrink-0 rounded-full bg-white ring-1 ring-slate-200 animate-pulse" />
           <div className="h-4 flex-1 mx-4 bg-slate-200 rounded animate-pulse" />
           <span className="w-9" />
@@ -103,7 +106,7 @@ export default function Lg2Recap() {
 
   return (
     <section className="flex min-h-[100dvh] flex-col bg-[#f4f6fb]">
-      <div className="flex items-center gap-3 px-4 pt-3">
+      <div className="flex items-center gap-3 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
         <button
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-slate-500 ring-1 ring-slate-200"
           aria-label="Back"
@@ -175,7 +178,7 @@ export default function Lg2Recap() {
         )}
       </div>
 
-      <div className="border-t border-slate-200 bg-white px-4 py-4">
+      <div className="border-t border-slate-200 bg-white px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <button
           className="w-full rounded-2xl bg-[#17336d] py-3.5 text-sm font-bold text-white transition active:scale-[0.99]"
           onClick={() => navigate("/learn-german")}

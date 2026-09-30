@@ -28,7 +28,7 @@ export default function Story({ step, ctx }) {
   };
 
   return (
-    <div className="relative -mx-4 -my-2 flex min-h-[70vh] flex-col overflow-hidden rounded-b-3xl">
+    <div className="relative -mx-4 -mb-3 flex flex-1 flex-col overflow-hidden rounded-3xl">
       {backdrop && (
         <div className="absolute inset-0" aria-hidden="true">
           <Img src={backdrop} alt="" className="h-full w-full" />
@@ -53,7 +53,7 @@ export default function Story({ step, ctx }) {
         </div>
       </div>
 
-      <div className="relative z-10 px-5 pb-5">
+      <div className="relative z-10 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
         {lines.length > 1 && (
           <div className="mb-3 flex justify-center gap-1.5">
             {lines.map((_, i) => (

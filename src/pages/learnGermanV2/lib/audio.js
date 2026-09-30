@@ -2,7 +2,7 @@
 // chimes (ported verbatim from the reference: they are interface sounds, not
 // speech). Speech itself goes through lg2Tts (server-side Azure voices);
 // speak/narrate are re-exported so step components keep one import.
-export { speak, narrate, speechAvailable, preloadLg2TTS } from "./lg2Tts";
+export { speak, narrate, speechAvailable, preloadLg2TTS, stopPlayback } from "./lg2Tts";
 
 // A fresh AudioContext per call is the bug that made the app feel silent:
 // browsers cap live contexts (~6 in Chrome). One shared context, created

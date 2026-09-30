@@ -66,8 +66,12 @@ async function getBlob(kind, text) {
 // Audio playback needs the same so a rapid tap sequence doesn't overlap.
 let activeAudio = null;
 let activeUrl = null;
+// A play superseded while its blob fetch is in flight must not start —
+// the generation counter is what tells it. stopPlayback bumps it.
+let playGen = 0;
 
-function stopPlayback() {
+export function stopPlayback() {
+  playGen += 1;
   if (activeAudio) {
     try {
       activeAudio.pause();
@@ -100,8 +104,10 @@ async function play(kind, text, { fallbackLang, fallbackRate, playbackRate = 1 }
   const normalized = normalizeText(text);
   if (!normalized) return;
   stopPlayback();
+  const gen = playGen;
   try {
     const blob = await getBlob(kind, normalized);
+    if (gen !== playGen) return; // superseded or stopped while fetching
     activeUrl = URL.createObjectURL(blob);
     activeAudio = new Audio(activeUrl);
     activeAudio.playbackRate = playbackRate;
@@ -113,11 +119,12 @@ async function play(kind, text, { fallbackLang, fallbackRate, playbackRate = 1 }
     };
     audio.play().catch(() => {
       // Autoplay policy or a dead decode — fall back to the browser voice
-      // rather than leaving the learner with silence.
-      speakFallback(normalized, fallbackLang, fallbackRate * playbackRate);
+      // rather than leaving the learner with silence. If this play was
+      // superseded the rejection is our own pause() — stay quiet.
+      if (gen === playGen) speakFallback(normalized, fallbackLang, fallbackRate * playbackRate);
     });
   } catch {
-    speakFallback(normalized, fallbackLang, fallbackRate * playbackRate);
+    if (gen === playGen) speakFallback(normalized, fallbackLang, fallbackRate * playbackRate);
   }
 }
 

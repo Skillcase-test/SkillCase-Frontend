@@ -12,7 +12,7 @@ import {
   subKey, nextSub, topicFullyDone, topicDoneCount,
 } from "./lib/curriculum";
 import StepBody from "./steps";
-import { fanfare, resetStreak, preloadLg2TTS } from "./lib/audio";
+import { fanfare, resetStreak, preloadLg2TTS, stopPlayback } from "./lib/audio";
 import { moduleBackdrop } from "./lib/vocabArt";
 import {
   getLg2Curriculum, getLg2State, getLg2Sub, completeLg2Sub, saveLg2Progress,
@@ -74,7 +74,7 @@ function buildReviewSteps(reviewItems, topics, ownedWords, offset) {
     ),
   );
   const teaches = reviewWords.concat(shuffle(extraPool).slice(0, 10));
-  const steps = [{ t: "story", review: true, lines: ["Let's see what you still remember."] }];
+  const steps = [];
   reviewWords.forEach((tw, i) => {
     const others = teaches.map((_, j) => j).filter((j) => j !== i);
     // from[0] is the correct answer; never shuffle before handing off.
@@ -232,7 +232,7 @@ export default function Lg2LessonPage() {
         aria-label="Loading lesson"
         role="status"
       >
-        <div className="flex items-center gap-3 px-4 pt-3">
+        <div className="flex items-center gap-3 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
           <div className="h-9 w-9 shrink-0 rounded-full bg-white ring-1 ring-slate-200 animate-pulse" />
           <div className="h-2 flex-1 rounded-full bg-slate-200 animate-pulse" />
         </div>
@@ -395,6 +395,9 @@ function LessonEngine({
   // Sheet dock for Chat's reply UI — a plain div above the footer area.
   useEffect(() => { setSheetEl(sheetRef.current); }, [setSheetEl]);
 
+  // Lesson over (exit, reward, recap hand-off): nothing keeps talking.
+  useEffect(() => () => stopPlayback(), []);
+
   const now = () => Date.now();
   const onListenCooldown = () => stats.listenSkipUntil && now() < new Date(stats.listenSkipUntil).getTime();
   const onSpeakCooldown = () => stats.speakSkipUntil && now() < new Date(stats.speakSkipUntil).getTime();
@@ -421,6 +424,7 @@ function LessonEngine({
   };
 
   const finishNow = async () => {
+    stopPlayback();
     fanfare();
     resetStreak();
     const secs = Math.round((now() - t0.current) / 1000);
@@ -429,6 +433,7 @@ function LessonEngine({
   };
 
   const goToStep = (idx) => {
+    stopPlayback(); // the last step's voice never bleeds into this one
     const resolved = resolveStep(idx);
     if (!L.steps[resolved]) { finishNow(); return; }
     setStep(resolved);
@@ -506,7 +511,7 @@ function LessonEngine({
 
   return (
     <section className="lg2 flex min-h-[100dvh] flex-col bg-[#f4f6fb]">
-      <div className="flex items-center gap-3 px-4 pt-3">
+      <div className="flex items-center gap-3 px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
         <button className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-slate-500 ring-1 ring-slate-200" aria-label="Leave lesson" onClick={onExit}>
           ✕
         </button>
@@ -532,12 +537,14 @@ function LessonEngine({
           <MayaSays mood={MAYA_MOOD[s.t] || "curious"} text={MAYA_LINE[s.t] || "Let's try this one."} />
         )}
         <StepBody key={step} step={s} ctx={ctx} />
-        <div ref={sheetRef} />
       </div>
+
+      {/* Chat's reply sheet portals here — docked between thread and footer. */}
+      <div ref={sheetRef} className="shrink-0" />
 
       {!hideFooter && (
         <div
-          className={`border-t px-4 pb-5 pt-3 ${
+          className={`border-t px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3 ${
             verdict ? (verdict.ok ? "border-emerald-200 bg-emerald-50" : "border-rose-200 bg-rose-50") : "border-slate-200 bg-white"
           }`}
         >
@@ -637,7 +644,7 @@ function PartCompleteScreen({
           <Img src={backdrop} alt="" className="h-full w-full opacity-30" />
         </div>
       )}
-      <div className="relative z-10 flex flex-1 items-center justify-center px-5 pt-8">
+      <div className="relative z-10 flex flex-1 items-center justify-center px-5 pt-[calc(2rem+env(safe-area-inset-top))]">
         <div className="w-full max-w-sm rounded-3xl bg-white/95 p-5 shadow-xl">
           <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">
             {sub?.label || "Part"} done
@@ -670,7 +677,7 @@ function PartCompleteScreen({
           </div>
         </div>
       </div>
-      <div className="relative z-10 px-5 pb-8">
+      <div className="relative z-10 px-5 pb-[max(2rem,env(safe-area-inset-bottom))]">
         <button className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3.5 text-[15px] font-bold text-[#17336d] shadow-lg" onClick={onContinue}>
           Continue{upNext?.label ? ` to ${upNext.label}` : ""}
           <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

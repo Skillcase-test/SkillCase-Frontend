@@ -279,7 +279,7 @@ export default function Chat({ step = {}, ctx = {} }) {
             </div>
           </div>
           <button
-            className="absolute inset-x-4 bottom-6 rounded-2xl bg-white py-3.5 text-[15px] font-bold text-[#17336d] shadow-lg"
+            className="absolute inset-x-4 bottom-[max(1.5rem,env(safe-area-inset-bottom))] rounded-2xl bg-white py-3.5 text-[15px] font-bold text-[#17336d] shadow-lg"
             onClick={() => setStarted(true)}
           >
             Start conversation
@@ -371,21 +371,21 @@ export default function Chat({ step = {}, ctx = {} }) {
       {/* Reply sheet — portalled into the lesson page's fixed bottom area so
           it sits above the thread like a real messaging app. */}
       {done && portalTarget && createPortal(
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <MayaSays text="You just held a conversation in German. Every word in it was yours." mood="cheer" />
         </div>,
         portalTarget,
       )}
 
       {!done && turn && !typing && turn.mode === "production" && portalTarget && createPortal(
-        <div className="border-t border-slate-200 bg-[#f4f6fb] px-4 pb-4 pt-3">
+        <div className="border-t border-slate-200 bg-[#f4f6fb] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
           <ProductionReply turn={turn} hardChat={hardChat} onSubmit={sendMine} missTurn={ctx?.miss} onWrong={setHint} />
         </div>,
         portalTarget,
       )}
 
       {!done && turn && !typing && turn.mode !== "production" && portalTarget && createPortal(
-        <div className="border-t border-slate-200 bg-[#f4f6fb] px-4 pb-4 pt-3">
+        <div className="border-t border-slate-200 bg-[#f4f6fb] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
           <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
             {turn.mode === "choice"
               ? "Your choice. Anything here is right"
