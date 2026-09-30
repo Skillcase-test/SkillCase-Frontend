@@ -8,12 +8,16 @@ const STATUS_STYLES = {
   success: "bg-green-700/10 outline-green-700/30 text-green-700",
   pending: "bg-yellow-50 outline-yellow-600/30 text-yellow-600",
   failed: "bg-rose-200 outline-rose-300 text-red-500",
+  refunded: "bg-violet-100 outline-violet-300 text-violet-700",
+  disputed: "bg-rose-200 outline-rose-300 text-red-500",
 };
 
 const STATUS_LABELS = {
   success: "Success",
   pending: "Pending",
   failed: "Failed",
+  refunded: "Refunded",
+  disputed: "Disputed",
 };
 
 function formatAmount(paise) {

@@ -30,9 +30,11 @@ export function StatCard({ label, value, tone = "slate", subText, infoText, onDo
             ? "border-indigo-200 bg-indigo-50 text-indigo-900"
             : tone === "purple"
               ? "border-purple-200 bg-purple-50 text-purple-900"
-              : tone === "rose"
-                ? "border-rose-200 bg-rose-50 text-rose-900"
-                : "border-slate-200 bg-white text-slate-900";
+              : tone === "teal"
+                ? "border-teal-200 bg-teal-50 text-teal-900"
+                : tone === "rose"
+                  ? "border-rose-200 bg-rose-50 text-rose-900"
+                  : "border-slate-200 bg-white text-slate-900";
 
   const btnClass =
     tone === "emerald"
@@ -45,9 +47,11 @@ export function StatCard({ label, value, tone = "slate", subText, infoText, onDo
             ? "border-indigo-300 text-indigo-700 bg-white hover:bg-indigo-100/50"
             : tone === "purple"
               ? "border-purple-300 text-purple-700 bg-white hover:bg-purple-100/50"
-              : tone === "rose"
-                ? "border-rose-300 text-rose-700 bg-white hover:bg-rose-100/50"
-                : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50";
+              : tone === "teal"
+                ? "border-teal-300 text-teal-700 bg-white hover:bg-teal-100/50"
+                : tone === "rose"
+                  ? "border-rose-300 text-rose-700 bg-white hover:bg-rose-100/50"
+                  : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50";
 
   return (
     <div className={`flex flex-col justify-between rounded-2xl border p-4 shadow-sm ${toneClass}`}>

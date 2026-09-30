@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import { ArrowLeft, Gem, Headset, X, Loader2, Check } from "lucide-react";
+import { ArrowLeft, Headset, X, Loader2, Check } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../api/axios";
 import { setUser } from "../../redux/auth/authSlice";
+import { useAutopayCheckout } from "../../hooks/useAutopayCheckout";
 import diamond from "../../assets/diamond.webp";
 import mayaSad from "../../assets/onboarding/mayaSad.webp";
 
@@ -19,26 +20,48 @@ const PREMIUM_FEATURES = [
 
 const SUPPORT_PHONE = "+919731462667";
 
+function formatBillingDate(iso) {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export default function ManagePlanPage() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   const [showCancel, setShowCancel] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const { loading: resuming, handlePay } = useAutopayCheckout({
+    user,
+    dispatch,
+  });
 
   // Not premium with recurring autopay → redirect
   if (user?.autopay_enabled !== true) {
     return <Navigate to={user?.is_paid ? "/profile" : "/profile/upgrade"} replace />;
   }
 
+  // 'active' is the only self-renewing state. Cancelled/completed keep access
+  // until next_billing_at, and an abandoned re-checkout ('created'/'pending')
+  // still owes that same end date — the paid period belongs to the user;
+  // the renewal is what's gone.
+  const isNonRenewable =
+    String(user?.autopay_status || "").toLowerCase() !== "active";
+  const accessUntil = formatBillingDate(user?.next_billing_at);
+
   const handleDisableAutopay = async () => {
     setCancelling(true);
     try {
       const res = await api.post("/user/disable-autopay");
       dispatch(setUser(res.data.user));
-      toast.success("Subscription cancelled successfully");
+      toast.success("Subscription cancelled — you keep Premium until it ends");
       setShowCancel(false);
-      navigate("/profile");
     } catch (err) {
       console.error("Cancel subscription error:", err);
       toast.error(err.response?.data?.msg || "Failed to cancel subscription");
@@ -81,7 +104,11 @@ export default function ManagePlanPage() {
                 Premium Active
               </h2>
               <p className="w-80 text-center text-white text-xs font-normal">
-                You have now access to all premium features
+                {isNonRenewable
+                  ? `Your plan won't renew. You keep full access${
+                      accessUntil ? ` until ${accessUntil}` : ""
+                    }.`
+                  : "You have now access to all premium features"}
               </p>
             </div>
 
@@ -131,6 +158,19 @@ export default function ManagePlanPage() {
                   </span>
                   <span className="text-white text-xs font-semibold">₹99</span>
                 </div>
+                {accessUntil && (
+                  <>
+                    <div className="w-full h-0 border-t border-white/40" />
+                    <div className="flex justify-between items-center">
+                      <span className="text-white text-xs font-normal">
+                        {isNonRenewable ? "Access until" : "Next billing date"}
+                      </span>
+                      <span className="text-white text-xs font-normal">
+                        {accessUntil}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -145,12 +185,23 @@ export default function ManagePlanPage() {
             <Headset className="size-5 text-blue-950" />
             <span>Get priority support</span>
           </a>
-          <button
-            onClick={() => setShowCancel(true)}
-            className="w-full px-4 py-3 bg-transparent rounded-lg outline-1 outline-zinc-400 text-white text-base font-semibold hover:bg-white/5 active:scale-[0.99] transition-all cursor-pointer"
-          >
-            Cancel Premium
-          </button>
+          {isNonRenewable ? (
+            <button
+              onClick={handlePay}
+              disabled={resuming}
+              className="w-full px-4 py-3 bg-white rounded-lg outline-1 outline-white text-blue-950 text-base font-semibold hover:bg-white/90 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {resuming && <Loader2 className="size-4 animate-spin" />}
+              Resume Premium
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowCancel(true)}
+              className="w-full px-4 py-3 bg-transparent rounded-lg outline-1 outline-zinc-400 text-white text-base font-semibold hover:bg-white/5 active:scale-[0.99] transition-all cursor-pointer"
+            >
+              Cancel Premium
+            </button>
+          )}
         </div>
       </div>
 
@@ -183,8 +234,8 @@ export default function ManagePlanPage() {
             </h3>
 
             <p className="text-slate-600  text-xs font-semibold leading-relaxed px-2 text-justify">
-              You have covered a long way in your German journey. Once
-              cancelled, your monthly plan will not renew.
+              You have covered a long way in your German journey. Cancelling
+              stops the monthly renewal{accessUntil ? ` — you keep Premium until ${accessUntil}` : ""}.
             </p>
 
             <div className="flex flex-col gap-2.5 w-full">

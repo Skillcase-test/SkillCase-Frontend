@@ -46,10 +46,18 @@ const TIER_TABS = [
       "Students on app version 1.2.5 or above who have access to the free trial feature.",
   },
   {
-    value: "paid",
-    label: "Paid Tier",
+    value: "autopay",
+    label: "Autopay",
     tone: "emerald",
-    infoText: "Students with an active autopay mandate.",
+    infoText:
+      "Students whose Razorpay autopay mandate is live and renewing.",
+  },
+  {
+    value: "premium",
+    label: "Autopaid Premium",
+    tone: "teal",
+    infoText:
+      "Students whose premium comes from an autopay subscription (renewing or inside paid grace), not the manual paid flag.",
   },
   {
     value: "trial",
@@ -89,8 +97,10 @@ const TRIAL_STATUS_TABS = [
 
 const AUTOPAY_STATUS_TABS = [
   { value: "all", label: "All" },
-  { value: "active", label: "Autopay Active" },
-  { value: "inactive", label: "Autopay Inactive" },
+  { value: "active", label: "Autopay On" },
+  { value: "inactive", label: "Autopay Off" },
+  { value: "paid", label: "Paid" },
+  { value: "unpaid", label: "Unpaid" },
 ];
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
@@ -231,7 +241,8 @@ function Paywall() {
     all: 0,
     v125_plus: 0,
     paywall_active: 0,
-    paid: 0,
+    autopay: 0,
+    premium: 0,
     trial: 0,
     maybe_later: 0,
     free: 0,
@@ -258,9 +269,7 @@ function Paywall() {
   const [masterLimit] = useState(10);
 
   // Modal states
-  const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [cancellingAutopay, setCancellingAutopay] = useState(false);
 
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
@@ -305,7 +314,7 @@ function Paywall() {
       });
       setStudents(response.data.students || []);
       setTierCounts(
-        response.data.tiers || { all: 0, paid: 0, trial: 0, free: 0 },
+        response.data.tiers || { all: 0, premium: 0, trial: 0, free: 0 },
       );
       setTotalPages(response.data.pagination?.totalPages || 1);
       setTotalCount(response.data.pagination?.total || 0);
@@ -425,7 +434,12 @@ function Paywall() {
   };
 
   // Toggle Paywall Active
-  const handleTogglePaywall = async (studentId, currentStatus) => {
+  const handleTogglePaywall = async (student, currentStatus) => {
+    const isPremium =
+      (student.autopay_effective ?? student.autopay_enabled) ||
+      student.is_paid === true;
+    if (isPremium && !currentStatus) return;
+    const studentId = student.user_id;
     const nextStatus = !currentStatus;
     // Optimistic UI update
     setStudents((prev) =>
@@ -448,31 +462,6 @@ function Paywall() {
           s.user_id === studentId ? { ...s, paywall_active: currentStatus } : s,
         ),
       );
-    }
-  };
-
-  // Cancel Autopay Flow
-  const openCancelModal = (student) => {
-    setSelectedStudent(student);
-    setShowCancelModal(true);
-  };
-
-  const handleCancelAutopay = async () => {
-    if (!selectedStudent) return;
-    setCancellingAutopay(true);
-    try {
-      await api.post("/admin/paywall/cancel-autopay", {
-        userId: selectedStudent.user_id,
-      });
-      setShowCancelModal(false);
-      setSelectedStudent(null);
-      fetchStudents();
-      fetchMasterLogs(); // Refresh feed
-    } catch (err) {
-      console.error("Error cancelling autopay:", err);
-      alert(err.response?.data?.msg || "Failed to cancel autopay subscription");
-    } finally {
-      setCancellingAutopay(false);
     }
   };
 
@@ -517,13 +506,46 @@ function Paywall() {
     );
   };
 
-  // Utility badge formatter
-  const getAutopayBadge = (status, enabled, isPaid) => {
+  // Utility badge formatter — "enabled" is access, "status" is renewal intent:
+  // only 'active' self-renews; anything else with access is on paid-through
+  // grace (cancelled/completed) or an abandoned re-checkout.
+  const getAutopayBadge = (status, enabled, isPaid, nextBillingAt) => {
+    const normalized = String(status || "").toLowerCase();
+    const endsAt =
+      nextBillingAt &&
+      !Number.isNaN(new Date(nextBillingAt).getTime())
+        ? new Date(nextBillingAt).toLocaleDateString("en-IN", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })
+        : null;
+
     if (enabled) {
+      // Revoked status left enabled is an inconsistent row — surface the truth.
+      if (["refunded", "disputed", "halted"].includes(normalized)) {
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-200/60">
+            <Ban className="w-3 h-3" />
+            {normalized[0].toUpperCase() + normalized.slice(1)}
+          </span>
+        );
+      }
+      if (normalized !== "active") {
+        return (
+          <span
+            title={`Access till ${endsAt || "billing date unknown"} — will not renew`}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200/60 cursor-help"
+          >
+            <CheckCircle className="w-3 h-3" />
+            Active · Won't renew{endsAt ? ` · till ${endsAt}` : ""}
+          </span>
+        );
+      }
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60">
           <CheckCircle className="w-3 h-3" />
-          Active
+          Active · Renewable
         </span>
       );
     }
@@ -535,8 +557,9 @@ function Paywall() {
         </span>
       );
     }
-    switch (status) {
+    switch (normalized) {
       case "cancelled":
+      case "completed":
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
             <X className="w-3 h-3" />
@@ -550,7 +573,23 @@ function Paywall() {
             Halted
           </span>
         );
+      case "refunded":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-violet-50 text-violet-700 border border-violet-200/60">
+            <RotateCcw className="w-3 h-3" />
+            Refunded
+          </span>
+        );
+      case "disputed":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-300/60">
+            <ShieldAlert className="w-3 h-3" />
+            Disputed
+          </span>
+        );
       case "created":
+      case "pending":
+      case "authenticated":
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200/60">
             <HelpCircle className="w-3 h-3" />
@@ -600,7 +639,8 @@ function Paywall() {
           const allTotal = Number(tierCounts.all || 0);
           const v125Total = Number(tierCounts.v125_plus || 0);
           const paywallActiveTotal = Number(tierCounts.paywall_active || 0);
-          const paidCount = Number(tierCounts.paid || 0);
+          const autopayCount = Number(tierCounts.autopay || 0);
+          const premiumCount = Number(tierCounts.premium || 0);
           const trialCount = Number(tierCounts.trial || 0);
           const maybeLaterCount = Number(tierCounts.maybe_later || 0);
           const totalTrialTakers = Number(tierCounts.total_trial_takers || 0);
@@ -622,10 +662,14 @@ function Paywall() {
                 return allTotal > 0
                   ? `${((paywallActiveTotal / allTotal) * 100).toFixed(1)}% of all users`
                   : "Toggle restriction ON";
-              case "paid":
+              case "autopay":
                 return v125Total > 0
-                  ? `${((paidCount / v125Total) * 100).toFixed(1)}% of v1.2.5+ users`
-                  : "Active autopay";
+                  ? `${((autopayCount / v125Total) * 100).toFixed(1)}% of v1.2.5+ users`
+                  : "Live renewing mandate";
+              case "premium":
+                return v125Total > 0
+                  ? `${((premiumCount / v125Total) * 100).toFixed(1)}% of v1.2.5+ users`
+                  : "Premium via subscription";
               case "trial":
                 return v125Total > 0
                   ? `${((trialCount / v125Total) * 100).toFixed(1)}% of v1.2.5+ users`
@@ -644,7 +688,7 @@ function Paywall() {
           };
 
           return (
-            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+            <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
               {TIER_TABS.map((tab) => (
                 <StatCard
                   key={tab.value}
@@ -901,33 +945,53 @@ function Paywall() {
                     <td className="px-3.5 py-2.5 whitespace-nowrap text-center">
                       {getAutopayBadge(
                         student.autopay_status,
-                        student.autopay_enabled,
+                        student.autopay_effective ?? student.autopay_enabled,
                         student.is_paid,
+                        student.next_billing_at,
                       )}
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap text-center">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleTogglePaywall(
-                            student.user_id,
-                            student.paywall_active,
-                          )
-                        }
-                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none cursor-pointer ${
-                          student.paywall_active
-                            ? "bg-indigo-600"
-                            : "bg-slate-200"
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                            student.paywall_active
-                              ? "translate-x-4.5"
-                              : "translate-x-1"
-                          }`}
-                        />
-                      </button>
+                      {(() => {
+                        const isPremium =
+                          (student.autopay_effective ??
+                            student.autopay_enabled) ||
+                          student.is_paid === true;
+                        const toggleLocked = isPremium && !student.paywall_active;
+                        return (
+                          <button
+                            type="button"
+                            disabled={toggleLocked}
+                            title={
+                              toggleLocked
+                                ? "Already paid — paywall can't be enabled"
+                                : undefined
+                            }
+                            onClick={() =>
+                              handleTogglePaywall(
+                                student,
+                                student.paywall_active,
+                              )
+                            }
+                            className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none ${
+                              toggleLocked
+                                ? "cursor-not-allowed opacity-40"
+                                : "cursor-pointer"
+                            } ${
+                              student.paywall_active
+                                ? "bg-indigo-600"
+                                : "bg-slate-200"
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                                student.paywall_active
+                                  ? "translate-x-4.5"
+                                  : "translate-x-1"
+                              }`}
+                            />
+                          </button>
+                        );
+                      })()}
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -939,16 +1003,6 @@ function Paywall() {
                         >
                           <History className="w-4 h-4" />
                         </button>
-                        {student.autopay_enabled &&
-                          student.razorpay_subscription_id && (
-                            <button
-                              type="button"
-                              onClick={() => openCancelModal(student)}
-                              className="px-2 py-0.5 text-[11px] font-medium text-rose-600 border border-rose-200 rounded hover:bg-rose-50 transition-colors cursor-pointer"
-                            >
-                              Cancel
-                            </button>
-                          )}
                       </div>
                     </td>
                   </tr>
@@ -1145,58 +1199,6 @@ function Paywall() {
           </div>
         )}
       </div>
-
-      {/* Confirmation Modal - Cancel Autopay */}
-      {showCancelModal && selectedStudent && (
-        <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full border border-slate-200 overflow-hidden">
-            <div className="p-5">
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
-                  <ShieldAlert className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">
-                    Cancel Autopay Subscription
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Are you sure you want to cancel recurring autopay for{" "}
-                    <span className="font-semibold text-slate-800">
-                      {selectedStudent.fullname || selectedStudent.username}
-                    </span>
-                    ?
-                  </p>
-                  <p className="text-[11px] text-rose-600 mt-2 bg-rose-50 p-2 rounded border border-rose-100">
-                    This calls Razorpay to cancel future billing cycles
-                    immediately.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 px-5 py-3 bg-slate-50 border-t border-slate-100">
-              <button
-                type="button"
-                disabled={cancellingAutopay}
-                onClick={() => {
-                  setShowCancelModal(false);
-                  setSelectedStudent(null);
-                }}
-                className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-medium hover:bg-slate-100 transition-colors text-slate-700 cursor-pointer"
-              >
-                Keep it
-              </button>
-              <button
-                type="button"
-                disabled={cancellingAutopay}
-                onClick={handleCancelAutopay}
-                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                {cancellingAutopay ? "Cancelling..." : "Cancel Subscription"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Audit Log Modal for Single Student */}
       {showAuditModal && selectedStudent && (

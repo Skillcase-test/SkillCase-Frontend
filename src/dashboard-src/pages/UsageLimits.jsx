@@ -34,7 +34,7 @@ function isVersionBelowMin(version) {
 }
 function ineligibleReason(u) {
   if (u.is_paid) return "paid user";
-  if (u.autopay_enabled) return "autopay enabled";
+  if (u.autopay_effective ?? u.autopay_enabled) return "autopay enabled";
   if (u.app_version && isVersionBelowMin(u.app_version)) return `app v${u.app_version} < 1.2.5`;
   return null;
 }

@@ -777,6 +777,10 @@ export default function ProfilePage() {
       year: "numeric",
     });
   })();
+  // Only 'active' self-renews — for anything else next_billing_at is the
+  // access end date, not a charge date, so the label must not promise renewal.
+  const autopayNonRenewable =
+    String(user?.autopay_status || "").toLowerCase() !== "active";
 
   // Check if candidate is a job screening candidate (for displaying review status pills)
   const isJobScreeningCandidate =
@@ -930,7 +934,9 @@ export default function ProfilePage() {
                         </p>
                         {user?.autopay_enabled && nextBilling ? (
                           <p className="text-white/80 text-[11px] font-normal leading-4">
-                            Next billing: {nextBilling}
+                            {autopayNonRenewable
+                              ? `Active till ${nextBilling} — won't renew`
+                              : `Next billing: ${nextBilling}`}
                           </p>
                         ) : (
                           <p className="text-white/80 text-[11px] font-normal leading-4">
