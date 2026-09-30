@@ -8,7 +8,7 @@ import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import { getSpeakingContent, saveSpeakingProgress } from "../../../api/a1Api";
 import useCardSwipe from "../../a2/speaking/hooks/useCardSwipe";
 import useVoiceRecorder from "../../a2/speaking/hooks/useVoiceRecorder";
-import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import SpeakingCardDeck from "../../../components/a2/SpeakingCardDeck";
 import { useA1Tour } from "../../../tour/A1TourContext";
 import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";

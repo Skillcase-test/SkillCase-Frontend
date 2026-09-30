@@ -15,7 +15,7 @@ import {
   startB1ExamSubmission,
 } from "../../../api/b1Api";
 import toast, { Toaster } from "react-hot-toast";
-import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import { useQuestionPositionTelemetry } from "../../../telemetry/learning";
 
 export default function ExamReadingWorkspace() {

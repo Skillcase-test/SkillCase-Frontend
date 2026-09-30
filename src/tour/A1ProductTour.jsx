@@ -6,7 +6,6 @@ import { useSelector, useDispatch } from "react-redux";
 import { useLocation } from "react-router-dom";
 import { setA1OnboardingComplete } from "../redux/auth/authSlice";
 import api from "../api/axios";
-import { getA1MigrationStatus } from "../api/a1Api";
 import { A1TourContext } from "./A1TourContext";
 import { trackFlowAction, useTourJourney } from "../telemetry/flow";
 import {
@@ -22,7 +21,6 @@ import {
   getA1SpeakingCardSteps,
   getA1ReadingSelectSteps,
   getA1ReadingSteps,
-  getA1NewsListSteps,
   getA1TestSelectSteps,
   getA1TestPrerequisiteSteps,
   getA1TestLevelSteps,
@@ -45,7 +43,6 @@ const ALL_PHASES = [
   "speaking",
   "reading_select",
   "reading",
-  "news_list",
   "test_select",
   "test_level",
 ];
@@ -81,7 +78,6 @@ const PHASE_LABEL_MAP = {
   "speaking:practice": "speaking",
   "reading:select": "reading_select",
   "reading:content": "reading",
-  "news:list": "news_list",
   "test:select": "test_select",
   "test:level": "test_level",
 };
@@ -148,8 +144,6 @@ export default function A1ProductTour({ children }) {
   const [activePhase, setActivePhase] = useState(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [speakingStep, setSpeakingStep] = useState(0);
-  const [a1MigrationStatus, setA1MigrationStatus] = useState(null);
-  const [migrationLoading, setMigrationLoading] = useState(false);
 
   const isA1 = user?.user_prof_level?.toLowerCase() === "a1";
   const isDone = user?.a1_onboarding_completed === true;
@@ -185,56 +179,9 @@ export default function A1ProductTour({ children }) {
     return () => window.removeEventListener("topSwitcherTourComplete", handleTopSwitcherComplete);
   }, []);
 
-  const canRunA1Tour =
-    isA1 &&
-    topSwitcherDone &&
-    ["revamp_opted_in", "revamp_forced_after_deadline"].includes(
-      a1MigrationStatus,
-    );
+  // Post-migration every A1 user is on the revamp suite — no status gate needed.
+  const canRunA1Tour = isA1 && topSwitcherDone;
   useTourJourney({ enabled: Boolean(canRunA1Tour && !isDone && activeFeature), tourId: "a1_product_tour", phase: activePhase || activeFeature, tourVersion: "1" });
-
-  useEffect(() => {
-    if (!user?.user_id || !isA1) {
-      setA1MigrationStatus(null);
-      setMigrationLoading(false);
-      return;
-    }
-
-    let mounted = true;
-    setMigrationLoading(true);
-    getA1MigrationStatus()
-      .then((res) => {
-        if (!mounted) return;
-        setA1MigrationStatus(res?.data?.status || "legacy_a1");
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setA1MigrationStatus("legacy_a1");
-      })
-      .finally(() => {
-        if (mounted) setMigrationLoading(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [user?.user_id, isA1]);
-
-  useEffect(() => {
-    const onMigrationChange = (event) => {
-      const nextStatus = event?.detail?.status;
-      if (!nextStatus) return;
-      setA1MigrationStatus(nextStatus);
-      setMigrationLoading(false);
-    };
-
-    window.addEventListener("a1:migration-status-changed", onMigrationChange);
-    return () =>
-      window.removeEventListener(
-        "a1:migration-status-changed",
-        onMigrationChange,
-      );
-  }, []);
 
   useEffect(() => {
     activeFeatureRef.current = activeFeature;
@@ -390,7 +337,7 @@ export default function A1ProductTour({ children }) {
   }, []);
 
   useEffect(() => {
-    if (!canRunA1Tour || isDone || migrationLoading) {
+    if (!canRunA1Tour || isDone) {
       const prevLabel = phaseLabelRef.current;
       if (prevLabel) {
         destroyDriver();
@@ -441,9 +388,6 @@ export default function A1ProductTour({ children }) {
     } else if (path.match(/^\/a1\/reading\/.+/) && !tourState.reading) {
       feature = "reading";
       phase = "content";
-    } else if (path === "/news" && !tourState.news_list) {
-      feature = "news";
-      phase = "list";
     } else if (path === "/a1/test" && !tourState.test_select) {
       feature = "test";
       phase = "select";
@@ -467,7 +411,6 @@ export default function A1ProductTour({ children }) {
     location.pathname,
     canRunA1Tour,
     isDone,
-    migrationLoading,
     tourState,
     destroyDriver,
     markDone,
@@ -475,14 +418,7 @@ export default function A1ProductTour({ children }) {
   ]);
 
   useEffect(() => {
-    if (
-      !activeFeature ||
-      !activePhase ||
-      !canRunA1Tour ||
-      isDone ||
-      migrationLoading
-    )
-      return;
+    if (!activeFeature || !activePhase || !canRunA1Tour || isDone) return;
 
     let steps = [];
     let opts = {};
@@ -571,11 +507,6 @@ export default function A1ProductTour({ children }) {
         opts = { onComplete: finishPhase("reading") };
         break;
 
-      case "news:list":
-        steps = getA1NewsListSteps();
-        opts = { onComplete: finishPhaseWithSuccess("news_list") };
-        break;
-
       case "test:select":
         steps = getA1TestSelectSteps();
         opts = { onComplete: finishPhase("test_select") };
@@ -604,7 +535,6 @@ export default function A1ProductTour({ children }) {
     activeFeature,
     activePhase,
     canRunA1Tour,
-    migrationLoading,
     isDone,
     markDone,
     showSuccess,

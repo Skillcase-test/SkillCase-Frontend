@@ -18,8 +18,8 @@ import {
 import { ControlDropdown } from "../payments-admin/components/controls";
 import { isModuleVisibleForUser } from "../../utils/usageLimitModules";
 
-const LEVEL_ORDER = ["A1", "A2", "B1"];
-const CARD_LEVEL_ORDER = ["A1", "A2", "B1", "ALL"];
+const LEVEL_ORDER = ["A1", "A2", "B1", "B2"];
+const CARD_LEVEL_ORDER = ["A1", "A2", "B1", "B2", "ALL"];
 
 // Mirrors backend util/usageLimits.js isUsageLimitEligible — cosmetic only
 // (the server stays the authority), just so the admin can see at a glance

@@ -3,8 +3,6 @@ import { Flame, Info, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import api from "../api/axios";
-import { getA1EntryRoute } from "../api/a1Api";
-import { hapticMedium } from "../utils/haptics";
 
 export default function StreakWidget() {
   const { user } = useSelector((state) => state.auth);
@@ -15,7 +13,6 @@ export default function StreakWidget() {
     dailyGoalMet: false,
   });
   const [lastChapter, setLastChapter] = useState(null);
-  const [a1EntryRoute, setA1EntryRoute] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showInfo, setShowInfo] = useState(false);
   const profLevel = user?.user_prof_level?.toUpperCase() || "A1";
@@ -25,23 +22,14 @@ export default function StreakWidget() {
     let mounted = true;
     const fetchData = async () => {
       try {
-        const isA1User = profLevel === "A1";
-        const requests = [
+        const [streakRes, chapterRes] = await Promise.all([
           api.cachedGet("/streak", {}, "SHORT_PRIVATE"),
           api.cachedGet("/streak/last-chapter", {}, "SHORT_PRIVATE"),
-        ];
-        if (isA1User) {
-          requests.push(getA1EntryRoute());
-        }
-
-        const [streakRes, chapterRes, a1RouteRes] = await Promise.all(requests);
+        ]);
 
         if (!mounted) return;
         if (streakRes.data) setStreakData(streakRes.data);
         if (chapterRes.data?.hasProgress) setLastChapter(chapterRes.data);
-        if (isA1User) {
-          setA1EntryRoute(a1RouteRes?.data?.route || "/a1/flashcard");
-        }
       } catch (err) {
         console.error("Error fetching streak data:", err);
       } finally {
@@ -80,18 +68,14 @@ export default function StreakWidget() {
     );
   }
 
-  const isRevampA1User =
-    profLevel === "A1" &&
-    typeof a1EntryRoute === "string" &&
-    a1EntryRoute.startsWith("/a1");
-
-  // Build continue link - resolve A1 legacy/revamp path correctly
-  let continueLink =
-    profLevel === "A2"
-      ? "/a2/flashcard"
-      : isRevampA1User
-        ? a1EntryRoute || "/a1/flashcard"
-        : "/a1";
+  // Build continue link — every A1 user is on the revamp suite now.
+  const LEVEL_HOME = {
+    A1: "/a1/flashcard",
+    A2: "/a2/flashcard",
+    B1: "/b1/read-listen",
+    B2: "/b2/reading",
+  };
+  let continueLink = LEVEL_HOME[profLevel] || "/";
 
   if (lastChapter?.hasProgress) {
     if (lastChapter.isA2) {
@@ -99,22 +83,13 @@ export default function StreakWidget() {
       continueLink = `/a2/flashcard/${lastChapter.chapterId}?start_index=${
         lastChapter.currentIndex || 0
       }`;
-    } else if (isRevampA1User) {
+    } else if (profLevel === "A1") {
       if (lastChapter.chapterId || lastChapter.setId) {
         const targetChapterId = lastChapter.chapterId || lastChapter.setId;
         continueLink = `/a1/flashcard/${targetChapterId}?start_index=${
           lastChapter.currentIndex || 0
         }&name=${encodeURIComponent(lastChapter.setName || "Chapter")}`;
-      } else {
-        continueLink = a1EntryRoute || "/a1/flashcard";
       }
-    } else if (lastChapter.setId) {
-      // A1 user - route to A1 practice
-      continueLink = `/practice/${lastChapter.proficiencyLevel}/${
-        lastChapter.setId
-      }?set_name=${encodeURIComponent(lastChapter.setName)}&start_index=${
-        lastChapter.currentIndex
-      }`;
     }
   }
 
@@ -223,7 +198,7 @@ export default function StreakWidget() {
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0" />
-                    Pronunciation — <span className="font-medium">+1</span> per
+                    Speaking — <span className="font-medium">+1</span> per
                     recording
                   </li>
                 </>

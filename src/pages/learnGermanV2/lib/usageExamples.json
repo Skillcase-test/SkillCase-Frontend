@@ -1,0 +1,886 @@
+{
+ "examples": {
+  "aber": {
+   "parts": [
+    "Klein, ",
+    "aber",
+    " schön."
+   ],
+   "gloss": "Small, but nice."
+  },
+  "Alles": {
+   "parts": [
+    "Danke! ",
+    "Alles",
+    " zusammen?"
+   ],
+   "gloss": "Thanks! All together?"
+  },
+  "als": {
+   "parts": [
+    "Brot ist billiger ",
+    "als",
+    " Fleisch."
+   ],
+   "gloss": "Bread is cheaper than meat."
+  },
+  "am": {
+   "parts": [
+    "Schicht ",
+    "am",
+    " Montag."
+   ],
+   "gloss": "Shift on Monday."
+  },
+  "angerufen": {
+   "parts": [
+    "Ich habe die Ärztin ",
+    "angerufen",
+    "."
+   ],
+   "gloss": "I called the doctor."
+  },
+  "aufgestanden": {
+   "parts": [
+    "Ich bin um sechs ",
+    "aufgestanden",
+    "."
+   ],
+   "gloss": "I got up at six."
+  },
+  "bezahlt": {
+   "parts": [
+    "Ich habe die Rechnung ",
+    "bezahlt",
+    "."
+   ],
+   "gloss": "I paid the bill."
+  },
+  "bin": {
+   "parts": [
+    "Ich ",
+    "bin",
+    " müde."
+   ],
+   "gloss": "I'm tired."
+  },
+  "bis": {
+   "parts": [
+    "Und ",
+    "bis",
+    " wann?"
+   ],
+   "gloss": "And until when?"
+  },
+  "bist": {
+   "parts": [
+    "Du ",
+    "bist",
+    " müde."
+   ],
+   "gloss": "You are tired."
+  },
+  "brauche": {
+   "parts": [
+    "Ich ",
+    "brauche",
+    " extra."
+   ],
+   "gloss": "I need extra."
+  },
+  "darf": {
+   "parts": [
+    "Ich ",
+    "darf",
+    " arbeiten."
+   ],
+   "gloss": "I am allowed to work."
+  },
+  "das": {
+   "parts": [
+    "Ist ",
+    "das",
+    " genug?"
+   ],
+   "gloss": "Is that enough?"
+  },
+  "das da": {
+   "parts": [
+    "Ich möchte ",
+    "das da",
+    "."
+   ],
+   "gloss": "I would like that one."
+  },
+  "das hier": {
+   "parts": [
+    "Ich möchte ",
+    "das hier",
+    " probieren."
+   ],
+   "gloss": "I would like to try this one."
+  },
+  "Datum": {
+   "parts": [
+    "Das ",
+    "Datum",
+    " ist der dritte März."
+   ],
+   "gloss": "The date is the third of March."
+  },
+  "dauert": {
+   "parts": [
+    "Frühschicht ",
+    "dauert",
+    " von acht bis vier."
+   ],
+   "gloss": "The early shift runs from eight to four."
+  },
+  "dein": {
+   "parts": [
+    "Ist das ",
+    "dein",
+    " Brot?"
+   ],
+   "gloss": "Is that your bread?"
+  },
+  "den": {
+   "parts": [
+    "Ich brauche ",
+    "den",
+    " Verband."
+   ],
+   "gloss": "I need the bandage."
+  },
+  "denn": {
+   "parts": [
+    "Wir sind müde, ",
+    "denn",
+    " wir arbeiten."
+   ],
+   "gloss": "We are tired, because we work."
+  },
+  "der": {
+   "parts": [
+    "Was kostet ",
+    "der",
+    " Kaffee?"
+   ],
+   "gloss": "What does the coffee cost?"
+  },
+  "die": {
+   "parts": [
+    "Wo ist ",
+    "die",
+    " Küche?"
+   ],
+   "gloss": "Where is the kitchen?"
+  },
+  "diese": {
+   "parts": [
+    "Ich möchte ",
+    "diese",
+    " Jacke."
+   ],
+   "gloss": "I would like this jacket."
+  },
+  "dritte": {
+   "parts": [
+    "Das Datum ist der ",
+    "dritte",
+    " März."
+   ],
+   "gloss": "The date is the third of March."
+  },
+  "einem": {
+   "parts": [
+    "Seit ",
+    "einem",
+    " Jahr."
+   ],
+   "gloss": "For a year."
+  },
+  "einfach": {
+   "parts": [
+    "Fahrkarte ",
+    "einfach",
+    ", bitte."
+   ],
+   "gloss": "A one-way ticket, please."
+  },
+  "eingekauft": {
+   "parts": [
+    "Ich habe ",
+    "eingekauft",
+    "."
+   ],
+   "gloss": "I shopped."
+  },
+  "er": {
+   "parts": [
+    "Ist ",
+    "er",
+    " Krankenpfleger?"
+   ],
+   "gloss": "Is he a nurse?"
+  },
+  "Erfahrung": {
+   "parts": [
+    "",
+    "Erfahrung",
+    " seit einem Jahr."
+   ],
+   "gloss": "Experience for one year."
+  },
+  "erste": {
+   "parts": [
+    "Der ",
+    "erste",
+    " Termin ist heute."
+   ],
+   "gloss": "The first appointment is today."
+  },
+  "Es gibt": {
+   "parts": [
+    "",
+    "Es gibt",
+    " Milch."
+   ],
+   "gloss": "There is milk."
+  },
+  "euer": {
+   "parts": [
+    "Das ist ",
+    "euer",
+    " Brot."
+   ],
+   "gloss": "That's your (pl.) bread."
+  },
+  "extra": {
+   "parts": [
+    "Tüte ",
+    "extra",
+    ", bitte."
+   ],
+   "gloss": "An extra bag, please."
+  },
+  "Farbe": {
+   "parts": [
+    "Die ",
+    "Farbe",
+    " ist schön."
+   ],
+   "gloss": "The color is nice."
+  },
+  "früh": {
+   "parts": [
+    "Die Frühschicht ist ",
+    "früh",
+    "."
+   ],
+   "gloss": "The early shift is early."
+  },
+  "fünfte": {
+   "parts": [
+    "Die ",
+    "fünfte",
+    "."
+   ],
+   "gloss": "The fifth."
+  },
+  "für": {
+   "parts": [
+    "Jacke ",
+    "für",
+    " Winter."
+   ],
+   "gloss": "A jacket for winter."
+  },
+  "gearbeitet": {
+   "parts": [
+    "Ich habe heute ",
+    "gearbeitet",
+    "."
+   ],
+   "gloss": "I worked today."
+  },
+  "geblieben": {
+   "parts": [
+    "Ich bin im Krankenhaus ",
+    "geblieben",
+    "."
+   ],
+   "gloss": "I stayed at the hospital."
+  },
+  "gebraucht": {
+   "parts": [
+    "Ich habe den Verband ",
+    "gebraucht",
+    "."
+   ],
+   "gloss": "I needed the bandage."
+  },
+  "gefahren": {
+   "parts": [
+    "Ich bin ",
+    "gefahren",
+    "."
+   ],
+   "gloss": "I drove."
+  },
+  "gegangen": {
+   "parts": [
+    "Ich bin ",
+    "gegangen",
+    "."
+   ],
+   "gloss": "I went."
+  },
+  "gegen": {
+   "parts": [
+    "Tablette ",
+    "gegen",
+    " Kopfschmerzen."
+   ],
+   "gloss": "A tablet for a headache."
+  },
+  "geholt": {
+   "parts": [
+    "Ich habe die Tablette ",
+    "geholt",
+    "."
+   ],
+   "gloss": "I got the pill."
+  },
+  "gekommen": {
+   "parts": [
+    "Und sind Sie früh ",
+    "gekommen",
+    "?"
+   ],
+   "gloss": "And did you come early?"
+  },
+  "gelesen": {
+   "parts": [
+    "Ich habe die Nachricht ",
+    "gelesen",
+    "."
+   ],
+   "gloss": "I read the message."
+  },
+  "gemacht": {
+   "parts": [
+    "Ich habe das ",
+    "gemacht",
+    "."
+   ],
+   "gloss": "I have done that."
+  },
+  "genau": {
+   "parts": [
+    "Zehn Minuten, ",
+    "genau",
+    "."
+   ],
+   "gloss": "Ten minutes, exactly."
+  },
+  "genommen": {
+   "parts": [
+    "Ich habe den Verband ",
+    "genommen",
+    "."
+   ],
+   "gloss": "I took the bandage."
+  },
+  "genug": {
+   "parts": [
+    "Wasser ist ",
+    "genug",
+    ", danke."
+   ],
+   "gloss": "Water is enough, thank you."
+  },
+  "geschrieben": {
+   "parts": [
+    "Ich habe das ",
+    "geschrieben",
+    "."
+   ],
+   "gloss": "I have written that."
+  },
+  "Gibt es": {
+   "parts": [
+    "",
+    "Gibt es",
+    " Milch?"
+   ],
+   "gloss": "Is there milk?"
+  },
+  "habe": {
+   "parts": [
+    "Ich ",
+    "habe",
+    " Frühschicht."
+   ],
+   "gloss": "I have the early shift."
+  },
+  "hat": {
+   "parts": [
+    "Er ",
+    "hat",
+    " Verspätung."
+   ],
+   "gloss": "He is running late."
+  },
+  "heute": {
+   "parts": [
+    "Ich möchte ",
+    "heute",
+    " Kaffee."
+   ],
+   "gloss": "I would like coffee today."
+  },
+  "ihr": {
+   "parts": [
+    "Das ist ",
+    "ihr",
+    " Zimmer."
+   ],
+   "gloss": "That is her room."
+  },
+  "im": {
+   "parts": [
+    "Arbeiten Sie gern ",
+    "im",
+    " Krankenhaus?"
+   ],
+   "gloss": "Do you like working in the hospital?"
+  },
+  "ist": {
+   "parts": [
+    "Kaffee ",
+    "ist",
+    " lecker."
+   ],
+   "gloss": "Coffee is tasty."
+  },
+  "Jahr": {
+   "parts": [
+    "Seit einem ",
+    "Jahr",
+    "."
+   ],
+   "gloss": "For a year."
+  },
+  "jetzt": {
+   "parts": [
+    "Danke. Und ",
+    "jetzt",
+    "?"
+   ],
+   "gloss": "Thanks. And now?"
+  },
+  "kann": {
+   "parts": [
+    "Danke, ich ",
+    "kann",
+    " das!"
+   ],
+   "gloss": "Thanks, I can do this!"
+  },
+  "kostet": {
+   "parts": [
+    "Was ",
+    "kostet",
+    " Kaffee?"
+   ],
+   "gloss": "What does coffee cost?"
+  },
+  "März": {
+   "parts": [
+    "Das Datum ist der dritte ",
+    "März",
+    "."
+   ],
+   "gloss": "The date is the third of March."
+  },
+  "mehr": {
+   "parts": [
+    "Ich möchte ",
+    "mehr",
+    " Milch."
+   ],
+   "gloss": "I would like more milk."
+  },
+  "mein": {
+   "parts": [
+    "Das ist ",
+    "mein",
+    " Kaffee."
+   ],
+   "gloss": "That's my coffee."
+  },
+  "meine": {
+   "parts": [
+    "Was kostet ",
+    "meine",
+    " Rechnung?"
+   ],
+   "gloss": "What does my bill cost?"
+  },
+  "Minuten": {
+   "parts": [
+    "Zehn ",
+    "Minuten",
+    " Verspätung."
+   ],
+   "gloss": "Ten minutes late."
+  },
+  "möchte": {
+   "parts": [
+    "Ich ",
+    "möchte",
+    " Brot."
+   ],
+   "gloss": "I would like bread."
+  },
+  "morgen": {
+   "parts": [
+    "Ich möchte ",
+    "morgen",
+    " Kaffee."
+   ],
+   "gloss": "I would like coffee tomorrow."
+  },
+  "muss": {
+   "parts": [
+    "Ich ",
+    "muss",
+    " heute arbeiten."
+   ],
+   "gloss": "I have to work today."
+  },
+  "noch": {
+   "parts": [
+    "Ich möchte ",
+    "noch",
+    " Milch."
+   ],
+   "gloss": "I would like more milk."
+  },
+  "oder": {
+   "parts": [
+    "Kaffee ",
+    "oder",
+    " Wasser?"
+   ],
+   "gloss": "Coffee or water?"
+  },
+  "passt": {
+   "parts": [
+    "Die Jacke ",
+    "passt",
+    "."
+   ],
+   "gloss": "The jacket fits."
+  },
+  "pünktlich": {
+   "parts": [
+    "Wir sind ",
+    "pünktlich",
+    "."
+   ],
+   "gloss": "We are on time."
+  },
+  "schon": {
+   "parts": [
+    "Wir arbeiten ",
+    "schon",
+    "."
+   ],
+   "gloss": "We are already working."
+  },
+  "sein": {
+   "parts": [
+    "Das ist ",
+    "sein",
+    " Kaffee."
+   ],
+   "gloss": "That's his coffee."
+  },
+  "seit": {
+   "parts": [
+    "Wir arbeiten ",
+    "seit",
+    " Montag."
+   ],
+   "gloss": "We have worked since Monday."
+  },
+  "sie": {
+   "parts": [
+    "Er und ",
+    "sie",
+    "."
+   ],
+   "gloss": "He and she."
+  },
+  "sind": {
+   "parts": [
+    "Wir ",
+    "sind",
+    " hier."
+   ],
+   "gloss": "We are here."
+  },
+  "soll": {
+   "parts": [
+    "Ich ",
+    "soll",
+    " arbeiten."
+   ],
+   "gloss": "I am supposed to work."
+  },
+  "später": {
+   "parts": [
+    "Ich möchte ",
+    "später",
+    " bezahlen."
+   ],
+   "gloss": "I would like to pay later."
+  },
+  "Stunden": {
+   "parts": [
+    "Ungefähr acht ",
+    "Stunden",
+    "."
+   ],
+   "gloss": "About eight hours."
+  },
+  "tut weh": {
+   "parts": [
+    "Kopf ",
+    "tut weh",
+    "."
+   ],
+   "gloss": "My head hurts."
+  },
+  "Uhr": {
+   "parts": [
+    "Zehn ",
+    "Uhr",
+    "."
+   ],
+   "gloss": "Ten o'clock."
+  },
+  "um": {
+   "parts": [
+    "Kaffee ",
+    "um",
+    " acht, bitte."
+   ],
+   "gloss": "Coffee at eight, please."
+  },
+  "und": {
+   "parts": [
+    "Kaffee ",
+    "und",
+    " Wasser, bitte."
+   ],
+   "gloss": "Coffee and water, please."
+  },
+  "ungefähr": {
+   "parts": [
+    "Schicht dauert ",
+    "ungefähr",
+    " acht Stunden."
+   ],
+   "gloss": "The shift lasts about eight hours."
+  },
+  "unser": {
+   "parts": [
+    "Das ist ",
+    "unser",
+    " Brot."
+   ],
+   "gloss": "That's our bread."
+  },
+  "vielleicht": {
+   "parts": [
+    "Ich möchte ",
+    "vielleicht",
+    " Kuchen."
+   ],
+   "gloss": "I would maybe like cake."
+  },
+  "vierte": {
+   "parts": [
+    "Die ",
+    "vierte",
+    "."
+   ],
+   "gloss": "The fourth."
+  },
+  "von": {
+   "parts": [
+    "Frühschicht ",
+    "von",
+    " acht."
+   ],
+   "gloss": "Early shift from eight."
+  },
+  "Wann": {
+   "parts": [
+    "",
+    "Wann",
+    "? Heute?"
+   ],
+   "gloss": "When? Today?"
+  },
+  "warum": {
+   "parts": [
+    "Und ",
+    "warum",
+    "?"
+   ],
+   "gloss": "And why?"
+  },
+  "Was": {
+   "parts": [
+    "",
+    "Was",
+    "? Kaffee und Wasser?"
+   ],
+   "gloss": "What? Coffee and water?"
+  },
+  "welche": {
+   "parts": [
+    "Und ",
+    "welche",
+    " Farbe?"
+   ],
+   "gloss": "And which colour?"
+  },
+  "Wie": {
+   "parts": [
+    "",
+    "Wie",
+    " bitte?"
+   ],
+   "gloss": "Pardon?"
+  },
+  "Wie lange": {
+   "parts": [
+    "",
+    "Wie lange",
+    ", bitte?"
+   ],
+   "gloss": "How long, please?"
+  },
+  "Wie spät": {
+   "parts": [
+    "",
+    "Wie spät",
+    ", bitte?"
+   ],
+   "gloss": "What time, please?"
+  },
+  "Wie viel": {
+   "parts": [
+    "",
+    "Wie viel",
+    " kostet Brot?"
+   ],
+   "gloss": "How much does bread cost?"
+  },
+  "wir": {
+   "parts": [
+    "Heute arbeiten ",
+    "wir",
+    " zusammen."
+   ],
+   "gloss": "Today we work together."
+  },
+  "wo": {
+   "parts": [
+    "Und ",
+    "wo",
+    " arbeiten Sie?"
+   ],
+   "gloss": "And where do you work?"
+  },
+  "Woche": {
+   "parts": [
+    "Wann? ",
+    "Woche",
+    "?"
+   ],
+   "gloss": "When? This week?"
+  },
+  "Wochenende": {
+   "parts": [
+    "Arbeiten Sie am ",
+    "Wochenende",
+    "?"
+   ],
+   "gloss": "Do you work on the weekend?"
+  },
+  "zusammen": {
+   "parts": [
+    "Bezahlen Sie ",
+    "zusammen",
+    "?"
+   ],
+   "gloss": "Are you paying all together?"
+  },
+  "zweite": {
+   "parts": [
+    "Und wie ist das ",
+    "zweite",
+    " Zimmer?"
+   ],
+   "gloss": "And how's the second room?"
+  }
+ },
+ "contrasts": {
+  "weniger": [
+   [
+    "Mehr, bitte.",
+    "More, please."
+   ],
+   [
+    "Weniger, bitte.",
+    "Less, please."
+   ]
+  ],
+  "nicht": [
+   [
+    "Das ist billig.",
+    "That is cheap."
+   ],
+   [
+    "Das ist nicht billig.",
+    "That is not cheap."
+   ]
+  ],
+  "kein": [
+   [
+    "Ich habe Brot.",
+    "I have bread."
+   ],
+   [
+    "Ich habe kein Brot.",
+    "I have no bread."
+   ]
+  ],
+  "keine": [
+   [
+    "Ich habe Milch.",
+    "I have milk."
+   ],
+   [
+    "Ich habe keine Milch.",
+    "I have no milk."
+   ]
+  ]
+ }
+}

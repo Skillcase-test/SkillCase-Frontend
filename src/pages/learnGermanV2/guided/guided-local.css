@@ -1,0 +1,48 @@
+/* Local adjustments for the ported guided screens: element resets Tailwind's
+   preflight mostly covers already but must hold inside .gp-ui regardless,
+   buttons standing in for the original's router links, and stamp lettering
+   fitted to the round/ticket shapes. */
+:where(.gp-ui) :where(button) { background: none; border: 0; padding: 0; margin: 0; color: inherit; font: inherit; text-align: inherit; }
+:where(.gp-ui) :where(img) { display: block; max-width: 100%; }
+:where(.gp-ui) :where(ol, ul) { margin: 0; padding: 0; }
+:where(.gp-ui) :where(strong, b) { font-weight: inherit; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+.gp-ui button.gp-button { background: var(--gp-gold); padding: 11px 17px; text-align: center; width: 100%; }
+.gp-ui button.gp-text-link { width: 100%; }
+.gp-ui button.gp-button-secondary { background: var(--gp-blue); }
+
+.gp-header > .gp-back { display: flex; align-items: center; gap: 6px; min-height: 44px; font-weight: 600; color: var(--gp-navy); }
+.gp-ui button.gp-island-link { cursor: pointer; }
+.gp-ui button.gp-adventure-passport { width: 100%; text-align: left; background: #fcfdff; border: 1px solid #cbddef; padding: 10px 12px; }
+.gp-path-finish > button { display: flex; align-items: center; gap: 6px; min-height: 44px; font-size: 11px; font-weight: 600; color: var(--gp-navy); }
+
+/* Per-topic cover art inside the island: object-fit:contain pins it inside
+   the art box the way the original's preserveAspectRatio svg did. */
+.gp-ui .gp-art > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; opacity: 0; transition: opacity .35s ease; }
+.gp-ui .gp-art > img[data-ready] { opacity: 1; }
+
+/* Cover art settles over a shimmer in standalone frames; on map stops the
+   island base ellipse is already the placeholder, so the shimmer stays off. */
+.gp-art-shimmer { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(110deg, #dde7f3 30%, #f1f6fb 45%, #dde7f3 60%); background-size: 200% 100%; animation: gp-art-shimmer 1.3s linear infinite; }
+.gp-map-stop .gp-art-shimmer { display: none; }
+@keyframes gp-art-shimmer { to { background-position: -200% 0; } }
+
+.skillcase-logo { display: block; height: auto; max-width: 100%; flex-shrink: 0; }
+.gp-page, .gp-journey { min-height: 100%; }
+.gp-reward-dialog { max-height: 100%; height: 100%; }
+
+/* Round stamps: fit the lettering to the circle, not the stamp's box. */
+.gp-stamp[data-shape="round"] .gp-stamp-top,
+.gp-stamp[data-shape="round"] .gp-stamp-date { max-width: 58%; letter-spacing: .1px; white-space: nowrap; }
+.gp-stamp[data-shape="round"] > strong { max-width: 66%; }
+.gp-book .gp-stamp:not(.gp-stamp-small) { gap: 3px; }
+.gp-book .gp-stamp:not(.gp-stamp-small) > svg { width: 26px; height: 26px; }
+/* Stamp interior scales with the stamp size, which itself scales with the
+   page via container queries — one proportion holds at every width. */
+.gp-book .gp-stamp { gap: calc(var(--collection-stamp-size) * .024); }
+.gp-book .gp-stamp > svg { width: calc(var(--collection-stamp-size) * .21); height: calc(var(--collection-stamp-size) * .21); }
+.gp-book .gp-stamp > strong { font-size: calc(var(--collection-stamp-size) * .072); letter-spacing: .04em; }
+.gp-book .gp-stamp .gp-stamp-top,
+.gp-book .gp-stamp .gp-stamp-date { font-size: calc(var(--collection-stamp-size) * .044); letter-spacing: 0; }

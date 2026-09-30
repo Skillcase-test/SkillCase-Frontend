@@ -8,9 +8,11 @@ import { getStreakData } from "../api/streakApi";
 import { getVocabProgress, setLGMode } from "../api/learnGermanApi";
 import { hapticLight } from "../utils/haptics";
 import {
-  isB1PracticeLevel,
+  isB2PracticeLevel,
+  isPracticeSuiteLevel,
   getB1PracticeProgressRatio,
 } from "../utils/b1Progress";
+import { getB2PracticeProgressRatio } from "../utils/b2Progress";
 import {
   getA1PracticeProgressRatio,
   getA2PracticeProgressRatio,
@@ -84,7 +86,8 @@ export default function BottomTabBar() {
   // B1/B2 users see their aggregate B1 practice progress in the center arch
   // (flashcards + reading/news/articles/videos + describe-speak + exams);
   // other levels keep the "German words learnt" ring.
-  const isB1 = isB1PracticeLevel(user?.user_prof_level);
+  const isB1 = isPracticeSuiteLevel(user?.user_prof_level);
+  const isB2 = isB2PracticeLevel(user?.user_prof_level);
   const level = String(user?.user_prof_level || "").toUpperCase();
   const isJobsActive =
     location.pathname.startsWith("/job-screening") ||
@@ -142,7 +145,7 @@ export default function BottomTabBar() {
           .then(applyRatio)
           .catch(() => {});
       } else {
-        getB1PracticeProgressRatio()
+        (isB2 ? getB2PracticeProgressRatio() : getB1PracticeProgressRatio())
           .then(applyRatio)
           .catch(() => {});
       }

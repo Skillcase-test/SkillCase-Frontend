@@ -13,7 +13,7 @@ import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import { getSpeakingContent, saveSpeakingProgress } from "../../../api/a2Api";
 import useCardSwipe from "./hooks/useCardSwipe";
 import useVoiceRecorder from "./hooks/useVoiceRecorder";
-import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import SpeakingCardDeck from "../../../components/a2/SpeakingCardDeck";
 import { useA2Tour } from "../../../tour/A2TourContext";
 import { useUsageLimits } from "../../../hooks/useUsageLimits";

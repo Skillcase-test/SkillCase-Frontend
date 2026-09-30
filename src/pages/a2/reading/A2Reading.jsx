@@ -11,7 +11,7 @@ import {
 import { getReadingContent, saveReadingProgress } from "../../../api/a2Api";
 import UmlautKeyboard from "../../../components/a2/UmlautKeyboard";
 import ReadingRenderer from "../../../components/a2/ReadingRenderer";
-import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
 import {
   DndContext,

@@ -14,7 +14,7 @@ import {
   getB1ExamSubmissionStatus,
   getB1ExamSectionContent,
 } from "../../../api/b1Api";
-import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import ScoreRing from "../describe-speak/components/ScoreRing";
 import MetricBar from "../describe-speak/components/MetricBar";
 

@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import GuideSpotlight from "./GuideSpotlight";
 import { useFeatureFlags } from "../hooks/useFeatureFlags";
-import { isB1PracticeLevel } from "../utils/b1Progress";
+import { isPracticeSuiteLevel } from "../utils/b1Progress";
 import { getMayaImage } from "../utils/mayaAvatars";
 import { setTopSwitcherTourComplete } from "../redux/auth/authSlice";
 import api from "../api/axios";
@@ -33,7 +33,7 @@ export default function TopSwitcherTour() {
   const { isFeatureEnabled } = useFeatureFlags();
 
   const showGermanClasses = isFeatureEnabled("german_classes");
-  const isB1 = isB1PracticeLevel(user?.user_prof_level);
+  const isB1 = isPracticeSuiteLevel(user?.user_prof_level);
 
   const [isActive, setIsActive] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);

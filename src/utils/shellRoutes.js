@@ -1,8 +1,8 @@
 /**
  * The four "hub" pages that carry the full app shell — navy navbar, top mode
  * switcher and floating bottom tab bar. Every other screen (lessons, exams,
- * flashcards, interview, terms, video player, notes, profile steps, news,
- * stories …) has its own in-page header/back navigation and renders without
+ * flashcards, interview, terms, video player, notes, profile steps …)
+ * has its own in-page header/back navigation and renders without
  * the shell chrome.
  *
  * "/scholarship" is the standalone scholarship-exam hub: it reuses the same

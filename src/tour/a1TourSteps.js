@@ -84,14 +84,6 @@ export const getA1LandingSteps = (onSkip) => [
     },
   },
   {
-    element: "#news-card",
-    popover: {
-      title: `${ICONS.newspaper} News`,
-      description: "Read real-world headlines in German and English.",
-      popoverClass: "centered-popover popover-top",
-    },
-  },
-  {
     element: "#streak-widget",
     popover: {
       title: `${ICONS.flame} Daily Streak`,
@@ -283,27 +275,6 @@ export const getA1ReadingSteps = () => [
       side: "top",
       showButtons: ["next"],
       nextBtnText: "Done",
-    },
-  },
-];
-
-export const getA1NewsListSteps = () => [
-  {
-    element: "#A1-news-list",
-    popover: {
-      title: `${ICONS.newspaper} News Reel`,
-      description: "Swipe up/down to move between the latest articles.",
-      side: "top",
-    },
-  },
-  {
-    element: "#A1-news-language-toggle",
-    popover: {
-      title: `${ICONS.tap} Language Toggle`,
-      description: "Switch quickly between German and English.",
-      side: "bottom",
-      showButtons: ["next"],
-      nextBtnText: "Got it",
     },
   },
 ];

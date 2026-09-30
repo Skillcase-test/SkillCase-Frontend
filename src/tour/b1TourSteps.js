@@ -81,16 +81,6 @@ export const getB1LandingSteps = (onSkip) => [
     },
   },
   {
-    element: "#b1-news-card",
-    popover: {
-      title: `${ICONS.headphones} News`,
-      description:
-        "Read top headlines in German and English to build daily reading confidence.",
-      side: "top",
-      align: "end",
-    },
-  },
-  {
     element: "#streak-widget",
     popover: {
       title: `${ICONS.flame} Daily Habit`,

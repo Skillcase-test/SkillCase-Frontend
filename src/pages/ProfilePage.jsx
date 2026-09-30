@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setUser, logout } from "../redux/auth/authSlice";
-import { resetArticleEducation } from "../utils/articleUtils";
 import { isTrialActive, trialDaysLeft } from "../utils/premium";
 import { stableFile } from "../utils/stableFile";
 import api from "../api/axios";
@@ -715,7 +714,6 @@ export default function ProfilePage() {
       reasonCode: "user_initiated",
       attributes: { source_route: "/profile", trigger: "profile_button" },
     });
-    resetArticleEducation(user?.user_id);
     dispatch(logout());
     navigate("/");
   };
