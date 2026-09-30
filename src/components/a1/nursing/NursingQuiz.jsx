@@ -25,6 +25,7 @@ export default function NursingQuiz({
   questions = [],
   title = "Quiz",
   chapterId,
+  attemptId,
   onFinish,
   onExit,
   speak,
@@ -86,12 +87,12 @@ export default function NursingQuiz({
       }
       setSelected(null);
       // Reveal needs the correct answer — fetch it without scoring anything.
-      checkNursingAnswer(chapterId, question.id, null)
+      checkNursingAnswer(chapterId, question.id, null, attemptId)
         .then((res) => setReveal(res?.data || null))
         .catch(() => {})
         .finally(() => setPhase("timeout"));
     }
-  }, [timeLeft, phase, question, chapterId]);
+  }, [timeLeft, phase, question, chapterId, attemptId]);
 
   if (!question) return null;
 
@@ -103,7 +104,7 @@ export default function NursingQuiz({
     setSelected(answer);
     setPhase("checking");
     try {
-      const res = await checkNursingAnswer(chapterId, question.id, answer);
+      const res = await checkNursingAnswer(chapterId, question.id, answer, attemptId);
       const data = res?.data || {};
       setReveal({
         answer: data.answer ?? null,
@@ -150,9 +151,11 @@ export default function NursingQuiz({
         ? "border-[#002856] bg-[#edfaff] text-[#002856]"
         : "border-gray-200 bg-white text-gray-800 hover:border-[#002856]/40";
     }
+    // On a correct pick the server confirms without re-shipping the key, so
+    // the highlight falls back to the option they chose (it IS the answer).
     if (
-      (phase === "correct" || phase === "timeout" || phase === "revealed") &&
-      opt === reveal?.answer
+      (phase === "correct" && isPicked) ||
+      ((phase === "timeout" || phase === "revealed") && opt === reveal?.answer)
     ) {
       return "border-[#019035] bg-[#e9f9ee] text-[#019035]";
     }

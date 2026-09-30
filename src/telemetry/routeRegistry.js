@@ -17,11 +17,15 @@ const RULES = [
   [/^\/learn-german\/(lesson|recap)/, "learning", "learn_german_lesson"],
   [/^\/learn-german/, "learning", "learn_german"],
   [/^\/(a1|a2)\/(flashcard|grammar|listening|speaking|reading|test)/, "learning", "level_practice"],
+  // Nursing isn't covered by the level_practice pattern — needs its own surface.
+  [/^\/a1\/nursing/, "learning", "a1_nursing"],
   [/^\/b1\/exams/, "learning", "b1_exam"],
   [/^\/b1\/read-listen/, "learning", "b1_read_listen"],
   [/^\/b1\/describe-speak/, "learning", "b1_describe_speak"],
   [/^\/b1\/flashcard/, "learning", "b1_flashcard"],
   [/^\/b1\/maya/, "maya", "maya"],
+  // B2 Maya shares B1's maya surface so voice-session analytics line up.
+  [/^\/b2\/maya/, "maya", "maya"],
   [/^\/b2\/exams/, "learning", "b2_exam_papers"],
   [/^\/b2\/test/, "learning", "b2_exam_papers"],
   [/^\/b2\/reading/, "learning", "b2_reading"],

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   ChevronRight,
@@ -10,6 +11,7 @@ import { images } from "../../../assets/images";
 import { getMayaImage } from "../../../utils/mayaAvatars";
 import useB2Access from "../../../hooks/useB2Access";
 import useB2PracticeResume from "../../../hooks/useB2PracticeResume";
+import { getB2Exams } from "../../../api/b2Api";
 import { B2Button, B2ScoreRing, B2State } from "../../../components/b2/B2UI";
 import { normalizeB2Score } from "../../../utils/b2Scores";
 const skills = [
@@ -47,6 +49,23 @@ export default function B2PracticeHome({ overview, loading = false, onRetry }) {
   const user = useSelector((state) => state.auth.user);
   const userId = user?.user_id;
   const savedPractice = useB2PracticeResume(userId);
+  // Mock-exam papers go live the moment any active paper exists — the badge
+  // stays "Coming soon" only while the catalogue is empty. null = still
+  // loading, so it doesn't flash before the fetch resolves.
+  const [hasExamPapers, setHasExamPapers] = useState(null);
+  useEffect(() => {
+    let cancelled = false;
+    getB2Exams()
+      .then((res) => {
+        const rows = Array.isArray(res?.data) ? res.data : [];
+        if (!cancelled)
+          setHasExamPapers(rows.some((e) => Number(e.total_papers) > 0));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const next = overview?.nextPaper,
     suggested = overview?.suggested,
     latest = overview?.latest;
@@ -185,21 +204,28 @@ export default function B2PracticeHome({ overview, loading = false, onRetry }) {
               </div>
             </button>
           ))}
-          <Link
+          <button
+            type="button"
             id="b2-exams-card"
             className="b2-skill-card b2-mock-card"
-            to="/b2/exams"
-            aria-label="Mock tests, Goethe and telc, coming soon"
+            onClick={() => open("exams", "/b2/exams")}
+            aria-label={
+              hasExamPapers === false
+                ? "Mock tests, Goethe and telc, coming soon"
+                : "Mock tests, Goethe and telc"
+            }
           >
             <span className="b2-skill-card-media">
               <img src={images.mockTest} alt="" />
-              <span className="b2-card-availability">Coming soon</span>
+              {hasExamPapers === false && (
+                <span className="b2-card-availability">Coming soon</span>
+              )}
             </span>
             <div>
               <strong>Mock tests</strong>
               <p>Goethe &amp; telc</p>
             </div>
-          </Link>
+          </button>
           {/* Talk to Maya — live voice practice; mode choice happens inside. */}
           <button
             type="button"

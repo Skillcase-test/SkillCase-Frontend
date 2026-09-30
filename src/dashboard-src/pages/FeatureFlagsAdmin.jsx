@@ -54,6 +54,7 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
     features.find((f) => f.feature_key === selectedFeatureKey) || activeConfig;
   const eligibleLevelsList = selectedFeature?.eligible_levels || ["A1", "A2", "B1", "B2"];
   const isGlobalOnly = Boolean(selectedFeature?.global_only);
+  const isOverrideOnly = Boolean(selectedFeature?.override_only);
   const FeatureModule = FEATURE_MODULES[selectedFeatureKey];
   const abVariant = AB_VARIANTS[selectedFeatureKey] || null;
 
@@ -145,15 +146,22 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
       // global_only flags reject cohort fields server-side.
       // rollout_pct is only managed through the A/B split control; sending it
       // for other flags would overwrite values set out-of-band.
+      // override_only flags ignore global/cohort switches entirely — only
+      // level eligibility and the onboarding-roll percentage are meaningful.
       const payload = isGlobalOnly
         ? { global_enabled: cohortRules.global_enabled }
-        : {
-            global_enabled: cohortRules.global_enabled,
-            paid_enabled: cohortRules.paid_enabled,
-            unpaid_enabled: cohortRules.unpaid_enabled,
-            eligible_levels: cohortRules.eligible_levels,
-            ...(abVariant ? { rollout_pct: cohortRules.rollout_pct } : {}),
-          };
+        : isOverrideOnly
+          ? {
+              eligible_levels: cohortRules.eligible_levels,
+              ...(abVariant ? { rollout_pct: cohortRules.rollout_pct } : {}),
+            }
+          : {
+              global_enabled: cohortRules.global_enabled,
+              paid_enabled: cohortRules.paid_enabled,
+              unpaid_enabled: cohortRules.unpaid_enabled,
+              eligible_levels: cohortRules.eligible_levels,
+              ...(abVariant ? { rollout_pct: cohortRules.rollout_pct } : {}),
+            };
       const res = await adminUpdateFeatureConfig(selectedFeatureKey, payload);
       toast.success(
         isGlobalOnly ? "Feature updated successfully!" : "Cohort rules updated successfully!"
@@ -301,6 +309,7 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
       <RolloutRules
         feature={selectedFeature}
         isGlobalOnly={isGlobalOnly}
+        isOverrideOnly={isOverrideOnly}
         levels={eligibleLevelsList}
         rules={cohortRules}
         onChange={setCohortRules}

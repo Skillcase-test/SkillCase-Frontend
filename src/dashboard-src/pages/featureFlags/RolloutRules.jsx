@@ -56,6 +56,7 @@ function SplitInput({ label, value, onChange, canEdit, accent }) {
 export default function RolloutRules({
   feature,
   isGlobalOnly,
+  isOverrideOnly = false,
   levels = [],
   rules,
   onChange,
@@ -85,7 +86,9 @@ export default function RolloutRules({
           <p className="text-xs text-slate-300 mt-0.5">
             {isGlobalOnly
               ? feature?.description || "Enabled for everyone or no one."
-              : `Rules apply automatically to all students in eligible levels (${levelText}).`}
+              : isOverrideOnly
+                ? "Per-student assignment only — granted by onboarding rolls or individual overrides below. Global and cohort switches do not apply."
+                : `Rules apply automatically to all students in eligible levels (${levelText}).`}
           </p>
         </div>
 
@@ -118,38 +121,54 @@ export default function RolloutRules({
         </button>
       </div>
 
-      <div className={`grid grid-cols-1 gap-4 pt-5 ${isGlobalOnly ? "" : "md:grid-cols-3"}`}>
-        <ToggleCard
-          title="Global Feature Release"
-          description={
-            isGlobalOnly
-              ? "Single switch for every student. No cohort rules, no per-student exceptions."
-              : `Enable for 100% of students in ${levelText} regardless of payment tier.`
-          }
-          on={rules.global_enabled}
-          onToggle={() => toggle("global_enabled")}
-          canEdit={canEdit}
-        />
+      {isOverrideOnly ? (
+        <div className="pt-5">
+          <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/80">
+            <div className="text-sm font-semibold text-white flex items-center gap-2">
+              <Lock className="w-4 h-4 text-violet-300" /> Assignment-only feature
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              This flag resolves exclusively from per-student overrides — new
+              students get bucketed at onboarding via the split below, everyone
+              else is switched individually in the student table. There is no
+              global or cohort switch, by design.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className={`grid grid-cols-1 gap-4 pt-5 ${isGlobalOnly ? "" : "md:grid-cols-3"}`}>
+          <ToggleCard
+            title="Global Feature Release"
+            description={
+              isGlobalOnly
+                ? "Single switch for every student. No cohort rules, no per-student exceptions."
+                : `Enable for 100% of students in ${levelText} regardless of payment tier.`
+            }
+            on={rules.global_enabled}
+            onToggle={() => toggle("global_enabled")}
+            canEdit={canEdit}
+          />
 
-        {!isGlobalOnly && (
-          <>
-            <ToggleCard
-              title="Paid Students Cohort"
-              description="Enable for all current and future students with active paid / autopay status."
-              on={rules.paid_enabled}
-              onToggle={() => toggle("paid_enabled")}
-              canEdit={canEdit}
-            />
-            <ToggleCard
-              title="Free / Unpaid Students Cohort"
-              description={`Enable for all free tier and trial users in ${levelText}.`}
-              on={rules.unpaid_enabled}
-              onToggle={() => toggle("unpaid_enabled")}
-              canEdit={canEdit}
-            />
-          </>
-        )}
-      </div>
+          {!isGlobalOnly && (
+            <>
+              <ToggleCard
+                title="Paid Students Cohort"
+                description="Enable for all current and future students with active paid / autopay status."
+                on={rules.paid_enabled}
+                onToggle={() => toggle("paid_enabled")}
+                canEdit={canEdit}
+              />
+              <ToggleCard
+                title="Free / Unpaid Students Cohort"
+                description={`Enable for all free tier and trial users in ${levelText}.`}
+                on={rules.unpaid_enabled}
+                onToggle={() => toggle("unpaid_enabled")}
+                canEdit={canEdit}
+              />
+            </>
+          )}
+        </div>
+      )}
 
       {!isGlobalOnly && abVariant && (
         <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/80 mt-4">

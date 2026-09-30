@@ -65,6 +65,7 @@ export default function A1NursingChapter() {
   const [pendingIndex, setPendingIndex] = useState(null);
   const [quizType, setQuizType] = useState(null); // quick | final
   const [quizQuestions, setQuizQuestions] = useState([]);
+  const [quizAttemptId, setQuizAttemptId] = useState(null);
   const [quizLoading, setQuizLoading] = useState(false);
   const [quizResult, setQuizResult] = useState(null);
   const [quizPassed, setQuizPassed] = useState(false);
@@ -119,6 +120,7 @@ export default function A1NursingChapter() {
     setPhase("cards");
     setQuizResult(null);
     setQuizQuestions([]);
+    setQuizAttemptId(null);
     setQuizType(null);
     setPendingIndex(null);
     setLocked(false);
@@ -385,7 +387,10 @@ export default function A1NursingChapter() {
             )
           : await getNursingFinalQuiz(chapter.id);
       const qs = res?.data?.questions || [];
-      if (!qs.length) throw new Error("No questions");
+      // attempt_id binds check/submit to the exact draw the server composed —
+      // without it the backend rejects both, so treat a missing one as broken.
+      if (!qs.length || !res?.data?.attempt_id) throw new Error("No questions");
+      setQuizAttemptId(res.data.attempt_id);
       setQuizQuestions(qs);
       setQuizType(type);
       setPhase("quiz");
@@ -404,7 +409,7 @@ export default function A1NursingChapter() {
         chapterId: chapter.id,
         quizType,
         answers,
-        checkpoint: quizType === "quick" ? pendingIndex : undefined,
+        attemptId: quizAttemptId,
       });
       const data = res?.data || {};
 
@@ -437,6 +442,7 @@ export default function A1NursingChapter() {
         // Back to the deck at the checkpoint card.
         setPhase("cards");
         setQuizQuestions([]);
+        setQuizAttemptId(null);
         setQuizType(null);
         if (!guardUsage("A1", "nursing")) return;
         setCurrentCard(pendingIndex);
@@ -458,6 +464,7 @@ export default function A1NursingChapter() {
   const exitQuiz = () => {
     setPhase("cards");
     setQuizQuestions([]);
+    setQuizAttemptId(null);
     setQuizType(null);
     setPendingIndex(null);
   };
@@ -628,6 +635,7 @@ export default function A1NursingChapter() {
                 : "Quick Check"
             }
             chapterId={chapter?.id}
+            attemptId={quizAttemptId}
             onFinish={finishQuiz}
             onExit={exitQuiz}
             speak={handleSpeak}

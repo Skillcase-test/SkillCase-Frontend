@@ -2032,9 +2032,8 @@ function AppContent() {
                     }
                   />
                   {/* B2 Practice Suite — 4 tag-filtered modules + exam papers.
-                      No /b2 hub page — the landing feature cards route directly
-                      to each module; redirect stale links home. */}
-                  <Route path="/b2" element={<Navigate to="/" replace />} />
+                      No /b2 route at all — "/" is the single B2 home and the
+                      landing feature cards route directly to each module. */}
                   {/* B2 test hub — "Your Test" screen (scores, practise next,
                       previous tests). Static path wins over /b2/:module. */}
                   <Route

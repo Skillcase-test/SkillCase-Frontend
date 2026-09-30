@@ -33,8 +33,8 @@ export const getNursingQuickQuiz = (chapterId, checkpoint, seenCardIds) =>
 export const getNursingFinalQuiz = (chapterId) =>
   api.get(`/a1/nursing/quiz/final/${chapterId}`);
 
-export const checkNursingAnswer = (chapterId, questionUid, answer) =>
-  api.post("/a1/nursing/quiz/check", { chapterId, questionUid, answer });
+export const checkNursingAnswer = (chapterId, questionUid, answer, attemptId) =>
+  api.post("/a1/nursing/quiz/check", { chapterId, questionUid, answer, attemptId });
 
 export const submitNursingQuiz = (data) =>
   api.post("/a1/nursing/quiz/submit", data, {
