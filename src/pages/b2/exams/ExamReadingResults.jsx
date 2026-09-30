@@ -1,7 +1,7 @@
 import { B2Page, B2State } from "../../../components/b2/B2UI";
 import B2ResultSummary from "../../../components/b2/B2ResultSummary";
 import B2ReadingReviewHeader from "../../../components/b2/B2ReadingReviewHeader";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { resolveB2SubmissionId } from "../../../utils/b2Submission";

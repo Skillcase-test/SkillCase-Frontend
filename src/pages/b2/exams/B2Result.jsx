@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { ChevronRight, Loader2, AlertCircle } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import B2MayaPortrait from "../../../components/b2/B2MayaPortrait";
 import {
   B2Page,

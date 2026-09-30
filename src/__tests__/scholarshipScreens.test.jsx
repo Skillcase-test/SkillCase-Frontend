@@ -9,7 +9,6 @@
  *     the released-results screen
  *   - ScholarshipLevelPickerModal: requires a level before confirming
  */
-import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { Provider } from "react-redux";

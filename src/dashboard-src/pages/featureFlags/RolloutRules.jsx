@@ -1,4 +1,3 @@
-import React from "react";
 import { Lock, RefreshCw, Sparkles, ToggleLeft, ToggleRight } from "lucide-react";
 
 function ToggleCard({ title, description, on, onToggle, canEdit }) {

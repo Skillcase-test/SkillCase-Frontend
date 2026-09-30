@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getCartIds, onCartChanged, formatInr } from "../../utils/startNowCart";

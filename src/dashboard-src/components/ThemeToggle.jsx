@@ -1,4 +1,3 @@
-import React from "react";
 import { useThemeProvider } from "../utils/ThemeContext";
 
 export default function ThemeToggle() {

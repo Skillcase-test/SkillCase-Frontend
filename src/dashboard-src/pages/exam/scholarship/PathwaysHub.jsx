@@ -1,5 +1,4 @@
-﻿import React from "react";
-import {
+﻿import {
   Layers,
   Plus,
   ArrowRight,
@@ -8,10 +7,6 @@ import {
   GraduationCap,
   Users,
   CheckCircle2,
-  AlertCircle,
-  FileText,
-  Clock,
-  Briefcase,
 } from "lucide-react";
 import { btn } from "./ui/buttons";
 

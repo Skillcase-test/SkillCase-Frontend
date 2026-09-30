@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const INTERVIEW_TOOLS_PASSWORD = import.meta.env.VITE_INTERVIEW_PASSWORD;
 

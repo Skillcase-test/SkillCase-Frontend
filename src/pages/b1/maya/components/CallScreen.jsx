@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { PhoneOff, Mic, MicOff, Clock4 } from "lucide-react";
 import { getMayaImage } from "../../../../utils/mayaAvatars";

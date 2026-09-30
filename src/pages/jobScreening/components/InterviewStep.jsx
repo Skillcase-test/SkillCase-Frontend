@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { RefreshCw, ArrowLeft, Check, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { RefreshCw, ArrowLeft, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getProgress, markStepNoteViewed } from "../../../api/jobScreeningApi";
 import FillDetailsStep from "./FillDetailsStep";

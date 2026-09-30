@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { AnimatePresence, LayoutGroup } from "framer-motion";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -1430,8 +1430,27 @@ export default function NewLessonFlow() {
 
   if (loading) {
     return (
-      <div className="w-full lg-screen-height flex justify-center items-center">
-        Loading Lesson...
+      <div
+        className="w-full lg-screen-height flex justify-center bg-gradient-to-b from-blue-100 to-sky-100"
+        aria-label="Loading lesson"
+        role="status"
+      >
+        <div className="w-full max-w-[500px] flex flex-col px-5 pt-6 gap-5 overflow-hidden">
+          <div className="h-2 w-full bg-white/70 rounded-full animate-pulse" />
+          <div className="h-6 w-2/3 bg-white/70 rounded animate-pulse mt-1" />
+          <div className="w-full bg-white/80 rounded-2xl p-5 flex flex-col gap-3 animate-pulse">
+            <div className="h-4 w-24 bg-slate-200 rounded" />
+            <div className="h-6 w-5/6 bg-slate-200 rounded-lg" />
+          </div>
+          <div className="flex flex-col gap-3">
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="w-full h-14 bg-white/70 rounded-xl animate-pulse"
+              />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Check, X, ChevronRight } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Check, X } from "lucide-react";
 import UmlautKeyboard from "./UmlautKeyboard";
 import {
   DndContext,
@@ -652,7 +652,7 @@ export default function QuestionRenderer({
         </div>
       );
 
-    case "mcq_multi":
+    case "mcq_multi": {
       // FIX: Ensure we use array safely
       const multiAnswer = Array.isArray(localAnswer) ? localAnswer : [];
       return (
@@ -737,6 +737,7 @@ export default function QuestionRenderer({
           )}
         </div>
       );
+    }
 
     case "true_false":
     case "truefalse": {

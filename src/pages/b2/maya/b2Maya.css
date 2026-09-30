@@ -384,3 +384,8 @@ to{transform:scaleY(1)}
 @media(max-height:740px){.sp .stage{height:92px}.sp .stage-ring{width:84px;height:84px;box-shadow:0 0 0 6px var(--tone-soft)}.sp .stage .wave{height:80px;width:60px}.sp .turn-mic-button{width:68px;height:68px}.sp .turn-mic-button .icon{--icon-size:28px}.sp .tile{gap:8px}}
 @media(max-height:620px){.sp .stage{height:72px}.sp .stage-ring{width:66px;height:66px;border-width:3px;box-shadow:0 0 0 5px var(--tone-soft)}.sp .stage .wave{height:60px;width:52px}.sp .turn-mic-button{width:56px;height:56px}.sp .call-live .call-content{gap:8px;padding:10px 14px}}
 .sp .maya-live .maya-image.on{opacity:1}
+
+/* Loading placeholders (role="status" blocks rendered while data loads) */
+.sp .skel{position:relative;overflow:hidden;background:#e6edf5;border-radius:10px}
+.sp .skel::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent);animation:sp-shimmer 1.4s infinite}
+@keyframes sp-shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}

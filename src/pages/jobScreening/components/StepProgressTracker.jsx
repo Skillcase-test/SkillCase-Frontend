@@ -1,4 +1,3 @@
-import React from "react";
 
 const StepProgressTracker = ({ steps = [], currentStepId }) => {
   const currentStepIndex = steps.findIndex((s) => s.id === currentStepId);

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import useB1MayaVAD from "../../../hooks/useB1MayaVAD";
 import LobbyScreen from "./components/LobbyScreen";
 import CallScreen from "./components/CallScreen";

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { Loader2, PlayCircle } from "lucide-react";
+import { PlayCircle } from "lucide-react";
 import { getVideoCourses } from "../../api/videoCourseApi";
 import { trackFeatureEvent } from "../../telemetry/events";
 import { useUsageLimitGate } from "../../hooks/useUsageLimits";
@@ -45,8 +45,21 @@ export default function CourseSelectPage() {
   return (
     <div className="w-full max-w-md mx-auto bg-white flex flex-col min-h-screen pb-28">
       {loading ? (
-        <div className="flex-1 flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
+        <div
+          className="px-2 py-2 flex flex-col gap-5"
+          aria-label="Loading courses"
+          role="status"
+        >
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="w-full flex flex-col gap-2 border border-slate-100 px-2 py-2 rounded-md shadow-sm animate-pulse"
+            >
+              <div className="w-full aspect-video rounded-md bg-slate-200" />
+              <div className="h-4 w-2/3 bg-slate-200 rounded" />
+              <div className="h-3 w-1/3 bg-slate-100 rounded mb-1" />
+            </div>
+          ))}
         </div>
       ) : courses.length === 0 ? (
         <p className="text-center text-slate-400 py-16 text-sm">

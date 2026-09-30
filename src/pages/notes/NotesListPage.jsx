@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, Search, Loader2, FileText } from "lucide-react";
+import { ChevronLeft, Search, FileText } from "lucide-react";
 import { getNotes } from "../../api/notesApi";
 import { trackFeatureEvent } from "../../telemetry/events";
 
@@ -106,8 +106,24 @@ export default function NotesListPage() {
       </div>
 
       {loading ? (
-        <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
+        <div
+          className="flex-1 px-4 py-4 flex flex-col gap-3"
+          aria-label="Loading notes"
+          role="status"
+        >
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="w-full p-3.5 bg-white rounded-xl border border-zinc-200 flex gap-3.5 items-start animate-pulse"
+            >
+              <div className="w-10 h-10 shrink-0 rounded-lg bg-slate-200" />
+              <div className="flex-1 flex flex-col gap-1.5 pt-0.5">
+                <div className="h-4 w-1/2 bg-slate-200 rounded" />
+                <div className="h-3 w-3/4 bg-slate-100 rounded" />
+                <div className="h-3 w-16 bg-slate-100 rounded mt-1" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : notes.length === 0 ? (
         <p className="text-center text-slate-400 py-12 text-sm">

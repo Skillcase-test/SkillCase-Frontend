@@ -37,8 +37,33 @@ function Missing({ text }) {
 
 const Loading = () => (
   <Main>
-    <div className="center" style={{ marginTop: 80 }}>
-      <span className="spinner" style={{ margin: "0 auto" }} />
+    <div role="status" aria-label="Loading">
+      <div className="skel" style={{ width: 100, height: 100, borderRadius: "50%", margin: "28px auto 26px" }} />
+      <div className="skel" style={{ height: 24, width: "65%", margin: "0 auto 12px" }} />
+      <div className="skel" style={{ height: 12, width: "80%", margin: "0 auto 8px" }} />
+      <div className="skel" style={{ height: 12, width: "55%", margin: "0 auto 28px" }} />
+      {[0, 1].map((i) => (
+        <div
+          key={i}
+          style={{
+            height: 74,
+            borderRadius: 18,
+            border: "1px solid var(--line)",
+            background: "white",
+            marginBottom: 12,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "0 16px",
+          }}
+        >
+          <span className="skel" style={{ width: 42, height: 42, borderRadius: 12, flexShrink: 0 }} />
+          <span style={{ flex: 1 }}>
+            <span className="skel" style={{ display: "block", height: 12, width: "60%", marginBottom: 8 }} />
+            <span className="skel" style={{ display: "block", height: 10, width: "80%" }} />
+          </span>
+        </div>
+      ))}
     </div>
   </Main>
 );

@@ -1,4 +1,3 @@
-import React from "react";
 
 const UMLAUTS = ["ä", "ö", "ü", "Ä", "Ö", "Ü", "ß"];
 

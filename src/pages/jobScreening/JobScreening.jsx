@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -20,14 +20,11 @@ import OpportunityListSkeleton from "./components/OpportunityListSkeleton";
 import ReferralPromoCard from "./components/ReferralPromoCard";
 import ShortlistedPromoCard from "./components/ShortlistedPromoCard";
 import MeetingStep from "./components/MeetingStep";
-import OfferLetterStep from "./components/OfferLetterStep";
 import AdditionalDocumentsStep from "./components/AdditionalDocumentsStep";
 import RecruiterStatusStep from "./components/RecruiterStatusStep";
 import {
-  Check,
   Lock,
   RefreshCw,
-  ArrowLeft,
   Phone,
   CreditCard,
 } from "lucide-react";

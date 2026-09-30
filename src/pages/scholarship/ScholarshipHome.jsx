@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -6,9 +6,7 @@ import { getScholarshipExam } from "../../api/scholarshipExamApi";
 import { useFirstPartyAnalytics } from "../../telemetry/legacyAnalytics";
 import { getMayaImage } from "../../utils/mayaAvatars";
 import {
-  ChevronLeft,
   ChevronRight,
-  Loader2,
   Play,
   Hourglass,
   CheckCircle2,

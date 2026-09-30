@@ -1,4 +1,3 @@
-import React from "react";
 
 export default function CandidateMarquee({ candidates = [] }) {
   // Filter candidates for marquee section

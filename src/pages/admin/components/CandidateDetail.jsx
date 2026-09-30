@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -22,17 +22,13 @@ import {
   ArrowLeft,
   AlertCircle,
   Award,
-  CheckCircle2,
   Trash2,
   RefreshCw,
   X,
   ExternalLink,
   ChevronDown,
-  User,
   Settings,
-  Mail,
   Phone,
-  CalendarDays,
   StickyNote,
   Plus,
   Eye,

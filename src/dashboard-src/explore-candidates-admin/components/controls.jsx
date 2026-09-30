@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Search, X, ChevronDown, Plus, Pencil, Trash2, Check, Star } from "lucide-react";
+import { Search, X, ChevronDown, Pencil, Trash2, Check, Star } from "lucide-react";
 import toast from "react-hot-toast";
 import { Spinner } from "./common";
 

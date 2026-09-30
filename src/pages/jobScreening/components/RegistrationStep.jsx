@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileSignature, ArrowRight, RefreshCw } from "lucide-react";
 import { checkAgreement, startAgreement, getProgress, markStepNoteViewed } from "../../../api/jobScreeningApi";

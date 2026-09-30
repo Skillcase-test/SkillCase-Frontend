@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
@@ -9,6 +9,7 @@ import {
   Volume2,
   ChevronDown,
 } from "lucide-react";
+import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
 import {
   getB1ExamSectionContent,
   submitB1ExamReadingAnswers,
@@ -205,11 +206,7 @@ export default function ExamReadingWorkspace() {
   });
 
   if (loading) {
-    return (
-      <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
-    );
+    return <ExerciseLayoutSkeleton variant="reading" />;
   }
 
   if (fetchError || questions.length === 0) {

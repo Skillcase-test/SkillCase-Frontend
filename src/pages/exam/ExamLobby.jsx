@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
 import { getExamInfo } from "../../api/examApi";
 import {
@@ -7,7 +7,6 @@ import {
   FileText,
   AlertTriangle,
   ShieldAlert,
-  Loader2,
   Play,
 } from "lucide-react";
 import { useFirstPartyAnalytics } from "../../telemetry/legacyAnalytics";

@@ -1,4 +1,3 @@
-import React from "react";
 import { ArrowLeft, RefreshCw, X } from "lucide-react";
 import { motion } from "framer-motion";
 import mayaSad from "../../../assets/onboarding/mayaSad.webp";

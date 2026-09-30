@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowDown,
@@ -12,11 +12,9 @@ import {
   Upload,
   Video,
   X,
-  LayoutTemplate,
   MessageSquare,
   Settings,
   CheckCircle2,
-  GripVertical,
   Trash2,
 } from "lucide-react";
 import { skillcaseInterviewToolsApi } from "../../api/skillcaseInterviewToolsApi";

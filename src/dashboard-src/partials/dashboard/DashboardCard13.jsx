@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 import api from "../../../api/axios";
 
-import { Trophy, Flame, TrendingUp, Medal } from "lucide-react";
+import { Trophy, Flame, Medal } from "lucide-react";
 
 function DashboardCard13() {
   const [leaderboard, setLeaderboard] = useState([]);

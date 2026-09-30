@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
 import { ControlButton, ControlInput } from "./controls";

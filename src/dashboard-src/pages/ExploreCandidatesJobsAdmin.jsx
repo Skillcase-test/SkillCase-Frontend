@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { ArrowLeft, Plus } from "lucide-react";
@@ -12,7 +12,6 @@ import {
   Spinner,
 } from "../explore-candidates-admin/components/common";
 import {
-  PrimaryButton,
   SecondaryButton,
   ActionButton,
   SearchInput,

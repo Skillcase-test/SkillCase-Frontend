@@ -3,19 +3,15 @@ import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   UserPlus,
-  Users,
-  Search,
   Sparkles,
   Edit,
   Trash2,
-  Download,
   PlusCircle,
   CheckCircle,
 } from "lucide-react";
 import { exploreCandidatesAdminApi } from "../../../api/exploreCandidatesAdminApi";
 import {
   PageCard,
-  StatCard,
   TableWrapper,
   TableHead,
   TableBody,
@@ -24,7 +20,6 @@ import {
 } from "../components/common";
 import {
   PrimaryButton,
-  SecondaryButton,
   ActionButton,
   SearchInput,
   ControlDropdown,

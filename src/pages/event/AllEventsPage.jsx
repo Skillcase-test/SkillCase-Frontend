@@ -1,9 +1,8 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { Bell, Calendar } from "lucide-react";
+import { Bell } from "lucide-react";
 
-import { RRule, rrulestr } from "rrule";
 
 import api from "../../api/axios.js";
 

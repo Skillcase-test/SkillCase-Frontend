@@ -2,14 +2,11 @@ import B2ResponseReviewCard from "../../../components/b2/B2ResponseReviewCard";
 import { normalizeB2Score } from "../../../utils/b2Scores";
 import { B2Page, B2State } from "../../../components/b2/B2UI";
 import B2ResultSummary from "../../../components/b2/B2ResultSummary";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
   ChevronLeft,
-  Loader2,
-  AlertCircle,
-  Volume2,
 } from "lucide-react";
 import { getB2Exercise } from "../../../api/b2Api";
 import useTextToSpeech from "../../../hooks/useTextToSpeech";

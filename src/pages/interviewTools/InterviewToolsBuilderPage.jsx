@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft, ArrowDown, ArrowUp, Camera, Eye, Mic, Plus, RotateCcw,
-  Save, Upload, Video, X, LayoutTemplate, MessageSquare, Settings, CheckCircle2, GripVertical, Trash2
+  Save, Upload, Video, X, MessageSquare, Settings, CheckCircle2, Trash2
 } from "lucide-react";
 import { interviewToolsApi } from "../../api/interviewToolsApi";
 import { uploadFileToSignedUrl } from "./shared/uploadFileToSignedUrl";

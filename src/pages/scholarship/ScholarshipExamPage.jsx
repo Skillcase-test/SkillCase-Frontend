@@ -1,4 +1,4 @@
-import React, {
+import {
   memo,
   useState,
   useEffect,
@@ -27,8 +27,8 @@ import {
   Play,
   Pause,
   AudioWaveform,
-  GraduationCap,
 } from "lucide-react";
+import ExerciseLayoutSkeleton from "../../components/common/ExerciseLayoutSkeleton";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
 import {
@@ -971,16 +971,7 @@ export default function ScholarshipExamPage() {
 
   // ---- LOADING / ERROR / CLOSED STATES ----
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-          <p className="text-xs text-gray-400 font-medium">
-            Preparing your exam...
-          </p>
-        </div>
-      </div>
-    );
+    return <ExerciseLayoutSkeleton variant="exam" />;
   }
 
   if (error) {

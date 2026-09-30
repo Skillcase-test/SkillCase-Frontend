@@ -1,13 +1,11 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Loader2,
   CheckCircle,
   XCircle,
   ChevronLeft,
-  Eye,
   Check,
-  X,
   Award,
   Star,
 } from "lucide-react";

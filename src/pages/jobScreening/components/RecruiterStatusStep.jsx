@@ -1,9 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import {
   Clock,
   RefreshCw,
-  ArrowRight,
   AlertCircle,
   Calendar,
   Video,
@@ -11,8 +10,6 @@ import {
   Lock,
   ArrowLeft,
   Hourglass,
-  ClipboardCheck,
-  MessageSquare,
   UserCheck,
   FileDown,
   Check,

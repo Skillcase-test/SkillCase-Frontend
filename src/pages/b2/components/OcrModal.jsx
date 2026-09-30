@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Upload, X } from "lucide-react";
 
 export default function OcrModal({ onClose, onUpload }) {

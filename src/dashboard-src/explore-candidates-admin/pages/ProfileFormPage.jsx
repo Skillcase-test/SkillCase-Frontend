@@ -8,12 +8,10 @@ import {
   Video,
   User,
   GraduationCap,
-  Briefcase,
   FileCheck,
   Image as ImageIcon,
   Plus,
   Trash2,
-  ExternalLink,
   Eye,
   Lock,
   Mail,
@@ -22,7 +20,6 @@ import {
 import { exploreCandidatesAdminApi } from "../../../api/exploreCandidatesAdminApi";
 import {
   PageCard,
-  Spinner,
 } from "../components/common";
 import {
   PrimaryButton,

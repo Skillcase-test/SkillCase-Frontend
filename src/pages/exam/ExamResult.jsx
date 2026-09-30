@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getExamResult } from "../../api/examApi";
 import { useFirstPartyAnalytics } from "../../telemetry/legacyAnalytics";
 import {
   ChevronLeft,
-  Loader2,
   CheckCircle2,
   XCircle,
   Clock,
@@ -15,6 +14,7 @@ import {
   Lock,
   Minus,
 } from "lucide-react";
+import ExerciseLayoutSkeleton from "../../components/common/ExerciseLayoutSkeleton";
 
 function toAlphaLabel(index) {
   let value = index + 1;
@@ -240,11 +240,7 @@ export default function ExamResult() {
   }, [testId, analytics]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
-    );
+    return <ExerciseLayoutSkeleton />;
   }
 
   if (error) {

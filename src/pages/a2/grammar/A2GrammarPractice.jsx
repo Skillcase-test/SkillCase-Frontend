@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
   ChevronLeft,
@@ -356,7 +356,7 @@ export default function A2GrammarPractice() {
                   questionDisplay = qd.sentence || qd.question || "";
                   break;
 
-                case "true_false":
+                case "true_false": {
                   // JSON uses correct_answer OR correct (boolean)
                   const tfVal =
                     qd.correct_answer !== undefined
@@ -367,6 +367,7 @@ export default function A2GrammarPractice() {
                   else correctAns = String(tfVal ?? "N/A");
                   questionDisplay = qd.question || qd.statement || "";
                   break;
+                }
 
                 case "mcq_multi":
                   // JSON: correct_answers is array of INDICES [0, 2, 4]

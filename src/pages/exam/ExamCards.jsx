@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getVisibleExams } from "../../api/examApi";
 import {
@@ -8,7 +8,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
-  Loader2,
   Lock,
   Timer,
 } from "lucide-react";

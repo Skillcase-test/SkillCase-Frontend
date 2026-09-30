@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { RotateCcw, Volume2, Loader2, FileText } from "lucide-react";
 import ArticleText from "./ArticleText";
 

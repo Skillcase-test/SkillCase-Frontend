@@ -1,4 +1,3 @@
-import React from "react";
 import { ArrowLeft, Check } from "lucide-react";
 import { motion } from "framer-motion";
 import { COURSE } from "../../../config/course";

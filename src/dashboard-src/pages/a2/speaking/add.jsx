@@ -1,10 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
-  Upload,
   FileText,
-  CheckCircle,
-  AlertCircle,
-  Loader,
   Download,
 } from "lucide-react";
 import { uploadA2Speaking, getA2Template } from "../../../../api/a2Api";

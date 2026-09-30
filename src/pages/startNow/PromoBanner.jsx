@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion as Motion } from "framer-motion";
-import { Megaphone, X } from "lucide-react";
+import { X } from "lucide-react";
 
 // Dismissal is persisted locally per banner version (keyed by updated_at),
 // so the banner reappears only after the admin changes/republishes it.

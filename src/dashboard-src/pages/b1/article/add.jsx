@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Upload, FileText, CheckCircle, AlertCircle, Loader } from "lucide-react";
+import { useState } from "react";
+import { Upload, CheckCircle, AlertCircle, Loader } from "lucide-react";
 import { uploadB1Reading } from "../../../../api/b1Api";
 import toast, { Toaster } from "react-hot-toast";
 

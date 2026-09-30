@@ -10,7 +10,6 @@
  *     (single-active guard) before calling updateExam, and the submission
  *     review can override an answer.
  */
-import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, test, expect, beforeEach, vi } from "vitest";

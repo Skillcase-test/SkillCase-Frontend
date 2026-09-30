@@ -1,4 +1,4 @@
-import { Calendar, Clock, Video, MapPin } from "lucide-react";
+import { Calendar, Clock, Video } from "lucide-react";
 export default function EventCard({
   event,
   onClick,

@@ -1,11 +1,6 @@
 import {
-  Mail,
-  MessageCircle,
   Newspaper,
-  BookOpen,
   User,
-  Clock,
-  Paperclip,
   Star,
   MoreVertical,
   ChevronDown,

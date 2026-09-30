@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { adminGetTickets, adminUpdateTicketStatus, adminUpdateTicketPriority, adminAddTicketComment, adminUploadCommentImage } from "../../api/supportAdminApi";
 import { Loader2, ExternalLink, RefreshCw, X, HelpCircle, CheckCircle2, Clock, AlertCircle, Search, User, Phone, Calendar, Award, MessageSquare, Send, Paperclip, ZoomIn, ZoomOut } from "lucide-react";
 import toast from "react-hot-toast";

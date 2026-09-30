@@ -5,7 +5,6 @@
  * VideoPlayerPage:  renders video metadata + description accordion, drives the
  *                   settings-menu audio language, opens the chat drawer.
  */
-import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { vi } from "vitest";

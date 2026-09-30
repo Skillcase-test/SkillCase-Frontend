@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { ChevronLeft, Loader2, AlertCircle } from "lucide-react";
+import { ChevronLeft, AlertCircle } from "lucide-react";
 import {
   startB2ExamSubmission,
   getB2ExamSubmissionStatus,
@@ -78,7 +78,11 @@ export default function ExamSectionRedirect() {
             </p>
           </>
         ) : (
-          <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
+          <div className="w-full flex flex-col items-center gap-3" aria-label="Loading exam section" role="status">
+            <div className="w-10 h-10 rounded-full bg-slate-200 animate-pulse" />
+            <div className="h-4 w-40 bg-slate-200 rounded animate-pulse" />
+            <div className="h-3 w-56 bg-slate-100 rounded animate-pulse" />
+          </div>
         )}
       </div>
     </div>

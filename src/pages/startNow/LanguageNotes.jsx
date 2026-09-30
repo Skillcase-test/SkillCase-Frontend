@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileText, ChevronRight, ArrowLeft, ArrowRight } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 

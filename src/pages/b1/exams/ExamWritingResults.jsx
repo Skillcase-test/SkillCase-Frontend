@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
   ChevronLeft,
-  Loader2,
   AlertCircle,
   CheckCircle2,
   XCircle,
   HelpCircle,
-  Volume2,
 } from "lucide-react";
+import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
 import {
   getB1ExamSubmissionStatus,
   getB1ExamSectionContent,
@@ -151,11 +150,7 @@ export default function ExamWritingResults() {
   };
 
   if (loading) {
-    return (
-      <div className="w-full max-w-md mx-auto min-h-screen flex items-center justify-center bg-white shadow-sm">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
-    );
+    return <ExerciseLayoutSkeleton variant="writing" />;
   }
 
   if (fetchError || !sectionData) {

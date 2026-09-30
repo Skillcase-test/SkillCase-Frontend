@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Lock, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { images } from "../../assets/images";
 

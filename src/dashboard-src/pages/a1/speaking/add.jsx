@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Upload, FileText, Download } from "lucide-react";
+import { useState } from "react";
+import { FileText, Download } from "lucide-react";
 import { uploadA1Speaking, getA1Template } from "../../../../api/a1Api";
 export default function A1SpeakingAdd() {
   const [selectedFile, setSelectedFile] = useState(null);

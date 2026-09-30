@@ -58,9 +58,30 @@ export default function Lg2Recap() {
 
   if (loading) {
     return (
-      <div className="grid min-h-[100dvh] place-items-center bg-[#f4f6fb]">
-        <div className="text-sm font-semibold text-slate-400">Loading…</div>
-      </div>
+      <section
+        className="flex min-h-[100dvh] flex-col bg-[#f4f6fb]"
+        aria-label="Loading recap"
+        role="status"
+      >
+        <div className="flex items-center gap-3 px-4 pt-3">
+          <div className="h-9 w-9 shrink-0 rounded-full bg-white ring-1 ring-slate-200 animate-pulse" />
+          <div className="h-4 flex-1 mx-4 bg-slate-200 rounded animate-pulse" />
+          <span className="w-9" />
+        </div>
+        <div className="flex-1 px-4 pb-4 pt-3">
+          <div className="mb-4 h-36 rounded-2xl bg-slate-200 ring-1 ring-slate-200 animate-pulse" />
+          <div className="h-6 w-1/2 bg-slate-200 rounded animate-pulse" />
+          <div className="mt-2 mb-4 h-3 w-40 bg-emerald-100 rounded animate-pulse" />
+          <div className="space-y-2">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="h-14 w-full rounded-2xl bg-white ring-1 ring-slate-200 animate-pulse"
+              />
+            ))}
+          </div>
+        </div>
+      </section>
     );
   }
 

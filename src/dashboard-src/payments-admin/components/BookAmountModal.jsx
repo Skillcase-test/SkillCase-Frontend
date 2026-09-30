@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ControlButton } from "./controls";
 import { formatInrFromPaise, formatIstDate } from "../utils/formatters";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";

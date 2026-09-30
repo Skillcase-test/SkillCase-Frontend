@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Loader2, CheckCircle, XCircle, ArrowRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { CheckCircle, XCircle, ArrowRight } from "lucide-react";
 
 import {
   generateMiniQuiz,

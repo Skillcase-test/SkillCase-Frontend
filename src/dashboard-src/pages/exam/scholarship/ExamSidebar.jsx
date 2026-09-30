@@ -1,5 +1,4 @@
-import React from "react";
-import { Plus, Copy, Play, Trash2, GraduationCap, CheckCircle2 } from "lucide-react";
+import { Plus, Copy, Play, Trash2, GraduationCap } from "lucide-react";
 import { useScholarshipWorkspace } from "./index";
 import { btn } from "./ui/buttons";
 

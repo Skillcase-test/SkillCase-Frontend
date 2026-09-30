@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import api from "../../api/axios";
 import {
   Search,
@@ -16,7 +16,6 @@ import {
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
-import { ControlDropdown } from "../payments-admin/components/controls";
 import { StatCard } from "../payments-admin/components/common";
 
 const STATUS_FILTER_OPTIONS = [

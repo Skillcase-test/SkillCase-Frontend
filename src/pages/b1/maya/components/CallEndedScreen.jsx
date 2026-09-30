@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Award, PhoneCall, Star } from "lucide-react";
 import api from "../../../../api/axios";

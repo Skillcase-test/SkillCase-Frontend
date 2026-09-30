@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
@@ -15,13 +15,11 @@ import {
   ChevronRight,
   Loader2,
   Clock,
-  Award,
   Dumbbell,
   Sparkles,
   Phone,
   Hourglass,
   Heart,
-  X,
   BookOpen,
   Ticket,
   CheckCircle2,
@@ -239,11 +237,21 @@ export default function ScholarshipResult() {
     return (
       <div className="min-h-screen bg-white flex flex-col">
         <ResultTopBar title="Result" />
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-          <p className="text-xs text-gray-400 font-medium mt-3">
-            Loading result...
-          </p>
+        <div
+          className="flex-1 flex flex-col items-center justify-center gap-4 px-6"
+          aria-label="Loading result"
+          role="status"
+        >
+          <div className="w-16 h-16 rounded-full bg-slate-200 animate-pulse" />
+          <div className="h-6 w-40 bg-slate-200 rounded animate-pulse" />
+          <div className="w-full max-w-sm flex flex-col gap-3 mt-2">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="h-14 bg-slate-50 border border-slate-100 rounded-xl animate-pulse"
+              />
+            ))}
+          </div>
         </div>
       </div>
     );

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Star, ShieldAlert, CheckCircle, GraduationCap } from "lucide-react";
 import {
   getCartIds,

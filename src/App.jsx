@@ -15,7 +15,6 @@ import {
   useNavigate,
   Navigate,
 } from "react-router-dom";
-import { Lock, Phone, LogOut, Loader2, CreditCard } from "lucide-react";
 import { Toaster } from "react-hot-toast";
 import LandingPage from "./pages/landing/LandingPage";
 import OnboardingFlow from "./pages/onboarding/OnboardingFlow";
@@ -24,7 +23,6 @@ import PaywallBlocker from "./components/PaywallBlocker";
 import GuideSpotlight from "./components/GuideSpotlight";
 import BottomTabBar from "./components/BottomTabBar";
 import TopModeSwitcher from "./components/TopModeSwitcher";
-import NewFooter from "./components/NewFooter";
 import Footer from "./components/Footer";
 import OtaUpdateModal from "./components/OtaUpdateModal";
 import AppReviewPromptModal from "./components/AppReviewPromptModal";

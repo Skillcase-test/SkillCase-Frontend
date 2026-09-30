@@ -3,15 +3,11 @@ import { normalizeB2Score } from "../../../utils/b2Scores";
 import { getScoreGreeting } from "../utils/scoreUtils";
 import { B2Page, B2State } from "../../../components/b2/B2UI";
 import B2ResultSummary from "../../../components/b2/B2ResultSummary";
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
   ChevronLeft,
-  Loader2,
-  AlertCircle,
-  Play,
-  Pause,
   ThumbsUp,
   Lightbulb,
 } from "lucide-react";

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
@@ -8,10 +8,9 @@ import {
   Clock,
   Volume2,
   Mic,
-  Play,
-  Pause,
   Square,
 } from "lucide-react";
+import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
 import { hapticMedium } from "../../../utils/haptics";
 import {
   getB1ExamSectionContent,
@@ -344,11 +343,7 @@ export default function ExamSpeakingWorkspace() {
   });
 
   if (loading) {
-    return (
-      <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
-    );
+    return <ExerciseLayoutSkeleton variant="speaking" />;
   }
 
   if (fetchError || questions.length === 0) {

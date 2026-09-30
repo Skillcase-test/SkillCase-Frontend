@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import A1FlashcardCard from "./A1FlashcardCard";
 
 const cardColors = ["#d6bbfb", "#d9f4ff", "#ffffff"];

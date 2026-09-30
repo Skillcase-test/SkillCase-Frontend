@@ -9,7 +9,6 @@ import {
   Link as LinkIcon,
   Search,
   Send,
-  Smartphone,
   Upload,
   Users,
   X,
@@ -25,7 +24,6 @@ import {
 import {
   CONTROL_BASE,
   ControlInput,
-  ControlSelect,
   ControlButton,
   ActionChip,
   ControlDropdown,

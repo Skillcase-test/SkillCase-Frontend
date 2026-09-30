@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   Award,
   Users,
-  X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import * as api from "../../../../api/scholarshipExamApi";

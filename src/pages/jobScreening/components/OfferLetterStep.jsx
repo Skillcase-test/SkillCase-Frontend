@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { FileDown, CheckCircle2, Award, ShieldCheck, AlertCircle, RefreshCw } from "lucide-react";
 import { downloadOfferLetter, getProgress } from "../../../api/jobScreeningApi";
 import { trackFlowAction } from "../../../telemetry/flow";

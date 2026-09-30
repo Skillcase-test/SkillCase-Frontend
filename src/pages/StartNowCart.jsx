@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Loader2, Phone } from "lucide-react";
 import { fetchTrustPageContent } from "../api/trustPageApi";
 import CartBlocks from "./startNow/CartBlocks";

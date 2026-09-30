@@ -3,16 +3,13 @@ import useB2SubmitGuard from "../../../hooks/useB2SubmitGuard";
 import { B2Page, B2State } from "../../../components/b2/B2UI";
 import useB2Draft from "../../../hooks/useB2Draft";
 import B2WorkspaceHeader from "../../../components/b2/B2WorkspaceHeader";
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
-  ChevronLeft,
   Loader2,
-  AlertCircle,
   Play,
   Pause,
-  MessageSquare,
 } from "lucide-react";
 import { getB2Exercise, submitB2ExerciseAnswers } from "../../../api/b2Api";
 import toast from "react-hot-toast";

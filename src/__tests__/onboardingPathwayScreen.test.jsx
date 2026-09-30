@@ -14,7 +14,6 @@
  * framer-motion and the Capacitor SMS plugin are mocked to pass-through/no-ops
  * so the flow renders synchronously and can be driven step by step.
  */
-import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { Provider } from "react-redux";

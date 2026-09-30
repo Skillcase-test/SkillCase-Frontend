@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Upload, FileText, CheckCircle, AlertCircle, Loader } from "lucide-react";
 import { uploadB1Flashcard } from "../../../../api/b1Api";
 

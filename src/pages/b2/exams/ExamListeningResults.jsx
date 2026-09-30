@@ -1,19 +1,16 @@
 import { B2Page, B2State } from "../../../components/b2/B2UI";
 import B2ResultSummary from "../../../components/b2/B2ResultSummary";
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { resolveB2SubmissionId } from "../../../utils/b2Submission";
 import {
   ChevronLeft,
-  Loader2,
-  AlertCircle,
   CheckCircle2,
   XCircle,
   HelpCircle,
   Play,
   Pause,
-  MessageSquare,
 } from "lucide-react";
 import {
   getB2ExamSubmissionStatus,

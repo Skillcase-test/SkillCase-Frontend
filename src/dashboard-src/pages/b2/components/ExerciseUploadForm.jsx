@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Upload, CheckCircle, AlertCircle, Loader } from "lucide-react";
 import { uploadB2Exercise } from "../../../../api/b2Api";
 import toast, { Toaster } from "react-hot-toast";

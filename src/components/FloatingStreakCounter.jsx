@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 
 const FloatingStreakCounter = ({ current, target, onComplete }) => {
   const [isPop, setIsPop] = useState(false);

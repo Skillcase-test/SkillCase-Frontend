@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Trash2, Loader2, Power } from "lucide-react";
 import {
   getB2ExamPapersAdmin,

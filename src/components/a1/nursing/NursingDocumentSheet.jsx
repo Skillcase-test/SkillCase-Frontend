@@ -1,4 +1,3 @@
-import React from "react";
 
 // Paper-style renderer for ward documents (charts, admission forms, signs).
 // Block types: heading, subtitle, table, fields, text, list — `highlight`

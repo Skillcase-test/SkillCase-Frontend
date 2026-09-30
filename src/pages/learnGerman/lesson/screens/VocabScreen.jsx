@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { useSelector } from "react-redux";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Lightbulb } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import ProgressBar from "./shared/ProgressBar";

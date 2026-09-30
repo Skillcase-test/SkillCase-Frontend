@@ -1,4 +1,3 @@
-import React from "react";
 import { Plus, X } from "lucide-react";
 import IconPicker from "./IconPicker";
 import { OPPORTUNITY_LIMITS as L } from "./opportunityForm";

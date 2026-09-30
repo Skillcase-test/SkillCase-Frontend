@@ -1,4 +1,3 @@
-import React from "react";
 
 // Skeleton for the opportunity screen while opportunities/progress fetch —
 // mirrors the real list layout (sub-header, intro row, cards) so nothing
