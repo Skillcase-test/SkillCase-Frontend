@@ -25,6 +25,7 @@ import BottomTabBar from "./components/BottomTabBar";
 import TopModeSwitcher from "./components/TopModeSwitcher";
 import Footer from "./components/Footer";
 import OtaUpdateModal from "./components/OtaUpdateModal";
+import OtaAvatarIndicator from "./components/OtaAvatarIndicator";
 import AppReviewPromptModal from "./components/AppReviewPromptModal";
 import MaintenanceModal from "./components/MaintenanceModal";
 import UsageLimitModal from "./components/UsageLimitModal";
@@ -897,11 +898,28 @@ function AppContent() {
               data: { version: data.version },
             });
 
+            // Real byte progress from the plugin drives the avatar ring; a
+            // slow creep underneath keeps it moving if events never fire.
+            let progressHandle;
+            try {
+              progressHandle = await LiveUpdate.addListener(
+                "downloadBundleProgress",
+                (event) => {
+                  const pct = Math.round((event?.progress || 0) * 100);
+                  if (pct > 0) {
+                    setOtaProgress((prev) => Math.max(prev, pct));
+                  }
+                },
+              );
+            } catch (_e) {
+              // Older plugin/APK without the listener — the creep still animates.
+            }
+
             let pseudoProgress = 0;
             const progressTimer = setInterval(() => {
-              pseudoProgress = Math.min(pseudoProgress + 4, 92);
-              setOtaProgress(pseudoProgress);
-            }, 350);
+              pseudoProgress = Math.min(pseudoProgress + 1.5, 92);
+              setOtaProgress((prev) => Math.max(prev, pseudoProgress));
+            }, 400);
 
             api
               .post("/updates/log", {
@@ -917,6 +935,7 @@ function AppContent() {
               });
             } finally {
               clearInterval(progressTimer);
+              progressHandle?.remove?.();
             }
 
             setOtaProgress(100);
@@ -1004,7 +1023,7 @@ function AppContent() {
             appVersion: APP_VERSION,
           },
         });
-        // Dismiss the spinner modal — do not leave user stuck on a loading screen
+        // Dismiss the avatar update indicator — never leave a stuck UI behind
         setOtaState(null);
         setOtaProgress(0);
       }
@@ -1229,26 +1248,13 @@ function AppContent() {
         isRefreshing={isRefreshing}
       />
       <div ref={contentRef} className="flex-1 flex flex-col">
-        <AppReviewPromptModal blocked={maintenanceOpen || otaState !== null} />
-        <OtaUpdateModal
+        <AppReviewPromptModal
+          blocked={maintenanceOpen || otaState === "play_store"}
+        />
+        <OtaAvatarIndicator
           otaState={maintenanceOpen || !isAuthenticated ? null : otaState}
           otaProgress={otaProgress}
-          showSkipForLater={showPlayStoreSkipForLater}
-          onSkip={() => {
-            recordEvent("ota.update_deferred", {
-              domain: "app_update",
-              feature: "ota_update",
-              entity_type: "app_release",
-              entity_id: APP_VERSION,
-              lifecycle: "observed",
-              outcome: "deferred",
-              reason_code:
-                otaState === "play_store" ? "skip_for_later" : "restart_later",
-              attributes: { state: otaState, trigger: "user_action" },
-            });
-            setOtaState(null);
-          }}
-          onRestart={async () => {
+          onUpdateNow={async () => {
             recordEvent("ota.restart_requested", {
               domain: "app_update",
               feature: "ota_update",
@@ -1261,11 +1267,44 @@ function AppContent() {
               await LiveUpdate.reload();
             } catch (e) {
               console.error("Reload failed", e);
-              // Inform user that automatic restart failed
               alert(
                 "Could not restart automatically. Please close and reopen the app to apply the update.",
               );
             }
+          }}
+          onUpdateLater={() => {
+            recordEvent("ota.update_deferred", {
+              domain: "app_update",
+              feature: "ota_update",
+              entity_type: "app_release",
+              entity_id: APP_VERSION,
+              lifecycle: "observed",
+              outcome: "deferred",
+              reason_code: "restart_later",
+              attributes: { state: otaState, trigger: "user_action" },
+            });
+            setOtaState(null);
+          }}
+        />
+        <OtaUpdateModal
+          otaState={
+            maintenanceOpen || !isAuthenticated || otaState !== "play_store"
+              ? null
+              : otaState
+          }
+          showSkipForLater={showPlayStoreSkipForLater}
+          onSkip={() => {
+            recordEvent("ota.update_deferred", {
+              domain: "app_update",
+              feature: "ota_update",
+              entity_type: "app_release",
+              entity_id: APP_VERSION,
+              lifecycle: "observed",
+              outcome: "deferred",
+              reason_code: "skip_for_later",
+              attributes: { state: otaState, trigger: "user_action" },
+            });
+            setOtaState(null);
           }}
           onOpenPlayStore={openPlayStore}
         />
@@ -1288,7 +1327,7 @@ function AppContent() {
         {/* Promo ads — hub screens only, never under a blocking overlay */}
         {isShellRoute(location.pathname) && isAuthenticated && (
           <PromoAdsHost
-            blocked={maintenanceOpen || otaState !== null || isPaywallLocked}
+            blocked={maintenanceOpen || otaState === "play_store" || isPaywallLocked}
           />
         )}
 
