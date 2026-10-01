@@ -203,3 +203,15 @@ select {
 .rotate-y-180 {
   transform: rotateY(180deg);
 }
+
+/* Promo admin picker dropdowns — no UA/extension focus chrome */
+.promo-picker-drop :is(input, button, [tabindex]),
+.promo-picker-drop :is(input, button, [tabindex]):focus,
+.promo-picker-drop :is(input, button, [tabindex]):focus-visible,
+.promo-picker-drop :is(input, button, [tabindex]):focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}

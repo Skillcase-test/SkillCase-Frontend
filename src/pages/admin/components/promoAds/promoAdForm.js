@@ -3,8 +3,9 @@
 export const newAdDraft = () => ({
   title: "",
   body: "",
-  color: "#083262",
+  color: "#002856",
   template: "card",
+  image_ratio: "16:9",
   position: "bottom_right",
   cta_label: "",
   cta_type: "none",

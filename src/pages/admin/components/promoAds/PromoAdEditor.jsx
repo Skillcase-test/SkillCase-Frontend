@@ -1,16 +1,30 @@
-import { useRef, useState } from "react";
-import { ArrowLeft, Loader2, Save, Upload } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  ArrowLeft,
+  Check,
+  ChevronDown,
+  Loader2,
+  Play,
+  Save,
+  Upload,
+  X,
+} from "lucide-react";
 import {
   AD_CTA_TYPES,
   AD_FREQUENCIES,
+  AD_IMAGE_RATIOS,
   AD_LEVELS,
   AD_POSITIONS,
   AD_SURFACES,
   AD_TEMPLATES,
-  POSITION_ALIGN,
+  POSITION_INNER,
+  POSITION_MOTION,
 } from "../../../../components/promoAds/promoAdConfig";
 import { PromoAdCard } from "../../../../components/promoAds/PromoAdCard";
 import UserIdPicker from "./UserIdPicker";
+import ScreenPicker from "./ScreenPicker";
 import {
   fromLocalInput,
   newAdDraft,
@@ -19,7 +33,59 @@ import {
 } from "./promoAdForm";
 
 const inputCls =
-  "h-9 px-3 w-full bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 outline-none focus:border-[#083262]/50 placeholder:text-slate-300 disabled:opacity-50";
+  "h-9 px-3 w-full bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 outline-none focus:border-slate-300 placeholder:text-slate-300 disabled:opacity-50";
+
+// Small custom dropdown for the CTA type — replaces the native <select>.
+const CtaTypeSelect = ({ value, onChange, disabled }) => {
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef(null);
+  const selected = AD_CTA_TYPES.find((t) => t.key === value);
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  return (
+    <div ref={boxRef} className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((o) => !o)}
+        className="h-9 px-3 w-full bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 text-left flex items-center justify-between gap-2 cursor-pointer outline-none disabled:opacity-50"
+      >
+        <span>{selected?.label || "Select"}</span>
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-slate-300 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      {open && (
+        <div className="promo-picker-drop absolute top-full mt-1 left-0 right-0 z-30 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+          {AD_CTA_TYPES.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => {
+                onChange(t.key);
+                setOpen(false);
+              }}
+              className={`w-full px-3 py-2 text-left text-[11px] font-bold cursor-pointer outline-none hover:bg-slate-50 ${
+                value === t.key
+                  ? "bg-[#002856]/5 text-[#002856]"
+                  : "text-slate-700"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const FieldLabel = ({ children }) => (
   <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
@@ -38,22 +104,12 @@ const toggleInList = (list, key) =>
   list.includes(key) ? list.filter((k) => k !== key) : [...list, key];
 
 const CTA_PLACEHOLDERS = {
-  route: "/video-courses",
-  url: "https://…",
-  whatsapp: "+91…",
-  call: "+91…",
+  url: "https://example.com",
+  call: "+91 98xxxxxxxx",
 };
 
 // Editor — fields left; right shows the real ad components in a phone frame.
-const PromoAdEditor = ({
-  record,
-  canEdit,
-  saving,
-  uploadingImage,
-  onSave,
-  onUploadImage,
-  onCancel,
-}) => {
+const PromoAdEditor = ({ record, canEdit, saving, onSave, onCancel }) => {
   const [form, setForm] = useState(() => ({
     ...newAdDraft(),
     ...(record || {}),
@@ -64,14 +120,53 @@ const PromoAdEditor = ({
     starts_at: toLocalInput(record?.starts_at),
     ends_at: toLocalInput(record?.ends_at),
   }));
+  const [pendingFile, setPendingFile] = useState(null);
+  const [imageRemoved, setImageRemoved] = useState(false);
+  const [animKey, setAnimKey] = useState(0); // bump to replay entrance
+  const [previewShown, setPreviewShown] = useState(true);
   const fileRef = useRef(null);
+
+  // Reshow the preview ad when its shape changes.
+  useEffect(() => setPreviewShown(true), [form.template, form.position]);
+
+  const replayPreview = () => {
+    setPreviewShown(true);
+    setAnimKey((k) => k + 1);
+  };
   const errors = validateAd(form);
+
+  const pendingPreview = useMemo(
+    () => (pendingFile ? URL.createObjectURL(pendingFile) : null),
+    [pendingFile],
+  );
+  useEffect(
+    () => () => {
+      if (pendingPreview) URL.revokeObjectURL(pendingPreview);
+    },
+    [pendingPreview],
+  );
+
+  const shownImage =
+    pendingPreview || (imageRemoved ? null : record?.image_download_url) || null;
+
+  const pickFile = (f) => {
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) {
+      return toast.error("Image must be under 5MB");
+    }
+    setPendingFile(f);
+    setImageRemoved(false);
+  };
+
+  const clearImage = () => {
+    setPendingFile(null);
+    if (record?.image_download_url) setImageRemoved(true);
+  };
 
   const set = (patch) => setForm((f) => ({ ...f, ...patch }));
   const previewAd = {
     ...form,
-    image_download_url:
-      record?.image_download_url || form.image_download_url || null,
+    image_download_url: shownImage,
     title: form.title || "Ad title",
     body: form.body || "Ad body text goes here",
     cta_label: form.cta_label || "Open",
@@ -98,29 +193,44 @@ const PromoAdEditor = ({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-2 px-3 h-9 bg-white border border-slate-200 rounded-xl cursor-pointer">
-            <input
-              type="checkbox"
-              className="accent-[#083262]"
-              checked={!!form.is_active}
-              disabled={!canEdit}
-              onChange={(e) => set({ is_active: e.target.checked })}
-            />
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={!!form.is_active}
+            disabled={!canEdit}
+            onClick={() => set({ is_active: !form.is_active })}
+            className="flex items-center gap-2 px-3 h-9 bg-white border border-slate-200 rounded-xl cursor-pointer disabled:opacity-50"
+          >
+            <span
+              className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                form.is_active
+                  ? "bg-[#002856] border-[#002856]"
+                  : "bg-white border-slate-300"
+              }`}
+            >
+              {form.is_active && (
+                <Check className="w-3 h-3 text-white" strokeWidth={3} />
+              )}
+            </span>
             <span className="text-[11px] font-bold text-slate-600">
               Live for users
             </span>
-          </label>
+          </button>
           <button
             type="button"
             disabled={!canEdit || saving || errors.length > 0}
             onClick={() =>
-              onSave({
-                ...form,
-                starts_at: fromLocalInput(form.starts_at),
-                ends_at: fromLocalInput(form.ends_at),
-              })
+              onSave(
+                {
+                  ...form,
+                  starts_at: fromLocalInput(form.starts_at),
+                  ends_at: fromLocalInput(form.ends_at),
+                },
+                pendingFile,
+                imageRemoved,
+              )
             }
-            className="h-9 px-4 bg-[#083262] text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 hover:bg-[#0a2d52] disabled:opacity-50 cursor-pointer"
+            className="h-9 px-4 bg-[#002856] text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 hover:bg-[#083262] disabled:opacity-50 cursor-pointer"
           >
             {saving ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -161,34 +271,40 @@ const PromoAdEditor = ({
               onChange={(e) => set({ body: e.target.value })}
             />
             <div className="flex items-center gap-3">
-              <div className="w-28 h-20 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center">
-                {previewAd.image_download_url ? (
+              <div className="relative w-28 h-20 rounded-xl border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center">
+                {shownImage ? (
                   <img
-                    src={previewAd.image_download_url}
+                    src={shownImage}
                     alt=""
                     className="w-full h-full object-cover"
                   />
                 ) : (
                   <Upload className="w-4 h-4 text-slate-300" />
                 )}
+                {shownImage && canEdit && (
+                  <button
+                    type="button"
+                    aria-label="Remove image"
+                    onClick={clearImage}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-slate-900/70 text-white flex items-center justify-center cursor-pointer hover:bg-slate-900"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
               </div>
               <div className="flex flex-col gap-1">
                 <button
                   type="button"
-                  disabled={!canEdit || !record?.id || uploadingImage}
+                  disabled={!canEdit}
                   onClick={() => fileRef.current?.click()}
                   className="h-8 px-3 bg-slate-100 hover:bg-slate-200 rounded-lg text-[11px] font-bold text-slate-600 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
                 >
-                  {uploadingImage ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Upload className="w-3.5 h-3.5" />
-                  )}
-                  Upload image
+                  <Upload className="w-3.5 h-3.5" />
+                  {shownImage ? "Change image" : "Upload image"}
                 </button>
-                {!record?.id && (
+                {pendingFile && (
                   <p className="text-[9px] font-semibold text-slate-400">
-                    Save once to enable image upload
+                    Uploads on save · PNG/JPG/WebP, max 5MB
                   </p>
                 )}
                 <input
@@ -197,13 +313,39 @@ const PromoAdEditor = ({
                   accept="image/png,image/jpeg,image/webp"
                   className="hidden"
                   onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) onUploadImage(f);
+                    pickFile(e.target.files?.[0]);
                     e.target.value = "";
                   }}
                 />
               </div>
             </div>
+            {form.template === "card" && (
+              <div className="flex flex-col gap-1">
+                <p className="text-[10px] font-bold text-slate-500">
+                  Image shape{" "}
+                  <span className="font-medium text-slate-400">
+                    (how the image frame is cropped)
+                  </span>
+                </p>
+                <div className="flex gap-1.5">
+                  {AD_IMAGE_RATIOS.map((r) => (
+                    <button
+                      key={r.key}
+                      type="button"
+                      disabled={!canEdit}
+                      onClick={() => set({ image_ratio: r.key })}
+                      className={`h-7 px-3 rounded-lg text-[10px] font-extrabold cursor-pointer border transition-colors disabled:opacity-50 ${
+                        form.image_ratio === r.key
+                          ? "bg-[#002856] text-white border-[#002856]"
+                          : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <FieldLabel>Accent</FieldLabel>
               <input
@@ -221,18 +363,11 @@ const PromoAdEditor = ({
 
           <Section title="Action button">
             <div className="grid grid-cols-2 gap-2">
-              <select
-                className={inputCls}
+              <CtaTypeSelect
                 value={form.cta_type}
                 disabled={!canEdit}
-                onChange={(e) => set({ cta_type: e.target.value })}
-              >
-                {AD_CTA_TYPES.map((t) => (
-                  <option key={t.key} value={t.key}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(k) => set({ cta_type: k })}
+              />
               {form.cta_type !== "none" && (
                 <input
                   className={inputCls}
@@ -243,9 +378,17 @@ const PromoAdEditor = ({
                 />
               )}
             </div>
-            {form.cta_type !== "none" && (
+            {form.cta_type === "route" && (
+              <ScreenPicker
+                value={form.cta_target}
+                disabled={!canEdit}
+                onChange={(p) => set({ cta_target: p })}
+              />
+            )}
+            {(form.cta_type === "url" || form.cta_type === "call") && (
               <input
                 className={inputCls}
+                type={form.cta_type === "call" ? "tel" : "url"}
                 value={form.cta_target}
                 disabled={!canEdit}
                 placeholder={CTA_PLACEHOLDERS[form.cta_type] || "Target"}
@@ -264,7 +407,7 @@ const PromoAdEditor = ({
                   onClick={() => set({ template: t.key })}
                   className={`h-8 px-3 rounded-lg text-[11px] font-extrabold cursor-pointer border transition-colors disabled:opacity-50 ${
                     form.template === t.key
-                      ? "bg-[#083262] text-white border-[#083262]"
+                      ? "bg-[#002856] text-white border-[#002856]"
                       : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
                   }`}
                 >
@@ -281,7 +424,7 @@ const PromoAdEditor = ({
                   onClick={() => set({ position: p.key })}
                   className={`h-8 rounded-lg text-[10px] font-bold cursor-pointer border transition-colors disabled:opacity-50 ${
                     form.position === p.key
-                      ? "bg-indigo-50 text-indigo-700 border-indigo-300"
+                      ? "bg-[#002856]/5 text-[#002856] border-[#002856]/30"
                       : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
                   }`}
                 >
@@ -332,7 +475,7 @@ const PromoAdEditor = ({
                     }
                     className={`h-7 px-3 rounded-full text-[10px] font-extrabold uppercase cursor-pointer border transition-colors disabled:opacity-50 ${
                       form.levels.includes(l)
-                        ? "bg-indigo-50 text-indigo-700 border-indigo-300"
+                        ? "bg-[#002856]/5 text-[#002856] border-[#002856]/30"
                         : "bg-white text-slate-400 border-slate-200 hover:border-slate-300"
                     }`}
                   >
@@ -377,7 +520,7 @@ const PromoAdEditor = ({
                   onClick={() => set({ frequency: f.key })}
                   className={`h-8 px-3 rounded-lg text-[11px] font-extrabold cursor-pointer border transition-colors disabled:opacity-50 ${
                     form.frequency === f.key
-                      ? "bg-[#083262] text-white border-[#083262]"
+                      ? "bg-[#002856] text-white border-[#002856]"
                       : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
                   }`}
                 >
@@ -416,17 +559,49 @@ const PromoAdEditor = ({
 
         {/* Right: live preview in a phone-ish frame */}
         <div className="w-[300px] shrink-0 hidden lg:flex flex-col gap-2">
-          <FieldLabel>Live preview</FieldLabel>
+          <div className="flex items-center justify-between">
+            <FieldLabel>Live preview</FieldLabel>
+            <button
+              type="button"
+              onClick={replayPreview}
+              className="h-6 px-2 rounded-md bg-slate-100 hover:bg-slate-200 text-[10px] font-extrabold text-slate-500 flex items-center gap-1 cursor-pointer"
+            >
+              <Play className="w-3 h-3" />
+              Replay
+            </button>
+          </div>
           <div className="flex-1 min-h-0 bg-slate-100 border border-slate-200 rounded-2xl overflow-hidden relative">
             <div className="absolute inset-x-0 top-0 h-12 bg-[#002856] rounded-t-2xl" />
             <div className="absolute inset-x-0 bottom-0 h-14 bg-white border-t border-slate-200" />
-            <div
-              className={`absolute inset-0 p-3 pt-14 pb-16 flex ${POSITION_ALIGN[form.position] || POSITION_ALIGN.bottom_right}`}
-            >
-              <PromoAdCard
-                key={`${form.template}-${form.position}`}
-                ad={previewAd}
-              />
+            <div className="absolute inset-0 p-3 pt-14 pb-16">
+              <AnimatePresence>
+                {previewShown && (
+                  <motion.div
+                    key={`${animKey}-${form.template}-${form.position}`}
+                    initial={{
+                      opacity: 0.6,
+                      scale: 0.92,
+                      ...(POSITION_MOTION[form.position] ||
+                        POSITION_MOTION.bottom_right),
+                    }}
+                    animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+                    exit={{
+                      opacity: 0,
+                      scale: 0.9,
+                      ...(POSITION_MOTION[form.position] ||
+                        POSITION_MOTION.bottom_right),
+                      transition: { duration: 0.22, ease: [0.5, 0, 1, 0.4] },
+                    }}
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    className={`w-full h-full flex flex-col min-h-0 ${POSITION_INNER[form.position] || POSITION_INNER.bottom_right}`}
+                  >
+                    <PromoAdCard
+                      ad={previewAd}
+                      onDismiss={() => setPreviewShown(false)}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
           <p className="text-[9px] font-semibold text-slate-400">

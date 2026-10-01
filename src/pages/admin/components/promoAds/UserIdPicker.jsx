@@ -3,7 +3,7 @@ import { Search, X, Loader2 } from "lucide-react";
 import { adminSearchUsers } from "../../../../api/promoAdAdminApi";
 
 const inputCls =
-  "h-9 px-3 w-full bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 outline-none focus:border-[#083262]/50 placeholder:text-slate-300 disabled:opacity-50";
+  "h-9 px-3 w-full bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-700 outline-none focus:border-slate-300 placeholder:text-slate-300 disabled:opacity-50";
 
 // Search-pick list of user ids; `entries` maps saved ids to name/phone labels.
 const UserIdPicker = ({ values, onChange, canEdit, placeholder }) => {
@@ -120,7 +120,7 @@ const UserIdPicker = ({ values, onChange, canEdit, placeholder }) => {
         )}
       </div>
       {open && (results.length > 0 || (q.trim().length >= 2 && !searching)) && (
-        <div className="absolute top-full mt-1 left-0 right-0 z-30 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden max-h-52 overflow-y-auto">
+        <div className="promo-picker-drop absolute top-full mt-1 left-0 right-0 z-30 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden max-h-52 overflow-y-auto">
           {results.length === 0 ? (
             <p className="px-3 py-2.5 text-[11px] font-medium text-slate-400">
               No users match “{q}”
@@ -142,7 +142,7 @@ const UserIdPicker = ({ values, onChange, canEdit, placeholder }) => {
                     {u.phone || u.user_id}
                   </span>
                 </span>
-                <span className="text-[9px] font-extrabold uppercase text-indigo-500">
+                <span className="text-[9px] font-extrabold uppercase text-[#002856]">
                   {String(u.current_profeciency_level || "").toUpperCase()}
                 </span>
               </button>

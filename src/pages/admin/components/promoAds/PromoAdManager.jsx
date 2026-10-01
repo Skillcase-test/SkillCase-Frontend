@@ -141,7 +141,7 @@ const SortableRow = ({
       >
         {item.is_active ? "Live" : "Draft"}
       </Chip>
-      <Chip className="bg-indigo-50 text-indigo-600 border-indigo-200">
+      <Chip className="bg-[#002856]/5 text-[#002856] border-[#002856]/20">
         {label(AD_TEMPLATES, item.template)}
       </Chip>
       <Chip className="bg-slate-50 text-slate-500 border-slate-200">
@@ -166,7 +166,7 @@ const SortableRow = ({
         <button
           type="button"
           onClick={() => onEdit(item)}
-          className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-[#083262] hover:bg-blue-50 cursor-pointer"
+          className="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-[#002856] hover:bg-[#002856]/5 cursor-pointer"
         >
           <Pencil className="w-3.5 h-3.5" />
         </button>
@@ -174,7 +174,7 @@ const SortableRow = ({
           type="button"
           onClick={() => onDuplicate(item)}
           disabled={!canEdit || busy}
-          className="h-7 px-2.5 rounded-lg text-[10px] font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 cursor-pointer disabled:opacity-40 flex items-center gap-1"
+          className="h-7 px-2.5 rounded-lg text-[10px] font-extrabold bg-[#002856]/5 text-[#002856] border border-[#002856]/25 hover:bg-[#002856]/10 cursor-pointer disabled:opacity-40 flex items-center gap-1"
         >
           <Copy className="w-3 h-3" />
           Duplicate
@@ -196,7 +196,6 @@ const PromoAdManager = ({ canEdit }) => {
   const [items, setItems] = useState(null);
   const [editing, setEditing] = useState(undefined); // undefined=list, null=new, record=edit
   const [saving, setSaving] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmDuplicate, setConfirmDuplicate] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -251,36 +250,37 @@ const PromoAdManager = ({ canEdit }) => {
     }
   };
 
-  const handleSave = async (form) => {
+  // Image upload rides on save — the editor keeps a local File until then.
+  const handleSave = async (form, imageFile, removeImage) => {
     setSaving(true);
     try {
       const res = editing?.id
-        ? await adminUpdatePromoAd(editing.id, form)
+        ? await adminUpdatePromoAd(editing.id, {
+            ...form,
+            remove_image: removeImage || undefined,
+          })
         : await adminCreatePromoAd(form);
+      let saved = res.data?.data;
+      if (imageFile && saved?.id) {
+        try {
+          const fd = new FormData();
+          fd.append("image", imageFile);
+          const imgRes = await adminUploadPromoAdImage(saved.id, fd);
+          saved = imgRes.data?.data || saved;
+        } catch (imgErr) {
+          toast.error(
+            imgErr?.response?.data?.message ||
+              "Ad saved, but the image failed to upload",
+          );
+        }
+      }
       toast.success(editing?.id ? "Ad updated" : "Ad created");
       await refresh();
-      setEditing(res.data?.data || null); // stay open — enables image upload
+      setEditing(saved || null);
     } catch (err) {
       toast.error(err?.response?.data?.message || "Save failed");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleUploadImage = async (file) => {
-    if (!editing?.id) return;
-    setUploadingImage(true);
-    try {
-      const fd = new FormData();
-      fd.append("image", file);
-      const res = await adminUploadPromoAdImage(editing.id, fd);
-      toast.success("Image uploaded");
-      setEditing(res.data?.data || editing);
-      refresh();
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Image upload failed");
-    } finally {
-      setUploadingImage(false);
     }
   };
 
@@ -325,9 +325,7 @@ const PromoAdManager = ({ canEdit }) => {
         record={editing}
         canEdit={canEdit}
         saving={saving}
-        uploadingImage={uploadingImage}
         onSave={handleSave}
-        onUploadImage={handleUploadImage}
         onCancel={() => {
           setEditing(undefined);
           refresh();
@@ -355,7 +353,7 @@ const PromoAdManager = ({ canEdit }) => {
             type="button"
             disabled={!canEdit}
             onClick={() => setEditing(null)}
-            className="h-9 px-3.5 bg-[#083262] text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 hover:bg-[#0a2d52] disabled:opacity-50 cursor-pointer"
+            className="h-9 px-3.5 bg-[#002856] text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 hover:bg-[#083262] disabled:opacity-50 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" /> New ad
           </button>
@@ -424,7 +422,7 @@ const PromoAdManager = ({ canEdit }) => {
               <button
                 type="button"
                 onClick={handleDuplicate}
-                className="h-8 px-3 rounded-lg bg-indigo-600 text-white text-[11px] font-bold cursor-pointer flex items-center gap-1.5"
+                className="h-8 px-3 rounded-lg bg-[#002856] hover:bg-[#083262] text-white text-[11px] font-bold cursor-pointer flex items-center gap-1.5"
               >
                 <Copy className="w-3 h-3" />
                 Duplicate
