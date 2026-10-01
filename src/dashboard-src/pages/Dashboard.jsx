@@ -72,6 +72,7 @@ const LearnGermanV2Admin = lazy(
 const JobScreeningAdmin = lazy(
   () => import("../../pages/admin/JobScreeningAdmin"),
 );
+const PromoAdsAdmin = lazy(() => import("../../pages/admin/PromoAdsAdmin"));
 const Paywall = lazy(() => import("./Paywall"));
 const UsageLimits = lazy(() => import("./UsageLimits"));
 const FeatureFlagsAdmin = lazy(() => import("./FeatureFlagsAdmin"));
@@ -941,6 +942,12 @@ export default function Dashboard() {
         module: "job_screening",
       },
       {
+        key: "promo-ads",
+        label: "Promo Ads",
+        path: "/admin/promo-ads",
+        module: "promo_ads",
+      },
+      {
         key: "paywall",
         label: "Paywall",
         path: "/admin/paywall",
@@ -1557,6 +1564,16 @@ export default function Dashboard() {
                   <Guard allowed={hasPermission(me, "job_screening")}>
                     <JobScreeningAdmin
                       canEdit={hasPermission(me, "job_screening", "edit")}
+                    />
+                  </Guard>
+                }
+              />
+              <Route
+                path="promo-ads"
+                element={
+                  <Guard allowed={hasPermission(me, "promo_ads")}>
+                    <PromoAdsAdmin
+                      canEdit={hasPermission(me, "promo_ads", "edit")}
                     />
                   </Guard>
                 }

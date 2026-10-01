@@ -20,6 +20,7 @@ const MODULE_OPTIONS = [
   { key: "skillcase_interviews", label: "Skillcase Interviews" },
   { key: "explore_candidates", label: "Explore Candidates" },
   { key: "job_screening", label: "Job Screening" },
+  { key: "promo_ads", label: "Promo Ads" },
   { key: "exam", label: "Exam Manager" },
   { key: "batch", label: "Batch Manager" },
   { key: "scholarship_exam", label: "Scholarship Exam Manager" },
@@ -75,6 +76,7 @@ const PAYMENTS_ALL_TAB_KEYS = PAYMENTS_TAB_OPTIONS.map((t) => t.key).filter(
 // 5-action checkbox grid, which is misleading for modules that don't use those actions.
 const SIMPLE_ACCESS_MODULES = {
   job_screening: { viewActions: ["view"], fullActions: ["view", "edit"] },
+  promo_ads: { viewActions: ["view"], fullActions: ["view", "edit"] },
   conversations: {
     viewActions: ["view"],
     fullActions: ["view", "create", "delete"],

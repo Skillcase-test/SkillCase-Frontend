@@ -32,6 +32,7 @@ import StreakLeaderboardModal from "./components/StreakLeaderboardModal";
 import PremiumActivatedModal from "./components/PremiumActivatedModal";
 import TrialCountdownModal from "./components/TrialCountdownModal";
 import TrialEndedModal from "./components/TrialEndedModal";
+import PromoAdsHost from "./components/promoAds/PromoAdsHost";
 import PullToRefreshIndicator from "./components/PullToRefreshIndicator";
 import AppSplashScreen from "./components/common/AppSplashScreen";
 import { SplashScreen } from "@capacitor/splash-screen";
@@ -1282,6 +1283,13 @@ function AppContent() {
             <TrialCountdownModal />
             <TrialEndedModal />
           </>
+        )}
+
+        {/* Promo ads — hub screens only, never under a blocking overlay */}
+        {isShellRoute(location.pathname) && isAuthenticated && (
+          <PromoAdsHost
+            blocked={maintenanceOpen || otaState !== null || isPaywallLocked}
+          />
         )}
 
         <A1ProductTour>
