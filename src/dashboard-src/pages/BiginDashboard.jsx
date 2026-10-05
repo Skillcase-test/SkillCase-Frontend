@@ -615,6 +615,7 @@ function CandidatesModal({
         "Pipeline",
         "Stage",
         "Owner",
+        "Lead Source",
         "Created",
       ];
       const rows = all.map((r) => [
@@ -623,6 +624,7 @@ function CandidatesModal({
         r.pipeline_name || "",
         r.stage || "",
         r.owner_name || "",
+        r.lead_source || "",
         r.created_time ? istDate(r.created_time) : "",
       ]);
       const csv = [headers, ...rows]
@@ -704,6 +706,7 @@ function CandidatesModal({
                   {isSuperAdmin && <th className="pb-2 pr-3">Phone</th>}
                   <th className="pb-2 pr-3">Stage</th>
                   <th className="pb-2 pr-3">Owner</th>
+                  <th className="pb-2 pr-3">Source</th>
                   <th className="pb-2">Created</th>
                 </tr>
               </thead>
@@ -736,6 +739,9 @@ function CandidatesModal({
                     <td className="py-2 pr-3 text-slate-600">{row.stage}</td>
                     <td className="py-2 pr-3 text-slate-600">
                       {row.owner_name || "—"}
+                    </td>
+                    <td className="py-2 pr-3 text-slate-600">
+                      {row.lead_source || "—"}
                     </td>
                     <td className="py-2 tabular-nums text-slate-500">
                       {istDate(row.created_time)}
