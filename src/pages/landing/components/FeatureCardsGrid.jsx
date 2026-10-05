@@ -1,6 +1,7 @@
 import { useSelector } from "react-redux";
 import ExamCards from "../../exam/ExamCards";
 import B2PracticeHome from "./B2PracticeHome";
+import B2RecommendedPractice from "./B2RecommendedPractice";
 import FeatureCard from "./FeatureCard";
 import NursingBanner from "../../../components/a1/nursing/NursingBanner";
 import B2ExamGate from "../../../components/b2/B2ExamGate";
@@ -292,6 +293,7 @@ export default function FeatureCardsGrid() {
           {isFeatureEnabled("nursing_german") && (
             <NursingBanner className="mt-2.5 max-w-[860px] mx-auto" />
           )}
+          <B2RecommendedPractice overview={b2Overview} />
           <ExamCards />
         </>
       ) : (

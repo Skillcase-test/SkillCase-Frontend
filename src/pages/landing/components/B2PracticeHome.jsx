@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
 import {
-  ArrowRight,
   ChevronRight,
   Clock3,
   ClipboardList,
@@ -15,7 +14,7 @@ import useB2PracticeResume from "../../../hooks/useB2PracticeResume";
 import { getB2Exams } from "../../../api/b2Api";
 import { B2Button, B2ScoreRing } from "../../../components/b2/B2UI";
 import { normalizeB2Score } from "../../../utils/b2Scores";
-const skills = [
+export const skills = [
   {
     key: "reading",
     label: "Reading",
@@ -71,18 +70,8 @@ export default function B2PracticeHome({ overview, loading = false, onRetry }) {
     suggested = overview?.suggested,
     latest = overview?.latest;
   const resumeTest = !!next?.inProgress;
+  // A practice waiting below means the test action steps back to secondary.
   const practice = savedPractice || suggested;
-  const practiceSkillDetails = skills.find(
-    (skill) => skill.key === practice?.module,
-  );
-  const practiceSkill = practiceSkillDetails?.label;
-  const practiceDescription = savedPractice
-    ? "Continue where you left off."
-    : practiceSkillDetails?.description;
-  const practiceTitle = practice?.title ||
-    (String(practice?.exerciseId) === String(suggested?.exerciseId)
-      ? suggested?.title
-      : `${practiceSkill} practice`);
   const score = normalizeB2Score(latest?.overallScore);
   // Cards stay outside .b2-ui — its element rules would override the shared
   // card's Tailwind classes (unlayered beats layered utilities).
@@ -142,47 +131,6 @@ export default function B2PracticeHome({ overview, loading = false, onRetry }) {
             )}
           </div>
         ) : null}
-        {practice && (
-          <div
-            className="b2-focus b2-home-recommendation"
-            id="b2-practise-next"
-          >
-            <div className="b2-home-recommendation-meta">
-              <span className="b2-eyebrow">
-                {savedPractice
-                  ? `Continue ${practiceSkill?.toLowerCase()}`
-                  : `Recommended ${practiceSkill?.toLowerCase()}`}
-              </span>
-              {savedPractice ? (
-                <span className="b2-home-duration">Saved on this device</span>
-              ) : practice.durationMinutes > 0 && (
-                <span className="b2-home-duration">
-                  <Clock3 size={14} aria-hidden="true" />
-                  {practice.durationMinutes} min
-                </span>
-              )}
-            </div>
-            <div className="b2-home-recommendation-main">
-              <div className="b2-home-recommendation-copy">
-                <h2>{practiceTitle}</h2>
-                {practiceDescription && <p>{practiceDescription}</p>}
-              </div>
-              <B2Button
-                className="b2-home-compact-action"
-                aria-label={savedPractice ? "Resume practice" : "Start practice"}
-                onClick={() =>
-                  open(
-                    practice.module,
-                    `/b2/${practice.module}/${encodeURIComponent(practice.exerciseId)}`,
-                  )
-                }
-              >
-                {savedPractice ? "Resume" : "Start"}
-                <ArrowRight size={14} aria-hidden="true" />
-              </B2Button>
-            </div>
-          </div>
-        )}
         <div className="b2-home-skills-heading">
           <h2>Practice</h2>
           {!next && !latest && (

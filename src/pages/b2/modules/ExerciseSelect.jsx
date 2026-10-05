@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { getB2Exercises } from "../../../api/b2Api";
 import useB2Access from "../../../hooks/useB2Access";
+import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 import { B2Page, B2State } from "../../../components/b2/B2UI";
 import { images } from "../../../assets/images";
 import { getB2ScoreBand, normalizeB2Score } from "../../../utils/b2Scores";
@@ -43,6 +44,8 @@ export default function ExerciseSelect() {
     [error, setError] = useState(false),
     [retry, setRetry] = useState(0);
   const info = meta[module];
+  // Refresh the lock on entry so open() decides on current state, not a stale cache.
+  useUsageLimitModule("B2", module);
   useEffect(() => {
     let active = true;
     setTag("all");
