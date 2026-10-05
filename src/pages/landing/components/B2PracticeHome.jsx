@@ -19,29 +19,29 @@ const skills = [
   {
     key: "reading",
     label: "Reading",
-    sub: "Texts & emails",
-    description: "Read for key details.",
+    sub: "Practice B2 reading with exam-style texts and questions.",
+    description: "Practice B2 reading with exam-style texts and questions.",
     image: images.b2Reading,
   },
   {
     key: "listening",
     label: "Listening",
-    sub: "Conversations",
-    description: "Listen for key details.",
+    sub: "Listen to B2 audio and answer comprehension questions.",
+    description: "Listen to B2 audio and answer comprehension questions.",
     image: images.b2Listening,
   },
   {
     key: "speaking",
     label: "Speaking",
-    sub: "Spoken German",
-    description: "Speak with more confidence.",
+    sub: "Record your answers with guided B2 speaking tasks.",
+    description: "Record your answers with guided B2 speaking tasks.",
     image: images.b2Speaking,
   },
   {
     key: "writing",
     label: "Writing",
-    sub: "Written German",
-    description: "Write clear, everyday German.",
+    sub: "Write B2 responses with guided writing tasks.",
+    description: "Write B2 responses with guided writing tasks.",
     image: images.b2Writing,
   },
 ];
@@ -214,7 +214,7 @@ export default function B2PracticeHome({ overview, loading = false, onRetry }) {
         <FeatureCard
           tourId="b2-maya-card"
           title="Talk to Maya"
-          description="Everyday talk & interviews"
+          description="Practice real-life German conversations with AI"
           image={getMayaImage("wave", user)}
           link="/b2/maya"
           enabled
@@ -222,8 +222,8 @@ export default function B2PracticeHome({ overview, loading = false, onRetry }) {
         />
         <FeatureCard
           tourId="b2-exams-card"
-          title="Mock tests"
-          description="Goethe & telc"
+          title="Exams"
+          description="Take B2 mock tests across all exam sections"
           image={images.mockTest}
           link="/b2/exams"
           enabled
