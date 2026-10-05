@@ -2400,10 +2400,17 @@ function RouteScreenSkeleton({ title }) {
     : isJobScreening
       ? "bg-gradient-to-b from-[#e0f2fe] to-white"
       : "bg-[#f6f8fc]";
+  // B2 destinations render as fixed-width columns — match the shell so the
+  // fallback doesn't visibly resize when the real page mounts.
+  const widthClass = location.pathname.startsWith("/b2/maya")
+    ? "max-w-[460px]"
+    : location.pathname === "/b2" || location.pathname.startsWith("/b2/")
+      ? "max-w-[760px]"
+      : "max-w-4xl";
 
   return (
     <div className={`min-h-screen ${bgClass} px-4 py-6`}>
-      <div className="max-w-4xl mx-auto">
+      <div className={`${widthClass} mx-auto`}>
         <p className="text-sm text-slate-500 mb-4">{title}</p>
         <div className="space-y-3 animate-pulse">
           <div className="h-6 w-56 bg-slate-200/80 rounded" />

@@ -5,7 +5,7 @@ import { images } from "../../../assets/images";
 import RetryFeedback from "./RetryFeedback";
 import SayItAgain from "./SayItAgain";
 import { SMOOTHNESS_LABEL, callSmoothness, englishWords, modeName } from "./mayaFormat";
-import { BottomNav, Brand, Footer, Header, Icon, Main, MayaFrame, MayaHero, MayaMark, Title } from "./sp";
+import { BottomNav, Brand, Footer, Header, Icon, Main, MayaFrame, MayaHero, MayaMark, ScoreRing, Title } from "./sp";
 
 /*
  * The screens after a practice, and My progress. Each lives on the same route under a different
@@ -133,7 +133,12 @@ export function Feedback({ practice: p, feedback: f, analysis: a, target, best }
   const german = Math.round(a.targetShare * 100);
   return (
     <>
-      <Header title={interview ? "Interview feedback" : "Your feedback"} back="/b2/maya?view=progress" tag={`${target} practice`} />
+      <Header
+        title={interview ? "Interview feedback" : "Your feedback"}
+        back="/b2/maya?view=progress"
+        tag={`${target} practice`}
+        end={a.pronunciation ? <ScoreRing score={a.pronunciation.score} /> : undefined}
+      />
       <Main className="flush-top">
         <div className="feedback-header">
           <MayaFrame pose="thumbsup" className="feedback-maya" user={user} />

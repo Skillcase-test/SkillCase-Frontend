@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { ChevronLeft, AlertCircle } from "lucide-react";
 import {
   startB2ExamSubmission,
   getB2ExamSubmissionStatus,
 } from "../../../api/b2Api";
+import { B2Page, B2State } from "../../../components/b2/B2UI";
 
 // Fixed test sequence — sections are taken one by one, no picker screen.
 const SECTION_ORDER = ["reading", "listening", "speaking", "writing"];
@@ -17,6 +17,7 @@ export default function ExamSectionRedirect() {
   const { paperId } = useParams();
   const { user } = useSelector((state) => state.auth);
   const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const ran = useRef(false);
 
   useEffect(() => {
@@ -54,37 +55,23 @@ export default function ExamSectionRedirect() {
         setFailed(true);
       }
     })();
-  }, [user?.user_id, paperId, navigate]);
+  }, [user?.user_id, paperId, navigate, attempt]);
 
   return (
-    <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col">
-      <div className="self-stretch px-4 py-2.5 flex items-center">
-        <button
-          onClick={() => navigate("/b2/test")}
-          className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
-        >
-          <ChevronLeft className="w-4 h-4 text-slate-900" />
-          <span className="text-center text-slate-900 text-sm font-semibold leading-6">
-            Back
-          </span>
-        </button>
-      </div>
-      <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6">
-        {failed ? (
-          <>
-            <AlertCircle className="w-8 h-8 text-red-500" />
-            <p className="text-sm text-slate-600 text-center">
-              Couldn't load your test. Please try again.
-            </p>
-          </>
-        ) : (
-          <div className="w-full flex flex-col items-center gap-3" aria-label="Loading exam section" role="status">
-            <div className="w-10 h-10 rounded-full bg-slate-200 animate-pulse" />
-            <div className="h-4 w-40 bg-slate-200 rounded animate-pulse" />
-            <div className="h-3 w-56 bg-slate-100 rounded animate-pulse" />
-          </div>
-        )}
-      </div>
-    </div>
+    <B2Page title="Mock exam" back="/b2/test">
+      {failed ? (
+        <B2State
+          title="Your test couldn’t load"
+          description="Check your connection and try again."
+          onRetry={() => {
+            ran.current = false;
+            setFailed(false);
+            setAttempt((n) => n + 1);
+          }}
+        />
+      ) : (
+        <B2State loading />
+      )}
+    </B2Page>
   );
 }

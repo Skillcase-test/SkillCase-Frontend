@@ -87,8 +87,40 @@ export function Brand({ level }) {
   );
 }
 
+/** A small score dial for the header: the value is on a 0–10 scale and the ring fills with it. */
+export function ScoreRing({ score, size = 40 }) {
+  const out10 = score === null || score === undefined ? null : Math.round(score) / 10;
+  const frac = out10 === null ? 0 : Math.min(1, out10 / 10);
+  const r = 15.5;
+  const c = 2 * Math.PI * r;
+  return (
+    <span
+      className="score-ring"
+      style={{ width: size, height: size }}
+      role="img"
+      aria-label={out10 === null ? "Pronunciation score not available" : `Pronunciation ${out10} out of 10`}
+    >
+      <svg viewBox="0 0 36 36" aria-hidden="true">
+        <circle cx="18" cy="18" r={r} fill="none" stroke="var(--line)" strokeWidth="3.5" />
+        <circle
+          cx="18"
+          cy="18"
+          r={r}
+          fill="none"
+          stroke="var(--gold)"
+          strokeWidth="3.5"
+          strokeLinecap="round"
+          strokeDasharray={`${frac * c} ${c}`}
+          transform="rotate(-90 18 18)"
+        />
+      </svg>
+      <strong>{out10 ?? "—"}</strong>
+    </span>
+  );
+}
+
 /** A screen header with a way back (a link, or a button inside the call flow). */
-export function Header({ title, back, onBack, tag }) {
+export function Header({ title, back, onBack, tag, end }) {
   const inner = (
     <>
       <Icon name="back" />
@@ -96,7 +128,7 @@ export function Header({ title, back, onBack, tag }) {
     </>
   );
   return (
-    <header className={`top compact${tag ? "" : " no-tag"}`}>
+    <header className={`top compact${tag || end ? "" : " no-tag"}`}>
       {back ? (
         <Link className="back-button" to={back}>
           {inner}
@@ -109,7 +141,7 @@ export function Header({ title, back, onBack, tag }) {
         <span />
       )}
       <span className="top-title">{title}</span>
-      {tag ? <span className="pill">{tag}</span> : <span />}
+      {end ?? (tag ? <span className="pill">{tag}</span> : <span />)}
     </header>
   );
 }
@@ -150,18 +182,5 @@ export function BottomNav({ current }) {
         My progress
       </Link>
     </nav>
-  );
-}
-
-export function Steps({ n }) {
-  return (
-    <>
-      <div className="steps" aria-label={`Step ${n} of 2`}>
-        {[1, 2].map((i) => (
-          <i key={i} className={i <= n ? "done" : ""} />
-        ))}
-      </div>
-      <p className="step-caption">{n === 1 ? "Choose your conversation" : "Get ready to speak"}</p>
-    </>
   );
 }
