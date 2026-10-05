@@ -7,6 +7,7 @@ import { getMayaImage } from "../../../utils/mayaAvatars";
  */
 const ICONS = {
   arrow: '<path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path>',
+  down: '<path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path>',
   back: '<path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path>',
   chevron: '<path d="m9 18 6-6-6-6"></path>',
   close: '<path d="M18 6 6 18"></path><path d="m6 6 12 12"></path>',
@@ -155,12 +156,12 @@ export function BottomNav({ current }) {
 export function Steps({ n }) {
   return (
     <>
-      <div className="steps" aria-label={`Step ${n} of 3`}>
-        {[1, 2, 3].map((i) => (
+      <div className="steps" aria-label={`Step ${n} of 2`}>
+        {[1, 2].map((i) => (
           <i key={i} className={i <= n ? "done" : ""} />
         ))}
       </div>
-      <p className="step-caption">{n === 1 ? "Choose your conversation" : n === 2 ? "Get ready to speak" : "Your conversation"}</p>
+      <p className="step-caption">{n === 1 ? "Choose your conversation" : "Get ready to speak"}</p>
     </>
   );
 }

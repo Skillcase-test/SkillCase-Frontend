@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { images } from "../../../assets/images";
@@ -41,11 +42,6 @@ export function Processing({ saved }) {
         </ul>
         <p style={{ fontSize: 11 }}>This takes about 20 seconds. You can leave this screen: look for your session in My progress.</p>
       </Main>
-      <Footer>
-        <Link className="secondary" to="/b2/maya?view=progress">
-          Go to my progress
-        </Link>
-      </Footer>
     </>
   );
 }
@@ -376,17 +372,10 @@ export function Feedback({ practice: p, feedback: f, analysis: a, target, best }
         <p style={{ fontSize: 10, margin: "13px 0 0" }}>AI feedback is a practice aid, not an official language assessment.</p>
       </Main>
       <Footer>
-        {first ? (
-          <Link className="primary gold" to={`/b2/maya?focus=${p.id}&i=0`}>
-            Practise this for 2 minutes
-            <Icon name="arrow" />
-          </Link>
-        ) : (
-          <Link className="primary gold" to="/b2/maya">
-            Start another conversation
-            <Icon name="arrow" />
-          </Link>
-        )}
+        <Link className="primary gold" to="/b2/maya">
+          Start another conversation
+          <Icon name="arrow" />
+        </Link>
       </Footer>
     </>
   );
@@ -491,6 +480,17 @@ export function Focus({ sessionId, index, correction, interview }) {
 
 /** My progress: completed practice, attempts that didn't count, and what the learner is working on. */
 export function ProgressPage({ level, rows, filter, progress }) {
+  // The footer button scrolls to the session list; once the list is on screen it starts a call.
+  const sessionsRef = useRef(null);
+  const [atSessions, setAtSessions] = useState(false);
+  useEffect(() => {
+    const el = sessionsRef.current;
+    if (!el) return;
+    // On screen or scrolled past — the section's top edge has passed the scroller's bottom edge.
+    const obs = new IntersectionObserver(([e]) => setAtSessions(e.boundingClientRect.top <= (e.rootBounds?.bottom ?? window.innerHeight)), { root: el.closest(".content") });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [rows.length]);
   const completed = rows.filter((r) => r.kind === "completed");
   if (!rows.length)
     return (
@@ -531,7 +531,7 @@ export function ProgressPage({ level, rows, filter, progress }) {
   const today = (now.getUTCDay() + 6) % 7;
   const totalMin = Math.round(completed.reduce((s, r) => s + (r.practice.seconds ?? 0), 0) / 60);
   const shown = rows.filter((r) => (filter === "Completed" ? r.kind === "completed" : filter === "Attempts" ? r.kind === "attempt" : true));
-  const { week, mistakes, words } = progress;
+  const { week, words } = progress;
   return (
     <>
       <Brand level={level} />
@@ -568,26 +568,6 @@ export function ProgressPage({ level, rows, filter, progress }) {
           {week.done >= week.goal ? `Goal reached${week.streak > 1 ? `: ${week.streak} weeks in a row` : ""}.` : week.streak ? `${week.streak} week${week.streak === 1 ? "" : "s"} in a row so far.` : "Short practices often work best."}
         </p>
 
-        {mistakes.length ? (
-          <>
-            <h2 style={{ marginTop: 26 }}>Mistakes you’re working on</h2>
-            {mistakes.map((m) => {
-              const better = m.lastWeek > 0 && m.thisWeek < m.lastWeek;
-              return (
-                <div className="trend-row" key={m.category}>
-                  <div>
-                    <strong>{m.label}</strong>
-                    <small>
-                      This week {m.thisWeek} · last week {m.lastWeek}
-                    </small>
-                  </div>
-                  {better ? <span className="pill green">Fewer</span> : m.thisWeek > m.lastWeek ? <span className="pill gold">Keep at it</span> : null}
-                </div>
-              );
-            })}
-          </>
-        ) : null}
-
         {words.learned + words.practising + words.new ? (
           <>
             <h2 style={{ marginTop: 26 }}>Your words</h2>
@@ -610,7 +590,9 @@ export function ProgressPage({ level, rows, filter, progress }) {
           </>
         ) : null}
 
-        <h2 style={{ marginTop: 26 }}>Your sessions</h2>
+        <h2 style={{ marginTop: 26 }} ref={sessionsRef}>
+          Your sessions
+        </h2>
         <div className="tabs" role="group" aria-label="Session status">
           {["All", "Completed", "Attempts"].map((t) => (
             <Link key={t} to={`/b2/maya?view=progress${t === "All" ? "" : `&filter=${t}`}`} aria-current={filter === t ? "page" : undefined} className="tab-link" data-on={filter === t}>
@@ -635,10 +617,17 @@ export function ProgressPage({ level, rows, filter, progress }) {
         {filter === "Attempts" ? <p className="attempt-note">Attempts don’t count as completed sessions and don’t affect your progress.</p> : null}
       </Main>
       <Footer>
-        <Link className="primary gold" to="/b2/maya">
-          Start another conversation
-          <Icon name="arrow" />
-        </Link>
+        {atSessions ? (
+          <Link className="primary gold" to="/b2/maya">
+            Start another conversation
+            <Icon name="arrow" />
+          </Link>
+        ) : (
+          <button type="button" className="primary gold" onClick={() => sessionsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+            See your sessions
+            <Icon name="down" />
+          </button>
+        )}
       </Footer>
       <BottomNav current="progress" />
     </>

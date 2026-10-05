@@ -7,9 +7,9 @@ import { VoicePlayer } from "../../../utils/b2MayaVoice";
 import { BottomNav, Brand, Footer, Header, Icon, Main, MayaFrame, MayaHero, MayaLive, MayaMark, Steps, Title } from "./sp";
 
 /*
- * The B2 speaking flow: one decision at a time before the call (practice, topic, consent,
- * microphone), a calm call screen with a clear turn status, and the report on its own view
- * afterwards (?session=…). The call itself runs over the relay WebSocket.
+ * The B2 speaking flow: choose a practice and a topic, land on the start screen, then a mic check
+ * slides up as a sheet and hands over to the call. The call runs over the relay WebSocket; the
+ * report is its own view afterwards (?session=…).
  */
 
 const ROOM_NOTE = {
@@ -75,8 +75,8 @@ export default function B2MayaRoom({ meta, focus }) {
   const user = useSelector((state) => state.auth.user);
   const { level, coachName, firstName, modes, minutes: minutesMap, topics, words } = meta;
   const hasInterview = modes.length > 1;
-  // Consented learners skip the education screen — focused follow-ups start at the mic check.
-  const [screen, setScreen] = useState(focus ? (meta.consented ? "mic-test" : "setup") : "choose");
+  // Focused follow-ups skip the mode and topic picks and land on the start screen.
+  const [screen, setScreen] = useState(focus ? "ready" : "choose");
   const [mode, setMode] = useState(modes[0]);
   const interview = mode !== "talk";
   const [topic, setTopic] = useState(""); // "" = General Conversation
@@ -102,10 +102,6 @@ export default function B2MayaRoom({ meta, focus }) {
   const minutes = focus ? 3 : minutesMap[mode];
   const topicLabel = focus ? "Your focused follow-up" : topic || customTopic.trim() || "General Conversation";
   const modeName = interview ? "Nursing interview" : "Everyday German";
-
-  // Consent is asked once; after that the mic check is the next stop.
-  const nextAfterConsent = () =>
-    consent ? (room === "good" || room === "some_noise" ? "ready" : "mic-test") : "setup";
 
   const streamRef = useRef(null);
   const ctxRef = useRef(null);
@@ -264,9 +260,21 @@ export default function B2MayaRoom({ meta, focus }) {
       const loud = pick(voice, 0.9);
       const verdict = !running || loud < 0.0005 || loud < floor * 1.5 ? "no_voice" : floor >= 0.01 ? "noisy" : loud < floor * 4 ? "quiet_voice" : floor >= 0.005 ? "some_noise" : "good";
       setRoom(verdict);
-      if (verdict === "good" || verdict === "some_noise") setScreen("ready");
+      if (verdict === "good" || verdict === "some_noise") void start();
     };
     loop();
+  };
+
+  // The mic check sits in a sheet over the start screen: open it and run the check right away.
+  // Already checked this visit ("Talk anyway"/dropped-call retry) goes straight to the call.
+  const beginTalk = () => {
+    if (room === "good" || room === "some_noise") return void start();
+    setSheet("mic");
+    void checkMic();
+  };
+  const closeMicCheck = () => {
+    checkStopRef.current?.();
+    setSheet(null);
   };
 
   const start = async () => {
@@ -282,6 +290,7 @@ export default function B2MayaRoom({ meta, focus }) {
     }
     streamRef.current = stream;
     setMuted(false);
+    setSheet(null);
     setScreen("connecting");
     setSeconds(0);
     setCaption("");
@@ -744,7 +753,7 @@ export default function B2MayaRoom({ meta, focus }) {
           <div className="info-note">{coachName} will follow your pace and help you find the words.</div>
         </Main>
         <Footer note={`About ${minutes} minutes · ${level} practice`}>
-          <button type="button" className="primary" onClick={() => setScreen(nextAfterConsent())}>
+          <button type="button" className="primary" onClick={() => setScreen("ready")}>
             Continue
             <Icon name="arrow" />
           </button>
@@ -752,141 +761,10 @@ export default function B2MayaRoom({ meta, focus }) {
       </>
     );
 
-  if (screen === "setup")
-    return (
-      <>
-        <Header title="Before you start" onBack={focus ? () => navigate(-1) : () => setScreen(interview ? "choose" : "topics")} />
-        <Main>
-          <Steps n={2} />
-          <Title text="A moment to get ready." desc="A quiet space and a working microphone are all you need." />
-          <div className="context-row">
-            <Icon name={focus ? "repeat" : interview ? "bag" : "chat"} />
-            <div>
-              <strong>{focus ? "Your focused follow-up" : interview ? "Nursing interview" : topicLabel}</strong>
-              <small>
-                {focus ? "Maya coaches one sentence pattern" : interview ? "Feedback at the end" : "Tips as you go"} · About {minutes} min
-              </small>
-            </div>
-          </div>
-          <ul className="checklist">
-            <li>
-              <Icon name="headphones" />
-              <div>
-                <strong>Find a quiet spot</strong>
-                <span>Headphones help, but aren’t required. Voices or a TV in the background make it hard for Maya to hear you.</span>
-              </div>
-            </li>
-            <li>
-              <Icon name="chat" />
-              <div>
-                <strong>Speak in German, at your pace</strong>
-                <span>
-                  {interview
-                    ? "Answer as you would in a real interview. Maya will give you feedback afterward."
-                    : isBeginner(level)
-                      ? "Short answers are fine. Stuck? Say it in English and Maya will help."
-                      : "Full sentences are great. Stuck? Ask Maya: “Wie sagt man …?”"}
-                </span>
-              </div>
-            </li>
-            <li>
-              <Icon name="camera" />
-              <div>
-                <strong>Just your voice</strong>
-                <span>Your camera stays off throughout.</span>
-              </div>
-            </li>
-          </ul>
-          <label className="consent">
-            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-            <span>I understand that Maya is AI. My conversation will be transcribed, and Skillcase will keep the transcript and feedback to track my progress.</span>
-          </label>
-          <p className="privacy-note">You choose when the microphone starts and can mute or end the call anytime.</p>
-        </Main>
-        <Footer note={consent ? "A quick sound check, then you’re ready." : "Tick the box to continue."}>
-          <button type="button" className="primary" disabled={!consent} onClick={() => setScreen(room === "good" || room === "some_noise" ? "ready" : "mic-test")}>
-            Check my microphone
-            <Icon name="arrow" />
-          </button>
-        </Footer>
-      </>
-    );
-
-  if (screen === "mic-test")
-    return (
-      <>
-        <Header
-          title="Microphone check"
-          onBack={() => {
-            checkStopRef.current?.();
-            setScreen("setup");
-          }}
-          tag="Step 2 of 3"
-        />
-        <Main>
-          <MayaHero pose="looking" badge="mic" user={user} />
-          <Title text="Let’s hear you." desc="Stay quiet for a moment so we can hear your room, then say the sentence below." />
-          <div className="signal-box">
-            <span className="eyebrow">Say this in German</span>
-            <div className="quote-prompt" lang="de">
-              „Hallo {coachName}, ich bin bereit.“
-            </div>
-            <div className={`bars ${checkStep ? "active" : ""} ${checkStep === "quiet" ? "blue" : ""}`} aria-hidden="true">
-              {[10, 18, 25, 17, 36, 27, 44, 31, 20, 35, 25, 15, 29, 18, 10].map((h, i) => (
-                <i key={i} style={{ "--h": `${Math.max(6, Math.round(h * (checkStep ? 0.3 + micLevel : 0.3)))}px`, "--i": i }} />
-              ))}
-            </div>
-            <p role="status">{checkStep === "quiet" ? "Stay quiet for a moment…" : checkStep === "speak" ? "Now say the sentence." : room ? ROOM_NOTE[room] : "Ready when you are"}</p>
-          </div>
-          {devices.length > 1 ? (
-            <>
-              <label className="field-label" htmlFor="microphone">
-                Microphone
-              </label>
-              <select className="input" id="microphone" value={deviceId} onChange={(e) => setDeviceId(e.target.value)}>
-                <option value="">System default microphone</option>
-                {devices.map((d, i) => (
-                  <option key={d.deviceId} value={d.deviceId}>
-                    {d.label || `Microphone ${i + 1}`}
-                  </option>
-                ))}
-              </select>
-            </>
-          ) : null}
-          {error ? (
-            <p className="inline-error" role="alert">
-              {error}
-            </p>
-          ) : null}
-          <button type="button" className="text-button full" onClick={() => setScreen("mic-blocked")}>
-            No sound? Get help
-          </button>
-        </Main>
-        <Footer note="Your app may ask for microphone access.">
-          {room === "noisy" || room === "quiet_voice" ? (
-            <>
-              <button type="button" className="primary" onClick={checkMic} disabled={checkStep !== null}>
-                Check again
-                <Icon name="repeat" />
-              </button>
-              <button type="button" className="text-button full" onClick={() => setScreen("ready")}>
-                Continue anyway
-              </button>
-            </>
-          ) : (
-            <button type="button" className="primary" onClick={checkMic} disabled={checkStep !== null}>
-              {checkStep ? "Checking your microphone…" : room === "no_voice" ? "Check again" : "Enable & check microphone"}
-              <Icon name="mic" />
-            </button>
-          )}
-        </Footer>
-      </>
-    );
-
   if (screen === "mic-blocked")
     return (
       <>
-        <Header title="Microphone access" onBack={() => setScreen("mic-test")} />
+        <Header title="Microphone access" onBack={() => setScreen("ready")} />
         <Main>
           <div className="device-hero warning">
             <Icon name="muted" />
@@ -900,7 +778,14 @@ export default function B2MayaRoom({ meta, focus }) {
           <div className="info-note">If access is already allowed, check your device settings or close other apps using the microphone.</div>
         </Main>
         <Footer>
-          <button type="button" className="primary" onClick={() => setScreen("mic-test")}>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => {
+              setScreen("ready");
+              setSheet("mic");
+            }}
+          >
             Try microphone again
             <Icon name="repeat" />
           </button>
@@ -914,17 +799,13 @@ export default function B2MayaRoom({ meta, focus }) {
   if (screen === "ready")
     return (
       <>
-        <Header title="Ready to start" onBack={() => setScreen("mic-test")} />
+        <Header title="Ready to start" onBack={focus ? () => navigate(-1) : () => setScreen(interview ? "choose" : "topics")} />
         <Main>
-          <MayaHero pose="thumbsup" badge="check" user={user} />
+          <Steps n={2} />
+          <MayaHero pose="looking" badge="mic" user={user} />
           <Title text="You’re ready to talk." desc={`${coachName} will introduce herself and help you get started.`} />
           <div className="result-row">
-            <Icon name="check" />
-            <strong>Microphone</strong>
-            <span>{room === "noisy" ? "Noisy room" : room === "quiet_voice" ? "Quiet voice" : "Sound detected"}</span>
-          </div>
-          <div className="result-row">
-            <Icon name="check" />
+            <Icon name="camera" />
             <strong>Camera</strong>
             <span>Always off</span>
           </div>
@@ -943,18 +824,88 @@ export default function B2MayaRoom({ meta, focus }) {
                   : `It’s okay to pause or make mistakes. ${coachName} is here to help you practise.`}
             </p>
           </div>
+          {meta.consented ? null : (
+            <label className="consent">
+              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+              <span>I understand that Maya is AI. My conversation will be transcribed, and Skillcase will keep the transcript and feedback to track my progress.</span>
+            </label>
+          )}
+          <p className="privacy-note">You choose when the microphone starts and can mute or end the call anytime.</p>
           {error ? (
             <p className="inline-error" role="alert">
               {error}
             </p>
           ) : null}
         </Main>
-        <Footer note="You can end the conversation at any time.">
-          <button type="button" className="primary gold" onClick={start}>
+        <Footer note={consent ? "A quick microphone check, then you’re talking." : "Tick the box to continue."}>
+          <button type="button" className="primary gold" disabled={!consent} onClick={beginTalk}>
             Start with {coachName}
             <Icon name="arrow" />
           </button>
         </Footer>
+        {sheet === "mic" ? (
+          <div className="overlay" onClick={(e) => e.target === e.currentTarget && closeMicCheck()}>
+            <section className="sheet" role="dialog" aria-modal="true" aria-labelledby="mic-title">
+              <div className="sheet-handle" />
+              <button type="button" className="icon-button sheet-close" onClick={closeMicCheck} aria-label="Close microphone check">
+                <Icon name="close" />
+              </button>
+              <h2 id="mic-title">Let’s hear you.</h2>
+              <p>Stay quiet for a moment so we can hear your room, then say the sentence.</p>
+              <div className="signal-box">
+                <span className="eyebrow">Say this in German</span>
+                <div className="quote-prompt" lang="de">
+                  „Hallo {coachName}, ich bin bereit.“
+                </div>
+                <div className={`bars ${checkStep ? "active" : ""} ${checkStep === "quiet" ? "blue" : ""}`} aria-hidden="true">
+                  {[10, 18, 25, 17, 36, 27, 44, 31, 20, 35, 25, 15, 29, 18, 10].map((h, i) => (
+                    <i key={i} style={{ "--h": `${Math.max(6, Math.round(h * (checkStep ? 0.3 + micLevel : 0.3)))}px`, "--i": i }} />
+                  ))}
+                </div>
+                <p role="status">{checkStep === "quiet" ? "Stay quiet for a moment…" : checkStep === "speak" ? "Now say the sentence." : room ? ROOM_NOTE[room] : "Ready when you are"}</p>
+              </div>
+              {devices.length > 1 ? (
+                <>
+                  <label className="field-label" htmlFor="microphone">
+                    Microphone
+                  </label>
+                  <select className="input" id="microphone" value={deviceId} onChange={(e) => setDeviceId(e.target.value)}>
+                    <option value="">System default microphone</option>
+                    {devices.map((d, i) => (
+                      <option key={d.deviceId} value={d.deviceId}>
+                        {d.label || `Microphone ${i + 1}`}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              ) : null}
+              {error ? (
+                <p className="inline-error" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              {room === "noisy" || room === "quiet_voice" ? (
+                <>
+                  <button type="button" className="primary" onClick={checkMic} disabled={checkStep !== null}>
+                    Check again
+                    <Icon name="repeat" />
+                  </button>
+                  <button type="button" className="text-button full" onClick={() => void start()}>
+                    Talk anyway
+                  </button>
+                </>
+              ) : (
+                <button type="button" className="primary" onClick={checkMic} disabled={checkStep !== null}>
+                  {checkStep ? "Checking your microphone…" : room === "no_voice" ? "Check again" : "Check my microphone"}
+                  <Icon name="mic" />
+                </button>
+              )}
+              <button type="button" className="text-button full" onClick={() => setScreen("mic-blocked")}>
+                No sound? Get help
+              </button>
+            </section>
+          </div>
+        ) : null}
       </>
     );
 
@@ -995,7 +946,7 @@ export default function B2MayaRoom({ meta, focus }) {
         </div>
       </Main>
       <Footer note="Voice only. Your camera stays off.">
-        <button type="button" className="primary gold" onClick={() => setScreen(interview ? nextAfterConsent() : "topics")}>
+        <button type="button" className="primary gold" onClick={() => setScreen(interview ? "ready" : "topics")}>
           {interview ? "Prepare for my interview" : "Let’s practise"}
           <Icon name="arrow" />
         </button>

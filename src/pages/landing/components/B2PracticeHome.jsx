@@ -210,16 +210,6 @@ export default function B2PracticeHome({ overview, loading = false, onRetry }) {
             moduleInfo={{ level: "B2", module_key: s.key }}
           />
         ))}
-        <FeatureCard
-          tourId="b2-exams-card"
-          title="Mock tests"
-          description="Goethe & telc"
-          image={images.mockTest}
-          link="/b2/exams"
-          enabled
-          comingSoon={hasExamPapers === false}
-          moduleInfo={{ level: "B2", module_key: "exams" }}
-        />
         {/* Talk to Maya — live voice practice; mode choice happens inside. */}
         <FeatureCard
           tourId="b2-maya-card"
@@ -229,6 +219,16 @@ export default function B2PracticeHome({ overview, loading = false, onRetry }) {
           link="/b2/maya"
           enabled
           moduleInfo={{ level: "B2", module_key: "maya" }}
+        />
+        <FeatureCard
+          tourId="b2-exams-card"
+          title="Mock tests"
+          description="Goethe & telc"
+          image={images.mockTest}
+          link="/b2/exams"
+          enabled
+          comingSoon={hasExamPapers === false}
+          moduleInfo={{ level: "B2", module_key: "exams" }}
         />
       </div>
     </section>
