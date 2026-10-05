@@ -1,15 +1,9 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
-  Volume,
-  Volume1,
-  Volume2,
-  Volume2Icon,
-  VolumeIcon,
-  VolumeX,
 } from "lucide-react";
 import ProgressBar from "./shared/ProgressBar";
 import { getMayaImage } from "../../../../utils/mayaAvatars";

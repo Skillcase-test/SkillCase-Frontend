@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import recapGermanFlag from "../../assets/recapGermanFlag.webp";
@@ -162,8 +162,21 @@ export default function RecapScreen() {
   // are safe to evaluate while data is still null.
   if (loading) {
     return (
-      <div className="w-full min-h-screen bg-gradient-to-b from-blue-100 to-sky-100 flex justify-center items-center">
-        <span className="text-blue-950 font-semibold">Loading Recap...</span>
+      <div
+        className="w-full min-h-screen bg-[#D3E5FF] flex flex-col items-center"
+        aria-label="Loading recap"
+        role="status"
+      >
+        <div className="w-full max-w-[500px] px-5 pt-8 flex flex-col gap-4">
+          <div className="h-8 w-44 bg-white/60 rounded animate-pulse self-center" />
+          <div className="size-24 rounded-xl bg-white/60 animate-pulse self-center my-3" />
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="w-full h-16 bg-white/70 rounded-2xl animate-pulse"
+            />
+          ))}
+        </div>
       </div>
     );
   }

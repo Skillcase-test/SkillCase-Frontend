@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Image as ImageIcon, Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 import { btn, inputCls, labelCls } from "./ui/buttons";

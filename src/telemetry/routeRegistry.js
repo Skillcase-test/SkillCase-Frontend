@@ -17,11 +17,22 @@ const RULES = [
   [/^\/learn-german\/(lesson|recap)/, "learning", "learn_german_lesson"],
   [/^\/learn-german/, "learning", "learn_german"],
   [/^\/(a1|a2)\/(flashcard|grammar|listening|speaking|reading|test)/, "learning", "level_practice"],
+  // Nursing isn't covered by the level_practice pattern — needs its own surface.
+  [/^\/a1\/nursing/, "learning", "a1_nursing"],
   [/^\/b1\/exams/, "learning", "b1_exam"],
   [/^\/b1\/read-listen/, "learning", "b1_read_listen"],
   [/^\/b1\/describe-speak/, "learning", "b1_describe_speak"],
   [/^\/b1\/flashcard/, "learning", "b1_flashcard"],
   [/^\/b1\/maya/, "maya", "maya"],
+  // B2 Maya shares B1's maya surface so voice-session analytics line up.
+  [/^\/b2\/maya/, "maya", "maya"],
+  [/^\/b2\/exams/, "learning", "b2_exam_papers"],
+  [/^\/b2\/test/, "learning", "b2_exam_papers"],
+  [/^\/b2\/reading/, "learning", "b2_reading"],
+  [/^\/b2\/listening/, "learning", "b2_listening"],
+  [/^\/b2\/writing/, "learning", "b2_writing"],
+  [/^\/b2\/speaking/, "learning", "b2_speaking"],
+  [/^\/b2admin/, "internal", "internal"],
   [/^\/notes/, "learning", "notes"],
   [/^\/video-courses?(?:\/|$)/, "learning", "video_courses"],
 
@@ -29,20 +40,18 @@ const RULES = [
   // Standalone scholarship exam funnel — hub, take and result screens.
   [/^\/scholarship/, "exam", "scholarship_exam"],
 
-  [/^\/test/, "exam", "legacy_exam"],
-  [/^\/news/, "news", "news"],
-  [/^\/practice/, "learning", "legacy_flashcard"],
-  [/^\/pronounce/, "learning", "pronunciation"],
-  [/^\/conversation/, "learning", "conversation"],
-  [/^\/stor(y|ies)/, "learning", "stories"],
+  // Sunset legacy-A1 stack — these paths now redirect to "/" but still render
+  // as routes, so classify hits (stale deep links) instead of "unclassified".
+  [/^\/(practice|pronounce|test|stories|story|conversation|news)(\/|$)/, "navigation", "legacy_redirect"],
+  [/^\/b2\//, "learning", "b2_module"],
   [/^\/terms/, "terms", "terms_signing"],
   [/^\/events/, "events", "events"],
   [/^\/manage-event/, "events", "event_management"],
   [/^\/interview/, "interview", "interview"],
   [/^\/signup|^\/login/, "auth", "authentication"],
-  [/^\/admin|^\/b1admin|^\/internal/, "internal", "internal"],
+  [/^\/admin|^\/b1admin|^\/b2admin|^\/internal/, "internal", "internal"],
   [/^\/start-now|^\/register|^\/thank-you|^\/open-app|^\/continue|^\/redirect/, "acquisition", "acquisition"],
-  [/^\/(a1|a2|b1)\/?$/, "learning", "level_home"],
+  [/^\/(a1|a2|b1|b2)\/?$/, "learning", "level_home"],
   [/^\/$/, "home", "landing"],
 ];
 

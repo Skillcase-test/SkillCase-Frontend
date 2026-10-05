@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, Maximize2 } from "lucide-react";
+import { X, Maximize2 } from "lucide-react";
 
 export default function CandidateGrid({ candidates = [] }) {
   const [activeId, setActiveId] = useState(null);

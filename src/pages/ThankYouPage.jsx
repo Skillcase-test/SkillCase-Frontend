@@ -1,3 +1,4 @@
+/* global fbq */
 import { useEffect, useState } from "react";
 
 import { CheckCircle, Home, Phone } from "lucide-react";

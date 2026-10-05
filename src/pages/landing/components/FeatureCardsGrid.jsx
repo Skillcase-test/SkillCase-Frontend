@@ -1,23 +1,22 @@
-import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
-import Badge from "../../../components/ui/Badge";
 import ExamCards from "../../exam/ExamCards";
+import B2PracticeHome from "./B2PracticeHome";
+import FeatureCard from "./FeatureCard";
+import NursingBanner from "../../../components/a1/nursing/NursingBanner";
+import B2ExamGate from "../../../components/b2/B2ExamGate";
 import { images } from "../../../assets/images.js";
-import { useState } from "react";
-import FeatureStatusChip from "../../../components/ui/FeatureStatusChip";
-import { hapticLight } from "../../../utils/haptics";
-import { isB1PracticeLevel } from "../../../utils/b1Progress";
-import { useUsageLimits } from "../../../hooks/useUsageLimits";
+import { useState, useEffect } from "react";
+import { getB2TestOverview } from "../../../api/b2Api";
+import {
+  isB1PracticeLevel,
+  isB2PracticeLevel,
+} from "../../../utils/b1Progress";
 import { useFeatureFlags } from "../../../hooks/useFeatureFlags";
 
 /* Feature Cards */
 
 // Maps a feature card's id to the (level, module_key) the backend gates it
-// under (see SkillCase-backend/util/usageLimits.js MODULE_REGISTRY). Only
-// the revamp A1/A2/B1 module routes are actually usage-limited today — the
-// legacy a1Features/pronounce/conversation/stories/news tiles aren't wired
-// to any usageLimitMiddleware mount, so they're intentionally left out here
-// rather than showing a lock badge nothing backs up.
+// under (see SkillCase-backend/util/usageLimits.js MODULE_REGISTRY).
 const MODULE_MAP = {
   "a1-revamp-flashcard": { level: "A1", module_key: "flashcard" },
   "a1-revamp-grammar": { level: "A1", module_key: "grammar" },
@@ -25,6 +24,8 @@ const MODULE_MAP = {
   "a1-revamp-speaking": { level: "A1", module_key: "speaking" },
   "a1-revamp-reading": { level: "A1", module_key: "reading" },
   "a1-revamp-test": { level: "A1", module_key: "test" },
+  // Medical German is one shared module across levels — gated under ALL.
+  "a1-revamp-nursing": { level: "ALL", module_key: "nursing" },
   "a2-flashcards": { level: "A2", module_key: "flashcard" },
   "a2-grammar": { level: "A2", module_key: "grammar" },
   "a2-listening": { level: "A2", module_key: "listening" },
@@ -47,74 +48,15 @@ const studyNotesFeature = {
   enabled: true,
 };
 
-export default function FeatureCardsGrid({ useRevampA1 = false }) {
+export default function FeatureCardsGrid() {
   const { user } = useSelector((state) => state.auth);
   const { isFeatureEnabled } = useFeatureFlags();
   const profLevel = user?.user_prof_level || "A1";
 
   const normalizedProfLevel = profLevel.toLowerCase();
   const isB1 = isB1PracticeLevel(normalizedProfLevel);
+  const isB2 = isB2PracticeLevel(normalizedProfLevel);
   const isA2 = normalizedProfLevel === "a2";
-
-  const a1Features = [
-    {
-      id: "flashcards",
-      title: "Flashcards",
-      description: "Practice basic German using Flashcards",
-      image: images.flashcards,
-      link: `/practice/${profLevel}`,
-      enabled: true,
-    },
-    {
-      id: "vocabulary",
-      title: "Vocabulary Practice",
-      description: "Build your German vocabulary",
-      image: images.vocabulary,
-      link: `/pronounce/${profLevel}`,
-      enabled: true,
-    },
-    {
-      id: "mock-test",
-      title: "Mock Test",
-      description: "Test your German knowledge",
-      image: images.mockTest,
-      link: `/test/${profLevel}`,
-      enabled: true,
-    },
-    {
-      id: "listener",
-      title: "Listener",
-      description: "Listen the conversations",
-      image: images.speakToAI,
-      link: `/conversation/${profLevel}`,
-      enabled: true,
-    },
-    {
-      id: "stories",
-      title: "Short Stories",
-      description: "Read engaging stories",
-      image: images.grammar,
-      link: `/stories`,
-      enabled: true,
-    },
-    {
-      id: "news",
-      title: "News",
-      description: "Read top headlines in German and English",
-      image: images.news,
-      link: `/news`,
-      enabled: true,
-    },
-    {
-      id: "interview",
-      title: "Interview Practice",
-      description: "Prepare for job interviews",
-      image: images.interview,
-      link: `#`,
-      enabled: false,
-      comingSoon: true,
-    },
-  ];
 
   // A2 features
   const a2Features = [
@@ -164,14 +106,6 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
       description: "Test your A2 knowledge",
       image: images.mockTest,
       link: "/a2/test",
-      enabled: true,
-    },
-    {
-      id: "a2-news",
-      title: "News",
-      description: "Daily India headlines with language toggle",
-      image: images.news,
-      link: "/news",
       enabled: true,
     },
   ];
@@ -225,14 +159,6 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
       link: "/a1/test",
       enabled: true,
     },
-    {
-      id: "news",
-      title: "News",
-      description: "Read top headlines in German and English",
-      image: images.news,
-      link: "/news",
-      enabled: true,
-    },
   ];
 
   const b1Features = [
@@ -280,44 +206,46 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
       link: "/b1/maya",
       enabled: true,
     },
-    {
-      id: "news",
-      title: "News",
-      description: "Read top headlines in German and English",
-      image: images.news,
-      link: "/news",
-      enabled: true,
-    },
   ];
 
   const features = [
-    ...(isB1
-      ? b1Features
-      : isA2
-        ? a2Features
-        : useRevampA1
-          ? a1RevampFeatures
-          : a1Features),
+    ...(isB1 ? b1Features : isA2 ? a2Features : a1RevampFeatures),
     ...(isFeatureEnabled("study_notes") ? [studyNotesFeature] : []),
   ];
 
-  const getTourId = (id) => {
-    if (isB1 && id === "news") return "b1-news-card";
+  // B2 test hub overview — drives the practice home (Your test card,
+  // Practise next suggestion) and the first-arrival gate.
+  const [b2Overview, setB2Overview] = useState(null);
+  const [b2Loading, setB2Loading] = useState(true);
 
+  useEffect(() => {
+    if (!isB2 || !user?.user_id) {
+      setB2Loading(false);
+      return;
+    }
+    setB2Loading(true);
+    getB2TestOverview()
+      .then((r) => setB2Overview(r.data || null))
+      .catch(() => {})
+      .finally(() => setB2Loading(false));
+  }, [isB2, user?.user_id]);
+
+  // First-arrival gate: shown once per learner — the first time a B2 user
+  // reaches the suite. Answering (start or skip) persists
+  // app_user.b2_exam_gate_seen and it never shows again.
+  // Strict `=== false`: the slim OTP-login payload omits the flag until
+  // /user/me hydrates, and an unknown value must not re-show the gate.
+  const showB2Gate =
+    isB2 && !b2Loading && user?.b2_exam_gate_seen === false;
+
+  const getTourId = (id) => {
     const tourIds = {
-      flashcards: "flashcard-card",
-      vocabulary: "pronunciation-card",
-      "mock-test": "test-card",
-      listener: "listener-card",
-      stories: "stories-card",
-      news: "news-card",
       "a2-flashcards": "a2-flashcard-card",
       "a2-grammar": "a2-grammar-card",
       "a2-listening": "a2-listening-card",
       "a2-speaking": "a2-speaking-card",
       "a2-reading": "a2-reading-card",
       "a2-test": "a2-test-card",
-      "a2-news": "a2-news-card",
       "a1-revamp-flashcard": "a1-revamp-flashcard-card",
       "a1-revamp-grammar": "a1-revamp-grammar-card",
       "a1-revamp-listening": "a1-revamp-listening-card",
@@ -336,131 +264,52 @@ export default function FeatureCardsGrid({ useRevampA1 = false }) {
   return (
     <div
       id={
-        isB1
-          ? "b1-feature-cards-grid"
-          : isA2
-            ? "a2-feature-cards-grid"
-            : "feature-cards-grid"
+        isB2
+          ? "b2-feature-cards-grid"
+          : isB1
+            ? "b1-feature-cards-grid"
+            : isA2
+              ? "a2-feature-cards-grid"
+              : "feature-cards-grid"
       }
       className="px-4 pt-2 pb-4"
     >
-      <div id="feature-cards-grid" className="grid grid-cols-3 gap-2.5">
-        {features.map((feature) => (
-          <FeatureCard
-            key={feature.id}
-            {...feature}
-            tourId={getTourId(feature.id)}
-            moduleInfo={MODULE_MAP[feature.id]}
+      {isB2 ? (
+        <>
+          {showB2Gate && <B2ExamGate overview={b2Overview} />}
+          <B2PracticeHome
+            overview={b2Overview}
+            loading={b2Loading}
+            onRetry={() => {
+              setB2Loading(true);
+              getB2TestOverview()
+                .then((r) => setB2Overview(r.data))
+                .catch(() => setB2Overview(null))
+                .finally(() => setB2Loading(false));
+            }}
           />
-        ))}
-        <ExamCards />
-      </div>
+          {/* .b2-home caps at 860px — match it so edges stay aligned. */}
+          {isFeatureEnabled("nursing_german") && (
+            <NursingBanner className="mt-2.5 max-w-[860px] mx-auto" />
+          )}
+          <ExamCards />
+        </>
+      ) : (
+        <div id="feature-cards-grid" className="grid grid-cols-3 gap-2.5">
+          {features.map((feature) => (
+            <FeatureCard
+              key={feature.id}
+              {...feature}
+              tourId={getTourId(feature.id)}
+              moduleInfo={MODULE_MAP[feature.id]}
+            />
+          ))}
+          {isFeatureEnabled("nursing_german") && (
+            <NursingBanner className="col-span-3" />
+          )}
+          <ExamCards />
+        </div>
+      )}
     </div>
   );
-}
-
-function FeatureCard({
-  title,
-  description,
-  image,
-  link,
-  enabled,
-  comingSoon,
-  tourId,
-  moduleInfo,
-}) {
-  const { eligible, getState } = useUsageLimits();
-  const moduleState = moduleInfo
-    ? getState(moduleInfo.level, moduleInfo.module_key)
-    : null;
-  const isLocked = Boolean(moduleState?.locked);
-
-  const clickable = enabled && !isLocked;
-  const CardWrapper = clickable ? Link : "div";
-  const [isPressed, setIsPressed] = useState(false);
-
-  const openLockModal = () => {
-    if (!isLocked || !moduleState) return;
-    window.dispatchEvent(
-      new CustomEvent("skillcase:usage-limit", {
-        detail: {
-          locked: true,
-          reason: "usage_limit",
-          module_key: moduleInfo.module_key,
-          level: moduleInfo.level,
-          limit_value: moduleState.limit_value,
-          periods: moduleState.periods,
-          reset_at: moduleState.reset_at,
-          msg: moduleState.hard_locked
-            ? "This feature is currently locked."
-            : "Your limit for this feature has been reached.",
-        },
-      }),
-    );
-  };
-
-  return (
-    <CardWrapper
-      id={tourId}
-      to={clickable ? link : undefined}
-      onClick={isLocked ? openLockModal : undefined}
-      onTouchStart={() => {
-        if (clickable) {
-          setIsPressed(true);
-          hapticLight();
-        }
-      }}
-      onTouchEnd={() => setIsPressed(false)}
-      onMouseDown={() => clickable && setIsPressed(true)}
-      onMouseUp={() => setIsPressed(false)}
-      onMouseLeave={() => setIsPressed(false)}
-      className={`
-        relative bg-white rounded-lg p-0.5 card-shadow flex flex-col
-        transition-all duration-150
-        ${
-          clickable
-            ? "hover:scale-105 cursor-pointer"
-            : isLocked
-              ? "cursor-pointer"
-              : "opacity-60 cursor-not-allowed"
-        }
-        ${isPressed ? "scale-[0.85] shadow-inner" : ""}
-        ${!enabled && "bg-[#e5e5e5]"}
-      `}
-    >
-      {/* Image */}
-      <div className="h-16 md:h-40 rounded-md overflow-hidden">
-        <img
-          src={image}
-          alt={title}
-          loading="lazy"
-          decoding="async"
-          className="w-full h-full object-cover"
-        />
-      </div>
-
-      {/* Content */}
-      <div className="p-1.5 pb-1.5 flex-1 flex flex-col justify-start items-start">
-        <h3 className="text-[10px] md:text-xl font-medium text-black mb-1">
-          {title}
-        </h3>
-        {comingSoon ? (
-          <Badge variant="warning">Coming soon</Badge>
-        ) : (
-          <>
-            <p className="text-[8px] md:text-[14px] text-black opacity-60 leading-[1.3]">
-              {description}
-            </p>
-            {/* Usage-state chip — pinned to the bottom-left of every card so
-                it stays consistent regardless of description length. */}
-            {eligible && (
-              <div className="mt-auto pt-1 self-stretch">
-                <FeatureStatusChip state={moduleState} />
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </CardWrapper>
-  );
-}
+}

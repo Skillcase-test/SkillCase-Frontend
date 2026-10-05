@@ -5,7 +5,6 @@ import {
   AlertCircle,
   AlertTriangle,
   Bookmark,
-  CalendarDays,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,

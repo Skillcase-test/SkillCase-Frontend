@@ -1,4 +1,3 @@
-import React from "react";
 import {
   CheckCircle2,
   ChevronLeft,
@@ -47,8 +46,33 @@ function PaymentTier({ student }) {
   );
 }
 
-function EffectiveAccess({ student }) {
+function EffectiveAccess({ student, variant }) {
   const on = student.effective_status;
+  if (variant) {
+    return (
+      <div>
+        <span
+          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+            on
+              ? "bg-violet-500/10 text-violet-700 border border-violet-200"
+              : "bg-slate-100 text-slate-600 border border-slate-200"
+          }`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              on ? "bg-violet-500 animate-pulse" : "bg-slate-400"
+            }`}
+          />
+          {on ? variant.bLabel : variant.aLabel}
+        </span>
+        <div className="text-[10px] text-slate-400 mt-0.5">
+          {on
+            ? ENABLED_REASONS[student.effective_reason] || "Assigned"
+            : DISABLED_REASONS[student.effective_reason] || "Default Rule"}
+        </div>
+      </div>
+    );
+  }
   return (
     <div>
       <span
@@ -76,6 +100,7 @@ export default function StudentTable({
   users = [],
   loading,
   canEdit,
+  variant = null,
   page,
   pageSize,
   totalPages = 1,
@@ -94,8 +119,12 @@ export default function StudentTable({
               <th className="py-3 px-4">Contact</th>
               <th className="py-3 px-4">Level</th>
               <th className="py-3 px-4">Payment Tier</th>
-              <th className="py-3 px-4">Effective Access</th>
-              <th className="py-3 px-4 text-center">Toggle Access</th>
+              <th className="py-3 px-4">
+                {variant ? "Experience" : "Effective Access"}
+              </th>
+              <th className="py-3 px-4 text-center">
+                {variant ? "Switch" : "Toggle Access"}
+              </th>
               <th className="py-3 px-4 text-right">Override Rule</th>
             </tr>
           </thead>
@@ -167,7 +196,7 @@ export default function StudentTable({
                     </td>
 
                     <td className="py-3.5 px-4">
-                      <EffectiveAccess student={student} />
+                      <EffectiveAccess student={student} variant={variant} />
                     </td>
 
                     <td className="py-3.5 px-4 text-center">
@@ -185,9 +214,15 @@ export default function StudentTable({
                         title={
                           !canEdit
                             ? "Read-only mode: contact Super Admin to edit"
-                            : `Click to ${
-                                student.effective_status ? "DISABLE" : "ENABLE"
-                              } for this user`
+                            : variant
+                              ? `Switch to ${
+                                  student.effective_status
+                                    ? variant.aLabel
+                                    : variant.bLabel
+                                }`
+                              : `Click to ${
+                                  student.effective_status ? "DISABLE" : "ENABLE"
+                                } for this user`
                         }
                       >
                         {student.effective_status ? (

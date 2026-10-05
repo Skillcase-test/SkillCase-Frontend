@@ -1,4 +1,3 @@
-import React from "react";
 
 const PLAY_STORE_URL = "market://details?id=com.skillcase.app";
 const PLAY_STORE_WEB_URL =

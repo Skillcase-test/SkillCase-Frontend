@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { ChevronLeft, Loader2, AlertCircle } from "lucide-react";
+import { ChevronLeft, AlertCircle } from "lucide-react";
 import { getB1Exams } from "../../../api/b1Api";
 import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 

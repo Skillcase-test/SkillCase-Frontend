@@ -1,4 +1,3 @@
-import React from "react";
 import { Check } from "lucide-react";
 
 // Emerald rocket card shown on the select_opportunity lobby step once an

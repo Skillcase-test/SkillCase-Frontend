@@ -1,4 +1,3 @@
-import React from "react";
 import { RotateCcw, Volume2, Loader2 } from "lucide-react";
 
 const A2FlashcardCard = ({

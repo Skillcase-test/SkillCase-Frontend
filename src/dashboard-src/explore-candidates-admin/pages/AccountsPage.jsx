@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   Users,
@@ -10,7 +10,6 @@ import {
   Mail,
   Image,
   KeyRound,
-  Sparkles,
   ChevronDown,
   ChevronRight,
   CornerDownRight,

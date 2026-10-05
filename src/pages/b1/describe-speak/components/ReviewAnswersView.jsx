@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Volume2, Maximize2 } from "lucide-react";
 import ScoreRing from "./ScoreRing";
 import MetricBar from "./MetricBar";

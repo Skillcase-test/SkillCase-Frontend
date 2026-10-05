@@ -41,7 +41,6 @@ import {
   Send,
   Sparkles,
   UserRound,
-  Waves,
   X,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
@@ -1401,8 +1400,7 @@ function CallEnginePage({ me: propMe } = {}) {
           "Failed to load call engine overview data",
       );
     } finally {
-      if (dashboardSeq.current !== seq) return;
-      setDashboardLoading(false);
+      if (dashboardSeq.current === seq) setDashboardLoading(false);
     }
   }, [filterPayload, previousFilterPayload]);
 
@@ -1435,8 +1433,7 @@ function CallEnginePage({ me: propMe } = {}) {
             "Failed to load call logs",
         );
       } finally {
-        if (logsSeq.current !== seq) return;
-        setLogsLoading(false);
+        if (logsSeq.current === seq) setLogsLoading(false);
       }
     },
     [filterPayload, sortBy, sortOrder, recordingFilter, search],

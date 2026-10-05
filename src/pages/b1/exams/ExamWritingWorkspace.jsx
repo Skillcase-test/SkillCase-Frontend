@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ChevronLeft, Loader2, AlertCircle, Clock, Camera } from "lucide-react";
+import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
 import {
   getB1ExamSectionContent,
   submitB1ExamWritingAnswers,
@@ -262,11 +263,7 @@ export default function ExamWritingWorkspace() {
   });
 
   if (loading) {
-    return (
-      <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
-    );
+    return <ExerciseLayoutSkeleton variant="writing" />;
   }
 
   if (fetchError || questions.length === 0) {

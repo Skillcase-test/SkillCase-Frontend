@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Loader2 } from "lucide-react";
+import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
 import {
   getB1DescribeSpeakContent,
   getB1DescribeSpeakChapters,
@@ -250,11 +251,7 @@ export default function DescribeSpeakSuccess() {
   };
 
   if (loading) {
-    return (
-      <div className="w-full max-w-md mx-auto min-h-screen flex items-center justify-center bg-white shadow-sm">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
-    );
+    return <ExerciseLayoutSkeleton variant="speaking" />;
   }
 
   const writingScore = Number(data?.writingFeedback?.score || 0);

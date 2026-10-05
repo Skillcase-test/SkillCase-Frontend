@@ -1,4 +1,3 @@
-import React from "react";
 import B1FlashcardCard from "./B1FlashcardCard";
 
 const cardColors = ["#d6bbfb", "#d9f4ff", "#ffffff"];

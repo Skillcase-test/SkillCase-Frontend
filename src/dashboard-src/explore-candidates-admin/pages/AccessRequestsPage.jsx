@@ -6,11 +6,9 @@ import {
   CheckCircle2,
   XCircle,
   ShieldAlert,
-  Search,
   Building2,
   Check,
   X,
-  RotateCcw,
 } from "lucide-react";
 import { exploreCandidatesAdminApi } from "../../../api/exploreCandidatesAdminApi";
 import {
@@ -23,7 +21,6 @@ import {
   Spinner,
 } from "../components/common";
 import {
-  PrimaryButton,
   SecondaryButton,
   ActionButton,
   SearchInput,

@@ -21,6 +21,7 @@ function LineChart02({
   const [chart, setChart] = useState(null)
   const canvas = useRef(null);
   const legend = useRef(null);
+  const { currentTheme } = useThemeProvider();
   const darkMode = false;
   const { textColor, gridColor, tooltipBodyColor, tooltipBgColor, tooltipBorderColor } = chartColors;  
 

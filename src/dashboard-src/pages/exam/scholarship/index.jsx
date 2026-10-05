@@ -1,4 +1,4 @@
-import React, {
+import {
   useCallback,
   useContext,
   useEffect,
@@ -48,7 +48,7 @@ import ConfirmDialog from "./ui/ConfirmDialog";
 import { btn } from "./ui/buttons";
 import { toUTC, toLocalInput } from "../../../../utils/dateTime";
 import { ControlDropdown } from "../../../payments-admin/components/controls";
-import { hasPermission, useAdminAccess } from "../../../../utils/adminPermissions";
+import { useAdminAccess } from "../../../../utils/adminPermissions";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 

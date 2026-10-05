@@ -10,7 +10,6 @@ import {
   X,
   RefreshCw,
   Loader2,
-  GripVertical,
 } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -44,7 +43,7 @@ import {
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
 import { useFlashcardTelemetry } from "../../../telemetry/learning";
 

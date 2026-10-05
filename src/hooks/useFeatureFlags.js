@@ -6,7 +6,12 @@ import { getMyFeatureFlags } from "../api/featureFlagApi";
 let cachedUserId = null;
 let cachedFlags = null;
 let isFetching = false;
+let lastFetchAt = 0;
 const listeners = new Set();
+
+// focus/visibilitychange fire per mounted consumer and can storm on quick
+// tab switches — forced refreshes within this window reuse the fresh cache.
+const FORCED_REFRESH_MIN_INTERVAL_MS = 15000;
 
 function notifyListeners() {
   listeners.forEach((listener) => listener(cachedFlags));
@@ -16,6 +21,7 @@ export function _resetFlagsCache() {
   cachedUserId = null;
   cachedFlags = null;
   isFetching = false;
+  lastFetchAt = 0;
 }
 
 export function triggerFeatureFlagsRefresh() {
@@ -41,10 +47,23 @@ export function useFeatureFlags() {
         return;
       }
 
-      if (isFetching && !force && cachedUserId === user.user_id) return;
+      // One in-flight fetch max, forced or not — a forced refresh during an
+      // active fetch gets the fresh result when it lands anyway.
+      if (isFetching && cachedUserId === user.user_id) return;
+      if (
+        force &&
+        cachedUserId === user.user_id &&
+        cachedFlags &&
+        Date.now() - lastFetchAt < FORCED_REFRESH_MIN_INTERVAL_MS
+      ) {
+        setFlags(cachedFlags);
+        setLoading(false);
+        return;
+      }
 
       try {
         isFetching = true;
+        lastFetchAt = Date.now();
         const res = await getMyFeatureFlags();
         const resolved = res?.data?.flags || {};
         cachedUserId = user.user_id;

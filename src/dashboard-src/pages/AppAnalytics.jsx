@@ -9,14 +9,10 @@ import {
 import toast from "react-hot-toast";
 import {
   Activity,
-  BarChart3,
-  CalendarDays,
   Clock,
   RefreshCw,
-  ShieldCheck,
   Smartphone,
   Users,
-  TrendingUp,
   ChevronDown,
   Globe,
   Trophy,
@@ -44,7 +40,6 @@ import "chartjs-adapter-moment";
 
 import {
   ControlInput,
-  ControlSelect,
   ControlButton,
 } from "../payments-admin/components/controls";
 import { chartColors } from "../charts/ChartjsConfig";

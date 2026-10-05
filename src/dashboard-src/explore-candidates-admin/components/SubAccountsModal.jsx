@@ -21,14 +21,12 @@ export function SubAccountsModal({ parent, accounts, onClose, onChanged }) {
     loading: false,
   });
 
-  if (!parent) return null;
-
-  const subs = accounts.filter((a) => a.parent_account_id === parent.id);
-  const attachCandidates = accounts.filter(
-    (a) => a.id !== parent.id && a.parent_account_id !== parent.id,
-  );
-
   const attachOptions = useMemo(() => {
+    const attachCandidates = parent
+      ? accounts.filter(
+          (a) => a.id !== parent.id && a.parent_account_id !== parent.id,
+        )
+      : [];
     return [
       { value: "", label: "Select an account to attach..." },
       ...attachCandidates.map((a) => ({
@@ -36,7 +34,11 @@ export function SubAccountsModal({ parent, accounts, onClose, onChanged }) {
         label: `${a.email}${a.parent_account_id ? ` (sub of ${a.parent_email})` : ""}`,
       })),
     ];
-  }, [attachCandidates]);
+  }, [accounts, parent]);
+
+  if (!parent) return null;
+
+  const subs = accounts.filter((a) => a.parent_account_id === parent.id);
 
   async function run(action, successMessage) {
     setError("");

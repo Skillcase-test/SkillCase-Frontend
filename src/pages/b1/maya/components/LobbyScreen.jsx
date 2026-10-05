@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
   ChevronLeft,
   PhoneCall,
   Sparkles,
-  HelpCircle,
   AlertCircle,
 } from "lucide-react";
 import { getMayaImage } from "../../../../utils/mayaAvatars";

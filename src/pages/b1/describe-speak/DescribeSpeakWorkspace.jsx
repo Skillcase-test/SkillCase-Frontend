@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Loader2, Camera, RotateCcw } from "lucide-react";
+import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
 import {
   getB1DescribeSpeakContent,
   uploadB1DescribeSpeakOcr,
@@ -560,11 +561,7 @@ export default function DescribeSpeakWorkspace() {
   };
 
   if (loading) {
-    return (
-      <div className="w-full max-w-md mx-auto min-h-screen flex items-center justify-center bg-white shadow-sm">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
-    );
+    return <ExerciseLayoutSkeleton variant="speaking" />;
   }
 
   const wordLimit = topic?.word_limit || 50;

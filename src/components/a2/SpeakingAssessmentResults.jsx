@@ -1,4 +1,4 @@
-import { AlertCircle, RotateCcw } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 const getScoreBadgeStyle = (score) => {
   if (score >= 70)
     return { bg: "bg-[rgba(1,144,53,0.12)]", text: "text-[#019035]" };

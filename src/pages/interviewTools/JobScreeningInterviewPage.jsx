@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
@@ -13,7 +13,6 @@ import {
   Square,
   Phone,
   CheckCircle2,
-  Camera,
 } from "lucide-react";
 import { interviewToolsApi } from "../../api/interviewToolsApi";
 import { getProgress, checkInterview } from "../../api/jobScreeningApi";

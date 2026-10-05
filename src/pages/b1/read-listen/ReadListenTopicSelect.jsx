@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { getB1ReadingChapterItems, getB1ReadingChapters } from "../../../api/b1Api";
 import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 

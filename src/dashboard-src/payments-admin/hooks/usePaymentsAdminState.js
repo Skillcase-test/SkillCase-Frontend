@@ -585,7 +585,7 @@ export function usePaymentsAdminState() {
     }
     loadAccess();
     return () => { mounted = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   useEffect(() => {
@@ -647,7 +647,7 @@ export function usePaymentsAdminState() {
     if (!permittedTabs || permittedTabs.size === 0) return;
     refreshBatches();
     refreshMandateStatuses();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [permittedTabs]);
 
   useEffect(() => {

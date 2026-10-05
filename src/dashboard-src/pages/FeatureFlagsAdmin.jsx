@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Flag, Info, Lock, RefreshCw, ShieldCheck } from "lucide-react";
 import {
@@ -21,6 +21,11 @@ const EMPTY_FILTERS = {
   statusFilter: "all",
 };
 
+// Flags that gate one of two named experiences; rollout_pct is the B share.
+const AB_VARIANTS = {
+  learn_german_v2: { aLabel: "Learn German A", bLabel: "Learn German B" },
+};
+
 export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = false }) {
   const [features, setFeatures] = useState([]);
   const [selectedFeatureKey, setSelectedFeatureKey] = useState("");
@@ -33,6 +38,7 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
     paid_enabled: false,
     unpaid_enabled: false,
     eligible_levels: ["A1", "A2", "B1", "B2"],
+    rollout_pct: 0,
   });
   const [savingCohortRules, setSavingCohortRules] = useState(false);
 
@@ -48,7 +54,17 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
     features.find((f) => f.feature_key === selectedFeatureKey) || activeConfig;
   const eligibleLevelsList = selectedFeature?.eligible_levels || ["A1", "A2", "B1", "B2"];
   const isGlobalOnly = Boolean(selectedFeature?.global_only);
+  const isOverrideOnly = Boolean(selectedFeature?.override_only);
   const FeatureModule = FEATURE_MODULES[selectedFeatureKey];
+  const abVariant = AB_VARIANTS[selectedFeatureKey] || null;
+
+  const rulesFromFeature = (f) => ({
+    global_enabled: Boolean(f.global_enabled),
+    paid_enabled: Boolean(f.paid_enabled),
+    unpaid_enabled: Boolean(f.unpaid_enabled),
+    eligible_levels: f.eligible_levels || ["A1", "A2", "B1", "B2"],
+    rollout_pct: Number(f.rollout_pct) || 0,
+  });
 
   const updateFilters = (patch) => {
     setFilters((prev) => ({ ...prev, ...patch }));
@@ -68,12 +84,7 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
       if (list.length > 0 && !selectedFeatureKey) {
         setSelectedFeatureKey(list[0].feature_key);
         setActiveConfig(list[0]);
-        setCohortRules({
-          global_enabled: Boolean(list[0].global_enabled),
-          paid_enabled: Boolean(list[0].paid_enabled),
-          unpaid_enabled: Boolean(list[0].unpaid_enabled),
-          eligible_levels: list[0].eligible_levels || ["A1", "A2", "B1", "B2"],
-        });
+        setCohortRules(rulesFromFeature(list[0]));
       }
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to load feature flags");
@@ -100,12 +111,7 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
       const data = res?.data || {};
       setActiveConfig(data.feature || null);
       if (data.feature) {
-        setCohortRules({
-          global_enabled: Boolean(data.feature.global_enabled),
-          paid_enabled: Boolean(data.feature.paid_enabled),
-          unpaid_enabled: Boolean(data.feature.unpaid_enabled),
-          eligible_levels: data.feature.eligible_levels || ["A1", "A2", "B1", "B2"],
-        });
+        setCohortRules(rulesFromFeature(data.feature));
       }
       setStats(data.stats || {});
       setUsers(data.users || []);
@@ -138,14 +144,24 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
     try {
       setSavingCohortRules(true);
       // global_only flags reject cohort fields server-side.
+      // rollout_pct is only managed through the A/B split control; sending it
+      // for other flags would overwrite values set out-of-band.
+      // override_only flags ignore global/cohort switches entirely — only
+      // level eligibility and the onboarding-roll percentage are meaningful.
       const payload = isGlobalOnly
         ? { global_enabled: cohortRules.global_enabled }
-        : {
-            global_enabled: cohortRules.global_enabled,
-            paid_enabled: cohortRules.paid_enabled,
-            unpaid_enabled: cohortRules.unpaid_enabled,
-            eligible_levels: cohortRules.eligible_levels,
-          };
+        : isOverrideOnly
+          ? {
+              eligible_levels: cohortRules.eligible_levels,
+              ...(abVariant ? { rollout_pct: cohortRules.rollout_pct } : {}),
+            }
+          : {
+              global_enabled: cohortRules.global_enabled,
+              paid_enabled: cohortRules.paid_enabled,
+              unpaid_enabled: cohortRules.unpaid_enabled,
+              eligible_levels: cohortRules.eligible_levels,
+              ...(abVariant ? { rollout_pct: cohortRules.rollout_pct } : {}),
+            };
       const res = await adminUpdateFeatureConfig(selectedFeatureKey, payload);
       toast.success(
         isGlobalOnly ? "Feature updated successfully!" : "Cohort rules updated successfully!"
@@ -184,9 +200,13 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
     try {
       await adminSetUserFeatureOverride(selectedFeatureKey, user.user_id, newOverrideValue);
       toast.success(
-        `Feature ${newOverrideValue ? "ENABLED" : "DISABLED"} for ${
-          user.fullname || user.username
-        }`
+        abVariant
+          ? `${user.fullname || user.username} switched to ${
+              newOverrideValue ? abVariant.bLabel : abVariant.aLabel
+            }`
+          : `Feature ${newOverrideValue ? "ENABLED" : "DISABLED"} for ${
+              user.fullname || user.username
+            }`
       );
     } catch (err) {
       toast.error(err.response?.data?.error || "Failed to set user override");
@@ -289,12 +309,14 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
       <RolloutRules
         feature={selectedFeature}
         isGlobalOnly={isGlobalOnly}
+        isOverrideOnly={isOverrideOnly}
         levels={eligibleLevelsList}
         rules={cohortRules}
         onChange={setCohortRules}
         onSave={handleSaveCohortRules}
         saving={savingCohortRules}
         canEdit={canEdit}
+        abVariant={abVariant}
       />
 
       {FeatureModule && <FeatureModule canEdit={canManageContent} />}
@@ -307,12 +329,14 @@ export default function FeatureFlagsAdmin({ canEdit = true, canManageContent = f
             levels={eligibleLevelsList}
             shownCount={users.length}
             total={pagination.total}
+            variant={abVariant}
           />
 
           <StudentTable
             users={users}
             loading={loadingUsers}
             canEdit={canEdit}
+            variant={abVariant}
             page={page}
             pageSize={pageSize}
             totalPages={pagination.total_pages}

@@ -1,4 +1,3 @@
-import React from "react";
 
 // Complete markdown parser for grammar explanations
 const parseMarkdown = (text) => {

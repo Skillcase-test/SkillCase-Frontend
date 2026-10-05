@@ -8,7 +8,7 @@ import {
   LockKeyhole,
   MapPin,
 } from "lucide-react";
-import { isB1PracticeLevel } from "../../utils/b1Progress";
+import { isPracticeSuiteLevel } from "../../utils/b1Progress";
 import bagImg from "../../assets/bag.webp";
 
 const HARDCODED_JOBS = [
@@ -39,7 +39,7 @@ export default function JobsLockedPage() {
   const { user } = useSelector((state) => state.auth);
 
   // B1/B2 users have the real pipeline — never show them this gate.
-  if (isB1PracticeLevel(user?.user_prof_level)) {
+  if (isPracticeSuiteLevel(user?.user_prof_level)) {
     return <Navigate to="/job-screening" replace />;
   }
 

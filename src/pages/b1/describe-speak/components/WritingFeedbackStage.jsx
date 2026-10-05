@@ -1,4 +1,3 @@
-import React from "react";
 import ScoreRing from "./ScoreRing";
 import MetricBar from "./MetricBar";
 import { getScoreGreeting } from "../utils/scoreUtils";

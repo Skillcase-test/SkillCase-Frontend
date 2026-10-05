@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Trash2, Loader2, Play } from "lucide-react";
 import { getB1VideosAdmin, deleteB1Video } from "../../../../api/b1Api";
 import toast, { Toaster } from "react-hot-toast";

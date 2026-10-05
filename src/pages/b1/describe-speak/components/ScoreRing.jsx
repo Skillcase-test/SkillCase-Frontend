@@ -1,4 +1,3 @@
-import React from "react";
 import { getScoreStrokeColor } from "../utils/scoreUtils";
 
 /**

@@ -1,4 +1,3 @@
-import React from "react";
 import { Lock, RefreshCw, Sparkles, ToggleLeft, ToggleRight } from "lucide-react";
 
 function ToggleCard({ title, description, on, onToggle, canEdit }) {
@@ -26,15 +25,44 @@ function ToggleCard({ title, description, on, onToggle, canEdit }) {
   );
 }
 
+function SplitInput({ label, value, onChange, canEdit, accent }) {
+  return (
+    <div className="flex-1">
+      <span
+        className={`block text-[10px] font-bold uppercase tracking-wide ${
+          accent || "text-slate-400"
+        }`}
+      >
+        {label}
+      </span>
+      <div className="mt-1 flex items-center gap-1">
+        <input
+          type="number"
+          min="0"
+          max="100"
+          step="1"
+          value={value}
+          disabled={!canEdit}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-20 px-2.5 py-1.5 bg-slate-900/80 border border-slate-600 rounded-lg text-sm font-bold text-white text-center focus:outline-none focus:ring-1 focus:ring-blue-400 disabled:opacity-50"
+        />
+        <span className="text-xs font-semibold text-slate-400">%</span>
+      </div>
+    </div>
+  );
+}
+
 export default function RolloutRules({
   feature,
   isGlobalOnly,
+  isOverrideOnly = false,
   levels = [],
   rules,
   onChange,
   onSave,
   saving,
   canEdit,
+  abVariant = null,
 }) {
   const levelText = levels.join(", ");
   const toggle = (key) => onChange({ ...rules, [key]: !rules[key] });
@@ -57,7 +85,9 @@ export default function RolloutRules({
           <p className="text-xs text-slate-300 mt-0.5">
             {isGlobalOnly
               ? feature?.description || "Enabled for everyone or no one."
-              : `Rules apply automatically to all students in eligible levels (${levelText}).`}
+              : isOverrideOnly
+                ? "Per-student assignment only — granted by onboarding rolls or individual overrides below. Global and cohort switches do not apply."
+                : `Rules apply automatically to all students in eligible levels (${levelText}).`}
           </p>
         </div>
 
@@ -90,38 +120,116 @@ export default function RolloutRules({
         </button>
       </div>
 
-      <div className={`grid grid-cols-1 gap-4 pt-5 ${isGlobalOnly ? "" : "md:grid-cols-3"}`}>
-        <ToggleCard
-          title="Global Feature Release"
-          description={
-            isGlobalOnly
-              ? "Single switch for every student. No cohort rules, no per-student exceptions."
-              : `Enable for 100% of students in ${levelText} regardless of payment tier.`
-          }
-          on={rules.global_enabled}
-          onToggle={() => toggle("global_enabled")}
-          canEdit={canEdit}
-        />
+      {isOverrideOnly ? (
+        <div className="pt-5">
+          <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/80">
+            <div className="text-sm font-semibold text-white flex items-center gap-2">
+              <Lock className="w-4 h-4 text-violet-300" /> Assignment-only feature
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              This flag resolves exclusively from per-student overrides — new
+              students get bucketed at onboarding via the split below, everyone
+              else is switched individually in the student table. There is no
+              global or cohort switch, by design.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className={`grid grid-cols-1 gap-4 pt-5 ${isGlobalOnly ? "" : "md:grid-cols-3"}`}>
+          <ToggleCard
+            title="Global Feature Release"
+            description={
+              isGlobalOnly
+                ? "Single switch for every student. No cohort rules, no per-student exceptions."
+                : `Enable for 100% of students in ${levelText} regardless of payment tier.`
+            }
+            on={rules.global_enabled}
+            onToggle={() => toggle("global_enabled")}
+            canEdit={canEdit}
+          />
 
-        {!isGlobalOnly && (
-          <>
-            <ToggleCard
-              title="Paid Students Cohort"
-              description="Enable for all current and future students with active paid / autopay status."
-              on={rules.paid_enabled}
-              onToggle={() => toggle("paid_enabled")}
-              canEdit={canEdit}
+          {!isGlobalOnly && (
+            <>
+              <ToggleCard
+                title="Paid Students Cohort"
+                description="Enable for all current and future students with active paid / autopay status."
+                on={rules.paid_enabled}
+                onToggle={() => toggle("paid_enabled")}
+                canEdit={canEdit}
+              />
+              <ToggleCard
+                title="Free / Unpaid Students Cohort"
+                description={`Enable for all free tier and trial users in ${levelText}.`}
+                on={rules.unpaid_enabled}
+                onToggle={() => toggle("unpaid_enabled")}
+                canEdit={canEdit}
+              />
+            </>
+          )}
+        </div>
+      )}
+
+      {!isGlobalOnly && abVariant && (
+        <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/80 mt-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-white">
+                {abVariant.aLabel} ↔ {abVariant.bLabel} split
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Applies to new students finishing onboarding only — existing
+                students keep their current version unless switched below.
+              </p>
+            </div>
+            <div className="flex items-end gap-4 shrink-0">
+              <SplitInput
+                label={abVariant.aLabel}
+                value={100 - (rules.rollout_pct ?? 0)}
+                canEdit={canEdit}
+                onChange={(v) =>
+                  canEdit &&
+                  onChange({
+                    ...rules,
+                    rollout_pct:
+                      100 -
+                      Math.min(100, Math.max(0, Math.round(Number(v) || 0))),
+                  })
+                }
+              />
+              <SplitInput
+                label={abVariant.bLabel}
+                value={rules.rollout_pct ?? 0}
+                canEdit={canEdit}
+                accent="text-violet-300"
+                onChange={(v) =>
+                  canEdit &&
+                  onChange({
+                    ...rules,
+                    rollout_pct: Math.min(
+                      100,
+                      Math.max(0, Math.round(Number(v) || 0)),
+                    ),
+                  })
+                }
+              />
+            </div>
+          </div>
+          <div className="mt-3 h-2 w-full rounded-full bg-slate-700/80 overflow-hidden flex">
+            <div
+              className="h-full bg-slate-400/80 transition-all"
+              style={{ width: `${100 - (rules.rollout_pct ?? 0)}%` }}
             />
-            <ToggleCard
-              title="Free / Unpaid Students Cohort"
-              description={`Enable for all free tier and trial users in ${levelText}.`}
-              on={rules.unpaid_enabled}
-              onToggle={() => toggle("unpaid_enabled")}
-              canEdit={canEdit}
+            <div
+              className="h-full bg-violet-500 transition-all"
+              style={{ width: `${rules.rollout_pct ?? 0}%` }}
             />
-          </>
-        )}
-      </div>
+          </div>
+          <p className="text-[10px] text-slate-500 mt-1.5">
+            {abVariant.aLabel} {100 - (rules.rollout_pct ?? 0)}% ·{" "}
+            {abVariant.bLabel} {rules.rollout_pct ?? 0}% — always totals 100%.
+          </p>
+        </div>
+      )}
 
       {!isGlobalOnly && (
         <div className="bg-slate-800/60 rounded-xl p-4 border border-slate-700/80 mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">

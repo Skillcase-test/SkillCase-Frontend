@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import mayaStanding from "../../assets/onboarding/mayaStanding.webp";
 import whiteLogo from "../../assets/onboarding/white_mainlogo.webp";

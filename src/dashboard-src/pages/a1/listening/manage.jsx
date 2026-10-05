@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Trash2,
   RefreshCw,
-  AlertCircle,
-  CheckCircle,
   Loader,
   GripVertical,
   Save,

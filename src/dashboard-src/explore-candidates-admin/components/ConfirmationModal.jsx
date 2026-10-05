@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, HelpCircle, X } from "lucide-react";
-import { PrimaryButton, SecondaryButton } from "./controls";
+import { SecondaryButton } from "./controls";
 
 export function ConfirmationModal({
   isOpen,

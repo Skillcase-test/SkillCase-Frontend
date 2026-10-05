@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Play, Pause, ChevronLeft, ChevronRight } from "lucide-react";
 
 function VideoCard({ video, isPlaying, onPlay, onStop, style, onClick }) {

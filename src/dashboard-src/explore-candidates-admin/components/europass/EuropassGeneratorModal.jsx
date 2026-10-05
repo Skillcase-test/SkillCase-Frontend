@@ -12,7 +12,6 @@ import {
   RefreshCw,
   Edit3,
   FileText,
-  Link2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { exploreCandidatesAdminApi } from "../../../../api/exploreCandidatesAdminApi";

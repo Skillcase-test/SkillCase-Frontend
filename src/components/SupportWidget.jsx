@@ -1,20 +1,13 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { motion as Motion, AnimatePresence } from "framer-motion";
 import {
   MessageSquare,
   X,
   Send,
-  Image as ImageIcon,
   Loader2,
-  Plus,
   PlusCircle,
-  Clock,
   History,
-  CheckCircle2,
-  AlertCircle,
-  ChevronDown,
-  ChevronUp,
   Upload,
   FileText,
   ArrowLeft,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { BookOpen, CheckCircle } from "lucide-react";
 import ModalPortal from "../common/ModalPortal";
 

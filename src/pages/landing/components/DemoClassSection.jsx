@@ -1,4 +1,3 @@
-import React from "react";
 import mayaFull from "../../../assets/onboarding/mayaFull.webp";
 
 const D = {

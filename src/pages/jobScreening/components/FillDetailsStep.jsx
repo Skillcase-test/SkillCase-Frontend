@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { submitCandidateDetails } from "../../../api/jobScreeningApi";
 import { trackFlowAction } from "../../../telemetry/flow";

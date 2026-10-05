@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Upload, FileText, Download, Loader } from "lucide-react";
+import { useState } from "react";
+import { FileText, Download } from "lucide-react";
 import { uploadA2Test, getA2Template } from "../../../../api/a2Api";
 export default function A2TestAdd() {
   const [selectedFile, setSelectedFile] = useState(null);

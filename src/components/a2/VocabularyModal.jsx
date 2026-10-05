@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { X, Volume2, Loader2 } from "lucide-react";
 
 import api from "../../api/axios";

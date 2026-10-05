@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useSelector } from "react-redux";
-import { ArrowLeft, ArrowRight, Volume2 } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import ProgressBar from "./shared/ProgressBar";
 import { getMayaImage } from "../../../../utils/mayaAvatars";
 import handtap from "../../../../assets/handtap.webp";

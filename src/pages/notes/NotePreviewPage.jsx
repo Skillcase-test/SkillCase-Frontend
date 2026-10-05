@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { getNote } from "../../api/notesApi";
 import PdfViewer from "./components/PdfViewer";
 
@@ -68,8 +68,17 @@ export default function NotePreviewPage() {
       </div>
 
       {loading ? (
-        <div className="flex-1 flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
+        <div
+          className="flex-1 px-4 py-4 flex flex-col gap-4"
+          aria-label="Loading note"
+          role="status"
+        >
+          <div className="w-full bg-white p-3 rounded-xl border border-zinc-200 flex flex-col gap-2 animate-pulse">
+            <div className="h-5 w-1/2 bg-slate-200 rounded" />
+            <div className="h-3 w-3/4 bg-slate-100 rounded" />
+            <div className="h-3 w-16 bg-slate-100 rounded" />
+          </div>
+          <div className="w-full flex-1 min-h-[40vh] bg-slate-100 rounded-xl border border-zinc-200 animate-pulse" />
         </div>
       ) : error ? (
         <div className="flex-1 flex items-center justify-center p-6 text-center text-slate-500 text-sm">

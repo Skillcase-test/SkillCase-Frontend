@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { ChevronLeft, Loader2, AlertCircle, Check } from "lucide-react";
+import { ChevronLeft, AlertCircle, Check } from "lucide-react";
+import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
 import { FiBookOpen } from "react-icons/fi";
 import { PiPencilSimpleLine, PiHeadphonesLight } from "react-icons/pi";
 import { CiMicrophoneOn } from "react-icons/ci";
@@ -91,11 +92,7 @@ export default function ExamBlockSelector() {
   };
 
   if (loading) {
-    return (
-      <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="w-8 h-8 animate-spin text-[#002856]" />
-      </div>
-    );
+    return <ExerciseLayoutSkeleton variant="exam" />;
   }
 
   const allCompleted = ["reading", "writing", "listening", "speaking"].every(

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
@@ -8,7 +8,6 @@ import {
   ArrowDown,
   ChevronLeft,
   Loader2,
-  CheckCircle,
   AlertCircle,
 } from "lucide-react";
 import {

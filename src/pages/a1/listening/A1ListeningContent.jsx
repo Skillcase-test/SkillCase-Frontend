@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect, useRef, useCallback } from "react";
+import { memo, useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -8,8 +8,6 @@ import {
   Headphones,
   Loader2,
   ArrowRight,
-  BookOpen,
-  EarIcon,
   PhoneCall,
   AudioLines,
   Megaphone,
@@ -45,14 +43,13 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import KaraokeSubtitles from "../../../components/a2/KaraokeSubtitles";
 import A2AudioPlayer from "../../../components/a2/A2AudioPlayer";
-import QuestionRenderer from "../../../components/a2/QuestionRenderer";
 import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
 
 import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import { useUsageLimitGate } from "../../../hooks/useUsageLimits";
-import useTextToSpeech from "../../pronounce/hooks/useTextToSpeech";
+import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
 import { useLearningQuestionJourney } from "../../../telemetry/learning";
 import { trackLearningEvent } from "../../../telemetry/events";

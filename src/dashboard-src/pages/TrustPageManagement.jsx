@@ -1,22 +1,17 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import {
-  Plus,
   Trash2,
   Edit2,
   Loader2,
-  Upload,
   FileText,
-  Check,
   Video,
-  Eye,
   Star,
   ChevronDown,
   GripVertical,
   Save,
   Sparkles,
   AlertTriangle,
-  Megaphone,
   X,
 } from "lucide-react";
 import {

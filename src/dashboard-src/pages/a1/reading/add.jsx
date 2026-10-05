@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { FileText, Image, Download } from "lucide-react";
 import { uploadA1Reading, getA1Template } from "../../../../api/a1Api";
 

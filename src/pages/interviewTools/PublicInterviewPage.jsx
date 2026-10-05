@@ -4,15 +4,12 @@ import { useSelector } from "react-redux";
 import {
   AlertCircle,
   ArrowRight,
-  Briefcase,
   Camera,
   CheckCircle2,
   Mic,
   RotateCcw,
   ShieldCheck,
-  SkipForward,
   Square,
-  User,
 } from "lucide-react";
 import { interviewToolsApi } from "../../api/interviewToolsApi";
 import { checkInterview } from "../../api/jobScreeningApi";

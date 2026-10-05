@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Phone, Loader2, BaggageClaim } from "lucide-react";
 import { motion } from "framer-motion";
 import { fetchTrustPageContent } from "../api/trustPageApi";

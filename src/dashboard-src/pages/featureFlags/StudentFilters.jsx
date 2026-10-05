@@ -1,4 +1,3 @@
-import React from "react";
 import { Search } from "lucide-react";
 
 const PAYMENT_TABS = [
@@ -16,6 +15,7 @@ export default function StudentFilters({
   levels = [],
   shownCount = 0,
   total = 0,
+  variant = null,
 }) {
   return (
     <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs space-y-4">
@@ -83,8 +83,12 @@ export default function StudentFilters({
             className={selectClass}
           >
             <option value="all">All Statuses</option>
-            <option value="enabled">Access Enabled</option>
-            <option value="disabled">Access Disabled</option>
+            <option value="enabled">
+              {variant ? `${variant.bLabel} only` : "Access Enabled"}
+            </option>
+            <option value="disabled">
+              {variant ? `${variant.aLabel} only` : "Access Disabled"}
+            </option>
             <option value="override">Custom Overrides Only</option>
           </select>
         </div>

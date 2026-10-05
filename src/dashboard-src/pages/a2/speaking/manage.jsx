@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Trash2, RefreshCw, GripVertical, Save, Loader } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Trash2, GripVertical, Save } from "lucide-react";
 import {
   getA2Chapters,
   reorderA2Chapters,

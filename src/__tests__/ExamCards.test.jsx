@@ -9,7 +9,6 @@
  * - Warned out / auto closed
  */
 
-import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';

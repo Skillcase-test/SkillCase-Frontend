@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
 import LineChartDAU from "../../charts/LineChartDAU"; // Import the NEW chart
 import { chartAreaGradient } from "../../charts/ChartjsConfig";
-import EditMenu from "../../components/DropdownEditMenu";
 import { adjustColorOpacity, getCssVariable } from "../../utils/Utils";
 import api from "../../../api/axios";
 

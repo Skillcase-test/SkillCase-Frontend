@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { ControlButton } from "./controls";
 
 export function CopyAgreementModal({ modal, setModal }) {

@@ -5,7 +5,6 @@ import {
   FileText,
   Trash2,
   Edit,
-  Download,
   ArrowLeft,
   Loader2,
 } from "lucide-react";

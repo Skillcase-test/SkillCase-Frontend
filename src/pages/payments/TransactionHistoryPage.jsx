@@ -84,11 +84,27 @@ export default function TransactionHistoryPage() {
 
       <div className="flex-1 px-4 py-4 flex flex-col gap-9 overflow-y-auto">
         {payments === null && !error ? (
-          <div className="flex flex-col items-center gap-3 py-16">
-            <div className="size-8 border-3 border-[#002856] border-t-transparent rounded-full animate-spin" />
-            <p className="text-slate-500 text-xs font-medium">
-              Loading your transactions...
-            </p>
+          <div
+            className="flex flex-col"
+            aria-label="Loading transactions"
+            role="status"
+          >
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="py-3 flex justify-between items-start gap-3 border-b border-black/5 animate-pulse"
+              >
+                <div className="flex-1 flex flex-col gap-1.5">
+                  <div className="h-3.5 w-24 bg-slate-200 rounded" />
+                  <div className="h-3 w-32 bg-slate-100 rounded" />
+                  <div className="h-3 w-44 bg-slate-100 rounded" />
+                </div>
+                <div className="flex flex-col items-end gap-1.5">
+                  <div className="h-3.5 w-16 bg-slate-200 rounded" />
+                  <div className="h-3 w-14 bg-slate-100 rounded" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : error ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center">

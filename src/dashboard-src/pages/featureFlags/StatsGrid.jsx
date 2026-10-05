@@ -1,4 +1,3 @@
-import React from "react";
 import { Activity, CheckCircle2, Sliders, UserCheck, Users } from "lucide-react";
 
 export default function StatsGrid({ stats = {}, levels = [] }) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import { RotateCcw, Volume2, Loader2 } from "lucide-react";
 
 export default function A1FlashcardCard({

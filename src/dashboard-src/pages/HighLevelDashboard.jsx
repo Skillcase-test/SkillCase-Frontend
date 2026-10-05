@@ -4,7 +4,6 @@ import {
   BarChart3,
   Clock3,
   Target,
-  Timer,
   UserPlus,
   Users,
 } from "lucide-react";

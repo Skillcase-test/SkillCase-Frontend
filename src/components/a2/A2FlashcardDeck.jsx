@@ -1,4 +1,3 @@
-import React from "react";
 import A2FlashcardCard from "./A2FlashcardCard";
 
 const cardColors = ["#d6bbfb", "#d9f4ff", "#ffffff"];

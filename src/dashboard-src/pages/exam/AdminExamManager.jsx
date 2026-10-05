@@ -31,15 +31,11 @@ import {
   Loader2,
   Save,
   ArrowLeft,
-  Upload,
   GripVertical,
   Users,
-  AlertTriangle,
   RefreshCw,
   X,
   Music,
-  CheckCircle,
-  Circle,
   Download,
   MinusCircle,
   SeparatorHorizontal,
@@ -3594,7 +3590,7 @@ export default function AdminExamManager() {
                   }));
                   const a = document.createElement("a");
                   a.href = url;
-                  a.download = `${selectedExam.title.replace(/[^a-z0-9_\-]/gi, "_")}_submissions.xlsx`;
+                  a.download = `${selectedExam.title.replace(/[^a-z0-9_-]/gi, "_")}_submissions.xlsx`;
                   a.click();
                   URL.revokeObjectURL(url);
                 } catch (err) {

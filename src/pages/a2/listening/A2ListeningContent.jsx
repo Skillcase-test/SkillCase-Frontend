@@ -1,15 +1,11 @@
-import React, { memo, useState, useEffect, useRef, useCallback } from "react";
+import { memo, useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
-  Play,
-  Pause,
   Headphones,
   Loader2,
   ArrowRight,
-  BookOpen,
-  EarIcon,
   PhoneCall,
   AudioLines,
   Megaphone,
@@ -599,7 +595,6 @@ export default function A2ListeningContent() {
     trackLearningEvent("content.navigation", { level: "A2", module: "listening", chapterId, contentId: currentItem?.id, index: currentIndex, total: content.length, direction: currentIndex < content.length - 1 ? "next" : "complete" });
     if (currentIndex < content.length - 1) {
       setCurrentIndex(currentIndex + 1);
-      setPhase("listen");
       setAnswers({});
       setResults(null);
       setShowAnswers(false);
@@ -613,7 +608,6 @@ export default function A2ListeningContent() {
   const handleNext = () => {
     if (currentIndex < content.length - 1) {
       setCurrentIndex(currentIndex + 1);
-      setPhase("listen");
       setAnswers({});
       setResults(null);
       setIsPlaying(false);

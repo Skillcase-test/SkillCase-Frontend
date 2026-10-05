@@ -53,7 +53,7 @@ const LEVEL_ROUTE_MAP = {
   "A1 - Beginner\n(I know a few words)": "/a1",
   "A2 - Elementary\n(I understand basic sentences)": "/a2",
   "B1 - Intermediate\n(I can have simple conversations)": "/b1",
-  "B2 - Upper Intermediate\n(I can speak fairly confidently)": "/b1",
+  "B2 - Upper Intermediate\n(I can speak fairly confidently)": "/",
 };
 
 const OTP_RESEND_SECONDS = 90;
@@ -1114,7 +1114,6 @@ const OnboardingFlow = () => {
               className="absolute inset-0 bg-gradient-to-b from-[#002856] to-[#1A4B9F] flex flex-col items-center justify-between pt-16 pb-0 overflow-hidden select-none"
               style={{
                 paddingTop: "max(env(safe-area-inset-top), 4rem)",
-                paddingBottom: "max(env(safe-area-inset-bottom), 0px)",
               }}
             >
               {/* Ambient background glow orbs */}
