@@ -14,7 +14,7 @@ export default function A1NursingSelect() {
   const { isFeatureEnabled, loading: flagsLoading } = useFeatureFlags();
   const [chapters, setChapters] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { locked: usageLocked } = useUsageLimitModule("A1", "nursing");
+  const { locked: usageLocked } = useUsageLimitModule("ALL", "nursing");
   const flagOn = isFeatureEnabled("nursing_german");
 
   useEffect(() => {
@@ -73,9 +73,10 @@ export default function A1NursingSelect() {
 
   return (
     <ChapterSelectTemplate
-      title="Nursing German"
+      title="Medical German"
       subtitle="German for your first weeks on the ward — one chapter at a time"
-      headerTitle="Nursing German"
+      headerTitle="Medical German"
+      levelLabel={(user?.user_prof_level || "A1").toUpperCase()}
       headerImage={images.nursingGerman}
       chapters={chapters.map((c) => ({
         ...c,

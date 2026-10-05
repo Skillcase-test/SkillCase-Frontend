@@ -35,13 +35,15 @@ import { useFlashcardTelemetry } from "../../../telemetry/learning";
 import { useUsageLimits } from "../../../hooks/useUsageLimits";
 import { useFeatureFlags } from "../../../hooks/useFeatureFlags";
 
-const MODULE_LABEL = "A1 Nursing";
+const MODULE_LABEL = "Medical German";
 const QUICK_CHECK_EVERY = 20;
 
 export default function A1NursingChapter() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
+  // Shared module at every level — analytics tag the learner's own level.
+  const userLevel = (user?.user_prof_level || "A1").toUpperCase();
   const analytics = useFirstPartyAnalytics();
   const { guardUsage } = useUsageLimits();
   const { isFeatureEnabled, loading: flagsLoading } = useFeatureFlags();
@@ -94,7 +96,7 @@ export default function A1NursingChapter() {
   const isEmergency = emergencyCount > 0;
 
   const recordNavigation = useFlashcardTelemetry({
-    level: "A1",
+    level: userLevel,
     chapterId,
     currentCard,
     totalCards,
@@ -156,7 +158,7 @@ export default function A1NursingChapter() {
         }
         analytics?.capture("learning_module_started", {
           module: MODULE_LABEL,
-          level: "A1",
+          level: userLevel,
           chapter_id: chapterId,
           chapter_number: data.chapter?.chapter_number,
           resume_index: resume,
@@ -284,7 +286,7 @@ export default function A1NursingChapter() {
 
   const moveToNextCard = (inputMethod = "swipe") => {
     if (currentCard >= totalCards - 1 || swipeDirection) return;
-    if (!guardUsage("A1", "nursing")) return;
+    if (!guardUsage("ALL", "nursing")) return;
 
     recordNavigation({
       fromIndex: currentCard,
@@ -415,7 +417,7 @@ export default function A1NursingChapter() {
 
       analytics?.capture("learning_module_submitted", {
         module: MODULE_LABEL,
-        level: "A1",
+        level: userLevel,
         chapter_id: chapterId,
         chapter_number: chapter.chapter_number,
         quiz_type: quizType,
@@ -427,7 +429,7 @@ export default function A1NursingChapter() {
       });
       analytics?.capture("flashcard_quiz_submitted", {
         module: MODULE_LABEL,
-        level: "A1",
+        level: userLevel,
         chapter_id: chapterId,
         chapter_number: chapter.chapter_number,
         quiz_type: quizType,
@@ -444,7 +446,7 @@ export default function A1NursingChapter() {
         setQuizQuestions([]);
         setQuizAttemptId(null);
         setQuizType(null);
-        if (!guardUsage("A1", "nursing")) return;
+        if (!guardUsage("ALL", "nursing")) return;
         setCurrentCard(pendingIndex);
         setDeckRotation((p) => (p + 1) % 3);
         setIsFlipped(false);
@@ -471,7 +473,7 @@ export default function A1NursingChapter() {
 
   const skipQuickCheck = () => {
     setPhase("cards");
-    if (!guardUsage("A1", "nursing")) return;
+    if (!guardUsage("ALL", "nursing")) return;
     setCurrentCard(pendingIndex);
     setDeckRotation((p) => (p + 1) % 3);
     setIsFlipped(false);
@@ -479,7 +481,7 @@ export default function A1NursingChapter() {
   };
 
   if (loading || flagsLoading) {
-    return <FlashcardDeckSkeleton title="Nursing German" />;
+    return <FlashcardDeckSkeleton title="Medical German" />;
   }
 
   if (locked) {

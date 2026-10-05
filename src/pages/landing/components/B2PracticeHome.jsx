@@ -9,10 +9,11 @@ import {
 } from "lucide-react";
 import { images } from "../../../assets/images";
 import { getMayaImage } from "../../../utils/mayaAvatars";
+import FeatureCard from "./FeatureCard";
 import useB2Access from "../../../hooks/useB2Access";
 import useB2PracticeResume from "../../../hooks/useB2PracticeResume";
 import { getB2Exams } from "../../../api/b2Api";
-import { B2Button, B2ScoreRing, B2State } from "../../../components/b2/B2UI";
+import { B2Button, B2ScoreRing } from "../../../components/b2/B2UI";
 import { normalizeB2Score } from "../../../utils/b2Scores";
 const skills = [
   {
@@ -83,99 +84,105 @@ export default function B2PracticeHome({ overview, loading = false, onRetry }) {
       ? suggested?.title
       : `${practiceSkill} practice`);
   const score = normalizeB2Score(latest?.overallScore);
+  // Cards stay outside .b2-ui — its element rules would override the shared
+  // card's Tailwind classes (unlayered beats layered utilities).
   return (
-    <section className="b2-ui b2-home">
-      <h1 className="sr-only">B2 practice</h1>
-      {loading ? (
-        <B2State loading />
-      ) : !overview ? (
-        <div className="b2-note b2-note--warning">
-          Progress couldn’t load. You can still practise below.
-          {onRetry && (
-            <B2Button variant="quiet" onClick={onRetry}>
-              Reload progress
-            </B2Button>
-          )}
-        </div>
-      ) : next || latest ? (
-        <div className="b2-home-test" id="b2-test-card">
-          <Link
-            className="b2-home-test-progress"
-            to="/b2/test"
-            aria-label={score !== null
-              ? `Last test ${score}%, view assessment progress`
-              : "View test progress"}
-          >
-            <div className="b2-home-test-score" data-chart={!!latest} aria-hidden="true">
-              {latest ? <B2ScoreRing score={score} size={44} /> : <ClipboardList size={23} />}
-            </div>
-            <span className="b2-home-test-copy">
-              <strong>
-                {latest ? "Your last test" : resumeTest ? "Test in progress" : "Your first test"}
-              </strong>
-              <span>
-                {latest || resumeTest ? (
-                  <>View progress <ChevronRight size={13} aria-hidden="true" /></>
-                ) : (
-                  <><Clock3 size={13} aria-hidden="true" /> About {next.durationMinutes || 15} min</>
-                )}
-              </span>
-            </span>
-          </Link>
-          {next && (
-            <B2Button
-              className="b2-home-compact-action"
-              variant={practice ? "secondary" : "primary"}
-              aria-label={resumeTest ? "Resume test" : latest ? "Take next test" : "Prepare for test"}
-              onClick={() => open("exams", "/b2/test/ready")}
-            >
-              {resumeTest ? "Resume test" : latest ? "Next test" : "Prepare"}
-            </B2Button>
-          )}
-        </div>
-      ) : null}
-      {practice && (
-        <div
-          className="b2-focus b2-home-recommendation"
-          id="b2-practise-next"
-        >
-          <div className="b2-home-recommendation-meta">
-            <span className="b2-eyebrow">
-              {savedPractice
-                ? `Continue ${practiceSkill?.toLowerCase()}`
-                : `Recommended ${practiceSkill?.toLowerCase()}`}
-            </span>
-            {savedPractice ? (
-              <span className="b2-home-duration">Saved on this device</span>
-            ) : practice.durationMinutes > 0 && (
-              <span className="b2-home-duration">
-                <Clock3 size={14} aria-hidden="true" />
-                {practice.durationMinutes} min
-              </span>
+    <section className="b2-home">
+      <div className="b2-ui b2-stack">
+        <h1 className="sr-only">B2 practice</h1>
+        {loading ? (
+          <div
+            className="b2-skeleton b2-skeleton--banner"
+            role="status"
+            aria-label="Loading"
+          />
+        ) : !overview ? (
+          <div className="b2-note b2-note--warning">
+            Progress couldn’t load. You can still practise below.
+            {onRetry && (
+              <B2Button variant="quiet" onClick={onRetry}>
+                Reload progress
+              </B2Button>
             )}
           </div>
-          <div className="b2-home-recommendation-main">
-            <div className="b2-home-recommendation-copy">
-              <h2>{practiceTitle}</h2>
-              {practiceDescription && <p>{practiceDescription}</p>}
-            </div>
-            <B2Button
-              className="b2-home-compact-action"
-              aria-label={savedPractice ? "Resume practice" : "Start practice"}
-              onClick={() =>
-                open(
-                  practice.module,
-                  `/b2/${practice.module}/${encodeURIComponent(practice.exerciseId)}`,
-                )
-              }
+        ) : next || latest ? (
+          <div className="b2-home-test" id="b2-test-card">
+            <Link
+              className="b2-home-test-progress"
+              to="/b2/test"
+              aria-label={score !== null
+                ? `Last test ${score}%, view assessment progress`
+                : "View test progress"}
             >
-              {savedPractice ? "Resume" : "Start"}
-              <ArrowRight size={14} aria-hidden="true" />
-            </B2Button>
+              <div className="b2-home-test-score" data-chart={!!latest} aria-hidden="true">
+                {latest ? <B2ScoreRing score={score} size={44} /> : <ClipboardList size={23} />}
+              </div>
+              <span className="b2-home-test-copy">
+                <strong>
+                  {latest ? "Your last test" : resumeTest ? "Test in progress" : "Your first test"}
+                </strong>
+                <span>
+                  {latest || resumeTest ? (
+                    <>View progress <ChevronRight size={13} aria-hidden="true" /></>
+                  ) : (
+                    <><Clock3 size={13} aria-hidden="true" /> About {next.durationMinutes || 15} min</>
+                  )}
+                </span>
+              </span>
+            </Link>
+            {next && (
+              <B2Button
+                className="b2-home-compact-action"
+                variant={practice ? "secondary" : "primary"}
+                aria-label={resumeTest ? "Resume test" : latest ? "Take next test" : "Prepare for test"}
+                onClick={() => open("exams", "/b2/test/ready")}
+              >
+                {resumeTest ? "Resume test" : latest ? "Next test" : "Prepare"}
+              </B2Button>
+            )}
           </div>
-        </div>
-      )}
-      <section className="b2-stack b2-home-skills" id="b2-skills">
+        ) : null}
+        {practice && (
+          <div
+            className="b2-focus b2-home-recommendation"
+            id="b2-practise-next"
+          >
+            <div className="b2-home-recommendation-meta">
+              <span className="b2-eyebrow">
+                {savedPractice
+                  ? `Continue ${practiceSkill?.toLowerCase()}`
+                  : `Recommended ${practiceSkill?.toLowerCase()}`}
+              </span>
+              {savedPractice ? (
+                <span className="b2-home-duration">Saved on this device</span>
+              ) : practice.durationMinutes > 0 && (
+                <span className="b2-home-duration">
+                  <Clock3 size={14} aria-hidden="true" />
+                  {practice.durationMinutes} min
+                </span>
+              )}
+            </div>
+            <div className="b2-home-recommendation-main">
+              <div className="b2-home-recommendation-copy">
+                <h2>{practiceTitle}</h2>
+                {practiceDescription && <p>{practiceDescription}</p>}
+              </div>
+              <B2Button
+                className="b2-home-compact-action"
+                aria-label={savedPractice ? "Resume practice" : "Start practice"}
+                onClick={() =>
+                  open(
+                    practice.module,
+                    `/b2/${practice.module}/${encodeURIComponent(practice.exerciseId)}`,
+                  )
+                }
+              >
+                {savedPractice ? "Resume" : "Start"}
+                <ArrowRight size={14} aria-hidden="true" />
+              </B2Button>
+            </div>
+          </div>
+        )}
         <div className="b2-home-skills-heading">
           <h2>Practice</h2>
           {!next && !latest && (
@@ -189,61 +196,41 @@ export default function B2PracticeHome({ overview, loading = false, onRetry }) {
             </Link>
           )}
         </div>
-        <div className="b2-skill-grid">
-          {skills.map((s) => (
-            <button
-              key={s.key}
-              id={`b2-${s.key}-card`}
-              className="b2-skill-card"
-              onClick={() => open(s.key, `/b2/${s.key}`)}
-            >
-              <span className="b2-skill-card-media"><img src={s.image} alt="" /></span>
-              <div>
-                <strong>{s.label}</strong>
-                <p>{s.sub}</p>
-              </div>
-            </button>
-          ))}
-          <button
-            type="button"
-            id="b2-exams-card"
-            className="b2-skill-card b2-mock-card"
-            onClick={() => open("exams", "/b2/exams")}
-            aria-label={
-              hasExamPapers === false
-                ? "Mock tests, Goethe and telc, coming soon"
-                : "Mock tests, Goethe and telc"
-            }
-          >
-            <span className="b2-skill-card-media">
-              <img src={images.mockTest} alt="" />
-              {hasExamPapers === false && (
-                <span className="b2-card-availability">Coming soon</span>
-              )}
-            </span>
-            <div>
-              <strong>Mock tests</strong>
-              <p>Goethe &amp; telc</p>
-            </div>
-          </button>
-          {/* Talk to Maya — live voice practice; mode choice happens inside. */}
-          <button
-            type="button"
-            id="b2-maya-card"
-            className="b2-skill-card"
-            onClick={() => open("maya", "/b2/maya")}
-            aria-label="Talk to Maya, live German speaking practice"
-          >
-            <span className="b2-skill-card-media b2-skill-card-media-maya">
-              <img src={getMayaImage("wave", user)} alt="" />
-            </span>
-            <div>
-              <strong>Talk to Maya</strong>
-              <p>Everyday talk &amp; interviews</p>
-            </div>
-          </button>
-        </div>
-      </section>
+      </div>
+      <div id="b2-skills" className="grid grid-cols-3 gap-2.5 -mt-2">
+        {skills.map((s) => (
+          <FeatureCard
+            key={s.key}
+            tourId={`b2-${s.key}-card`}
+            title={s.label}
+            description={s.sub}
+            image={s.image}
+            link={`/b2/${s.key}`}
+            enabled
+            moduleInfo={{ level: "B2", module_key: s.key }}
+          />
+        ))}
+        <FeatureCard
+          tourId="b2-exams-card"
+          title="Mock tests"
+          description="Goethe & telc"
+          image={images.mockTest}
+          link="/b2/exams"
+          enabled
+          comingSoon={hasExamPapers === false}
+          moduleInfo={{ level: "B2", module_key: "exams" }}
+        />
+        {/* Talk to Maya — live voice practice; mode choice happens inside. */}
+        <FeatureCard
+          tourId="b2-maya-card"
+          title="Talk to Maya"
+          description="Everyday talk & interviews"
+          image={getMayaImage("wave", user)}
+          link="/b2/maya"
+          enabled
+          moduleInfo={{ level: "B2", module_key: "maya" }}
+        />
+      </div>
     </section>
   );
 }

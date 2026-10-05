@@ -339,9 +339,6 @@
 .b2-home-compact-action.b2-button--primary::before { background: var(--b2-gold); border-color: transparent; }
 .b2-home-compact-action.b2-button--primary:hover::before { background: #e2ac32; }
 .b2-home-compact-action.b2-button--secondary:hover::before { background: var(--b2-blue); }
-.b2-home-skills {
-  gap: 8px;
-}
 .b2-home-skills-heading {
   display: flex;
   justify-content: space-between;
@@ -364,64 +361,6 @@
 }
 .b2-progress-link:hover {
   text-decoration: underline;
-}
-.b2-skill-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-.b2-skill-card {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  border: 1px solid var(--b2-line);
-  border-radius: 15px;
-  background: white;
-  text-align: left;
-  overflow: hidden;
-  color: var(--b2-ink);
-  padding: 2px;
-}
-.b2-skill-card-media { display: block; position: relative; border-radius: 12px; overflow: hidden; }
-.b2-skill-card img {
-  display: block;
-  height: 86px;
-  width: 100%;
-  object-fit: cover;
-}
-.b2-skill-card div {
-  padding: 10px;
-}
-.b2-skill-card strong {
-  display: block;
-  font-size: 16px;
-  margin-bottom: 3px;
-}
-.b2-skill-card p {
-  font-size: 13px;
-  line-height: 1.45;
-}
-.b2-skill-card-media-maya { background: #dceafa; }
-.b2-skill-card-media-maya img { object-fit: contain; object-position: center bottom; }
-.b2-skill-card:hover {
-  border-color: #789bc3;
-  box-shadow: 0 3px 12px #0028560a;
-}
-.b2-mock-card {
-  text-decoration: none;
-}
-.b2-card-availability {
-  position: absolute;
-  top: 6px;
-  left: 6px;
-  padding: 3px 7px;
-  border: 1px solid var(--b2-line);
-  border-radius: 6px;
-  background: white;
-  color: var(--b2-navy);
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.4;
 }
 .b2-welcome {
   position: fixed;
@@ -936,6 +875,10 @@
   background: #e7edf4;
   width: 100%;
 }
+/* Banner-height skeleton — .b2-state is sized for full-page loading. */
+.b2-skeleton--banner {
+  height: 76px;
+}
 .b2-workspace,
 .b2-review {
   max-width: 760px !important;
@@ -1132,10 +1075,6 @@
     scroll-behavior: auto !important;
   }
 }
-@media (min-width: 1024px) {
-  .b2-skill-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
-
 .b2-workspace .b2-submit {
   background: #edb843 !important;
   color: #002856 !important;

@@ -1667,19 +1667,19 @@ function AppContent() {
                     )}
                   />
 
-                  {/* A1 Nursing German */}
+                  {/* Medical German — shared module, all levels */}
                   <Route
                     path="/a1/nursing"
                     element={lazyScreen(
                       <A1NursingSelect />,
-                      "Loading Nursing German...",
+                      "Loading Medical German...",
                     )}
                   />
                   <Route
                     path="/a1/nursing/:chapterId"
                     element={lazyScreen(
                       <A1NursingChapter />,
-                      "Loading Nursing German...",
+                      "Loading Medical German...",
                     )}
                   />
 

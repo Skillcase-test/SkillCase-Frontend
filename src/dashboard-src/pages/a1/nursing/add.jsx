@@ -170,7 +170,7 @@ export default function A1NursingAdd() {
     <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-9xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl text-gray-800 font-bold">
-          Add A1 Nursing German Chapter
+          Add Medical German Chapter
         </h1>
         <p className="text-sm text-gray-600 mt-1">
           Upload one chapter JSON plus its images (files or one ZIP)

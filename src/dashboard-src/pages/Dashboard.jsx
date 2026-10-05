@@ -1026,7 +1026,7 @@ export default function Dashboard() {
           { key: "a1-test", label: "A1 Test", basePath: "/admin/a1/test" },
           {
             key: "a1-nursing",
-            label: "A1 Nursing German",
+            label: "Medical German",
             basePath: "/admin/a1/nursing",
           },
         ]

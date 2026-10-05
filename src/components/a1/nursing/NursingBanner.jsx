@@ -7,12 +7,11 @@ import { useUsageLimits } from "../../../hooks/useUsageLimits";
 import FeatureStatusChip from "../../ui/FeatureStatusChip";
 import { hapticLight } from "../../../utils/haptics";
 
-// Top banner above the A1 grid — same slate+Maya language as the B2 test
-// banner. Deep-links into the nursing chapter hub and shows live path
-// progress ("Chapter X of 22").
-export default function NursingBanner() {
+// Full-width grid banner — same slate+Maya language as the B2 test banner.
+// Rendered at every level; usage-gated under the shared ALL/nursing pool.
+export default function NursingBanner({ className = "" }) {
   const { eligible, getState } = useUsageLimits();
-  const moduleState = getState("A1", "nursing");
+  const moduleState = getState("ALL", "nursing");
   const isLocked = Boolean(moduleState?.locked);
 
   const [overview, setOverview] = useState(null);
@@ -33,7 +32,7 @@ export default function NursingBanner() {
           locked: true,
           reason: "usage_limit",
           module_key: "nursing",
-          level: "A1",
+          level: "ALL",
           limit_value: moduleState.limit_value,
           periods: moduleState.periods,
           reset_at: moduleState.reset_at,
@@ -55,7 +54,7 @@ export default function NursingBanner() {
       to={isLocked ? undefined : "/a1/nursing"}
       onClick={isLocked ? openLockModal : undefined}
       onTouchStart={() => !isLocked && hapticLight()}
-      className="mb-3 rounded-2xl bg-gradient-to-r from-slate-100 to-slate-200 border border-slate-200/80 pl-3 pr-4 py-0 overflow-hidden flex items-end gap-3 cursor-pointer hover:shadow-md active:scale-[0.99] transition-all shadow-sm/10"
+      className={`rounded-2xl bg-gradient-to-r from-slate-100 to-slate-200 border border-slate-200/80 pl-3 pr-4 py-0 overflow-hidden flex items-end gap-3 cursor-pointer hover:shadow-md active:scale-[0.99] transition-all shadow-sm/10 ${className}`}
     >
       <div className="w-16 h-18 sm:w-20 sm:h-20 relative flex items-end justify-center shrink-0 self-end -mb-0.5">
         <img
@@ -73,7 +72,7 @@ export default function NursingBanner() {
         ) : (
           <>
             <span className="text-slate-900 text-sm font-bold leading-5">
-              Nursing German
+              Medical German
             </span>
             <span className="text-slate-500 text-[11px] font-medium leading-4">
               {started && overview?.current_chapter

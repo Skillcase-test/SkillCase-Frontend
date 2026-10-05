@@ -26,6 +26,7 @@ export default function ChapterSelectTemplate({
   backPath = "/",
   showTourIds = false,
   headerTitle = "German Language Level",
+  levelLabel = "A1",
   unitLabel = "Ch.",
   getComplete, // (chapter, { completed, total }) => bool — overrides done-state
   getBadge, // (chapter, ctx) => { label, bg, text } — overrides row badge
@@ -88,7 +89,7 @@ export default function ChapterSelectTemplate({
       <div className="px-4 pt-4 pb-4">
         <div className="flex items-center gap-4 mb-1.5">
           <h1 className="text-[30px] font-semibold text-[#002856] leading-[38px]">
-            A1
+            {levelLabel}
           </h1>
           <span className="text-base font-semibold text-[#002856]">
             {headerTitle}

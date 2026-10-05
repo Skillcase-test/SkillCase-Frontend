@@ -110,7 +110,7 @@ export default function A1NursingManage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl md:text-3xl text-gray-800 font-bold">
-            Manage A1 Nursing German
+            Manage Medical German
           </h1>
           <p className="text-sm text-gray-600 mt-1">
             Chapter order is fixed by chapter_number — re-upload via Add to
