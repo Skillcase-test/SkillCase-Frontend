@@ -9,6 +9,7 @@ import useB2Recorder from "../../hooks/useB2Recorder";
 import useTextToSpeech from "../../hooks/useTextToSpeech";
 import { hapticMedium } from "../../utils/haptics";
 import { useQuestionPositionTelemetry } from "../../telemetry/learning";
+import { trackB2Action } from "../../utils/b2Telemetry";
 import {
   getB2Exercise, submitB2ExerciseSpeakingAnswer, submitB2ExerciseSpeaking,
   startB2ExamSubmission, getB2ExamSectionContent, submitB2ExamSpeakingAudio,
@@ -114,6 +115,11 @@ export default function B2SpeakingWorkspace({ assessment = false, resourceId }) 
           await submitB2ExamSpeakingAudio(submissionId, new FormData());
           try { localStorage.removeItem(timerKey); } catch { /* Nothing else to clear. */ }
         } else await submitB2ExerciseSpeaking(resourceId);
+        trackB2Action(assessment ? "section_submitted" : "practice_completed", {
+          skill: "speaking",
+          mode: assessment ? "assessment" : "practice",
+          entityId: resourceId,
+        });
         completed.current = true;
         navigate(results, { state: { submissionId } });
       } else setIndex((value) => value + 1);

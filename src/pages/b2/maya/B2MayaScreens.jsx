@@ -124,7 +124,7 @@ export function FeedbackError({ sessionId, onRetried }) {
 export function Feedback({ practice: p, feedback: f, analysis: a, target, best }) {
   const user = useSelector((state) => state.auth.user);
   const interview = p.mode !== "talk";
-  const learnerLines = p.transcript.filter((l) => l.speaker === "candidate");
+  const learnerLines = (p.transcript ?? []).filter((l) => l.speaker === "candidate");
   const spokeMs = learnerLines.reduce((ms, l) => ms + (l.duration_ms ?? 0), 0);
   const first = f.corrections[0];
   const rest = f.corrections.slice(1);
@@ -385,7 +385,8 @@ export function Feedback({ practice: p, feedback: f, analysis: a, target, best }
 export function Transcript({ practice: p, feedback }) {
   const user = useSelector((state) => state.auth.user);
   const norm = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-  const heard = p.transcript.some((l) => l.speaker === "candidate");
+  const transcript = p.transcript ?? [];
+  const heard = transcript.some((l) => l.speaker === "candidate");
   const back = `/b2/maya?session=${p.id}`;
   return (
     <>
@@ -401,7 +402,7 @@ export function Transcript({ practice: p, feedback }) {
         </h1>
         <p className="transcript-info">Automatic transcript · Some words may be inaccurate.</p>
         {!heard ? <div className="info-note">No learner speech was captured in this attempt.</div> : null}
-        {p.transcript.map((l, i) => {
+        {transcript.map((l, i) => {
           const you = l.speaker === "candidate";
           const fix = you ? feedback?.corrections.find((c) => c.you_said && norm(l.text).includes(norm(c.you_said))) : undefined;
           const en = you ? new Set(englishWords(l.text)) : null;

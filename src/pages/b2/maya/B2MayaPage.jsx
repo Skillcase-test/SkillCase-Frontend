@@ -14,6 +14,11 @@ import "./b2Maya.css";
  * the page re-fetches every few seconds.
  */
 
+/** A report still not ready after this stops polling (the server marks lost calls as abandoned). */
+const POLL_LIMIT_MS = 10 * 60_000;
+/** How long an unreachable server (e.g. restarting after a deploy) is retried before saying so. */
+const UNREACHABLE_LIMIT_MS = 90_000;
+
 const heardIt = (p) => (p.heard !== undefined ? p.heard : (p.transcript ?? []).some((l) => l.speaker === "candidate"));
 const kindOf = (p) => (!heardIt(p) || feedbackReason(p.feedback) === "too_little_speech" ? "attempt" : p.feedback ? "completed" : "pending");
 
@@ -83,6 +88,8 @@ export default function B2MayaPage() {
   const [sessionMissing, setSessionMissing] = useState(false);
   const [rows, setRows] = useState(null);
   const [progress, setProgress] = useState(null);
+  const [stalled, setStalled] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const pollRef = useRef(null);
 
   // The room's fixed data (modes, topics, minutes, word bank, names) — needed before any call screen.
@@ -105,12 +112,19 @@ export default function B2MayaPage() {
       getB2MayaSession(id)
         .then((data) => {
           setSessionMissing(false);
+          setLoadFailed(false);
           setSession(data);
           return data.session;
         })
-        .catch(() => {
-          setSessionMissing(true);
-          return null;
+        // Only a 404 means it's gone (null); anything else — offline, server restarting — is
+        // unreachable (undefined) and retried.
+        .catch((e) => {
+          if (e?.response?.status === 404) {
+            setSessionMissing(true);
+            return null;
+          }
+          setLoadFailed(true);
+          return undefined;
         }),
     [],
   );
@@ -118,30 +132,38 @@ export default function B2MayaPage() {
   useEffect(() => {
     setSession(null);
     setSessionMissing(false);
-    if (pollRef.current) {
+    setLoadFailed(false);
+    setStalled(false);
+    const stop = () => {
       clearInterval(pollRef.current);
       pollRef.current = null;
-    }
+    };
+    stop();
     if (!loadId) return;
+    let active = true;
     loadSession(loadId).then((s) => {
-      if (!s || !sessionId) return; // focus doesn't poll
-      // A report that's still being written re-fetches until the feedback lands.
-      const pending = s.status === "started" || (heardIt(s) && !s.feedback?.ok && feedbackReason(s.feedback) !== "too_little_speech" && feedbackReason(s.feedback) !== "failed");
-      if (pending)
-        pollRef.current = setInterval(() => {
-          loadSession(loadId).then((p) => {
-            if (p && p.status !== "started" && p.feedback) {
-              clearInterval(pollRef.current);
-              pollRef.current = null;
-            }
-          });
-        }, 3000);
+      if (!active || !sessionId || s === null) return; // focus doesn't poll; a missing session never will
+      // A report that's still being written re-fetches until the feedback lands; an unreachable
+      // server (s undefined) is retried the same way, for a shorter while.
+      const pending = s && (s.status === "started" || (heardIt(s) && !s.feedback?.ok && feedbackReason(s.feedback) !== "too_little_speech" && feedbackReason(s.feedback) !== "failed"));
+      if (s && !pending) return;
+      const t0 = Date.now();
+      let loaded = Boolean(s);
+      pollRef.current = setInterval(() => {
+        if (Date.now() - t0 > (loaded ? POLL_LIMIT_MS : UNREACHABLE_LIMIT_MS)) {
+          stop();
+          setStalled(true);
+          return;
+        }
+        loadSession(loadId).then((p) => {
+          if (p) loaded = true;
+          if (p === null || (p && p.status !== "started" && p.feedback)) stop();
+        });
+      }, 3000);
     });
     return () => {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-        pollRef.current = null;
-      }
+      active = false;
+      stop();
     };
   }, [loadId, sessionId, loadSession]);
 
@@ -162,17 +184,19 @@ export default function B2MayaPage() {
   if (sessionId) {
     const p = session?.session;
     if (sessionMissing) screen = <Missing text="This practice wasn’t found on your account." />;
-    else if (!p) screen = <Loading />;
+    else if (!p) screen = stalled ? <Missing text="Please check your connection and try again." /> : <Loading />;
     else if (wantsTranscript) screen = <Transcript practice={p} feedback={p.feedback?.ok ? p.feedback.feedback : null} />;
+    else if (stalled && (p.status === "started" || !p.feedback))
+      screen = <Missing text="This conversation is taking longer than usual to save. Check My progress again in a little while." />;
     else if (p.status === "started") screen = <Processing saved={false} />;
-    else if (!heardIt(p) || feedbackReason(p.feedback) === "too_little_speech") screen = <NoSpeech sessionId={p.id} hasTranscript={p.transcript.length > 0} />;
+    else if (!heardIt(p) || feedbackReason(p.feedback) === "too_little_speech") screen = <NoSpeech sessionId={p.id} hasTranscript={(p.transcript ?? []).length > 0} />;
     else if (feedbackReason(p.feedback) === "failed") screen = <FeedbackError sessionId={p.id} onRetried={() => loadSession(loadId)} />;
     else if (!p.feedback?.ok) screen = <Processing saved />;
     else screen = <Feedback practice={p} feedback={p.feedback.feedback} analysis={p.analysis} target="B2" best={session.best ?? {}} />;
   } else if (focusId) {
     const p = session?.session;
     if (sessionMissing) screen = <Missing text="This practice wasn’t found on your account." />;
-    else if (!p || !meta) screen = metaError ? <Missing text="Please check your connection and try again." /> : <Loading />;
+    else if (!p || !meta) screen = metaError || loadFailed ? <Missing text="Please check your connection and try again." /> : <Loading />;
     else {
       const index = Number(params.get("i") ?? 0);
       const c = p.feedback?.ok ? p.feedback.feedback.corrections[index] : undefined;

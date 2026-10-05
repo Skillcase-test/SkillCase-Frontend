@@ -4,6 +4,9 @@ import { useSelector } from "react-redux";
 import { startB2Maya, b2MayaRelayUrl } from "../../../api/b2MayaApi";
 import { SpokenCaption } from "../../../utils/b2MayaCaption";
 import { VoicePlayer } from "../../../utils/b2MayaVoice";
+import useB2Access from "../../../hooks/useB2Access";
+import { trackFeatureEvent } from "../../../telemetry/events";
+import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 import { BottomNav, Brand, Footer, Header, Icon, Main, MayaFrame, MayaHero, MayaLive, MayaMark, Steps, Title } from "./sp";
 
 /*
@@ -73,6 +76,9 @@ const Wave = ({ heights }) => (
 export default function B2MayaRoom({ meta, focus }) {
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
+  // Fresh lock state on entry; a locked learner gets the limit modal before the mic check, not after it.
+  useUsageLimitModule("B2", "maya");
+  const access = useB2Access();
   const { level, coachName, firstName, modes, minutes: minutesMap, topics, words } = meta;
   const hasInterview = modes.length > 1;
   // Focused follow-ups skip the mode and topic picks and land on the start screen.
@@ -119,6 +125,18 @@ export default function B2MayaRoom({ meta, focus }) {
   const levelsRef = useRef({ coach: 0, you: 0 });
   const answeredRef = useRef(false);
   const wakeLockRef = useRef(null);
+  const liveAtRef = useRef(0);
+  const sessionIdRef = useRef(null);
+
+  // Same event names as B1's call so the shared Maya funnel lines up; never the topic text itself.
+  const trackCall = (event, extra = {}) =>
+    trackFeatureEvent("maya", event, {
+      feature: "b2.maya",
+      entityType: "maya_session",
+      ...extra,
+      attributes: { level: "B2", mode: focus ? "focus" : mode, ...extra.attributes },
+    });
+  const elapsedMs = () => (liveAtRef.current ? Date.now() - liveAtRef.current : 0);
 
   // A sleeping display kills the mic mid-call. The OS auto-releases the lock
   // when the app hides — `released` flips on the still-truthy sentinel.
@@ -268,6 +286,7 @@ export default function B2MayaRoom({ meta, focus }) {
   // The mic check sits in a sheet over the start screen: open it and run the check right away.
   // Already checked this visit ("Talk anyway"/dropped-call retry) goes straight to the call.
   const beginTalk = () => {
+    if (!access("maya")) return;
     if (room === "good" || room === "some_noise") return void start();
     setSheet("mic");
     void checkMic();
@@ -289,6 +308,8 @@ export default function B2MayaRoom({ meta, focus }) {
       return;
     }
     streamRef.current = stream;
+    trackCall("call_started", { lifecycle: "started" });
+    liveAtRef.current = 0;
     setMuted(false);
     setSheet(null);
     setScreen("connecting");
@@ -320,6 +341,7 @@ export default function B2MayaRoom({ meta, focus }) {
       return;
     }
     setSessionId(res.sessionId);
+    sessionIdRef.current = res.sessionId;
     try {
       const ctx = new AudioContext({ sampleRate: 24000 });
       ctxRef.current = ctx;
@@ -389,7 +411,11 @@ export default function B2MayaRoom({ meta, focus }) {
       ws.onclose = (ev) => {
         if (endedRef.current) return;
         console.error("[maya] ws closed:", ev.code, ev.reason || "(no reason)");
-        if (ev.code >= 4000) {
+        // Live and not ended by the relay: the connection dropped mid-call.
+        if (liveAtRef.current)
+          trackCall("call_ended", { entityId: res.sessionId, elapsedMs: elapsedMs(), lifecycle: "failed", outcome: "dropped", reasonCode: String(ev.code) });
+        // 4xxx: the relay refused the call; 1012: the server is restarting. Both carry a reason to show.
+        if (ev.code >= 4000 || ev.code === 1012) {
           setError(ev.reason || "The practice couldn't start.");
           setScreen("failed");
           cleanup();
@@ -418,6 +444,7 @@ export default function B2MayaRoom({ meta, focus }) {
   /** The call has ended: the report view takes over (it waits for the feedback). */
   const finished = (id) => {
     endedRef.current = true;
+    trackCall("call_ended", { entityId: id, elapsedMs: elapsedMs(), lifecycle: "succeeded" });
     cleanup();
     navigate(`/b2/maya?session=${encodeURIComponent(id)}`);
   };
@@ -425,6 +452,8 @@ export default function B2MayaRoom({ meta, focus }) {
   const goLive = () => {
     setScreen("live");
     const t0 = Date.now();
+    liveAtRef.current = t0;
+    trackCall("call_connected", { entityId: sessionIdRef.current, lifecycle: "succeeded" });
     tickRef.current = setInterval(() => setSeconds(Math.round((Date.now() - t0) / 1000)), 1000);
     captionTimerRef.current = setInterval(() => {
       const now = Date.now();
@@ -753,7 +782,14 @@ export default function B2MayaRoom({ meta, focus }) {
           <div className="info-note">{coachName} will follow your pace and help you find the words.</div>
         </Main>
         <Footer note={`About ${minutes} minutes · ${level} practice`}>
-          <button type="button" className="primary" onClick={() => setScreen("ready")}>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => {
+              trackCall("topic_selected", { attributes: { selection_code: topic ? "suggested" : customTopic.trim() ? "custom" : "general" } });
+              setScreen("ready");
+            }}
+          >
             Continue
             <Icon name="arrow" />
           </button>
@@ -946,7 +982,7 @@ export default function B2MayaRoom({ meta, focus }) {
         </div>
       </Main>
       <Footer note="Voice only. Your camera stays off.">
-        <button type="button" className="primary gold" onClick={() => setScreen(interview ? "ready" : "topics")}>
+        <button type="button" className="primary gold" onClick={() => access("maya") && setScreen(interview ? "ready" : "topics")}>
           {interview ? "Prepare for my interview" : "Let’s practise"}
           <Icon name="arrow" />
         </button>
