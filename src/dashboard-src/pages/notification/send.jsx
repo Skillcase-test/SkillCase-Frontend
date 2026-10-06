@@ -588,7 +588,7 @@ export default function SendNotification() {
         message:
           audienceMode === "individual"
             ? `Notification sent to ${selectedRecipient.name}.`
-            : `Sent to ${response.data.sentTo} of ${response.data.targeted} targeted users${response.data.failedCount ? ` (${response.data.failedCount} failed)` : ""}.`,
+            : `Sent to ${response.data.sentTo} of ${response.data.targeted} targeted users${response.data.failedCount ? ` (${response.data.failedCount} failed${response.data.failureReason ? ` — ${response.data.failureReason}` : ""})` : ""}.`,
       });
       resetForm();
     } catch (err) {
