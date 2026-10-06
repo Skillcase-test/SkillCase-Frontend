@@ -538,8 +538,10 @@ describe("EuropassGenerator (ProfileFormPage)", () => {
       await screen.findByRole("button", { name: /Edit Details/i }),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "skills" }));
-    const skillsBox = screen.getByRole("textbox");
+    const dialog = screen.getByRole("dialog");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "skills" }));
+    const skillsBox = within(dialog).getByRole("textbox");
     expect(skillsBox).toHaveValue(
       "Patient Care | Ventilator Management | Communication",
     );
@@ -550,8 +552,8 @@ describe("EuropassGenerator (ProfileFormPage)", () => {
     });
     expect(skillsBox).toHaveValue("Patient Care, ICU | Wound Care ");
 
-    fireEvent.click(screen.getByRole("button", { name: "languages" }));
-    const motherTongueBox = screen.getByRole("textbox");
+    fireEvent.click(within(dialog).getByRole("button", { name: "languages" }));
+    const motherTongueBox = within(dialog).getByRole("textbox");
     expect(motherTongueBox).toHaveValue("HINDI | ENGLISH");
     fireEvent.change(motherTongueBox, { target: { value: "HINDI, marathi " } });
     expect(motherTongueBox).toHaveValue("HINDI, marathi ");
