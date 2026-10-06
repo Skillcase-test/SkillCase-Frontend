@@ -25,6 +25,7 @@ const api = vi.hoisted(() => ({
   getFieldOptions: vi.fn(),
   convertEuropassResume: vi.fn(),
   generateEuropassPdf: vi.fn(),
+  translateEuropassCv: vi.fn(),
 }));
 
 vi.mock("../api/exploreCandidatesAdminApi", () => ({
@@ -615,6 +616,69 @@ describe("EuropassGenerator (ProfileFormPage)", () => {
     expect(screen.getByText("Männlich")).toBeInTheDocument();
     // CURRENT period markers are localized to HEUTE
     expect(screen.getByText(/HEUTE/)).toBeInTheDocument();
+
+    // A German CV offers the reverse direction
+    expect(
+      screen.getByRole("button", { name: /Translate to English/i }),
+    ).toBeInTheDocument();
+  });
+
+  test("translates an English CV to German and flips the toggle", async () => {
+    api.translateEuropassCv.mockResolvedValueOnce({
+      data: {
+        success: true,
+        data: {
+          documentLanguage: "de",
+          personalInfo: {
+            fullName: "AARAV SHARMA",
+            email: "aarav@gmail.com",
+            phone: "+91 9876543210",
+            address: "DELHI, INDIEN",
+          },
+          education: [],
+          experience: [
+            {
+              id: "exp-1",
+              position: "ICU PFLEGEKRAFT",
+              employer: "APOLLO",
+              period: "2022 - CURRENT",
+              location: "DELHI, INDIEN",
+              responsibilities: ["Intensivpflege"],
+            },
+          ],
+          skills: ["Patientenversorgung"],
+          languageSkills: { motherTongues: ["HINDI"], otherLanguages: [] },
+        },
+      },
+    });
+
+    renderAt("/profiles/new");
+    fireEvent.click(
+      await screen.findByRole("button", { name: /1-Click Europass Generator/i }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Convert via AI/i }));
+
+    // Default mock CV is English → the toggle offers German
+    const translateBtn = await screen.findByRole("button", {
+      name: /Translate to German/i,
+    });
+    fireEvent.click(translateBtn);
+
+    await waitFor(() =>
+      expect(api.translateEuropassCv).toHaveBeenCalledWith(
+        expect.objectContaining({
+          personalInfo: expect.objectContaining({ fullName: "AARAV SHARMA" }),
+        }),
+        "de",
+      ),
+    );
+
+    // Translated data re-renders preview chrome in German and flips the button
+    expect(await screen.findByText("Berufserfahrung")).toBeInTheDocument();
+    expect(screen.getByText("ICU PFLEGEKRAFT")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Translate to English/i }),
+    ).toBeInTheDocument();
   });
 });
 

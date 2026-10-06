@@ -360,4 +360,10 @@ export const exploreCandidatesAdminApi = {
       { europassData },
       { responseType: "blob" },
     ),
+
+  translateEuropassCv: (europassData, targetLanguage) =>
+    api.post("/admin/explore-candidates/europass/translate", {
+      europassData,
+      targetLanguage,
+    }),
 };

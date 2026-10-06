@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Edit3,
   FileText,
+  Languages,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { exploreCandidatesAdminApi } from "../../../../api/exploreCandidatesAdminApi";
@@ -120,6 +121,7 @@ export function EuropassGeneratorModal({
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [attaching, setAttaching] = useState(false);
+  const [translating, setTranslating] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
   const [editSection, setEditSection] = useState("personal");
   const [convertStep, setConvertStep] = useState(null);
@@ -144,7 +146,7 @@ export function EuropassGeneratorModal({
 
   if (!isOpen) return null;
 
-  const busy = loading || downloading || attaching;
+  const busy = loading || downloading || attaching || translating;
   const handleAttemptClose = () => {
     if (!busy) onClose();
   };
@@ -286,6 +288,33 @@ export function EuropassGeneratorModal({
       toast.error((await extractServerMessage(err)) || "Could not download Europass PDF");
     } finally {
       setDownloading(false);
+    }
+  };
+
+  const translateTarget =
+    String(europassData.documentLanguage || "en").toLowerCase() === "en"
+      ? "de"
+      : "en";
+
+  const handleTranslate = async () => {
+    setTranslating(true);
+    try {
+      const res = await exploreCandidatesAdminApi.translateEuropassCv(
+        europassData,
+        translateTarget,
+      );
+      if (res.data?.data) {
+        setEuropassData(res.data.data);
+        toast.success(res.data.message || "Europass CV translated");
+      } else {
+        toast.error("Translation returned no data. Please try again.");
+      }
+    } catch (err) {
+      toast.error(
+        err?.response?.data?.message || "Failed to translate Europass CV",
+      );
+    } finally {
+      setTranslating(false);
     }
   };
 
@@ -475,9 +504,30 @@ export function EuropassGeneratorModal({
               </button>
             )}
 
+            {isConverted && (
+              <button
+                type="button"
+                onClick={handleTranslate}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition border cursor-pointer bg-white text-slate-700 border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+              >
+                {translating ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Languages className="h-3.5 w-3.5" />
+                )}
+                <span>
+                  {translateTarget === "de"
+                    ? "Translate to German"
+                    : "Translate to English"}
+                </span>
+              </button>
+            )}
+
             <PrimaryButton
               icon={RefreshCw}
               loading={loading}
+              disabled={busy}
               onClick={handleConvert}
             >
               Convert via AI
@@ -839,7 +889,7 @@ export function EuropassGeneratorModal({
             <SecondaryButton
               icon={Download}
               loading={downloading}
-              disabled={!isConverted}
+              disabled={!isConverted || busy}
               onClick={handleDownloadPdf}
             >
               Download PDF
@@ -848,7 +898,7 @@ export function EuropassGeneratorModal({
             <PrimaryButton
               icon={CheckCircle}
               loading={attaching}
-              disabled={!isConverted}
+              disabled={!isConverted || busy}
               onClick={handleAttachToProfile}
             >
               Attach to Candidate Profile

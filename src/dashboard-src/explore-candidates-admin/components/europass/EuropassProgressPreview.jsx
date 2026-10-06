@@ -36,6 +36,11 @@ const EUROPASS_LABELS = {
     photo: "PHOTO",
     candidateName: "Candidate Name",
     current: "CURRENT",
+    genderValues: {
+      männlich: "Male",
+      weiblich: "Female",
+      divers: "Divers",
+    },
   },
   de: {
     education: "Schul- und Berufsbildung",
