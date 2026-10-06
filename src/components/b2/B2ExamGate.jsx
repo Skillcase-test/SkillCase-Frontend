@@ -19,20 +19,21 @@ export default function B2ExamGate({ overview }) {
     el?.showModal();
     return () => el?.close();
   }, []);
+  // Close the dialog before anything else can fire — a modal dialog is top
+  // layer, so a usage-limit modal triggered while it's open renders behind
+  // it invisibly and the button looks dead.
   const markSeen = () => {
+    dialog.current?.close();
     dispatch(setB2ExamGateSeen());
     api.post("/user/complete-b2-exam-gate").catch(() => {});
   };
   const start = () => {
+    markSeen();
     if (!overview?.nextPaper) {
-      markSeen();
       navigate("/b2/test");
       return;
     }
-    if (open("exams")) {
-      markSeen();
-      navigate("/b2/test/ready");
-    }
+    open("exams", "/b2/test/ready");
   };
 
   return (

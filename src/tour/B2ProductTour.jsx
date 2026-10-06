@@ -138,6 +138,7 @@ export default function B2ProductTour({ children }) {
 
   const isB2 = isB2PracticeLevel(user?.user_prof_level);
   const isDone = user?.b2_onboarding_completed === true;
+  const gateOpen = user?.b2_exam_gate_seen === false;
 
   const checkTopSwitcherDone = () =>
     Boolean(user?.top_switcher_tour_completed) ||
@@ -378,7 +379,8 @@ export default function B2ProductTour({ children }) {
 
   // Route & phase detection — landing + module select pages only
   useEffect(() => {
-    if (!isB2 || !topSwitcherDone || isDone) {
+    // driver-active kills pointer-events page-wide — never run while the gate modal is up
+    if (!isB2 || !topSwitcherDone || isDone || gateOpen) {
       const prevLabel = phaseLabelRef.current;
       if (prevLabel) {
         destroyDriver();
@@ -442,6 +444,7 @@ export default function B2ProductTour({ children }) {
     location.pathname,
     isB2,
     isDone,
+    gateOpen,
     tourState,
     destroyDriver,
     markDone,
