@@ -56,7 +56,9 @@ const DEEP_LINK_ROUTES = [
   { path: "/b2/listening", label: "B2 Listening", category: "B2 Level" },
   { path: "/b2/writing", label: "B2 Writing", category: "B2 Level" },
   { path: "/b2/speaking", label: "B2 Speaking", category: "B2 Level" },
+  { path: "/b2/test", label: "B2 Placement Test", category: "B2 Level" },
   { path: "/b2/exams", label: "B2 Exam Papers", category: "B2 Level" },
+  { path: "/b2/maya", label: "B2 Talk to Maya", category: "B2 Level" },
 ];
 
 const NOTIFICATION_TYPE_OPTIONS = [
@@ -750,7 +752,7 @@ export default function SendNotification() {
                       Proficiency Level
                     </label>
                     <div className="flex flex-wrap gap-2">
-                      {["all", "a1", "a2", "b1"].map((level) => (
+                      {["all", "a1", "a2", "b1", "b2"].map((level) => (
                         <ActionChip
                           key={level}
                           active={targetLevel === level}
