@@ -9,7 +9,95 @@ function toTitleCase(str) {
     .join(" ");
 }
 
+// Localized CV chrome per data.documentLanguage — must stay in sync with
+// EUROPASS_LABELS in the backend's europassAdminService (preview = PDF output).
+const EUROPASS_LABELS = {
+  en: {
+    education: "Education & Training",
+    experience: "Work Experience",
+    skills: "Skills",
+    languageSkills: "Language Skills",
+    motherTongues: "Mother tongue(s): ",
+    otherLanguages: "Other language(s): ",
+    eqfLevel: "Level in EQF: ",
+    phone: "Phone:",
+    email: "Email address:",
+    address: "Address:",
+    nationality: "Nationality:",
+    dob: "Date of birth:",
+    gender: "Gender:",
+    understanding: "UNDERSTANDING",
+    speaking: "SPEAKING",
+    writing: "WRITING",
+    listening: "Listening",
+    reading: "Reading",
+    spokenProduction: "Spoken production",
+    spokenInteraction: "Spoken interaction",
+    photo: "PHOTO",
+    candidateName: "Candidate Name",
+    current: "CURRENT",
+  },
+  de: {
+    education: "Schul- und Berufsbildung",
+    experience: "Berufserfahrung",
+    skills: "Fähigkeiten und Kompetenzen",
+    languageSkills: "Sprachkenntnisse",
+    motherTongues: "Muttersprache(n): ",
+    otherLanguages: "Weitere Sprache(n): ",
+    eqfLevel: "Niveau im EQR: ",
+    phone: "Telefon:",
+    email: "E-Mail:",
+    address: "Adresse:",
+    nationality: "Staatsangehörigkeit:",
+    dob: "Geburtsdatum:",
+    gender: "Geschlecht:",
+    understanding: "VERSTEHEN",
+    speaking: "SPRECHEN",
+    writing: "SCHREIBEN",
+    listening: "Hören",
+    reading: "Lesen",
+    spokenProduction: "Produktion",
+    spokenInteraction: "Interaktion",
+    photo: "FOTO",
+    candidateName: "Vorname Nachname",
+    current: "HEUTE",
+    genderValues: {
+      male: "Männlich",
+      female: "Weiblich",
+      others: "Divers",
+      other: "Divers",
+      divers: "Divers",
+    },
+  },
+};
+
+const LANGUAGE_ALIASES = {
+  en: "en", eng: "en", english: "en",
+  de: "de", deu: "de", ger: "de", german: "de", deutsch: "de",
+  fr: "fr", fra: "fr", fre: "fr", french: "fr", francais: "fr",
+  es: "es", spa: "es", spanish: "es", espanol: "es",
+  hi: "hi", hin: "hi", hindi: "hi",
+};
+
+function normalizeDocumentLanguage(v) {
+  const s = String(v || "").trim().toLowerCase();
+  if (!s) return "";
+  if (LANGUAGE_ALIASES[s]) return LANGUAGE_ALIASES[s];
+  const iso = s.match(/^[a-z]{2}/);
+  return iso ? iso[0] : "";
+}
+
+function translateGenderValue(v, labels) {
+  const map = labels.genderValues;
+  if (!map) return v;
+  return map[String(v || "").trim().toLowerCase()] || v;
+}
+
 export function EuropassProgressPreview({ data = {} }) {
+  const L =
+    EUROPASS_LABELS[normalizeDocumentLanguage(data.documentLanguage)] ||
+    EUROPASS_LABELS.en;
+
   const personal = data.personalInfo || {};
   const education = Array.isArray(data.education) ? data.education : [];
   const experience = Array.isArray(data.experience) ? data.experience : [];
@@ -36,18 +124,18 @@ export function EuropassProgressPreview({ data = {} }) {
 
   // Group contacts into Line 1 and Line 2 matching backend PDFKit output
   const line1 = [];
-  if (personal.phone) line1.push({ label: "Phone:", value: personal.phone });
-  if (personal.email) line1.push({ label: "Email address:", value: personal.email, isEmail: true });
-  if (personal.address) line1.push({ label: "Address:", value: personal.address });
+  if (personal.phone) line1.push({ label: L.phone, value: personal.phone });
+  if (personal.email) line1.push({ label: L.email, value: personal.email, isEmail: true });
+  if (personal.address) line1.push({ label: L.address, value: personal.address });
 
   const line2 = [];
-  if (personal.nationality) line2.push({ label: "Nationality:", value: personal.nationality });
-  if (personal.dob) line2.push({ label: "Date of birth:", value: personal.dob });
-  if (personal.gender) line2.push({ label: "Gender:", value: personal.gender });
+  if (personal.nationality) line2.push({ label: L.nationality, value: personal.nationality });
+  if (personal.dob) line2.push({ label: L.dob, value: personal.dob });
+  if (personal.gender) line2.push({ label: L.gender, value: translateGenderValue(personal.gender, L) });
 
   const formattedName = personal.fullName
     ? toTitleCase(personal.fullName)
-    : "Candidate Name";
+    : L.candidateName;
 
   return (
     <div className="w-[595px] min-h-[842px] bg-white text-slate-900 shadow-2xl border border-slate-300 rounded-none overflow-hidden select-none font-['Helvetica',_'Arial',_sans-serif] mx-auto">
@@ -72,7 +160,7 @@ export function EuropassProgressPreview({ data = {} }) {
             />
           ) : (
             <span className="text-[9pt] font-bold text-[#64748b] tracking-wider">
-              PHOTO
+              {L.photo}
             </span>
           )}
         </div>
@@ -138,7 +226,7 @@ export function EuropassProgressPreview({ data = {} }) {
             <div className="flex items-center gap-[7px]">
               <div className="w-[5px] h-[5px] rounded-full bg-[#9ca3af] shrink-0" />
               <h2 className="text-[11pt] font-bold text-[#111827] uppercase tracking-[0.5px]">
-                Education & Training
+                {L.education}
               </h2>
             </div>
             <div className="w-full h-[0.8px] bg-[#9ca3af] mt-[3px] mb-[10px]" />
@@ -146,7 +234,10 @@ export function EuropassProgressPreview({ data = {} }) {
             {/* List */}
             <div className="space-y-[10px]">
               {education.map((edu, idx) => {
-                const dateLoc = [edu.period, edu.location].filter(Boolean).join(" - ");
+                const dateLoc = [edu.period, edu.location]
+                  .filter(Boolean)
+                  .join(" - ")
+                  .replace(/\bCURRENT\b/gi, L.current);
                 const degreeInst = [edu.degree, edu.institution].filter(Boolean);
                 return (
                   <div key={edu.id || idx}>
@@ -171,7 +262,7 @@ export function EuropassProgressPreview({ data = {} }) {
                     )}
                     {edu.eqfLevel !== undefined && String(edu.eqfLevel).trim() !== "" && (
                       <div className="text-[9pt] text-[#374151] mt-[2px]">
-                        <span className="font-bold text-[#111827]">Level in EQF: </span>
+                        <span className="font-bold text-[#111827]">{L.eqfLevel}</span>
                         <span>{edu.eqfLevel}</span>
                       </div>
                     )}
@@ -189,7 +280,7 @@ export function EuropassProgressPreview({ data = {} }) {
             <div className="flex items-center gap-[7px]">
               <div className="w-[5px] h-[5px] rounded-full bg-[#9ca3af] shrink-0" />
               <h2 className="text-[11pt] font-bold text-[#111827] uppercase tracking-[0.5px]">
-                Work Experience
+                {L.experience}
               </h2>
             </div>
             <div className="w-full h-[0.8px] bg-[#9ca3af] mt-[3px] mb-[10px]" />
@@ -197,7 +288,10 @@ export function EuropassProgressPreview({ data = {} }) {
             {/* List */}
             <div className="space-y-[12px]">
               {experience.map((exp, idx) => {
-                const dateLoc = [exp.period, exp.location].filter(Boolean).join(" - ");
+                const dateLoc = [exp.period, exp.location]
+                  .filter(Boolean)
+                  .join(" - ")
+                  .replace(/\bCURRENT\b/gi, L.current);
                 const responsibilities = Array.isArray(exp.responsibilities)
                   ? exp.responsibilities.filter(Boolean)
                   : [];
@@ -246,7 +340,7 @@ export function EuropassProgressPreview({ data = {} }) {
             <div className="flex items-center gap-[7px]">
               <div className="w-[5px] h-[5px] rounded-full bg-[#9ca3af] shrink-0" />
               <h2 className="text-[11pt] font-bold text-[#111827] uppercase tracking-[0.5px]">
-                Skills
+                {L.skills}
               </h2>
             </div>
             <div className="w-full h-[0.8px] bg-[#9ca3af] mt-[3px] mb-[10px]" />
@@ -269,7 +363,7 @@ export function EuropassProgressPreview({ data = {} }) {
             <div className="flex items-center gap-[7px]">
               <div className="w-[5px] h-[5px] rounded-full bg-[#9ca3af] shrink-0" />
               <h2 className="text-[11pt] font-bold text-[#111827] uppercase tracking-[0.5px]">
-                Language Skills
+                {L.languageSkills}
               </h2>
             </div>
             <div className="w-full h-[0.8px] bg-[#9ca3af] mt-[3px] mb-[10px]" />
@@ -277,7 +371,7 @@ export function EuropassProgressPreview({ data = {} }) {
             {/* Mother Tongue */}
             {motherTongues && (
               <div className="text-[10pt] text-[#374151] mb-[8px]">
-                <span>Mother tongue(s): </span>
+                <span>{L.motherTongues}</span>
                 <span className="font-bold text-[#111827] text-[11pt]">{motherTongues}</span>
               </div>
             )}
@@ -289,23 +383,23 @@ export function EuropassProgressPreview({ data = {} }) {
                 <div className="grid grid-cols-12 text-center font-bold text-[#111827] border-b border-[#cbd5e1] py-[4px] bg-[#f0f2f5]">
                   <div className="col-span-3" />
                   <div className="col-span-3 border-l border-[#cbd5e1] uppercase tracking-wide text-[10pt]">
-                    Understanding
+                    {L.understanding}
                   </div>
                   <div className="col-span-4 border-l border-[#cbd5e1] uppercase tracking-wide text-[10pt]">
-                    Speaking
+                    {L.speaking}
                   </div>
                   <div className="col-span-2 border-l border-[#cbd5e1] uppercase tracking-wide text-[10pt]">
-                    Writing
+                    {L.writing}
                   </div>
                 </div>
 
                 {/* Subheader Row */}
                 <div className="grid grid-cols-12 text-center text-[9pt] text-[#4b5563] border-b border-[#9ca3af] py-[3px]">
                   <div className="col-span-3" />
-                  <div className="col-span-1.5 border-l border-[#cbd5e1]">Listening</div>
-                  <div className="col-span-1.5 border-l border-[#cbd5e1]">Reading</div>
-                  <div className="col-span-2 border-l border-[#cbd5e1]">Spoken prod.</div>
-                  <div className="col-span-2 border-l border-[#cbd5e1]">Spoken inter.</div>
+                  <div className="col-span-1.5 border-l border-[#cbd5e1]">{L.listening}</div>
+                  <div className="col-span-1.5 border-l border-[#cbd5e1]">{L.reading}</div>
+                  <div className="col-span-2 border-l border-[#cbd5e1]">{L.spokenProduction}</div>
+                  <div className="col-span-2 border-l border-[#cbd5e1]">{L.spokenInteraction}</div>
                   <div className="col-span-2 border-l border-[#cbd5e1]" />
                 </div>
 
@@ -328,7 +422,7 @@ export function EuropassProgressPreview({ data = {} }) {
               </div>
             ) : otherLanguages.length > 0 ? (
               <div className="text-[10pt] text-[#374151]">
-                <span>Other language(s): </span>
+                <span>{L.otherLanguages}</span>
                 <span className="font-bold text-[#111827] text-[11pt]">
                   {otherLanguages.map((l) => String(l.language || "").trim().toUpperCase()).filter(Boolean).join(" | ")}
                 </span>

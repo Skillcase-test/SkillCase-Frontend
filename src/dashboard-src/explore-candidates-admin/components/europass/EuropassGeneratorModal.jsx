@@ -27,6 +27,7 @@ const CONVERT_STEPS = [
 
 function emptyEuropassData(candidateForm = {}) {
   return {
+    documentLanguage: "en",
     personalInfo: {
       fullName: candidateForm.fullname || "",
       email: candidateForm.email || "",
@@ -76,18 +77,17 @@ function parseDelimitedList(raw, uppercase) {
     .filter(Boolean);
 }
 
-/**
- * Delimited list input that owns its raw text so separators and spaces typed
- * mid-entry survive; a controlled join/split value would eat them on every
- * keystroke. Re-seeds only when the list changes externally (e.g. AI re-convert).
- */
-function DelimitedListField({ items, onChange, uppercase = false, multiline = false, ...rest }) {
+const NO_ITEMS = [];
+
+// Keeps its own raw text so typed separators/spaces survive the parse
+// round-trip; re-seeds only when the list changes externally (AI re-convert).
+function DelimitedListField({ items = NO_ITEMS, onChange, uppercase = false, multiline = false, ...rest }) {
   const [text, setText] = useState(() =>
-    (Array.isArray(items) ? items : []).join(" | "),
+    (Array.isArray(items) ? items : NO_ITEMS).join(" | "),
   );
 
   useEffect(() => {
-    const next = Array.isArray(items) ? items : [];
+    const next = Array.isArray(items) ? items : NO_ITEMS;
     setText((current) =>
       JSON.stringify(parseDelimitedList(current, uppercase)) !==
         JSON.stringify(next)
@@ -770,7 +770,7 @@ export function EuropassGeneratorModal({
                     multiline
                     rows={6}
                     className="w-full rounded-xl border border-slate-200 p-2.5 font-medium text-slate-900 focus:border-[#083262] outline-none"
-                    items={europassData.skills || []}
+                    items={europassData.skills}
                     onChange={(list) =>
                       setEuropassData((prev) => ({ ...prev, skills: list }))
                     }
@@ -786,7 +786,7 @@ export function EuropassGeneratorModal({
                     <DelimitedListField
                       uppercase
                       className="w-full rounded-xl border border-slate-200 px-3 py-1.5 font-bold text-slate-900"
-                      items={europassData.languageSkills?.motherTongues || []}
+                      items={europassData.languageSkills?.motherTongues}
                       onChange={(list) =>
                         setEuropassData((prev) => ({
                           ...prev,

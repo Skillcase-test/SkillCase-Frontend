@@ -558,5 +558,63 @@ describe("EuropassGenerator (ProfileFormPage)", () => {
     fireEvent.change(motherTongueBox, { target: { value: "HINDI, marathi " } });
     expect(motherTongueBox).toHaveValue("HINDI, marathi ");
   });
+
+  test("renders German CV chrome when documentLanguage is de", async () => {
+    api.convertEuropassResume.mockResolvedValueOnce({
+      data: {
+        data: {
+          documentLanguage: "de",
+          personalInfo: {
+            fullName: "MAX MUSTERMANN",
+            email: "max@example.de",
+            phone: "+49 170 1234567",
+            address: "BERLIN, DEUTSCHLAND",
+            gender: "Male",
+          },
+          education: [],
+          experience: [
+            {
+              id: "exp-1",
+              period: "01/08/2022 - CURRENT",
+              location: "BERLIN, DEUTSCHLAND",
+              position: "GESUNDHEITS- UND KRANKENPFLEGER",
+              employer: "CHARITÉ",
+              responsibilities: ["Patientenversorgung auf der Intensivstation"],
+            },
+          ],
+          skills: ["Patientenversorgung"],
+          languageSkills: {
+            motherTongues: ["DEUTSCH"],
+            otherLanguages: [
+              {
+                id: "lang-1",
+                language: "ENGLISCH",
+                listening: "B2",
+                reading: "B2",
+                spokenProduction: "B2",
+                spokenInteraction: "B2",
+                writing: "B2",
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    renderAt("/profiles/new");
+    fireEvent.click(
+      await screen.findByRole("button", { name: /1-Click Europass Generator/i }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Convert via AI/i }));
+
+    // Localized German chrome in the live preview
+    expect(await screen.findByText("Berufserfahrung")).toBeInTheDocument();
+    expect(screen.getByText(/Muttersprache/)).toBeInTheDocument();
+    expect(screen.getByText("VERSTEHEN")).toBeInTheDocument();
+    expect(screen.getByText("Geschlecht:")).toBeInTheDocument();
+    expect(screen.getByText("Männlich")).toBeInTheDocument();
+    // CURRENT period markers are localized to HEUTE
+    expect(screen.getByText(/HEUTE/)).toBeInTheDocument();
+  });
 });
 
