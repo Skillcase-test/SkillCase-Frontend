@@ -524,5 +524,37 @@ describe("EuropassGenerator (ProfileFormPage)", () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(api.convertEuropassResume).not.toHaveBeenCalled();
   });
+
+  test("delimited editors keep typed commas, pipes and spaces", async () => {
+    renderAt("/profiles/new");
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /1-Click Europass Generator/i }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Convert via AI/i }));
+
+    // After conversion the editor drawer becomes available
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Edit Details/i }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "skills" }));
+    const skillsBox = screen.getByRole("textbox");
+    expect(skillsBox).toHaveValue(
+      "Patient Care | Ventilator Management | Communication",
+    );
+
+    // Commas, pipes and trailing spaces must survive the parse round-trip
+    fireEvent.change(skillsBox, {
+      target: { value: "Patient Care, ICU | Wound Care " },
+    });
+    expect(skillsBox).toHaveValue("Patient Care, ICU | Wound Care ");
+
+    fireEvent.click(screen.getByRole("button", { name: "languages" }));
+    const motherTongueBox = screen.getByRole("textbox");
+    expect(motherTongueBox).toHaveValue("HINDI | ENGLISH");
+    fireEvent.change(motherTongueBox, { target: { value: "HINDI, marathi " } });
+    expect(motherTongueBox).toHaveValue("HINDI, marathi ");
+  });
 });
 

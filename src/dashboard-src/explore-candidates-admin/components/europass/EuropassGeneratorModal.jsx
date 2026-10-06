@@ -69,6 +69,45 @@ async function extractServerMessage(err) {
   }
 }
 
+function parseDelimitedList(raw, uppercase) {
+  return String(raw)
+    .split(/\||,/)
+    .map((s) => (uppercase ? s.trim().toUpperCase() : s.trim()))
+    .filter(Boolean);
+}
+
+/**
+ * Delimited list input that owns its raw text so separators and spaces typed
+ * mid-entry survive; a controlled join/split value would eat them on every
+ * keystroke. Re-seeds only when the list changes externally (e.g. AI re-convert).
+ */
+function DelimitedListField({ items, onChange, uppercase = false, multiline = false, ...rest }) {
+  const [text, setText] = useState(() =>
+    (Array.isArray(items) ? items : []).join(" | "),
+  );
+
+  useEffect(() => {
+    const next = Array.isArray(items) ? items : [];
+    setText((current) =>
+      JSON.stringify(parseDelimitedList(current, uppercase)) !==
+        JSON.stringify(next)
+        ? next.join(" | ")
+        : current,
+    );
+  }, [items, uppercase]);
+
+  const handleChange = (e) => {
+    setText(e.target.value);
+    onChange(parseDelimitedList(e.target.value, uppercase));
+  };
+
+  return multiline ? (
+    <textarea {...rest} value={text} onChange={handleChange} />
+  ) : (
+    <input {...rest} value={text} onChange={handleChange} />
+  );
+}
+
 export function EuropassGeneratorModal({
   isOpen,
   onClose,
@@ -727,14 +766,14 @@ export function EuropassGeneratorModal({
               {editSection === "skills" && (
                 <div className="space-y-2 text-xs">
                   <label className="text-[10px] font-bold text-slate-600 uppercase block">Skills (Pipe or Comma Delimited)</label>
-                  <textarea
+                  <DelimitedListField
+                    multiline
                     rows={6}
                     className="w-full rounded-xl border border-slate-200 p-2.5 font-medium text-slate-900 focus:border-[#083262] outline-none"
-                    value={(europassData.skills || []).join(" | ")}
-                    onChange={(e) => {
-                      const parsed = e.target.value.split(/\||,/).map((s) => s.trim()).filter(Boolean);
-                      setEuropassData((prev) => ({ ...prev, skills: parsed }));
-                    }}
+                    items={europassData.skills || []}
+                    onChange={(list) =>
+                      setEuropassData((prev) => ({ ...prev, skills: list }))
+                    }
                   />
                 </div>
               )}
@@ -744,16 +783,16 @@ export function EuropassGeneratorModal({
                 <div className="space-y-3 text-xs">
                   <div>
                     <label className="text-[10px] font-bold text-slate-600 uppercase block mb-1">Mother Tongue(s)</label>
-                    <input
+                    <DelimitedListField
+                      uppercase
                       className="w-full rounded-xl border border-slate-200 px-3 py-1.5 font-bold text-slate-900"
-                      value={(europassData.languageSkills?.motherTongues || []).join(" | ")}
-                      onChange={(e) => {
-                        const list = e.target.value.split(/\||,/).map((s) => s.trim().toUpperCase()).filter(Boolean);
+                      items={europassData.languageSkills?.motherTongues || []}
+                      onChange={(list) =>
                         setEuropassData((prev) => ({
                           ...prev,
                           languageSkills: { ...prev.languageSkills, motherTongues: list },
-                        }));
-                      }}
+                        }))
+                      }
                     />
                   </div>
                 </div>
