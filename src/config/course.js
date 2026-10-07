@@ -5,5 +5,5 @@ export const COURSE = {
   name: "Germany Interview Preparation",
   meta: "21 live sessions · 10 hours",
   image:
-    "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1789804197/WhatsApp_Image_2026-09-18_at_8.34.12_PM_cxowwa.jpg",
+    "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/WhatsApp_Image_2026-09-18_at_8.34.12_PM_cxowwa.jpg",
 };

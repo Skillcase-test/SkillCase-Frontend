@@ -128,7 +128,7 @@ export default function DescribeSpeakSelect() {
       {/* Collage Banner Area */}
       <div className="self-stretch h-42 relative shrink-0">
         <img
-          src="https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090503/describe_speak_dtdpvf.webp"
+          src="https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/describe_speak_dtdpvf.webp"
           alt="Describe & Speak Banner"
           className="w-full h-full object-cover"
         />
@@ -208,7 +208,7 @@ export default function DescribeSpeakSelect() {
                   style={{ minWidth: "56px", minHeight: "56px" }}
                 >
                   <img
-                    src={topic.prompt_image_url || "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090503/describe_speak_dtdpvf.webp"}
+                    src={topic.prompt_image_url || "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/describe_speak_dtdpvf.webp"}
                     alt={topic.title}
                     className="w-full h-full object-cover"
                   />

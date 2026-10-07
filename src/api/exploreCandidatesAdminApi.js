@@ -1,4 +1,3 @@
-import axios from "axios";
 import api from "./axios";
 
 function profileToFormData(payload = {}) {
@@ -14,28 +13,41 @@ function profileToFormData(payload = {}) {
   return formData;
 }
 
-export const exploreCandidatesAdminApi = {
-  getCloudinaryVideoUploadSignature: () =>
-    api.post("/admin/explore-candidates/cloudinary/video-upload-signature"),
+const VIDEO_MIME_BY_EXT = {
+  mp4: "video/mp4",
+  m4v: "video/mp4",
+  mov: "video/quicktime",
+  webm: "video/webm",
+};
 
+function videoContentType(file) {
+  if (file.type && file.type.startsWith("video/")) return file.type;
+  const ext = String(file.name || "").split(".").pop().toLowerCase();
+  return VIDEO_MIME_BY_EXT[ext] || "video/mp4";
+}
+
+export const exploreCandidatesAdminApi = {
+  // Uploads straight to S3 through a presigned PUT and returns the permanent public URL.
   uploadVideoDirect: async (file) => {
     if (!(file instanceof File)) return "";
-    const signatureResponse = await api.post(
-      "/admin/explore-candidates/cloudinary/video-upload-signature",
-    );
-    const uploadConfig = signatureResponse.data || {};
-    const uploadData = new FormData();
-    uploadData.append("file", file);
-    uploadData.append("api_key", uploadConfig.api_key);
-    uploadData.append("timestamp", String(uploadConfig.timestamp));
-    uploadData.append("folder", uploadConfig.folder);
-    uploadData.append("signature", uploadConfig.signature);
+    const contentType = videoContentType(file);
+    const { data } = await api.post("/admin/explore-candidates/video-upload-url", {
+      filename: file.name,
+      content_type: contentType,
+    });
+    if (!data?.upload_url || !data?.public_url) {
+      throw new Error("Video upload service returned an invalid response");
+    }
 
-    const uploadResponse = await axios.post(
-      `https://api.cloudinary.com/v1_1/${encodeURIComponent(uploadConfig.cloud_name)}/video/upload`,
-      uploadData,
-    );
-    return uploadResponse.data?.secure_url || "";
+    const uploadResponse = await fetch(data.upload_url, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": contentType },
+    });
+    if (!uploadResponse.ok) {
+      throw new Error(`Video upload failed (${uploadResponse.status})`);
+    }
+    return data.public_url;
   },
 
   listLibraryProfilesV2: (params = {}) =>

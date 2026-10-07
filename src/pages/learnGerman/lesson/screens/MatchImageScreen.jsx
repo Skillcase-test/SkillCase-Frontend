@@ -9,7 +9,7 @@ import { getMayaImage } from "../../../../utils/mayaAvatars";
 import MayaDialogueBubble from "./shared/MayaDialogueBubble";
 import { resolveAssetUrl } from "../../../../utils/imageUtils";
 
-// screen.slots:  [{ id, image }]  — images should be Cloudinary URLs
+// screen.slots:  [{ id, image }]  — images should be hosted (S3) URLs
 // screen.items:  [{ id, label, matchId }]
 export default function MatchImageScreen({
   screen,

@@ -217,7 +217,7 @@ export default function RecapScreen() {
                 className="w-full h-full object-cover"
                 src={
                   data?.chapter_image ||
-                  "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778253329/99ee50b94881e4e072cc6de5dde475531353120d_f100ew.webp"
+                  "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/99ee50b94881e4e072cc6de5dde475531353120d_f100ew.webp"
                 }
                 alt={data?.title}
               />

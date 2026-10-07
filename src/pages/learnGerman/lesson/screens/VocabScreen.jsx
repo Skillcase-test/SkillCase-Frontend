@@ -10,7 +10,7 @@ import WaveformIcon from "./shared/WaveformIcon";
 import { resolveAssetUrl } from "../../../../utils/imageUtils";
 
 const fallbackImg =
-  "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778253329/99ee50b94881e4e072cc6de5dde475531353120d_f100ew.webp";
+  "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/99ee50b94881e4e072cc6de5dde475531353120d_f100ew.webp";
 
 export default function VocabScreen({
   screen,

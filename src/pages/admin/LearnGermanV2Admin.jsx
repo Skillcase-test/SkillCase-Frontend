@@ -471,7 +471,7 @@ export default function LearnGermanV2Admin() {
             accept=".zip,application/zip"
             file={artZip}
             onSelect={setArtZip}
-            hint="Images upload to Cloudinary and register by filename"
+            hint="Images upload to S3 and register by filename"
           />
         </div>
         <p className="text-[11px] text-slate-400 flex items-start gap-1.5">

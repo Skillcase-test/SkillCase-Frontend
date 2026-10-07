@@ -28,9 +28,9 @@ import { syncModeIntoRedux } from "../utils/lgMode";
 import { trackFeatureEvent } from "../telemetry/events";
 
 const COIN_IMG_URL =
-  "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778500742/Coin_1_kjblsa.svg";
+  "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/Coin_1_kjblsa.svg";
 const STREAK_IMG_URL =
-  "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778500990/Gemini_Generated_Image_m7b0m6m7b0m6m7b0_2_x8mtum.svg";
+  "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/Gemini_Generated_Image_m7b0m6m7b0m6m7b0_2_x8mtum.svg";
 
 /**
  * Bottom tab bar — the floating app navigation bar shown on the shell

@@ -1375,7 +1375,7 @@ function ImageBlockForm({ data, onChange, onFileChange }) {
 // When an option is changed to image mode the parent receives a File object
 // via onFileChange(idx, file); the option value in question_data is set to
 // { type: "image", url: "<objectURL-for-preview>", alt: "" } as a placeholder
-// — the real Cloudinary URL is written by the backend after upload.
+// — the real S3 URL is written by the backend after upload.
 function ImageOptionInput({ value, onValueChange, onFileChange, placeholder }) {
   const isImage = value && typeof value === "object" && value.type === "image";
   const [mode, setMode] = useState(isImage ? "image" : "text");

@@ -176,7 +176,7 @@ export default function FeatureCardsGrid() {
       title: "Reading & Listening",
       description: "Read articles and answer questions",
       image:
-        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090498/read_listen_pwnige.webp",
+        "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/read_listen_pwnige.webp",
       link: "/b1/read-listen",
       enabled: true,
     },
@@ -185,7 +185,7 @@ export default function FeatureCardsGrid() {
       title: "Describe & Speak",
       description: "Describe images and practice pronunciation",
       image:
-        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090503/describe_speak_dtdpvf.webp",
+        "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/describe_speak_dtdpvf.webp",
       link: "/b1/describe-speak",
       enabled: true,
     },
@@ -194,7 +194,7 @@ export default function FeatureCardsGrid() {
       title: "TELC & GOETHE Exam Papers",
       description: "Take mock exams under real constraints",
       image:
-        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090510/exam_isoiv2.webp",
+        "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/exam_isoiv2.webp",
       link: "/b1/exams",
       enabled: true,
     },
@@ -203,7 +203,7 @@ export default function FeatureCardsGrid() {
       title: "Talk to Maya",
       description: "Have real German conversation & get instant feedback",
       image:
-        "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781600945/maya_ylcppy.webp",
+        "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/maya_ylcppy.webp",
       link: "/b1/maya",
       enabled: true,
     },

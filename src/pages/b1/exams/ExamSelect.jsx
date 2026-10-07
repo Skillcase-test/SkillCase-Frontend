@@ -84,7 +84,7 @@ export default function ExamSelect() {
       {/* Banner Area */}
       <div className="self-stretch h-42 relative shrink-0">
         <img
-          src="https://res.cloudinary.com/dzwdjjg5d/image/upload/v1781090498/read_listen_pwnige.webp"
+          src="https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/read_listen_pwnige.webp"
           alt="B1 Exam Papers Banner"
           className="w-full h-full object-cover"
         />

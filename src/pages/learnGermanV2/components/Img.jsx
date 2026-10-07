@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 /* <img> drop-in that keeps a shimmer skeleton behind the art until it has
- * loaded — Cloudinary fetches pop in over the network, and an empty box read
+ * loaded — remote image fetches pop in over the network, and an empty box read
  * as a broken screen. className styles the wrapper exactly like the img it
  * replaces; a failed fetch settles on flat slate instead of pulsing forever. */
 export default function Img({ src, alt = "", className = "", imgClassName = "object-cover", ...rest }) {

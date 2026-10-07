@@ -6,9 +6,9 @@ import germanFlag from "../../assets/onboarding/germanFlag.webp";
 import { trackFeatureEvent } from "../../telemetry/events";
 
 const COIN_URL =
-  "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778500742/Coin_1_kjblsa.svg";
+  "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/Coin_1_kjblsa.svg";
 const STREAK_URL =
-  "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778500990/Gemini_Generated_Image_m7b0m6m7b0m6m7b0_2_x8mtum.svg";
+  "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/Gemini_Generated_Image_m7b0m6m7b0m6m7b0_2_x8mtum.svg";
 
 const DAILY_GOAL_KEY_PREFIX = "lg_daily_goal_shown";
 const DAILY_GOAL_COMPLETED_KEY_PREFIX = "lg_daily_goal_completed_shown";

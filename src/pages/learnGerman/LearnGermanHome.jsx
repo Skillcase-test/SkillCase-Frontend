@@ -43,7 +43,7 @@ import {
 } from "./lgFirstTimeGuide";
 
 const LEARN_GERMAN_FALLBACK_IMAGE =
-  "https://res.cloudinary.com/dzwdjjg5d/image/upload/v1778253329/99ee50b94881e4e072cc6de5dde475531353120d_f100ew.webp";
+  "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/99ee50b94881e4e072cc6de5dde475531353120d_f100ew.webp";
 
 // Static City Background using the provided 3 PNGs
 const CityBackground = ({ fromSwitcher }) => (

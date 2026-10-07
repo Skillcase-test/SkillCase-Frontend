@@ -1,6 +1,6 @@
 // Art resolution for Guided German (v2) — ported from the reference app's
 // lib/vocabArt.js, with one architectural change: the manifest is not a
-// bundled JSON of public/ files but the lg2_art table (name -> Cloudinary
+// bundled JSON of public/ files but the lg2_art table (name -> hosted
 // URL) fetched via /learn-german-v2/art and held here module-level.
 //
 // loadArtManifest() must be called (once, cached) before screens that render
