@@ -1318,7 +1318,7 @@ export function ProfileFormPage({ mode }) {
                 }
                 title={
                   recipientUnsubscribed
-                    ? "Recipient has unsubscribed from recruiter notification emails"
+                    ? "Recipient has unsubscribed from notification emails"
                     : undefined
                 }
                 loading={savingProfile && saveIntent === "notify"}

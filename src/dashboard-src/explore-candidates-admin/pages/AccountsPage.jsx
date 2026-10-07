@@ -505,7 +505,7 @@ export function AccountsPage() {
                             {account.email_unsubscribed && (
                               <span
                                 className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-100"
-                                title="Recipient has unsubscribed from recruiter notification emails"
+                                title="Recipient has unsubscribed from notification emails"
                               >
                                 Unsubscribed
                               </span>
@@ -814,7 +814,7 @@ export function AccountsPage() {
                                 {sub.email_unsubscribed && (
                                   <span
                                     className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-100"
-                                    title="Recipient has unsubscribed from recruiter notification emails"
+                                    title="Recipient has unsubscribed from notification emails"
                                   >
                                     Unsubscribed
                                   </span>

@@ -24,7 +24,7 @@ import { CANDIDATE_SOURCES } from "../utils/constants";
 import { formatIstDateTime } from "../utils/formatters";
 
 const UNSUBSCRIBED_TOOLTIP =
-  "Recipient has unsubscribed from recruiter notification emails";
+  "Recipient has unsubscribed from notification emails";
 
 export function AccountProfilesPage() {
   const { accountId } = useParams();
