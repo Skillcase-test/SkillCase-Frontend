@@ -166,18 +166,23 @@ export function AccountsPage() {
 
   function handleMaskToggle(account, val) {
     if (val === false) {
+      const unsubscribed = Boolean(account.email_unsubscribed);
       setConfirmModal({
         open: true,
         title: "Turn off contact masking?",
-        description: `Candidate contact details will become visible to ${account.email}.\n\nSend them an account-upgraded notification email?`,
+        description: unsubscribed
+          ? `Candidate contact details will become visible to ${account.email}.\n\n${account.email} has unsubscribed from notification emails — no email can be sent.`
+          : `Candidate contact details will become visible to ${account.email}.\n\nSend them an account-upgraded notification email?`,
         variant: "info",
-        confirmText: "Turn Off & Email",
-        cancelText: "Turn Off Silently",
+        confirmText: unsubscribed ? "Turn Off Masking" : "Turn Off & Email",
+        cancelText: unsubscribed ? "Cancel" : "Turn Off Silently",
         onConfirm: () => {
           setConfirmModal((v) => ({ ...v, open: false }));
-          applyMaskSetting(account, false, true);
+          applyMaskSetting(account, false, !unsubscribed);
         },
-        onCancelAction: () => applyMaskSetting(account, false, false),
+        onCancelAction: unsubscribed
+          ? null
+          : () => applyMaskSetting(account, false, false),
       });
       return;
     }
@@ -497,6 +502,14 @@ export function AccountsPage() {
                                 OTP only
                               </span>
                             )}
+                            {account.email_unsubscribed && (
+                              <span
+                                className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-100"
+                                title="Recipient has unsubscribed from recruiter notification emails"
+                              >
+                                Unsubscribed
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4.5 align-middle">
@@ -796,6 +809,14 @@ export function AccountsPage() {
                                 ) : (
                                   <span className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-slate-500 border border-slate-200">
                                     OTP only
+                                  </span>
+                                )}
+                                {sub.email_unsubscribed && (
+                                  <span
+                                    className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-100"
+                                    title="Recipient has unsubscribed from recruiter notification emails"
+                                  >
+                                    Unsubscribed
                                   </span>
                                 )}
                               </div>

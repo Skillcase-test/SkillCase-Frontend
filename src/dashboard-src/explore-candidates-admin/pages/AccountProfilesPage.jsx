@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { ArrowLeft, UserPlus, Library, Sparkles, Trash2, Edit, Mail } from "lucide-react";
+import { ArrowLeft, UserPlus, Library, Sparkles, Trash2, Edit, Mail, MailCheck } from "lucide-react";
 import { exploreCandidatesAdminApi } from "../../../api/exploreCandidatesAdminApi";
 import {
   PageCard,
@@ -22,6 +22,9 @@ import { ConfirmationModal } from "../components/ConfirmationModal";
 import { RecruitmentStatusModal } from "../components/RecruitmentStatusModal";
 import { CANDIDATE_SOURCES } from "../utils/constants";
 import { formatIstDateTime } from "../utils/formatters";
+
+const UNSUBSCRIBED_TOOLTIP =
+  "Recipient has unsubscribed from recruiter notification emails";
 
 export function AccountProfilesPage() {
   const { accountId } = useParams();
@@ -126,22 +129,23 @@ export function AccountProfilesPage() {
     loadLoginEvents();
   }, [accountId]);
 
-  // Account record (email + mask_contacts_enabled) for the manual email buttons.
+  // Account record (email + mask_contacts_enabled + email_unsubscribed) for the
+  // manual email buttons.
+  async function loadAccount() {
+    try {
+      const res = await exploreCandidatesAdminApi.listAccounts();
+      const rows = res?.data?.data || [];
+      setAccount(
+        rows.find((a) => String(a.id) === String(accountId)) || null,
+      );
+    } catch (_err) {
+      setAccount(null);
+    }
+  }
+
   useEffect(() => {
-    let cancelled = false;
-    exploreCandidatesAdminApi
-      .listAccounts()
-      .then((res) => {
-        if (cancelled) return;
-        const rows = res?.data?.data || [];
-        setAccount(
-          rows.find((a) => String(a.id) === String(accountId)) || null,
-        );
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    loadAccount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accountId]);
 
   // Filter login events
@@ -282,6 +286,7 @@ export function AccountProfilesPage() {
   }
 
   const accountEmail = account?.email || `account #${accountId}`;
+  const recipientUnsubscribed = Boolean(account?.email_unsubscribed);
 
   function confirmAndSendEmail({
     title,
@@ -304,10 +309,38 @@ export function AccountProfilesPage() {
             toast.success(successMessage);
           } else {
             toast.error(res?.data?.email_error || failureMessage);
+            // If the backend blocked the send because the recipient unsubscribed,
+            // refresh the account so the buttons disable immediately.
+            if (res?.data?.email_unsubscribed) await loadAccount();
           }
           setConfirmModal((v) => ({ ...v, open: false, loading: false }));
         } catch (err) {
           toast.error(err?.response?.data?.message || failureMessage);
+          setConfirmModal((v) => ({ ...v, loading: false }));
+        }
+      },
+      loading: false,
+    });
+  }
+
+  function openResubscribeConfirm() {
+    setConfirmModal({
+      open: true,
+      title: "Resubscribe Recipient",
+      description: `Resume sending recruiter notification emails to ${accountEmail}?`,
+      variant: "primary",
+      confirmText: "Resubscribe",
+      onConfirm: async () => {
+        setConfirmModal((v) => ({ ...v, loading: true }));
+        try {
+          await exploreCandidatesAdminApi.resubscribeAccountEmail(accountId);
+          toast.success(`${accountEmail} re-subscribed to notification emails`);
+          setConfirmModal((v) => ({ ...v, open: false, loading: false }));
+          await loadAccount();
+        } catch (err) {
+          toast.error(
+            err?.response?.data?.message || "Could not resubscribe recipient",
+          );
           setConfirmModal((v) => ({ ...v, loading: false }));
         }
       },
@@ -410,23 +443,49 @@ export function AccountProfilesPage() {
         description="Search from the candidate library and map talent to this recruiter portal."
         actions={
           <div className="flex gap-2">
-            <SecondaryButton icon={Mail} onClick={openWelcomeEmailConfirm}>
+            <SecondaryButton
+              icon={Mail}
+              disabled={!account || recipientUnsubscribed}
+              title={
+                recipientUnsubscribed
+                  ? UNSUBSCRIBED_TOOLTIP
+                  : !account
+                    ? "Loading account details..."
+                    : "Send the recruiter welcome email"
+              }
+              onClick={openWelcomeEmailConfirm}
+            >
               Send Welcome Email
             </SecondaryButton>
             <SecondaryButton
               icon={Mail}
-              disabled={!account || Boolean(account.mask_contacts_enabled)}
+              disabled={
+                !account ||
+                recipientUnsubscribed ||
+                Boolean(account.mask_contacts_enabled)
+              }
               title={
-                !account
-                  ? "Loading account details..."
-                  : account.mask_contacts_enabled
-                    ? "Contacts are still masked for this account"
-                    : "Send the contacts-unmasked notification email"
+                recipientUnsubscribed
+                  ? UNSUBSCRIBED_TOOLTIP
+                  : !account
+                    ? "Loading account details..."
+                    : account.mask_contacts_enabled
+                      ? "Contacts are still masked for this account"
+                      : "Send the contacts-unmasked notification email"
               }
               onClick={openUpgradeEmailConfirm}
             >
               Send Unmasked Email
             </SecondaryButton>
+            {recipientUnsubscribed && (
+              <SecondaryButton
+                icon={MailCheck}
+                title="Re-enable notification emails for this recipient"
+                onClick={openResubscribeConfirm}
+              >
+                Resubscribe
+              </SecondaryButton>
+            )}
             <Link to="/admin/explore-candidates/library">
               <SecondaryButton icon={Library}>Master Library</SecondaryButton>
             </Link>
@@ -483,9 +542,10 @@ export function AccountProfilesPage() {
             Assign Candidate
           </PrimaryButton>
           <SecondaryButton
-            disabled={!pickId || assignIntent !== null}
+            disabled={!pickId || assignIntent !== null || recipientUnsubscribed}
             icon={Mail}
             loading={assignIntent === "notify"}
+            title={recipientUnsubscribed ? UNSUBSCRIBED_TOOLTIP : undefined}
             onClick={() => handleAssign(true)}
           >
             Assign &amp; Email
@@ -601,7 +661,12 @@ export function AccountProfilesPage() {
                           <ActionButton
                             variant="primary"
                             icon={Mail}
-                            title="Email the recruiter that this candidate was added"
+                            disabled={recipientUnsubscribed}
+                            title={
+                              recipientUnsubscribed
+                                ? UNSUBSCRIBED_TOOLTIP
+                                : "Email the recruiter that this candidate was added"
+                            }
                             onClick={() => openNotifyCandidateConfirm(p)}
                           >
                             Notify

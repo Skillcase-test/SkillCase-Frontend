@@ -172,6 +172,8 @@ export const exploreCandidatesAdminApi = {
     api.post(`/admin/explore-candidates/accounts/${accountId}/send-upgrade-email`),
   notifyAssignedCandidate: (accountId, profileId) =>
     api.post(`/admin/explore-candidates/accounts/${accountId}/assign/${profileId}/notify`),
+  resubscribeAccountEmail: (accountId) =>
+    api.post(`/admin/explore-candidates/accounts/${accountId}/resubscribe-email`),
 
   addProfileVideo: async (profileId, payload) => {
     const nextPayload = { ...(payload || {}) };

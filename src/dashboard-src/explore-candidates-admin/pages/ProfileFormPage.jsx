@@ -84,6 +84,7 @@ export function ProfileFormPage({ mode }) {
   const [createDocs, setCreateDocs] = useState([]);
   const [savingProfile, setSavingProfile] = useState(false);
   const [saveIntent, setSaveIntent] = useState(null);
+  const [recipientUnsubscribed, setRecipientUnsubscribed] = useState(false);
   const [videoUploadState, setVideoUploadState] = useState({});
   const [videoViewState, setVideoViewState] = useState({});
   const [docInputKey, setDocInputKey] = useState(0);
@@ -164,6 +165,26 @@ export function ProfileFormPage({ mode }) {
   useEffect(() => {
     loadFieldOptions();
   }, []);
+
+  // Only needed to gate the "Create & Email Recruiter" button when the target
+  // account has unsubscribed from notification emails.
+  useEffect(() => {
+    if (!accountId) return;
+    let cancelled = false;
+    exploreCandidatesAdminApi
+      .listAccounts()
+      .then((res) => {
+        if (cancelled) return;
+        const row = (res?.data?.data || []).find(
+          (a) => String(a.id) === String(accountId),
+        );
+        setRecipientUnsubscribed(Boolean(row?.email_unsubscribed));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [accountId]);
 
   const handleAddOption = async (fieldName, optionValue) => {
     await exploreCandidatesAdminApi.addFieldOption(fieldName, optionValue);
@@ -1292,7 +1313,14 @@ export function ProfileFormPage({ mode }) {
             {mode === "create" && accountId && (
               <SecondaryButton
                 icon={Mail}
-                disabled={savingProfile || !form.fullname?.trim()}
+                disabled={
+                  savingProfile || !form.fullname?.trim() || recipientUnsubscribed
+                }
+                title={
+                  recipientUnsubscribed
+                    ? "Recipient has unsubscribed from recruiter notification emails"
+                    : undefined
+                }
                 loading={savingProfile && saveIntent === "notify"}
                 onClick={() => requestSaveProfile(true)}
               >
