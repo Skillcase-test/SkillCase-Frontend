@@ -110,16 +110,16 @@ describe("IrelandJobsAdmin", () => {
     expect(screen.getByText("Ireland Jobs Admin")).toBeInTheDocument();
     expect(screen.getByText("Candidates List")).toBeInTheDocument();
     expect(screen.getByText("Doc Requirements")).toBeInTheDocument();
-    expect(screen.getByText("Enroll Candidate")).toBeInTheDocument();
+    // Enrollment moved to Analytics → View All Users (track dropdown).
+    expect(screen.queryByText("Enroll Candidate")).not.toBeInTheDocument();
   });
 
-  test("hides the enroll tab for view-only admins", async () => {
+  test("view-only admins see the View Only badge", async () => {
     render(<IrelandJobsAdmin canEdit={false} />);
 
     await waitFor(() =>
       expect(screen.getByText("Mary Nurse")).toBeInTheDocument(),
     );
-    expect(screen.queryByText("Enroll Candidate")).not.toBeInTheDocument();
     expect(screen.getAllByText("View Only").length).toBeGreaterThan(0);
   });
 

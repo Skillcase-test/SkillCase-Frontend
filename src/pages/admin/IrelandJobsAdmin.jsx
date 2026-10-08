@@ -19,7 +19,6 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   RefreshCw,
   Search,
-  UserPlus,
   ExternalLink,
   AlertCircle,
   ArrowLeft,
@@ -42,7 +41,6 @@ import {
   adminGetIrelandDocRequirements,
   adminAddIrelandDocRequirement,
   adminDeleteIrelandDocRequirement,
-  adminEnrollIrelandCandidate,
   adminSetIrelandActive,
   adminGetIrelandStepsConfig,
   adminUpdateIrelandStepsConfig,
@@ -54,7 +52,6 @@ const TABS = [
   { key: "candidates", label: "Candidates List" },
   { key: "requirements", label: "Doc Requirements" },
   { key: "opportunity", label: "Opportunity Pages" },
-  { key: "enroll", label: "Enroll Candidate", editOnly: true },
 ];
 
 const STATUS_FILTERS = [
@@ -65,14 +62,6 @@ const STATUS_FILTERS = [
   { key: "completed", label: "Completed" },
   { key: "active", label: "Active" },
   { key: "inactive", label: "Inactive" },
-];
-
-const QUALIFICATIONS = [
-  "Bsc Nursing",
-  "GNM",
-  "ANM",
-  "Msc Nursing",
-  "Post Basic Bsc Nursing",
 ];
 
 const STEP_TITLES = {
@@ -182,8 +171,6 @@ export default function IrelandJobsAdmin({ canEdit = true }) {
   // adminUpdateIrelandCandidate({steps_config}).
   const [candidateSteps, setCandidateSteps] = useState([]);
 
-  const [enrollIdentifier, setEnrollIdentifier] = useState("");
-  const [enrollQualification, setEnrollQualification] = useState("");
 
   const [confirmModal, setConfirmModal] = useState(null);
   const [reasonValue, setReasonValue] = useState("");
@@ -521,24 +508,6 @@ export default function IrelandJobsAdmin({ canEdit = true }) {
     }
   };
 
-  const enroll = async () => {
-    const identifier = enrollIdentifier.trim();
-    if (!identifier || saving) return;
-    setSaving(true);
-    try {
-      await adminEnrollIrelandCandidate(identifier, enrollQualification || null);
-      toast.success("Candidate enrolled in Ireland Jobs");
-      setEnrollIdentifier("");
-      setEnrollQualification("");
-      setActiveTab("candidates");
-      fetchList();
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to enroll candidate");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const setActive = (userId, active) => {
     if (!active) {
       openConfirmModal({
@@ -658,7 +627,7 @@ export default function IrelandJobsAdmin({ canEdit = true }) {
           </div>
           <p className="text-xs text-slate-500 mt-1">
             {canEdit
-              ? "Manage Ireland candidates, document requirements and enrollments."
+              ? "Manage Ireland candidates and document requirements."
               : "You have view-only access — editing and updates are disabled."}
           </p>
         </div>
@@ -1998,75 +1967,7 @@ export default function IrelandJobsAdmin({ canEdit = true }) {
               </div>
             </div>
           </div>
-        ) : (
-          /* ---------- Enroll tab (German settings-card parity) ---------- */
-          <div className="h-full overflow-y-auto pr-1 pb-10">
-            <div className="flex justify-between items-center mb-6 bg-slate-50 p-4 border border-slate-200/60 rounded-2xl">
-              <div className="text-left">
-                <h3 className="text-sm font-extrabold text-[#083262]">
-                  Enroll Candidate
-                </h3>
-                <p className="text-[10px] text-slate-400 font-medium mt-0.5 leading-relaxed">
-                  Adds an existing user to the Ireland Jobs pipeline. They must
-                  not be active in the Germany Jobs pipeline.
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-4 max-w-xl">
-              <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left border-b border-slate-100 pb-2">
-                Candidate Details
-              </span>
-
-              <div className="flex flex-col gap-3 text-left">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                    Phone or User ID
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 9876543210"
-                    value={enrollIdentifier}
-                    onChange={(e) => setEnrollIdentifier(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                    Qualification (optional)
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={enrollQualification}
-                      onChange={(e) => setEnrollQualification(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl p-2.5 pr-8 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all appearance-none"
-                    >
-                      <option value="">Select…</option>
-                      {QUALIFICATIONS.map((q) => (
-                        <option key={q} value={q}>
-                          {q}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-                      <ChevronDown className="w-3.5 h-3.5" />
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={enroll}
-                  disabled={!enrollIdentifier.trim() || saving}
-                  className="w-full py-2.5 bg-[#083262] text-white hover:bg-[#052243] rounded-xl text-xs font-bold transition-all disabled:opacity-50 shadow-none cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <UserPlus className="w-3.5 h-3.5" /> Enroll in Ireland Jobs
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        ) : null}
       </div>
       {confirmModalEl}
     </>

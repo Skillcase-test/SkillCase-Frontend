@@ -176,6 +176,14 @@ const USER_TRACK_OPTIONS = [
       german_preference: "3",
     },
   },
+  {
+    value: "IRELAND_JOBS",
+    label: "Ireland Jobs",
+    badgeClass: "bg-sky-50 text-sky-700",
+    payload: {
+      lg_preferred_mode: "ireland_jobs",
+    },
+  },
 ];
 
 function getUserTrackValue(user = {}) {
@@ -189,6 +197,7 @@ function getUserTrackValue(user = {}) {
   ).toUpperCase();
   const isJobScreening = mode === "job_screening" || preference === "3";
 
+  if (mode === "ireland_jobs") return "IRELAND_JOBS";
   if (isJobScreening) {
     return languageLevel === "B2" ? "B2_JOB_SCREENING" : "B1_JOB_SCREENING";
   }
