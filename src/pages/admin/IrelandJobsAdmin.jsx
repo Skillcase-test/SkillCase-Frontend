@@ -80,7 +80,7 @@ const STEP_COPY = {
     "Verify the candidate's supporting document submissions.",
   role_select: "Candidate picks the Nurse or Caregiver pathway.",
   matching:
-    "Terminal step — the placement team is matching live opportunities.",
+    "Terminal step, the placement team is matching live opportunities.",
 };
 
 // Mirrors the German list's summary cards (JobScreeningAdmin) — click filters.
@@ -139,6 +139,17 @@ const fmtDate = (iso) => {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "Not available";
   return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(d);
+};
+
+// Mirror of the candidate-side buckets in ResumeProfileStep (stored value is
+// numeric; display must show the label the student picked).
+const experienceLabel = (v) => {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return "Not available";
+  if (n < 1) return "Fresher";
+  if (n < 2) return "1 to 2 Years";
+  if (n < 4) return "2 to 4 Years";
+  return "4+ Years";
 };
 
 export default function IrelandJobsAdmin({ canEdit = true }) {
@@ -628,7 +639,7 @@ export default function IrelandJobsAdmin({ canEdit = true }) {
           <p className="text-xs text-slate-500 mt-1">
             {canEdit
               ? "Manage Ireland candidates and document requirements."
-              : "You have view-only access — editing and updates are disabled."}
+              : "You have view-only access. Editing and updates are disabled."}
           </p>
         </div>
 
@@ -1215,7 +1226,10 @@ export default function IrelandJobsAdmin({ canEdit = true }) {
                                         <span className="font-semibold text-slate-600">
                                           {detail.profileFields
                                             ?.experience_years != null
-                                            ? `${detail.profileFields.experience_years} yrs`
+                                            ? experienceLabel(
+                                                detail.profileFields
+                                                  .experience_years,
+                                              )
                                             : "Not available"}
                                         </span>
                                       </div>

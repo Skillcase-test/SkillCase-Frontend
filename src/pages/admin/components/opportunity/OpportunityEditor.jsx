@@ -97,7 +97,7 @@ const OpportunityEditor = ({
           </button>
           <div>
             <h3 className="text-sm font-extrabold text-slate-800">
-              {record?.id ? `Edit — ${record.title}` : "New opportunity"}
+              {record?.id ? `Edit ${record.title}` : "New opportunity"}
             </h3>
             <p className="text-[10px] font-semibold text-slate-400">
               {record?.selection_count || 0} candidate

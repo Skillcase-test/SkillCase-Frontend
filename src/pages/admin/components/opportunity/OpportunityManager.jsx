@@ -124,7 +124,7 @@ const SortableRow = ({
           {item.title}
         </p>
         <p className="text-[10px] font-medium text-slate-400 truncate">
-          {item.short_description || "—"}
+          {item.short_description || "N/A"}
         </p>
       </div>
       <span

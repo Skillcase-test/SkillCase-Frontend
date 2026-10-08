@@ -174,9 +174,11 @@ describe("IrelandJobs lobby", () => {
     expect(screen.getByText("in progress")).toBeTruthy();
 
     // Slim banner below the timeline.
-    expect(screen.getByText("We have all your documents")).toBeTruthy();
+    expect(
+      screen.getByText("Our team is working on your request"),
+    ).toBeTruthy();
     expect(screen.getByText(/looking for the best/)).toBeTruthy();
-    expect(screen.getByText("Change opportunity — reselect Nurse / Caregiver")).toBeTruthy();
+    expect(screen.getByText("Change opportunity")).toBeTruthy();
 
     // No eager CTA on the terminal card / no "Continue with Next Step".
     expect(screen.queryByText("Continue with Next Step")).toBeNull();
@@ -186,11 +188,11 @@ describe("IrelandJobs lobby", () => {
     getIrelandProgress.mockResolvedValue(TERMINAL());
     render(<IrelandJobs />);
     await waitFor(() =>
-      expect(screen.getByText("Change opportunity — reselect Nurse / Caregiver")).toBeTruthy(),
+      expect(screen.getByText("Change opportunity")).toBeTruthy(),
     );
 
     fireEvent.click(
-      screen.getByText("Change opportunity — reselect Nurse / Caregiver"),
+      screen.getByText("Change opportunity"),
     );
     await waitFor(() =>
       expect(screen.getByText("MOCK_ROLE_SELECT")).toBeTruthy(),

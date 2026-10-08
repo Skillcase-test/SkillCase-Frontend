@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getIrelandProgress } from "../../api/irelandJobsApi";
@@ -26,7 +26,7 @@ const STEP_DESCRIPTIONS = {
   },
   role_select: {
     subtitle: "choose your opportunity",
-    desc: "Pick the role you want to be placed in — Nurse or Caregiver.",
+    desc: "Pick the role you want to be placed in, Nurse or Caregiver.",
   },
   matching: {
     subtitle: "we are finding your opportunities",
@@ -86,37 +86,40 @@ const IrelandJobs = () => {
 
   // silent=true keeps the current screen mounted — used by step polling so a
   // background refresh doesn't collapse the view into the loading skeleton.
-  const fetchProgress = async (silent = false) => {
-    try {
-      if (!silent) setLoading(true);
-      setError("");
-      const { data } = await getIrelandProgress();
-      if (data?.success) {
-        setProgress(data.data);
-      } else if (!silent) {
-        setError("Failed to load progress");
+  const fetchProgress = useCallback(
+    async (silent = false) => {
+      try {
+        if (!silent) setLoading(true);
+        setError("");
+        const { data } = await getIrelandProgress();
+        if (data?.success) {
+          setProgress(data.data);
+        } else if (!silent) {
+          setError("Failed to load progress");
+        }
+      } catch (err) {
+        console.error("Error loading Ireland progress:", err);
+        captureTelemetryError(err, {
+          feature: "ireland_jobs.progress",
+          handled: true,
+        });
+        if (err.response?.status === 403) {
+          // Not eligible — the funnel lock only applies to ireland-mode users;
+          // anyone else who lands here goes home.
+          navigate("/", { replace: true });
+          return;
+        }
+        if (!silent) setError(err.response?.data?.message || "Failed to load progress");
+      } finally {
+        if (!silent) setLoading(false);
       }
-    } catch (err) {
-      console.error("Error loading Ireland progress:", err);
-      captureTelemetryError(err, {
-        feature: "ireland_jobs.progress",
-        handled: true,
-      });
-      if (err.response?.status === 403) {
-        // Not eligible — the funnel lock only applies to ireland-mode users;
-        // anyone else who lands here goes home.
-        navigate("/", { replace: true });
-        return;
-      }
-      if (!silent) setError(err.response?.data?.message || "Failed to load progress");
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  };
+    },
+    [navigate],
+  );
 
   useEffect(() => {
     fetchProgress();
-  }, []);
+  }, [fetchProgress]);
 
   // Broadcast welcome state to TopModeSwitcher so its tab blends white on the
   // white welcome screen and sky-blue on the lobby — same contract as
@@ -138,9 +141,11 @@ const IrelandJobs = () => {
   }, [progress, isExecutingStep, location.search]);
 
   useEffect(() => {
-    if (isExecutingStep && activeStepContainerRef.current) {
-      activeStepContainerRef.current.scrollTo(0, 0);
-    }
+    if (!isExecutingStep) return;
+    // The window is the real scroller (the step container uses min-h-* and
+    // grows with content), so scrollTo on the container alone is a no-op.
+    activeStepContainerRef.current?.scrollTo(0, 0);
+    window.scrollTo(0, 0);
   }, [isExecutingStep, executingStepId]);
 
   // Lobby auto-scroll — park the active card ~70% down the viewport on return,
@@ -151,20 +156,24 @@ const IrelandJobs = () => {
         const el = activeStepRef.current;
         if (!el) return;
         const rect = el.getBoundingClientRect();
-        const targetTop = window.innerHeight * 0.7;
-        const delta = rect.top - targetTop;
-        const scrollContainer = el.closest(".overflow-y-auto");
-        if (
-          scrollContainer &&
-          scrollContainer !== document.documentElement &&
-          scrollContainer !== document.body
+        const delta = rect.top - window.innerHeight * 0.7;
+        // Walk up to the ancestor that actually scrolls — the lobby div
+        // expands to its content so the window is usually the scroller.
+        let scroller = el.parentElement;
+        while (
+          scroller &&
+          scroller !== document.body &&
+          scroller.scrollHeight <= scroller.clientHeight + 1
         ) {
-          if (typeof scrollContainer.scrollBy === "function") {
-            scrollContainer.scrollBy({ top: delta, behavior: "smooth" });
-          } else {
-            scrollContainer.scrollTop += delta;
-          }
-        } else if (typeof window.scrollBy === "function") {
+          scroller = scroller.parentElement;
+        }
+        if (
+          scroller &&
+          scroller !== document.body &&
+          typeof scroller.scrollBy === "function"
+        ) {
+          scroller.scrollBy({ top: delta, behavior: "smooth" });
+        } else {
           window.scrollBy({ top: delta, behavior: "smooth" });
         }
       }, 300);
@@ -257,7 +266,7 @@ const IrelandJobs = () => {
         <div className="max-w-md w-full bg-white/80 backdrop-blur-sm p-6 rounded-2xl border border-white/60 text-center shadow-sm">
           <p className="text-sm font-semibold text-slate-800 mb-4">{error}</p>
           <button
-            onClick={fetchProgress}
+            onClick={() => fetchProgress()}
             className="px-5 py-2.5 bg-[#002856] text-white rounded-lg text-sm font-bold active:scale-[0.99] transition-all cursor-pointer"
           >
             Retry Loading
@@ -388,6 +397,7 @@ const IrelandJobs = () => {
             progress={progress}
             onComplete={handleStepComplete}
             onBack={handleExitStep}
+            refreshProgress={() => fetchProgress(true)}
             onProgressUpdate={handleProgressUpdate}
           />
         );
@@ -406,7 +416,6 @@ const IrelandJobs = () => {
             progress={progress}
             onBack={handleExitStep}
             onChangeRole={handleReopenRole}
-            onProgressUpdate={handleProgressUpdate}
           />
         );
       default:
@@ -445,24 +454,36 @@ const IrelandJobs = () => {
   }
 
   if (isExecutingStep) {
+    // Full-bleed steps (same mechanism as the German pipeline's
+    // select_opportunity): the parent drops its padding and the step
+    // supplies its own gutters so its chrome spans the column edge-to-edge.
+    const activeStepKey = executingStepId || currentStepId;
+    const isFullBleed = activeStepKey === "role_select";
+
     return (
       <div
         ref={activeStepContainerRef}
         className="min-h-screen bg-white w-full flex flex-col items-center overflow-y-auto"
-        style={{
-          paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))",
-          paddingBottom: "calc(3rem + env(safe-area-inset-bottom, 0px))",
-        }}
+        style={
+          isFullBleed
+            ? undefined
+            : {
+                paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))",
+                paddingBottom: "calc(3rem + env(safe-area-inset-bottom, 0px))",
+              }
+        }
       >
-        <div className="w-full max-w-md px-4">
+        <div
+          className={`w-full max-w-md ${isFullBleed ? "flex-1 flex flex-col min-h-screen" : "px-4"}`}
+        >
           <AnimatePresence mode="wait">
             <motion.div
-              key={executingStepId || currentStepId}
+              key={activeStepKey}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
               transition={{ duration: 0.2 }}
-              className="w-full"
+              className={`w-full ${isFullBleed ? "flex-1 flex flex-col min-h-screen" : ""}`}
             >
               {renderActiveStepComponent()}
             </motion.div>
@@ -496,7 +517,7 @@ const IrelandJobs = () => {
               Your Ireland progress
             </h2>
             <p className="text-[#002856]/70 text-xs sm:text-sm font-medium mt-1 leading-relaxed">
-              Next step -{" "}
+              Next step:{" "}
               {STEP_DESCRIPTIONS[currentStepId]?.subtitle ||
                 activeStep?.title ||
                 ""}
@@ -704,14 +725,12 @@ const IrelandJobs = () => {
           })}
         </div>
 
-        {/* Terminal banner — slim label under the completed timeline instead
-            of the old full-screen "We have all your documents" takeover. */}
+        {/* Terminal banner — slim status below the completed timeline */}
         {isMatchingTerminal && (
           <MatchingScreen
             progress={progress}
             inline
             onChangeRole={handleReopenRole}
-            onProgressUpdate={handleProgressUpdate}
           />
         )}
 

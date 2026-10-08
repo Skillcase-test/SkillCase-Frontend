@@ -5,6 +5,7 @@ import {
 } from "../../../api/irelandJobsAdminApi";
 import { Plus, RotateCcw, Save, X } from "lucide-react";
 import { toast } from "react-hot-toast";
+import { oppShade } from "../../../components/opportunity/opportunityTheme";
 
 const INPUT =
   "w-full border border-slate-200 rounded-xl p-2.5 text-xs bg-slate-50/50 focus:outline-none focus:ring-4 focus:ring-[#083262]/10 focus:border-[#083262] shadow-none transition-all";
@@ -142,7 +143,7 @@ const IrelandOpportunityEditor = ({ canEdit }) => {
           </h3>
           <p className="text-[10px] text-slate-400 font-medium mt-0.5 leading-relaxed">
             The text candidates see on each role&apos;s opportunity page.
-            Defaults ship with the app — edits here override them.
+            Defaults ship with the app. Edits here override them.
           </p>
         </div>
         <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/40 shrink-0">
@@ -195,12 +196,42 @@ const IrelandOpportunityEditor = ({ canEdit }) => {
                   />
                 </Field>
               </div>
+              {/* Theme color — tints the role card and the detail sheet for
+                  this opportunity (same pattern as German opportunities). */}
+              <Field label="Theme color">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={
+                      /^#[0-9a-fA-F]{6}$/.test(draft.color || "")
+                        ? draft.color
+                        : "#2563eb"
+                    }
+                    onChange={(e) =>
+                      update((d) => (d.color = e.target.value))
+                    }
+                    className="w-10 h-9 rounded-lg border border-slate-200 cursor-pointer p-0.5 bg-white"
+                  />
+                  <input
+                    className={`${INPUT} w-28`}
+                    placeholder="#2563eb"
+                    value={draft.color || ""}
+                    onChange={(e) =>
+                      update((d) => (d.color = e.target.value))
+                    }
+                  />
+                  <span
+                    className="w-6 h-6 rounded-lg border border-slate-200 shrink-0"
+                    style={{ backgroundColor: oppShade(draft.color, 1) }}
+                  />
+                </div>
+              </Field>
             </div>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_8px_rgba(0,40,86,0.03)] p-5 flex flex-col gap-3">
             <span className="text-[10px] font-bold text-[#083262] uppercase tracking-wider block text-left border-b border-slate-100 pb-2">
-              Sections — shown in order, first one stays expanded
+              Sections, shown in order, first one stays expanded
             </span>
             <div className="flex flex-col gap-3 text-left">
               {draft.sections.map((section, i) => (
@@ -390,7 +421,7 @@ const IrelandOpportunityEditor = ({ canEdit }) => {
                             .filter(Boolean),
                         })
                       }
-                      placeholder="Bullet points — one per line (optional)"
+                      placeholder="Bullet points, one per line (optional)"
                       rows={3}
                       className={`${INPUT} resize-y`}
                     />
@@ -401,7 +432,7 @@ const IrelandOpportunityEditor = ({ canEdit }) => {
                     onChange={(e) =>
                       updateSection(i, { note: e.target.value || undefined })
                     }
-                    placeholder="Footnote — highlighted box (optional)"
+                    placeholder="Footnote, highlighted box (optional)"
                     className="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] bg-amber-50/40 focus:outline-none focus:border-[#083262]"
                   />
                 </div>

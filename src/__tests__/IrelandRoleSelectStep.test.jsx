@@ -226,7 +226,7 @@ describe("RoleSelectStep", () => {
     );
     pickNurse();
     expect(
-      screen.getByText(/NMBI certificate was rejected — Expired certificate/),
+      screen.getByText(/NMBI certificate was rejected. Expired certificate/),
     ).toBeTruthy();
     expect(
       screen.getByRole("button", { name: /Upload NMBI certificate/ }),
@@ -320,7 +320,7 @@ describe("RoleSelectStep", () => {
       expect(markIrelandOpportunityInterest).toHaveBeenCalledWith("caregiver"),
     );
     expect(
-      screen.getByText(/Interested ✓ — our team will reach out/),
+      screen.getByText(/Interested ✓ Our team will reach out/),
     ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "I'm Interested" })).toBeNull();
   });

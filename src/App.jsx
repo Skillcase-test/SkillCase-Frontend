@@ -1498,11 +1498,11 @@ function AppContent() {
                   <Route path="/onboarding" element={<OnboardingFlow />} />
                   <Route
                     path="/job-screening"
-                    element={lazyScreen(<JobScreening />, "Loading Jobs...")}
+                    element={lazyScreen(<JobScreening />, "")}
                   />
                   <Route
                     path="/ireland-jobs"
-                    element={lazyScreen(<IrelandJobs />, "Loading Jobs...")}
+                    element={lazyScreen(<IrelandJobs />, "")}
                   />
                   <Route
                     path="/job-screening/opportunity/:id"
@@ -2428,11 +2428,14 @@ function RouteScreenSkeleton({ title }) {
   const location = useLocation();
   const isLearnGerman = location.pathname.startsWith("/learn-german");
   const isJobScreening = location.pathname.startsWith("/job-screening");
+  const isIrelandJobs = location.pathname.startsWith("/ireland-jobs");
   const bgClass = isLearnGerman
     ? "bg-gradient-to-b from-blue-100 to-sky-100"
-    : isJobScreening
-      ? "bg-gradient-to-b from-[#e0f2fe] to-white"
-      : "bg-[#f6f8fc]";
+    : isIrelandJobs
+      ? "bg-gradient-to-b from-[#e0f2fe] to-[#dbeafe]"
+      : isJobScreening
+        ? "bg-gradient-to-b from-[#e0f2fe] to-white"
+        : "bg-[#f6f8fc]";
   // B2 destinations render as fixed-width columns — match the shell so the
   // fallback doesn't visibly resize when the real page mounts.
   const widthClass = location.pathname.startsWith("/b2/maya")
@@ -2444,7 +2447,7 @@ function RouteScreenSkeleton({ title }) {
   return (
     <div className={`min-h-screen ${bgClass} px-4 py-6`}>
       <div className={`${widthClass} mx-auto`}>
-        <p className="text-sm text-slate-500 mb-4">{title}</p>
+        {title && <p className="text-sm text-slate-500 mb-4">{title}</p>}
         <div className="space-y-3 animate-pulse">
           <div className="h-6 w-56 bg-slate-200/80 rounded" />
           <div className="h-40 bg-slate-200/80 rounded-2xl" />

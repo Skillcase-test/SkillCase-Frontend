@@ -7,11 +7,17 @@ import {
   Languages,
   LifeBuoy,
   ListChecks,
+  Lock,
   Route,
   TrendingUp,
   TriangleAlert,
   Wallet,
 } from "lucide-react";
+import {
+  oppAlpha,
+  oppIsDark,
+  oppShade,
+} from "../../../components/opportunity/opportunityTheme";
 
 // Renders the per-role opportunity content (see irelandOpportunityContent.js
 // on the backend). Digestibility model: header + snapshot stay open, the
@@ -51,11 +57,17 @@ const TableRows = ({ rows = [] }) => (
   </dl>
 );
 
-const StepsStrip = ({ steps = [] }) => (
+const StepsStrip = ({ steps = [], color }) => (
   <ol className="flex flex-col gap-1.5">
     {steps.map((s, i) => (
       <li key={i} className="flex items-center gap-2.5">
-        <span className="w-5 h-5 rounded-full bg-[#083262] text-white text-[9px] font-bold flex items-center justify-center shrink-0">
+        <span
+          className="w-5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center shrink-0"
+          style={{
+            backgroundColor: color,
+            color: oppIsDark(color) ? "#ffffff" : oppShade(color, 0.3),
+          }}
+        >
           {i + 1}
         </span>
         <span className="text-[11px] font-semibold text-slate-700">{s}</span>
@@ -80,7 +92,7 @@ const CardItems = ({ items = [] }) => (
   </div>
 );
 
-const SectionBody = ({ section }) => (
+const SectionBody = ({ section, color }) => (
   <div className="flex flex-col gap-2.5 pt-2.5">
     {section.body && (
       <p className="text-[11px] text-slate-600 leading-relaxed">
@@ -88,7 +100,9 @@ const SectionBody = ({ section }) => (
       </p>
     )}
     {section.kind === "table" && <TableRows rows={section.rows} />}
-    {section.kind === "steps" && <StepsStrip steps={section.steps} />}
+    {section.kind === "steps" && (
+      <StepsStrip steps={section.steps} color={color} />
+    )}
     {section.kind === "cards" && <CardItems items={section.items} />}
     {section.list?.length > 0 && (
       <ul className="flex flex-col gap-1 pl-1">
@@ -114,15 +128,32 @@ const OpportunitySheet = ({
   primaryBusy = false,
   primaryDone = false,
   doneLabel = "Interest noted",
+  primaryLocked = false,
+  primaryLockedHint = "",
 }) => {
   if (!content) return null;
   const { header = {}, sections = [], cta = {} } = content;
+  // Admin-picked theme color — tints the sheet like the German detail view.
+  const color = content.color;
 
   return (
     <div className="w-full flex flex-col gap-3 text-left">
-      <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-2">
+      <div
+        className="border rounded-2xl p-4 flex flex-col gap-2"
+        style={{
+          background: `linear-gradient(180deg, ${oppAlpha(color, 0.14)} 0%, #ffffff 100%)`,
+          borderColor: oppAlpha(color, 0.4),
+        }}
+      >
         <div className="flex items-center gap-2">
-          <span className="px-2 py-0.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider bg-emerald-50 text-emerald-700 border-emerald-100 inline-flex items-center gap-1">
+          <span
+            className="px-2 py-0.5 text-[9px] font-extrabold rounded-md border uppercase tracking-wider inline-flex items-center gap-1"
+            style={{
+              backgroundColor: oppAlpha(color, 0.12),
+              color: oppShade(color, 0.4),
+              borderColor: oppAlpha(color, 0.35),
+            }}
+          >
             <BadgeCheck className="w-3 h-3" />
             {header.status || "Eligible"}
           </span>
@@ -146,14 +177,20 @@ const OpportunitySheet = ({
             className="group bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden"
           >
             <summary className="p-3.5 flex items-center justify-between gap-2 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
-              <span className="flex items-center gap-2 text-xs font-bold text-[#083262]">
-                <Icon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span
+                className="flex items-center gap-2 text-xs font-bold"
+                style={{ color: oppShade(color, 0.45) }}
+              >
+                <Icon
+                  className="w-3.5 h-3.5 shrink-0"
+                  style={{ color: oppShade(color, 0.6) }}
+                />
                 {section.title}
               </span>
               <ChevronDown className="w-4 h-4 text-slate-400 group-open:rotate-180 transition-transform duration-200 shrink-0" />
             </summary>
             <div className="px-3.5 pb-3.5">
-              <SectionBody section={section} />
+              <SectionBody section={section} color={color} />
             </div>
           </details>
         );
@@ -172,18 +209,28 @@ const OpportunitySheet = ({
             </p>
           )}
           {onPrimary && (
-            <button
-              type="button"
-              onClick={onPrimary}
-              disabled={primaryBusy || primaryDone}
-              className="w-full h-11 bg-[#002856] hover:bg-[#001f42] text-white rounded-xl font-bold text-sm transition-all active:scale-[0.99] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {primaryDone
-                ? doneLabel
-                : primaryBusy
-                  ? "Saving..."
-                  : cta.primaryLabel || "I'm Interested"}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={primaryLocked ? undefined : onPrimary}
+                disabled={primaryBusy || primaryDone || primaryLocked}
+                className="w-full h-11 bg-[#002856] hover:bg-[#001f42] text-white rounded-xl font-bold text-sm transition-all active:scale-[0.99] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {primaryLocked && <Lock className="w-3.5 h-3.5" />}
+                {primaryDone
+                  ? doneLabel
+                  : primaryBusy
+                    ? "Saving..."
+                    : primaryLocked
+                      ? "Locked"
+                      : cta.primaryLabel || "I'm Interested"}
+              </button>
+              {primaryLocked && primaryLockedHint && (
+                <p className="text-[11px] text-slate-500 font-medium leading-relaxed">
+                  {primaryLockedHint}
+                </p>
+              )}
+            </>
           )}
           {onSecondary && (
             <button

@@ -69,7 +69,7 @@ describe("IrelandDocumentsStep", () => {
 
   test("submit stays disabled until every doc has an answer", () => {
     setup(progressWith());
-    const submit = screen.getByRole("button", { name: /Save & Continue/ });
+    const submit = screen.getByRole("button", { name: /Confirm/ });
     expect(submit.disabled).toBe(true);
 
     fireEvent.click(answerRadio("IELTS Certificate", "No, I don't"));
@@ -86,7 +86,7 @@ describe("IrelandDocumentsStep", () => {
 
     fireEvent.click(answerRadio("IELTS Certificate", "I'm preparing"));
     fireEvent.click(answerRadio("VOSCREEN Certificate", "No, I don't"));
-    fireEvent.click(screen.getByRole("button", { name: /Save & Continue/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Confirm/ }));
 
     await waitFor(() => expect(onComplete).toHaveBeenCalledOnce());
     expect(setIrelandDocAnswers).toHaveBeenCalledWith({
@@ -101,7 +101,7 @@ describe("IrelandDocumentsStep", () => {
     fireEvent.click(answerRadio("VOSCREEN Certificate", "No, I don't"));
 
     expect(
-      screen.getByRole("button", { name: /Save & Continue/ }).disabled,
+      screen.getByRole("button", { name: /Confirm/ }).disabled,
     ).toBe(true);
     expect(
       screen.getByRole("button", { name: /Click to upload/ }),
@@ -124,19 +124,31 @@ describe("IrelandDocumentsStep", () => {
     expect(screen.getByText("Rejected")).toBeTruthy();
     expect(screen.getByText(/Blurry scan/)).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: /Save & Continue/ }).disabled,
+      screen.getByRole("button", { name: /Confirm/ }).disabled,
     ).toBe(false);
   });
 
-  test("pending files show the review banner and status chip", () => {
-    setup(
-      progressWith({
+  test("pending files show the status chip; review status renders the review screen", () => {
+    const pending = progressWith(
+      {
         ielts: { answer: "have", filename: "ielts.pdf", status: "pending" },
         doc_voscreen: { answer: "none" },
-      }),
+      },
     );
+    setup(pending);
     expect(screen.getByText("Under review")).toBeTruthy();
-    expect(screen.getByText(/waiting for review/)).toBeTruthy();
+    expect(screen.getByText("ielts.pdf")).toBeTruthy();
+
+    setup({
+      ...pending,
+      steps: [{ id: "documents", status: "review" }],
+    });
+    expect(
+      screen.getByRole("heading", { name: "Documents under review", level: 2 }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Refresh status/ }),
+    ).toBeTruthy();
   });
 
   test("uploading a file calls the API, flips the answer to 'have', and pushes fresh progress", async () => {
@@ -182,7 +194,7 @@ describe("IrelandDocumentsStep", () => {
 
     fireEvent.click(answerRadio("IELTS Certificate", "No, I don't"));
     fireEvent.click(answerRadio("VOSCREEN Certificate", "No, I don't"));
-    fireEvent.click(screen.getByRole("button", { name: /Save & Continue/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Confirm/ }));
 
     await waitFor(() =>
       expect(screen.getByText("answers object is required")).toBeTruthy(),

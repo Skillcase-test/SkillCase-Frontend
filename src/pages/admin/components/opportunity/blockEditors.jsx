@@ -273,7 +273,7 @@ const FlowEditor = ({ block, onChange, disabled }) => {
       </div>
       <input
         className={inputCls}
-        placeholder="Alert note (optional — shows with a warning icon)"
+        placeholder="Alert note (optional, shows with a warning icon)"
         value={block.note || ""}
         disabled={disabled}
         onChange={(e) => set({ note: e.target.value })}
@@ -374,7 +374,7 @@ const BlockEditor = ({ block, onChange, disabled }) => {
     <div className="flex flex-col gap-2">
       <input
         className={inputCls}
-        placeholder="Block title (optional — shown above the block)"
+        placeholder="Block title (optional, shown above the block)"
         value={block.title || ""}
         disabled={disabled}
         onChange={(e) => onChange({ ...block, title: e.target.value })}

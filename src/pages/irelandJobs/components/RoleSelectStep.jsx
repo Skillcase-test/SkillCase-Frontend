@@ -15,9 +15,16 @@ import {
   Upload,
   FileText,
   BadgeCheck,
+  ArrowLeft,
+  ChevronRight,
 } from "lucide-react";
-import StepSubHeader from "./StepSubHeader";
 import OpportunitySheet from "./OpportunitySheet";
+import {
+  normalizeHex,
+  oppAlpha,
+  oppShade,
+} from "../../../components/opportunity/opportunityTheme";
+import mayaThumbsup from "../../../assets/onboarding/mayaThumbsup.webp";
 import { toast } from "react-hot-toast";
 
 const ROLE_CARDS = [
@@ -62,13 +69,19 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
   const nmbiPending = nmbi.pending;
   const nmbiRejected = nmbi.rejected;
 
+  // Gate check for ANY role — nurse needs IELTS (approved / interest-noted /
+  // pending) AND NMBI (approved or pending); caregiver has none. Used both
+  // for the selected card's CTA and to lock the sheet's Interested button.
+  const roleGatesSettled = (id) =>
+    !(
+      id === "nurse" &&
+      ((!ielts.approved && !interestNoted && !ieltsPending) ||
+        (!nmbi.approved && !nmbiPending))
+    );
+
   // All requirements for the *previewed* role are satisfied (docs settled,
   // gates cleared) — that's when the Interested CTA may appear.
-  const gatesSettled = Boolean(
-    role &&
-      !(role === "nurse" &&
-        ((needsIelts && !ieltsPending) || (!nmbi.approved && !nmbiPending))),
-  );
+  const gatesSettled = Boolean(role && roleGatesSettled(role));
 
   // The selection only becomes real when the candidate presses "I'm
   // Interested" — that single click commits the role AND the interest and
@@ -126,7 +139,7 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
       formData.append("file", file);
       const { data } = await uploadIrelandDocument("ielts", formData);
       if (data?.success) {
-        toast.success("IELTS certificate uploaded — waiting for review");
+        toast.success("IELTS certificate uploaded. Waiting for review");
         onProgressUpdate?.(data.data);
       } else {
         toast.error("Upload failed");
@@ -148,7 +161,7 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
       formData.append("file", file);
       const { data } = await uploadIrelandDocument("nmbi", formData);
       if (data?.success) {
-        toast.success("NMBI certificate uploaded — waiting for review");
+        toast.success("NMBI certificate uploaded. Waiting for review");
         onProgressUpdate?.(data.data);
       } else {
         toast.error("Upload failed");
@@ -179,51 +192,95 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
   };
 
   return (
-    <div className="w-full bg-white text-[#002856] flex flex-col items-center justify-start relative gap-5">
-      <StepSubHeader onBack={onBack} />
-
-      <div className="text-left w-full">
-        <h2 className="text-[#002856] text-2xl font-bold tracking-tight mb-2">
-          Choose your opportunity
+    // Mirrors the German SelectOpportunityStep: own subheader bar, then a
+    // full-height gradient page. Mounted full-bleed so it provides the gutters.
+    <div className="w-full min-h-screen flex-1 bg-white text-[#002856] flex flex-col relative">
+      <div
+        className="w-full px-4 sm:px-6 pb-3 bg-white flex items-center gap-3 border-b border-slate-200/80 sticky top-0 z-20 shrink-0"
+        style={{
+          paddingTop: "calc(1rem + env(safe-area-inset-top, 0px))",
+        }}
+      >
+        <button
+          type="button"
+          onClick={onBack}
+          className="w-7 h-7 flex items-center justify-center rounded-md border-2 border-slate-400 text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer shrink-0"
+          aria-label="Back"
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
+        <h2 className="text-base font-semibold text-[#002856] tracking-tight truncate">
+          Opportunities
         </h2>
-        <p className="text-[#002856]/70 text-xs sm:text-sm font-medium leading-relaxed">
-          Pick the role you want to be placed in.
-        </p>
       </div>
 
+      <div className="flex-1 w-full px-4 sm:px-6 pt-6 pb-12 bg-gradient-to-b from-[#eff6ff] to-white flex flex-col gap-6">
+        <div className="flex items-end gap-1 w-full">
+          <div className="flex-1 flex flex-col gap-2 text-left min-w-0">
+            <h1 className="text-[#002856] text-xl font-bold tracking-tight leading-snug">
+              Choose your opportunity
+            </h1>
+            <p className="text-[#002856]/70 text-xs font-medium leading-relaxed">
+              Pick the role you want to be placed in.
+            </p>
+          </div>
+          <img
+            src={mayaThumbsup}
+            alt=""
+            className="w-24 h-24 object-contain shrink-0 select-none"
+            draggable="false"
+          />
+        </div>
+
       <div className="w-full flex flex-col gap-3">
-        {ROLE_CARDS.map(({ id, title, desc, Icon }) => {
+        {ROLE_CARDS.map(({ id, title, desc, Icon }, i) => {
           const selected = role === id;
+          // Admin-picked theme color per role (falls back to the blue-600
+          // default inside oppAlpha when unset).
+          const color = opportunities[id]?.color;
           return (
             <motion.button
               key={id}
               type="button"
-              whileTap={{ scale: 0.98 }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.06 }}
               onClick={() => pickRole(id)}
               disabled={markingOpp}
-              className={`w-full text-left bg-white border rounded-2xl p-4 flex items-start gap-3 transition-all cursor-pointer disabled:opacity-60 ${
-                selected
-                  ? "border-[#002856] shadow-md"
-                  : "border-slate-200 hover:border-slate-300"
-              }`}
+              className="w-full p-3 rounded-2xl border text-left flex items-center gap-3.5 cursor-pointer active:scale-[0.99] transition-transform disabled:opacity-60"
+              style={{
+                borderColor: selected ? normalizeHex(color) : oppAlpha(color, 0.5),
+                backgroundColor: selected ? oppAlpha(color, 0.06) : "#ffffff",
+              }}
             >
+              {/* Media tile — Ireland has no image field, icon on tint instead */}
               <div
-                className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                  selected
-                    ? "bg-[#002856] text-white"
-                    : "bg-blue-50 border border-blue-100 text-[#083262]"
-                }`}
+                className="w-20 h-16 rounded-xl overflow-hidden shrink-0 flex items-center justify-center"
+                style={{ backgroundColor: oppAlpha(color, 0.12) }}
               >
-                <Icon className="w-5 h-5" />
+                <Icon
+                  className="w-7 h-7"
+                  style={{ color: oppShade(color, 0.45) }}
+                />
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <h4 className="text-[#002856] text-base font-semibold">{title}</h4>
-                  {selected && (
-                    <Check className="w-4 h-4 text-[#002856] shrink-0" />
+              <div className="flex-1 min-w-0 flex flex-col gap-1">
+                <div className="flex items-start gap-2">
+                  <h3 className="flex-1 text-slate-900 text-sm font-bold leading-snug">
+                    {title}
+                  </h3>
+                  {selected ? (
+                    <Check
+                      className="w-4 h-4 shrink-0 mt-0.5"
+                      style={{ color: oppShade(color, 0.5) }}
+                    />
+                  ) : (
+                    <ChevronRight
+                      className="w-4 h-4 shrink-0 mt-0.5"
+                      style={{ color: oppShade(color, 0.5) }}
+                    />
                   )}
                 </div>
-                <p className="text-slate-500 text-[11px] sm:text-xs font-normal leading-relaxed mt-1">
+                <p className="text-slate-600/80 text-[11px] font-medium leading-snug">
                   {desc}
                 </p>
                 {opportunities[id] && (
@@ -240,7 +297,8 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
                         setPreviewRole(id);
                       }
                     }}
-                    className="inline-block mt-2 text-[11px] font-bold text-[#083262] hover:underline cursor-pointer"
+                    className="inline-block mt-0.5 text-[11px] font-bold hover:underline cursor-pointer"
+                    style={{ color: oppShade(color, 0.45) }}
                   >
                     View opportunity details →
                   </span>
@@ -258,7 +316,7 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
           <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-2xl px-4 py-3">
             <Check className="w-4 h-4 text-[#15803d] shrink-0" />
             <p className="text-xs font-semibold text-[#15803d] leading-relaxed">
-              Interested ✓ — our team will reach out about the {role === "nurse" ? "Nursing" : "Caregiver"} opportunity.
+              Interested ✓ Our team will reach out about the {role === "nurse" ? "Nursing" : "Caregiver"} opportunity.
             </p>
           </div>
         ) : (
@@ -288,7 +346,7 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
         <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-2xl px-4 py-3">
           <BadgeCheck className="w-4 h-4 text-[#15803d] shrink-0" />
           <p className="text-xs font-semibold text-[#15803d]">
-            Your IELTS certificate is approved — you're set for the Nurse opportunity.
+            Your IELTS certificate is approved. You're set for the Nurse opportunity.
           </p>
         </div>
       )}
@@ -307,7 +365,7 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
         <div className="flex flex-col gap-3 bg-amber-50 border border-amber-100 rounded-2xl p-4">
           <p className="text-xs font-semibold text-amber-800 leading-relaxed">
             {ieltsRejected
-              ? "Your IELTS certificate was rejected — please upload a valid certificate."
+              ? "Your IELTS certificate was rejected. Please upload a valid certificate."
               : "Please upload your IELTS certificate to continue on the Nurse opportunity."}
           </p>
           <button
@@ -361,7 +419,7 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
         <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-2xl px-4 py-3">
           <Check className="w-4 h-4 text-[#15803d] shrink-0" />
           <p className="text-xs font-semibold text-[#15803d] leading-relaxed">
-            Interest noted — our team will reach out to help you get your IELTS
+            Interest noted. Our team will reach out to help you get your IELTS
             certificate.
           </p>
         </div>
@@ -391,8 +449,8 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
         <div className="flex flex-col gap-3 bg-amber-50 border border-amber-100 rounded-2xl p-4">
           <p className="text-xs font-semibold text-amber-800 leading-relaxed">
             {nmbiRejected
-              ? `Your NMBI certificate was rejected${nmbi.rejectionReason ? ` — ${nmbi.rejectionReason}` : ""}. Please upload a valid certificate.`
-              : "Please upload your NMBI certificate — Irish hospitals require it to proceed on the Nurse opportunity."}
+              ? `Your NMBI certificate was rejected${nmbi.rejectionReason ? `. ${nmbi.rejectionReason}` : ""}. Please upload a valid certificate.`
+              : "Please upload your NMBI certificate. Irish hospitals require it to proceed on the Nurse opportunity."}
           </p>
           <button
             type="button"
@@ -425,17 +483,27 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
           </span>
         </div>
       )}
+      </div>
 
       {previewRole && opportunities[previewRole] && (
         // pb-24 clears the fixed bottom tab bar (~72px + safe-area inset);
         // on sm+ the sheet centers so the padding is harmless.
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px] px-0 pt-0 sm:p-4">
-          <div className="w-full max-w-lg max-h-[calc(100dvh-9rem)] sm:max-h-[88vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-[#f8fafc] p-4 animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200">
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px] px-0 pt-0 sm:p-4"
+          onClick={() => setPreviewRole(null)}
+        >
+          <div
+            className="w-full max-w-lg max-h-[calc(100dvh-9rem)] sm:max-h-[88vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-[#f8fafc] p-4 animate-in slide-in-from-bottom-4 sm:zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             <OpportunitySheet
               content={opportunities[previewRole]}
               primaryBusy={markingOpp}
+              primaryLocked={!roleGatesSettled(previewRole)}
+              primaryLockedHint="Upload the required documents to unlock this opportunity"
               onPrimary={async () => {
                 const picked = previewRole;
+                if (!roleGatesSettled(picked)) return;
                 setPreviewRole(null);
                 pickRole(picked);
                 await handleInterested(picked);

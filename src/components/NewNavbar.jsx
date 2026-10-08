@@ -65,6 +65,12 @@ export default function Navbar({ disableNavigation = false }) {
 
   const rawLevel = user?.user_prof_level || "A1";
   const displayLevel = String(rawLevel).toUpperCase();
+  // Ireland candidates never sit in a German level — brand reads "Ireland Jobs".
+  const isIreland =
+    isAuthenticated &&
+    (location.pathname.startsWith("/ireland-jobs") ||
+      user?.lg_preferred_mode === "ireland_jobs" ||
+      cachedMode === "ireland_jobs");
   const isPremium = isPremiumUser(user);
   const isTrial = !isPremium && isTrialActive(user);
   const daysLeft = trialDaysLeft(user);
@@ -99,7 +105,8 @@ export default function Navbar({ disableNavigation = false }) {
   // paints one frame of the practice hub before LandingPage's redirect
   // effect fires, which flashes the mode switcher to Practice.
   let brandHref = "/";
-  if (isB1User && isJobScreeningContext) brandHref = "/job-screening";
+  if (isIreland) brandHref = "/ireland-jobs";
+  else if (isB1User && isJobScreeningContext) brandHref = "/job-screening";
   else if (cachedMode === "courses") brandHref = "/video-courses";
   else if (!isB1User && cachedMode === "learn") brandHref = "/learn-german";
 
@@ -132,10 +139,12 @@ export default function Navbar({ disableNavigation = false }) {
           aria-label="Go to home"
         >
           <h1 className="text-white text-base font-semibold leading-5 truncate">
-            {displayLevel} German Level
+            {isIreland ? "Ireland Jobs" : `${displayLevel} German Level`}
           </h1>
           <p className="text-white/70 text-xs leading-4 truncate">
-            German for Career Growth
+            {isIreland
+              ? "Nurse & Caregiver Careers"
+              : "German for Career Growth"}
           </p>
         </Link>
 

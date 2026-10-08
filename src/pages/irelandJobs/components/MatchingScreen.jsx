@@ -1,17 +1,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSelector } from "react-redux";
-import {
-  BadgeCheck,
-  BriefcaseBusiness,
-  CheckCircle2,
-  ChevronDown,
-  RefreshCw,
-} from "lucide-react";
-import { toast } from "react-hot-toast";
-import { markIrelandOpportunityInterest } from "../../../api/irelandJobsApi";
+import { BriefcaseBusiness, ChevronDown } from "lucide-react";
 import OpportunitySheet from "./OpportunitySheet";
 import StepSubHeader from "./StepSubHeader";
+import mayaThumbsup from "../../../assets/onboarding/mayaThumbsup.webp";
 
 // Terminal state of the Ireland pipeline. Two render contexts:
 //  - inline (lobby, below the completed timeline): the compact status banner —
@@ -24,60 +16,35 @@ const MatchingScreen = ({
   inline = false,
   onBack,
   onChangeRole,
-  onProgressUpdate,
 }) => {
-  const { user } = useSelector((state) => state.auth);
   const role = progress?.role;
   const interestNoted = Boolean(progress?.ieltsInterestAt);
-  const [oppInterestDone, setOppInterestDone] = useState(
-    Boolean(progress?.opportunityInterestAt),
-  );
-  const [oppInterestBusy, setOppInterestBusy] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const roleLabel =
     role === "nurse" ? "Nurse" : role === "caregiver" ? "Caregiver" : null;
   const opportunity = progress?.opportunities?.[role];
 
-  const handleInterested = async () => {
-    try {
-      setOppInterestBusy(true);
-      const { data } = await markIrelandOpportunityInterest(role);
-      if (data?.success) {
-        setOppInterestDone(true);
-        onProgressUpdate?.(data.data);
-        toast.success("Interest noted — our team will reach out soon.");
-      } else {
-        toast.error("Could not save your interest");
-      }
-    } catch (err) {
-      toast.error(
-        err.response?.data?.message || "Could not save your interest",
-      );
-    } finally {
-      setOppInterestBusy(false);
-    }
-  };
-
   const body = (
     <div className="w-full bg-white/80 backdrop-blur-sm rounded-2xl border border-white/60 shadow-sm p-4 flex flex-col gap-3 text-left">
-      {/* Status banner */}
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center shrink-0">
-          <CheckCircle2 className="w-5 h-5 text-[#15803d]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-extrabold text-[#002856]">
-            We have all your documents
-          </p>
-          <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
-            {user?.fullname
-              ? `${user.fullname.split(" ")[0]}, our`
-              : "Our"}{" "}
-            team is now looking for the best
+      {/* Status banner — "Please note" Maya component, green gradient */}
+      <div className="w-full bg-gradient-to-r from-emerald-50 to-teal-100 rounded-2xl border border-emerald-200/80 flex items-center gap-2.5 shadow-xs text-left overflow-hidden">
+        <img
+          src={mayaThumbsup}
+          alt=""
+          aria-hidden="true"
+          className="w-20 h-20 object-contain shrink-0 self-end select-none pointer-events-none"
+          draggable="false"
+        />
+        <div className="min-w-0 flex-1 pr-3 py-3">
+          <h4 className="text-[#14532d] text-xs sm:text-sm font-bold leading-tight">
+            Our team is working on your request
+          </h4>
+          <p className="text-[#14532d]/80 text-[10px] sm:text-xs font-normal leading-normal mt-0.5">
+            We have all your documents. We&apos;re now looking for the best
             {roleLabel ? ` ${roleLabel} opportunities` : " opportunities"} for
             you in Ireland.
             {interestNoted
-              ? " IELTS interest noted — we'll help you get certified too."
+              ? " IELTS interest noted. We'll help you get certified too."
               : ""}
           </p>
         </div>
@@ -118,7 +85,7 @@ const MatchingScreen = ({
                 className="overflow-hidden"
               >
                 <div className="pt-3">
-                  {/* CTA block stripped — the banner's own buttons own it. */}
+                  {/* Read-only detail — cta stripped so no button renders */}
                   <OpportunitySheet content={{ ...opportunity, cta: {} }} />
                 </div>
               </motion.div>
@@ -128,43 +95,17 @@ const MatchingScreen = ({
       )}
 
       {/* Actions */}
-      <div className="flex flex-col gap-2 border-t border-slate-100 pt-3">
-        {opportunity && (
-          <button
-            type="button"
-            onClick={handleInterested}
-            disabled={oppInterestBusy || oppInterestDone}
-            className={`w-full h-10 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
-              oppInterestDone
-                ? "bg-green-50 border border-green-100 text-[#15803d] cursor-default"
-                : "bg-[#002856] hover:bg-[#001f42] text-white active:scale-[0.99] cursor-pointer disabled:opacity-60"
-            }`}
-          >
-            {oppInterestDone ? (
-              <>
-                <BadgeCheck className="w-4 h-4" />
-                Interested — noted for the team
-              </>
-            ) : oppInterestBusy ? (
-              <>
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              opportunity.cta?.primaryLabel || "I'm Interested"
-            )}
-          </button>
-        )}
-        {onChangeRole && (
+      {onChangeRole && (
+        <div className="flex flex-col gap-2 border-t border-slate-100 pt-3">
           <button
             type="button"
             onClick={onChangeRole}
             className="w-full h-9 text-[11px] font-bold text-[#083262] hover:underline cursor-pointer"
           >
-            Change opportunity — reselect Nurse / Caregiver
+            Change opportunity
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 
@@ -178,7 +119,7 @@ const MatchingScreen = ({
           Opportunity matching
         </h2>
         <p className="text-[#002856]/70 text-xs sm:text-sm font-medium leading-relaxed">
-          Your pipeline is complete — here's where things stand.
+          Your pipeline is complete. Here's where things stand.
         </p>
       </div>
       {body}

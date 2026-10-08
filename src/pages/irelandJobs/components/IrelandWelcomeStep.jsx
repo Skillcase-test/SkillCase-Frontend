@@ -1,21 +1,29 @@
 import { useState } from "react";
 import { useSelector } from "react-redux";
 import { completeIrelandWelcome } from "../../../api/irelandJobsApi";
-import { SearchCheck, FileBadge, BriefcaseBusiness, RefreshCw } from "lucide-react";
+import {
+  SearchCheck,
+  FileBadge,
+  BriefcaseBusiness,
+  RefreshCw,
+  Image,
+} from "lucide-react";
 import { trackFlowAction } from "../../../telemetry/flow";
 
-// Hero image for the welcome screen — drop the final asset in src/assets and
-// point this at it (e.g. `import irelandHeroImg from "../../../assets/ireland.webp"`).
+// Hero image for the welcome screen (16:9) — drop the final asset in
+// src/assets and point this at it:
+//   import irelandHeroImg from "../../../assets/ireland.webp"
+//   const WELCOME_IMAGE = irelandHeroImg;
 const WELCOME_IMAGE = null;
 
-const POINTERS = [
+const FLOW_POINTS = [
   {
     icon: SearchCheck,
     text: "We analyse your profile and find the best opportunities for you in Ireland",
   },
   {
     icon: FileBadge,
-    text: "Share your certificates — we help you figure out what is missing",
+    text: "Share your certificates and we help you figure out what is missing",
   },
   {
     icon: BriefcaseBusiness,
@@ -60,65 +68,74 @@ const IrelandWelcomeStep = ({ onComplete }) => {
   };
 
   return (
-    <div className="w-full sm:max-w-md mx-auto bg-white text-slate-800 pt-8 sm:pt-10 pb-4 px-4 sm:px-6 flex flex-col items-center justify-start text-center">
-      <h2 className="text-2xl sm:text-3xl font-extrabold text-[#002856] tracking-tight leading-tight mb-2">
-        Welcome to Ireland Jobs
-      </h2>
-      <p className="text-slate-500 text-xs sm:text-sm leading-relaxed max-w-xs">
-        {user?.fullname ? `Hi ${user.fullname.split(" ")[0]}, you're` : "You're"}{" "}
-        a few steps away from working in Ireland
-      </p>
+    <div className="w-full sm:max-w-md mx-auto pt-6 pb-10 flex flex-col gap-4">
+      {/* Title block */}
+      <div className="w-full flex flex-col items-start gap-1.5">
+        <h2 className="w-full text-blue-950 text-2xl font-semibold tracking-tight">
+          Welcome to Ireland Jobs
+        </h2>
+        <p className="w-full text-blue-950/70 text-xs sm:text-sm font-medium leading-relaxed">
+          {user?.fullname ? `Hi ${user.fullname.split(" ")[0]}, you're` : "You're"}{" "}
+          a few steps away from working in Ireland
+        </p>
+      </div>
 
-      {/* Hero image slot */}
-      <div className="w-full max-w-xs my-6 flex items-center justify-center">
+      {/* 16:9 hero image */}
+      <div className="w-full aspect-video rounded-xl overflow-hidden bg-gradient-to-b from-[#e0f2fe] to-[#f0f9ff] border border-blue-100/60 flex items-center justify-center">
         {WELCOME_IMAGE ? (
           <img
             src={WELCOME_IMAGE}
             alt="Ireland Jobs"
-            className="w-full max-h-56 object-contain"
+            className="w-full h-full object-cover"
             draggable="false"
           />
         ) : (
-          <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-3xl bg-gradient-to-b from-[#e0f2fe] to-[#f0f9ff] border border-blue-100/60 flex items-center justify-center shadow-inner">
-            <BriefcaseBusiness className="w-16 h-16 text-[#002856]/60" />
-          </div>
+          <Image className="w-10 h-10 text-[#002856]/30" />
         )}
       </div>
 
-      {/* Pointers */}
-      <div className="w-full max-w-sm flex flex-col gap-3 mb-6 text-left">
-        {POINTERS.map(({ icon: Icon, text }) => (
-          <div
-            key={text}
-            className="flex items-center gap-3 bg-slate-50/50 border border-slate-200/60 rounded-2xl px-4 py-3"
-          >
-            <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0">
-              <Icon className="w-4 h-4 text-[#083262]" />
+      {/* Points card */}
+      <div className="w-full p-4 bg-white rounded-xl outline outline-1 outline-offset-[-1px] outline-zinc-300 flex flex-col gap-4 overflow-hidden">
+        <div className="w-full flex justify-between items-center">
+          <h3 className="text-slate-900 text-sm font-semibold">
+            How it works
+          </h3>
+          <span className="px-2 py-0.5 bg-green-700/10 rounded-full outline outline-1 outline-offset-[-1px] outline-green-700/20 text-green-700 text-[10px] font-medium">
+            3 steps
+          </span>
+        </div>
+        <div className="w-full flex flex-col items-start gap-4">
+          {FLOW_POINTS.map(({ icon: Icon, text }) => (
+            <div key={text} className="w-full flex items-center gap-3.5">
+              <div className="w-10 h-10 shrink-0 bg-black/5 rounded-lg flex items-center justify-center">
+                <Icon className="w-4 h-4 text-blue-950" />
+              </div>
+              <p className="flex-1 text-left text-black/70 text-xs sm:text-sm font-normal leading-relaxed">
+                {text}
+              </p>
             </div>
-            <span className="text-slate-600 text-xs sm:text-sm font-medium leading-relaxed">
-              {text}
-            </span>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      {error && (
-        <p className="text-red-500 text-xs font-semibold mb-3">{error}</p>
-      )}
-
-      <div className="w-full flex flex-col gap-3 max-w-sm">
+      {/* Primary CTA */}
+      <div className="w-full pt-2 flex flex-col items-start gap-2">
+        {error && (
+          <p className="text-red-500 text-xs font-semibold">{error}</p>
+        )}
         <button
+          type="button"
           onClick={handleStart}
           disabled={loading}
-          className="w-full h-12 bg-gradient-to-r from-amber-200 to-amber-300 hover:from-amber-300 hover:to-amber-400 text-[#002856] rounded-xl font-bold text-sm sm:text-base transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 shadow-md cursor-pointer border border-amber-300/80 disabled:opacity-75"
+          className="w-full py-3 bg-blue-950 rounded-lg shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] shadow-[inset_0px_-2px_0px_0px_rgba(10,13,18,0.05)] shadow-[inset_0px_0px_0px_1px_rgba(10,13,18,0.18)] outline outline-2 outline-offset-[-2px] outline-white/10 flex justify-center items-center gap-1.5 overflow-hidden cursor-pointer disabled:opacity-60 transition-opacity"
         >
           {loading ? (
-            <span className="flex items-center gap-2">
-              <RefreshCw className="animate-spin h-4 w-4 text-[#002856]" />
+            <span className="flex items-center gap-2 text-white text-sm font-semibold">
+              <RefreshCw className="animate-spin h-4 w-4" />
               Preparing your process...
             </span>
           ) : (
-            <span>Start</span>
+            <span className="text-white text-sm font-semibold">Start</span>
           )}
         </button>
       </div>

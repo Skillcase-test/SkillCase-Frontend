@@ -32,7 +32,7 @@ export const BLOCK_CATALOG = [
   {
     type: "kv_table",
     label: "Details rows",
-    hint: "Two columns — icon + label on the left, value on the right",
+    hint: "Two columns, icon + label on the left, value on the right",
     factory: () => ({
       type: "kv_table",
       title: "",
@@ -64,7 +64,7 @@ export const BLOCK_CATALOG = [
   {
     type: "process",
     label: "Process steps",
-    hint: "Vertical numbered steps — title + up to 4 points each",
+    hint: "Vertical numbered steps, title + up to 4 points each",
     factory: () => ({
       type: "process",
       title: "",
