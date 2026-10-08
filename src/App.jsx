@@ -46,6 +46,7 @@ import {
   isShellRoute,
   isPaymentRoute,
   isScholarshipRoute,
+  isIrelandRoute,
 } from "./utils/shellRoutes";
 import { hasPremiumAccess } from "./utils/premium";
 import { useFeatureFlags } from "./hooks/useFeatureFlags";
@@ -69,7 +70,13 @@ const syncPreferredModeCache = (user) => {
     (String(user.german_preference) === "3" ? "job_screening" : "");
 
   if (
-    !["learn", "practice", "job_screening", "scholarship"].includes(serverMode)
+    ![
+      "learn",
+      "practice",
+      "job_screening",
+      "scholarship",
+      "ireland_jobs",
+    ].includes(serverMode)
   )
     return;
 
@@ -251,6 +258,7 @@ const Lg2LessonPage = lazy(
 const Lg2Recap = lazy(() => import("./pages/learnGermanV2/Lg2Recap"));
 const Lg2Passport = lazy(() => import("./pages/learnGermanV2/Lg2Passport"));
 const JobScreening = lazy(() => import("./pages/jobScreening/JobScreening"));
+const IrelandJobs = lazy(() => import("./pages/irelandJobs/IrelandJobs"));
 const JobsLockedPage = lazy(() => import("./pages/jobs/JobsLockedPage"));
 const JobScreeningAdmin = lazy(() => import("./pages/admin/JobScreeningAdmin"));
 const NewLessonFlow = lazy(
@@ -1175,9 +1183,12 @@ function AppContent() {
   const isB1User =
     isAuthenticated && user && isPracticeSuiteLevel(user?.user_prof_level);
 
+  // Ireland-mode users own their own funnel below — a stale german_preference
+  // must not drag them into the German pipeline lock.
   const isJobScreeningUser =
     isAuthenticated &&
     user &&
+    user.lg_preferred_mode !== "ireland_jobs" &&
     (String(user.german_preference) === "3" ||
       user.lg_preferred_mode === "job_screening");
 
@@ -1221,6 +1232,24 @@ function AppContent() {
 
   if (isJobScreeningUser && !isJobScreeningAllowedRoute) {
     return <Navigate to="/job-screening" replace />;
+  }
+
+  // Ireland Jobs is a locked funnel like the scholarship hub: ireland-mode
+  // users can only see the pipeline, their profile, billing and admin.
+  const isIrelandJobsUser =
+    isAuthenticated &&
+    user &&
+    user.lg_preferred_mode === "ireland_jobs";
+
+  const isIrelandAllowedRoute =
+    location.pathname.startsWith("/ireland-jobs") ||
+    isPublicAcquisitionRoute ||
+    location.pathname === "/profile" ||
+    location.pathname.startsWith("/admin") ||
+    isPaymentRoute(location.pathname);
+
+  if (isIrelandJobsUser && !isIrelandAllowedRoute) {
+    return <Navigate to="/ireland-jobs" replace />;
   }
 
   const FeatureFlagGated = ({ featureKey, redirectTo = "/", children }) => {
@@ -1470,6 +1499,10 @@ function AppContent() {
                   <Route
                     path="/job-screening"
                     element={lazyScreen(<JobScreening />, "Loading Jobs...")}
+                  />
+                  <Route
+                    path="/ireland-jobs"
+                    element={lazyScreen(<IrelandJobs />, "Loading Jobs...")}
                   />
                   <Route
                     path="/job-screening/opportunity/:id"
@@ -2443,6 +2476,7 @@ function ConditionalFooter() {
     location.pathname.startsWith("/onboarding") ||
     location.pathname.startsWith("/learn-german") ||
     location.pathname.startsWith("/job-screening") ||
+    location.pathname.startsWith("/ireland-jobs") ||
     location.pathname === "/jobs" ||
     location.pathname.startsWith("/interview") ||
     location.pathname.startsWith("/admin") ||
@@ -2466,6 +2500,7 @@ function AppHeaderShell() {
   const isWhiteHeader =
     location.pathname === "/login" ||
     location.pathname === "/signup" ||
+    location.pathname.startsWith("/ireland-jobs") ||
     (location.pathname.startsWith("/job-screening") &&
       !isPracticeSuiteLevel(user?.user_prof_level));
 
@@ -2487,7 +2522,8 @@ function ConditionalNav() {
   const isJobScreening = queryParams.get("source") === "job_screening";
   const path = location.pathname;
   const isExecutingJobStep =
-    path === "/job-screening" && queryParams.has("step");
+    (path === "/job-screening" || path === "/ireland-jobs") &&
+    queryParams.has("step");
 
   if (isExecutingJobStep) {
     return null;
@@ -2523,7 +2559,8 @@ function ConditionalTopSwitcher() {
   const location = useLocation();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const isExecutingJobStep =
-    location.pathname === "/job-screening" &&
+    (location.pathname === "/job-screening" ||
+      location.pathname === "/ireland-jobs") &&
     new URLSearchParams(location.search).has("step");
 
   if (!isAuthenticated || isExecutingJobStep) return null;
@@ -2533,12 +2570,15 @@ function ConditionalTopSwitcher() {
   // Exam & Practice + Jobs tabs, so their switcher renders on the practice
   // home AND the job-screening pipeline lobby — flipping between the two
   // modes is the whole point of their two-tab switcher. The scholarship hub
-  // renders the single-tab "Scholarship Exam" switcher variant. The focused
+  // renders the single-tab "Scholarship Exam" switcher variant, and the
+  // Ireland hub gets the same single static tab. The focused
   // interview / terms flows keep their own chrome.
   const isB1 = isPracticeSuiteLevel(user?.user_prof_level);
   const showSwitcher = isScholarshipRoute(location.pathname)
     ? location.pathname === "/scholarship"
-    : isB1
+    : isIrelandRoute(location.pathname)
+      ? location.pathname === "/ireland-jobs"
+      : isB1
       ? location.pathname === "/" ||
         location.pathname === "/job-screening" ||
         location.pathname === "/video-courses"
@@ -2555,7 +2595,8 @@ function ConditionalBottomTabBar() {
   const location = useLocation();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const isExecutingJobStep =
-    location.pathname === "/job-screening" &&
+    (location.pathname === "/job-screening" ||
+      location.pathname === "/ireland-jobs") &&
     new URLSearchParams(location.search).has("step");
 
   if (!isAuthenticated || isExecutingJobStep) return null;

@@ -37,6 +37,7 @@ import CandidateList from "./components/CandidateList";
 import CandidateDetail from "./components/CandidateDetail";
 import DirectoryView from "./components/DirectoryView";
 import OpportunityManager from "./components/opportunity/OpportunityManager";
+import IrelandJobsAdmin from "./IrelandJobsAdmin";
 
 // Normalizes the settings API payload into the shape globalSettings uses, so
 // the saved snapshot and the editable state are directly comparable.
@@ -56,7 +57,19 @@ const normalizeGlobalSettings = (settings = {}) => ({
   profile_fields: settings.profile_fields || [],
 });
 
-const JobScreeningAdmin = ({ canEdit = true }) => {
+const JobScreeningAdmin = ({
+  canEdit = true,
+  canEditIreland = false,
+  allowedPipelines = ["germany", "ireland"],
+}) => {
+  // Germany / Ireland pipeline toggle — mutually exclusive pipelines sharing
+  // this admin screen; "ireland" swaps the whole view to IrelandJobsAdmin.
+  // allowedPipelines reflects the admin's module permissions.
+  const [pipeline, setPipeline] = useState(
+    allowedPipelines.includes("germany")
+      ? "germany"
+      : allowedPipelines[0] || "germany",
+  );
   const detailRequestIdRef = React.useRef(0);
   const settingsScrollRef = React.useRef(null);
   const [candidates, setCandidates] = useState([]);
@@ -872,8 +885,26 @@ const JobScreeningAdmin = ({ canEdit = true }) => {
   const skippableCompleted = skippableCounts.completed || 0;
   const skippableAlreadySkipped = skippableCounts.skipped || 0;
 
+  if (pipeline === "ireland") {
+    return (
+      <div className="flex flex-col gap-6 h-full">
+        <PipelineToggle
+          pipeline={pipeline}
+          onChange={setPipeline}
+          allowedPipelines={allowedPipelines}
+        />
+        <IrelandJobsAdmin canEdit={canEditIreland} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 h-full ">
+      <PipelineToggle
+        pipeline={pipeline}
+        onChange={setPipeline}
+        allowedPipelines={allowedPipelines}
+      />
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-slate-100 pb-4">
         <div>
           <div className="flex items-center gap-2">
@@ -1939,5 +1970,41 @@ const SortableGlobalStepItem = ({
     </div>
   );
 };
+
+// Germany / Ireland pipeline switcher shown at the top of the shared admin
+// screen. Germany is the default; Ireland renders its own self-contained
+// admin view (separate candidates, reviews and document requirements).
+const PipelineToggle = ({
+  pipeline,
+  onChange,
+  allowedPipelines = ["germany", "ireland"],
+}) => (
+  <div className="flex items-center gap-3">
+    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+      Pipeline
+    </span>
+    <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/40">
+      {[
+        { key: "germany", label: "Germany Jobs" },
+        { key: "ireland", label: "Ireland Jobs" },
+      ]
+        .filter((opt) => allowedPipelines.includes(opt.key))
+        .map((opt) => (
+        <button
+          key={opt.key}
+          type="button"
+          onClick={() => onChange(opt.key)}
+          className={`px-4 py-1.5 text-[11px] font-extrabold rounded-lg transition-all cursor-pointer ${
+            pipeline === opt.key
+              ? "bg-[#083262] text-white shadow-sm"
+              : "text-slate-500 hover:text-slate-800"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  </div>
+);
 
 export default JobScreeningAdmin;

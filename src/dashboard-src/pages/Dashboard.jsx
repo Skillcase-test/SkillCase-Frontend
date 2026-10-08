@@ -940,6 +940,7 @@ export default function Dashboard() {
         label: "Job Screening",
         path: "/admin/job-screening",
         module: "job_screening",
+        anyModules: ["ireland_jobs"],
       },
       {
         key: "promo-ads",
@@ -968,6 +969,9 @@ export default function Dashboard() {
     ].filter(
       (item) =>
         hasPermission(me, item.module, "view") ||
+        (item.anyModules || []).some((mod) =>
+          hasPermission(me, mod, "view"),
+        ) ||
         (item.anyActions || []).some((action) =>
           hasPermission(me, item.module, action),
         ),
@@ -1561,9 +1565,27 @@ export default function Dashboard() {
               <Route
                 path="job-screening"
                 element={
-                  <Guard allowed={hasPermission(me, "job_screening")}>
+                  <Guard
+                    allowed={
+                      hasPermission(me, "job_screening") ||
+                      hasPermission(me, "ireland_jobs")
+                    }
+                  >
                     <JobScreeningAdmin
                       canEdit={hasPermission(me, "job_screening", "edit")}
+                      canEditIreland={hasPermission(
+                        me,
+                        "ireland_jobs",
+                        "edit",
+                      )}
+                      allowedPipelines={[
+                        ...(hasPermission(me, "job_screening")
+                          ? ["germany"]
+                          : []),
+                        ...(hasPermission(me, "ireland_jobs")
+                          ? ["ireland"]
+                          : []),
+                      ]}
                     />
                   </Guard>
                 }

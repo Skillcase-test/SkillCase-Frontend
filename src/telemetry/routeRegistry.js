@@ -3,6 +3,7 @@ const RULES = [
   [/^\/job-screening\/interview/, "job_screening", "interview"],
   [/^\/job-screening\/terms/, "terms", "terms_signing"],
   [/^\/job-screening/, "job_screening", "funnel"],
+  [/^\/ireland-jobs/, "ireland_jobs", "funnel"],
   // A1/A2 users land on the locked jobs teaser instead of the pipeline.
   [/^\/jobs/, "job_screening", "jobs_board"],
   // /r/:code — public referral landing for job-screening invite links.

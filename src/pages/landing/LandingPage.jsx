@@ -87,6 +87,10 @@ export default function LandingPage() {
   // candidate switches to practice their mode is the single source of truth.
   const isScholarshipUser =
     (lgMode || user?.lg_preferred_mode) === "scholarship";
+  // Ireland candidates are locked into the ireland funnel, same treatment as
+  // the scholarship exam funnel.
+  const isIrelandUser =
+    (lgMode || user?.lg_preferred_mode) === "ireland_jobs";
 
   const isTopTourCompleted = Boolean(
     !user?.user_id ||
@@ -106,6 +110,10 @@ export default function LandingPage() {
       navigate("/scholarship", { replace: true });
       return;
     }
+    if (isIrelandUser) {
+      navigate("/ireland-jobs", { replace: true });
+      return;
+    }
     if (isTopSwitcherTourActive) {
       return;
     }
@@ -122,6 +130,7 @@ export default function LandingPage() {
     prefersCoursesMode,
     prefersLearnMode,
     isScholarshipUser,
+    isIrelandUser,
     isTopSwitcherTourActive,
   ]);
 

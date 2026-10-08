@@ -274,6 +274,9 @@ const OnboardingFlow = () => {
   const [resendSeconds, setResendSeconds] = useState(0);
   const [pathways, setPathways] = useState([]);
   const [selectedPathwayId, setSelectedPathwayId] = useState(null);
+  // Step 11 — nursing qualification, asked only when the picked pathway's
+  // destination is ireland_jobs (skipped entirely otherwise).
+  const [irelandQualification, setIrelandQualification] = useState("");
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -318,7 +321,7 @@ const OnboardingFlow = () => {
 
   // Back navigation map: each step knows its previous step.
   // 6 = pathways, 7 = German status, 8 = level, 9 = preference, 10 = B1/B2 pref.
-  const BACK_MAP = { 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 8 };
+  const BACK_MAP = { 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 8, 11: 6 };
   const hasOtherPathways = pathways.some((p) => !p.is_builtin);
   const handleBack = () => {
     setError("");
@@ -751,7 +754,69 @@ const OnboardingFlow = () => {
       setStep(7);
       return;
     }
+    if (chosen.destination === "ireland_jobs") {
+      trackFlowAction("onboarding", "learner_onboarding", "step_completed", {
+        step: 6,
+        lifecycle: "succeeded",
+        branch: "ireland_jobs",
+        attributes: { pathway_id: chosen.id },
+      });
+      setSelectedPathwayId(chosen.id);
+      setStep(11);
+      return;
+    }
     handlePathwaySubmit(chosen.id, chosen.title);
+  };
+
+  // Ireland pathway — after the qualification pick we enrol the candidate:
+  // the backend resolves pathwayId → destination 'ireland_jobs', sets
+  // lg_preferred_mode="ireland_jobs" and seeds the screening row.
+  const handleIrelandSubmit = async () => {
+    if (!irelandQualification) return;
+    const pathwayId = selectedPathwayId;
+    setLoading(true);
+    setError("");
+    try {
+      const { data } = await api.post("/user/complete-onboarding-profile", {
+        phone: phoneNumber,
+        firstName,
+        lastName,
+        occupation,
+        pathwayId,
+        irelandQualification,
+      });
+      dispatch(loginSuccess({ token: data.token, user: data.user }));
+      localStorage.setItem("lg_preferred_mode", "ireland_jobs");
+      trackClarityEvent(
+        "lg_onboarding_completed",
+        {
+          lg_funnel: "onboarding",
+          lg_selected_mode: "ireland_jobs",
+          lg_occupation: occupation,
+          lg_qualification: irelandQualification,
+        },
+        "lg_onboarding_completed",
+      );
+      navigate("/ireland-jobs", { replace: true });
+      trackFlowAction("onboarding", "learner_onboarding", "flow_completed", {
+        step: 11,
+        lifecycle: "succeeded",
+        branch: "ireland_jobs",
+        attributes: { pathway_id: pathwayId },
+      });
+    } catch (err) {
+      trackFlowAction(
+        "onboarding",
+        "learner_onboarding",
+        "flow_completion_failed",
+        { step: 11, lifecycle: "failed", reasonCode: "api_failed" },
+      );
+      setError(
+        err.response?.data?.msg || "Something went wrong. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Pathway enrolment — same endpoint as normal onboarding, but the backend
@@ -1857,6 +1922,79 @@ const OnboardingFlow = () => {
                   <BottomActions
                     onNext={handleB1B2PreferenceSubmit}
                     disabled={!preference || loading}
+                    nextText="Finish Onboarding"
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 11 && (
+            <motion.div
+              key="ireland_qualification"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-[#E5F0FF] flex flex-col md:flex-row"
+            >
+              <TopSection
+                mascot={getMayaImage("smiling", occupation)}
+                tooltip="Which nursing qualification do you hold?"
+              />
+              <div className="flex-1 bg-white rounded-t-[32px] px-6 py-8 flex flex-col shadow-[0_-4px_20px_rgba(0,0,0,0.03)] z-10 -mt-10 md:h-full md:w-[55%] md:rounded-none md:mt-0 md:shadow-none md:px-16 md:py-12 md:justify-center md:overflow-y-auto">
+                <div className="w-full max-w-[400px] mx-auto flex flex-col flex-1 md:justify-center">
+                  <div className="flex-1 md:flex-initial md:mb-8">
+                    <h2 className="text-black text-[16px] font-medium mb-4">
+                      Select your qualification
+                    </h2>
+                    <div className="flex flex-col gap-3 w-full pb-2 mt-2">
+                      {[
+                        "Bsc Nursing",
+                        "GNM",
+                        "ANM",
+                        "Msc Nursing",
+                        "Post Basic Bsc Nursing",
+                      ].map((qual, idx) => {
+                        const isSelected = irelandQualification === qual;
+                        return (
+                          <button
+                            key={qual}
+                            onClick={() => setIrelandQualification(qual)}
+                            className={`w-full p-3 rounded-xl border text-left flex items-center gap-4 transition-all cursor-pointer ${
+                              isSelected
+                                ? "border-[#1E76F3] bg-blue-50 ring-[0.5px] ring-[#1E76F3]"
+                                : "border-zinc-300 bg-white hover:bg-zinc-50"
+                            }`}
+                          >
+                            <div
+                              className={`w-8 h-8 rounded shrink-0 flex items-center justify-center font-bold transition-colors ${
+                                isSelected
+                                  ? "bg-blue-100 text-[#1E76F3]"
+                                  : "bg-black/5 text-gray-500"
+                              }`}
+                            >
+                              {String.fromCharCode(65 + idx)}
+                            </div>
+                            <span
+                              className={`text-[14px] font-semibold transition-colors ${
+                                isSelected ? "text-[#1E76F3]" : "text-[#111827]"
+                              }`}
+                            >
+                              {qual}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  {error && (
+                    <p className="text-red-500 text-[13px] font-medium mt-2 mb-1">
+                      {error}
+                    </p>
+                  )}
+                  <BottomActions
+                    onNext={handleIrelandSubmit}
+                    disabled={!irelandQualification || loading}
                     nextText="Finish Onboarding"
                   />
                 </div>

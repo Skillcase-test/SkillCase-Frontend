@@ -23,7 +23,7 @@ import homeImg from "../assets/home.webp";
 import bagImg from "../assets/bag.webp";
 import germanFlagImg from "../assets/recapGermanFlag.webp";
 import bookImg from "../assets/book.webp";
-import { isScholarshipRoute } from "../utils/shellRoutes";
+import { isScholarshipRoute, isIrelandRoute } from "../utils/shellRoutes";
 import { syncModeIntoRedux } from "../utils/lgMode";
 import { trackFeatureEvent } from "../telemetry/events";
 
@@ -279,6 +279,19 @@ export default function BottomTabBar() {
   // re-renders when the candidate navigates to another shell screen.
   if (isScholarshipRoute(location.pathname)) {
     return <ScholarshipBottomBar user={user} streak={streak} />;
+  }
+
+  // Ireland hub gets the same locked variant — only the Home tab (back to
+  // /ireland-jobs) is live; the funnel guard bounces everything else anyway.
+  if (isIrelandRoute(location.pathname)) {
+    return (
+      <ScholarshipBottomBar
+        user={user}
+        streak={streak}
+        homePath="/ireland-jobs"
+        hubLabel="Ireland Jobs"
+      />
+    );
   }
 
   // German Classes users land on /video-courses via Home (LandingPage
@@ -789,9 +802,14 @@ function WordVaultFlyInAnimation({
  * is live. Jobs, Coins and Streak render greyed-out and inert so the candidate
  * can see the full app navigation but can't leave the exam funnel with it.
  */
-function ScholarshipBottomBar({ user, streak }) {
+function ScholarshipBottomBar({
+  user,
+  streak,
+  homePath = "/scholarship",
+  hubLabel = "Exam",
+}) {
   const location = useLocation();
-  const isHome = location.pathname === "/scholarship";
+  const isHome = location.pathname === homePath;
 
   // Locked slots share this class: greyed out, no pointer interaction.
   const lockedSlot =
@@ -803,9 +821,9 @@ function ScholarshipBottomBar({ user, streak }) {
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="relative h-16 w-full max-w-7xl mx-auto px-4 pt-2 pb-4 flex items-center justify-between z-20">
-        {/* Home — back to the scholarship hub (the only live tab) */}
+        {/* Home — back to the hub (the only live tab) */}
         <Link
-          to="/scholarship"
+          to={homePath}
           onClick={hapticLight}
           className={`w-14 flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-lg transition-colors ${
             isHome ? "bg-[#f4f4f6]" : "hover:bg-stone-500/5"
@@ -874,7 +892,7 @@ function ScholarshipBottomBar({ user, streak }) {
             loading="lazy"
           />
           <div className="flex flex-col items-center text-center text-[10px] font-medium leading-[12px] text-stone-500 z-10">
-            <span>Exam</span>
+            <span>{hubLabel}</span>
           </div>
         </div>
 

@@ -8,6 +8,7 @@ import { isPracticeSuiteLevel } from "../utils/b1Progress";
 import { syncModeIntoRedux } from "../utils/lgMode";
 import {
   isScholarshipRoute,
+  isIrelandRoute,
   getSwitcherBlendColor,
 } from "../utils/shellRoutes";
 import { useFeatureFlags } from "../hooks/useFeatureFlags";
@@ -83,14 +84,20 @@ export default function TopModeSwitcher({ isTourActive = false }) {
   }, []);
 
   const [isJobWelcome, setIsJobWelcome] = useState(false);
+  const [isIrelandWelcome, setIsIrelandWelcome] = useState(false);
 
   useEffect(() => {
     const handleJobWelcome = (e) => {
       setIsJobWelcome(Boolean(e?.detail?.isWelcome));
     };
+    const handleIrelandWelcome = (e) => {
+      setIsIrelandWelcome(Boolean(e?.detail?.isWelcome));
+    };
     window.addEventListener("jobScreeningWelcome", handleJobWelcome);
+    window.addEventListener("irelandJobsWelcome", handleIrelandWelcome);
     return () => {
       window.removeEventListener("jobScreeningWelcome", handleJobWelcome);
+      window.removeEventListener("irelandJobsWelcome", handleIrelandWelcome);
     };
   }, []);
 
@@ -104,12 +111,18 @@ export default function TopModeSwitcher({ isTourActive = false }) {
   const blendColor =
     location.pathname === "/job-screening" && isJobWelcome
       ? "#002856"
-      : baseBlendColor;
+      : location.pathname === "/ireland-jobs" && isIrelandWelcome
+        ? "#ffffff"
+        : baseBlendColor;
 
   // Scholarship hub: static single-tab switcher stating the context. The
   // exam chrome is route-scoped so the switcher renders regardless of the
   // user's saved mode (they may have switched to practice meanwhile).
   const isScholarship = isScholarshipRoute(location.pathname);
+
+  // Ireland hub: same locked single-tab treatment as the scholarship hub —
+  // the tab just states context; there is nothing to switch to.
+  const isIreland = isIrelandRoute(location.pathname);
 
   const activeTab = isB1
     ? location.pathname.startsWith("/job-screening")
@@ -343,6 +356,16 @@ export default function TopModeSwitcher({ isTourActive = false }) {
               line1="Exam"
               blendColor={blendColor}
               tourTabKey="scholarship"
+            />
+          ) : isIreland ? (
+            <SwitcherTab
+              active={true}
+              tabRef={activeTabRef}
+              onClick={() => {}}
+              image={bagImg}
+              line1="Ireland Jobs"
+              blendColor={blendColor}
+              tourTabKey="ireland"
             />
           ) : isB1 ? (
             <>

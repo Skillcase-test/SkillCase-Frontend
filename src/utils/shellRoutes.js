@@ -14,11 +14,17 @@ export const SHELL_ROUTES = [
   "/video-courses", // German Classes select
   "/job-screening", // Job-screening lobby (B1/B2)
   "/scholarship", // Scholarship exam hub
+  "/ireland-jobs", // Ireland jobs pipeline hub (single static switcher tab)
 ];
 
 /** True on the scholarship hub or any of its child routes (take/result). */
 export function isScholarshipRoute(pathname = "") {
   return pathname === "/scholarship" || pathname.startsWith("/scholarship/");
+}
+
+/** True on the Ireland jobs hub — a locked funnel like the scholarship hub. */
+export function isIrelandRoute(pathname = "") {
+  return pathname === "/ireland-jobs" || pathname.startsWith("/ireland-jobs/");
 }
 
 export function isShellRoute(pathname = "") {
@@ -52,9 +58,11 @@ export function isPaymentRoute(pathname = "") {
  *   /video-courses  → white        (CourseSelectPage root: bg-white)
  *   /learn-german   → blue-100     (LearnGermanHome: bg-gradient-to-b from-blue-100)
  *   /job-screening  → #e0f2fe      (JobScreening lobby: from-[#e0f2fe])
+ *   /ireland-jobs   → #e0f2fe      (IrelandJobs lobby: from-[#e0f2fe])
  */
 export function getSwitcherBlendColor(pathname = "") {
   if (pathname === "/learn-german") return "#dbeafe";
   if (pathname === "/job-screening") return "#e0f2fe";
+  if (pathname === "/ireland-jobs") return "#e0f2fe";
   return "#ffffff";
 }
