@@ -573,17 +573,40 @@ export default function PaymentsAdmin() {
                               ? "recruitment"
                               : state.paymentTrainingOnly
                                 ? "training"
-                                : "all"
+                                : state.paymentSplitOnly
+                                  ? "split"
+                                  : "all"
                           }
                           onChange={(val) => {
                             state.setCurrentPage(1);
                             state.setPaymentRecruitmentOnly(val === "recruitment");
                             state.setPaymentTrainingOnly(val === "training");
+                            state.setPaymentSplitOnly(val === "split");
                           }}
                           options={[
                             { value: "all", label: "Type: All" },
                             { value: "training", label: "Type: Training" },
                             { value: "recruitment", label: "Type: Recruitment" },
+                            { value: "split", label: "Type: Split" },
+                          ]}
+                          compact={true}
+                          className="w-40"
+                        />
+
+                        <ControlDropdown
+                          disabled={state.paymentLinksOnly}
+                          value={state.paymentSource || "all"}
+                          onChange={(val) => {
+                            state.setCurrentPage(1);
+                            state.setPaymentSource(val === "all" ? "" : val);
+                          }}
+                          options={[
+                            { value: "all", label: "Source: All" },
+                            { value: "razorpay", label: "Source: Razorpay" },
+                            { value: "zoho", label: "Source: Zoho" },
+                            { value: "jodo", label: "Source: Jodo" },
+                            { value: "manual", label: "Source: Manual" },
+                            { value: "import", label: "Source: Import" },
                           ]}
                           compact={true}
                           className="w-40"

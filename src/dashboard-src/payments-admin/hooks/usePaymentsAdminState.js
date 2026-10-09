@@ -174,6 +174,8 @@ export function usePaymentsAdminState() {
   };
   const [paymentRecruitmentOnly, setPaymentRecruitmentOnlyState] = useState(false);
   const [paymentTrainingOnly, setPaymentTrainingOnlyState] = useState(false);
+  const [paymentSplitOnly, setPaymentSplitOnlyState] = useState(false);
+  const [paymentSource, setPaymentSource] = useState("");
   const [paymentTotalAmountPaise, setPaymentTotalAmountPaise] = useState(0);
   const [recruitmentAllTime, setRecruitmentAllTime] = useState(false);
   const [emandateSearch, setEMandateSearch] = useState("");
@@ -190,12 +192,26 @@ export function usePaymentsAdminState() {
 
   const setPaymentRecruitmentOnly = (val) => {
     setPaymentRecruitmentOnlyState(val);
-    if (val) setPaymentTrainingOnlyState(false);
+    if (val) {
+      setPaymentTrainingOnlyState(false);
+      setPaymentSplitOnlyState(false);
+    }
   };
 
   const setPaymentTrainingOnly = (val) => {
     setPaymentTrainingOnlyState(val);
-    if (val) setPaymentRecruitmentOnlyState(false);
+    if (val) {
+      setPaymentRecruitmentOnlyState(false);
+      setPaymentSplitOnlyState(false);
+    }
+  };
+
+  const setPaymentSplitOnly = (val) => {
+    setPaymentSplitOnlyState(val);
+    if (val) {
+      setPaymentRecruitmentOnlyState(false);
+      setPaymentTrainingOnlyState(false);
+    }
   };
   const [monthSortBy, setMonthSortBy] = useState("created_at");
   const [monthSortOrder, setMonthSortOrder] = useState("desc");
@@ -475,6 +491,8 @@ export function usePaymentsAdminState() {
           not_booked: paymentNotBookedOnly || undefined,
           recruitment: paymentRecruitmentOnly || undefined,
           training: paymentTrainingOnly || undefined,
+          split: paymentSplitOnly || undefined,
+          source: paymentSource || undefined,
           payment_links: paymentLinksOnly || undefined,
           include_refunded: paymentIncludeRefunded,
           amount_inr: paymentLinksOnly ? undefined : paymentAmountInr.trim() || undefined,
@@ -625,6 +643,8 @@ export function usePaymentsAdminState() {
     tab === "payments" ? paymentNotBookedOnly : null,
     tab === "payments" ? paymentRecruitmentOnly : null,
     tab === "payments" ? paymentTrainingOnly : null,
+    tab === "payments" ? paymentSplitOnly : null,
+    tab === "payments" ? paymentSource : null,
     tab === "payments" ? paymentLinksOnly : null,
     tab === "payments" ? paymentIncludeRefunded : null,
     tab === "payments" ? paymentAmountInr : null,
@@ -817,6 +837,10 @@ export function usePaymentsAdminState() {
     setPaymentRecruitmentOnly,
     paymentTrainingOnly,
     setPaymentTrainingOnly,
+    paymentSplitOnly,
+    setPaymentSplitOnly,
+    paymentSource,
+    setPaymentSource,
     paymentIncludeRefunded,
     setPaymentIncludeRefunded,
     paymentAmountInr,

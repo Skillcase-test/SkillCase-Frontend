@@ -13,6 +13,7 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState("");
+  const [missingStateCandidates, setMissingStateCandidates] = useState([]);
   const [showBookingConfirmation, setShowBookingConfirmation] = useState(false);
   const [mergePrompt, setMergePrompt] = useState(false);
   const [existingGroups, setExistingGroups] = useState([]);
@@ -25,6 +26,7 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
       setMonth(new Date().getUTCMonth() + 1);
       setNotes("");
       setError("");
+      setMissingStateCandidates([]);
       setShowBookingConfirmation(false);
       setMergePrompt(false);
       setExistingGroups([]);
@@ -181,6 +183,7 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
     setPayments([]);
     setSelectedIds([]);
     setError("");
+    setMissingStateCandidates([]);
     setLoading(false);
     setShowBookingConfirmation(false);
     setMergePrompt(false);
@@ -205,6 +208,7 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
   const handleConfirm = async () => {
     setLoading(true);
     setError("");
+    setMissingStateCandidates([]);
     try {
       const paymentIds = selectedRows
         .filter((r) => !r.is_split)
@@ -249,7 +253,13 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
       }
       handleClose();
     } catch (err) {
-      setError(err?.response?.data?.msg || "Failed to book amount");
+      const data = err?.response?.data || {};
+      setMissingStateCandidates(
+        Array.isArray(data.missing_state_candidates)
+          ? data.missing_state_candidates
+          : [],
+      );
+      setError(data.msg || "Failed to book amount");
     } finally {
       setLoading(false);
     }
@@ -451,6 +461,16 @@ export function BookAmountModal({ modal, setModal, onConfirm }) {
         {error && (
           <div className="text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-100 rounded-lg p-2.5 my-2">
             {error}
+            {missingStateCandidates.length > 0 && (
+              <ul className="mt-1.5 list-disc pl-4 font-medium">
+                {missingStateCandidates.map((c, i) => (
+                  <li key={c.enrollment_id || i}>
+                    {c.student_name || "Unknown candidate"}
+                    {c.student_phone ? ` — ${c.student_phone}` : ""}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 

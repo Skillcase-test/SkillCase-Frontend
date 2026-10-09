@@ -38,6 +38,8 @@ export function usePaymentsAdminSelectors(state) {
     state.paymentNotBookedOnly,
     state.paymentRecruitmentOnly,
     state.paymentTrainingOnly,
+    state.paymentSplitOnly,
+    state.paymentSource,
     state.paymentLinksOnly,
     state.paymentIncludeRefunded,
     state.paymentAmountInr,
