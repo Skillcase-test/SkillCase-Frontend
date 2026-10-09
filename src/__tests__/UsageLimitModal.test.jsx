@@ -1,331 +1,272 @@
 import { act, render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-const mockHandlePay = vi.fn();
-const mockRefresh = vi.fn();
-
-vi.mock("react-redux", () => ({
-  useSelector: () => ({ user_id: "u-1" }),
-  useDispatch: () => vi.fn(),
-}));
-vi.mock("../hooks/useAutopayCheckout", () => ({
-  useAutopayCheckout: () => ({ loading: false, handlePay: mockHandlePay }),
-}));
-vi.mock("../hooks/useUsageLimits", () => ({
-  useUsageLimits: () => ({ refresh: mockRefresh }),
-}));
-const mockSwitchLGMode = vi.fn();
-vi.mock("../utils/lgMode", () => ({
-  switchLGMode: (...a) => mockSwitchLGMode(...a),
-}));
-
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import UsageLimitModal from "../components/UsageLimitModal";
 
-function dispatchUsageLimitEvent(detail) {
+const mockNavigate = vi.fn();
+const mockHandlePay = vi.fn();
+const mockInstantUpgrade = vi.fn();
+const mockGetPlans = vi.fn();
+const mockChangePlan = vi.fn();
+
+let mockUser = {
+  id: 1,
+  trial_taken: true,
+  occupation: "nurse",
+  autopay_status: "active",
+};
+
+vi.mock("react-redux", () => ({
+  useDispatch: () => vi.fn(),
+  useSelector: (selector) =>
+    selector({ auth: { user: mockUser } }),
+}));
+
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal();
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
+vi.mock("framer-motion", async () => {
+  const R = await import("react");
+  const cache = new Map();
+  const motion = new Proxy(
+    {},
+    {
+      get: (_t, tag) => {
+        if (typeof tag !== "string") return undefined;
+        if (!cache.has(tag)) {
+          const Comp = R.forwardRef((props, ref) => {
+            const { children, initial, animate, exit, transition, variants, whileHover, whileTap, whileFocus, whileInView, viewport, drag, layout, layoutId, custom, ...rest } = props;
+            return R.createElement(tag, { ...rest, ref }, children);
+          });
+          Comp.displayName = `motion.${tag}`;
+          cache.set(tag, Comp);
+        }
+        return cache.get(tag);
+      },
+    },
+  );
+  return { motion, AnimatePresence: ({ children }) => children };
+});
+
+vi.mock("../hooks/useUsageLimits", () => ({
+  useUsageLimits: () => ({ refresh: vi.fn() }),
+}));
+
+vi.mock("../hooks/useAutopayCheckout", () => ({
+  useAutopayCheckout: () => ({
+    loading: false,
+    handlePay: mockHandlePay,
+    handleInstantUpgrade: mockInstantUpgrade,
+  }),
+}));
+
+vi.mock("../api/subscriptionApi", () => ({
+  getSubscriptionPlans: (...args) => mockGetPlans(...args),
+  changePlan: (...args) => mockChangePlan(...args),
+}));
+
+vi.mock("react-hot-toast", () => ({
+  __esModule: true,
+  default: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
+}));
+
+vi.mock("../redux/auth/authSlice", () => ({
+  setUser: (u) => ({ type: "auth/setUser", payload: u }),
+}));
+
+vi.mock("../utils/lgMode", () => ({ switchLGMode: vi.fn() }));
+vi.mock("../telemetry/events", () => ({ trackFeatureEvent: vi.fn() }));
+vi.mock("../utils/mayaAvatars", () => ({ getMayaImage: () => "maya.webp" }));
+
+const BOTH_PLANS = {
+  plans: [
+    { key: "standard", label: "Standard", amountPaise: 9900, mayaMinutesPerDay: 10 },
+    { key: "b2_plus", label: "Plus", amountPaise: 19900, mayaMinutesPerDay: 30 },
+  ],
+  current: null,
+};
+
+const mayaLock = {
+  module_key: "maya",
+  level: "B2",
+  limit_value: 0,
+  msg: "Talk to Maya is a premium feature.",
+};
+
+const mayaDailyLimit = {
+  module_key: "maya",
+  level: "B2",
+  limit_value: 0,
+  lock_reason: "daily_limit",
+  msg: "You've used your Maya minutes for today.",
+};
+
+function fireUsageLimit(detail) {
   act(() => {
     window.dispatchEvent(new CustomEvent("skillcase:usage-limit", { detail }));
   });
 }
 
-describe("UsageLimitModal", () => {
+describe("UsageLimitModal — Maya premium lock", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useRealTimers();
+    mockUser = {
+      id: 1,
+      trial_taken: true,
+      occupation: "nurse",
+      autopay_status: "active",
+      user_prof_level: "b2",
+    };
+    mockGetPlans.mockResolvedValue(BOTH_PLANS);
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
+  it("shows the picked plan's Maya minutes to a B2 learner", async () => {
+    render(<UsageLimitModal />);
+    fireUsageLimit(mayaLock);
+
+    // Standard is preselected → the row shows its 10-minute pool.
+    expect(await screen.findByText("Talk to Maya")).toBeInTheDocument();
+    expect(screen.getByText("10 min/day")).toBeInTheDocument();
+
+    // Picking Plus updates the row to the bigger pool.
+    const plusOption = await screen.findByText(/Plus ₹199/);
+    act(() => plusOption.closest("button").click());
+    expect(screen.getByText("30 min/day")).toBeInTheDocument();
   });
 
-  it("renders nothing until a usage-limit event fires", () => {
-    render(
-      <MemoryRouter>
-        <UsageLimitModal />
-      </MemoryRouter>,
-    );
-    expect(screen.queryByText(/Subscribe to Premium Plan/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/free limit/i)).not.toBeInTheDocument();
+  it("says Maya is Unlimited to a B1 learner instead of minutes", async () => {
+    mockUser = { ...mockUser, user_prof_level: "b1" };
+    render(<UsageLimitModal />);
+    fireUsageLimit({ ...mayaLock, level: "B1" });
+
+    const label = await screen.findByText("Talk to Maya");
+    expect(label.closest("div").textContent).toContain("Unlimited");
   });
 
-  it("renders the premium (hard-lock) design when limit_value is 0", () => {
-    render(
-      <MemoryRouter>
-        <UsageLimitModal />
-      </MemoryRouter>,
-    );
-    dispatchUsageLimitEvent({
-      locked: true,
-      reason: "usage_limit",
-      module_key: "grammar",
-      level: "A1",
-      limit_value: 0,
-      used: 0,
-      remaining: 0,
-      reset_at: null,
-      msg: "This feature is currently locked.",
-    });
+  it("omits the Maya row for levels without the feature", async () => {
+    mockUser = { ...mockUser, user_prof_level: "a1" };
+    render(<UsageLimitModal />);
+    fireUsageLimit({ ...mayaLock, module_key: "flashcards", level: "A1" });
 
-    expect(screen.getByText("This is a premium feature")).toBeInTheDocument();
-    expect(screen.getByText("Subscribe to Premium Plan for access")).toBeInTheDocument();
-    expect(screen.getByText("Unlock Premium")).toBeInTheDocument();
-    expect(screen.getByText("Talk to an expert")).toBeInTheDocument();
-    // The premium plan pricing card is present.
-    expect(screen.getByText("₹99")).toBeInTheDocument();
-    expect(screen.getByText("Exam practice")).toBeInTheDocument();
-    // No countdown UI for a permanent lock.
-    expect(screen.queryByText(/Come back in/i)).not.toBeInTheDocument();
+    await screen.findByText("Unlock Premium");
+    expect(screen.queryByText("Talk to Maya")).not.toBeInTheDocument();
   });
 
-  it("renders the countdown copy when limit_value > 0 and counts down", () => {
-    vi.useFakeTimers();
-    const resetAt = new Date(Date.now() + 61_000).toISOString();
-    render(
-      <MemoryRouter>
-        <UsageLimitModal />
-      </MemoryRouter>,
-    );
-    dispatchUsageLimitEvent({
-      locked: true,
-      reason: "usage_limit",
-      module_key: "flashcard",
-      level: "A1",
-      limit_value: 20,
-      used: 20,
-      remaining: 0,
-      reset_at: resetAt,
-      periods: [{ period: "day", limit_value: 20, used: 20, remaining: 0, locked_until: resetAt, locked: true }],
-      msg: "Daily limit reached for Flashcards.",
-    });
+  it("offers a B2 learner both plans and checks out the picked one", async () => {
+    render(<UsageLimitModal />);
+    fireUsageLimit(mayaLock);
 
-    expect(screen.getByText("You have reached today's free limit")).toBeInTheDocument();
-    expect(screen.getByText("00:01:01")).toBeInTheDocument();
-    expect(screen.getByText("Upgrade to Premium")).toBeInTheDocument();
+    const plusOption = await screen.findByText(/Plus ₹199/);
+    expect(screen.getByText(/Standard ₹99/)).toBeInTheDocument();
 
-    act(() => {
-      vi.advanceTimersByTime(30_000);
-    });
-    expect(screen.getByText("00:00:31")).toBeInTheDocument();
+    act(() => plusOption.closest("button").click());
+    act(() => screen.getByText("Unlock Premium").closest("button").click());
+    expect(mockHandlePay).toHaveBeenCalledWith("b2_plus");
   });
 
-  it("flips to the reset state once the countdown reaches the reset_at instant", () => {
-    vi.useFakeTimers();
-    const resetAt = new Date(Date.now() + 2_000).toISOString();
-    render(
-      <MemoryRouter>
-        <UsageLimitModal />
-      </MemoryRouter>,
-    );
-    dispatchUsageLimitEvent({
-      locked: true,
-      reason: "usage_limit",
-      module_key: "flashcard",
-      level: "A1",
-      limit_value: 20,
-      used: 20,
-      remaining: 0,
-      reset_at: resetAt,
-      periods: [{ period: "day", limit_value: 20, used: 20, remaining: 0, locked_until: resetAt, locked: true }],
-      msg: "Daily limit reached for Flashcards.",
-    });
+  it("defaults to Standard when the learner does not pick a plan", async () => {
+    render(<UsageLimitModal />);
+    fireUsageLimit(mayaLock);
+    await screen.findByText(/Plus ₹199/);
 
-    expect(screen.getByText("You have reached today's free limit")).toBeInTheDocument();
-
-    act(() => {
-      vi.advanceTimersByTime(3_000);
-    });
-
-    expect(screen.getByText("You're free to continue!")).toBeInTheDocument();
-    expect(screen.getByText(/limit has reset/i)).toBeInTheDocument();
+    act(() => screen.getByText("Unlock Premium").closest("button").click());
+    expect(mockHandlePay).toHaveBeenCalledWith("standard");
   });
 
-  it("refreshes the shared usage-limit context once the countdown expires — home hub tiles must not stay locked until a hard refresh", () => {
-    vi.useFakeTimers();
-    mockRefresh.mockClear();
-    const resetAt = new Date(Date.now() + 2_000).toISOString();
-    render(
-      <MemoryRouter>
-        <UsageLimitModal />
-      </MemoryRouter>,
-    );
-    dispatchUsageLimitEvent({
-      locked: true,
-      reason: "usage_limit",
-      module_key: "flashcard",
-      level: "A1",
-      reset_at: resetAt,
-      periods: [{ period: "day", limit_value: 20, used: 20, remaining: 0, locked_until: resetAt, locked: true }],
-    });
+  it("does not fetch plans for a non-Maya limit", async () => {
+    render(<UsageLimitModal />);
+    fireUsageLimit({ ...mayaLock, module_key: "flashcards", level: "B1" });
+    await screen.findByText("Unlock Premium");
+    expect(mockGetPlans).not.toHaveBeenCalled();
+  });
+});
 
-    expect(mockRefresh).not.toHaveBeenCalled();
-
-    act(() => {
-      vi.advanceTimersByTime(3_000);
-    });
-
-    expect(mockRefresh).toHaveBeenCalled();
+describe("UsageLimitModal — Maya daily pool exhausted", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUser = {
+      id: 1,
+      trial_taken: true,
+      occupation: "nurse",
+      autopay_status: "active",
+    };
   });
 
-  it("phrases the header by whichever period(s) actually locked — week only", () => {
-    const resetAt = new Date(Date.now() + 60_000).toISOString();
-    render(
-      <MemoryRouter>
-        <UsageLimitModal />
-      </MemoryRouter>,
-    );
-    dispatchUsageLimitEvent({
-      locked: true,
-      reason: "usage_limit",
-      module_key: "flashcard",
-      level: "A1",
-      reset_at: resetAt,
-      periods: [
-        { period: "day", limit_value: 20, used: 10, remaining: 10, locked_until: null, locked: false },
-        { period: "week", limit_value: 100, used: 100, remaining: 0, locked_until: resetAt, locked: true },
-      ],
-    });
+  it("pitches Plus to a trial/is_paid user with no subscription", async () => {
+    mockGetPlans.mockResolvedValue(BOTH_PLANS);
+    render(<UsageLimitModal />);
+    fireUsageLimit(mayaDailyLimit);
 
-    expect(screen.getByText("You have reached this week's free limit")).toBeInTheDocument();
+    const cta = await screen.findByText("Get Plus — ₹199/month");
+    expect(screen.getByText("That's your Maya time for today")).toBeInTheDocument();
+    expect(screen.queryByText("Unlock Premium")).not.toBeInTheDocument();
+    expect(screen.queryByText("Manage my plan")).not.toBeInTheDocument();
+
+    act(() => cta.closest("button").click());
+    expect(mockHandlePay).toHaveBeenCalledWith("b2_plus");
   });
 
-  it("phrases the header by whichever period(s) actually locked — month only", () => {
-    const resetAt = new Date(Date.now() + 60_000).toISOString();
-    render(
-      <MemoryRouter>
-        <UsageLimitModal />
-      </MemoryRouter>,
-    );
-    dispatchUsageLimitEvent({
-      locked: true,
-      reason: "usage_limit",
-      module_key: "flashcard",
-      level: "A1",
-      reset_at: resetAt,
-      periods: [{ period: "month", limit_value: 500, used: 500, remaining: 0, locked_until: resetAt, locked: true }],
-    });
+  it("lets a Standard subscriber upgrade to Plus in place, no checkout", async () => {
+    mockGetPlans.mockResolvedValue({ ...BOTH_PLANS, current: "standard" });
+    mockChangePlan.mockResolvedValue({ status: "activating", user: { id: 1 } });
+    render(<UsageLimitModal />);
+    fireUsageLimit(mayaDailyLimit);
 
-    expect(screen.getByText("You have reached this month's free limit")).toBeInTheDocument();
+    const upgrade = await screen.findByText(/Upgrade to Plus/);
+    expect(screen.queryByText(/Get Plus/)).not.toBeInTheDocument();
+    expect(screen.getByText(/only pay the difference/)).toBeInTheDocument();
+
+    await act(async () => upgrade.closest("button").click());
+    expect(mockChangePlan).toHaveBeenCalledWith("b2_plus");
+    expect(mockHandlePay).not.toHaveBeenCalled();
   });
 
-  it("names only the period driving the countdown when multiple periods are locked at once — not every locked period", () => {
-    const dayResetAt = new Date(Date.now() + 60_000).toISOString();
-    const weekResetAt = new Date(Date.now() + 120_000).toISOString();
-    render(
-      <MemoryRouter>
-        <UsageLimitModal />
-      </MemoryRouter>,
-    );
-    dispatchUsageLimitEvent({
-      locked: true,
-      reason: "usage_limit",
-      module_key: "flashcard",
-      level: "A1",
-      reset_at: weekResetAt, // the later of the two, same as backend's resolveModuleState
-      periods: [
-        { period: "day", limit_value: 20, used: 20, remaining: 0, locked_until: dayResetAt, locked: true },
-        { period: "week", limit_value: 100, used: 100, remaining: 0, locked_until: weekResetAt, locked: true },
-      ],
-    });
+  it("offers a fresh Plus checkout to a cancelled-but-paid Standard user", async () => {
+    mockUser = { ...mockUser, autopay_status: "cancelled" };
+    mockGetPlans.mockResolvedValue({ ...BOTH_PLANS, current: "standard" });
+    render(<UsageLimitModal />);
+    fireUsageLimit(mayaDailyLimit);
 
-    expect(screen.getByText("You have reached this week's free limit")).toBeInTheDocument();
-    expect(screen.queryByText(/today's and/)).not.toBeInTheDocument();
+    const cta = await screen.findByText("Get Plus — ₹199/month");
+    expect(screen.queryByText(/Upgrade to Plus/)).not.toBeInTheDocument();
+
+    act(() => cta.closest("button").click());
+    expect(mockHandlePay).toHaveBeenCalledWith("b2_plus");
+    expect(mockChangePlan).not.toHaveBeenCalled();
   });
 
-  it("the close (X) button navigates back to the home hub while a feature is still locked", () => {
-    const resetAt = new Date(Date.now() + 60_000).toISOString();
-    render(
-      <MemoryRouter initialEntries={["/a1/flashcard"]}>
-        <Routes>
-          <Route path="/" element={<div>HOME HUB</div>} />
-          <Route path="/a1/flashcard" element={<UsageLimitModal />} />
-        </Routes>
-      </MemoryRouter>,
-    );
-    dispatchUsageLimitEvent({
-      locked: true,
-      reason: "usage_limit",
-      module_key: "flashcard",
-      level: "A1",
-      reset_at: resetAt,
-      periods: [{ period: "day", limit_value: 20, used: 20, remaining: 0, locked_until: resetAt, locked: true }],
+  it("shows the refund breakdown then runs the instant upgrade when the Standard sub is UPI", async () => {
+    mockUser = { ...mockUser, autopay_method: "upi" };
+    mockGetPlans.mockResolvedValue({ ...BOTH_PLANS, current: "standard" });
+    mockChangePlan.mockRejectedValue({
+      response: { data: { code: "upi_plan_change", instant_upgrade: true, charge_amount_paise: 19900, refund_estimate_paise: 4950 } },
     });
+    render(<UsageLimitModal />);
+    fireUsageLimit(mayaDailyLimit);
 
-    act(() => {
-      screen.getByLabelText("Close").click();
-    });
-
-    expect(screen.getByText("HOME HUB")).toBeInTheDocument();
-    expect(screen.queryByText("You have reached today's free limit")).not.toBeInTheDocument();
-    expect(mockSwitchLGMode).not.toHaveBeenCalled();
+    const upgrade = await screen.findByText(/Upgrade to Plus/);
+    await act(async () => upgrade.closest("button").click());
+    expect(mockChangePlan).toHaveBeenCalledWith("b2_plus");
+    // Checkout waits for the refund-breakdown confirm.
+    expect(mockInstantUpgrade).not.toHaveBeenCalled();
+    expect(await screen.findByText(/Unused Standard days back/)).toBeInTheDocument();
+    expect(screen.getByText("₹50")).toBeInTheDocument();
+    const confirm = screen.getByText("Pay ₹199");
+    await act(async () => confirm.click());
+    expect(mockInstantUpgrade).toHaveBeenCalledWith("b2_plus");
+    expect(mockHandlePay).not.toHaveBeenCalled();
   });
 
-  it('leaving a locked Learn German via the close button switches the saved mode to "practice" first — otherwise LandingPage\'s own redirect immediately bounces the user right back to /learn-german and the close button never actually works', () => {
-    render(
-      <MemoryRouter initialEntries={["/learn-german"]}>
-        <Routes>
-          <Route path="/" element={<div>HOME HUB</div>} />
-          <Route path="/learn-german" element={<UsageLimitModal />} />
-        </Routes>
-      </MemoryRouter>,
-    );
-    dispatchUsageLimitEvent({
-      locked: true,
-      reason: "usage_limit",
-      module_key: "learn_german",
-      level: "ALL",
-      limit_value: 0,
-      reset_at: null,
-      periods: [],
-      msg: "This feature is currently locked.",
-    });
+  it("shows no upsell at all to a Plus user who exhausted the Plus pool", async () => {
+    mockGetPlans.mockResolvedValue({ ...BOTH_PLANS, current: "b2_plus" });
+    render(<UsageLimitModal />);
+    fireUsageLimit(mayaDailyLimit);
 
-    act(() => {
-      screen.getByLabelText("Close").click();
-    });
-
-    expect(mockSwitchLGMode).toHaveBeenCalledWith("practice");
-    expect(screen.getByText("HOME HUB")).toBeInTheDocument();
-  });
-
-  it("clicking Unlock Premium triggers the shared autopay checkout flow", () => {
-    render(
-      <MemoryRouter>
-        <UsageLimitModal />
-      </MemoryRouter>,
-    );
-    dispatchUsageLimitEvent({
-      locked: true,
-      reason: "usage_limit",
-      module_key: "grammar",
-      level: "A1",
-      limit_value: 0,
-      reset_at: null,
-    });
-
-    screen.getByText("Unlock Premium").click();
-    expect(mockHandlePay).toHaveBeenCalledTimes(1);
-  });
-
-  it("clicking Upgrade to Premium (limit-reached state) also triggers the autopay checkout flow", () => {
-    const resetAt = new Date(Date.now() + 60_000).toISOString();
-    render(
-      <MemoryRouter>
-        <UsageLimitModal />
-      </MemoryRouter>,
-    );
-    dispatchUsageLimitEvent({
-      locked: true,
-      reason: "usage_limit",
-      module_key: "flashcard",
-      level: "A1",
-      limit_value: 20,
-      used: 20,
-      remaining: 0,
-      reset_at: resetAt,
-      periods: [{ period: "day", limit_value: 20, used: 20, remaining: 0, locked_until: resetAt, locked: true }],
-    });
-
-    screen.getByText("Upgrade to Premium").click();
-    expect(mockHandlePay).toHaveBeenCalledTimes(1);
+    await screen.findByText("That's your Maya time for today");
+    expect(screen.queryByText(/Get Plus/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Manage my plan")).not.toBeInTheDocument();
+    expect(screen.queryByText("Plus Plan")).not.toBeInTheDocument();
+    expect(screen.getByText("Not now")).toBeInTheDocument();
   });
 });

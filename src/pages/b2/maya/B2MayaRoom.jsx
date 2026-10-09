@@ -71,6 +71,11 @@ export default function B2MayaRoom({ meta, focus }) {
   useUsageLimitModule("B2", "maya");
   const access = useB2Access();
   const { level, coachName, firstName, modes, minutes: minutesMap, topics, words } = meta;
+  // meta.plan is the learner's Maya allowance ({tier, dailyMinutes, remainingSeconds}),
+  // null on the legacy free/quota path — the countdown and "minutes left" read it.
+  // A 'free'-tier plan row (old-app free user) has no pool to display.
+  const plan = meta.plan?.dailyMinutes > 0 ? meta.plan : null;
+  const poolSecondsLeft = plan ? plan.remainingSeconds : null;
   const hasInterview = modes.length > 1;
   // Focused follow-ups skip the mode and topic picks and dial straight in.
   const [screen, setScreen] = useState(focus ? "connecting" : "choose");
@@ -86,12 +91,21 @@ export default function B2MayaRoom({ meta, focus }) {
   const [userTalking, setUserTalking] = useState(false);
   const [caption, setCaption] = useState("");
   const [seconds, setSeconds] = useState(0);
+  // The call's real cap in seconds, from /start — for pool users that's "what's left
+  // today", not the level's planned minutes. Falls back to the mode minutes otherwise.
+  const [callCapSeconds, setCallCapSeconds] = useState(null);
+  // Wall-clock end of the visible "call ending" warning, set when the relay's
+  // call.ending lands. The banner ticks down to it.
+  const [endingAtMs, setEndingAtMs] = useState(null);
   const [muted, setMuted] = useState(false);
   const [sheet, setSheet] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [flash, setFlash] = useState(null);
   const [greeting, setGreeting] = useState(true);
   const minutes = focus ? 3 : minutesMap[mode];
+  // Pool-metered calls run until the pool empties, so the header counts to the
+  // server's cap; the legacy path shows the practice length, capped by its quota.
+  const callCap = plan && callCapSeconds ? callCapSeconds : Math.min(minutes * 60, callCapSeconds ?? Infinity);
   const topicLabel = focus ? "Your focused follow-up" : topic || customTopic.trim() || "General Conversation";
   const modeName = interview ? "Nursing interview" : "Everyday German";
 
@@ -226,6 +240,8 @@ export default function B2MayaRoom({ meta, focus }) {
     setSheet(null);
     setScreen("connecting");
     setSeconds(0);
+    setCallCapSeconds(null);
+    setEndingAtMs(null);
     setCaption("");
     setGreeting(true);
     setUserTalking(false);
@@ -256,6 +272,9 @@ export default function B2MayaRoom({ meta, focus }) {
     }
     setSessionId(res.sessionId);
     sessionIdRef.current = res.sessionId;
+    // The server is the clock: its callSeconds is the pool-capped duration this
+    // call is allowed to run, never a client-side guess.
+    if (Number(res.callSeconds) > 0) setCallCapSeconds(Number(res.callSeconds));
     try {
       const ctx = new AudioContext({ sampleRate: 24000 });
       ctxRef.current = ctx;
@@ -319,7 +338,21 @@ export default function B2MayaRoom({ meta, focus }) {
             if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
             flashTimerRef.current = setTimeout(() => setFlash(null), 2200);
           }
-        } else if (m.type === "interview.ended") finished(res.sessionId);
+        } else if (m.type === "call.ending") {
+          // Server's "one minute left" warning — the amber banner ticks down to the cap.
+          setEndingAtMs(Date.now() + Math.max(0, Number(m.secondsLeft) || 0) * 1000);
+        } else if (m.type === "interview.ended") {
+          // time_limit = the plan's daily pool ran out — the learner lands on a
+          // "time's up" screen first, with their report a tap away.
+          if (m.reason === "time_limit") {
+            endedRef.current = true;
+            trackCall("call_ended", { entityId: res.sessionId, elapsedMs: elapsedMs(), lifecycle: "succeeded", reasonCode: "time_limit" });
+            cleanup();
+            setScreen("timeup");
+          } else {
+            finished(res.sessionId);
+          }
+        }
         else if (m.type === "error") setError(m.message);
       };
       ws.onclose = (ev) => {
@@ -456,9 +489,19 @@ export default function B2MayaRoom({ meta, focus }) {
             <small>{interview ? "Job interview · Pflegefachkraft" : topicLabel}</small>
           </div>
           <span className="time" aria-label="Time">
-            {clock(seconds)} / {String(minutes).padStart(2, "0")}:00
+            {clock(seconds)} / {clock(callCap)}
           </span>
         </div>
+        {endingAtMs ? (
+          <div className="call-ending" role="alert">
+            <Icon name="clock" />
+            <span>
+              Your call will end in{" "}
+              <strong>{clock(Math.max(0, Math.ceil((endingAtMs - Date.now()) / 1000)))}</strong>
+              {" "}— {coachName} is wrapping up.
+            </span>
+          </div>
+        ) : null}
         <Main className="call-content">
           <section className={`tile tile-coach ${turn === "coach" ? "on" : ""} ${turn === "thinking" ? "thinking" : ""}`} aria-label={coachName}>
             <div className="stage">
@@ -598,6 +641,48 @@ export default function B2MayaRoom({ meta, focus }) {
     );
   }
 
+  // The daily pool ran out mid-call: the relay already ended it gracefully and the
+  // report is being written — the learner just needs the verdict and the next tap.
+  if (screen === "timeup")
+    return (
+      <>
+        <Header title={plan?.window === "trial" ? "Trial minutes used" : "Time's up for today"} />
+        <Main>
+          <div className="device-hero warning">
+            <Icon name="clock" />
+          </div>
+          <Title
+            text={<>That’s your {plan ? `${plan.dailyMinutes} minutes` : "practice time"}<br />{plan?.window === "trial" ? "of free trial." : "for today."}</>}
+            desc={plan?.window === "trial"
+              ? "Your conversation was saved — subscribe to keep practising with Maya every day."
+              : plan?.tier === "standard"
+                ? "Your conversation was saved — see your feedback, then come back tomorrow. Plus gives you 30 minutes a day."
+                : "Your conversation was saved — see your feedback, then come back tomorrow."}
+          />
+          <div className="context-row">
+            <MayaMark user={user} />
+            <div>
+              <strong>Your conversation</strong>
+              <small>
+                {focus ? "Focused practice" : interview ? "Nursing interview" : topicLabel} · {clock(seconds)}
+              </small>
+            </div>
+          </div>
+        </Main>
+        <Footer>
+          {sessionId ? (
+            <button type="button" className="primary" onClick={() => navigate(`/b2/maya?session=${encodeURIComponent(sessionId)}`)}>
+              See my feedback
+              <Icon name="arrow" />
+            </button>
+          ) : null}
+          <button type="button" className="text-button full" onClick={() => navigate("/b2/maya")}>
+            Back to practice
+          </button>
+        </Footer>
+      </>
+    );
+
   if (screen === "dropped")
     return (
       <>
@@ -727,7 +812,7 @@ export default function B2MayaRoom({ meta, focus }) {
             </p>
           ) : null}
         </Main>
-        <Footer note={`About ${minutes} minutes · ${level} practice`}>
+        <Footer note={plan ? `Up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} minutes left ${plan.window === "trial" ? "in your trial" : "today"} · ${level} practice` : `About ${minutes} minutes · ${level} practice`}>
           <button
             type="button"
             className="primary"
@@ -801,11 +886,22 @@ export default function B2MayaRoom({ meta, focus }) {
             <MayaFrame pose="wave" className="welcome-maya" user={user} />
           </div>
           <p>Build confidence in German with your AI speaking coach.</p>
+          {plan ? (
+            <p>
+              <span className="pill gold" role="status">
+                {poolSecondsLeft >= 60
+                  ? `${Math.floor(poolSecondsLeft / 60)} of ${plan.dailyMinutes} min left ${plan.window === "trial" ? "in your trial" : "today"}`
+                  : plan.window === "trial"
+                    ? "Your trial minutes are used up"
+                    : "Today's minutes are used up"}
+              </span>
+            </p>
+          ) : null}
         </div>
         <div className="section-label">{hasInterview ? "What would you like to practise?" : "Your practice"}</div>
         <div role="radiogroup" aria-label="Practice mode">
-          {card("talk", "Everyday German", "Talk about everyday life and whatever interests you.", `Live tips · About ${minutesMap.talk} min`, "chat")}
-          {hasInterview ? card(modes[1], "Nursing interview", "Get comfortable with a job interview in Germany.", `Feedback after · About ${minutesMap[modes[1]]} min`, "bag") : null}
+          {card("talk", "Everyday German", "Talk about everyday life and whatever interests you.", `Live tips · ${plan ? `up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} min` : `about ${minutesMap.talk} min`}`, "chat")}
+          {hasInterview ? card(modes[1], "Nursing interview", "Get comfortable with a job interview in Germany.", `Feedback after · ${plan ? `up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} min` : `about ${minutesMap[modes[1]]} min`}`, "bag") : null}
         </div>
         {meta.consented ? null : (
           <label className="consent">

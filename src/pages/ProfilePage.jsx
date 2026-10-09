@@ -5,6 +5,7 @@ import { setUser, logout } from "../redux/auth/authSlice";
 import { isTrialActive, trialDaysLeft } from "../utils/premium";
 import { stableFile } from "../utils/stableFile";
 import api from "../api/axios";
+import { getSubscriptionPlans } from "../api/subscriptionApi";
 import { getProfileVisibility } from "../api/scholarshipExamApi";
 import ScholarshipEntryCard, {
   hasScholarshipAccess,
@@ -271,6 +272,21 @@ export default function ProfilePage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [toast, setToast] = useState({ show: false, msg: "", type: "" });
   const [showOnProfile, setShowOnProfile] = useState(false);
+  // "Standard"/"Plus" label for the plan card — only fetched while subscribed.
+  const [planName, setPlanName] = useState(null);
+
+  useEffect(() => {
+    if (!user?.autopay_enabled) {
+      setPlanName(null);
+      return;
+    }
+    getSubscriptionPlans()
+      .then((d) => {
+        const p = d?.currentPlan || d?.plans?.find((x) => x.key === d?.current);
+        setPlanName(p ? `${p.label} ₹${Math.round(p.amountPaise / 100)}` : null);
+      })
+      .catch(() => setPlanName(null));
+  }, [user?.autopay_enabled]);
 
   useEffect(() => {
     aliveRef.current = true;
@@ -775,10 +791,12 @@ export default function ProfilePage() {
       year: "numeric",
     });
   })();
-  // Only 'active' self-renews — for anything else next_billing_at is the
-  // access end date, not a charge date, so the label must not promise renewal.
-  const autopayNonRenewable =
-    String(user?.autopay_status || "").toLowerCase() !== "active";
+  // 'active'/'authenticated' self-renew — an authorised mandate is live even
+  // while a deferred start holds its first charge. For anything else
+  // next_billing_at is the access end date, not a charge date.
+  const autopayNonRenewable = !["active", "authenticated"].includes(
+    String(user?.autopay_status || "").toLowerCase(),
+  );
 
   // Check if candidate is a job screening candidate (for displaying review status pills)
   const isJobScreeningCandidate =
@@ -927,7 +945,7 @@ export default function ProfilePage() {
                       <div className="flex flex-col gap-0.5">
                         <p className="text-white text-xs font-medium leading-4">
                           {user?.autopay_enabled
-                            ? "Active Plan: ₹99 / month"
+                            ? `Active Plan: ${planName || "₹99"} / month`
                             : "Active Plan: Full Access"}
                         </p>
                         {user?.autopay_enabled && nextBilling ? (

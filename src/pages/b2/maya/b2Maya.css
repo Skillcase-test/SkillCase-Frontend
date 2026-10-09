@@ -109,6 +109,11 @@
 .sp .call-top strong{display:block;font-size:14px;font-weight:600}
 .sp .call-top small{font-size:12px;color:var(--muted)}
 .sp .time{font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}
+/* Amber "call is ending" strip under the call header — the relay fires it a
+   minute before the daily-pool cap so the cutoff never lands unannounced. */
+.sp .call-ending{display:flex;align-items:center;gap:8px;padding:8px 24px;background:var(--gold-soft);color:#725015;font-size:12px;line-height:1.5;border-bottom:1px solid #f0e0b8}
+.sp .call-ending .icon{--icon-size:16px;color:#a97b1f;flex-shrink:0}
+.sp .call-ending strong{font-variant-numeric:tabular-nums}
 .sp .call-content{display:flex;flex-direction:column;text-align:center;padding-top:18px}
 .sp .call-avatar{width:152px;height:152px;position:relative;display:grid;place-items:center;margin:16px auto 23px;border-radius:50%;background:#edf4fd;border:1px solid #d5e4f7}
 .sp .call-avatar:before{content:'';position:absolute;inset:12px;border:1px solid #cbd6e4;border-radius:50%}

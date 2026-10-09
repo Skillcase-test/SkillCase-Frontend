@@ -152,12 +152,14 @@ export default function Navbar({ disableNavigation = false }) {
                 </Link>
               )}
 
-              {/* Plan pill — three states: premium (amber diamond), active trial
-                  (days-left countdown badge), free (gift) */}
+              {/* Plan pill — three states, all tappable: premium manages its
+                  plan, trial and free go to the upgrade page. */}
               {isPremium ? (
-                <div
-                  className="flex items-center gap-1.5 pl-1 pr-2 py-1 bg-white/10 rounded-[200px]"
-                  title="Premium Plan"
+                <Link
+                  to="/profile/manage-plan"
+                  onClick={hapticLight}
+                  className="flex items-center gap-1.5 pl-1 pr-2 py-1 bg-white/10 rounded-[200px] hover:bg-white/20 transition-colors"
+                  title="Premium Plan — manage your plan"
                 >
                   <span className="p-1 bg-amber-300 rounded-3xl flex items-center justify-center shrink-0">
                     <Gem className="w-3.5 h-3.5 text-[#002856]" />
@@ -165,11 +167,13 @@ export default function Navbar({ disableNavigation = false }) {
                   <span className="text-white text-[10px] font-medium leading-3">
                     Premium
                   </span>
-                </div>
+                </Link>
               ) : isTrial ? (
-                <div
-                  className="flex items-center gap-1 pl-0.5 pr-2 py-0.5 bg-white/10 rounded-[200px]"
-                  title={`${daysLeft} days left in Premium Trial`}
+                <Link
+                  to="/profile/upgrade"
+                  onClick={hapticLight}
+                  className="flex items-center gap-1 pl-0.5 pr-2 py-0.5 bg-white/10 rounded-[200px] hover:bg-white/20 transition-colors"
+                  title={`${daysLeft} days left in Premium Trial — upgrade now`}
                 >
                   <span className="relative w-6 h-6 shrink-0">
                     <svg viewBox="0 0 24 24" className="w-6 h-6 -rotate-90">
@@ -202,11 +206,13 @@ export default function Navbar({ disableNavigation = false }) {
                   <span className="text-white text-[10px] font-medium leading-3">
                     days left
                   </span>
-                </div>
+                </Link>
               ) : (
-                <div
-                  className="flex items-center gap-1 pl-1 pr-2 py-1 bg-white/10 rounded-[200px]"
-                  title="Free Plan"
+                <Link
+                  to="/profile/upgrade"
+                  onClick={hapticLight}
+                  className="flex items-center gap-1 pl-1 pr-2 py-1 bg-white/10 rounded-[200px] hover:bg-white/20 transition-colors"
+                  title="Free Plan — upgrade to Premium"
                 >
                   <span className="w-6 h-6 bg-[#002856] rounded-full flex items-center justify-center shrink-0">
                     <Gift className="w-3.5 h-3.5 text-white" />
@@ -214,7 +220,7 @@ export default function Navbar({ disableNavigation = false }) {
                   <span className="text-white text-[10px] font-medium leading-3">
                     Free Plan
                   </span>
-                </div>
+                </Link>
               )}
 
               {renderAvatar()}

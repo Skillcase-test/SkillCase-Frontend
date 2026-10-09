@@ -2453,6 +2453,8 @@ function ConditionalFooter() {
     location.pathname.startsWith("/a2") ||
     // New app-shell screens carry the floating bottom tab bar instead.
     location.pathname === "/" ||
+    location.pathname === "/profile/upgrade" ||
+    location.pathname === "/profile/manage-plan" ||
     location.pathname.startsWith("/scholarship") ||
     location.pathname.startsWith("/video-courses");
 

@@ -20,6 +20,20 @@ const STATUS_LABELS = {
   disputed: "Disputed",
 };
 
+const REFUND_STATUS_LABELS = {
+  initiated: "Processing to your UPI",
+  retrying: "Processing to your UPI",
+  processed: "Credited to your UPI",
+  failed: "Failed · contact support",
+};
+
+const REFUND_STATUS_STYLES = {
+  initiated: "text-amber-600",
+  retrying: "text-amber-600",
+  processed: "text-emerald-600",
+  failed: "text-red-500",
+};
+
 function formatAmount(paise) {
   const amount = Number(paise || 0) / 100;
   return `₹${amount.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
@@ -154,6 +168,13 @@ export default function TransactionHistoryPage() {
                       <span className="text-black/60 text-xs font-normal leading-4 break-all">
                         Transaction ID: {tx.payment_id}
                       </span>
+                      {tx.refund_status && REFUND_STATUS_LABELS[tx.refund_status] && (
+                        <span
+                          className={`text-xs font-medium leading-4 ${REFUND_STATUS_STYLES[tx.refund_status]}`}
+                        >
+                          {`Refund ${formatAmount(tx.refund_amount_paise)} · ${REFUND_STATUS_LABELS[tx.refund_status]}`}
+                        </span>
+                      )}
                     </div>
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
                       <span className="text-black text-xs font-bold leading-4">

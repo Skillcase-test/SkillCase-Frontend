@@ -26,21 +26,10 @@ const countChapterItems = (items) => {
   );
 };
 
-// B1 owns only B1 now — B2/C1/C2 learners live in the separate /b2 suite.
-export function isB1PracticeLevel(level) {
-  return String(level || "").toLowerCase() === "b1";
-}
-
-export function isB2PracticeLevel(level) {
-  const normalized = String(level || "").toLowerCase();
-  return normalized === "b2" || normalized === "c1" || normalized === "c2";
-}
-
-// The shared "practice suite" segment (top mode switcher, jobs tab, app
-// shell). B1 and B2 users get identical chrome — only the content differs.
-export function isPracticeSuiteLevel(level) {
-  return isB1PracticeLevel(level) || isB2PracticeLevel(level);
-}
+// Level predicates live in ./levels (dependency-free) — re-exported here so
+// existing imports keep working.
+import { isB1PracticeLevel, isB2PracticeLevel } from "./levels";
+export { isB1PracticeLevel, isB2PracticeLevel, isPracticeSuiteLevel } from "./levels";
 
 export function getPracticeHomeForLevel(level) {
   const normalized = String(level || "A1").toLowerCase();

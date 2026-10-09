@@ -181,7 +181,13 @@ describe("Telemetry & Modal Events Verification", () => {
 
       expect(mockTrackFeatureEvent).toHaveBeenCalledWith(
         "payments",
-        "premium_activated_modal_presented"
+        "premium_activated_modal_presented",
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            title: "Premium activated!",
+            refund_paise: 0,
+          }),
+        })
       );
 
       const closeButton = screen.getByLabelText(/close/i);
@@ -189,7 +195,10 @@ describe("Telemetry & Modal Events Verification", () => {
 
       expect(mockTrackFeatureEvent).toHaveBeenCalledWith(
         "payments",
-        "premium_activated_modal_dismissed"
+        "premium_activated_modal_dismissed",
+        expect.objectContaining({
+          attributes: expect.objectContaining({ via: "close_button" }),
+        })
       );
     });
   });

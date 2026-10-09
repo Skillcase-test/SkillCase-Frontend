@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { images } from "../../../assets/images";
 import RetryFeedback from "./RetryFeedback";
 import SayItAgain from "./SayItAgain";
+import { getSubscriptionPlans } from "../../../api/subscriptionApi";
 import { SMOOTHNESS_LABEL, callSmoothness, englishWords, modeName } from "./mayaFormat";
 import { BottomNav, Brand, Footer, Header, Icon, Main, MayaFrame, MayaHero, MayaMark, ScoreRing, Title } from "./sp";
 
@@ -121,6 +122,39 @@ export function FeedbackError({ sessionId, onRetried }) {
 }
 
 /** Feedback you can use: what worked, one thing to practise (with "Try it"), and the details on request. */
+/**
+ * Shown on a report when the call was cut by the daily pool (ended_by: "time_limit")
+ * and the learner can still go bigger: Standard subs are told how to switch to Plus
+ * (cancel + resubscribe), non-subscribers get a link straight to the plan picker.
+ * Fetches /user/plans lazily — only mounts when a report actually needs it.
+ */
+function PlusUpsell() {
+  const [info, setInfo] = useState(null);
+  useEffect(() => {
+    getSubscriptionPlans().then(setInfo).catch(() => setInfo(null));
+  }, []);
+  const plus = info?.plans?.find((x) => x.key === "b2_plus");
+  if (!info || !plus || info.current === "b2_plus") return null;
+  const onStandard = info.current === "standard";
+  return (
+    <div className="context-row">
+      <Icon name="clock" />
+      <div>
+        <strong>Time ran out mid-call</strong>
+        <small>
+          {onStandard
+            ? `Plus gives you ${plus.mayaMinutesPerDay} min with Maya every day — upgrade on your current plan, you only pay the difference.`
+            : `Plus gives you ${plus.mayaMinutesPerDay} min with Maya every day for ₹${Math.round(plus.amountPaise / 100)}/month.`}
+        </small>
+        <Link className="insight-link" to={onStandard ? "/profile/manage-plan" : "/profile/upgrade"}>
+          {onStandard ? "Upgrade to Plus" : "See Plus"}
+          <Icon name="arrow" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
 export function Feedback({ practice: p, feedback: f, analysis: a, target, best }) {
   const user = useSelector((state) => state.auth.user);
   const interview = p.mode !== "talk";
@@ -162,6 +196,8 @@ export function Feedback({ practice: p, feedback: f, analysis: a, target, best }
             <span>Your turns</span>
           </div>
         </div>
+
+        {p.ended_by === "time_limit" ? <PlusUpsell /> : null}
 
         {f.strengths.length ? (
           <>

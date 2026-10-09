@@ -12,20 +12,34 @@ const PREMIUM_FEATURES = [
   "Exam practice",
 ];
 
-export default function PremiumActivatedModal({ open, onClose, onGoHome }) {
+export default function PremiumActivatedModal({
+  open,
+  onClose,
+  onGoHome,
+  title = "Premium activated!",
+  subtitle = "You have now access to all premium features",
+  refundPaise,
+  mayaValue,
+}) {
   useEffect(() => {
     if (open) {
-      trackFeatureEvent("payments", "premium_activated_modal_presented");
+      trackFeatureEvent("payments", "premium_activated_modal_presented", {
+        attributes: { title, refund_paise: refundPaise || 0 },
+      });
     }
-  }, [open]);
+  }, [open, title, refundPaise]);
 
   const handleClose = () => {
-    trackFeatureEvent("payments", "premium_activated_modal_dismissed");
+    trackFeatureEvent("payments", "premium_activated_modal_dismissed", {
+      attributes: { title, refund_paise: refundPaise || 0, via: "close_button" },
+    });
     onClose?.();
   };
 
   const handleGoHome = () => {
-    trackFeatureEvent("payments", "premium_activated_modal_dismissed");
+    trackFeatureEvent("payments", "premium_activated_modal_dismissed", {
+      attributes: { title, refund_paise: refundPaise || 0, via: "go_home" },
+    });
     onGoHome?.();
   };
 
@@ -61,11 +75,16 @@ export default function PremiumActivatedModal({ open, onClose, onGoHome }) {
 
               <div className="flex flex-col items-center gap-3">
                 <h3 className="text-center text-white text-2xl font-bold">
-                  Premium activated!
+                  {title}
                 </h3>
                 <p className="w-52 text-center text-white text-xs font-normal">
-                  You have now access to all premium features
+                  {subtitle}
                 </p>
+                {refundPaise > 0 && (
+                  <div className="px-3 py-2 rounded-xl bg-emerald-400/15 border border-emerald-300/30 text-emerald-200 text-xs font-medium text-center leading-relaxed">
+                    ₹{Math.round(refundPaise / 100)} refund on its way to your UPI
+                  </div>
+                )}
               </div>
 
               {/* What's included */}
@@ -74,17 +93,29 @@ export default function PremiumActivatedModal({ open, onClose, onGoHome }) {
                   What's included
                 </div>
                 <div className="flex flex-col gap-1">
-                  {PREMIUM_FEATURES.map((feature) => (
+                  {(mayaValue
+                    ? [
+                        { label: "Talk to Maya", value: mayaValue },
+                        ...PREMIUM_FEATURES.map((label) => ({
+                          label,
+                          value: "Unlimited",
+                        })),
+                      ]
+                    : PREMIUM_FEATURES.map((label) => ({
+                        label,
+                        value: "Unlimited",
+                      }))
+                  ).map(({ label, value }) => (
                     <div
-                      key={feature}
+                      key={label}
                       className="flex justify-between items-center"
                     >
                       <span className="text-white text-xs font-normal">
-                        {feature}
+                        {label}
                       </span>
                       <div className="flex items-center gap-2">
                         <span className="text-white text-xs font-medium">
-                          Unlimited
+                          {value}
                         </span>
                         <div className="size-2.5 bg-green-600 rounded-full">
                           <Check className="text-white size-full" />
