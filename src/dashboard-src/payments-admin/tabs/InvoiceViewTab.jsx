@@ -1,11 +1,30 @@
 import React, { useState, useEffect } from "react";
-import { ControlButton, ControlInput } from "../components/controls";
+import {
+  ControlButton,
+  ControlInput,
+  ControlDropdown,
+} from "../components/controls";
 import {
   formatInrFromPaise,
   formatIstDateTime,
   formatIstDate,
 } from "../utils/formatters";
 import { paymentsAdminApi } from "../../../api/paymentsAdminApi";
+
+const ROW_TYPE_OPTIONS = [
+  { value: "all", label: "Type: All" },
+  { value: "training", label: "Course Training" },
+  { value: "recruitment", label: "Recruitment" },
+  { value: "interview_training", label: "Interview Training" },
+  { value: "subscription", label: "Subscription" },
+];
+
+const ROW_TYPE_LABELS = {
+  training: "Course Training",
+  recruitment: "Recruitment",
+  interview_training: "Interview Training",
+  subscription: "Subscription",
+};
 
 const formatMonthYearName = (year, month) => {
   const date = new Date(Date.UTC(year, month - 1, 1));
@@ -53,6 +72,7 @@ export function InvoiceViewTab({
   const startingFlowRef = React.useRef(false);
   const [verifiedState, setVerifiedState] = useState("");
   const [candidatesSearch, setCandidatesSearch] = useState("");
+  const [candidatesRowType, setCandidatesRowType] = useState("all");
   const [draftInvoice, setDraftInvoice] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [sendingId, setSendingId] = useState(null);
@@ -68,16 +88,26 @@ export function InvoiceViewTab({
   const [isBulkDownloading, setIsBulkDownloading] = useState(false);
   const [localError, setLocalError] = useState("");
 
+  const matchesCandidateFilters = (r) => {
+    if (
+      candidatesRowType !== "all" &&
+      (r.row_type || "training") !== candidatesRowType
+    ) {
+      return false;
+    }
+    const q = candidatesSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      (r.student_name || "").toLowerCase().includes(q) ||
+      (r.student_email || "").toLowerCase().includes(q) ||
+      (r.student_phone || "").toLowerCase().includes(q)
+    );
+  };
+
   const handleDownloadExcel = () => {
-    const filtered = (summaryCandidatesRows || []).filter((r) => {
-      const q = candidatesSearch.trim().toLowerCase();
-      if (!q) return true;
-      return (
-        (r.student_name || "").toLowerCase().includes(q) ||
-        (r.student_email || "").toLowerCase().includes(q) ||
-        (r.student_phone || "").toLowerCase().includes(q)
-      );
-    });
+    const filtered = (summaryCandidatesRows || []).filter(
+      matchesCandidateFilters,
+    );
 
     const escapeXml = (str) => {
       if (typeof str !== "string") return str;
@@ -114,13 +144,18 @@ export function InvoiceViewTab({
       "IGST (INR)",
       "CGST (INR)",
       "SGST (INR)",
+      "Refunded (INR)",
     ];
 
     const data = filtered.map((r) => [
       escapeXml(r.student_name || ""),
       escapeXml(r.student_phone || ""),
       r.created_at ? formatIstDate(r.created_at) : "",
-      r.is_new ? "New Candidate" : "Old Candidate",
+      r.row_type === "subscription" || r.row_type === "interview_training"
+        ? ROW_TYPE_LABELS[r.row_type]
+        : r.is_new
+          ? "New Candidate"
+          : "Old Candidate",
       r.booked_at ? formatIstDate(r.booked_at) : "",
       (Number(r.amount_paise || 0) / 100).toFixed(2),
       escapeXml(r.candidate_state || ""),
@@ -131,6 +166,7 @@ export function InvoiceViewTab({
       (Number(r.igst_paise || 0) / 100).toFixed(2),
       (Number(r.cgst_paise || 0) / 100).toFixed(2),
       (Number(r.sgst_paise || 0) / 100).toFixed(2),
+      (Number(r.refund_paise || 0) / 100).toFixed(2),
     ]);
 
     const totalAmountPaise = filtered.reduce(
@@ -138,6 +174,9 @@ export function InvoiceViewTab({
       0,
     );
     const totalAmountInr = (totalAmountPaise / 100).toFixed(2);
+    const totalRefundInr = (
+      filtered.reduce((sum, r) => sum + Number(r.refund_paise || 0), 0) / 100
+    ).toFixed(2);
 
     let html = `
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -186,7 +225,7 @@ export function InvoiceViewTab({
               <td></td>
               <td></td>
               <td></td>
-              <td>${totalAmountInr}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+              <td>${totalAmountInr}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td>${totalRefundInr}</td>
             </tr>
           </tbody>
         </table>
@@ -1430,6 +1469,7 @@ export function InvoiceViewTab({
                   onClick={() => {
                     setSummaryMonthDetail(null);
                     setCandidatesSearch("");
+                    setCandidatesRowType("all");
                   }}
                   className="h-8 w-8 rounded-full p-0 flex items-center justify-center border-slate-200 text-slate-400 hover:text-slate-600 hover:bg-slate-50 shadow-none font-normal"
                 >
@@ -1439,12 +1479,20 @@ export function InvoiceViewTab({
             </div>
 
             {/* Local Search Input inside Modal */}
-            <div className="my-4">
+            <div className="my-4 flex items-center gap-2">
               <ControlInput
                 value={candidatesSearch}
                 onChange={(e) => setCandidatesSearch(e.target.value)}
                 placeholder="Search candidate name, email, or phone"
                 className="w-full"
+              />
+              <ControlDropdown
+                aria-label="Filter by type"
+                value={candidatesRowType}
+                onChange={setCandidatesRowType}
+                options={ROW_TYPE_OPTIONS}
+                className="w-44 shrink-0 h-9 text-xs"
+                compact
               />
             </div>
 
@@ -1475,15 +1523,7 @@ export function InvoiceViewTab({
                   ) : (
                     (() => {
                       const filtered = (summaryCandidatesRows || []).filter(
-                        (r) => {
-                          const q = candidatesSearch.trim().toLowerCase();
-                          if (!q) return true;
-                          return (
-                            (r.student_name || "").toLowerCase().includes(q) ||
-                            (r.student_email || "").toLowerCase().includes(q) ||
-                            (r.student_phone || "").toLowerCase().includes(q)
-                          );
-                        },
+                        matchesCandidateFilters,
                       );
 
                       if (filtered.length === 0) {
@@ -1524,7 +1564,18 @@ export function InvoiceViewTab({
                             </div>
                           </td>
                           <td className="px-2 py-3">
-                            {r.is_new ? (
+                            {r.row_type === "subscription" ||
+                            r.row_type === "interview_training" ? (
+                              <span
+                                className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold shadow-sm ${
+                                  r.row_type === "subscription"
+                                    ? "bg-violet-50 border-violet-200/50 text-violet-800"
+                                    : "bg-fuchsia-50 border-fuchsia-200/50 text-fuchsia-800"
+                                }`}
+                              >
+                                {ROW_TYPE_LABELS[r.row_type]}
+                              </span>
+                            ) : r.is_new ? (
                               <span className="inline-flex items-center rounded-full bg-emerald-50 border border-emerald-200/50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 shadow-sm">
                                 New Candidate
                               </span>
@@ -1539,6 +1590,11 @@ export function InvoiceViewTab({
                           </td>
                           <td className="px-2 py-3 text-right font-semibold text-slate-700">
                             {formatInrFromPaise(r.amount_paise)}
+                            {Number(r.refund_paise) > 0 ? (
+                              <div className="text-[11px] font-medium text-amber-600">
+                                −{formatInrFromPaise(r.refund_paise)} refunded
+                              </div>
+                            ) : null}
                           </td>
                         </tr>
                       ));
@@ -1555,6 +1611,7 @@ export function InvoiceViewTab({
                 onClick={() => {
                   setSummaryMonthDetail(null);
                   setCandidatesSearch("");
+                  setCandidatesRowType("all");
                 }}
                 className="border-slate-200 text-slate-600 hover:bg-slate-50 active:scale-95 transition-all duration-150"
               >

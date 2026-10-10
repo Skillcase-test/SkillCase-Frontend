@@ -187,6 +187,11 @@ export default function PaymentsAdmin() {
       state.setEMandateSearch,
       "Search name/phone/email",
     ],
+    subscription: [
+      state.subscriptionSearch,
+      state.setSubscriptionSearch,
+      "Search name/phone/email",
+    ],
   };
   const [q, setQ, qph] = searchable[state.tab] || ["", () => {}, ""];
   const isDataTableTab = [
@@ -198,6 +203,7 @@ export default function PaymentsAdmin() {
     "emandate",
     "rawlogs",
     "invoice",
+    "subscription",
   ].includes(state.tab);
 
   const roleLabel =
@@ -659,6 +665,22 @@ export default function PaymentsAdmin() {
                         </label>
                       </div>
                     )}
+                    {state.tab === "subscription" && (
+                      <div className="flex flex-wrap items-center gap-4">
+                        <label className="inline-flex h-8 items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 cursor-pointer">
+                          <span>All time</span>
+                          <input
+                            type="checkbox"
+                            checked={state.subscriptionAllTime}
+                            onChange={(e) => {
+                              state.setCurrentPage(1);
+                              state.setSubscriptionAllTime(e.target.checked);
+                            }}
+                            className="h-3.5 w-3.5 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                          />
+                        </label>
+                      </div>
+                    )}
                     {state.tab === "recruitment" && (
                       <div className="flex flex-wrap items-center gap-4">
                         <label className="flex items-center gap-2 text-sm text-slate-700 select-none cursor-pointer">
@@ -693,7 +715,8 @@ export default function PaymentsAdmin() {
                           disabled={
                             (state.tab === "payments" && state.paymentAllTime) ||
                             (state.tab === "recruitment" && state.recruitmentAllTime) ||
-                            (state.tab === "emandate" && state.emandateAllTime)
+                            (state.tab === "emandate" && state.emandateAllTime) ||
+                            (state.tab === "subscription" && state.subscriptionAllTime)
                           }
                           className="w-24 h-9 text-xs"
                         >
@@ -711,7 +734,8 @@ export default function PaymentsAdmin() {
                           disabled={
                             (state.tab === "payments" && state.paymentAllTime) ||
                             (state.tab === "recruitment" && state.recruitmentAllTime) ||
-                            (state.tab === "emandate" && state.emandateAllTime)
+                            (state.tab === "emandate" && state.emandateAllTime) ||
+                            (state.tab === "subscription" && state.subscriptionAllTime)
                           }
                           className="w-32 h-9 text-xs"
                         >
@@ -921,6 +945,12 @@ export default function PaymentsAdmin() {
                   handleViewSummaryMonthUnbooked: state.handleViewSummaryMonthUnbooked,
                   canManageInvoices: hasInvoiceFullAccess,
                   canDownloadInvoices: hasInvoiceDownloadAccess,
+                  subscriptionSortBy: state.subscriptionSortBy,
+                  setSubscriptionSortBy: state.setSubscriptionSortBy,
+                  subscriptionSortOrder: state.subscriptionSortOrder,
+                  setSubscriptionSortOrder: state.setSubscriptionSortOrder,
+                  subscriptionTotalPaise: state.subscriptionTotalPaise,
+                  pagination: state.pagination,
                 }}
               />
             )}

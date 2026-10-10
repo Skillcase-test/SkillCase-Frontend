@@ -119,6 +119,18 @@ export const paymentsAdminApi = {
     api.post("/admin/payments/jodo/mappings", payload),
   reprocessJodoEvent: (rawLogId) =>
     api.post(`/admin/payments/jodo/raw-logs/${rawLogId}/reprocess`),
+  getSubscriptionView: (year, month, params = {}) =>
+    api.get("/admin/payments/subscriptions", {
+      params: { year, month, ...params },
+    }),
+  getSubscriptionUserDetail: (userId) =>
+    api.get(`/admin/payments/subscriptions/${userId}`),
+  createSubscriptionInvoice: (paymentId) =>
+    api.post("/admin/payments/subscription-invoices", {
+      payment_id: paymentId,
+    }),
+  getSubscriptionInvoicePdf: (invoiceId) =>
+    api.get(`/admin/payments/subscription-invoices/${invoiceId}/pdf`),
   getInvoices: (year, month, params = {}) =>
     api.get("/admin/payments/invoices", { params: { year, month, ...params } }),
   getInvoicePaymentOptions: (enrollment_id, params = {}) => {

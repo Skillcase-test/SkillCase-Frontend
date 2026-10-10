@@ -274,6 +274,7 @@ export default function ProfilePage() {
   const [showOnProfile, setShowOnProfile] = useState(false);
   // "Standard"/"Plus" label for the plan card — only fetched while subscribed.
   const [planName, setPlanName] = useState(null);
+  const [hasPaymentHistory, setHasPaymentHistory] = useState(false);
 
   useEffect(() => {
     if (!user?.autopay_enabled) {
@@ -378,6 +379,25 @@ export default function ProfilePage() {
     fetchProfileData();
     fetchDocProgressData();
   }, [isAuthenticated, navigate, fetchProfileData, fetchDocProgressData]);
+
+  const isAutopayActive = Boolean(user && user.autopay_enabled === true);
+  const isPaidMember = Boolean(isAutopayActive || user?.is_paid === true);
+  // Paid members get the link anyway — only probe the API for everyone else,
+  // and only once the signed-in user has loaded.
+  const userId = user?.user_id;
+  useEffect(() => {
+    if (!isAuthenticated || !userId || isPaidMember) return;
+    let alive = true;
+    api
+      .get("/user/payments")
+      .then((r) => {
+        if (alive) setHasPaymentHistory((r.data?.payments || []).length > 0);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [isAuthenticated, userId, isPaidMember]);
 
   const handleSelectChange = (fieldName, val) => {
     setForm((prev) => ({ ...prev, [fieldName]: val }));
@@ -777,8 +797,6 @@ export default function ProfilePage() {
 
   const displayName = form.fullname || user?.username || "Amélie Laurent";
   const displayPhone = phoneNumber || user?.number || "8240951870";
-  const isAutopayActive = Boolean(user && user.autopay_enabled === true);
-  const isPaidMember = Boolean(isAutopayActive || user?.is_paid === true);
   const isTrial = !isPaidMember && isTrialActive(user);
   const trialDays = trialDaysLeft(user);
   const nextBilling = (() => {
@@ -1242,8 +1260,8 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Transactions — Paid members only */}
-            {isPaidMember && (
+            {/* Transactions — paid members or anyone with payment history */}
+            {(isPaidMember || hasPaymentHistory) && (
               <div className="flex flex-col gap-3">
                 <h3 className="text-base font-semibold text-[#101828] leading-6">
                   Your transactions

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileDown } from "lucide-react";
 import api from "../../api/axios";
 import diamond from "../../assets/diamond.webp";
 
@@ -60,6 +60,35 @@ export default function TransactionHistoryPage() {
   const navigate = useNavigate();
   const [payments, setPayments] = useState(null);
   const [error, setError] = useState(false);
+  const [invoiceLoading, setInvoiceLoading] = useState("");
+  const [invoiceError, setInvoiceError] = useState("");
+
+  const downloadInvoice = async (tx) => {
+    if (!tx.invoice_id || invoiceLoading) return;
+    setInvoiceLoading(tx.invoice_id);
+    setInvoiceError("");
+    try {
+      const res = await api.get(`/user/invoices/${tx.invoice_id}/pdf`);
+      const { pdf_base64, invoice_number } = res.data || {};
+      if (!pdf_base64) throw new Error("empty invoice pdf");
+      const bytes = Uint8Array.from(atob(pdf_base64), (c) => c.charCodeAt(0));
+      const url = URL.createObjectURL(
+        new Blob([bytes], { type: "application/pdf" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${String(invoice_number || "invoice").replace(/[\\/]/g, "-")}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      console.error("Failed to download invoice:", err);
+      setInvoiceError(tx.invoice_id);
+    } finally {
+      setInvoiceLoading("");
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -175,6 +204,24 @@ export default function TransactionHistoryPage() {
                           {`Refund ${formatAmount(tx.refund_amount_paise)} · ${REFUND_STATUS_LABELS[tx.refund_status]}`}
                         </span>
                       )}
+                      {tx.invoice_id ? (
+                        <button
+                          type="button"
+                          onClick={() => downloadInvoice(tx)}
+                          disabled={invoiceLoading === tx.invoice_id}
+                          className="inline-flex w-fit items-center gap-1 rounded-md border border-blue-950/20 bg-blue-950/5 px-2 py-1 text-[11px] font-semibold text-blue-950 hover:bg-blue-950/10 transition-colors disabled:opacity-50 cursor-pointer"
+                        >
+                          <FileDown className="size-3" />
+                          {invoiceLoading === tx.invoice_id
+                            ? "Downloading…"
+                            : `Invoice ${tx.invoice_number || ""}`}
+                        </button>
+                      ) : null}
+                      {invoiceError && invoiceError === tx.invoice_id ? (
+                        <span className="text-[11px] font-medium leading-4 text-red-600">
+                          Couldn't download the invoice. Please try again.
+                        </span>
+                      ) : null}
                     </div>
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
                       <span className="text-black text-xs font-bold leading-4">

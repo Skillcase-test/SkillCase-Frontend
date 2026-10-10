@@ -9,6 +9,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 const PAYMENTS_TAB_ORDER = [
   "overall", "month", "all", "batch", "fee",
   "discounts", "payments", "emandate", "rawlogs", "invoice", "recruitment",
+  "subscription",
 ];
 
 // Maps each UI tab key to its backend action_key stored in admin_user_permission
@@ -24,6 +25,7 @@ const PAYMENTS_ACTION_FOR_TAB = {
   rawlogs:   "tab_rawlogs",
   invoice:   "tab_invoice",
   recruitment: "tab_recruitment",
+  subscription: "tab_subscription",
 };
 
 function derivePermittedTabs(role, paymentActions) {
@@ -189,6 +191,11 @@ export function usePaymentsAdminState() {
     due_count: 0,
     paid_count: 0,
   });
+  const [subscriptionSearch, setSubscriptionSearch] = useState("");
+  const [subscriptionSortBy, setSubscriptionSortBy] = useState("last_charged_at");
+  const [subscriptionSortOrder, setSubscriptionSortOrder] = useState("desc");
+  const [subscriptionAllTime, setSubscriptionAllTime] = useState(false);
+  const [subscriptionTotalPaise, setSubscriptionTotalPaise] = useState(0);
 
   const setPaymentRecruitmentOnly = (val) => {
     setPaymentRecruitmentOnlyState(val);
@@ -289,6 +296,7 @@ export function usePaymentsAdminState() {
   const debouncedBatchSearch = useDebounce(batchSearch, SEARCH_DEBOUNCE_MS);
   const debouncedEnrollmentSearchTerm = useDebounce(enrollmentSearchTerm, SEARCH_DEBOUNCE_MS);
   const debouncedEMandateSearch = useDebounce(emandateSearch, SEARCH_DEBOUNCE_MS);
+  const debouncedSubscriptionSearch = useDebounce(subscriptionSearch, SEARCH_DEBOUNCE_MS);
 
   async function refreshBatches() {
     try {
@@ -522,6 +530,19 @@ export function usePaymentsAdminState() {
           },
         );
         setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
+      } else if (tab === "subscription") {
+        const res = await paymentsAdminApi.getSubscriptionView(year, month, {
+          page: currentPage,
+          limit: rowsPerPage,
+          search: debouncedSubscriptionSearch || undefined,
+          sortBy: subscriptionSortBy,
+          sortOrder: subscriptionSortOrder,
+          all: subscriptionAllTime || undefined,
+        });
+        if (controller.signal.aborted) return;
+        setRows(res.data.rows || []);
+        setSubscriptionTotalPaise(Number(res.data.total_amount_paise || 0));
+        setPagination(res.data.pagination || { page: currentPage, limit: rowsPerPage, total: (res.data.rows || []).length, total_pages: 1 });
       } else if (tab === "rawlogs") {
         const res = await paymentsAdminApi.getRawLogs({
           page: currentPage,
@@ -652,6 +673,10 @@ export function usePaymentsAdminState() {
     tab === "emandate" ? emandateSortBy : null,
     tab === "emandate" ? emandateSortOrder : null,
     tab === "emandate" ? emandateAllTime : null,
+    tab === "subscription" ? debouncedSubscriptionSearch : null,
+    tab === "subscription" ? subscriptionSortBy : null,
+    tab === "subscription" ? subscriptionSortOrder : null,
+    tab === "subscription" ? subscriptionAllTime : null,
     tab === "rawlogs" ? debouncedRawSearch : null,
     tab === "rawlogs" ? rawEventTypeFilter : null,
     tab === "rawlogs" ? rawStatusFilter : null,
@@ -701,6 +726,11 @@ export function usePaymentsAdminState() {
       due_count: 0,
       paid_count: 0,
     });
+    setSubscriptionSearch("");
+    setSubscriptionSortBy("last_charged_at");
+    setSubscriptionSortOrder("desc");
+    setSubscriptionAllTime(false);
+    setSubscriptionTotalPaise(0);
     setRows([]);
     setInvoiceRows([]);
     setInvoicePaymentRows([]);
@@ -859,6 +889,15 @@ export function usePaymentsAdminState() {
     emandateAllTime,
     setEMandateAllTime,
     emandateSummary,
+    subscriptionSearch,
+    setSubscriptionSearch,
+    subscriptionSortBy,
+    setSubscriptionSortBy,
+    subscriptionSortOrder,
+    setSubscriptionSortOrder,
+    subscriptionAllTime,
+    setSubscriptionAllTime,
+    subscriptionTotalPaise,
     allSummary,
     setAllSummary,
     cohortFilter,

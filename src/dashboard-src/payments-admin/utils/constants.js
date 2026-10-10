@@ -10,6 +10,7 @@ export const TABS = [
   { key: "rawlogs", label: "Raw Logs" },
   { key: "invoice", label: "Invoice Send" },
   { key: "recruitment", label: "Recruitment View" },
+  { key: "subscription", label: "Subscription View" },
 ];
 
 export const MONTH_NAMES = [

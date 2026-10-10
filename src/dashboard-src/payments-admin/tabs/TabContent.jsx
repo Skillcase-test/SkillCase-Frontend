@@ -9,6 +9,7 @@ import { RawLogsViewTab } from "./RawLogsViewTab";
 import { TotalFeeViewTab } from "./TotalFeeViewTab";
 import { OverallViewTab } from "./OverallViewTab";
 import { RecruitmentViewTab } from "./RecruitmentViewTab";
+import { SubscriptionViewTab } from "./SubscriptionViewTab";
 
 export function TabContent({ tab, props }) {
   if (tab === "overall") return <OverallViewTab {...props} />;
@@ -22,5 +23,6 @@ export function TabContent({ tab, props }) {
   if (tab === "rawlogs") return <RawLogsViewTab {...props} />;
   if (tab === "invoice") return <InvoiceViewTab {...props} />;
   if (tab === "recruitment") return <RecruitmentViewTab {...props} />;
+  if (tab === "subscription") return <SubscriptionViewTab {...props} />;
   return <RawLogsViewTab {...props} />;
 }
