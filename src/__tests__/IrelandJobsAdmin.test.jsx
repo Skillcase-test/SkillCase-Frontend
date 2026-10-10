@@ -174,4 +174,55 @@ describe("IrelandJobsAdmin", () => {
       screen.queryByText("Candidate Pipeline Details"),
     ).not.toBeInTheDocument();
   });
+
+  // Shown before the role is saved (the Nurse card is only a preview).
+  test("IELTS uploaded on Choose your path is reviewed there with Approve", async () => {
+    api.adminGetIrelandCandidateDetail.mockResolvedValue({
+      data: {
+        ...detailPayload,
+        data: {
+          ...detailPayload.data,
+          steps: [
+            { id: "welcome", title: "Welcome", status: "completed" },
+            { id: "resume_profile", title: "Resume & Profile", status: "completed" },
+            { id: "documents", title: "Documents", status: "completed" },
+            { id: "role_select", title: "Choose Your Path", status: "pending" },
+            { id: "matching", title: "Opportunity Matching", status: "locked" },
+          ],
+          currentStepId: "role_select",
+          resume: { ...detailPayload.data.resume, status: "approved" },
+          documents: {
+            ielts: {
+              answer: "preparing",
+              filename: "ielts.pdf",
+              downloadUrl: "https://example.com/ielts.pdf",
+              status: "pending",
+            },
+          },
+          nmbi: {},
+          role: null,
+        },
+      },
+    });
+    api.adminReviewIrelandDocument.mockResolvedValue({ data: { success: true } });
+
+    render(<IrelandJobsAdmin canEdit />);
+    await waitFor(() => screen.getByText("Mary Nurse"));
+    fireEvent.click(screen.getByText("Mary Nurse"));
+    await waitFor(() => screen.getByText("Choose Your Path"));
+
+    // Documents shows the candidate's answer, not the file.
+    expect(screen.getByText("Preparing")).toBeInTheDocument();
+    // Labelled under both steps: Documents (answer) + Choose your path (file).
+    expect(screen.getAllByText("IELTS Certificate")).toHaveLength(2);
+    // The only Approve on screen is the IELTS card on the current step.
+    fireEvent.click(screen.getByRole("button", { name: "Approve" }));
+    await waitFor(() =>
+      expect(api.adminReviewIrelandDocument).toHaveBeenCalledWith(
+        42,
+        "ielts",
+        "approved",
+      ),
+    );
+  });
 });

@@ -274,11 +274,12 @@ const IrelandDocumentsStep = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docStepStatus]);
 
-  // All answered, and every "have" has a file attached (backend gates on this).
+  // Mirrors computeStepStatuses: a rejected "have" file keeps the step pending.
   const allDone = requiredDocs.every((d) => {
     const answer = answers[d.id];
     if (!answer) return false;
     if (answer === "have" && !documents[d.id]?.filename) return false;
+    if (answer === "have" && documents[d.id]?.status === "rejected") return false;
     return true;
   });
 

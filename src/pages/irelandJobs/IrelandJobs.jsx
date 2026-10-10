@@ -10,6 +10,8 @@ import MatchingScreen from "./components/MatchingScreen";
 import { Lock, RefreshCw } from "lucide-react";
 import { captureTelemetryError } from "../../telemetry";
 import { trackFeatureEvent } from "../../telemetry/events";
+import { clearIrelandModeCache } from "../../utils/lgMode";
+import { toast } from "react-hot-toast";
 
 const STEP_DESCRIPTIONS = {
   welcome: {
@@ -105,7 +107,9 @@ const IrelandJobs = () => {
         });
         if (err.response?.status === 403) {
           // Not eligible — the funnel lock only applies to ireland-mode users;
-          // anyone else who lands here goes home.
+          // anyone else who lands here goes home. Drop a stale cached Ireland
+          // mode first, or LandingPage sends them straight back.
+          clearIrelandModeCache();
           navigate("/", { replace: true });
           return;
         }
@@ -359,6 +363,14 @@ const IrelandJobs = () => {
           // longer openable, stay in the lobby instead of flashing the step
           // open and getting kicked straight back out by the ?step= gate.
           if (!isStepReachable(targetStepId, data.data)) return;
+          // Approved: stay on the lobby, which now shows the next step.
+          const refreshed = (data.data.steps || []).find(
+            (s) => s.id === targetStepId,
+          );
+          if (refreshed?.status === "completed") {
+            toast.success("Approved! You can move on to the next step.");
+            return;
+          }
         }
       } catch (err) {
         console.error("Error checking review status:", err);
@@ -698,7 +710,11 @@ const IrelandJobs = () => {
                           className="overflow-hidden"
                         >
                           <button
-                            onClick={() => handleStartStep(step.id)}
+                            onClick={(e) => {
+                              // The card also starts the step; avoid a double start.
+                              e.stopPropagation();
+                              handleStartStep(step.id);
+                            }}
                             disabled={reviewCheckStepId !== null}
                             className="w-full py-3 bg-[#002856] text-white rounded-lg font-bold text-sm transition-all active:scale-[0.99] cursor-pointer text-center flex items-center justify-center gap-2 disabled:opacity-75"
                           >

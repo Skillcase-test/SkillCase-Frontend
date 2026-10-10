@@ -70,6 +70,8 @@ const JobScreeningAdmin = ({
       ? "germany"
       : allowedPipelines[0] || "germany",
   );
+  // Ireland-only admins: skip Germany fetches that would fail on permission.
+  const germanyAllowed = allowedPipelines.includes("germany");
   const detailRequestIdRef = React.useRef(0);
   const settingsScrollRef = React.useRef(null);
   const [candidates, setCandidates] = useState([]);
@@ -272,8 +274,9 @@ const JobScreeningAdmin = ({
   const departmentsEnabled = isProfileFieldEnabled("departments");
 
   useEffect(() => {
+    if (!germanyAllowed) return;
     fetchList();
-  }, [page, appliedSearch, statusFilter, startDate, endDate, proficiencyLevel, sortBy, paymentStatus, scoreOp, scoreValue, experienceFilter, qualificationFilter, departmentFilters, experienceEnabled, qualificationEnabled, departmentsEnabled]);
+  }, [page, appliedSearch, statusFilter, startDate, endDate, proficiencyLevel, sortBy, paymentStatus, scoreOp, scoreValue, experienceFilter, qualificationFilter, departmentFilters, experienceEnabled, qualificationEnabled, departmentsEnabled, germanyAllowed]);
 
   const activeFilterCount =
     (proficiencyLevel ? 1 : 0) +
@@ -330,17 +333,17 @@ const JobScreeningAdmin = ({
         console.error("Error fetching options and settings:", err);
       }
     };
-    fetchOptionsAndSettings();
-  }, []);
+    if (germanyAllowed) fetchOptionsAndSettings();
+  }, [germanyAllowed]);
 
   // Parse URL search params to open candidate details on load
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const idParam = params.get("id") || params.get("candidateId");
-    if (idParam) {
+    if (idParam && germanyAllowed) {
       setSelectedCandidateId(idParam);
     }
-  }, []);
+  }, [germanyAllowed]);
 
   // Fetch details on-demand when selectedCandidateId changes
   const syncCandidateListRow = (candidateData) => {

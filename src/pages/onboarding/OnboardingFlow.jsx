@@ -48,6 +48,9 @@ const navigateAfterOnboarding = (userData, navigate, dest, state = {}) => {
 };
 import { setLgFirstLandingMarker } from "../learnGerman/lgFirstTimeGuide";
 
+// Occupation (step 5) that unlocks the Jobs in Ireland pathway card.
+const IRELAND_OCCUPATION = "Professional nurse";
+
 // Map German level label to proficiency route
 const LEVEL_ROUTE_MAP = {
   "A1 - Beginner\n(I know a few words)": "/a1",
@@ -277,6 +280,11 @@ const OnboardingFlow = () => {
   // Step 11 — nursing qualification, asked only when the picked pathway's
   // destination is ireland_jobs (skipped entirely otherwise).
   const [irelandQualification, setIrelandQualification] = useState("");
+  // Jobs in Ireland is offered only to nurses for now.
+  const isIrelandPathway = (p) => p?.destination === "ireland_jobs";
+  const availablePathways = pathways.filter(
+    (p) => !isIrelandPathway(p) || occupation === IRELAND_OCCUPATION,
+  );
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -322,7 +330,7 @@ const OnboardingFlow = () => {
   // Back navigation map: each step knows its previous step.
   // 6 = pathways, 7 = German status, 8 = level, 9 = preference, 10 = B1/B2 pref.
   const BACK_MAP = { 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 8, 11: 6 };
-  const hasOtherPathways = pathways.some((p) => !p.is_builtin);
+  const hasOtherPathways = availablePathways.some((p) => !p.is_builtin);
   const handleBack = () => {
     setError("");
     setStep((s) => {
@@ -742,9 +750,9 @@ const OnboardingFlow = () => {
   // normal German questions; a real pathway enrols the candidate and routes them
   // straight to its exam.
   const handlePathwayContinue = () => {
-    const builtin = pathways.find((p) => p.is_builtin) || null;
+    const builtin = availablePathways.find((p) => p.is_builtin) || null;
     const chosenId = selectedPathwayId ?? builtin?.id ?? null;
-    const chosen = pathways.find((p) => p.id === chosenId) || builtin;
+    const chosen = availablePathways.find((p) => p.id === chosenId) || builtin;
     if (!chosen || chosen.is_builtin) {
       trackFlowAction("onboarding", "learner_onboarding", "step_completed", {
         step: 6,
@@ -1056,13 +1064,20 @@ const OnboardingFlow = () => {
 
   // New step-6 "What are you here for?" — Jobs in Germany is the built-in card
   // and is pre-selected; admin pathways (each wrapping one exam) list below it.
-  const builtinPathway = pathways.find((p) => p.is_builtin) || null;
-  const otherPathways = pathways.filter((p) => !p.is_builtin);
+  const builtinPathway = availablePathways.find((p) => p.is_builtin) || null;
+  const otherPathways = availablePathways.filter((p) => !p.is_builtin);
   const selectedPathwayOrDefault =
     selectedPathwayId ?? builtinPathway?.id ?? null;
 
   const selectOccupation = (value) => {
     setOccupation(value);
+    // Ireland card is hidden for non-nurses; drop a stale selection of it.
+    if (
+      value !== IRELAND_OCCUPATION &&
+      isIrelandPathway(pathways.find((p) => p.id === selectedPathwayId))
+    ) {
+      setSelectedPathwayId(null);
+    }
     trackFlowAction("onboarding", "learner_onboarding", "selection_changed", {
       step: 5,
       selectionCode: normalizeOnboardingValue(value),

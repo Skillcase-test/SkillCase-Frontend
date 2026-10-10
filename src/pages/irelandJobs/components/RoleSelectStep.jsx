@@ -17,6 +17,7 @@ import {
   BadgeCheck,
   ArrowLeft,
   ChevronRight,
+  ExternalLink,
 } from "lucide-react";
 import OpportunitySheet from "./OpportunitySheet";
 import {
@@ -42,6 +43,27 @@ const ROLE_CARDS = [
   },
 ];
 
+// Uploaded certificate (IELTS / NMBI) on Choose your path: name + View link.
+const UploadedFileRow = ({ filename, downloadUrl }) => (
+  <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5">
+    <FileText className="w-4 h-4 text-[#002856] shrink-0" />
+    <span className="text-xs font-semibold text-slate-700 truncate flex-1">
+      {filename}
+    </span>
+    {downloadUrl && (
+      <a
+        href={downloadUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="shrink-0 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-[#002856] border border-slate-200 rounded-lg text-[10px] font-bold cursor-pointer flex items-center gap-1"
+      >
+        <span>View</span>
+        <ExternalLink className="w-3 h-3" />
+      </a>
+    )}
+  </div>
+);
+
 const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
   const ielts = progress?.ielts || {};
   const nmbi = progress?.nmbi || {};
@@ -60,10 +82,11 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
   const [error, setError] = useState("");
   const ieltsFileRef = useRef(null);
   const nmbiFileRef = useRef(null);
+  const sheetIeltsFileRef = useRef(null);
+  const sheetNmbiFileRef = useRef(null);
 
   const opportunities = progress?.opportunities || {};
 
-  const needsIelts = role === "nurse" && !ielts.approved && !interestNoted;
   const ieltsPending = ielts.pending;
   const ieltsRejected = ielts.rejected;
   const nmbiPending = nmbi.pending;
@@ -87,6 +110,9 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
   // Interested" — that single click commits the role AND the interest and
   // finishes the step (there is no separate Continue). A card tap is just a
   // preview and never touches the server.
+  const stepCompleted =
+    (progress?.steps || []).find((s) => s.id === "role_select")?.status ===
+    "completed";
   const committed =
     oppInterested ||
     (progress?.role === role && Boolean(progress?.opportunityInterestAt));
@@ -137,7 +163,10 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
       setUploadingIelts(true);
       const formData = new FormData();
       formData.append("file", file);
-      const { data } = await uploadIrelandDocument("ielts", formData);
+      // Keeps the Documents-step answer so that step doesn't reopen.
+      const { data } = await uploadIrelandDocument("ielts", formData, {
+        source: "role_select",
+      });
       if (data?.success) {
         toast.success("IELTS certificate uploaded. Waiting for review");
         onProgressUpdate?.(data.data);
@@ -190,6 +219,150 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
       setNotingInterest(false);
     }
   };
+
+  // Nurse requirements (IELTS + NMBI), rendered inline and in the opportunity
+  // sheet. Each placement has its own refs; a shared one is nulled on unmount.
+  const ieltsOutstanding = !ielts.approved && !interestNoted;
+  const ieltsFile = progress?.documents?.ielts;
+  const renderNurseGates = (ieltsRef, nmbiRef) => (
+    <>
+      {/* Nurse gate — IELTS states */}
+      {ielts.approved && (
+        <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-2xl px-4 py-3">
+          <BadgeCheck className="w-4 h-4 text-[#15803d] shrink-0" />
+          <p className="text-xs font-semibold text-[#15803d]">
+            Your IELTS certificate is approved. You're set for the Nurse opportunity.
+          </p>
+        </div>
+      )}
+
+      {ieltsOutstanding && ieltsPending && (
+        <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3">
+          <Clock className="w-4 h-4 text-[#1d4ed8] shrink-0" />
+          <p className="text-xs font-semibold text-[#1d4ed8] leading-relaxed">
+            Your IELTS certificate is under review. We'll move you forward as
+            soon as it's approved.
+          </p>
+        </div>
+      )}
+
+      {ieltsOutstanding && !ieltsPending && (
+        <div className="flex flex-col gap-3 bg-amber-50 border border-amber-100 rounded-2xl p-4">
+          <p className="text-xs font-semibold text-amber-800 leading-relaxed">
+            {ieltsRejected
+              ? "Your IELTS certificate was rejected. Please upload a valid certificate."
+              : "Please upload your IELTS certificate to continue on the Nurse opportunity."}
+          </p>
+          <button
+            type="button"
+            onClick={() => ieltsRef.current?.click()}
+            disabled={uploadingIelts}
+            className="w-full border-2 border-dashed border-amber-300 rounded-xl px-3 py-3.5 flex items-center justify-center gap-2 text-xs font-bold text-amber-800 hover:border-[#002856]/40 hover:text-[#002856] transition-colors cursor-pointer disabled:opacity-60"
+          >
+            {uploadingIelts ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4" />
+            )}
+            {uploadingIelts ? "Uploading..." : "Upload IELTS certificate"}
+          </button>
+          <input
+            ref={ieltsRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+            className="hidden"
+            onChange={handleIeltsUpload}
+          />
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-amber-200" />
+            <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wide">
+              or
+            </span>
+            <div className="flex-1 h-px bg-amber-200" />
+          </div>
+          <button
+            type="button"
+            onClick={handleInterest}
+            disabled={notingInterest}
+            className="w-full h-12 bg-white border border-amber-200 hover:bg-amber-100/60 text-amber-800 rounded-xl font-bold text-sm transition-all cursor-pointer disabled:opacity-60"
+          >
+            {notingInterest ? "Saving..." : "Want to get an IELTS certificate?"}
+          </button>
+        </div>
+      )}
+
+      {ieltsFile?.filename && !ieltsRejected && (
+        <UploadedFileRow
+          filename={ieltsFile.filename}
+          downloadUrl={ieltsFile.downloadUrl}
+        />
+      )}
+
+      {interestNoted && !ielts.approved && (
+        <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-2xl px-4 py-3">
+          <Check className="w-4 h-4 text-[#15803d] shrink-0" />
+          <p className="text-xs font-semibold text-[#15803d] leading-relaxed">
+            Interest noted. Our team will reach out to help you get your IELTS
+            certificate.
+          </p>
+        </div>
+      )}
+
+      {/* Nurse gate — NMBI states (hospital-required, no interest alternative) */}
+      {nmbi.approved && (
+        <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-2xl px-4 py-3">
+          <BadgeCheck className="w-4 h-4 text-[#15803d] shrink-0" />
+          <p className="text-xs font-semibold text-[#15803d]">
+            Your NMBI certificate is approved.
+          </p>
+        </div>
+      )}
+
+      {nmbiPending && (
+        <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3">
+          <Clock className="w-4 h-4 text-[#1d4ed8] shrink-0" />
+          <p className="text-xs font-semibold text-[#1d4ed8] leading-relaxed">
+            Your NMBI certificate is under review. We'll move you forward as
+            soon as it's approved.
+          </p>
+        </div>
+      )}
+
+      {!nmbi.approved && !nmbiPending && (
+        <div className="flex flex-col gap-3 bg-amber-50 border border-amber-100 rounded-2xl p-4">
+          <p className="text-xs font-semibold text-amber-800 leading-relaxed">
+            {nmbiRejected
+              ? `Your NMBI certificate was rejected${nmbi.rejectionReason ? `. ${nmbi.rejectionReason}` : ""}. Please upload a valid certificate.`
+              : "Please upload your NMBI certificate. Irish hospitals require it to proceed on the Nurse opportunity."}
+          </p>
+          <button
+            type="button"
+            onClick={() => nmbiRef.current?.click()}
+            disabled={uploadingNmbi}
+            className="w-full border-2 border-dashed border-amber-300 rounded-xl px-3 py-3.5 flex items-center justify-center gap-2 text-xs font-bold text-amber-800 hover:border-[#002856]/40 hover:text-[#002856] transition-colors cursor-pointer disabled:opacity-60"
+          >
+            {uploadingNmbi ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4" />
+            )}
+            {uploadingNmbi ? "Uploading..." : "Upload NMBI certificate"}
+          </button>
+          <input
+            ref={nmbiRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+            className="hidden"
+            onChange={handleNmbiUpload}
+          />
+        </div>
+      )}
+
+      {nmbi.filename && !nmbiRejected && (
+        <UploadedFileRow filename={nmbi.filename} downloadUrl={nmbi.downloadUrl} />
+      )}
+    </>
+  );
 
   return (
     // Mirrors the German SelectOpportunityStep: own subheader bar, then a
@@ -313,12 +486,23 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
           appears once every requirement for the picked role is done. */}
       {role && gatesSettled &&
         (committed ? (
-          <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-2xl px-4 py-3">
-            <Check className="w-4 h-4 text-[#15803d] shrink-0" />
-            <p className="text-xs font-semibold text-[#15803d] leading-relaxed">
-              Interested ✓ Our team will reach out about the {role === "nurse" ? "Nursing" : "Caregiver"} opportunity.
-            </p>
-          </div>
+          <>
+            <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-2xl px-4 py-3">
+              <Check className="w-4 h-4 text-[#15803d] shrink-0" />
+              <p className="text-xs font-semibold text-[#15803d] leading-relaxed">
+                Interested ✓ Our team will reach out about the {role === "nurse" ? "Nursing" : "Caregiver"} opportunity.
+              </p>
+            </div>
+            {stepCompleted && (
+              <button
+                type="button"
+                onClick={() => onComplete?.(progress)}
+                className="w-full h-12 bg-[#002856] hover:bg-[#001f42] text-white rounded-xl font-bold text-sm transition-all active:scale-[0.99] cursor-pointer"
+              >
+                Continue
+              </button>
+            )}
+          </>
         ) : (
           <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 bg-[#f0f7ff] border border-[#bfdbfe] rounded-2xl px-4 py-3">
             <p className="flex-1 text-xs font-semibold text-[#083262] leading-relaxed">
@@ -341,148 +525,7 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
         </div>
       )}
 
-      {/* Nurse gate — IELTS states */}
-      {role === "nurse" && ielts.approved && (
-        <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-2xl px-4 py-3">
-          <BadgeCheck className="w-4 h-4 text-[#15803d] shrink-0" />
-          <p className="text-xs font-semibold text-[#15803d]">
-            Your IELTS certificate is approved. You're set for the Nurse opportunity.
-          </p>
-        </div>
-      )}
-
-      {needsIelts && ieltsPending && (
-        <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3">
-          <Clock className="w-4 h-4 text-[#1d4ed8] shrink-0" />
-          <p className="text-xs font-semibold text-[#1d4ed8] leading-relaxed">
-            Your IELTS certificate is under review. We'll move you forward as
-            soon as it's approved.
-          </p>
-        </div>
-      )}
-
-      {needsIelts && !ieltsPending && (
-        <div className="flex flex-col gap-3 bg-amber-50 border border-amber-100 rounded-2xl p-4">
-          <p className="text-xs font-semibold text-amber-800 leading-relaxed">
-            {ieltsRejected
-              ? "Your IELTS certificate was rejected. Please upload a valid certificate."
-              : "Please upload your IELTS certificate to continue on the Nurse opportunity."}
-          </p>
-          <button
-            type="button"
-            onClick={() => ieltsFileRef.current?.click()}
-            disabled={uploadingIelts}
-            className="w-full border-2 border-dashed border-amber-300 rounded-xl px-3 py-3.5 flex items-center justify-center gap-2 text-xs font-bold text-amber-800 hover:border-[#002856]/40 hover:text-[#002856] transition-colors cursor-pointer disabled:opacity-60"
-          >
-            {uploadingIelts ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Upload className="w-4 h-4" />
-            )}
-            {uploadingIelts ? "Uploading..." : "Upload IELTS certificate"}
-          </button>
-          <input
-            ref={ieltsFileRef}
-            type="file"
-            accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-            className="hidden"
-            onChange={handleIeltsUpload}
-          />
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-amber-200" />
-            <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wide">
-              or
-            </span>
-            <div className="flex-1 h-px bg-amber-200" />
-          </div>
-          <button
-            type="button"
-            onClick={handleInterest}
-            disabled={notingInterest}
-            className="w-full h-12 bg-white border border-amber-200 hover:bg-amber-100/60 text-amber-800 rounded-xl font-bold text-sm transition-all cursor-pointer disabled:opacity-60"
-          >
-            {notingInterest ? "Saving..." : "Want to get an IELTS certificate?"}
-          </button>
-        </div>
-      )}
-
-      {needsIelts && ieltsPending && progress?.documents?.ielts?.filename && (
-        <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5">
-          <FileText className="w-4 h-4 text-[#002856] shrink-0" />
-          <span className="text-xs font-semibold text-slate-700 truncate flex-1">
-            {progress.documents.ielts.filename}
-          </span>
-        </div>
-      )}
-
-      {role === "nurse" && interestNoted && !ielts.approved && (
-        <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-2xl px-4 py-3">
-          <Check className="w-4 h-4 text-[#15803d] shrink-0" />
-          <p className="text-xs font-semibold text-[#15803d] leading-relaxed">
-            Interest noted. Our team will reach out to help you get your IELTS
-            certificate.
-          </p>
-        </div>
-      )}
-
-      {/* Nurse gate — NMBI states (hospital-required, no interest alternative) */}
-      {role === "nurse" && nmbi.approved && (
-        <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-2xl px-4 py-3">
-          <BadgeCheck className="w-4 h-4 text-[#15803d] shrink-0" />
-          <p className="text-xs font-semibold text-[#15803d]">
-            Your NMBI certificate is approved.
-          </p>
-        </div>
-      )}
-
-      {role === "nurse" && nmbiPending && (
-        <div className="flex items-center gap-3 bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3">
-          <Clock className="w-4 h-4 text-[#1d4ed8] shrink-0" />
-          <p className="text-xs font-semibold text-[#1d4ed8] leading-relaxed">
-            Your NMBI certificate is under review. We'll move you forward as
-            soon as it's approved.
-          </p>
-        </div>
-      )}
-
-      {role === "nurse" && !nmbi.approved && !nmbiPending && (
-        <div className="flex flex-col gap-3 bg-amber-50 border border-amber-100 rounded-2xl p-4">
-          <p className="text-xs font-semibold text-amber-800 leading-relaxed">
-            {nmbiRejected
-              ? `Your NMBI certificate was rejected${nmbi.rejectionReason ? `. ${nmbi.rejectionReason}` : ""}. Please upload a valid certificate.`
-              : "Please upload your NMBI certificate. Irish hospitals require it to proceed on the Nurse opportunity."}
-          </p>
-          <button
-            type="button"
-            onClick={() => nmbiFileRef.current?.click()}
-            disabled={uploadingNmbi}
-            className="w-full border-2 border-dashed border-amber-300 rounded-xl px-3 py-3.5 flex items-center justify-center gap-2 text-xs font-bold text-amber-800 hover:border-[#002856]/40 hover:text-[#002856] transition-colors cursor-pointer disabled:opacity-60"
-          >
-            {uploadingNmbi ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <Upload className="w-4 h-4" />
-            )}
-            {uploadingNmbi ? "Uploading..." : "Upload NMBI certificate"}
-          </button>
-          <input
-            ref={nmbiFileRef}
-            type="file"
-            accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-            className="hidden"
-            onChange={handleNmbiUpload}
-          />
-        </div>
-      )}
-
-      {role === "nurse" && nmbiPending && nmbi.filename && (
-        <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5">
-          <FileText className="w-4 h-4 text-[#002856] shrink-0" />
-          <span className="text-xs font-semibold text-slate-700 truncate flex-1">
-            {nmbi.filename}
-          </span>
-        </div>
-      )}
+      {role === "nurse" && renderNurseGates(ieltsFileRef, nmbiFileRef)}
       </div>
 
       {previewRole && opportunities[previewRole] && (
@@ -501,6 +544,11 @@ const RoleSelectStep = ({ progress, onComplete, onBack, onProgressUpdate }) => {
               primaryBusy={markingOpp}
               primaryLocked={!roleGatesSettled(previewRole)}
               primaryLockedHint="Upload the required documents to unlock this opportunity"
+              lockedContent={
+                previewRole === "nurse"
+                  ? renderNurseGates(sheetIeltsFileRef, sheetNmbiFileRef)
+                  : null
+              }
               onPrimary={async () => {
                 const picked = previewRole;
                 if (!roleGatesSettled(picked)) return;

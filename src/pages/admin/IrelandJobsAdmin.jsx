@@ -47,6 +47,7 @@ import {
 } from "../../api/irelandJobsAdminApi";
 import IrelandOpportunityEditor from "./components/IrelandOpportunityEditor";
 import SortableStepItem from "./components/SortableStepItem";
+import IrelandCertificateReviewCard from "./components/IrelandCertificateReviewCard";
 
 const TABS = [
   { key: "candidates", label: "Candidates List" },
@@ -303,11 +304,15 @@ export default function IrelandJobsAdmin({ canEdit = true }) {
       title: "Reset Pipeline Step Order?",
       message:
         "This restores the default Ireland pipeline order for every candidate who doesn't have a custom order.",
+      // Applied inside fn so it only lands on success (runReview swallows errors).
       onConfirm: () =>
-        runReview(
-          () => adminUpdateIrelandStepsConfig({ reset: true }),
-          "Step order reset to defaults",
-        ).then(() => setStepsDirty(false)),
+        runReview(async () => {
+          const res = await adminUpdateIrelandStepsConfig({ reset: true });
+          const data = res.data?.data;
+          setStepsConfig(data);
+          setStepsDraft(data?.steps || []);
+          setStepsDirty(false);
+        }, "Step order reset to defaults"),
     });
   };
 
@@ -1264,9 +1269,16 @@ export default function IrelandJobsAdmin({ canEdit = true }) {
                                   ) : (
                                     detailRequiredDocs.map((doc) => {
                                       const entry = detailDocs[doc.id] || {};
-                                      const isDocUploaded = Boolean(
-                                        entry.downloadUrl || entry.filename,
-                                      );
+                                      // IELTS uploaded on Choose your path is
+                                      // reviewed there; show only the answer here.
+                                      const isDocUploaded =
+                                        Boolean(
+                                          entry.downloadUrl || entry.filename,
+                                        ) &&
+                                        !(
+                                          doc.id === "ielts" &&
+                                          entry.answer !== "have"
+                                        );
                                       return (
                                         <div
                                           key={doc.id}
@@ -1427,118 +1439,81 @@ export default function IrelandJobsAdmin({ canEdit = true }) {
                                 </div>
                               )}
 
-                              {/* NMBI is hospital-required for nurses; it lives
-                                  on role_select, not the shared documents step. */}
+                              {/* NMBI, and IELTS when uploaded on this step. */}
                               {step.id === "role_select" &&
-                                detail.role === "nurse" &&
                                 (() => {
                                   const nmbi = detail.nmbi || {};
-                                  const isNmbiUploaded = Boolean(
+                                  const ieltsEntry = detailDocs.ielts || {};
+                                  const ieltsFromRoleStep =
+                                    ieltsEntry.answer !== "have";
+                                  const hasNmbiFile = Boolean(
                                     nmbi.downloadUrl || nmbi.filename,
                                   );
+                                  const hasRoleStepIelts =
+                                    ieltsFromRoleStep &&
+                                    Boolean(
+                                      ieltsEntry.downloadUrl ||
+                                        ieltsEntry.filename,
+                                    );
+                                  const isNurse = detail.role === "nurse";
+                                  const showIelts =
+                                    hasRoleStepIelts ||
+                                    (isNurse &&
+                                      ieltsFromRoleStep &&
+                                      !detail.ieltsInterestAt);
+                                  const showNmbi = isNurse || hasNmbiFile;
+                                  const canReview = canEdit && isActive;
                                   return (
-                                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col gap-2">
-                                      <div className="flex items-center justify-between">
-                                        <span className="font-bold text-slate-800 text-[11px] truncate max-w-[200px] sm:max-w-xs block text-left">
-                                          NMBI Certificate
-                                          <span className="ml-1.5 text-[8px] font-bold text-slate-400 uppercase">
-                                            required
-                                          </span>
-                                        </span>
-                                        <span
-                                          className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase border tracking-wider shrink-0 ${
-                                            isNmbiUploaded
-                                              ? nmbi.status === "approved"
-                                                ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-                                                : nmbi.status === "rejected"
-                                                  ? "bg-rose-50 text-rose-700 border-rose-100"
-                                                  : "bg-amber-50 text-amber-700 border-amber-100"
-                                              : "bg-slate-100 text-slate-400 border-slate-200"
-                                          }`}
-                                        >
-                                          {isNmbiUploaded
-                                            ? nmbi.status === "approved"
-                                              ? "Approved"
-                                              : nmbi.status === "rejected"
-                                                ? "Rejected"
-                                                : "Pending Review"
-                                            : "Awaiting Upload"}
-                                        </span>
-                                      </div>
-
-                                      {isNmbiUploaded ? (
-                                        <div className="flex flex-col gap-2">
-                                          <div className="flex justify-between items-center bg-white p-2 rounded-lg border border-slate-100/80 text-[10px] text-slate-500">
-                                            <span className="truncate max-w-[150px] font-bold text-slate-700">
-                                              {nmbi.filename || "document"}
-                                            </span>
-                                            {nmbi.downloadUrl && (
-                                              <a
-                                                href={nmbi.downloadUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-blue-600 hover:underline flex items-center gap-0.5 shrink-0"
-                                              >
-                                                View file{" "}
-                                                <ExternalLink className="w-2.5 h-2.5" />
-                                              </a>
-                                            )}
-                                          </div>
-
-                                          {nmbi.status === "rejected" &&
-                                            nmbi.rejectionReason && (
-                                              <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-[10px] text-amber-800 text-left flex items-start justify-between gap-2">
-                                                <span className="leading-relaxed">
-                                                  {nmbi.rejectionReason}
-                                                </span>
-                                              </div>
-                                            )}
-
-                                          {canEdit &&
-                                            isActive &&
-                                            nmbi.status !== "approved" && (
-                                              <div className="flex gap-2 justify-start">
-                                                <button
-                                                  type="button"
-                                                  disabled={saving}
-                                                  onClick={() =>
-                                                    reviewDoc(
-                                                      user.user_id,
-                                                      "nmbi",
-                                                      "approved",
-                                                      "NMBI Certificate",
-                                                    )
-                                                  }
-                                                  className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] rounded-lg transition-all cursor-pointer disabled:opacity-40"
-                                                >
-                                                  Approve
-                                                </button>
-                                                {nmbi.status !== "rejected" && (
-                                                  <button
-                                                    type="button"
-                                                    disabled={saving}
-                                                    onClick={() =>
-                                                      reviewDoc(
-                                                        user.user_id,
-                                                        "nmbi",
-                                                        "rejected",
-                                                        "NMBI Certificate",
-                                                      )
-                                                    }
-                                                    className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-100 font-bold text-[10px] rounded-lg transition-all cursor-pointer disabled:opacity-40"
-                                                  >
-                                                    Reject
-                                                  </button>
-                                                )}
-                                              </div>
-                                            )}
-                                        </div>
-                                      ) : (
-                                        <p className="text-[10px] text-zinc-400 font-semibold italic">
-                                          Awaiting candidate upload.
-                                        </p>
+                                    <>
+                                      {showIelts && (
+                                        <IrelandCertificateReviewCard
+                                          label="IELTS Certificate"
+                                          file={ieltsEntry}
+                                          canReview={canReview}
+                                          saving={saving}
+                                          onApprove={() =>
+                                            reviewDoc(
+                                              user.user_id,
+                                              "ielts",
+                                              "approved",
+                                              "IELTS Certificate",
+                                            )
+                                          }
+                                          onReject={() =>
+                                            reviewDoc(
+                                              user.user_id,
+                                              "ielts",
+                                              "rejected",
+                                              "IELTS Certificate",
+                                            )
+                                          }
+                                        />
                                       )}
-                                    </div>
+                                      {showNmbi && (
+                                        <IrelandCertificateReviewCard
+                                          label="NMBI Certificate"
+                                          file={nmbi}
+                                          canReview={canReview}
+                                          saving={saving}
+                                          onApprove={() =>
+                                            reviewDoc(
+                                              user.user_id,
+                                              "nmbi",
+                                              "approved",
+                                              "NMBI Certificate",
+                                            )
+                                          }
+                                          onReject={() =>
+                                            reviewDoc(
+                                              user.user_id,
+                                              "nmbi",
+                                              "rejected",
+                                              "NMBI Certificate",
+                                            )
+                                          }
+                                        />
+                                      )}
+                                    </>
                                   );
                                 })()}
                             </div>

@@ -20,6 +20,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import * as LucideIcons from "lucide-react";
 import diamond from "../assets/diamond.webp";
+import { clearIrelandModeCache } from "../utils/lgMode";
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -714,6 +715,7 @@ export default function ProfilePage() {
       reasonCode: "user_initiated",
       attributes: { source_route: "/profile", trigger: "profile_button" },
     });
+    clearIrelandModeCache();
     dispatch(logout());
     navigate("/");
   };

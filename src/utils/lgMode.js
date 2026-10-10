@@ -57,3 +57,18 @@ export async function switchScholarshipToMode(mode, level) {
     return null;
   }
 }
+
+/**
+ * Clears a cached "ireland_jobs" the server no longer confirms (e.g. another
+ * account on this device); left in place it loops /ireland-jobs -> 403 -> /.
+ * Other cached modes are left alone.
+ *
+ * @returns {boolean} true if a stale value was removed
+ */
+export function clearIrelandModeCache() {
+  if (typeof window === "undefined") return false;
+  if (localStorage.getItem("lg_preferred_mode") !== "ireland_jobs") return false;
+  localStorage.removeItem("lg_preferred_mode");
+  window.dispatchEvent(new CustomEvent("lgModeChange", { detail: { mode: "" } }));
+  return true;
+}

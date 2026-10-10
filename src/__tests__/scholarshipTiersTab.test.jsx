@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, vi } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import TiersTab from "../dashboard-src/pages/exam/scholarship/TiersTab";
 
@@ -147,6 +147,15 @@ describe("TiersTab", () => {
   // a click event as the "override value" and every save died in date parsing —
   // the redemption deadline could not be set at all. These pin the wiring.
   describe("redemption window", () => {
+    // Pin "now" before the test deadlines; past deadlines are rejected.
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ["Date"] });
+      vi.setSystemTime(new Date("2026-09-01T00:00:00Z"));
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     const typeExpiry = async (value) => {
       render(<TiersTab />);
       await screen.findByText(/No tiers yet/);

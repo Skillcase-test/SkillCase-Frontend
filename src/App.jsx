@@ -51,6 +51,7 @@ import {
 import { hasPremiumAccess } from "./utils/premium";
 import { useFeatureFlags } from "./hooks/useFeatureFlags";
 import { setUser, logout } from "./redux/auth/authSlice";
+import { clearIrelandModeCache } from "./utils/lgMode";
 
 if (typeof global === "undefined") {
   window.global = window;
@@ -77,8 +78,11 @@ const syncPreferredModeCache = (user) => {
       "scholarship",
       "ireland_jobs",
     ].includes(serverMode)
-  )
+  ) {
+    // No server mode — a cached Ireland mode can only be a previous account's.
+    clearIrelandModeCache();
     return;
+  }
 
   localStorage.setItem("lg_preferred_mode", serverMode);
   window.dispatchEvent(
@@ -1058,6 +1062,7 @@ function AppContent() {
       } catch (err) {
         if (!active) return;
         console.error("Token expired or invalid");
+        clearIrelandModeCache();
         dispatch(logout());
       } finally {
         if (active) setAuthBootstrapping(false);

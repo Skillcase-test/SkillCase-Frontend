@@ -229,7 +229,10 @@ const ResumeProfileStep = ({
   );
   const [refreshing, setRefreshing] = useState(false);
 
-  const extracting = Boolean(resume.extractionPending);
+  // After polling gives up, let the candidate fill the fields by hand; the
+  // server sweep keeps retrying the extraction.
+  const [pollTimedOut, setPollTimedOut] = useState(false);
+  const extracting = Boolean(resume.extractionPending) && !pollTimedOut;
 
   // Latest ref — the parent passes an inline callback, so depending on it
   // would restart the poll interval on every render.
@@ -240,6 +243,10 @@ const ResumeProfileStep = ({
 
   // Poll while the AI pass is still working — dob lands a few seconds after
   // the upload returns (years is already there from the deterministic pass).
+  useEffect(() => {
+    if (!resume.extractionPending) setPollTimedOut(false);
+  }, [resume.extractionPending]);
+
   useEffect(() => {
     if (!extracting) {
       if (pollRef.current) {
@@ -253,6 +260,7 @@ const ResumeProfileStep = ({
       if (Date.now() - started > 45000) {
         clearInterval(pollRef.current);
         pollRef.current = null;
+        setPollTimedOut(true);
         return;
       }
       refreshRef.current?.();
@@ -293,6 +301,7 @@ const ResumeProfileStep = ({
         // Fresh upload → show the extracted fields again for confirmation
         // before the under-review screen takes over.
         setDetailsConfirmed(false);
+        setPollTimedOut(false);
       } else {
         setError("Upload failed. Please try again.");
       }

@@ -53,6 +53,10 @@ vi.mock("react-router-dom", () => ({
 vi.mock("../telemetry", () => ({ captureTelemetryError: vi.fn() }));
 vi.mock("../telemetry/events", () => ({ trackFeatureEvent: vi.fn() }));
 vi.mock("../telemetry/flow", () => ({ trackFlowAction: vi.fn() }));
+const toastSuccess = vi.fn();
+vi.mock("react-hot-toast", () => ({
+  toast: { success: (...a) => toastSuccess(...a), error: vi.fn() },
+}));
 
 const getIrelandProgress = vi.fn();
 const markIrelandOpportunityInterest = vi.fn();
@@ -225,5 +229,43 @@ describe("IrelandJobs lobby", () => {
     );
     expect(screen.getByText("skipped")).toBeTruthy();
     expect(screen.getByText("2/5")).toBeTruthy();
+  });
+
+  const REVIEW = () =>
+    progressWith(
+      [
+        STEP("welcome", "completed"),
+        STEP("resume_profile", "completed"),
+        STEP("documents", "completed"),
+        STEP("role_select", "review"),
+        STEP("matching", "locked"),
+      ],
+      "role_select",
+      { role: "nurse" },
+    );
+
+  test("Check status after approval stays on the lobby with an Approved toast", async () => {
+    getIrelandProgress
+      .mockResolvedValueOnce(REVIEW())
+      .mockResolvedValueOnce(TERMINAL());
+    render(<IrelandJobs />);
+    fireEvent.click(await screen.findByRole("button", { name: /Check status/ }));
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalled());
+    expect(mockNavigate).not.toHaveBeenCalledWith("/ireland-jobs?step=role_select");
+    expect(screen.queryByText("MOCK_ROLE_SELECT")).toBeNull();
+  });
+
+  test("Check status after a rejection opens the step to re-upload", async () => {
+    const rejected = REVIEW();
+    rejected.data.data.steps[3] = STEP("role_select", "pending");
+    getIrelandProgress
+      .mockResolvedValueOnce(REVIEW())
+      .mockResolvedValueOnce(rejected);
+    render(<IrelandJobs />);
+    fireEvent.click(await screen.findByRole("button", { name: /Check status/ }));
+    await waitFor(() =>
+      expect(mockNavigate).toHaveBeenCalledWith("/ireland-jobs?step=role_select"),
+    );
+    expect(toastSuccess).not.toHaveBeenCalled();
   });
 });

@@ -14,7 +14,11 @@ vi.mock("../api/learnGermanApi", () => ({
   setLGMode: (...args) => mockSetLGMode(...args),
 }));
 
-import { syncModeIntoRedux, switchLGMode } from "../utils/lgMode";
+import {
+  syncModeIntoRedux,
+  switchLGMode,
+  clearIrelandModeCache,
+} from "../utils/lgMode";
 import { store } from "../redux/store";
 import { setUser } from "../redux/auth/authSlice";
 
@@ -52,4 +56,29 @@ describe("lgMode redux sync", () => {
     expect(localStorage.getItem("lg_preferred_mode")).toBe("learn");
     expect(mockSetLGMode).toHaveBeenCalledWith("learn");
   });
+});
+
+// A stale cached "ireland_jobs" (previous account on the same device) made
+// LandingPage loop /ireland-jobs → 403 → / forever.
+describe("clearIrelandModeCache", () => {
+  beforeEach(() => localStorage.clear());
+
+  test("removes a cached Ireland mode and notifies listeners", () => {
+    localStorage.setItem("lg_preferred_mode", "ireland_jobs");
+    const listener = vi.fn();
+    window.addEventListener("lgModeChange", listener);
+    expect(clearIrelandModeCache()).toBe(true);
+    window.removeEventListener("lgModeChange", listener);
+    expect(localStorage.getItem("lg_preferred_mode")).toBeNull();
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+
+  test.each(["practice", "learn", "job_screening", "scholarship", "courses"])(
+    "leaves a cached %s mode untouched",
+    (mode) => {
+      localStorage.setItem("lg_preferred_mode", mode);
+      expect(clearIrelandModeCache()).toBe(false);
+      expect(localStorage.getItem("lg_preferred_mode")).toBe(mode);
+    },
+  );
 });

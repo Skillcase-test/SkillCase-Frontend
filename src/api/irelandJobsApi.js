@@ -21,11 +21,14 @@ export const markIrelandResumeRejectionViewed = () =>
 export const setIrelandDocAnswers = (answers) =>
   api.put("/ireland-jobs/documents/answers", { answers });
 
-export const uploadIrelandDocument = (docId, formData) =>
+// source="role_select" marks an upload from the Choose-your-path step, so the
+// server leaves the Documents-step answer alone (see uploadDocument).
+export const uploadIrelandDocument = (docId, formData, { source } = {}) =>
   api.post(`/ireland-jobs/documents/${docId}`, formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
+    ...(source ? { params: { source } } : {}),
   });
 
 export const deleteIrelandDocument = (docId) =>

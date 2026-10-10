@@ -108,7 +108,7 @@ describe("IrelandDocumentsStep", () => {
     ).toBeTruthy();
   });
 
-  test("'have' with an uploaded file submits fine; a rejected file surfaces the reason", () => {
+  test("a rejected file surfaces the reason and blocks Confirm until re-uploaded", () => {
     setup(
       progressWith({
         ielts: {
@@ -123,6 +123,18 @@ describe("IrelandDocumentsStep", () => {
     expect(screen.getByText("ielts.pdf")).toBeTruthy();
     expect(screen.getByText("Rejected")).toBeTruthy();
     expect(screen.getByText(/Blurry scan/)).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Confirm/ }).disabled,
+    ).toBe(true);
+  });
+
+  test("'have' with an uploaded (pending) file can be confirmed", () => {
+    setup(
+      progressWith({
+        ielts: { answer: "have", filename: "ielts.pdf", status: "pending" },
+        doc_voscreen: { answer: "none" },
+      }),
+    );
     expect(
       screen.getByRole("button", { name: /Confirm/ }).disabled,
     ).toBe(false);

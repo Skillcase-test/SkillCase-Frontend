@@ -255,6 +255,49 @@ describe("RoleSelectStep", () => {
       expect(uploadIrelandDocument).toHaveBeenCalledWith("nmbi", expect.any(FormData)),
     );
     await waitFor(() => expect(onProgressUpdate).toHaveBeenCalled());
+    expect(selectIrelandRole).not.toHaveBeenCalled();
+  });
+
+  test("IELTS upload is tagged source=role_select so the Documents step stays done", async () => {
+    uploadIrelandDocument.mockResolvedValue({ data: { success: true } });
+    const { container } = setup(
+      progressWith({ nmbi: { approved: true, status: "approved" } }),
+    );
+    pickNurse();
+    // NMBI is approved so only the IELTS card renders a file input.
+    const ieltsInput = container.querySelector('input[type="file"]');
+    fireEvent.change(ieltsInput, {
+      target: { files: [new File(["x"], "ielts.pdf", { type: "application/pdf" })] },
+    });
+    await waitFor(() =>
+      expect(uploadIrelandDocument).toHaveBeenCalledWith(
+        "ielts",
+        expect.any(FormData),
+        { source: "role_select" },
+      ),
+    );
+  });
+
+  test.each([
+    ["under review", { pending: true, status: "pending" }],
+    ["approved", { approved: true, status: "approved" }],
+  ])("shows the uploaded IELTS certificate on Choose your path when %s", (_label, ielts) => {
+    setup({
+      ...progressWith({ ielts, nmbi: { approved: true, status: "approved" } }),
+      documents: {
+        ielts: {
+          answer: "none",
+          filename: "my-ielts.pdf",
+          downloadUrl: "https://s3.example/ielts",
+          status: ielts.status,
+        },
+      },
+    });
+    pickNurse();
+    expect(screen.getByText("my-ielts.pdf")).toBeTruthy();
+    expect(screen.getByRole("link", { name: /View/ }).getAttribute("href")).toBe(
+      "https://s3.example/ielts",
+    );
   });
 
   test("nurse + rejected IELTS shows the rejection copy in the gate", async () => {
@@ -302,6 +345,65 @@ describe("RoleSelectStep", () => {
     await waitFor(() =>
       expect(screen.queryByText("Ireland Caregiver Opportunity")).toBeNull(),
     );
+  });
+
+  const NURSE_SHEET = {
+    header: { title: "Ireland Nurse Opportunity" },
+    sections: [],
+    cta: { primaryLabel: "I'm Interested", secondaryLabel: "Not Now" },
+  };
+  const withNurseSheet = (progress) => ({
+    ...progress,
+    opportunities: { nurse: NURSE_SHEET },
+  });
+
+  test("nurse sheet with unmet gates shows the uploads instead of a Locked button", () => {
+    setup(withNurseSheet(progressWith()));
+    fireEvent.click(screen.getByText(/View opportunity details/));
+    expect(screen.getByText("Ireland Nurse Opportunity")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Locked/ })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: /Upload IELTS certificate/ }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Want to get an IELTS certificate/ }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: /Upload NMBI certificate/ }),
+    ).toBeTruthy();
+    noInterested();
+  });
+
+  test("uploading NMBI from the sheet needs no saved role", async () => {
+    uploadIrelandDocument.mockResolvedValue({ data: { success: true } });
+    const { container } = setup(
+      withNurseSheet(progressWith({ ielts: { approved: true, status: "approved" } })),
+    );
+    fireEvent.click(screen.getByText(/View opportunity details/));
+    // No card picked → the only file input on screen is the sheet's NMBI one.
+    const inputs = container.ownerDocument.querySelectorAll('input[type="file"]');
+    expect(inputs).toHaveLength(1);
+    fireEvent.change(inputs[0], {
+      target: { files: [new File(["x"], "nmbi.pdf", { type: "application/pdf" })] },
+    });
+    await waitFor(() =>
+      expect(uploadIrelandDocument).toHaveBeenCalledWith("nmbi", expect.any(FormData)),
+    );
+    expect(selectIrelandRole).not.toHaveBeenCalled();
+  });
+
+  test("once the nurse gates settle, the sheet shows I'm Interested again", () => {
+    setup(
+      withNurseSheet(
+        progressWith({
+          nmbi: { pending: true, status: "pending", filename: "nmbi.pdf" },
+          ieltsInterestAt: new Date().toISOString(),
+        }),
+      ),
+    );
+    fireEvent.click(screen.getByText(/View opportunity details/));
+    expect(screen.queryByRole("button", { name: /Upload NMBI certificate/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "I'm Interested" })).toBeTruthy();
   });
 
   test("picking a role shows the inline Interested CTA; click commits + swaps to done state", async () => {
@@ -386,5 +488,36 @@ describe("RoleSelectStep", () => {
         screen.getByText("Pipeline is inactive for this account"),
       ).toBeTruthy(),
     );
+  });
+
+  test("a completed step (reopened after approval) offers Continue back to the journey", () => {
+    const onComplete = vi.fn();
+    const progress = {
+      ...progressWith({
+        role: "nurse",
+        ielts: { approved: true, status: "approved" },
+        nmbi: { approved: true, status: "approved" },
+      }),
+      opportunityInterestAt: new Date().toISOString(),
+      steps: [{ id: "role_select", status: "completed" }],
+    };
+    setup(progress, { onComplete });
+    expect(screen.getByText(/Interested ✓/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(onComplete).toHaveBeenCalledWith(progress);
+  });
+
+  test("no Continue while the step is still in review", () => {
+    setup({
+      ...progressWith({
+        role: "nurse",
+        ielts: { pending: true, status: "pending" },
+        nmbi: { pending: true, status: "pending", filename: "n.pdf" },
+      }),
+      opportunityInterestAt: new Date().toISOString(),
+      steps: [{ id: "role_select", status: "review" }],
+    });
+    expect(screen.getByText(/Interested ✓/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Continue" })).toBeNull();
   });
 });

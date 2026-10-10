@@ -130,6 +130,8 @@ const OpportunitySheet = ({
   doneLabel = "Interest noted",
   primaryLocked = false,
   primaryLockedHint = "",
+  // Rendered in place of the locked button (e.g. the uploads that unlock it).
+  lockedContent = null,
 }) => {
   if (!content) return null;
   const { header = {}, sections = [], cta = {} } = content;
@@ -208,7 +210,12 @@ const OpportunitySheet = ({
               {cta.subtext}
             </p>
           )}
-          {onPrimary && (
+          {onPrimary && primaryLocked && lockedContent && (
+            <div className="w-full flex flex-col gap-3 text-left">
+              {lockedContent}
+            </div>
+          )}
+          {onPrimary && !(primaryLocked && lockedContent) && (
             <>
               <button
                 type="button"

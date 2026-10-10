@@ -139,6 +139,17 @@ const NURSING = {
   sort_order: 100,
 };
 
+const IRELAND = {
+  id: 3,
+  title: "Jobs in Ireland",
+  description: "Nursing jobs in Ireland",
+  image_url: "",
+  badge: null,
+  is_builtin: false,
+  destination: "ireland_jobs",
+  sort_order: 50,
+};
+
 function renderFlow() {
   const store = configureStore({
     reducer: { auth: (state = {}, _action) => state },
@@ -154,7 +165,7 @@ function renderFlow() {
 
 // Drives splash → phone → OTP → name → occupation and selects an occupation,
 // leaving the flow one "Next" click away from the branch (step 6 or 7).
-async function driveToOccupation(container) {
+async function driveToOccupation(container, occupation = "Student (learning nursing)") {
   // Splash auto-advances to the phone step after a 3s timer.
   const phoneInput = await waitFor(
     () => {
@@ -184,7 +195,7 @@ async function driveToOccupation(container) {
 
   // Occupation step.
   await screen.findByText("Select your current occupation");
-  fireEvent.click(screen.getByText("Student (learning nursing)"));
+  fireEvent.click(screen.getByText(occupation));
 }
 
 describe("OnboardingFlow — pathway screen (step 6)", () => {
@@ -267,5 +278,72 @@ describe("OnboardingFlow — pathway screen (step 6)", () => {
     await screen.findByText("Select your German level");
     expect(screen.queryByText("What are you here for?")).not.toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  // Jobs in Ireland is nurse-only: offered only to "Professional nurse".
+  test("Professional nurse sees the Jobs in Ireland card", async () => {
+    mockGetPublicPathways.mockResolvedValue({
+      data: { pathways: [JIG, IRELAND, NURSING] },
+    });
+    const { container } = renderFlow();
+
+    await driveToOccupation(container, "Professional nurse");
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    await screen.findByText("What are you here for?");
+    expect(screen.getByText("Jobs in Ireland")).toBeInTheDocument();
+    expect(screen.getByText("Nursing Scholarship")).toBeInTheDocument();
+  });
+
+  test.each(["Physiotherapist", "Student (learning nursing)", "Other"])(
+    "%s does not see the Jobs in Ireland card",
+    async (occupation) => {
+      mockGetPublicPathways.mockResolvedValue({
+        data: { pathways: [JIG, IRELAND, NURSING] },
+      });
+      const { container } = renderFlow();
+
+      await driveToOccupation(container, occupation);
+      fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+      await screen.findByText("What are you here for?");
+      expect(screen.queryByText("Jobs in Ireland")).not.toBeInTheDocument();
+      expect(screen.getByText("Nursing Scholarship")).toBeInTheDocument();
+    },
+  );
+
+  test("non-nurses skip the screen when Ireland is the only other pathway", async () => {
+    mockGetPublicPathways.mockResolvedValue({ data: { pathways: [JIG, IRELAND] } });
+    const { container } = renderFlow();
+
+    await driveToOccupation(container, "Physiotherapist");
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    await screen.findByText("Select your German level");
+    expect(screen.queryByText("What are you here for?")).not.toBeInTheDocument();
+  });
+
+  test("switching from nurse to another occupation drops an Ireland selection", async () => {
+    mockGetPublicPathways.mockResolvedValue({
+      data: { pathways: [JIG, IRELAND, NURSING] },
+    });
+    const { container } = renderFlow();
+
+    await driveToOccupation(container, "Professional nurse");
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByText("What are you here for?");
+    fireEvent.click(screen.getByText("Jobs in Ireland").closest("button"));
+
+    // Back to occupation, switch away from nurse, continue.
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    await screen.findByText("Select your current occupation");
+    fireEvent.click(screen.getByText("Physiotherapist"));
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await screen.findByText("What are you here for?");
+
+    // Ireland is gone and Jobs in Germany is selected again by default.
+    expect(screen.queryByText("Jobs in Ireland")).not.toBeInTheDocument();
+    const jigCard = screen.getByText("Jobs in Germany").closest("button");
+    expect(jigCard.className).toContain("bg-blue-50");
   });
 });
