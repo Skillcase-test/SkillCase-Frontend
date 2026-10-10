@@ -761,7 +761,7 @@ const ResumeProfileStep = ({
                 : onComplete?.()
             }
             disabled={extracting}
-            className="w-full px-4 py-3 bg-blue-950 rounded-lg shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] shadow-[inset_0px_-2px_0px_0px_rgba(10,13,18,0.05)] shadow-[inset_0px_0px_0px_1px_rgba(10,13,18,0.18)] outline outline-2 outline-offset-[-2px] outline-white/10 flex justify-center items-center gap-1.5 overflow-hidden cursor-pointer disabled:opacity-60 transition-opacity"
+            className="w-full px-4 py-3 bg-blue-950 rounded-lg shadow-[0px_1px_2px_0px_rgba(10,13,18,0.05)] shadow-[inset_0px_-2px_0px_0px_rgba(10,13,18,0.05)] shadow-[inset_0px_0px_0px_1px_rgba(10,13,18,0.18)] outline outline-offset-[-2px] outline-white/10 flex justify-center items-center gap-1.5 overflow-hidden cursor-pointer disabled:opacity-60 transition-opacity"
           >
             <span className="text-white text-sm font-semibold">
               {resume.status === "pending" ? "Confirm details" : "Done"}
