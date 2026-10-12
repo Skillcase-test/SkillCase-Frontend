@@ -85,8 +85,6 @@ export default function MayaRoom({ meta, focus }) {
   const interview = mode !== "talk";
   const [topic, setTopic] = useState(""); // "" = General Conversation
   const [customTopic, setCustomTopic] = useState("");
-  // Consent is asked once, on the practice screen; returning learners find the box already ticked.
-  const [consent, setConsent] = useState(Boolean(meta.consented));
   const [noisyRoom, setNoisyRoom] = useState(false);
   const [error, setError] = useState(null);
   const [status, setStatus] = useState("thinking");
@@ -263,7 +261,7 @@ export default function MayaRoom({ meta, focus }) {
     const request = focus ? { focus: { sessionId: focus.sessionId, index: focus.index } } : !interview && (topic || customTopic.trim()) ? { topic: topic || customTopic.trim() } : {};
     let res;
     try {
-      res = await api.start({ consent, mode: focus ? "talk" : mode, ...request });
+      res = await api.start({ consent: true, mode: focus ? "talk" : mode, ...request });
     } catch (e) {
       cleanup();
       setError(e?.response?.data?.msg || "We couldn't start the practice. Please try again.");
@@ -905,23 +903,16 @@ export default function MayaRoom({ meta, focus }) {
           {card("talk", "Everyday German", "Talk about everyday life and whatever interests you.", `Live tips · ${plan ? `up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} min` : `about ${minutesMap.talk} min`}`, "chat")}
           {hasInterview ? card(modes[1], interviewName, interviewCopy, `${modes[1] === "coach" ? "Tips now and then" : "Feedback after"} · ${plan ? `up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} min` : `about ${minutesMap[modes[1]]} min`}`, "bag") : null}
         </div>
-        {meta.consented ? null : (
-          <label className="consent">
-            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-            <span>I understand that Maya is AI. My conversation will be transcribed, and Skillcase will keep the transcript and feedback to track my progress.</span>
-          </label>
-        )}
         {error ? (
           <p className="inline-error" role="alert">
             {error}
           </p>
         ) : null}
       </Main>
-      <Footer note={consent ? "Voice only. Your camera stays off." : "Tick the box to continue."}>
+      <Footer note="Voice only. Your camera stays off.">
         <button
           type="button"
           className="primary gold"
-          disabled={!consent}
           onClick={() => {
             if (!access("maya")) return;
             if (interview) void start();
