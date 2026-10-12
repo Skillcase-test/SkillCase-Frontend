@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { useOtaProgress } from "../utils/otaProgress";
 import { AnimatePresence, motion } from "framer-motion";
 
 const RING_PAD = 5;
@@ -15,12 +16,12 @@ const CIRC = 2 * Math.PI * 16;
 // hidden rather than floating over content.
 export default function OtaAvatarIndicator({
   otaState,
-  otaProgress = 0,
   onUpdateNow,
   onUpdateLater,
 }) {
   const active = otaState === "ota_downloading" || otaState === "ota_ready";
   const ready = otaState === "ota_ready";
+  const otaProgress = useOtaProgress();
   const [avatarRect, setAvatarRect] = useState(null);
   const [phase, setPhase] = useState("card"); // 'card' -> 'docked'
   const [dialogOpen, setDialogOpen] = useState(false);

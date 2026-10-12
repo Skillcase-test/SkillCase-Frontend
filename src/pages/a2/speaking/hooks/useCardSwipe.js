@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useFrameState } from "../../../../hooks/useFrameState";
 const useCardSwipe = ({
   onNext,
   onPrevious,
@@ -8,7 +9,7 @@ const useCardSwipe = ({
 }) => {
   const [swipeDirection, setSwipeDirection] = useState(null);
   const [dragStart, setDragStart] = useState(null);
-  const [dragOffset, setDragOffset] = useState(0);
+  const [dragOffset, setDragOffset, dragOffsetRef] = useFrameState(0);
   const [isDragging, setIsDragging] = useState(false);
   const handleDragStart = (e) => {
     if (disabled) return;
@@ -24,15 +25,15 @@ const useCardSwipe = ({
   };
   const handleDragEnd = () => {
     if (!dragStart || disabled) return;
-    if (Math.abs(dragOffset) > 80) {
-      if (dragOffset > 0 && canGoPrevious) {
+    if (Math.abs(dragOffsetRef.current) > 80) {
+      if (dragOffsetRef.current > 0 && canGoPrevious) {
         setSwipeDirection("right");
         setTimeout(() => {
           onPrevious();
           setSwipeDirection(null);
           setDragOffset(0);
         }, 250);
-      } else if (dragOffset < 0 && canGoNext) {
+      } else if (dragOffsetRef.current < 0 && canGoNext) {
         setSwipeDirection("left");
         setTimeout(() => {
           onNext();

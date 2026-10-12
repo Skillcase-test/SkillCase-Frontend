@@ -30,6 +30,9 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
     },
     setUser: (state, action) => {
+      // Profile re-syncs usually return the same data. Keeping the old object
+      // stops every auth subscriber re-rendering for nothing.
+      if (state.user && action.payload && JSON.stringify(state.user) === JSON.stringify(action.payload)) return;
       state.user = action.payload;
     },
     setOnboardingComplete: (state) => {

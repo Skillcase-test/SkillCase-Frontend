@@ -73,11 +73,13 @@ export default function BottomTabBar() {
   }, [user?.user_id, dispatch]);
 
   useEffect(() => {
-    syncUserProfile();
+    // Wait out the screen transition so the sync doesn't land mid-animation
+    const timer = setTimeout(syncUserProfile, 450);
     const handleSync = () => syncUserProfile();
     window.addEventListener("lgLessonComplete", handleSync);
     window.addEventListener("skillcase:coins-updated", handleSync);
     return () => {
+      clearTimeout(timer);
       window.removeEventListener("lgLessonComplete", handleSync);
       window.removeEventListener("skillcase:coins-updated", handleSync);
     };

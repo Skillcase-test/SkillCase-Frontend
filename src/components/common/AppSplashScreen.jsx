@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import mayaStanding from "../../assets/onboarding/mayaStanding.webp";
-import whiteLogo from "../../assets/onboarding/white_mainlogo.webp";
+
+// Same files as the inline splash in index.html, so they're already decoded
+// and the handover from HTML to React is invisible
+const mayaStanding = "/mayaStanding.webp";
+const whiteLogo = "/white_mainlogo.webp";
 
 export default function AppSplashScreen({ message = "Hi, I am Maya.", showTimeoutRetry = false, onRetry }) {
   const [delayedNotice, setDelayedNotice] = useState(false);
@@ -16,7 +19,7 @@ export default function AppSplashScreen({ message = "Hi, I am Maya.", showTimeou
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
+      initial={false}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, transition: { duration: 0.35, ease: "easeInOut" } }}
       className="fixed inset-0 z-[99999] bg-gradient-to-b from-[#002856] to-[#1A4B9F] flex flex-col items-center justify-between pt-16 pb-0 overflow-hidden select-none"
@@ -41,7 +44,7 @@ export default function AppSplashScreen({ message = "Hi, I am Maya.", showTimeou
       {/* Center/Bottom Mascot & Speech bubble */}
       <div className="relative z-10 w-full flex-1 flex flex-col items-center justify-end">
         <motion.div
-          initial={{ scale: 0.9, opacity: 0, y: 10 }}
+          initial={false}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
           className="mb-3 relative bg-white px-6 py-3 rounded-2xl shadow-xl flex items-center justify-center max-w-[85%]"
@@ -54,7 +57,7 @@ export default function AppSplashScreen({ message = "Hi, I am Maya.", showTimeou
 
         {/* Mascot Image */}
         <motion.img
-          initial={{ y: 20, opacity: 0 }}
+          initial={false}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.45, ease: "easeOut" }}
           src={mayaStanding}

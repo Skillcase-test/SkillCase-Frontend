@@ -48,6 +48,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import { useFlashcardTelemetry } from "../../../telemetry/learning";
+import { useFrameState } from "../../../hooks/useFrameState";
 
 // DnD Word Component
 function WordItem({ word, isDragging, isOverlay }) {
@@ -436,7 +437,7 @@ export default function B1Flashcard() {
 
   const [swipeDirection, setSwipeDirection] = useState(null);
   const [dragStart, setDragStart] = useState(null);
-  const [dragOffset, setDragOffset] = useState(0);
+  const [dragOffset, setDragOffset, dragOffsetRef] = useFrameState(0);
   const [isDragging, setIsDragging] = useState(false);
 
   const [showTest, setShowTest] = useState(false);
@@ -628,8 +629,8 @@ export default function B1Flashcard() {
 
   const handleDragEnd = () => {
     if (!dragStart) return;
-    if (Math.abs(dragOffset) > 80) {
-      if (dragOffset > 0 && currentCard > 0) {
+    if (Math.abs(dragOffsetRef.current) > 80) {
+      if (dragOffsetRef.current > 0 && currentCard > 0) {
         recordFlashcardNavigation({
           fromIndex: currentCard,
           toIndex: currentCard - 1,
@@ -644,7 +645,7 @@ export default function B1Flashcard() {
           setSwipeDirection(null);
           setDragOffset(0);
         }, 250);
-      } else if (dragOffset < 0) {
+      } else if (dragOffsetRef.current < 0) {
         const nextIndex = currentCard + 1;
         if (shouldShowTest(nextIndex)) {
           setShowTestPrompt(true);
@@ -682,7 +683,7 @@ export default function B1Flashcard() {
   };
 
   const handleCardClick = () => {
-    if (!isDragging && Math.abs(dragOffset) < 10) {
+    if (!isDragging && Math.abs(dragOffsetRef.current) < 10) {
       const nextFlipped = !isFlipped;
       setIsFlipped(nextFlipped);
       if (nextFlipped) {

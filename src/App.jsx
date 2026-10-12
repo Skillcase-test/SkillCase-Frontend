@@ -1,7 +1,6 @@
 import { RouterProvider } from "react-router-dom";
 import { router } from "./router";
 
-import "./dashboard-src/css/style.css";
 
 if (typeof global === "undefined") {
   window.global = window;

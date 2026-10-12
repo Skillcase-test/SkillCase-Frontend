@@ -43,7 +43,7 @@ export function UsageLimitProvider({ children }) {
       prevStatesRef.current = [];
       hasFetchedRef.current = false;
       setEligible(false);
-      setStates([]);
+      setStates((prev) => (prev.length ? [] : prev));
       return;
     }
     try {
@@ -85,7 +85,11 @@ export function UsageLimitProvider({ children }) {
       prevStatesRef.current = nextStates;
 
       setEligible(Boolean(res.data?.eligible));
-      setStates(nextStates);
+      // The 30s poll mostly returns the same data. Keep the old array so the
+      // context's consumers don't all re-render.
+      setStates((prev) =>
+        JSON.stringify(prev) === JSON.stringify(nextStates) ? prev : nextStates,
+      );
     } catch (err) {
       hasFetchedRef.current = false;
       // Fail closed on the client — the server-side middleware is the real
@@ -94,7 +98,7 @@ export function UsageLimitProvider({ children }) {
       console.error("Failed to fetch usage limit state:", err);
       prevStatesRef.current = [];
       setEligible(false);
-      setStates([]);
+      setStates((prev) => (prev.length ? [] : prev));
     }
   }, [isAuthenticated, user?.user_id]);
 
@@ -102,7 +106,7 @@ export function UsageLimitProvider({ children }) {
     if (!isAuthenticated || !user?.user_id) {
       fetchedForUserId.current = null;
       setEligible(false);
-      setStates([]);
+      setStates((prev) => (prev.length ? [] : prev));
       return;
     }
     if (fetchedForUserId.current === user.user_id) return;

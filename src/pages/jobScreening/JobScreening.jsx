@@ -390,7 +390,7 @@ const JobScreening = () => {
         className={`w-full ${pipelineMinHeightClass} bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] pt-6 pb-28 px-4 flex flex-col items-center overflow-y-auto`}
       >
         <div className="w-full max-w-md flex flex-col items-center gap-6">
-          <div className="w-full bg-white/80 backdrop-blur-sm rounded-3xl p-6 shadow-sm border border-white/60 animate-pulse flex flex-col items-center gap-3">
+          <div className="w-full bg-white/80 rounded-3xl p-6 shadow-sm border border-white/60 animate-pulse flex flex-col items-center gap-3">
             <div className="h-6 w-48 bg-slate-200 rounded-lg" />
             <div className="h-3.5 w-64 bg-slate-100 rounded" />
             <div className="w-full h-2.5 bg-slate-200 rounded-full mt-2" />
@@ -399,7 +399,7 @@ const JobScreening = () => {
             {[0, 1, 2, 3].map((idx) => (
               <div
                 key={idx}
-                className="w-full bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-sm border border-white/60 animate-pulse flex items-center justify-between"
+                className="w-full bg-white/80 rounded-2xl p-4 shadow-sm border border-white/60 animate-pulse flex items-center justify-between"
               >
                 <div className="flex items-center gap-3.5">
                   <div className="w-8 h-8 rounded-full bg-slate-200" />

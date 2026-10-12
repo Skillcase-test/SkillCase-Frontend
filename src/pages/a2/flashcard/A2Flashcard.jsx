@@ -46,6 +46,7 @@ import { CSS } from "@dnd-kit/utilities";
 import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import { useFirstPartyAnalytics } from "../../../telemetry/legacyAnalytics";
 import { useFlashcardTelemetry } from "../../../telemetry/learning";
+import { useFrameState } from "../../../hooks/useFrameState";
 
 // DnD Word Component
 const WordItem = memo(function WordItem({ word, isDragging, isOverlay }) {
@@ -441,7 +442,7 @@ export default function A2Flashcard() {
 
   const [swipeDirection, setSwipeDirection] = useState(null);
   const [dragStart, setDragStart] = useState(null);
-  const [dragOffset, setDragOffset] = useState(0);
+  const [dragOffset, setDragOffset, dragOffsetRef] = useFrameState(0);
   const [isDragging, setIsDragging] = useState(false);
 
   const [showTest, setShowTest] = useState(false);
@@ -660,8 +661,8 @@ export default function A2Flashcard() {
 
   const handleDragEnd = () => {
     if (!dragStart) return;
-    if (Math.abs(dragOffset) > 80) {
-      if (dragOffset > 0 && currentCard > 0) {
+    if (Math.abs(dragOffsetRef.current) > 80) {
+      if (dragOffsetRef.current > 0 && currentCard > 0) {
         // Swipe right = previous
         recordFlashcardNavigation({
           fromIndex: currentCard,
@@ -677,7 +678,7 @@ export default function A2Flashcard() {
           setSwipeDirection(null);
           setDragOffset(0);
         }, 250);
-      } else if (dragOffset < 0) {
+      } else if (dragOffsetRef.current < 0) {
         // Swipe left = next
         const nextIndex = currentCard + 1;
         if (shouldShowTest(nextIndex)) {
@@ -717,7 +718,7 @@ export default function A2Flashcard() {
   };
 
   const handleCardClick = () => {
-    if (!isDragging && Math.abs(dragOffset) < 10) setIsFlipped(!isFlipped);
+    if (!isDragging && Math.abs(dragOffsetRef.current) < 10) setIsFlipped(!isFlipped);
   };
 
   const handleNextButton = () => {

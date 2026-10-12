@@ -1,0 +1,33 @@
+/* What the old second Tailwind build (dashboard style.css) actually added on
+   top of the app's own build. Its palette, sizes and line-heights always lost
+   to the app's build, so they're left out to keep rendering identical. */
+@import './additional-styles/utility-patterns.css' layer(components);
+
+@plugin "@tailwindcss/forms" {
+  strategy: base;
+}
+
+/* Both triggers the app had: OS dark mode and the admin .dark class */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    @slot;
+  }
+  .dark & {
+    @slot;
+  }
+}
+
+@custom-variant sidebar-expanded (&:is(.sidebar-expanded *));
+
+@theme {
+  --font-inter: "Inter", "sans-serif";
+  --breakpoint-xs: 480px;
+  --text-base--letter-spacing: -0.01em;
+  --text-lg--letter-spacing: -0.01em;
+  --text-xl--letter-spacing: -0.01em;
+  --text-2xl--letter-spacing: -0.01em;
+  --text-3xl--letter-spacing: -0.01em;
+  --text-4xl--letter-spacing: -0.02em;
+  --text-5xl--letter-spacing: -0.02em;
+  --text-6xl--letter-spacing: -0.02em;
+}

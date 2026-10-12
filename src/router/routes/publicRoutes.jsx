@@ -1,5 +1,4 @@
 import { Navigate } from "react-router-dom";
-import OnboardingFlow from "../../pages/onboarding/OnboardingFlow";
 import { lazyPage } from "../lazyPage";
 
 // Marketing, events and share-link landings — open to everyone, including
@@ -11,7 +10,8 @@ export const publicRoutes = [
   { path: "/login", element: <Navigate to="/onboarding" replace />, handle: { access: "public" } },
   {
     path: "/onboarding",
-    element: <OnboardingFlow />,
+    // Lazy: signed-in launches (most of them) never see it
+    lazy: lazyPage(() => import("../../pages/onboarding/OnboardingFlow")),
     handle: { access: "public", pullToRefresh: false },
   },
   {

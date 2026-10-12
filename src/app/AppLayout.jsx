@@ -1,4 +1,5 @@
 import {
+  lazy,
   Suspense,
   useCallback,
   useEffect,
@@ -22,13 +23,9 @@ import TopModeSwitcher from "../components/TopModeSwitcher";
 import Footer from "../components/Footer";
 import OtaUpdateModal from "../components/OtaUpdateModal";
 import OtaAvatarIndicator from "../components/OtaAvatarIndicator";
-import AppReviewPromptModal from "../components/AppReviewPromptModal";
+import { setOtaProgress } from "../utils/otaProgress";
 import MaintenanceModal from "../components/MaintenanceModal";
 import UsageLimitModal from "../components/UsageLimitModal";
-import StreakLeaderboardModal from "../components/StreakLeaderboardModal";
-import PremiumActivatedModal from "../components/PremiumActivatedModal";
-import TrialCountdownModal from "../components/TrialCountdownModal";
-import TrialEndedModal from "../components/TrialEndedModal";
 import PromoAdsHost from "../components/promoAds/PromoAdsHost";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 import AppSplashScreen from "../components/common/AppSplashScreen";
@@ -121,6 +118,13 @@ import {
   captureInstallReferrer,
   captureReferralParamFromUrl,
 } from "../utils/referralAttribution";
+
+// Hidden until something opens them — kept out of the startup bundle
+const AppReviewPromptModal = lazy(() => import("../components/AppReviewPromptModal"));
+const StreakLeaderboardModal = lazy(() => import("../components/StreakLeaderboardModal"));
+const PremiumActivatedModal = lazy(() => import("../components/PremiumActivatedModal"));
+const TrialCountdownModal = lazy(() => import("../components/TrialCountdownModal"));
+const TrialEndedModal = lazy(() => import("../components/TrialEndedModal"));
 
 const MAX_RETRY_ATTEMPTS = 5;
 
@@ -217,7 +221,6 @@ export default function AppLayout() {
   }, [showProfileHighlight]);
 
   const [otaState, setOtaState] = useState(null); // null | 'play_store' | 'ota_downloading' | 'ota_ready'
-  const [otaProgress, setOtaProgress] = useState(0);
   const [showPlayStoreSkipForLater, setShowPlayStoreSkipForLater] =
     useState(true);
   const [maintenanceOpen, setMaintenanceOpen] = useState(
@@ -244,20 +247,21 @@ export default function AppLayout() {
     setScreenRefreshKey((key) => key + 1);
   }, [dispatch]);
 
+  const pullToRefreshEnabled =
+    Capacitor.isNativePlatform() &&
+    routeHandle.pullToRefresh !== false &&
+    !maintenanceOpen;
   const { pullProgress, isRefreshing, containerProps, contentRef, resetPull } =
-    usePullToRefresh(
-      refreshCurrentScreen,
-      Capacitor.isNativePlatform() &&
-        routeHandle.pullToRefresh !== false &&
-        !maintenanceOpen,
-    );
+    usePullToRefresh(refreshCurrentScreen, pullToRefreshEnabled);
 
   // Callback ref, not useRef: the layout's first render can be a redirect, and
   // a ref-keyed effect never re-ran once the container mounted — pull was dead.
   const [containerEl, setContainerEl] = useState(null);
 
   useEffect(() => {
-    if (!containerEl) return undefined;
+    // A non-passive touchmove makes every scroll wait on the main thread, so
+    // only attach while pull-to-refresh can actually fire
+    if (!containerEl || !pullToRefreshEnabled) return undefined;
 
     containerEl.addEventListener("touchstart", containerProps.onTouchStart, {
       passive: true,
@@ -277,26 +281,39 @@ export default function AppLayout() {
       containerEl.removeEventListener("touchend", containerProps.onTouchEnd);
       containerEl.removeEventListener("touchcancel", resetPull);
     };
-  }, [containerEl, containerProps, resetPull]);
+  }, [containerEl, containerProps, resetPull, pullToRefreshEnabled]);
 
   useEffect(() => {
-    const preloadTopHeavyScreens = () => {
-      if (document.visibilityState !== "visible") return;
-      import("../pages/learnGerman/LearnGermanHome");
-      import("../pages/jobScreening/JobScreening");
-      import("../pages/videoCourses/CourseSelectPage");
-      import("../pages/a2/flashcard/A2Flashcard");
-      import("../pages/a1/listening/A1ListeningContent");
-      import("../pages/a2/listening/A2ListeningContent");
-      import("../pages/exam/ExamPage");
+    // Signed-out users never reach these screens. One chunk per idle slot so
+    // parsing them can't stack into a long freeze while the user taps around.
+    if (!token) return undefined;
+    const queue = [
+      () => import("../pages/learnGerman/LearnGermanHome"),
+      () => import("../pages/jobScreening/JobScreening"),
+      () => import("../pages/videoCourses/CourseSelectPage"),
+      () => import("../pages/a2/flashcard/A2Flashcard"),
+      () => import("../pages/a1/listening/A1ListeningContent"),
+      () => import("../pages/a2/listening/A2ListeningContent"),
+      () => import("../pages/exam/ExamPage"),
+    ];
+    const idle = (fn) =>
+      window.requestIdleCallback
+        ? window.requestIdleCallback(fn, { timeout: 4000 })
+        : setTimeout(fn, 800);
+    let cancelled = false;
+    const next = () =>
+      idle(() => {
+        const load = queue.shift();
+        if (cancelled || !load) return;
+        if (document.visibilityState === "visible") load().catch(() => {});
+        next();
+      });
+    const timer = setTimeout(next, 1500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
     };
-
-    if ("requestIdleCallback" in window) {
-      window.requestIdleCallback(preloadTopHeavyScreens, { timeout: 2500 });
-    } else {
-      setTimeout(preloadTopHeavyScreens, 1500);
-    }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
@@ -342,7 +359,13 @@ export default function AppLayout() {
     setTelemetryIdentity(user, token);
     setSentryUserFromAuth(user);
     identifyUserInClarity(user);
-    if (user) {
+  }, [user, token]);
+
+  // Keyed on the account, not the user object — profile refreshes (coins etc.)
+  // used to end and restart the analytics session on every change.
+  const sessionUserId = user?.user_id ?? null;
+  useEffect(() => {
+    if (sessionUserId) {
       // Start heartbeat for all users, but it only sends when dashboard is active
       startHeartbeat();
       sendAppVersion();
@@ -356,7 +379,7 @@ export default function AppLayout() {
       stopHeartbeat();
       endAppAnalyticsSession();
     };
-  }, [user, token]);
+  }, [sessionUserId]);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return undefined;
@@ -919,12 +942,13 @@ export default function AppLayout() {
         isRefreshing={isRefreshing}
       />
       <div ref={contentRef} className="flex-1 flex flex-col">
-        <AppReviewPromptModal
-          blocked={maintenanceOpen || otaState === "play_store"}
-        />
+        <Suspense fallback={null}>
+          <AppReviewPromptModal
+            blocked={maintenanceOpen || otaState === "play_store"}
+          />
+        </Suspense>
         <OtaAvatarIndicator
           otaState={maintenanceOpen || !isAuthenticated ? null : otaState}
-          otaProgress={otaProgress}
           onUpdateNow={async () => {
             recordEvent("ota.restart_requested", {
               domain: "app_update",
@@ -981,7 +1005,9 @@ export default function AppLayout() {
         />
         <MaintenanceModal open={maintenanceOpen} onRetry={checkHealth} />
         <UsageLimitModal />
-        <StreakLeaderboardModal />
+        <Suspense fallback={null}>
+          <StreakLeaderboardModal />
+        </Suspense>
 
         {/* Free-trial lifecycle modals — countdown while <= 2 days remain,
             trial-ended once it expires (one-time dismissal). Hub screens only:
@@ -989,10 +1015,10 @@ export default function AppLayout() {
             exam attempt, a lesson, the interview flow or the payment funnel
             they themselves link out to. */}
         {isShellRoute(location.pathname) && (
-          <>
+          <Suspense fallback={null}>
             <TrialCountdownModal />
             <TrialEndedModal />
-          </>
+          </Suspense>
         )}
 
         {/* Promo ads — hub screens only, never under a blocking overlay */}
@@ -1025,17 +1051,19 @@ export default function AppLayout() {
                 )}
 
                 {/* Premium Activated Modal — revamped success state */}
-                <PremiumActivatedModal
-                  open={showPaymentSuccess}
-                  onClose={() => {
-                    setShowPaymentSuccess(false);
-                    setShowProfileHighlight(true);
-                  }}
-                  onGoHome={() => {
-                    setShowPaymentSuccess(false);
-                    navigate("/");
-                  }}
-                />
+                <Suspense fallback={null}>
+                  <PremiumActivatedModal
+                    open={showPaymentSuccess}
+                    onClose={() => {
+                      setShowPaymentSuccess(false);
+                      setShowProfileHighlight(true);
+                    }}
+                    onGoHome={() => {
+                      setShowPaymentSuccess(false);
+                      navigate("/");
+                    }}
+                  />
+                </Suspense>
 
                 {/* Profile Spotlight Guide */}
                 {showProfileHighlight && profileRect && (

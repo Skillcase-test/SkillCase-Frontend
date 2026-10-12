@@ -1173,12 +1173,22 @@ export default function LearnGermanHome() {
     const settleTimers = [250, 650, 1100].map((delay) =>
       window.setTimeout(updateGuideRect, delay),
     );
-    window.addEventListener("resize", updateGuideRect);
-    window.addEventListener("scroll", updateGuideRect, true);
+    // One measure per frame — scroll fires far more often than that
+    let frame = 0;
+    const scheduleUpdate = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        updateGuideRect();
+      });
+    };
+    window.addEventListener("resize", scheduleUpdate);
+    window.addEventListener("scroll", scheduleUpdate, true);
     return () => {
       settleTimers.forEach((timer) => window.clearTimeout(timer));
-      window.removeEventListener("resize", updateGuideRect);
-      window.removeEventListener("scroll", updateGuideRect, true);
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", scheduleUpdate);
+      window.removeEventListener("scroll", scheduleUpdate, true);
     };
   }, [showFirstChapterGuide, modules.length, activeLessonId]);
 
@@ -1349,7 +1359,8 @@ export default function LearnGermanHome() {
                             type: "spring",
                             stiffness: 120,
                             damping: 12,
-                            delay: index * 0.08,
+                            // Capped: cards below the fold shouldn't stay blank for seconds
+                            delay: Math.min(index, 8) * 0.08,
                           }
                         : isBeingMarkedComplete
                           ? { duration: 0.6, ease: "easeOut" }
@@ -1357,7 +1368,7 @@ export default function LearnGermanHome() {
                             ? { duration: 0.9, ease: "easeOut" }
                             : fromLessonCompleteRef.current
                               ? { duration: 0 }
-                              : { delay: index * 0.1 }
+                              : { delay: Math.min(index, 8) * 0.1 }
                     }
                     onClick={() =>
                       !isLocked &&

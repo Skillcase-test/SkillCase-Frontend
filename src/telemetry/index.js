@@ -664,7 +664,14 @@ export function initializeTelemetry() {
   void initializePlatformContext();
   state.restorePromise = restorePersistedEvents();
   void syncTelemetryConfig();
-  state.timer = window.setInterval(() => void flushTelemetry(), FLUSH_INTERVAL_MS);
+  // Batching + serialising is main-thread work; wait for a gap so it never
+  // lands in the middle of a screen transition
+  const whenIdle = (fn) =>
+    window.requestIdleCallback ? window.requestIdleCallback(fn, { timeout: 2000 }) : fn();
+  state.timer = window.setInterval(
+    () => whenIdle(() => void flushTelemetry()),
+    FLUSH_INTERVAL_MS,
+  );
   window.addEventListener("online", () => {
     recordEvent("network.state_changed", { domain: "network", outcome: "online", attributes: { network_state: "online" } });
     void flushTelemetry();

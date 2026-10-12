@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
+import { lazy, Suspense, useState } from "react";
 import {
   Clock,
   RefreshCw,
@@ -26,10 +25,7 @@ import { toast } from "react-hot-toast";
 import { trackFlowAction } from "../../../telemetry/flow";
 import RejectionNote from "../../../components/RejectionNote";
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url,
-).toString();
+const OfferLetterCover = lazy(() => import("./OfferLetterCover"));
 
 const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
   const [refreshing, setRefreshing] = useState(false);
@@ -252,21 +248,15 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
               {recData.offer_letter_download_url && (
                 <div className="w-full h-56 bg-zinc-100 rounded-xl overflow-hidden relative border border-zinc-200 flex justify-center items-center pointer-events-none select-none shadow-sm mb-2">
                   <div className="scale-[0.45] origin-center absolute">
-                    <Document
-                      file={recData.offer_letter_download_url}
-                      loading={
+                    <Suspense
+                      fallback={
                         <div className="text-xs text-slate-450 font-bold">
                           Loading preview...
                         </div>
                       }
                     >
-                      <Page
-                        pageNumber={1}
-                        width={343}
-                        renderTextLayer={false}
-                        renderAnnotationLayer={false}
-                      />
-                    </Document>
+                      <OfferLetterCover url={recData.offer_letter_download_url} />
+                    </Suspense>
                   </div>
                   <div className="absolute inset-0 bg-black/[0.02]" />
                 </div>
