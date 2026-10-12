@@ -547,7 +547,6 @@ export default function B1ProductTour({ children }) {
     return () => window.removeEventListener("tour:b1FlashcardRevealed", handler);
   }, [destroyDriver, markDone, showSuccess]);
 
-
   const tourContextValue = {
     isTourActive: !!activeFeature && isB1 && !isDone,
     currentFeature: activeFeature,

@@ -48,6 +48,8 @@ describe("MayaPage per level", () => {
     expect(screen.getByText("B1 German")).toBeInTheDocument();
     expect(screen.getByText(/Tips now and then/)).toBeInTheDocument();
     expect(screen.getByText("My progress").closest("a")).toHaveAttribute("href", "/b1/maya?view=progress");
+    // The B1 product tour anchors on this.
+    expect(document.querySelector("#b1-maya-modes")).toBeInTheDocument();
   });
 
   it("B2 keeps its API, nursing interview and links", async () => {
