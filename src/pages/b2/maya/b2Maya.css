@@ -94,8 +94,6 @@
 .sp .checklist .icon{color:var(--icon-muted);margin-top:1px}
 .sp .checklist strong{display:block;font-size:14px;font-weight:600;margin-bottom:4px}
 .sp .checklist span{font-size:13px;color:var(--muted);line-height:1.55}
-.sp .consent{display:flex;align-items:flex-start;gap:11px;padding:17px 0 0;border-top:1px solid var(--line);font-size:12px;line-height:1.65;color:var(--muted)}
-.sp .consent input{width:19px;height:19px;flex-shrink:0;accent-color:var(--navy);margin:3px 0 0}
 .sp .center{text-align:center}
 .sp .device-hero{margin:28px auto 26px;width:100px;height:100px;border-radius:50%;background:var(--blue);display:grid;place-items:center;color:var(--navy);position:relative}
 .sp .device-hero .icon{--icon-size:var(--icon-hero)}

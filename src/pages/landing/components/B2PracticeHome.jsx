@@ -7,7 +7,6 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { images } from "../../../assets/images";
-import { getMayaImage } from "../../../utils/mayaAvatars";
 import FeatureCard from "./FeatureCard";
 import useB2Access from "../../../hooks/useB2Access";
 import useB2PracticeResume from "../../../hooks/useB2PracticeResume";
@@ -163,7 +162,7 @@ export default function B2PracticeHome({ overview, loading = false, onRetry }) {
           tourId="b2-maya-card"
           title="Talk to Maya"
           description="Practice real-life German conversations with AI"
-          image={getMayaImage("wave", user)}
+          image="https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/maya_ylcppy.webp"
           link="/b2/maya"
           enabled
           moduleInfo={{ level: "B2", module_key: "maya" }}
