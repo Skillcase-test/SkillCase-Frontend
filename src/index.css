@@ -221,3 +221,45 @@ select {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(300%); }
 }
+
+/* Route slides (router/index.jsx) — Material shared-axis X: short shift + fade */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation-fill-mode: both;
+}
+html[data-nav-direction="forward"]::view-transition-old(root) { animation-name: vt-out-left; }
+html[data-nav-direction="forward"]::view-transition-new(root) { animation-name: vt-in-right; }
+html[data-nav-direction="back"]::view-transition-old(root) { animation-name: vt-out-right; }
+html[data-nav-direction="back"]::view-transition-new(root) { animation-name: vt-in-left; }
+@keyframes vt-out-left { to { opacity: 0; transform: translateX(-32px); } }
+@keyframes vt-in-right { from { opacity: 0; transform: translateX(32px); } }
+@keyframes vt-out-right { to { opacity: 0; transform: translateX(32px); } }
+@keyframes vt-in-left { from { opacity: 0; transform: translateX(-32px); } }
+
+/* Hub switches (top switcher): chrome stays put, only the page content moves.
+   Names apply only while data-nav-kind="tab", so stack slides move as one. */
+html[data-nav-kind="tab"] .vt-app-header { view-transition-name: app-header; }
+html[data-nav-kind="tab"] .vt-app-switcher { view-transition-name: app-switcher; }
+html[data-nav-kind="tab"] .vt-app-tabbar { view-transition-name: app-tabbar; }
+html[data-nav-kind="tab"] .vt-app-support { view-transition-name: app-support; }
+html[data-nav-kind="tab"]::view-transition-group(app-header),
+html[data-nav-kind="tab"]::view-transition-group(app-switcher),
+html[data-nav-kind="tab"]::view-transition-group(app-tabbar),
+html[data-nav-kind="tab"]::view-transition-group(app-support),
+html[data-nav-kind="tab"]::view-transition-new(app-support),
+html[data-nav-kind="tab"]::view-transition-new(app-header),
+html[data-nav-kind="tab"]::view-transition-new(app-switcher),
+html[data-nav-kind="tab"]::view-transition-new(app-tabbar) { animation: none; }
+html[data-nav-kind="tab"]::view-transition-old(app-header),
+html[data-nav-kind="tab"]::view-transition-old(app-switcher),
+html[data-nav-kind="tab"]::view-transition-old(app-tabbar),
+html[data-nav-kind="tab"]::view-transition-old(app-support) { display: none; }
+/* The new screen rises into place with the tab wave; the old one stays fully
+   opaque underneath so nothing shows through behind the switcher. */
+html[data-nav-kind="tab"]::view-transition-old(root) { animation: none; }
+html[data-nav-kind="tab"]::view-transition-new(root) {
+  animation: vt-tab-rise 300ms cubic-bezier(0.2, 0.8, 0.2, 1) 60ms both;
+}
+@keyframes vt-tab-rise { from { opacity: 0; transform: translateY(14px); } }

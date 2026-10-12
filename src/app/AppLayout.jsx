@@ -97,6 +97,7 @@ import { runBackHandler } from "../router/backButton";
 import { canGoBackInApp } from "../hooks/useGoBack";
 import { FirebaseAnalytics } from "@capacitor-firebase/analytics";
 import { usePullToRefresh } from "../hooks/usePullToRefresh";
+import { triggerFeatureFlagsRefresh } from "../hooks/useFeatureFlags";
 import {
   getMaintenanceStatus,
   isMaintenanceResponse,
@@ -226,40 +227,57 @@ export default function AppLayout() {
   // Each route declares its own access / funnel / chrome flags (router/routes)
   const routeHandle = mergeRouteHandles(useMatches());
 
-  const refreshWholeApp = useCallback(async () => {
-    window.location.reload();
-  }, []);
+  // Pull-to-refresh refreshes the current screen, not the whole app: drop
+  // cached GETs, re-pull the user + flags, then remount just the screen.
+  const [screenRefreshKey, setScreenRefreshKey] = useState(0);
+  const refreshCurrentScreen = useCallback(async () => {
+    api.clearGetCache?.();
+    triggerFeatureFlagsRefresh();
+    try {
+      const res = await api.post("/user/me", null, {
+        meta: { skipPaywallRefresh: true },
+      });
+      if (res.data?.user) dispatch(setUser(res.data.user));
+    } catch {
+      // Offline or server down — still remount so the screen shows its own error
+    }
+    setScreenRefreshKey((key) => key + 1);
+  }, [dispatch]);
 
-  const { pullProgress, isRefreshing, containerProps, contentRef } =
+  const { pullProgress, isRefreshing, containerProps, contentRef, resetPull } =
     usePullToRefresh(
-      refreshWholeApp,
+      refreshCurrentScreen,
       Capacitor.isNativePlatform() &&
         routeHandle.pullToRefresh !== false &&
         !maintenanceOpen,
     );
 
-  const containerRef = useRef(null);
+  // Callback ref, not useRef: the layout's first render can be a redirect, and
+  // a ref-keyed effect never re-ran once the container mounted — pull was dead.
+  const [containerEl, setContainerEl] = useState(null);
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+    if (!containerEl) return undefined;
 
-    el.addEventListener("touchstart", containerProps.onTouchStart, {
+    containerEl.addEventListener("touchstart", containerProps.onTouchStart, {
       passive: true,
     });
-    el.addEventListener("touchmove", containerProps.onTouchMove, {
+    containerEl.addEventListener("touchmove", containerProps.onTouchMove, {
       passive: false,
     });
-    el.addEventListener("touchend", containerProps.onTouchEnd, {
+    containerEl.addEventListener("touchend", containerProps.onTouchEnd, {
       passive: true,
     });
+    // The OS can cancel a touch mid-pull — don't leave the gesture armed
+    containerEl.addEventListener("touchcancel", resetPull, { passive: true });
 
     return () => {
-      el.removeEventListener("touchstart", containerProps.onTouchStart);
-      el.removeEventListener("touchmove", containerProps.onTouchMove);
-      el.removeEventListener("touchend", containerProps.onTouchEnd);
+      containerEl.removeEventListener("touchstart", containerProps.onTouchStart);
+      containerEl.removeEventListener("touchmove", containerProps.onTouchMove);
+      containerEl.removeEventListener("touchend", containerProps.onTouchEnd);
+      containerEl.removeEventListener("touchcancel", resetPull);
     };
-  }, [containerProps]);
+  }, [containerEl, containerProps, resetPull]);
 
   useEffect(() => {
     const preloadTopHeavyScreens = () => {
@@ -893,7 +911,7 @@ export default function AppLayout() {
 
   return (
     <div
-      ref={containerRef}
+      ref={setContainerEl}
       className="relative overflow-x-clip w-full min-h-screen flex flex-col"
     >
       <PullToRefreshIndicator
@@ -1038,7 +1056,7 @@ export default function AppLayout() {
 
                 {/* Safety net for screens that lazy-load parts of themselves */}
                 <Suspense fallback={<div className="min-h-screen" />}>
-                  <Outlet />
+                  <Outlet key={screenRefreshKey} />
                 </Suspense>
 
                 <ConditionalBottomTabBar />
@@ -1066,7 +1084,7 @@ function AppHeaderShell() {
 
   return (
     <div
-      className={`sticky top-0 z-50 w-full ${
+      className={`sticky top-0 z-50 w-full vt-app-header ${
         isWhiteHeader ? "bg-white" : "bg-[#002856]"
       }`}
     >

@@ -442,7 +442,7 @@ export default function SupportWidget() {
       {/* Floating Trigger Button */}
       {!hideFloatingButton && (
         <div
-          className="fixed right-5 z-[99] transition-all duration-300"
+          className="fixed right-5 z-[99] transition-all duration-300 vt-app-support"
           style={{ bottom: widgetBottom }}
         >
           <Motion.button

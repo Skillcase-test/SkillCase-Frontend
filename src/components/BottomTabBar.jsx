@@ -304,7 +304,7 @@ export default function BottomTabBar() {
 
   return (
     <div
-      className="fixed bottom-0 inset-x-0 z-[100] bg-white"
+      className="fixed bottom-0 inset-x-0 z-[100] bg-white vt-app-tabbar"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="relative h-18 w-full max-w-7xl mx-auto px-4 py-4 flex items-center justify-between z-20">
@@ -802,7 +802,7 @@ function ScholarshipBottomBar({ user, streak }) {
 
   return (
     <div
-      className="fixed bottom-0 inset-x-0 z-[100] bg-white shadow-[0px_-1px_58px_0px_rgba(0,0,0,0.08)]"
+      className="fixed bottom-0 inset-x-0 z-[100] bg-white shadow-[0px_-1px_58px_0px_rgba(0,0,0,0.08)] vt-app-tabbar"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="relative h-16 w-full max-w-7xl mx-auto px-4 pt-2 pb-4 flex items-center justify-between z-20">

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { getLGMode, setLGMode } from "../api/learnGermanApi";
@@ -11,6 +11,7 @@ import {
   getSwitcherBlendColor,
 } from "../utils/shellRoutes";
 import { useFeatureFlags } from "../hooks/useFeatureFlags";
+import { canAnimateRoutes, runHubSwitch, setNavMotion } from "../router/navigation";
 import bookImg from "../assets/book.webp";
 import { getMayaImage } from "../utils/mayaAvatars";
 import classImg from "../assets/class.webp";
@@ -21,33 +22,58 @@ const isCoursesPath = (pathname = "") => pathname === "/video-courses";
 const RECENT_MODE_SWITCH_MS = 10_000;
 
 // Seamless outline geometry. The shoulder is the concave fillet where the
-// horizontal rail turns up into the active tab; 24 wide / 21 tall with the
-// bend held late keeps the join soft. The tablist gap must stay >= SHOULDER_W
-// or the shoulder paints over the neighbouring tab.
+// horizontal rail turns up into the active tab. The tablist gap must stay
+// >= SHOULDER_W or the shoulder paints over the neighbouring tab.
 const SHOULDER_W = 16;
 const SHOULDER_H = 21;
 const CORNER = 12;
 
+// Tab-switch wave: the old tab sinks while the new one rises a beat later
+// and settles with a slight overshoot.
+const WAVE_SINK_MS = 220;
+const WAVE_RISE_DELAY_MS = 70;
+const WAVE_RISE_MS = 260;
+const clamp01 = (v) => Math.min(Math.max(v, 0), 1);
+const easeInOut = (p) => (p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2);
+const easeOutSettle = (p) => 1 + 2.1 * (p - 1) ** 3 + 1.1 * (p - 1) ** 2; // ~3px overshoot
+const prefersReducedMotion = () =>
+  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
 /**
- * One continuous open path: in from the left screen edge, up and around the
- * active tab, out to the right edge. Closing it (Z) fills the tab with the page
- * colour so it melts into the screen below; the open form is what gets stroked,
- * so no line is drawn across the active tab's bottom.
+ * One continuous open path along the rail that bulges up around every tab
+ * with lift k > 0 (k = 1 is a fully raised tab, 0 is flat). Closing it (Z)
+ * fills the bumps with the page colour so the active tab melts into the screen
+ * below; the open form is what gets stroked. Two bumps share the gap between
+ * them mid-wave instead of overlapping.
  */
-function outlinePath({ width, left, right, top, base }) {
-  const shoulderTop = base - SHOULDER_H;
-  return [
-    `M 0,${base}`,
-    `H ${left - SHOULDER_W}`,
-    `C ${left - 6},${base} ${left},${base - 7} ${left},${shoulderTop}`,
-    `V ${top + CORNER}`,
-    `Q ${left},${top} ${left + CORNER},${top}`,
-    `H ${right - CORNER}`,
-    `Q ${right},${top} ${right},${top + CORNER}`,
-    `V ${shoulderTop}`,
-    `C ${right},${base - 7} ${right + 6},${base} ${right + SHOULDER_W},${base}`,
-    `H ${width}`,
-  ].join(" ");
+function wavePath({ width, top, base, bumps }) {
+  const height = base - top;
+  const lifted = bumps.filter((b) => b.k > 0.001);
+  const cmds = [`M 0,${base}`];
+  lifted.forEach((b, i) => {
+    const prev = lifted[i - 1];
+    const next = lifted[i + 1];
+    const k = b.k;
+    const grow = Math.min(k, 1);
+    const swL = Math.min(SHOULDER_W * grow, prev ? (b.left - prev.right) / 2 : SHOULDER_W);
+    const swR = Math.min(SHOULDER_W * grow, next ? (next.left - b.right) / 2 : SHOULDER_W);
+    const tabTop = base - height * k;
+    const shoulderTop = base - SHOULDER_H * k;
+    const c = CORNER * k;
+    const bend = 7 * k;
+    cmds.push(
+      `H ${b.left - swL}`,
+      `C ${b.left - Math.min(6 * grow, swL)},${base} ${b.left},${base - bend} ${b.left},${shoulderTop}`,
+      `V ${tabTop + c}`,
+      `Q ${b.left},${tabTop} ${b.left + c},${tabTop}`,
+      `H ${b.right - c}`,
+      `Q ${b.right},${tabTop} ${b.right},${tabTop + c}`,
+      `V ${shoulderTop}`,
+      `C ${b.right},${base - bend} ${b.right + Math.min(6 * grow, swR)},${base} ${b.right + swR},${base}`,
+    );
+  });
+  cmds.push(`H ${width}`);
+  return cmds.join(" ");
 }
 
 /**
@@ -111,7 +137,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
   // user's saved mode (they may have switched to practice meanwhile).
   const isScholarship = isScholarshipRoute(location.pathname);
 
-  const activeTab = isB1
+  const routeTab = isB1
     ? location.pathname.startsWith("/job-screening")
       ? "jobs"
       : isCoursesPath(location.pathname)
@@ -122,6 +148,23 @@ export default function TopModeSwitcher({ isTourActive = false }) {
       : isCoursesPath(location.pathname)
         ? "courses"
         : "practice";
+
+  // The tapped tab lights up immediately (the notch glides there) instead of
+  // waiting for the destination screen's chunk; the route takes over once it lands.
+  const [pendingTab, setPendingTab] = useState(null);
+  useEffect(() => setPendingTab(null), [location.key]);
+  const activeTab = pendingTab ?? routeTab;
+
+  const switchTo = (path, tab) => {
+    setNavMotion("forward", "tab");
+    setPendingTab(tab);
+    runHubSwitch(
+      navigate(path, {
+        replace: true,
+        ...(canAnimateRoutes && { viewTransition: true }),
+      }),
+    );
+  };
 
   // Mirror the mode onto the redux user too: destination screens gate on it and
   // would bounce us back if they read the pre-switch value.
@@ -209,7 +252,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
       setLGMode("job_screening").catch((err) => {
         console.error("Failed to set mode:", err);
       });
-      navigate("/job-screening", { replace: true });
+      switchTo("/job-screening", "jobs");
       return;
     }
 
@@ -225,7 +268,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
       // scholarship and would silently store "learn".
       syncMode("courses");
       localStorage.setItem("lg_mode_switched_at", String(Date.now()));
-      navigate("/video-courses", { replace: true });
+      switchTo("/video-courses", "courses");
       return;
     }
 
@@ -251,9 +294,9 @@ export default function TopModeSwitcher({ isTourActive = false }) {
     // Navigate
     if (mode === "learn") {
       sessionStorage.setItem("lg_animate_switcher", "true");
-      navigate("/learn-german", { replace: true });
+      switchTo("/learn-german", "learn");
     } else {
-      navigate("/", { replace: true });
+      switchTo("/", "practice");
     }
   };
 
@@ -267,59 +310,129 @@ export default function TopModeSwitcher({ isTourActive = false }) {
     }
   };
 
-  // The rail is drawn full-bleed on the shell, so the active tab's position is
-  // measured against it rather than derived from the tab count — that keeps one
-  // path correct for 1, 2 or 3 tabs and for whichever one is active.
+  // Tabs never change size (only the drawn outline moves), so geometry is
+  // measured per layout, not per frame — re-measuring a growing tab every
+  // frame is what made the old notch jitter and detach from the page.
   const shellRef = useRef(null);
-  const activeTabRef = useRef(null);
-  const [outline, setOutline] = useState(null);
+  const tabEls = useRef({});
+  const geoRef = useRef(null);
+  const [geo, setGeo] = useState(null);
+  const fillRef = useRef(null);
+  const strokeRef = useRef(null);
+  const liftsRef = useRef({});
+  const frameRef = useRef(0);
+  const visualActive = isScholarship ? "scholarship" : activeTab;
 
-  // Measured before paint so the tab never flashes without its fill.
+  const registerTab = useCallback((key, el) => {
+    if (el) tabEls.current[key] = el;
+    else delete tabEls.current[key];
+  }, []);
+
+  const draw = useCallback(() => {
+    const g = geoRef.current;
+    if (!g || !fillRef.current || !strokeRef.current) return;
+    const bumps = g.tabs.map((t) => ({ ...t, k: liftsRef.current[t.key] ?? 0 }));
+    const d = wavePath({ width: g.width, top: g.top, base: g.base, bumps });
+    fillRef.current.setAttribute("d", `${d} Z`);
+    strokeRef.current.setAttribute("d", d);
+  }, []);
+
   useLayoutEffect(() => {
     const measure = () => {
       const shell = shellRef.current;
-      const tab = activeTabRef.current;
-      if (!shell || !tab) return;
+      if (!shell) return;
       const s = shell.getBoundingClientRect();
-      const t = tab.getBoundingClientRect();
-      if (!s.width || !t.width) return;
-      setOutline({
+      if (!s.width) return;
+      const tabs = Object.entries(tabEls.current)
+        .filter(([, el]) => el?.isConnected)
+        .map(([key, el]) => {
+          const r = el.getBoundingClientRect();
+          return {
+            key,
+            left: r.left - s.left,
+            right: r.right - s.left,
+            top: r.top - s.top,
+            base: r.bottom - s.top,
+          };
+        })
+        .sort((a, b) => a.left - b.left);
+      if (!tabs.length) return;
+      geoRef.current = {
         width: s.width,
         height: s.height,
-        left: t.left - s.left,
-        right: t.right - s.left,
-        top: t.top - s.top,
-        base: t.bottom - s.top,
-      });
+        top: tabs[0].top,
+        base: tabs[0].base,
+        tabs,
+      };
+      setGeo(geoRef.current);
     };
 
     measure();
     const observer = new ResizeObserver(measure);
     if (shellRef.current) observer.observe(shellRef.current);
-    if (activeTabRef.current) observer.observe(activeTabRef.current);
     return () => observer.disconnect();
-  }, [activeTab, isB1, isScholarship, showGermanClasses]);
+  }, [isB1, isScholarship, showGermanClasses]);
+
+  useLayoutEffect(draw, [geo, draw]);
+
+  useLayoutEffect(() => {
+    const from = liftsRef.current;
+    if (!Object.keys(from).length || prefersReducedMotion()) {
+      liftsRef.current = { [visualActive]: 1 };
+      draw();
+      return undefined;
+    }
+
+    const keys = new Set([...Object.keys(from), visualActive]);
+    // Re-tapped mid-wave: a tab that's already partly up rises straight away
+    const riseDelay = (from[visualActive] ?? 0) > 0.05 ? 0 : WAVE_RISE_DELAY_MS;
+    const start = performance.now();
+    const step = (now) => {
+      const t = now - start;
+      let running = false;
+      const next = {};
+      keys.forEach((key) => {
+        const k0 = from[key] ?? 0;
+        if (key === visualActive) {
+          const p = clamp01((t - riseDelay) / WAVE_RISE_MS);
+          next[key] = k0 + (1 - k0) * easeOutSettle(p);
+          running ||= p < 1;
+        } else {
+          const p = clamp01(t / WAVE_SINK_MS);
+          next[key] = k0 * (1 - easeInOut(p));
+          running ||= p < 1;
+        }
+      });
+      liftsRef.current = next;
+      draw();
+      if (running) frameRef.current = requestAnimationFrame(step);
+    };
+    frameRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(frameRef.current);
+  }, [visualActive, draw]);
 
   return (
     <div
       id="bottom-mode-switcher"
       ref={shellRef}
-      className={`relative w-full bg-[#002856] pt-1 pb-0 ${tourActive ? "pointer-events-none" : ""}`}
+      className={`relative w-full bg-[#002856] pt-1 pb-0 vt-app-switcher ${tourActive ? "pointer-events-none" : ""}`}
     >
-      {outline && (
+      {geo && (
         <svg
           aria-hidden="true"
           className="absolute inset-0 w-full h-full overflow-visible pointer-events-none"
-          viewBox={`0 0 ${outline.width} ${outline.height}`}
+          viewBox={`0 0 ${geo.width} ${geo.height}`}
           preserveAspectRatio="none"
         >
+          {/* d is written per frame by draw() */}
           <path
-            d={`${outlinePath(outline)} Z`}
+            ref={fillRef}
             fill={blendColor}
+            style={{ transition: "fill 240ms ease-out" }}
             shapeRendering="geometricPrecision"
           />
           <path
-            d={outlinePath(outline)}
+            ref={strokeRef}
             fill="none"
             stroke="rgba(255,255,255,0.2)"
             strokeWidth="1"
@@ -337,7 +450,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
           {isScholarship ? (
             <SwitcherTab
               active={true}
-              tabRef={activeTabRef}
+              registerTab={registerTab}
               onClick={() => {}}
               image={bookImg}
               line1="Exam"
@@ -348,7 +461,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
             <>
               <SwitcherTab
                 active={activeTab === "practice"}
-                tabRef={activeTab === "practice" ? activeTabRef : undefined}
+                registerTab={registerTab}
                 onClick={() => handleSwitch("practice")}
                 image={bookImg}
                 line1="Job Preparation"
@@ -358,7 +471,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
               />
               <SwitcherTab
                 active={activeTab === "jobs"}
-                tabRef={activeTab === "jobs" ? activeTabRef : undefined}
+                registerTab={registerTab}
                 onClick={() => handleSwitch("jobs")}
                 onPreload={() => handlePreload("jobs")}
                 image={bagImg}
@@ -370,7 +483,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
               {showGermanClasses && (
                 <SwitcherTab
                   active={activeTab === "courses"}
-                  tabRef={activeTab === "courses" ? activeTabRef : undefined}
+                  registerTab={registerTab}
                   onClick={() => handleSwitch("courses")}
                   onPreload={() => handlePreload("courses")}
                   image={classImg}
@@ -385,7 +498,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
             <>
               <SwitcherTab
                 active={activeTab === "learn"}
-                tabRef={activeTab === "learn" ? activeTabRef : undefined}
+                registerTab={registerTab}
                 onClick={() => handleSwitch("learn")}
                 onPreload={() => handlePreload("learn")}
                 image={getMayaImage("smiling", user?.occupation)}
@@ -396,7 +509,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
               />
               <SwitcherTab
                 active={activeTab === "practice"}
-                tabRef={activeTab === "practice" ? activeTabRef : undefined}
+                registerTab={registerTab}
                 onClick={() => handleSwitch("practice")}
                 image={bookImg}
                 line1="German"
@@ -407,7 +520,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
               {showGermanClasses && (
                 <SwitcherTab
                   active={activeTab === "courses"}
-                  tabRef={activeTab === "courses" ? activeTabRef : undefined}
+                  registerTab={registerTab}
                   onClick={() => handleSwitch("courses")}
                   onPreload={() => handlePreload("courses")}
                   image={classImg}
@@ -427,7 +540,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
 
 function SwitcherTab({
   active,
-  tabRef,
+  registerTab,
   onClick,
   onPreload,
   image,
@@ -436,40 +549,47 @@ function SwitcherTab({
   blendColor = "#ffffff",
   tourTabKey,
 }) {
+  // Every tab keeps the full raised size so nothing reflows mid-switch; the
+  // inactive look is just the pill behind it, and the raised shape is drawn
+  // by the switcher's SVG.
   return (
     <button
       type="button"
       role="tab"
-      ref={tabRef}
+      ref={(el) => registerTab(tourTabKey, el)}
       id={tourTabKey ? `top-switcher-tab-${tourTabKey}` : undefined}
       data-tour-tab={tourTabKey}
       onClick={onClick}
       onPointerEnter={onPreload}
       onTouchStart={onPreload}
       aria-selected={active}
-      className={`relative flex-1 px-1.5 sm:px-2.5 flex items-center justify-center gap-1.5 cursor-pointer select-none ${
-        active
-          ? "h-[53px] -mb-[1px] z-10"
-          : "bg-white/10 rounded-lg h-11 hover:bg-white/15 mb-2 transition-colors duration-150"
+      className={`group relative flex-1 h-[53px] -mb-[1px] px-1.5 sm:px-2.5 flex items-center justify-center gap-1.5 cursor-pointer select-none ${
+        active ? "z-10" : ""
       }`}
     >
+      <span
+        aria-hidden="true"
+        className={`absolute inset-x-0 bottom-[9px] h-11 rounded-lg bg-white/10 group-hover:bg-white/15 transition-opacity duration-200 ${
+          active ? "opacity-0" : "opacity-100"
+        }`}
+      />
       <img
         src={image}
         alt=""
         aria-hidden="true"
-        className={`relative z-10 w-7 h-7 sm:w-9 sm:h-6 object-contain shrink-0 ${
-          active ? "" : "opacity-80"
+        className={`relative z-10 w-7 h-7 sm:w-9 sm:h-6 object-contain shrink-0 transition-[opacity,transform] duration-300 ease-out ${
+          active ? "" : "opacity-80 -translate-y-1"
         }`}
       />
       <div
         className={`relative z-10 flex flex-col ${
           line2 ? "text-left" : "text-center"
-        } text-[10px] sm:text-xs leading-[11px] ${
+        } text-[10px] sm:text-xs leading-[11px] transition-[color,transform] duration-300 ease-out ${
           active
             ? blendColor === "#002856"
-              ? "text-white font-bold"
-              : "text-[#002856] font-bold"
-            : "text-white/90 font-medium"
+              ? "text-white font-bold delay-100"
+              : "text-[#002856] font-bold delay-100"
+            : "text-white/90 font-medium -translate-y-1"
         }`}
       >
         <span>{line1}</span>

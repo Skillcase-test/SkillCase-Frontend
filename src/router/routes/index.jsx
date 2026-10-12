@@ -1,7 +1,9 @@
 import { Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import LandingPage from "../../pages/landing/LandingPage";
+import { resolveHomeRedirect } from "../../utils/homeRoute";
 import { lazyPage } from "../lazyPage";
+import { isHubSwitchPending } from "../navigation";
 import { publicRoutes } from "./publicRoutes";
 import { accountRoutes } from "./accountRoutes";
 import { jobsRoutes } from "./jobsRoutes";
@@ -11,9 +13,16 @@ import { examRoutes } from "./examRoutes";
 import { practiceSuiteRoutes } from "./practiceSuiteRoutes";
 import { coursesRoutes } from "./coursesRoutes";
 
+// Resolves the user's real hub before rendering, so Home never flashes.
 function HomeRoute() {
-  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
-  return isAuthenticated ? <LandingPage /> : <Navigate to="/onboarding" replace />;
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  if (!isAuthenticated) return <Navigate to="/onboarding" replace />;
+  // Mid hub switch the switcher owns the navigation — redirecting here would
+  // interrupt its animated one
+  const target = isHubSwitchPending()
+    ? null
+    : resolveHomeRedirect(user, localStorage.getItem("lg_preferred_mode") || "");
+  return target ? <Navigate to={target} replace /> : <LandingPage />;
 }
 
 const redirect = (path, to) => ({ path, element: <Navigate to={to} replace /> });

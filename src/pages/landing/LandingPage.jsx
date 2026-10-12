@@ -6,11 +6,9 @@ import DemoClassSection from "./components/DemoClassSection";
 import SalaryInfoCard from "./components/SalaryInfoCard";
 import TalkToTeamSection from "./components/TalkToTeamSection";
 import { useLandingSections } from "../../hooks/useLandingSections";
-import {
-  isB1PracticeLevel,
-  isB2PracticeLevel,
-  isPracticeSuiteLevel,
-} from "../../utils/b1Progress";
+import { isB1PracticeLevel, isB2PracticeLevel } from "../../utils/b1Progress";
+import { resolveHomeRedirect } from "../../utils/homeRoute";
+import { isHubSwitchPending } from "../../router/navigation";
 import { getLandingVisibility } from "../../api/scholarshipExamApi";
 import ScholarshipEntryCard, {
   hasScholarshipAccess,
@@ -56,74 +54,12 @@ export default function LandingPage() {
     window.addEventListener("lgModeChange", handleModeChange);
     return () => window.removeEventListener("lgModeChange", handleModeChange);
   }, []);
-  const prefersLearnMode =
-    (lgMode || user?.lg_preferred_mode) === "learn" ||
-    (!lgMode &&
-      (user?.german_preference === "1" ||
-        String(user?.german_preference || "").toLowerCase().includes("learn")));
-
-  // B1/B2 users own the mode switcher (Exam & Practice / Jobs) and may keep
-  // their saved mode as job_screening while viewing the practice hub — only
-  // non-B1 job candidates get force-redirected into the pipeline here.
-  const isB1User = isPracticeSuiteLevel(user?.user_prof_level);
-
-  // German Classes is a client-side-only mode (the /user/lg-mode server
-  // whitelist has no such value) — selecting its tab persists "courses" in
-  // lg_preferred_mode, so Home lands back here instead of the practice hub.
-  // Applies to every level: B1/B2 users get the tab via the german_classes
-  // feature flag, so their saved "courses" mode must redirect too.
-  const prefersCoursesMode =
-    (lgMode || user?.lg_preferred_mode) === "courses";
-
-  const isJobScreening =
-    !isB1User &&
-    lgMode !== "practice" &&
-    lgMode !== "learn" &&
-    (user?.german_preference === "3" ||
-      user?.lg_preferred_mode === "job_screening");
-  // Scholarship candidates live in the exam funnel until they opt into a
-  // learning/practicing mode — the practice hub is not their home screen.
-  // Keyed on the mode only: german_preference is analytics data, and once a
-  // candidate switches to practice their mode is the single source of truth.
-  const isScholarshipUser =
-    (lgMode || user?.lg_preferred_mode) === "scholarship";
-
-  const isTopTourCompleted = Boolean(
-    !user?.user_id ||
-      user?.top_switcher_tour_completed ||
-      (user?.user_id &&
-        localStorage.getItem(`top_switcher_tour_completed_${user.user_id}`) === "true"),
-  );
-
-  const isTopSwitcherTourActive =
-    !isTopTourCompleted ||
-    Boolean(typeof window !== "undefined" && window.__topSwitcherTourActive) ||
-    (typeof sessionStorage !== "undefined" &&
-      sessionStorage.getItem("top_switcher_tour_active") === "true");
-
+  // HomeRoute redirects before this mounts; this catches mode changes while open.
   useEffect(() => {
-    if (isScholarshipUser) {
-      navigate("/scholarship", { replace: true });
-      return;
-    }
-    if (isTopSwitcherTourActive) {
-      return;
-    }
-    if (isJobScreening) {
-      navigate("/job-screening", { replace: true });
-    } else if (prefersCoursesMode) {
-      navigate("/video-courses", { replace: true });
-    } else if (prefersLearnMode) {
-      navigate("/learn-german", { replace: true });
-    }
-  }, [
-    navigate,
-    isJobScreening,
-    prefersCoursesMode,
-    prefersLearnMode,
-    isScholarshipUser,
-    isTopSwitcherTourActive,
-  ]);
+    if (isHubSwitchPending()) return;
+    const target = resolveHomeRedirect(user, lgMode);
+    if (target) navigate(target, { replace: true });
+  }, [navigate, user, lgMode]);
 
   return (
     <div className="bg-white">

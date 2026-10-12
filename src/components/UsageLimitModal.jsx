@@ -100,7 +100,9 @@ export default function UsageLimitModal() {
       switchLGMode("practice");
     }
     close();
-    navigate("/");
+    // Replace: a dismiss shouldn't play the screen slide, and Back mustn't
+    // return to the locked screen
+    navigate("/", { replace: true });
   };
 
   // Celebrate a finished upgrade — the modal overlays this one, then its
