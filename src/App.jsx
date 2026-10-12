@@ -316,7 +316,6 @@ const B1FlashcardSelect = lazy(
   () => import("./pages/b1/flashcard/B1FlashcardSelect"),
 );
 const B1Flashcard = lazy(() => import("./pages/b1/flashcard/B1Flashcard"));
-const B1MayaPage = lazy(() => import("./pages/b1/maya/B1MayaPage"));
 const VideoReader = lazy(() => import("./pages/b1/read-listen/VideoReader"));
 const VideoSuccess = lazy(() => import("./pages/b1/read-listen/VideoSuccess"));
 const B1AdminPage = lazy(() => import("./pages/b1/B1AdminPage"));
@@ -380,7 +379,7 @@ const B2ExamSpeakingResults = lazy(
 );
 const B2Result = lazy(() => import("./pages/b2/exams/B2Result"));
 const B2AdminPage = lazy(() => import("./pages/b2/B2AdminPage"));
-const B2MayaPage = lazy(() => import("./pages/b2/maya/B2MayaPage"));
+const MayaPage = lazy(() => import("./pages/maya/MayaPage"));
 
 // Video Courses & Notes (standalone course browsing + PDF study notes + playback + AI chat)
 const CourseSelectPage = lazy(
@@ -2184,13 +2183,13 @@ function AppContent() {
                       </LearningRoute>
                     }
                   />
-                  {/* Talk to Maya — B2 voice coach. Static path wins over
+                  {/* Talk to Maya, B2. Static path wins over
                       /b2/:module (router ranking). */}
                   <Route
                     path="/b2/maya"
                     element={
                       <LearningRoute>
-                        <B2MayaPage />
+                        <MayaPage level="B2" />
                       </LearningRoute>
                     }
                   />
@@ -2285,12 +2284,12 @@ function AppContent() {
                       </LearningRoute>
                     }
                   />
-                  {/* B1 Maya Route */}
+                  {/* Talk to Maya, B1 */}
                   <Route
                     path="/b1/maya"
                     element={
                       <LearningRoute>
-                        <B1MayaPage />
+                        <MayaPage level="B1" />
                       </LearningRoute>
                     }
                   />
@@ -2400,9 +2399,9 @@ function RouteScreenSkeleton({ title }) {
     : isJobScreening
       ? "bg-gradient-to-b from-[#e0f2fe] to-white"
       : "bg-[#f6f8fc]";
-  // B2 destinations render as fixed-width columns — match the shell so the
+  // B2 and Maya destinations render as fixed-width columns — match the shell so the
   // fallback doesn't visibly resize when the real page mounts.
-  const widthClass = location.pathname.startsWith("/b2/maya")
+  const widthClass = location.pathname.startsWith("/b2/maya") || location.pathname.startsWith("/b1/maya")
     ? "max-w-[460px]"
     : location.pathname === "/b2" || location.pathname.startsWith("/b2/")
       ? "max-w-[760px]"

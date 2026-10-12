@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
-import { getMayaImage } from "../../../utils/mayaAvatars";
+import { getMayaImage } from "../../utils/mayaAvatars";
+import { useMaya } from "./mayaLevel";
 
 /*
  * Building blocks of the speaking screens, shared by the pages and the call (the .sp stylesheet in
- * b2Maya.css). Icons: Lucide paths as in the design (ISC License, (c) Lucide Contributors).
+ * maya.css). Icons: Lucide paths as in the design (ISC License, (c) Lucide Contributors).
  */
 const ICONS = {
   arrow: '<path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path>',
@@ -171,13 +172,14 @@ export function Title({ text, desc, eyebrow }) {
 
 /** Practice / My progress. */
 export function BottomNav({ current }) {
+  const { base } = useMaya();
   return (
     <nav className="bottom-nav" aria-label="Speaking navigation">
-      <Link to="/b2/maya" className={current === "practice" ? "active" : ""} aria-current={current === "practice" ? "page" : undefined}>
+      <Link to={base} className={current === "practice" ? "active" : ""} aria-current={current === "practice" ? "page" : undefined}>
         <Icon name="chat" />
         Practice
       </Link>
-      <Link to="/b2/maya?view=progress" className={current === "progress" ? "active" : ""} aria-current={current === "progress" ? "page" : undefined}>
+      <Link to={`${base}?view=progress`} className={current === "progress" ? "active" : ""} aria-current={current === "progress" ? "page" : undefined}>
         <Icon name="bars" />
         My progress
       </Link>

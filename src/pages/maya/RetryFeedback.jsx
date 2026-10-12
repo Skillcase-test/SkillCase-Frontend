@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { retryB2MayaFeedback } from "../../../api/b2MayaApi";
+import { useMaya } from "./mayaLevel";
 import { Icon } from "./sp";
 
 /** "Try feedback again" on the feedback-error screen; the parent re-polls after it. */
 export default function RetryFeedback({ sessionId, onRetried }) {
+  const { api } = useMaya();
   const [busy, setBusy] = useState(false);
   return (
     <button
@@ -12,7 +13,7 @@ export default function RetryFeedback({ sessionId, onRetried }) {
       disabled={busy}
       onClick={async () => {
         setBusy(true);
-        await retryB2MayaFeedback(sessionId).catch(() => false);
+        await api.retryFeedback(sessionId).catch(() => false);
         onRetried?.();
       }}
     >

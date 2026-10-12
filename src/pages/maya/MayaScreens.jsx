@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { images } from "../../../assets/images";
+import { images } from "../../assets/images";
 import RetryFeedback from "./RetryFeedback";
 import SayItAgain from "./SayItAgain";
-import { getSubscriptionPlans } from "../../../api/subscriptionApi";
+import { getSubscriptionPlans } from "../../api/subscriptionApi";
 import { SMOOTHNESS_LABEL, callSmoothness, englishWords, modeName } from "./mayaFormat";
+import { useMaya } from "./mayaLevel";
 import { BottomNav, Brand, Footer, Header, Icon, Main, MayaFrame, MayaHero, MayaMark, ScoreRing, Title } from "./sp";
 
 /*
@@ -27,9 +28,10 @@ const SKILL = { range: "Vocabulary", accuracy: "Grammar", fluency: "Fluency", in
 
 /** While the call is being saved and the feedback written; the parent re-polls. */
 export function Processing({ saved }) {
+  const { base } = useMaya();
   return (
     <>
-      <Header title="Your feedback" back="/b2/maya?view=progress" />
+      <Header title="Your feedback" back={`${base}?view=progress`} />
       <Main>
         <MayaHero pose="looking" />
         <Title text="A moment to reflect." desc="Maya is turning your conversation into something you can practise next." />
@@ -49,9 +51,10 @@ export function Processing({ saved }) {
 
 /** Too little speech to review: no score, and a way back to speaking. */
 export function NoSpeech({ sessionId, hasTranscript }) {
+  const { base } = useMaya();
   return (
     <>
-      <Header title="Your session" back="/b2/maya?view=progress" />
+      <Header title="Your session" back={`${base}?view=progress`} />
       <Main>
         <div className="device-hero warning">
           <Icon name="mic" />
@@ -76,18 +79,18 @@ export function NoSpeech({ sessionId, hasTranscript }) {
           </li>
         </ul>
         {hasTranscript ? (
-          <Link className="insight-link" to={`/b2/maya?session=${sessionId}&view=transcript`}>
+          <Link className="insight-link" to={`${base}?session=${sessionId}&view=transcript`}>
             View the conversation
             <Icon name="arrow" />
           </Link>
         ) : null}
       </Main>
       <Footer>
-        <Link className="primary" to="/b2/maya">
+        <Link className="primary" to={base}>
           Check mic &amp; try again
           <Icon name="repeat" />
         </Link>
-        <Link className="text-button full" to="/b2/maya?view=progress">
+        <Link className="text-button full" to={`${base}?view=progress`}>
           Back to my progress
         </Link>
       </Footer>
@@ -97,23 +100,24 @@ export function NoSpeech({ sessionId, hasTranscript }) {
 
 /** The call was saved but the feedback couldn't be written. */
 export function FeedbackError({ sessionId, onRetried }) {
+  const { base } = useMaya();
   return (
     <>
-      <Header title="Your feedback" back="/b2/maya?view=progress" />
+      <Header title="Your feedback" back={`${base}?view=progress`} />
       <Main>
         <div className="device-hero warning">
           <Icon name="info" />
         </div>
         <Title text={<>Your conversation<br />is here. Feedback<br />is taking longer.</>} desc="We saved the transcript, but couldn’t finish the feedback yet." />
         <div className="info-note">You don’t need to repeat the call. You can read your conversation now or try the feedback again.</div>
-        <Link className="insight-link" to={`/b2/maya?session=${sessionId}&view=transcript`}>
+        <Link className="insight-link" to={`${base}?session=${sessionId}&view=transcript`}>
           Read my conversation
           <Icon name="arrow" />
         </Link>
       </Main>
       <Footer>
         <RetryFeedback sessionId={sessionId} onRetried={onRetried} />
-        <Link className="text-button full" to="/b2/maya?view=progress">
+        <Link className="text-button full" to={`${base}?view=progress`}>
           Back to my progress
         </Link>
       </Footer>
@@ -156,6 +160,7 @@ function PlusUpsell() {
 }
 
 export function Feedback({ practice: p, feedback: f, analysis: a, target, best }) {
+  const { base } = useMaya();
   const user = useSelector((state) => state.auth.user);
   const interview = p.mode !== "talk";
   const learnerLines = (p.transcript ?? []).filter((l) => l.speaker === "candidate");
@@ -169,7 +174,7 @@ export function Feedback({ practice: p, feedback: f, analysis: a, target, best }
     <>
       <Header
         title={interview ? "Interview feedback" : "Your feedback"}
-        back="/b2/maya?view=progress"
+        back={`${base}?view=progress`}
         tag={`${target} practice`}
         end={a.pronunciation ? <ScoreRing score={a.pronunciation.score} /> : undefined}
       />
@@ -233,7 +238,7 @@ export function Feedback({ practice: p, feedback: f, analysis: a, target, best }
           </div>
         ) : null}
 
-        <Link className="insight-link" to={`/b2/maya?session=${p.id}&view=transcript`}>
+        <Link className="insight-link" to={`${base}?session=${p.id}&view=transcript`}>
           Read the whole conversation
           <Icon name="arrow" />
         </Link>
@@ -413,7 +418,7 @@ export function Feedback({ practice: p, feedback: f, analysis: a, target, best }
         <p style={{ fontSize: 10, margin: "13px 0 0" }}>AI feedback is a practice aid, not an official language assessment.</p>
       </Main>
       <Footer>
-        <Link className="primary gold" to="/b2/maya">
+        <Link className="primary gold" to={base}>
           Start another conversation
           <Icon name="arrow" />
         </Link>
@@ -424,11 +429,12 @@ export function Feedback({ practice: p, feedback: f, analysis: a, target, best }
 
 /** The whole conversation, with each correction beside the sentence it's about. */
 export function Transcript({ practice: p, feedback }) {
+  const { base } = useMaya();
   const user = useSelector((state) => state.auth.user);
   const norm = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
   const transcript = p.transcript ?? [];
   const heard = transcript.some((l) => l.speaker === "candidate");
-  const back = `/b2/maya?session=${p.id}`;
+  const back = `${base}?session=${p.id}`;
   return (
     <>
       <Header title="Your conversation" back={back} />
@@ -487,9 +493,10 @@ export function Transcript({ practice: p, feedback }) {
 
 /** Before a focused follow-up: the one pattern to practise, then the call. */
 export function Focus({ sessionId, index, correction, interview }) {
+  const { base } = useMaya();
   return (
     <>
-      <Header title="Your next small step" back={`/b2/maya?session=${sessionId}`} tag="2–3 min" />
+      <Header title="Your next small step" back={`${base}?session=${sessionId}`} tag="2–3 min" />
       <Main>
         <Title text={<>One sentence.<br />A little more natural.</>} desc={interview ? "Practise the pattern from your interview with Maya, in everyday questions." : "Practise it with Maya in a few short questions."} />
         <div className="focus-task">
@@ -511,7 +518,7 @@ export function Focus({ sessionId, index, correction, interview }) {
         </div>
       </Main>
       <Footer note="A short practice, focused on your feedback.">
-        <Link className="primary gold" to={`/b2/maya?focus=${sessionId}&i=${index}&start=1`}>
+        <Link className="primary gold" to={`${base}?focus=${sessionId}&i=${index}&start=1`}>
           Practise with Maya
           <Icon name="arrow" />
         </Link>
@@ -522,6 +529,7 @@ export function Focus({ sessionId, index, correction, interview }) {
 
 /** My progress: completed practice, attempts that didn't count, and what the learner is working on. */
 export function ProgressPage({ level, rows, filter, progress }) {
+  const { base } = useMaya();
   // The footer button scrolls to the session list; once the list is on screen it starts a call.
   const sessionsRef = useRef(null);
   const [atSessions, setAtSessions] = useState(false);
@@ -550,7 +558,7 @@ export function ProgressPage({ level, rows, filter, progress }) {
           <div className="info-note">You don’t need to feel ready. Maya will help you find your first words.</div>
         </Main>
         <Footer>
-          <Link className="primary gold" to="/b2/maya">
+          <Link className="primary gold" to={base}>
             Start my first conversation
             <Icon name="arrow" />
           </Link>
@@ -637,13 +645,13 @@ export function ProgressPage({ level, rows, filter, progress }) {
         </h2>
         <div className="tabs" role="group" aria-label="Session status">
           {["All", "Completed", "Attempts"].map((t) => (
-            <Link key={t} to={`/b2/maya?view=progress${t === "All" ? "" : `&filter=${t}`}`} aria-current={filter === t ? "page" : undefined} className="tab-link" data-on={filter === t}>
+            <Link key={t} to={`${base}?view=progress${t === "All" ? "" : `&filter=${t}`}`} aria-current={filter === t ? "page" : undefined} className="tab-link" data-on={filter === t}>
               {t}
             </Link>
           ))}
         </div>
         {shown.map(({ practice: p, kind }) => (
-          <Link className="history-row" key={p.id} to={`/b2/maya?session=${p.id}`}>
+          <Link className="history-row" key={p.id} to={`${base}?session=${p.id}`}>
             <span className="history-symbol">{kind === "pending" ? <span className="spinner" /> : <Icon name={kind === "attempt" ? "mic" : p.mode === "talk" ? "chat" : "bag"} />}</span>
             <span className="history-copy">
               <strong>{kind === "pending" ? "Feedback is being prepared" : modeName(p.mode)}</strong>
@@ -660,7 +668,7 @@ export function ProgressPage({ level, rows, filter, progress }) {
       </Main>
       <Footer>
         {atSessions ? (
-          <Link className="primary gold" to="/b2/maya">
+          <Link className="primary gold" to={base}>
             Start another conversation
             <Icon name="arrow" />
           </Link>

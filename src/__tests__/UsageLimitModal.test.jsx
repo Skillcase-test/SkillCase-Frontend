@@ -135,13 +135,13 @@ describe("UsageLimitModal — Maya premium lock", () => {
     expect(screen.getByText("30 min/day")).toBeInTheDocument();
   });
 
-  it("says Maya is Unlimited to a B1 learner instead of minutes", async () => {
+  it("shows a B1 learner the same metered Maya minutes as B2", async () => {
     mockUser = { ...mockUser, user_prof_level: "b1" };
     render(<UsageLimitModal />);
     fireUsageLimit({ ...mayaLock, level: "B1" });
 
-    const label = await screen.findByText("Talk to Maya");
-    expect(label.closest("div").textContent).toContain("Unlimited");
+    expect(await screen.findByText("Talk to Maya")).toBeInTheDocument();
+    expect(screen.getByText("10 min/day")).toBeInTheDocument();
   });
 
   it("omits the Maya row for levels without the feature", async () => {

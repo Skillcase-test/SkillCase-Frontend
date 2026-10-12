@@ -1,17 +1,18 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { startB2Maya, b2MayaRelayUrl } from "../../../api/b2MayaApi";
-import { SpokenCaption } from "../../../utils/b2MayaCaption";
-import { VoicePlayer } from "../../../utils/b2MayaVoice";
-import useB2Access from "../../../hooks/useB2Access";
-import { trackFeatureEvent } from "../../../telemetry/events";
-import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
+import { mayaRelayUrl } from "../../api/mayaApi";
+import { SpokenCaption } from "../../utils/mayaCaption";
+import { VoicePlayer } from "../../utils/mayaVoice";
+import useLevelAccess from "../../hooks/useLevelAccess";
+import { trackFeatureEvent } from "../../telemetry/events";
+import { useUsageLimitModule } from "../../hooks/useUsageLimits";
 import { suggestedTopics } from "./topicSuggestions";
+import { useMaya } from "./mayaLevel";
 import { BottomNav, Brand, Footer, Header, Icon, Main, MayaFrame, MayaLive, MayaMark, Title } from "./sp";
 
 /*
- * The B2 speaking flow: choose a practice (and a topic for everyday talk), then the call dials
+ * The speaking flow: choose a practice (and a topic for everyday talk), then the call dials
  * straight in. The call runs over the relay WebSocket; the report is its own view afterwards
  * (?session=…).
  */
@@ -64,13 +65,14 @@ const Wave = ({ heights }) => (
   </span>
 );
 
-export default function B2MayaRoom({ meta, focus }) {
+export default function MayaRoom({ meta, focus }) {
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
+  const { level, base, api, interviewName, interviewCopy } = useMaya();
   // Fresh lock state on entry; a locked learner gets the limit modal before the call dials, not after.
-  useUsageLimitModule("B2", "maya");
-  const access = useB2Access();
-  const { level, coachName, firstName, modes, minutes: minutesMap, topics, words } = meta;
+  useUsageLimitModule(level, "maya");
+  const access = useLevelAccess(level);
+  const { coachName, firstName, modes, minutes: minutesMap, topics, words } = meta;
   // meta.plan is the learner's Maya allowance ({tier, dailyMinutes, remainingSeconds}),
   // null on the legacy free/quota path — the countdown and "minutes left" read it.
   // A 'free'-tier plan row (old-app free user) has no pool to display.
@@ -107,7 +109,7 @@ export default function B2MayaRoom({ meta, focus }) {
   // server's cap; the legacy path shows the practice length, capped by its quota.
   const callCap = plan && callCapSeconds ? callCapSeconds : Math.min(minutes * 60, callCapSeconds ?? Infinity);
   const topicLabel = focus ? "Your focused follow-up" : topic || customTopic.trim() || "General Conversation";
-  const modeName = interview ? "Nursing interview" : "Everyday German";
+  const modeName = interview ? interviewName : "Everyday German";
 
   const streamRef = useRef(null);
   const ctxRef = useRef(null);
@@ -128,13 +130,13 @@ export default function B2MayaRoom({ meta, focus }) {
   const liveAtRef = useRef(0);
   const sessionIdRef = useRef(null);
 
-  // Same event names as B1's call so the shared Maya funnel lines up; never the topic text itself.
+  // One Maya funnel for every level, split by the level attribute; never the topic text itself.
   const trackCall = (event, extra = {}) =>
     trackFeatureEvent("maya", event, {
-      feature: "b2.maya",
+      feature: `${level.toLowerCase()}.maya`,
       entityType: "maya_session",
       ...extra,
-      attributes: { level: "B2", mode: focus ? "focus" : mode, ...extra.attributes },
+      attributes: { level, mode: focus ? "focus" : mode, ...extra.attributes },
     });
   const elapsedMs = () => (liveAtRef.current ? Date.now() - liveAtRef.current : 0);
 
@@ -217,7 +219,7 @@ export default function B2MayaRoom({ meta, focus }) {
   // follow-up, which has no in-room screens — its pre-screen (explicit URL, not history pop,
   // because a deep link has no in-app page to go back to).
   const backToStart = () =>
-    focus ? navigate(`/b2/maya?focus=${focus.sessionId}&i=${focus.index}`, { replace: true }) : setScreen(interview ? "choose" : "topics");
+    focus ? navigate(`${base}?focus=${focus.sessionId}&i=${focus.index}`, { replace: true }) : setScreen(interview ? "choose" : "topics");
 
   const start = async () => {
     setError(null);
@@ -261,7 +263,7 @@ export default function B2MayaRoom({ meta, focus }) {
     const request = focus ? { focus: { sessionId: focus.sessionId, index: focus.index } } : !interview && (topic || customTopic.trim()) ? { topic: topic || customTopic.trim() } : {};
     let res;
     try {
-      res = await startB2Maya({ consent, mode: focus ? "talk" : mode, ...request });
+      res = await api.start({ consent, mode: focus ? "talk" : mode, ...request });
     } catch (e) {
       cleanup();
       setError(e?.response?.data?.msg || "We couldn't start the practice. Please try again.");
@@ -284,7 +286,7 @@ export default function B2MayaRoom({ meta, focus }) {
       URL.revokeObjectURL(workletUrl);
       const node = new AudioWorkletNode(ctx, "pcm16");
       ctx.createMediaStreamSource(stream).connect(node);
-      const wsUrl = b2MayaRelayUrl();
+      const wsUrl = mayaRelayUrl();
       const ws = new WebSocket(wsUrl);
       // The sealed ticket goes as the first message, not the URL — it's ~9 KB, over nginx's
       // request-line limit, and URLs shouldn't carry sealed credentials anyway.
@@ -393,7 +395,7 @@ export default function B2MayaRoom({ meta, focus }) {
     endedRef.current = true;
     trackCall("call_ended", { entityId: id, elapsedMs: elapsedMs(), lifecycle: "succeeded" });
     cleanup();
-    navigate(`/b2/maya?session=${encodeURIComponent(id)}`);
+    navigate(`${base}?session=${encodeURIComponent(id)}`);
   };
 
   const goLive = () => {
@@ -664,19 +666,19 @@ export default function B2MayaRoom({ meta, focus }) {
             <div>
               <strong>Your conversation</strong>
               <small>
-                {focus ? "Focused practice" : interview ? "Nursing interview" : topicLabel} · {clock(seconds)}
+                {focus ? "Focused practice" : interview ? interviewName : topicLabel} · {clock(seconds)}
               </small>
             </div>
           </div>
         </Main>
         <Footer>
           {sessionId ? (
-            <button type="button" className="primary" onClick={() => navigate(`/b2/maya?session=${encodeURIComponent(sessionId)}`)}>
+            <button type="button" className="primary" onClick={() => navigate(`${base}?session=${encodeURIComponent(sessionId)}`)}>
               See my feedback
               <Icon name="arrow" />
             </button>
           ) : null}
-          <button type="button" className="text-button full" onClick={() => navigate("/b2/maya")}>
+          <button type="button" className="text-button full" onClick={() => navigate(base)}>
             Back to practice
           </button>
         </Footer>
@@ -697,7 +699,7 @@ export default function B2MayaRoom({ meta, focus }) {
             <div>
               <strong>Your conversation</strong>
               <small>
-                {focus ? "Focused practice" : interview ? "Nursing interview" : topicLabel} · {clock(seconds)}
+                {focus ? "Focused practice" : interview ? interviewName : topicLabel} · {clock(seconds)}
               </small>
             </div>
           </div>
@@ -705,7 +707,7 @@ export default function B2MayaRoom({ meta, focus }) {
         </Main>
         <Footer>
           {sessionId ? (
-            <button type="button" className="primary" onClick={() => navigate(`/b2/maya?session=${encodeURIComponent(sessionId)}`)}>
+            <button type="button" className="primary" onClick={() => navigate(`${base}?session=${encodeURIComponent(sessionId)}`)}>
               See my feedback
               <Icon name="arrow" />
             </button>
@@ -899,9 +901,9 @@ export default function B2MayaRoom({ meta, focus }) {
           ) : null}
         </div>
         <div className="section-label">{hasInterview ? "What would you like to practise?" : "Your practice"}</div>
-        <div role="radiogroup" aria-label="Practice mode">
+        <div role="radiogroup" aria-label="Practice mode" id={`${level.toLowerCase()}-maya-modes`}>
           {card("talk", "Everyday German", "Talk about everyday life and whatever interests you.", `Live tips · ${plan ? `up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} min` : `about ${minutesMap.talk} min`}`, "chat")}
-          {hasInterview ? card(modes[1], "Nursing interview", "Get comfortable with a job interview in Germany.", `Feedback after · ${plan ? `up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} min` : `about ${minutesMap[modes[1]]} min`}`, "bag") : null}
+          {hasInterview ? card(modes[1], interviewName, interviewCopy, `${modes[1] === "coach" ? "Tips now and then" : "Feedback after"} · ${plan ? `up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} min` : `about ${minutesMap[modes[1]]} min`}`, "bag") : null}
         </div>
         {meta.consented ? null : (
           <label className="consent">

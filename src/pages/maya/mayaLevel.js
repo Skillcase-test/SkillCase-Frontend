@@ -7,5 +7,5 @@ export const MAYA_LEVELS = {
   B2: { level: "B2", base: "/b2/maya", api: mayaApi("B2"), interviewName: "Nursing interview", interviewCopy: "Get comfortable with a job interview in Germany." },
 };
 
-export const MayaLevel = createContext(MAYA_LEVELS.B2);
+export const MayaLevel = createContext(null);
 export const useMaya = () => useContext(MayaLevel);

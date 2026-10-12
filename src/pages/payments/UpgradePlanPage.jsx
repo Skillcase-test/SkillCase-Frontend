@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ChevronRight, Gem, Check } from "lucide-react";
 import { useAutopayCheckout } from "../../hooks/useAutopayCheckout";
 import { getSubscriptionPlans } from "../../api/subscriptionApi";
-import { isB2PracticeLevel } from "../../utils/b1Progress";
 import { mayaFeatureValue } from "../../utils/premium";
 import PremiumActivatedModal from "../../components/PremiumActivatedModal";
 import diamond from "../../assets/diamond.webp";
@@ -45,12 +44,9 @@ export default function UpgradePlanPage() {
   const selected = plans?.find((p) => p.key === selectedPlan) || null;
   const priceLabel = `₹${rupees(selected?.amountPaise ?? 9900)}`;
   const hasChoice = (plans?.length || 0) > 1;
-  // Talk to Maya is minute-metered only at B2 — for B1 it's unmetered once
-  // paid ("Unlimited AI conversations" already covers it) and lower levels
-  // don't have the feature.
-  const b2MayaLabel = isB2PracticeLevel(user?.user_prof_level)
-    ? `Talk to Maya · ${selected?.mayaMinutesPerDay ?? 10} min/day`
-    : null;
+  // Talk to Maya is minute-metered at B1 and B2; lower levels don't have it yet.
+  const mayaMinutes = mayaFeatureValue(user, selected?.mayaMinutesPerDay);
+  const mayaLabel = mayaMinutes ? `Talk to Maya · ${mayaMinutes}` : null;
 
   // Already premium → manage plan instead of a second upgrade. (Keep the
   // success modal visible right after checkout completes, then let Go/close
@@ -154,8 +150,8 @@ export default function UpgradePlanPage() {
 
           <div className="flex justify-start items-start gap-4">
             <div className="flex-1 flex flex-col gap-1">
-              {(b2MayaLabel
-                ? [b2MayaLabel, ...PLAN_FEATURES.slice(1)]
+              {(mayaLabel
+                ? [mayaLabel, ...PLAN_FEATURES.slice(1)]
                 : PLAN_FEATURES
               ).map((feature) => (
                 <div key={feature} className="flex items-center gap-2">

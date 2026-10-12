@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { getB2MayaMeta, getB2MayaProgress, getB2MayaSession, getB2MayaSessions } from "../../../api/b2MayaApi";
-import B2MayaRoom from "./B2MayaRoom";
-import { Feedback, FeedbackError, Focus, NoSpeech, Processing, ProgressPage, Transcript } from "./B2MayaScreens";
+import MayaRoom from "./MayaRoom";
+import { Feedback, FeedbackError, Focus, NoSpeech, Processing, ProgressPage, Transcript } from "./MayaScreens";
+import { MAYA_LEVELS, MayaLevel, useMaya } from "./mayaLevel";
 import { feedbackReason } from "./mayaFormat";
 import { Footer, Icon, Main, Title } from "./sp";
-import "./b2Maya.css";
+import "./maya.css";
 
 /**
- * Talk to Maya (B2): the room by default; ?view=progress for My progress; ?session=… for a
- * practice's report (&view=transcript for the conversation); ?focus=…&i=… for a focused
- * follow-up of one correction (&start=1 to start it). While a report is still being written
- * the page re-fetches every few seconds.
+ * Talk to Maya at the route's level (/b1/maya, /b2/maya): the room by default; ?view=progress for
+ * My progress; ?session=… for a practice's report (&view=transcript for the conversation);
+ * ?focus=…&i=… for a focused follow-up of one correction (&start=1 to start it). While a report
+ * is still being written the page re-fetches every few seconds.
  */
 
 /** A report still not ready after this stops polling (the server marks lost calls as abandoned). */
@@ -23,6 +23,7 @@ const heardIt = (p) => (p.heard !== undefined ? p.heard : (p.transcript ?? []).s
 const kindOf = (p) => (!heardIt(p) || feedbackReason(p.feedback) === "too_little_speech" ? "attempt" : p.feedback ? "completed" : "pending");
 
 function Missing({ text }) {
+  const { base } = useMaya();
   return (
     <>
       <Main>
@@ -32,7 +33,7 @@ function Missing({ text }) {
         <Title text="We couldn’t find that." desc={text} />
       </Main>
       <Footer>
-        <Link className="primary" to="/b2/maya">
+        <Link className="primary" to={base}>
           Back to practice
         </Link>
       </Footer>
@@ -73,7 +74,16 @@ const Loading = () => (
   </Main>
 );
 
-export default function B2MayaPage() {
+export default function MayaPage({ level }) {
+  return (
+    <MayaLevel.Provider value={MAYA_LEVELS[level]}>
+      <Screens />
+    </MayaLevel.Provider>
+  );
+}
+
+function Screens() {
+  const { level, api } = useMaya();
   const [params] = useSearchParams();
   const sessionId = params.get("session");
   const focusId = params.get("focus");
@@ -97,19 +107,19 @@ export default function B2MayaPage() {
   useEffect(() => {
     if (!needsMeta) return;
     let on = true;
-    getB2MayaMeta()
+    api.meta()
       .then((m) => on && setMeta(m))
       .catch(() => on && setMetaError(true));
     return () => {
       on = false;
     };
-  }, [needsMeta]);
+  }, [needsMeta, api]);
 
   // ?session=… (report) and ?focus=… (the correction it follows up) both load one session.
   const loadId = sessionId ?? focusId;
   const loadSession = useCallback(
     (id) =>
-      getB2MayaSession(id)
+      api.session(id)
         .then((data) => {
           setSessionMissing(false);
           setLoadFailed(false);
@@ -126,7 +136,7 @@ export default function B2MayaPage() {
           setLoadFailed(true);
           return undefined;
         }),
-    [],
+    [api],
   );
 
   useEffect(() => {
@@ -172,13 +182,13 @@ export default function B2MayaPage() {
     if (!wantsProgress) return;
     setRows(null);
     setProgress(null);
-    getB2MayaProgress()
+    api.progress()
       .then((p) => setProgress(p.progress))
       .catch(() => setProgress({ week: { done: 0, goal: 3, streak: 0 }, mistakes: [], words: { learned: 0, practising: 0, new: 0, next: [] } }));
-    getB2MayaSessions()
+    api.sessions()
       .then((sessions) => setRows(sessions.map((practice) => ({ practice, kind: kindOf(practice) }))))
       .catch(() => setRows([]));
-  }, [wantsProgress]);
+  }, [wantsProgress, api]);
 
   let screen;
   if (sessionId) {
@@ -192,7 +202,7 @@ export default function B2MayaPage() {
     else if (!heardIt(p) || feedbackReason(p.feedback) === "too_little_speech") screen = <NoSpeech sessionId={p.id} hasTranscript={(p.transcript ?? []).length > 0} />;
     else if (feedbackReason(p.feedback) === "failed") screen = <FeedbackError sessionId={p.id} onRetried={() => loadSession(loadId)} />;
     else if (!p.feedback?.ok) screen = <Processing saved />;
-    else screen = <Feedback practice={p} feedback={p.feedback.feedback} analysis={p.analysis} target="B2" best={session.best ?? {}} />;
+    else screen = <Feedback practice={p} feedback={p.feedback.feedback} analysis={p.analysis} target={p.level} best={session.best ?? {}} />;
   } else if (focusId) {
     const p = session?.session;
     if (sessionMissing) screen = <Missing text="This practice wasn’t found on your account." />;
@@ -203,15 +213,15 @@ export default function B2MayaPage() {
       screen = !c ? (
         <Missing text="That correction isn’t there any more." />
       ) : params.get("start") ? (
-        <B2MayaRoom meta={meta} focus={{ sessionId: p.id, index, better: c.better, why: c.why }} />
+        <MayaRoom meta={meta} focus={{ sessionId: p.id, index, better: c.better, why: c.why }} />
       ) : (
         <Focus sessionId={p.id} index={index} correction={c} interview={p.mode !== "talk"} />
       );
     }
   } else if (wantsProgress) {
-    screen = rows && progress ? <ProgressPage level="B2" rows={rows} filter={filter} progress={progress} /> : <Loading />;
+    screen = rows && progress ? <ProgressPage level={level} rows={rows} filter={filter} progress={progress} /> : <Loading />;
   } else {
-    screen = meta ? <B2MayaRoom meta={meta} /> : metaError ? <Missing text="Please check your connection and try again." /> : <Loading />;
+    screen = meta ? <MayaRoom meta={meta} /> : metaError ? <Missing text="Please check your connection and try again." /> : <Loading />;
   }
 
   return (

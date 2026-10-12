@@ -35,12 +35,9 @@ export function hasPremiumAccess(user) {
   return isPremiumUser(user) || isTrialActive(user);
 }
 
-// Talk to Maya entitlement label for paywall/upsell surfaces. The plan's
-// minutes apply only to B2's Maya (it's metered by the plan pool there); B1
-// has its own Maya which is unmetered once paid, and lower levels don't have
-// the feature at all.
+// Talk to Maya entitlement label for paywall/upsell surfaces: B1 and B2 are
+// metered by the plan's daily pool; lower levels don't have the feature yet.
 export function mayaFeatureValue(user, planMinutes) {
-  if (isB2PracticeLevel(user?.user_prof_level)) return `${planMinutes ?? 10} min/day`;
-  if (isB1PracticeLevel(user?.user_prof_level)) return "Unlimited";
+  if (isB1PracticeLevel(user?.user_prof_level) || isB2PracticeLevel(user?.user_prof_level)) return `${planMinutes ?? 10} min/day`;
   return null;
 }

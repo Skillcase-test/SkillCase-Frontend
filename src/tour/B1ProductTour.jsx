@@ -547,19 +547,6 @@ export default function B1ProductTour({ children }) {
     return () => window.removeEventListener("tour:b1FlashcardRevealed", handler);
   }, [destroyDriver, markDone, showSuccess]);
 
-  useEffect(() => {
-    const handler = () => {
-      if (activeFeatureRef.current !== "maya") return;
-      destroyDriver();
-      showSuccess();
-      markDone("maya_lobby");
-      phaseLabelRef.current = null;
-      setActiveFeature(null);
-      setActivePhase(null);
-    };
-    window.addEventListener("tour:b1MayaCallStarted", handler);
-    return () => window.removeEventListener("tour:b1MayaCallStarted", handler);
-  }, [destroyDriver, markDone, showSuccess]);
 
   const tourContextValue = {
     isTourActive: !!activeFeature && isB1 && !isDone,

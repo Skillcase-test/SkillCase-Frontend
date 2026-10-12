@@ -178,15 +178,15 @@ export const getB1DescribeSpeakWorkspaceSteps = () => [
 
 export const getB1MayaLobbySteps = () => [
   {
-    element: "#b1-maya-call-btn",
-    isTapStep: true,
+    element: "#b1-maya-modes",
     popover: {
-      title: `${ICONS.sparkles} Call Maya`,
+      title: `${ICONS.sparkles} Talk to Maya`,
       description:
-        "Tap here to start a live German conversation with Maya.",
-      side: "top",
+        "Pick everyday German or a job interview, then start a live conversation with Maya.",
+      side: "bottom",
       align: "center",
-      showButtons: [],
+      showButtons: ["next"],
+      nextBtnText: "Got it",
     },
   },
 ];

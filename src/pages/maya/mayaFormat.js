@@ -1,6 +1,6 @@
 /* Plain helpers shared by the Maya screens (kept out of the component files for fast refresh). */
 
-export const modeName = (mode) => (mode === "talk" ? "Everyday German" : "Nursing interview");
+export const modeName = (mode) => (mode === "talk" ? "Everyday German" : mode === "coach" ? "Job interview" : "Nursing interview");
 
 export const SMOOTHNESS_LABEL = { smooth: "Smooth", some_hesitation: "Some hesitation", hesitant: "Hesitant" };
 

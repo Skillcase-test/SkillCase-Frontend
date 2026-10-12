@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { getB2MayaSayAudio, postB2MayaSayAttempt } from "../../../api/b2MayaApi";
+import { useMaya } from "./mayaLevel";
 
 /** Collects the microphone as 16 kHz mono PCM16 (the context is created at 16 kHz). */
 const WORKLET = `
@@ -52,6 +52,7 @@ const tone = (score) => (score >= 70 ? "good" : score >= 40 ? "mid" : "bad");
  * short silence.
  */
 export default function SayItAgain({ sessionId, index, best: bestProp }) {
+  const { api } = useMaya();
   const [phase, setPhase] = useState("idle");
   const [result, setResult] = useState(null);
   const [best, setBest] = useState(bestProp);
@@ -62,7 +63,7 @@ export default function SayItAgain({ sessionId, index, best: bestProp }) {
   useEffect(() => () => stopRef.current?.(), []);
 
   const play = async () => {
-    const url = await getB2MayaSayAudio(sessionId, index);
+    const url = await api.sayAudio(sessionId, index);
     try {
       await new Promise((resolve, reject) => {
         const audio = new Audio(url);
@@ -133,7 +134,7 @@ export default function SayItAgain({ sessionId, index, best: bestProp }) {
         return;
       }
       setPhase("scoring");
-      const result = await postB2MayaSayAttempt(sessionId, index, wav);
+      const result = await api.sayAttempt(sessionId, index, wav);
       setResult(result);
       setBest((b) => Math.max(b ?? 0, result.score));
       setPhase("done");
