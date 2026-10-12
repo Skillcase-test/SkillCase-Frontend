@@ -21,6 +21,23 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL,
 });
 
+// Profile reads, heartbeats and analytics go out on every navigation or timer.
+// None of them change what the cached GETs return, and letting them full-clear
+// meant the cache was wiped every few seconds.
+const BACKGROUND_POST_PATHS = new Set([
+  "/user/me",
+  "/user/heartbeat",
+  "/user/app-version",
+  "/analytics/events",
+  "/analytics/session/start",
+  "/analytics/session/end",
+]);
+
+export function isBackgroundPost(url) {
+  const path = String(url || "").split("?")[0].replace(/^https?:\/\/[^/]+/, "");
+  return BACKGROUND_POST_PATHS.has(path);
+}
+
 const GET_CACHE_TTLS = {
   NO_CACHE: 0,
   SHORT_PRIVATE: 60_000,
@@ -469,7 +486,10 @@ api.interceptors.response.use(
         // that started between request dispatch and DB commit from surviving
         // under the post-request generation.
         invalidateGetCacheTags(invalidationTags);
-      } else if (response?.config?.meta?.skipCacheInvalidation !== true) {
+      } else if (
+        response?.config?.meta?.skipCacheInvalidation !== true &&
+        !isBackgroundPost(response?.config?.url)
+      ) {
         // Keep the existing safe fallback for mutations that have not yet
         // been assigned tags. Flashcard writes use targeted invalidation.
         clearGetCaches();

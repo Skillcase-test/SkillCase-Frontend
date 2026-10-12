@@ -139,9 +139,13 @@ export function UsageLimitProvider({ children }) {
   // Catches an admin lock landing while the learner stays on one screen with
   // no focus/visibility change to trigger a refetch (e.g. reading a chapter
   // already loaded in the browser, not making any new requests).
+  // 2 min, and only while visible: focus/visibility/usage events already
+  // refresh on demand, and the server enforces locks either way.
   useEffect(() => {
     if (!isAuthenticated) return undefined;
-    const id = setInterval(refresh, 30_000);
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+    }, 120_000);
     return () => clearInterval(id);
   }, [isAuthenticated, refresh]);
 
