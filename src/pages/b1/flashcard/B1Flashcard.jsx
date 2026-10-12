@@ -537,7 +537,7 @@ export default function B1Flashcard() {
   }, [isFlipped, currentCard, user?.user_id, loading]);
 
   useEffect(() => {
-    if (!user) navigate("/login");
+    if (!user) navigate("/onboarding");
     const fetchData = async () => {
       setLoading(true);
       try {

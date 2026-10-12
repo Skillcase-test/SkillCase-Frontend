@@ -128,7 +128,7 @@ describe("JobsLockedPage — A1/A2 locked jobs teaser", () => {
 
   it("navigates back from the header back arrow when history exists", () => {
     Object.defineProperty(window, "history", {
-      value: { length: 3 },
+      value: { length: 3, state: { idx: 2 } },
       configurable: true,
     });
 

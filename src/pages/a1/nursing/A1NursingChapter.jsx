@@ -108,7 +108,7 @@ export default function A1NursingChapter() {
 
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     if (flagsLoading) return;

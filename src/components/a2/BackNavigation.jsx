@@ -1,5 +1,6 @@
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useGoBack } from "../../hooks/useGoBack";
 
 /**
  * BackNavigation - Reusable back button component for A2 pages
@@ -13,6 +14,7 @@ const BackNavigation = ({
   className = "" 
 }) => {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
 
   const handleClick = () => {
     if (onClick) {
@@ -20,7 +22,7 @@ const BackNavigation = ({
     } else if (to) {
       navigate(to);
     } else {
-      navigate(-1);
+      goBack();
     }
   };
 

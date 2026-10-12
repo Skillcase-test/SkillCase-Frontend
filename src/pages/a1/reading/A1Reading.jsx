@@ -279,7 +279,7 @@ export default function A1Reading() {
   useLearningQuestionJourney({ level: "A1", module: "reading", feature: "a1.reading", topicId: chapterId, question: currentContent, index: currentIndex, total: contentList.length, loading });
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     const fetchContent = async () => {

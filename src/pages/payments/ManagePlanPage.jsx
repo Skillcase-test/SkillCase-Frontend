@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
+import { useGoBack } from "../../hooks/useGoBack";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { ArrowLeft, Headset, X, Loader2, Check, Gem } from "lucide-react";
@@ -40,6 +41,7 @@ function formatBillingDate(iso) {
 
 export default function ManagePlanPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/profile");
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   const [showCancel, setShowCancel] = useState(false);
@@ -213,7 +215,7 @@ export default function ManagePlanPage() {
         style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="size-7 flex items-center justify-center rounded-md border-2 border-white/40 text-white hover:bg-white/10 transition-colors cursor-pointer"
           aria-label="Go back"
         >

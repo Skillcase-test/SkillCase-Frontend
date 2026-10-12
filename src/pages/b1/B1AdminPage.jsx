@@ -52,7 +52,7 @@ export default function B1AdminPage() {
     if (token && !user) return;
 
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     if (!canManageB1) {

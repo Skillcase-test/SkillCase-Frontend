@@ -28,8 +28,7 @@ import {
   Pause,
   AudioWaveform,
 } from "lucide-react";
-import { Capacitor } from "@capacitor/core";
-import { App as CapApp } from "@capacitor/app";
+import { pushBackHandler } from "../../router/backButton";
 import {
   DndContext,
   closestCenter,
@@ -745,18 +744,15 @@ export default function ExamPage() {
     window.addEventListener("beforeunload", handleBeforeUnload);
     document.addEventListener("visibilitychange", handleVisibility);
 
-    // Capacitor back button
-    let backHandler = null;
-    if (Capacitor.isNativePlatform()) {
-      backHandler = CapApp.addListener("backButton", () => {
-        triggerWarning("Back button pressed");
-      });
-    }
+    // Hardware back mid-exam is a warning, never a navigation
+    const removeBackHandler = pushBackHandler(() => {
+      triggerWarning("Back button pressed");
+    });
 
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       document.removeEventListener("visibilitychange", handleVisibility);
-      if (backHandler) backHandler.remove();
+      removeBackHandler();
     };
   }, [examClosed]);
 

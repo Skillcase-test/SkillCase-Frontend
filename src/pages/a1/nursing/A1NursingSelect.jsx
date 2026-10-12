@@ -19,7 +19,7 @@ export default function A1NursingSelect() {
 
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     if (flagsLoading) return;

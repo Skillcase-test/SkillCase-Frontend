@@ -12,7 +12,7 @@ export default function A2SpeakingSelect() {
   const { locked: usageLocked } = useUsageLimitModule("A2", "speaking");
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     const fetchChapters = async () => {

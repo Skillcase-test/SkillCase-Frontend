@@ -2,6 +2,7 @@ import { PushNotifications } from "@capacitor/push-notifications";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
 import api from "../api/axios";
+import { appNavigate } from "../router/navigation";
 import { captureFeatureError } from "../observability/sentry";
 
 let listenerHandles = [];
@@ -66,8 +67,8 @@ export const initPushNotifications = async () => {
               window.location.href = deepLink;
             }
           } else {
-            // In-app navigation
-            window.location.href = deepLink;
+            // In-app transition — setting location.href reloaded the whole app
+            appNavigate(deepLink.startsWith("/") ? deepLink : `/${deepLink}`);
           }
         }
       },

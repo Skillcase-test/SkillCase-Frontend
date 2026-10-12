@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation, Navigate } from "react-router-dom";
+import { useGoBack } from "../../hooks/useGoBack";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { ArrowLeft, ChevronRight, Gem, Check } from "lucide-react";
@@ -20,6 +21,7 @@ const rupees = (paise) => Math.round((paise || 0) / 100);
 
 export default function UpgradePlanPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/profile");
   const location = useLocation();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
@@ -86,7 +88,7 @@ export default function UpgradePlanPage() {
         style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="size-7 flex items-center justify-center rounded-md border-2 border-white/40 text-white hover:bg-white/10 transition-colors cursor-pointer"
           aria-label="Go back"
         >

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
 import { useSelector } from "react-redux";
 import { completeWelcome, markStepNoteViewed } from "../../../api/jobScreeningApi";
 import { Plane, Database, RefreshCw } from "lucide-react";
@@ -11,7 +11,7 @@ const WelcomeStep = ({ progress, onComplete }) => {
   const { user } = useSelector((state) => state.auth);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
+  const goBack = useGoBack("/job-screening");
 
   const handleStart = async () => {
     trackFlowAction("job_screening", "job_screening_funnel", "welcome_started", { step: "welcome", lifecycle: "started" });
@@ -36,7 +36,7 @@ const WelcomeStep = ({ progress, onComplete }) => {
 
   const handleBack = () => {
     trackFlowAction("job_screening", "job_screening_funnel", "step_navigated", { step: "welcome", direction: "back" });
-    navigate(-1);
+    goBack();
   };
 
   return (

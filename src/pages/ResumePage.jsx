@@ -8,7 +8,7 @@ export default function ResumePage() {
   const navigate = useNavigate();
   useEffect(() => {
     if (!user) {
-      navigate("/Login");
+      navigate("/onboarding");
     }
   }, [user, navigate]);
   const resumeOptions = [

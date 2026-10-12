@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { Capacitor, registerPlugin } from "@capacitor/core";
 import api from "../../api/axios";
@@ -88,6 +88,14 @@ function isLearnGermanPref(pref) {
     return true;
   return false;
 }
+
+const sanitizeReturnTo = (route) =>
+  typeof route === "string" &&
+  route.startsWith("/") &&
+  !route.startsWith("//") &&
+  !route.startsWith("/onboarding")
+    ? route
+    : null;
 
 const getPostLoginRoute = (user) => {
   if (
@@ -277,6 +285,9 @@ const OnboardingFlow = () => {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  // Set by App's auth guard so a logged-out deep link lands where it pointed.
+  const location = useLocation();
+  const returnTo = sanitizeReturnTo(location.state?.returnTo);
 
   // Fails closed: a failed fetch leaves the list empty, so the pathway screen
   // is skipped and "Jobs in Germany" is implied (matching the server default).
@@ -545,7 +556,7 @@ const OnboardingFlow = () => {
             data.user.lg_preferred_mode,
           );
         }
-        navigate(getPostLoginRoute(data.user), {
+        navigate(returnTo || getPostLoginRoute(data.user), {
           replace: true,
         });
       }

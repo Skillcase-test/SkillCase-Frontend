@@ -11,7 +11,7 @@ const FallbackPage = () => {
     if (isAuthenticated) {
       navigate("/", { replace: true });
     } else {
-      navigate("/login", { replace: true });
+      navigate("/onboarding", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 

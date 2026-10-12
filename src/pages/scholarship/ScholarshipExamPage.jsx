@@ -31,6 +31,7 @@ import {
 import ExerciseLayoutSkeleton from "../../components/common/ExerciseLayoutSkeleton";
 import { Capacitor } from "@capacitor/core";
 import { App as CapApp } from "@capacitor/app";
+import { pushBackHandler } from "../../router/backButton";
 import {
   DndContext,
   closestCenter,
@@ -771,7 +772,7 @@ export default function ScholarshipExamPage() {
     };
 
     let stateListener = null;
-    let backHandler = null;
+    let removeBackHandler = null;
     const handleVisibility = () => (document.hidden ? markAway() : markBack());
 
     if (Capacitor.isNativePlatform()) {
@@ -780,9 +781,7 @@ export default function ScholarshipExamPage() {
       );
       // Back would drop them out of the exam mid-attempt — confirm instead, and
       // never treat it as a violation.
-      backHandler = CapApp.addListener("backButton", () =>
-        setShowLeaveConfirm(true),
-      );
+      removeBackHandler = pushBackHandler(() => setShowLeaveConfirm(true));
     } else {
       document.addEventListener("visibilitychange", handleVisibility);
     }
@@ -805,9 +804,7 @@ export default function ScholarshipExamPage() {
       if (stateListener?.remove) stateListener.remove();
       else if (typeof stateListener?.then === "function")
         stateListener.then((h) => h.remove());
-      if (backHandler?.remove) backHandler.remove();
-      else if (typeof backHandler?.then === "function")
-        backHandler.then((h) => h.remove());
+      removeBackHandler?.();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examClosed]);

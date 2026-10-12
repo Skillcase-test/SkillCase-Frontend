@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Navigate, useParams, useNavigate } from "react-router-dom";
+import { useGoBack } from "../../hooks/useGoBack";
 import { getExamInfo } from "../../api/examApi";
 import {
   ChevronLeft,
@@ -14,6 +15,7 @@ import { useFirstPartyAnalytics } from "../../telemetry/legacyAnalytics";
 export default function ExamLobby() {
   const { testId } = useParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [exam, setExam] = useState(null);
   const [submission, setSubmission] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -70,7 +72,7 @@ export default function ExamLobby() {
         <ShieldAlert className="w-16 h-16 text-red-400 mb-4" />
         <p className="text-gray-700 text-lg font-medium mb-4">{error}</p>
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="px-6 py-2 bg-[#002856] text-white rounded-xl font-semibold cursor-pointer"
         >
           Go Back
@@ -93,7 +95,7 @@ export default function ExamLobby() {
         style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="flex items-center gap-2 text-sm font-semibold text-[#181d27] cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />

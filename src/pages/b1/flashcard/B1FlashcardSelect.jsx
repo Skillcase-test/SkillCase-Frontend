@@ -17,7 +17,7 @@ export default function B1FlashcardSelect() {
 
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     const fetchChapters = async () => {

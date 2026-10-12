@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useGoBack } from "../../hooks/useGoBack";
 import { ArrowLeft, FileDown } from "lucide-react";
 import api from "../../api/axios";
 import diamond from "../../assets/diamond.webp";
@@ -58,6 +59,7 @@ function formatDate(iso) {
 
 export default function TransactionHistoryPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/profile");
   const [payments, setPayments] = useState(null);
   const [error, setError] = useState(false);
   const [invoiceLoading, setInvoiceLoading] = useState("");
@@ -114,7 +116,7 @@ export default function TransactionHistoryPage() {
         style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="size-7 flex items-center justify-center rounded-md border-2 border-black/40 text-black hover:bg-slate-50 transition-colors cursor-pointer"
           aria-label="Go back"
         >

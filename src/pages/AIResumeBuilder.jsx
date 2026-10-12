@@ -34,7 +34,7 @@ export default function AIResumeBuilder() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   useEffect(() => {
-    if (!user) navigate("/Login");
+    if (!user) navigate("/onboarding");
   }, [user, navigate]);
   const handleFileChange = (e) => {
     const selectedFile = e.target.files?.[0];

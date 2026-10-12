@@ -241,7 +241,7 @@ export default function A2Speaking() {
   };
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     const fetchContent = async () => {

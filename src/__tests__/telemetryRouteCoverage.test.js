@@ -1,14 +1,13 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { classifyRoute } from "../telemetry/routeRegistry";
+import { appRoutes } from "../router/routes";
 
 describe("telemetry route coverage", () => {
   it("classifies every application route", () => {
-    const source = readFileSync(resolve(process.cwd(), "src/App.jsx"), "utf8");
-    const routes = [...source.matchAll(/\bpath=["']([^"']+)["']/g)]
-      .map((match) => match[1])
-      .filter((route) => !route.includes("resume"));
+    // "*" is the catch-all redirect, not a screen
+    const routes = appRoutes.map((route) => route.path).filter((path) => path !== "*");
+    // Guards against the walk silently finding nothing
+    expect(routes.length).toBeGreaterThan(100);
 
     const uncovered = routes.filter((route) => {
       const examplePath = route

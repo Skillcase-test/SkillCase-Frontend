@@ -48,7 +48,7 @@ export default function ManualResumeBuilder() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!user) navigate("/Login");
+    if (!user) navigate("/onboarding");
 
     // Check if we're editing an existing resume
     if (location.state?.resumeData) {

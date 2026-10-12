@@ -1,72 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { matchRoutes } from "react-router-dom";
+import { appRoutes } from "../router/routes";
+import { mergeRouteHandles, resolveRouteGuard } from "../router/guards";
 
-// Extracted matching logic identical to App.jsx route guards
-const publicAcquisitionRoutes = [
-  "/start-now",
-  "/register",
-  "/events",
-  "/thank-you",
-  "/open-app",
-  "/redirect",
-  "/continue",
-];
-
-const isPublicAcquisitionRoute = (pathname) =>
-  publicAcquisitionRoutes.some((route) => pathname.startsWith(route)) ||
-  /^\/interview\/[^/]+$/.test(pathname);
-
-const publicRoutes = [
-  "/login",
-  "/signup",
-  "/terms/sign",
-  "/onboarding",
-  ...publicAcquisitionRoutes,
-];
-
-const isPublicRoute = (pathname) =>
-  isPublicAcquisitionRoute(pathname) ||
-  publicRoutes.some((route) => pathname.startsWith(route));
-
-const isB1PracticeLevel = (level) =>
-  typeof level === "string" && ["b1", "b2"].includes(level.trim().toLowerCase());
-
-const isPaymentRoute = (pathname) =>
-  pathname === "/profile/upgrade" ||
-  pathname === "/profile/manage-plan" ||
-  pathname === "/profile/transactions" ||
-  pathname === "/trial-offer";
-
+// Runs the real route config + guard (this used to test a copy of the logic)
 const evaluateJobScreeningGuard = ({ isAuthenticated, user, pathname }) => {
-  if (!isAuthenticated && !isPublicRoute(pathname)) {
-    return { redirect: "/onboarding" };
-  }
-
-  const isB1User =
-    isAuthenticated && user && isB1PracticeLevel(user?.user_prof_level);
-
-  const isJobScreeningUser =
-    isAuthenticated &&
-    user &&
-    (String(user.german_preference) === "3" ||
-      user.lg_preferred_mode === "job_screening");
-
-  const isJobScreeningAllowedRoute =
-    pathname.startsWith("/job-screening") ||
-    pathname.startsWith("/terms/sign") ||
-    pathname.startsWith("/exam") ||
-    pathname.startsWith("/scholarship") ||
-    pathname === "/profile" ||
-    pathname.startsWith("/admin") ||
-    isPaymentRoute(pathname) ||
-    pathname === "/jobs" ||
-    (isB1User && (pathname === "/" || pathname.startsWith("/b1"))) ||
-    isPublicAcquisitionRoute(pathname);
-
-  if (isJobScreeningUser && !isJobScreeningAllowedRoute) {
-    return { redirect: "/job-screening" };
-  }
-
-  return { redirect: null };
+  const handle = mergeRouteHandles(matchRoutes(appRoutes, pathname) || []);
+  const result = resolveRouteGuard({ isAuthenticated, user, handle, pathname });
+  return { redirect: result?.to ?? null };
 };
 
 describe("Job Screening Route Guard & Public Acquisition Routes", () => {

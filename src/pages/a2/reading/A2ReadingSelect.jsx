@@ -12,7 +12,7 @@ export default function A2ReadingSelect() {
   const { locked: usageLocked } = useUsageLimitModule("A2", "reading");
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     const fetchChapters = async () => {

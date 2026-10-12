@@ -15,7 +15,7 @@ export default function A1FlashcardSelect() {
 
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
 

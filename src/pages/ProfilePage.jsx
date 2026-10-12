@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { useGoBack } from "../hooks/useGoBack";
 import { setUser, logout } from "../redux/auth/authSlice";
 import { isTrialActive, trialDaysLeft } from "../utils/premium";
 import { stableFile } from "../utils/stableFile";
@@ -222,6 +223,7 @@ export default function ProfilePage() {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const fileInputRef = useRef(null);
   const modalFileInputRef = useRef(null);
   const aliveRef = useRef(true);
@@ -373,7 +375,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     fetchProfileData();
@@ -854,7 +856,7 @@ export default function ProfilePage() {
           >
             <div className="max-w-xl mx-auto px-4 h-12 flex items-center justify-start gap-3">
               <button
-                onClick={() => navigate(-1)}
+                onClick={goBack}
                 className="w-7 h-7 flex items-center justify-center rounded-md border-2 border-slate-400 text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
                 title="Go Back"
               >

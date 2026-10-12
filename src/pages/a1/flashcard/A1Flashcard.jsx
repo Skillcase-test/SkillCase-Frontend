@@ -206,7 +206,7 @@ export default function A1Flashcard() {
 
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
 

@@ -12,7 +12,7 @@ export default function A2TestSelect() {
   const { locked: usageLocked } = useUsageLimitModule("A2", "test");
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     const fetchTopics = async () => {

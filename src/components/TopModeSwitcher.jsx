@@ -209,7 +209,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
       setLGMode("job_screening").catch((err) => {
         console.error("Failed to set mode:", err);
       });
-      navigate("/job-screening");
+      navigate("/job-screening", { replace: true });
       return;
     }
 
@@ -225,7 +225,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
       // scholarship and would silently store "learn".
       syncMode("courses");
       localStorage.setItem("lg_mode_switched_at", String(Date.now()));
-      navigate("/video-courses");
+      navigate("/video-courses", { replace: true });
       return;
     }
 
@@ -251,9 +251,9 @@ export default function TopModeSwitcher({ isTourActive = false }) {
     // Navigate
     if (mode === "learn") {
       sessionStorage.setItem("lg_animate_switcher", "true");
-      navigate("/learn-german");
+      navigate("/learn-german", { replace: true });
     } else {
-      navigate("/");
+      navigate("/", { replace: true });
     }
   };
 

@@ -238,7 +238,7 @@ export default function A1Speaking() {
   };
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     const fetchContent = async () => {

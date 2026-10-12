@@ -12,7 +12,7 @@ export default function A1ListeningSelect() {
   const { locked: usageLocked } = useUsageLimitModule("A1", "listening");
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     const fetchChapters = async () => {

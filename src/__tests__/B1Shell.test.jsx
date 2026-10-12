@@ -127,7 +127,9 @@ describe("B1/B2 shell — TopModeSwitcher", () => {
 
     expect(mockSetLGMode).toHaveBeenCalledWith("job_screening");
     expect(localStorage.getItem("lg_preferred_mode")).toBe("job_screening");
-    expect(mockNavigate).toHaveBeenCalledWith("/job-screening");
+    expect(mockNavigate).toHaveBeenCalledWith("/job-screening", {
+      replace: true,
+    });
   });
 
   it("tapping Job Preparation from the jobs screen returns to the practice home with practice mode", () => {
@@ -137,7 +139,7 @@ describe("B1/B2 shell — TopModeSwitcher", () => {
     fireEvent.click(screen.getByRole("tab", { name: /job preparation/i }));
 
     expect(mockSetLGMode).toHaveBeenCalledWith("practice");
-    expect(mockNavigate).toHaveBeenCalledWith("/");
+    expect(mockNavigate).toHaveBeenCalledWith("/", { replace: true });
   });
 
   it("marks the German Jobs tab active while inside the job-screening pipeline", () => {

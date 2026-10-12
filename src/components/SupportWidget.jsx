@@ -136,7 +136,8 @@ export default function SupportWidget() {
       searchParams.delete("ticketId");
       const newSearch = searchParams.toString();
       const newUrl = `${location.pathname}${newSearch ? `?${newSearch}` : ""}${location.hash}`;
-      window.history.replaceState(null, "", newUrl);
+      // Keep the router's state (idx/key) — null broke back navigation
+      window.history.replaceState(window.history.state, "", newUrl);
     }
   }, [location.search, location.pathname]);
 

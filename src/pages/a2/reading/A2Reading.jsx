@@ -259,7 +259,7 @@ export default function A2Reading() {
   useLearningQuestionJourney({ level: "A2", module: "reading", feature: "a2.reading", topicId: chapterId, question: currentContent, index: currentIndex, total: contentList.length, loading });
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     const fetchContent = async () => {

@@ -12,7 +12,7 @@ export default function A1GrammarSelect() {
   const { locked: usageLocked } = useUsageLimitModule("A1", "grammar");
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     const fetchData = async () => {

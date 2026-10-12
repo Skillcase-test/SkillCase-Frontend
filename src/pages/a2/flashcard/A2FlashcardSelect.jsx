@@ -17,7 +17,7 @@ export default function A2FlashcardSelect() {
 
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     const fetchChapters = async () => {

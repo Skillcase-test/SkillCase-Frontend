@@ -22,7 +22,7 @@ export default function A1TestSelect() {
   }, [showModal]);
   useEffect(() => {
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     const fetchTopics = async () => {

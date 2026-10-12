@@ -311,6 +311,7 @@ export default function BottomTabBar() {
         {/* Home */}
         <Link
           to={homeDest}
+          replace
           onClick={(e) => {
             hapticLight();
             trackFeatureEvent("navigation", "bottom_tab_clicked", {
@@ -353,6 +354,8 @@ export default function BottomTabBar() {
             locked /jobs teaser instead. */}
         <Link
           to={jobsHref}
+          // /jobs is the A1/A2 teaser, not a hub — it must keep a Back entry
+          replace={isB1}
           onClick={() => {
             hapticLight();
             trackFeatureEvent("navigation", "bottom_tab_clicked", {
@@ -806,6 +809,7 @@ function ScholarshipBottomBar({ user, streak }) {
         {/* Home — back to the scholarship hub (the only live tab) */}
         <Link
           to="/scholarship"
+          replace
           onClick={hapticLight}
           className={`w-14 flex flex-col items-center justify-center gap-0.5 p-1.5 rounded-lg transition-colors ${
             isHome ? "bg-[#f4f4f6]" : "hover:bg-stone-500/5"

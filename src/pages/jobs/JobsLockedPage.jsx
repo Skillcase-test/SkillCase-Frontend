@@ -1,4 +1,5 @@
 import { Navigate, useNavigate } from "react-router-dom";
+import { canGoBackInApp } from "../../hooks/useGoBack";
 import { useSelector } from "react-redux";
 import {
   ArrowLeft,
@@ -47,7 +48,7 @@ export default function JobsLockedPage() {
 
   const goBack = () => {
     // Deep links / fresh opens may have no history to step back to.
-    if (window.history.length > 1) {
+    if (canGoBackInApp()) {
       navigate(-1);
     } else {
       navigate("/");

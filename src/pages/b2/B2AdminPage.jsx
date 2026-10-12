@@ -43,7 +43,7 @@ export default function B2AdminPage() {
   useEffect(() => {
     if (token && !user) return;
     if (!user) {
-      navigate("/login");
+      navigate("/onboarding");
       return;
     }
     if (!canManageB2) {

@@ -21,7 +21,7 @@ export default function MyResumes() {
   const [error, setError] = useState(null);
   useEffect(() => {
     if (!user) {
-      navigate("/Login");
+      navigate("/onboarding");
       return;
     }
     fetchResumes();
