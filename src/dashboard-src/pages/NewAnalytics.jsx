@@ -1319,6 +1319,14 @@ export default function NewAnalytics({ me }) {
       const val = params.get(key) || fallback;
       return FILTERS[key].some(([o]) => o === val) ? val : fallback;
     };
+    // Journeys get their own param: the features tab defaults `feature` to a
+    // single feature, which would quietly narrow the journey list.
+    const rawJourneyFeature = params.get("journey_feature") || "all";
+    const journeyFeature = (catalog?.features || []).some(
+      (f) => f.key === rawJourneyFeature,
+    )
+      ? rawJourneyFeature
+      : "all";
     const knownVersions = catalog?.app_versions || null;
     const rawVersion = params.get("app_version") || "all";
     const appVersion =
@@ -1347,6 +1355,7 @@ export default function NewAnalytics({ me }) {
       date_from: dateFrom,
       date_to: dateTo,
       feature,
+      journey_feature: journeyFeature,
       level,
       user_type: allowed("user_type", "all"),
       learner_stage: allowed("learner_stage", "all"),
@@ -1376,7 +1385,8 @@ export default function NewAnalytics({ me }) {
     !(
       params.get("feature") ||
       params.get("level") ||
-      params.get("app_version")
+      params.get("app_version") ||
+      params.get("journey_feature")
     );
 
   // Memoized on the serialized values: the catalog landing rebuilds filters
@@ -1492,6 +1502,7 @@ export default function NewAnalytics({ me }) {
             limit: dataParams.limit,
             app_version: dataParams.app_version,
             trial_status: dataParams.trial_status,
+            feature: dataParams.journey_feature,
           });
     request
       .then((result) => {
@@ -1582,6 +1593,14 @@ export default function NewAnalytics({ me }) {
     { value: "all", label: "All Features" },
     ...visibleFeatures.map((f) => ({ value: f.key, label: f.label })),
   ];
+
+  const journeyFeatureOptions = [
+    { value: "all", label: "All Features" },
+    ...(catalog?.features || []).map((f) => ({ value: f.key, label: f.label })),
+  ];
+  const journeyFeatureLabel = journeyFeatureOptions.find(
+    (o) => o.value === filters.journey_feature,
+  )?.label;
 
   const levelDropdownOptions = (catalog?.levels || []).map((lvl) => ({
     value: lvl,
@@ -1678,7 +1697,7 @@ export default function NewAnalytics({ me }) {
             className={`grid gap-x-5 gap-y-4 px-7 py-6 ${
               tab === "features"
                 ? "grid-cols-1 sm:grid-cols-3 lg:grid-cols-5"
-                : "max-w-4xl grid-cols-1 sm:grid-cols-3"
+                : "max-w-5xl grid-cols-1 sm:grid-cols-4"
             }`}
           >
             {/* Calendar Day Control — a window on features, one day on journeys */}
@@ -1741,6 +1760,22 @@ export default function NewAnalytics({ me }) {
                     value={filters.date_to}
                     onChange={(e) => updateRange(e.target.value, e.target.value)}
                     className="w-full text-sm font-semibold text-slate-700"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <label
+                    htmlFor="analytics-feature-journeys"
+                    className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400"
+                  >
+                    Feature used
+                  </label>
+                  <ControlDropdown
+                    id="analytics-feature-journeys"
+                    value={filters.journey_feature}
+                    options={journeyFeatureOptions}
+                    onChange={(v) => update("journey_feature", v)}
+                    fixedMenu={true}
+                    className="w-full"
                   />
                 </div>
                 <div className="flex flex-col">
@@ -2085,8 +2120,11 @@ export default function NewAnalytics({ me }) {
                   Candidate Activity Journeys
                 </h2>
                 <p className="mt-0.5 text-xs text-slate-400">
-                  {number(journeys.total)} candidates with activity on{" "}
-                  {formatDateLabel(filters.date_to)}
+                  {number(journeys.total)} candidates{" "}
+                  {filters.journey_feature === "all"
+                    ? "with activity"
+                    : `who used ${journeyFeatureLabel}`}{" "}
+                  on {formatDateLabel(filters.date_to)}
                 </p>
               </div>
 
@@ -2280,7 +2318,13 @@ export default function NewAnalytics({ me }) {
             </div>
           </div>
         ) : (
-          <EmptyState message="No meaningful candidate activity recorded for this day." />
+          <EmptyState
+            message={
+              filters.journey_feature === "all"
+                ? "No meaningful candidate activity recorded for this day."
+                : `No candidates used ${journeyFeatureLabel} on this day.`
+            }
+          />
         )}
       </div>
 

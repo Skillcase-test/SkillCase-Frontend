@@ -177,12 +177,15 @@ describe("NewAnalytics", () => {
     expect(await screen.findAllByText("40%")).not.toHaveLength(0);
     expect(screen.getByText("Conversion Funnel")).toBeInTheDocument();
     expect(screen.getByLabelText("Feature")).toHaveTextContent("Flashcards");
-    expect(newAnalyticsApi.metrics).toHaveBeenCalledWith(
-      expect.objectContaining({
-        date: "2026-07-20",
-        feature: "flashcards",
-        platform: "all",
-      }),
+    // The first fetch can land before the catalog's default date does.
+    await waitFor(() =>
+      expect(newAnalyticsApi.metrics).toHaveBeenCalledWith(
+        expect.objectContaining({
+          date: "2026-07-20",
+          feature: "flashcards",
+          platform: "all",
+        }),
+      ),
     );
   });
 
@@ -348,6 +351,27 @@ describe("NewAnalytics", () => {
       await screen.findByText("Flipped a flashcard to reveal the answer"),
     ).toBeInTheDocument();
     expect(screen.getByText("Card 5 of 20")).toBeInTheDocument();
+  });
+
+  it("filters journeys to learners who used a chosen feature", async () => {
+    render(
+      <MemoryRouter initialEntries={["/?tab=journeys"]}>
+        <NewAnalytics me={{ role: "admin" }} />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText("Adil")).toBeInTheDocument();
+    expect(newAnalyticsApi.journeys).toHaveBeenLastCalledWith(
+      expect.objectContaining({ feature: "all" }),
+    );
+
+    fireEvent.click(screen.getByLabelText("Feature used"));
+    fireEvent.click(screen.getByRole("option", { name: "Grammar" }));
+    await waitFor(() =>
+      expect(newAnalyticsApi.journeys).toHaveBeenLastCalledWith(
+        expect.objectContaining({ feature: "grammar" }),
+      ),
+    );
+    expect(await screen.findByText(/who used Grammar/)).toBeInTheDocument();
   });
 
   it("summarises a day rolled up before modules were stored", async () => {

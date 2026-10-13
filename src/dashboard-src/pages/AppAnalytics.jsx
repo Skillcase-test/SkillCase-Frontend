@@ -83,6 +83,13 @@ function formatIst(value) {
   });
 }
 
+function formatCutover(date) {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString("en-IN", {
+    timeZone: "UTC",
+    dateStyle: "medium",
+  });
+}
+
 function queryString(filters, extra = {}) {
   const params = new URLSearchParams({
     startDate: filters.startDate,
@@ -363,7 +370,28 @@ function MultiSelectDropdown({ options, selected, onChange }) {
   );
 }
 
-function AppTrendChart({ data = [] }) {
+// Dashed line where activity switches from progress tables to in-app tracking.
+const cutoverLinePlugin = {
+  id: "cutoverLine",
+  afterDatasetsDraw(chart, _args, opts) {
+    if (opts.index < 0) return;
+    const { ctx, chartArea, scales } = chart;
+    const x = scales.x.getPixelForValue(opts.index);
+    ctx.save();
+    ctx.strokeStyle = "#94a3b8";
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x, chartArea.top);
+    ctx.lineTo(x, chartArea.bottom);
+    ctx.stroke();
+    ctx.fillStyle = "#64748b";
+    ctx.font = "600 9px sans-serif";
+    ctx.fillText("In-app tracking", x + 4, chartArea.top + 10);
+    ctx.restore();
+  },
+};
+
+function AppTrendChart({ data = [], cutover }) {
   const canvasRef = useRef(null);
 
   useLayoutEffect(() => {
@@ -379,6 +407,9 @@ function AppTrendChart({ data = [] }) {
     const labels = data.map((d) =>
       d.activity_date ? d.activity_date.slice(5, 10) : "",
     );
+    const cutoverIndex = cutover
+      ? data.findIndex((d) => String(d.activity_date || "").slice(0, 10) === cutover)
+      : -1;
     const dauData = data.map((d) => Number(d.dau || 0));
     const wauData = data.map((d) => Number(d.wau || 0));
     const mauData = data.map((d) => Number(d.mau || 0));
@@ -394,6 +425,7 @@ function AppTrendChart({ data = [] }) {
 
     const chartInstance = new Chart(ctx, {
       type: "line",
+      plugins: [cutoverLinePlugin],
       data: {
         labels,
         datasets: [
@@ -464,6 +496,7 @@ function AppTrendChart({ data = [] }) {
           },
         },
         plugins: {
+          cutoverLine: { index: cutoverIndex },
           legend: {
             display: true,
             position: "top",
@@ -507,7 +540,7 @@ function AppTrendChart({ data = [] }) {
       chartInstance.stop();
       chartInstance.destroy();
     };
-  }, [data]);
+  }, [data, cutover]);
 
   if (data.length === 0) return <EmptyState />;
 
@@ -1580,7 +1613,9 @@ export default function AppAnalytics({ me }) {
             </div>
             <div className="text-[11px] text-gray-500 mt-3 border-t border-slate-50 pt-2.5 truncate">
               <span>
-                Source: {state.summary?.activity_source || "App / Web"}
+                {state.summary?.activity_cutover
+                  ? `In-app tracking since ${formatCutover(state.summary.activity_cutover)}`
+                  : "Source: App / Web"}
               </span>
             </div>
           </div>
@@ -1638,7 +1673,10 @@ export default function AppAnalytics({ me }) {
 
           {/* Active Trend Card */}
           <DashboardCard title="Active Users Trend" className="col-span-full">
-            <AppTrendChart data={state.activeTrend} />
+            <AppTrendChart
+              data={state.activeTrend}
+              cutover={state.summary?.activity_cutover}
+            />
           </DashboardCard>
 
           {/* Retention Matrix Card */}
@@ -1827,7 +1865,7 @@ export default function AppAnalytics({ me }) {
                       className="rounded-xl border border-slate-200 bg-slate-50/30 p-4 hover:bg-slate-50/60 transition-colors"
                     >
                       <p className="truncate text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                        {row.feature_key}
+                        {row.feature_label || row.feature_key}
                       </p>
                       <p className="mt-1 text-2xl font-bold tracking-tight text-slate-700">
                         {formatNumber(row.current_count)}
@@ -1867,12 +1905,12 @@ export default function AppAnalytics({ me }) {
               {state.topUsage.length ? (
                 state.topUsage.map((row) => (
                   <div
-                    key={`${row.feature_key}-${row.title}`}
+                    key={`${row.feature_key}-${row.content_type}-${row.content_id}`}
                     className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50/20 p-3.5 hover:bg-slate-50/55 transition-colors"
                   >
                     <div>
                       <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
-                        {row.feature_key}
+                        {row.feature_label || row.feature_key}
                       </span>
                       <p className="mt-1.5 text-xs font-semibold text-slate-700">
                         {row.title}
@@ -1983,7 +2021,7 @@ export default function AppAnalytics({ me }) {
                       </div>
                       <p className="text-[10px] text-slate-400 mt-0.5 font-medium">
                         {row.level || "N/A"} •{" "}
-                        {formatNumber(row.activity_count)} events •{" "}
+                        {formatNumber(row.activity_count)} active days •{" "}
                         {formatIst(row.last_activity)}
                       </p>
                     </div>
@@ -2015,7 +2053,10 @@ export default function AppAnalytics({ me }) {
                         <p className="truncate text-xs font-semibold text-slate-700">
                           {row.name}
                         </p>
-                        <span className="text-xs font-bold text-slate-700">
+                        <span
+                          className="text-xs font-bold text-slate-700"
+                          title="Active days"
+                        >
                           {row.activity_count}
                         </span>
                       </div>
