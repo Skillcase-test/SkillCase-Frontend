@@ -42,6 +42,12 @@ export function mayaApi(level) {
     /** Re-runs feedback after it failed; returns whether a retry was kicked off. */
     retryFeedback: (id) => api.post(`${p}/sessions/${encodeURIComponent(id)}/retry-feedback`).then((r) => r.data.ok),
 
+    /** The rating card is on screen: uses up one of the level's showings. False once none are left. */
+    reviewShown: (id) => api.post(`${p}/sessions/${encodeURIComponent(id)}/review/shown`).then((r) => r.data.ok),
+
+    /** The learner's rating of a call: `{ rating: 1-5, text? }`, or `{ skip: true }`. */
+    review: (id, body) => api.post(`${p}/sessions/${encodeURIComponent(id)}/review`, body).then((r) => r.data.ok),
+
     /** My progress: `{ progress }`. */
     progress: () => api.get(`${p}/progress`).then((r) => r.data),
 

@@ -27,7 +27,8 @@ const LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"];
 const SKILL = { range: "Vocabulary", accuracy: "Grammar", fluency: "Fluency", interaction: "Conversation", coherence: "Linking ideas" };
 
 /** While the call is being saved and the feedback written; the parent re-polls. */
-export function Processing({ saved }) {
+/** `ready`: the feedback is written but held back until the rating card (`children`) is answered. */
+export function Processing({ saved, ready = false, children }) {
   const { base } = useMaya();
   return (
     <>
@@ -39,11 +40,14 @@ export function Processing({ saved }) {
           <li>{saved ? <Icon name="check" /> : <span className="spinner" />}Conversation saved</li>
           <li>{saved ? <Icon name="check" /> : <span className="spinner" />}Reviewing your German</li>
           <li>
-            <span className="spinner" />
+            {ready ? <Icon name="check" /> : <span className="spinner" />}
             Finding your next step
           </li>
         </ul>
-        <p style={{ fontSize: 11 }}>This takes about 20 seconds. You can leave this screen: look for your session in My progress.</p>
+        {children}
+        <p style={{ fontSize: 11 }}>
+          {ready ? "Your feedback is ready. It opens as soon as you send or skip." : "This takes about 20 seconds. You can leave this screen: look for your session in My progress."}
+        </p>
       </Main>
     </>
   );

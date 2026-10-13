@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import MayaRoom from "./MayaRoom";
+import ReviewCard from "./ReviewCard";
 import { Feedback, FeedbackError, Focus, NoSpeech, Processing, ProgressPage, Transcript } from "./MayaScreens";
 import { MAYA_LEVELS, MayaLevel, useMaya } from "./mayaLevel";
 import { feedbackReason } from "./mayaFormat";
@@ -101,6 +102,9 @@ function Screens() {
   const [stalled, setStalled] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const pollRef = useRef(null);
+  // The session whose rating card is open; the report waits behind it until it's answered.
+  const [reviewing, setReviewing] = useState(null);
+  const reviewAsked = useRef(new Set());
 
   // The room's fixed data (modes, topics, minutes, word bank, names) — needed before any call screen.
   const needsMeta = !sessionId && !wantsProgress;
@@ -191,17 +195,25 @@ function Screens() {
   }, [wantsProgress, api]);
 
   let screen;
+  let processing = false;
   if (sessionId) {
     const p = session?.session;
+    const card = reviewing === p?.id ? <ReviewCard sessionId={p.id} onDone={() => setReviewing(null)} /> : null;
     if (sessionMissing) screen = <Missing text="This practice wasn’t found on your account." />;
     else if (!p) screen = stalled ? <Missing text="Please check your connection and try again." /> : <Loading />;
     else if (wantsTranscript) screen = <Transcript practice={p} feedback={p.feedback?.ok ? p.feedback.feedback : null} />;
     else if (stalled && (p.status === "started" || !p.feedback))
       screen = <Missing text="This conversation is taking longer than usual to save. Check My progress again in a little while." />;
-    else if (p.status === "started") screen = <Processing saved={false} />;
+    else if (p.status === "started") {
+      processing = true;
+      screen = <Processing saved={false}>{card}</Processing>;
+    }
     else if (!heardIt(p) || feedbackReason(p.feedback) === "too_little_speech") screen = <NoSpeech sessionId={p.id} hasTranscript={(p.transcript ?? []).length > 0} />;
     else if (feedbackReason(p.feedback) === "failed") screen = <FeedbackError sessionId={p.id} onRetried={() => loadSession(loadId)} />;
-    else if (!p.feedback?.ok) screen = <Processing saved />;
+    else if (!p.feedback?.ok) {
+      processing = true;
+      screen = <Processing saved>{card}</Processing>;
+    } else if (card) screen = <Processing saved ready>{card}</Processing>;
     else screen = <Feedback practice={p} feedback={p.feedback.feedback} analysis={p.analysis} target={p.level} best={session.best ?? {}} />;
   } else if (focusId) {
     const p = session?.session;
@@ -223,6 +235,16 @@ function Screens() {
   } else {
     screen = meta ? <MayaRoom meta={meta} /> : metaError ? <Missing text="Please check your connection and try again." /> : <Loading />;
   }
+
+  // Only a report still being written asks for a rating, never an old one opened from history.
+  const offerReview = processing && Boolean(session?.session?.review);
+  useEffect(() => {
+    if (!offerReview || reviewAsked.current.has(sessionId)) return;
+    reviewAsked.current.add(sessionId);
+    api.reviewShown(sessionId)
+      .then((ok) => ok && setReviewing(sessionId))
+      .catch(() => {});
+  }, [offerReview, sessionId, api]);
 
   return (
     <div className="sp-page">
