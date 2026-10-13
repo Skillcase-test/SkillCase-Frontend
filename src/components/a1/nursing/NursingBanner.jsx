@@ -54,16 +54,16 @@ export default function NursingBanner({ className = "" }) {
       to={isLocked ? undefined : "/a1/nursing"}
       onClick={isLocked ? openLockModal : undefined}
       onTouchStart={() => !isLocked && hapticLight()}
-      className={`rounded-2xl bg-white border border-slate-200 p-3 sm:p-4 flex items-center gap-3 sm:gap-4 cursor-pointer hover:shadow-md active:scale-[0.99] transition-all shadow-sm ${className}`}
+      className={`rounded-2xl bg-white border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 flex items-center gap-3 sm:gap-4 cursor-pointer hover:shadow-md active:scale-[0.99] transition-all shadow-sm ${className}`}
     >
-      <div className="size-20 sm:size-24 shrink-0 rounded-xl border border-slate-200 p-1 bg-white">
+      <div className="size-16 sm:size-[72px] shrink-0 rounded-xl border border-slate-200 p-1 bg-white">
         <img
           src={images.nursingGerman}
           alt="Nurse using her phone"
           className="size-full rounded-lg object-cover object-[70%_center] select-none pointer-events-none"
         />
       </div>
-      <div className="flex-1 min-w-0 flex flex-col gap-1">
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
         {loading ? (
           <>
             <div className="h-4 w-32 bg-slate-200 rounded animate-pulse" />
@@ -72,25 +72,25 @@ export default function NursingBanner({ className = "" }) {
           </>
         ) : (
           <>
-            <span className="text-[#002856] text-base sm:text-lg font-bold leading-6">
+            <span className="text-[#002856] text-base sm:text-lg font-bold leading-5 sm:leading-6">
               Medical German
             </span>
-            <span className="text-slate-500 text-xs sm:text-sm leading-5">
-              Words for patients &amp; life on the ward.
+            <span className="text-slate-500 text-xs sm:text-sm leading-4 sm:leading-5">
+              Talk to patients with confidence.
             </span>
-            <span className="text-slate-500 text-xs sm:text-sm leading-5 pt-0.5">
+            <span className="text-slate-500 text-xs sm:text-sm leading-4 sm:leading-5">
               {started && overview?.current_chapter
                 ? `Chapter ${overview.current_chapter} of ${totalChapters} · keep going`
                 : `${totalChapters} chapters to explore`}
             </span>
-            {eligible && moduleState && (
-              <div className="pt-1">
-                <FeatureStatusChip state={moduleState} />
-              </div>
-            )}
           </>
         )}
       </div>
+      {!loading && eligible && moduleState && (
+        <div className="w-24 sm:w-32 shrink-0">
+          <FeatureStatusChip state={moduleState} />
+        </div>
+      )}
       <ChevronRight className="w-5 h-5 text-[#002856] shrink-0" />
     </Wrapper>
   );
