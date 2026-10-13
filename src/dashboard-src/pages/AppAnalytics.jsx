@@ -1356,6 +1356,7 @@ export default function AppAnalytics({ me }) {
   }, [state.summary]);
 
   const handleRefresh = async () => {
+    if (!window.confirm("Refresh App Analytics now?")) return;
     setRefreshing(true);
     try {
       const res = await api.post("/admin/app-analytics/refresh");
