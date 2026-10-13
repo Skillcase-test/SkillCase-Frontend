@@ -886,7 +886,13 @@ function RetentionHeatmap({ rows = [], granularity, maxColumns }) {
   );
 }
 
-function LiveUsersModal({ users = [], appUsers, webUsers, onClose }) {
+function LiveUsersModal({
+  users = [],
+  appUsers,
+  webUsers,
+  featureCounts = [],
+  onClose,
+}) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/60" onClick={onClose} />
@@ -900,6 +906,18 @@ function LiveUsersModal({ users = [], appUsers, webUsers, onClose }) {
               <Globe className="mr-1 inline h-3 w-3 text-amber-500" />
               Web {formatNumber(webUsers)}
             </p>
+            {featureCounts.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {featureCounts.map((f) => (
+                  <span
+                    key={f.feature_key}
+                    className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700"
+                  >
+                    {f.feature_label} {formatNumber(f.users)}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <ControlButton
             onClick={onClose}
@@ -942,6 +960,16 @@ function LiveUsersModal({ users = [], appUsers, webUsers, onClose }) {
                     <span>&middot;</span>
                     <span>{timeAgo(user.last_activity_at)}</span>
                   </div>
+                  {user.feature_label && (
+                    <p className="mt-0.5 truncate text-[10px] font-medium text-emerald-700">
+                      {user.feature_label}
+                      {user.module_label ? ` · ${user.module_label}` : ""}
+                      <span className="text-slate-400">
+                        {" "}
+                        · {timeAgo(user.feature_at)}
+                      </span>
+                    </p>
+                  )}
                 </div>
               </div>
             ))
@@ -2274,6 +2302,7 @@ export default function AppAnalytics({ me }) {
           users={state.activeNow?.activeUsersList || []}
           appUsers={state.activeNow?.appUsers}
           webUsers={state.activeNow?.webUsers}
+          featureCounts={state.activeNow?.featureCounts}
           onClose={() => setLiveUsersOpen(false)}
         />
       )}
