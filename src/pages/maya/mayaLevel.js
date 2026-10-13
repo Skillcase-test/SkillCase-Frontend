@@ -4,7 +4,6 @@ import { mayaApi } from "../../api/mayaApi";
 const EVERYDAY = {
   talkName: "Everyday German",
   talkCopy: "Talk about everyday life and whatever interests you.",
-  talkMeta: "Live tips",
   anyTopic: "General Conversation",
   interviewTag: "Job interview · Pflegefachkraft",
   interviewNoun: "interview",
@@ -19,17 +18,15 @@ export const MAYA_LEVELS = {
     api: mayaApi("A2"),
     talkName: "Learn Mode",
     talkCopy: "Role-play real-life situations, with help along the way.",
-    talkMeta: "Live tips",
     anyTopic: "Surprise me",
     interviewName: "Test Mode",
-    interviewCopy: "The hard mode: a real A2 speaking test.",
-    interviewMeta: "German only",
+    interviewCopy: "The hard mode: a real A2 speaking test, all in German.",
     interviewTag: "A2 speaking test",
     interviewNoun: "test",
     interviewFeedback: "Test feedback",
   },
-  B1: { ...EVERYDAY, level: "B1", base: "/b1/maya", api: mayaApi("B1"), interviewName: "Job interview", interviewCopy: "Practise a job interview in Germany, with a tip now and then.", interviewMeta: "Tips now and then" },
-  B2: { ...EVERYDAY, level: "B2", base: "/b2/maya", api: mayaApi("B2"), interviewName: "Nursing interview", interviewCopy: "Get comfortable with a job interview in Germany.", interviewMeta: "Feedback after" },
+  B1: { ...EVERYDAY, level: "B1", base: "/b1/maya", api: mayaApi("B1"), interviewName: "Job interview", interviewCopy: "Practise a job interview in Germany, with a tip now and then." },
+  B2: { ...EVERYDAY, level: "B2", base: "/b2/maya", api: mayaApi("B2"), interviewName: "Nursing interview", interviewCopy: "Get comfortable with a job interview in Germany." },
 };
 
 export const MayaLevel = createContext(null);

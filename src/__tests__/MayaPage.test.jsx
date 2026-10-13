@@ -46,7 +46,6 @@ describe("MayaPage per level", () => {
     expect(mockGet).toHaveBeenCalledWith("/maya/b1/meta");
     expect(mockLimitModule).toHaveBeenCalledWith("B1", "maya");
     expect(screen.getByText("B1 German")).toBeInTheDocument();
-    expect(screen.getByText(/Tips now and then/)).toBeInTheDocument();
     expect(screen.getByText("My progress").closest("a")).toHaveAttribute("href", "/b1/maya?view=progress");
     // The B1 product tour anchors on this.
     expect(document.querySelector("#b1-maya-modes")).toBeInTheDocument();
@@ -59,7 +58,6 @@ describe("MayaPage per level", () => {
     expect(await screen.findByText("Nursing interview")).toBeInTheDocument();
     expect(mockGet).toHaveBeenCalledWith("/b2-maya/meta");
     expect(mockLimitModule).toHaveBeenCalledWith("B2", "maya");
-    expect(screen.getByText(/Feedback after/)).toBeInTheDocument();
     expect(screen.getByText("My progress").closest("a")).toHaveAttribute("href", "/b2/maya?view=progress");
     expect(screen.getByText("Everyday German")).toBeInTheDocument();
   });
@@ -73,8 +71,7 @@ describe("MayaPage per level", () => {
     expect(mockGet).toHaveBeenCalledWith("/maya/a2/meta");
     expect(mockLimitModule).toHaveBeenCalledWith("A2", "maya");
     expect(screen.getByText("A2 German")).toBeInTheDocument();
-    expect(screen.getByText(/Live tips/)).toBeInTheDocument();
-    expect(screen.getByText(/German only/)).toBeInTheDocument();
+    expect(screen.getByText(/all in German/)).toBeInTheDocument();
     expect(screen.queryByText(/English/)).not.toBeInTheDocument();
     expect(screen.queryByText("Everyday German")).not.toBeInTheDocument();
     expect(screen.getByText("My progress").closest("a")).toHaveAttribute("href", "/a2/maya?view=progress");

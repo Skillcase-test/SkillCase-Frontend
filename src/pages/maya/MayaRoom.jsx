@@ -69,7 +69,7 @@ const Wave = ({ heights }) => (
 export default function MayaRoom({ meta, focus }) {
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
-  const { level, base, api, talkName, talkCopy, talkMeta, anyTopic, interviewName, interviewCopy, interviewMeta, interviewTag, interviewNoun } = useMaya();
+  const { level, base, api, talkName, talkCopy, anyTopic, interviewName, interviewCopy, interviewTag, interviewNoun } = useMaya();
   // Fresh lock state on entry; a locked learner gets the limit modal before the call dials, not after.
   useUsageLimitModule(level, "maya");
   const access = useLevelAccess(level);
@@ -859,7 +859,7 @@ export default function MayaRoom({ meta, focus }) {
     );
 
   /* "choose": the start screen — the mode selection the feature card opens. */
-  const card = (id, name, copy, metaText, ico) => (
+  const card = (id, name, copy, ico) => (
     <button type="button" key={id} className={`mode ${mode === id ? "active" : ""}`} role="radio" aria-checked={mode === id} onClick={() => setMode(id)}>
       <span className="mode-symbol">
         <Icon name={ico} />
@@ -867,7 +867,6 @@ export default function MayaRoom({ meta, focus }) {
       <span className="mode-copy">
         <span className="mode-title">{name}</span>
         <span className="mode-description">{copy}</span>
-        <span className="mode-meta">{metaText}</span>
       </span>
       <span className="radio-mark" aria-hidden="true" />
     </button>
@@ -877,7 +876,18 @@ export default function MayaRoom({ meta, focus }) {
       <Brand level={level} />
       <Main className="flush-top">
         <div className="intro welcome-intro">
-          <p className="eyebrow">Guten Tag, {firstName}</p>
+          <div className="welcome-top">
+            <p className="eyebrow">Guten Tag, {firstName}</p>
+            {plan ? (
+              <span className="pill gold" role="status">
+                {poolSecondsLeft >= 60
+                  ? `${Math.floor(poolSecondsLeft / 60)} of ${plan.dailyMinutes} min left ${plan.window === "trial" ? "in your trial" : "today"}`
+                  : plan.window === "trial"
+                    ? "Your trial minutes are used up"
+                    : "Today’s minutes are used up"}
+              </span>
+            ) : null}
+          </div>
           <div className="welcome-heading">
             <h1>
               Speak German
@@ -887,22 +897,11 @@ export default function MayaRoom({ meta, focus }) {
             <MayaFrame pose="wave" className="welcome-maya" user={user} />
           </div>
           <p>Build confidence in German with your AI speaking coach.</p>
-          {plan ? (
-            <p>
-              <span className="pill gold" role="status">
-                {poolSecondsLeft >= 60
-                  ? `${Math.floor(poolSecondsLeft / 60)} of ${plan.dailyMinutes} min left ${plan.window === "trial" ? "in your trial" : "today"}`
-                  : plan.window === "trial"
-                    ? "Your trial minutes are used up"
-                    : "Today's minutes are used up"}
-              </span>
-            </p>
-          ) : null}
         </div>
         <div className="section-label">{hasInterview ? "What would you like to practise?" : "Your practice"}</div>
         <div role="radiogroup" aria-label="Practice mode" id={`${level.toLowerCase()}-maya-modes`}>
-          {card("talk", talkName, talkCopy, `${talkMeta} · ${plan ? `up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} min` : `about ${minutesMap.talk} min`}`, "chat")}
-          {hasInterview ? card(modes[1], interviewName, interviewCopy, `${interviewMeta} · ${plan ? `up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} min` : `about ${minutesMap[modes[1]]} min`}`, "bag") : null}
+          {card("talk", talkName, talkCopy, "chat")}
+          {hasInterview ? card(modes[1], interviewName, interviewCopy, "bag") : null}
         </div>
         {error ? (
           <p className="inline-error" role="alert">

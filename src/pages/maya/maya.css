@@ -36,7 +36,7 @@
 .sp .icon-button{width:44px;height:44px;display:grid;place-items:center;border:0;border-radius:50%;color:var(--navy);background:transparent;padding:10px;flex-shrink:0}
 .sp .icon-button:hover{background:var(--blue)}
 .sp .content{padding:28px 24px;flex:1;min-height:0;overflow:auto;scrollbar-width:thin;scrollbar-color:#cbd6e3 transparent}
-.sp .content.flush-top{padding-top:24px}
+.sp .content.flush-top{padding-top:16px}
 .sp .eyebrow{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:1.1px;text-transform:uppercase;margin:0 0 12px}
 .sp .eyebrow.accent{color:#36597e}
 .sp h1{font-size:26px;line-height:1.25;font-weight:700;letter-spacing:-.7px;margin:0 0 13px;text-wrap:balance}
@@ -45,18 +45,16 @@
 .sp p{font-size:14px;line-height:1.55;margin:0 0 18px;color:var(--muted);text-wrap:pretty}
 .sp .intro{max-width:330px}
 .sp .intro p{margin-bottom:25px}
-.sp .section-label{display:flex;justify-content:space-between;align-items:center;margin:24px 0 12px;font-size:13px;font-weight:600}
+.sp .section-label{display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px;font-size:13px;font-weight:600}
 .sp .section-label button{border:0;background:none;color:var(--navy);font-size:11px;padding:6px 0}
-.sp .mode{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;padding:18px 16px;border:1px solid var(--line);border-radius:18px;background:white;color:var(--ink);margin-bottom:12px;position:relative}
+.sp .mode{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;padding:15px 16px;border:1px solid var(--line);border-radius:18px;background:white;color:var(--ink);margin-bottom:10px;position:relative}
 .sp .mode.active{border-color:#789bc3;background:var(--blue)}
 .sp .mode-symbol{width:42px;height:42px;background:white;border:1px solid #cbd6e4;border-radius:12px;box-shadow:0 2px 4px #0028560a;display:grid;place-items:center;flex-shrink:0;color:var(--navy)}
 .sp .mode.active .mode-symbol{background:white}
 .sp .mode-symbol .icon{--icon-size:var(--icon-control)}
 .sp .mode-copy{flex:1}
-.sp .mode-title{display:block;font-size:15px;font-weight:600;margin:0 16px 6px 0}
+.sp .mode-title{display:block;font-size:15px;font-weight:600;margin:0 16px 3px 0}
 .sp .mode-description{display:block;font-size:13px;line-height:1.55;color:var(--muted);max-width:215px}
-.sp .mode-meta{display:block;font-size:11px;font-weight:500;margin-top:10px;color:#405c7a}
-.sp .mode:not(.active) .mode-meta{color:var(--muted)}
 .sp .radio-mark{width:17px;height:17px;border:1.3px solid #bbc8cf;border-radius:50%;position:absolute;right:14px;top:20px}
 .sp .active .radio-mark{border:5px solid var(--navy);background:white}
 .sp .coach-note{display:flex;gap:12px;align-items:center;margin-top:23px}
@@ -204,8 +202,8 @@
 @media(max-width:360px){.sp .content{padding-left:20px;padding-right:20px}
 .sp .top{padding-left:20px;padding-right:20px}
 .sp h1{font-size:26px}
-.sp .mode{padding:16px 13px;gap:10px}
-.sp .mode.active{padding:16px 13px}
+.sp .mode{padding:14px 13px;gap:10px}
+.sp .mode.active{padding:14px 13px}
 .sp .mode-symbol{width:37px;height:37px}
 .sp .mode-title{font-size:14px}
 .sp .mode-description{font-size:12px}
@@ -220,11 +218,13 @@
 .sp .bottom-action{padding-bottom:max(20px,env(safe-area-inset-bottom))}
 .sp .maya-image{display:block;object-fit:contain;flex-shrink:0}
 .sp .maya-mark .maya-image{width:100%;height:100%;object-fit:cover;object-position:center bottom}
-.sp .welcome-heading{display:flex;align-items:center;gap:12px;min-height:115px;margin-top:-5px;margin-bottom:8px}
+.sp .welcome-heading{display:flex;align-items:center;gap:12px;margin:14px 0 4px}
 .sp .welcome-heading h1{flex:1;margin:0;min-width:0;text-wrap:nowrap}
 .sp .welcome-maya{width:104px;height:104px;align-self:center}
-.sp .welcome-intro .eyebrow{margin-bottom:5px}
-.sp .welcome-intro p:last-child{margin-bottom:20px}
+.sp .welcome-intro{max-width:none}
+.sp .welcome-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sp .welcome-top .eyebrow{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp .welcome-intro p:last-child{margin-bottom:0}
 .sp .maya-hero{position:relative;width:120px;height:120px;margin:6px auto 28px}
 .sp .maya-frame{display:flex;align-items:flex-end;justify-content:center;flex-shrink:0;aspect-ratio:1;background:var(--blue);border:1px solid #d5e4f7;border-radius:18px;overflow:hidden;isolation:isolate}
 .sp .maya-frame>.maya-image{width:100%;height:100%;object-fit:cover;object-position:center bottom}
