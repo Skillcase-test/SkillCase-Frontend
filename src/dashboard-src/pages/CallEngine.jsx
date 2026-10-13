@@ -703,7 +703,6 @@ function OverviewChart({ rows, loading }) {
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
 
-  // Exactly the same pattern as DashboardCardDAU / LineChartDAU
   const chartData = useMemo(() => {
     if (!rows || rows.length === 0) return null;
 
@@ -864,7 +863,6 @@ function OverviewChart({ rows, loading }) {
 
   return (
     <div className="col-span-full bg-white shadow-xs rounded-xl relative overflow-hidden">
-      {/* Header — same structure as DashboardCardDAU */}
       <div className="px-5 pt-5">
         <header className="flex justify-between items-start mb-2">
           <h2 className="text-lg font-semibold text-gray-800">Call Overview</h2>

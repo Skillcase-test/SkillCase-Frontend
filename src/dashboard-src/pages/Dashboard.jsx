@@ -133,6 +133,7 @@ const VideoCourseManage = lazy(() => import("./videoCourses/manage"));
 
 
 import { hasPermission, AdminAccessContext } from "../../utils/adminPermissions";
+import { adminLandingPath } from "../utils/adminLanding";
 export { hasPermission };
 
 function Guard({ allowed, children }) {
@@ -679,6 +680,15 @@ export default function Dashboard() {
   const [desktopSidebarExpanded, setDesktopSidebarExpanded] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const sidebarHoverTimersRef = useRef({ open: null, close: null });
+  const desktopMenuRef = useRef(null);
+
+  // Opening the menu brings the current page into view, however deep it sits.
+  useEffect(() => {
+    if (!desktopSidebarExpanded) return;
+    desktopMenuRef.current
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView({ block: "nearest" });
+  }, [desktopSidebarExpanded]);
 
   const clearSidebarHoverTimer = (timerKey) => {
     const timer = sidebarHoverTimersRef.current[timerKey];
@@ -725,8 +735,12 @@ export default function Dashboard() {
         .then((res) => {
           if (mounted) setMe(res.data);
         })
-        .catch(() => {
-          if (mounted) setMe(null);
+        .catch((error) => {
+          // A failed background re-check keeps the access already loaded.
+          const status = error?.response?.status;
+          if (mounted && (showLoading || status === 401 || status === 403)) {
+            setMe(null);
+          }
         })
         .finally(() => {
           if (mounted) setLoading(false);
@@ -1190,18 +1204,7 @@ export default function Dashboard() {
     };
   }, [me, hasPaymentsAccess]);
 
-  const defaultPath =
-    sections.core[0]?.path ||
-    sections.extraContentItems?.[0]?.path ||
-    (sections.a1Modules[0] ? `${sections.a1Modules[0].basePath}/add` : null) ||
-    (sections.a2Modules[0] ? `${sections.a2Modules[0].basePath}/add` : null) ||
-    (sections.b1Modules[0] ? `${sections.b1Modules[0].basePath}/add` : null) ||
-    (sections.b2Modules?.[0] ? `${sections.b2Modules[0].basePath}/add` : null) ||
-    (sections.videoCoursesModules[0]
-      ? `${sections.videoCoursesModules[0].basePath}/add`
-      : null) ||
-    sections.superAdmin[0]?.path ||
-    "/admin/no-access";
+  const defaultPath = adminLandingPath(sections);
 
   if (loading) {
     return <DashboardShellSkeleton />;
@@ -1212,8 +1215,9 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-100">
       <div className="grid grid-cols-1 gap-3 p-3 lg:grid-cols-[64px_minmax(0,1fr)]">
+        {/* Sticks just below the app's 64px navbar and fits the rest of the screen. */}
         <aside
-          className="relative z-40 rounded-lg border border-slate-200 bg-white lg:sticky lg:top-3 lg:self-start lg:min-h-[calc(100vh-24px)]"
+          className="relative z-40 rounded-lg border border-slate-200 bg-white lg:sticky lg:top-[76px] lg:self-start lg:h-[calc(100vh-88px)]"
           onFocusCapture={scheduleSidebarExpand}
           onBlurCapture={(event) => {
             if (!event.currentTarget.contains(event.relatedTarget)) {
@@ -1257,26 +1261,34 @@ export default function Dashboard() {
           </div>
 
           {/* Desktop expanded overlay */}
+          {/* Revealed with a clip mask rather than a width change: no reflow while it moves, and
+              nothing at all is painted when closed. */}
           <div
-            className="absolute left-0 top-0 z-50 hidden h-full rounded-lg border border-slate-200 bg-white shadow-lg lg:block"
+            className="absolute left-0 top-0 z-50 hidden h-full w-[280px] overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg lg:block"
             onPointerEnter={scheduleSidebarExpand}
             onPointerLeave={scheduleSidebarCollapse}
             style={{
-              width: desktopSidebarExpanded ? "280px" : "0px",
-              transition:
-                "width 420ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 280ms ease",
-              willChange: "width",
+              clipPath: desktopSidebarExpanded
+                ? "inset(-24px -48px -48px -24px)"
+                : "inset(0 100% 0 0)",
+              pointerEvents: desktopSidebarExpanded ? "auto" : "none",
+              visibility: desktopSidebarExpanded ? "visible" : "hidden",
+              transition: `clip-path 360ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear ${
+                desktopSidebarExpanded ? "0s" : "360ms"
+              }`,
+              willChange: "clip-path",
             }}
           >
             <div
-              className="h-full overflow-y-auto p-3"
+              ref={desktopMenuRef}
+              className="no-scrollbar h-full overflow-y-auto overscroll-contain p-3"
               style={{
                 opacity: desktopSidebarExpanded ? 1 : 0,
                 transform: desktopSidebarExpanded
                   ? "translateX(0)"
                   : "translateX(-6px)",
                 transition:
-                  "opacity 240ms ease, transform 420ms cubic-bezier(0.22, 1, 0.36, 1)",
+                  "opacity 240ms ease, transform 360ms cubic-bezier(0.22, 1, 0.36, 1)",
                 willChange: "opacity, transform",
               }}
             >
@@ -1304,7 +1316,7 @@ export default function Dashboard() {
               maxHeight: mobileSidebarOpen ? "80vh" : "0px",
             }}
           >
-            <div className="border-t border-slate-100 p-3 overflow-y-auto max-h-[70vh]">
+            <div className="no-scrollbar border-t border-slate-100 p-3 overflow-y-auto overscroll-contain max-h-[70vh]">
               <p className="mb-2 px-2 text-xs font-bold uppercase tracking-widest text-slate-500">
                 Admin Panel
               </p>

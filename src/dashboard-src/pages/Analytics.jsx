@@ -1,11 +1,5 @@
-import DashboardCard01 from "../partials/dashboard/DashboardCard01";
-import DashboardCard03 from "../partials/dashboard/DashboardCard03";
 import DashboardCard07 from "../partials/dashboard/DashboardCard07";
 import DashboardCard11 from "../partials/dashboard/DashboardCard11";
-import DashboardCard12 from "../partials/dashboard/DashboardCard12";
-import DashboardCard13 from "../partials/dashboard/DashboardCard13";
-import DashboardCardDAU from "../partials/dashboard/DashboardCardDAU";
-import DashboardCardAllUsers from "../partials/dashboard/DashboardCardAllUsers";
 import DashboardCardLearnGermanAdvanced from "../partials/dashboard/DashboardCardLearnGermanAdvanced";
 
 function Analytics() {
@@ -18,13 +12,7 @@ function Analytics() {
         </p>
       </div>
       <div className="grid grid-cols-12 gap-4">
-        <DashboardCard12 key="card-12" />
-        <DashboardCardAllUsers key="card-all-users" />
-        <DashboardCardDAU key="card-dau" />
         <DashboardCardLearnGermanAdvanced key="card-german-advanced" />
-        <DashboardCard01 key="card-01" />
-        <DashboardCard13 key="card-13" />
-        <DashboardCard03 key="card-03" />
         <DashboardCard07 key="card-07" />
         <DashboardCard11 key="card-11" />
       </div>
