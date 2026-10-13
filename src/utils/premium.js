@@ -3,7 +3,7 @@
 // (trial_active / trial_days_left / trial_taken / trial_ended_dismissed), so
 // the client never re-derives dates — it just reads flags.
 
-import { isB1PracticeLevel, isB2PracticeLevel } from "./levels";
+import { hasMayaLevel } from "./levels";
 
 // Paid autopay subscription (Razorpay) or course enrolled (is_paid) — full premium state.
 export function isPremiumUser(user) {
@@ -35,9 +35,9 @@ export function hasPremiumAccess(user) {
   return isPremiumUser(user) || isTrialActive(user);
 }
 
-// Talk to Maya entitlement label for paywall/upsell surfaces: B1 and B2 are
-// metered by the plan's daily pool; lower levels don't have the feature yet.
+// Talk to Maya entitlement label for paywall/upsell surfaces: A2, B1 and B2 are
+// metered by the plan's daily pool; A1 doesn't have the feature yet.
 export function mayaFeatureValue(user, planMinutes) {
-  if (isB1PracticeLevel(user?.user_prof_level) || isB2PracticeLevel(user?.user_prof_level)) return `${planMinutes ?? 10} min/day`;
+  if (hasMayaLevel(user?.user_prof_level)) return `${planMinutes ?? 10} min/day`;
   return null;
 }

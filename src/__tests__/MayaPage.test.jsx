@@ -61,5 +61,22 @@ describe("MayaPage per level", () => {
     expect(mockLimitModule).toHaveBeenCalledWith("B2", "maya");
     expect(screen.getByText(/Feedback after/)).toBeInTheDocument();
     expect(screen.getByText("My progress").closest("a")).toHaveAttribute("href", "/b2/maya?view=progress");
+    expect(screen.getByText("Everyday German")).toBeInTheDocument();
+  });
+
+  it("A2 offers Learn Mode and Test Mode from the A2 API", async () => {
+    mockGet.mockResolvedValue({ data: meta("A2", ["talk", "test"], { talk: 10, test: 10 }) });
+    renderAt("A2");
+
+    expect(await screen.findByText("Learn Mode")).toBeInTheDocument();
+    expect(screen.getByText("Test Mode")).toBeInTheDocument();
+    expect(mockGet).toHaveBeenCalledWith("/maya/a2/meta");
+    expect(mockLimitModule).toHaveBeenCalledWith("A2", "maya");
+    expect(screen.getByText("A2 German")).toBeInTheDocument();
+    expect(screen.getByText(/Live tips/)).toBeInTheDocument();
+    expect(screen.getByText(/German only/)).toBeInTheDocument();
+    expect(screen.queryByText(/English/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Everyday German")).not.toBeInTheDocument();
+    expect(screen.getByText("My progress").closest("a")).toHaveAttribute("href", "/a2/maya?view=progress");
   });
 });

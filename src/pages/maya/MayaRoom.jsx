@@ -9,6 +9,7 @@ import { trackFeatureEvent } from "../../telemetry/events";
 import { useUsageLimitModule } from "../../hooks/useUsageLimits";
 import { suggestedTopics } from "./topicSuggestions";
 import { useMaya } from "./mayaLevel";
+import { plainQuotes } from "./mayaFormat";
 import { BottomNav, Brand, Footer, Header, Icon, Main, MayaFrame, MayaLive, MayaMark, Title } from "./sp";
 
 /*
@@ -68,7 +69,7 @@ const Wave = ({ heights }) => (
 export default function MayaRoom({ meta, focus }) {
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
-  const { level, base, api, interviewName, interviewCopy } = useMaya();
+  const { level, base, api, talkName, talkCopy, talkMeta, anyTopic, interviewName, interviewCopy, interviewMeta, interviewTag, interviewNoun } = useMaya();
   // Fresh lock state on entry; a locked learner gets the limit modal before the call dials, not after.
   useUsageLimitModule(level, "maya");
   const access = useLevelAccess(level);
@@ -83,7 +84,7 @@ export default function MayaRoom({ meta, focus }) {
   const [screen, setScreen] = useState(focus ? "connecting" : "choose");
   const [mode, setMode] = useState(modes[0]);
   const interview = mode !== "talk";
-  const [topic, setTopic] = useState(""); // "" = General Conversation
+  const [topic, setTopic] = useState(""); // "" = Maya picks
   const [customTopic, setCustomTopic] = useState("");
   const [noisyRoom, setNoisyRoom] = useState(false);
   const [error, setError] = useState(null);
@@ -106,8 +107,8 @@ export default function MayaRoom({ meta, focus }) {
   // Pool-metered calls run until the pool empties, so the header counts to the
   // server's cap; the legacy path shows the practice length, capped by its quota.
   const callCap = plan && callCapSeconds ? callCapSeconds : Math.min(minutes * 60, callCapSeconds ?? Infinity);
-  const topicLabel = focus ? "Your focused follow-up" : topic || customTopic.trim() || "General Conversation";
-  const modeName = interview ? interviewName : "Everyday German";
+  const topicLabel = focus ? "Your focused follow-up" : topic || customTopic.trim() || anyTopic;
+  const modeName = interview ? interviewName : talkName;
 
   const streamRef = useRef(null);
   const ctxRef = useRef(null);
@@ -451,7 +452,7 @@ export default function MayaRoom({ meta, focus }) {
             </div>
           </div>
           <div className="info-note">
-            {interview ? "Your interview will begin with a short introduction." : "You don’t need a perfect first sentence. A simple “Hallo” is a good start."}
+            {interview ? `Your ${interviewNoun} will begin with a short introduction.` : "You don’t need a perfect first sentence. A simple “Hallo” is a good start."}
           </div>
         </Main>
         <Footer>
@@ -486,7 +487,7 @@ export default function MayaRoom({ meta, focus }) {
         <div className="call-top">
           <div>
             <strong>{focus ? "Focused practice" : modeName}</strong>
-            <small>{interview ? "Job interview · Pflegefachkraft" : topicLabel}</small>
+            <small>{interview ? interviewTag : topicLabel}</small>
           </div>
           <span className="time" aria-label="Time">
             {clock(seconds)} / {clock(callCap)}
@@ -520,7 +521,7 @@ export default function MayaRoom({ meta, focus }) {
             <small>{coachName.toUpperCase()}</small>
             <blockquote ref={cardRef} lang="de" aria-live="polite">
               {caption ? (
-                <span>{caption}</span>
+                <span>{plainQuotes(caption)}</span>
               ) : (
                 <span className="card-dots" aria-label="Waiting">
                   <i />
@@ -582,7 +583,7 @@ export default function MayaRoom({ meta, focus }) {
             Finish
           </button>
         </div>
-        <p className="call-footer">{coachName} is an AI coach · {interview ? "Your coaching comes after the interview" : "Voice only"}</p>
+        <p className="call-footer">{coachName} is an AI coach · {interview ? `Your coaching comes after the ${interviewNoun}` : "Voice only"}</p>
         {sheet ? (
           <div className="overlay" onClick={(e) => e.target === e.currentTarget && setSheet(null)}>
             {sheet === "help" ? (
@@ -595,7 +596,7 @@ export default function MayaRoom({ meta, focus }) {
                 <p>
                   You can always ask {coachName} aloud:
                   <br />
-                  <span lang="de">„Wie sagt man … auf Deutsch?“</span>
+                  <span lang="de">“Wie sagt man … auf Deutsch?”</span>
                 </p>
                 {(words?.length ? words.slice(0, 3) : HELP_PHRASES).map((w) => (
                   <div className="hint-card" key={w.german}>
@@ -754,7 +755,7 @@ export default function MayaRoom({ meta, focus }) {
               }}
             >
               <Icon name="shuffle" />
-              General Conversation
+              {anyTopic}
             </button>
             {topics.map((t) => (
               <button
@@ -900,8 +901,8 @@ export default function MayaRoom({ meta, focus }) {
         </div>
         <div className="section-label">{hasInterview ? "What would you like to practise?" : "Your practice"}</div>
         <div role="radiogroup" aria-label="Practice mode" id={`${level.toLowerCase()}-maya-modes`}>
-          {card("talk", "Everyday German", "Talk about everyday life and whatever interests you.", `Live tips · ${plan ? `up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} min` : `about ${minutesMap.talk} min`}`, "chat")}
-          {hasInterview ? card(modes[1], interviewName, interviewCopy, `${modes[1] === "coach" ? "Tips now and then" : "Feedback after"} · ${plan ? `up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} min` : `about ${minutesMap[modes[1]]} min`}`, "bag") : null}
+          {card("talk", talkName, talkCopy, `${talkMeta} · ${plan ? `up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} min` : `about ${minutesMap.talk} min`}`, "chat")}
+          {hasInterview ? card(modes[1], interviewName, interviewCopy, `${interviewMeta} · ${plan ? `up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} min` : `about ${minutesMap[modes[1]]} min`}`, "bag") : null}
         </div>
         {error ? (
           <p className="inline-error" role="alert">
@@ -919,7 +920,7 @@ export default function MayaRoom({ meta, focus }) {
             else setScreen("topics");
           }}
         >
-          {interview ? "Start the interview" : "Let’s practise"}
+          {interview ? `Start the ${interviewNoun}` : "Let’s practise"}
           <Icon name="arrow" />
         </button>
       </Footer>

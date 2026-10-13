@@ -6,7 +6,7 @@ import api from "./axios";
  * around it (start, report, progress, "Try it"). Each level has its own route prefix.
  */
 
-const PREFIX = { B1: "/maya/b1", B2: "/b2-maya" };
+const PREFIX = { A2: "/maya/a2", B1: "/maya/b1", B2: "/b2-maya" };
 
 /**
  * The WebSocket URL for the call: the API host over ws/wss, no extra env needed.

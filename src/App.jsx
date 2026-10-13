@@ -2284,6 +2284,15 @@ function AppContent() {
                       </LearningRoute>
                     }
                   />
+                  {/* Talk to Maya, A2 */}
+                  <Route
+                    path="/a2/maya"
+                    element={
+                      <LearningRoute>
+                        <MayaPage level="A2" />
+                      </LearningRoute>
+                    }
+                  />
                   {/* Talk to Maya, B1 */}
                   <Route
                     path="/b1/maya"
@@ -2401,7 +2410,7 @@ function RouteScreenSkeleton({ title }) {
       : "bg-[#f6f8fc]";
   // B2 and Maya destinations render as fixed-width columns — match the shell so the
   // fallback doesn't visibly resize when the real page mounts.
-  const widthClass = location.pathname.startsWith("/b2/maya") || location.pathname.startsWith("/b1/maya")
+  const widthClass = /^\/(a2|b1|b2)\/maya/.test(location.pathname)
     ? "max-w-[460px]"
     : location.pathname === "/b2" || location.pathname.startsWith("/b2/")
       ? "max-w-[760px]"

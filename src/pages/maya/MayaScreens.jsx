@@ -5,7 +5,7 @@ import { images } from "../../assets/images";
 import RetryFeedback from "./RetryFeedback";
 import SayItAgain from "./SayItAgain";
 import { getSubscriptionPlans } from "../../api/subscriptionApi";
-import { SMOOTHNESS_LABEL, callSmoothness, englishWords, modeName } from "./mayaFormat";
+import { SMOOTHNESS_LABEL, callSmoothness, englishWords, modeName, plainQuotes } from "./mayaFormat";
 import { useMaya } from "./mayaLevel";
 import { BottomNav, Brand, Footer, Header, Icon, Main, MayaFrame, MayaHero, MayaMark, ScoreRing, Title } from "./sp";
 
@@ -160,7 +160,8 @@ function PlusUpsell() {
 }
 
 export function Feedback({ practice: p, feedback: f, analysis: a, target, best }) {
-  const { base } = useMaya();
+  const maya = useMaya();
+  const { base } = maya;
   const user = useSelector((state) => state.auth.user);
   const interview = p.mode !== "talk";
   const learnerLines = (p.transcript ?? []).filter((l) => l.speaker === "candidate");
@@ -173,7 +174,7 @@ export function Feedback({ practice: p, feedback: f, analysis: a, target, best }
   return (
     <>
       <Header
-        title={interview ? "Interview feedback" : "Your feedback"}
+        title={interview ? maya.interviewFeedback : "Your feedback"}
         back={`${base}?view=progress`}
         tag={`${target} practice`}
         end={a.pronunciation ? <ScoreRing score={a.pronunciation.score} /> : undefined}
@@ -182,7 +183,7 @@ export function Feedback({ practice: p, feedback: f, analysis: a, target, best }
         <div className="feedback-header">
           <MayaFrame pose="thumbsup" className="feedback-maya" user={user} />
           <div className="session-meta">
-            <span>{day(p.started_at)}</span>·<span>{modeName(p.mode)}</span>
+            <span>{day(p.started_at)}</span>·<span>{modeName(p.mode, maya)}</span>
           </div>
           <h1>{f.headline ?? "Gut gemacht."}</h1>
           <p>{f.summary ?? f.level_note}</p>
@@ -225,13 +226,13 @@ export function Feedback({ practice: p, feedback: f, analysis: a, target, best }
             <div className="sentence">
               <small>You said</small>
               <span lang="de">
-                „<s>{first.you_said}</s>“
+                “<s>{first.you_said}</s>”
               </span>
             </div>
             <div className="sentence">
               <small>Try this</small>
               <span lang="de">
-                „<mark>{first.better}</mark>“
+                “<mark>{first.better}</mark>”
               </span>
             </div>
             <SayItAgain sessionId={p.id} index={0} best={best[0]} />
@@ -277,13 +278,13 @@ export function Feedback({ practice: p, feedback: f, analysis: a, target, best }
                   <div className="sentence">
                     <small>You said</small>
                     <span lang="de">
-                      „<s>{c.you_said}</s>“
+                      “<s>{c.you_said}</s>”
                     </span>
                   </div>
                   <div className="sentence">
                     <small>Try this</small>
                     <span lang="de">
-                      „<mark>{c.better}</mark>“
+                      “<mark>{c.better}</mark>”
                     </span>
                   </div>
                   <p style={{ fontSize: 12, margin: 0 }}>{c.why}</p>
@@ -429,7 +430,8 @@ export function Feedback({ practice: p, feedback: f, analysis: a, target, best }
 
 /** The whole conversation, with each correction beside the sentence it's about. */
 export function Transcript({ practice: p, feedback }) {
-  const { base } = useMaya();
+  const maya = useMaya();
+  const { base } = maya;
   const user = useSelector((state) => state.auth.user);
   const norm = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
   const transcript = p.transcript ?? [];
@@ -440,7 +442,7 @@ export function Transcript({ practice: p, feedback }) {
       <Header title="Your conversation" back={back} />
       <Main>
         <div className="session-meta">
-          {day(p.started_at)} · {modeName(p.mode)}
+          {day(p.started_at)} · {modeName(p.mode, maya)}
         </div>
         <h1 style={{ fontSize: 26 }}>
           A conversation
@@ -471,11 +473,13 @@ export function Transcript({ practice: p, feedback }) {
                         part
                       ),
                     )
-                  : l.text}
+                  : you
+                    ? l.text
+                    : plainQuotes(l.text)}
               </p>
               {fix ? (
                 <div className="correction">
-                  Try: <span lang="de">„{fix.better}“</span>
+                  Try: <span lang="de">“{fix.better}”</span>
                 </div>
               ) : null}
             </article>
@@ -493,21 +497,21 @@ export function Transcript({ practice: p, feedback }) {
 
 /** Before a focused follow-up: the one pattern to practise, then the call. */
 export function Focus({ sessionId, index, correction, interview }) {
-  const { base } = useMaya();
+  const { base, interviewNoun } = useMaya();
   return (
     <>
       <Header title="Your next small step" back={`${base}?session=${sessionId}`} tag="2–3 min" />
       <Main>
-        <Title text={<>One sentence.<br />A little more natural.</>} desc={interview ? "Practise the pattern from your interview with Maya, in everyday questions." : "Practise it with Maya in a few short questions."} />
+        <Title text={<>One sentence.<br />A little more natural.</>} desc={interview ? `Practise the pattern from your ${interviewNoun} with Maya, in everyday questions.` : "Practise it with Maya in a few short questions."} />
         <div className="focus-task">
           <small>Your pattern</small>
-          <p lang="de">„{correction.better}“</p>
+          <p lang="de">“{correction.better}”</p>
           <strong>{correction.why}</strong>
         </div>
         <div className="focus-example">
           <strong>Instead of</strong>
           <p lang="de">
-            „<s style={{ color: "var(--red)" }}>{correction.you_said}</s>“
+            “<s style={{ color: "var(--red)" }}>{correction.you_said}</s>”
           </p>
         </div>
         <div className="coach-note">
@@ -529,7 +533,8 @@ export function Focus({ sessionId, index, correction, interview }) {
 
 /** My progress: completed practice, attempts that didn't count, and what the learner is working on. */
 export function ProgressPage({ level, rows, filter, progress }) {
-  const { base } = useMaya();
+  const maya = useMaya();
+  const { base } = maya;
   // The footer button scrolls to the session list; once the list is on screen it starts a call.
   const sessionsRef = useRef(null);
   const [atSessions, setAtSessions] = useState(false);
@@ -654,7 +659,7 @@ export function ProgressPage({ level, rows, filter, progress }) {
           <Link className="history-row" key={p.id} to={`${base}?session=${p.id}`}>
             <span className="history-symbol">{kind === "pending" ? <span className="spinner" /> : <Icon name={kind === "attempt" ? "mic" : p.mode === "talk" ? "chat" : "bag"} />}</span>
             <span className="history-copy">
-              <strong>{kind === "pending" ? "Feedback is being prepared" : modeName(p.mode)}</strong>
+              <strong>{kind === "pending" ? "Feedback is being prepared" : modeName(p.mode, maya)}</strong>
               <small>
                 {when(p.started_at)}
                 {kind === "attempt" ? " · Not enough speech" : p.seconds ? ` · ${Math.max(1, Math.round(p.seconds / 60))} min` : ""}

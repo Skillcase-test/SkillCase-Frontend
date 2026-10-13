@@ -79,6 +79,7 @@ export const APP_SCREENS = [
   { group: "A2", path: "/a2/listening", label: "A2 listening" },
   { group: "A2", path: "/a2/speaking", label: "A2 speaking" },
   { group: "A2", path: "/a2/reading", label: "A2 reading" },
+  { group: "A2", path: "/a2/maya", label: "A2 Maya" },
   { group: "B1", path: "/b1", label: "B1 home" },
   { group: "B1", path: "/b1/exams", label: "B1 exams" },
   { group: "B1", path: "/b1/flashcard", label: "B1 flashcards" },

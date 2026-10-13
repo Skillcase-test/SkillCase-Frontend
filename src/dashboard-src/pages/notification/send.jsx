@@ -47,6 +47,7 @@ const DEEP_LINK_ROUTES = [
   { path: "/a2/listening", label: "A2 Listening", category: "A2 Level" },
   { path: "/a2/reading", label: "A2 Reading", category: "A2 Level" },
   { path: "/a2/test", label: "A2 Tests", category: "A2 Level" },
+  { path: "/a2/maya", label: "A2 Talk to Maya", category: "A2 Level" },
   { path: "/b1/flashcard", label: "B1 Flashcards", category: "B1 Level" },
   { path: "/b1/read-listen", label: "B1 Read & Listen", category: "B1 Level" },
   { path: "/b1/describe-speak", label: "B1 Describe & Speak", category: "B1 Level" },

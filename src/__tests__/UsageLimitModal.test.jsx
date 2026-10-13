@@ -144,6 +144,15 @@ describe("UsageLimitModal — Maya premium lock", () => {
     expect(screen.getByText("10 min/day")).toBeInTheDocument();
   });
 
+  it("shows an A2 learner the metered Maya minutes too", async () => {
+    mockUser = { ...mockUser, user_prof_level: "a2" };
+    render(<UsageLimitModal />);
+    fireUsageLimit({ ...mayaLock, level: "A2" });
+
+    expect(await screen.findByText("Talk to Maya")).toBeInTheDocument();
+    expect(screen.getByText("10 min/day")).toBeInTheDocument();
+  });
+
   it("omits the Maya row for levels without the feature", async () => {
     mockUser = { ...mockUser, user_prof_level: "a1" };
     render(<UsageLimitModal />);
@@ -160,6 +169,17 @@ describe("UsageLimitModal — Maya premium lock", () => {
     const plusOption = await screen.findByText(/Plus ₹199/);
     expect(screen.getByText(/Standard ₹99/)).toBeInTheDocument();
 
+    act(() => plusOption.closest("button").click());
+    act(() => screen.getByText("Unlock Premium").closest("button").click());
+    expect(mockHandlePay).toHaveBeenCalledWith("b2_plus");
+  });
+
+  it("offers an A2 learner Plus too", async () => {
+    mockUser = { ...mockUser, user_prof_level: "a2" };
+    render(<UsageLimitModal />);
+    fireUsageLimit({ ...mayaLock, level: "A2" });
+
+    const plusOption = await screen.findByText(/Plus ₹199/);
     act(() => plusOption.closest("button").click());
     act(() => screen.getByText("Unlock Premium").closest("button").click());
     expect(mockHandlePay).toHaveBeenCalledWith("b2_plus");
