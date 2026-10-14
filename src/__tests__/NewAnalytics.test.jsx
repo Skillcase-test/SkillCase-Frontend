@@ -365,13 +365,75 @@ describe("NewAnalytics", () => {
     );
 
     fireEvent.click(screen.getByLabelText("Feature used"));
-    fireEvent.click(screen.getByRole("option", { name: "Grammar" }));
+    fireEvent.click(screen.getByRole("option", { name: "Grammar (A1)" }));
     await waitFor(() =>
       expect(newAnalyticsApi.journeys).toHaveBeenLastCalledWith(
-        expect.objectContaining({ feature: "grammar" }),
+        expect.objectContaining({ feature: "grammar", level: "A1" }),
       ),
     );
-    expect(await screen.findByText(/who used Grammar/)).toBeInTheDocument();
+    expect(await screen.findByText(/who used Grammar \(A1\)/)).toBeInTheDocument();
+  });
+
+  it("narrows journeys to a level, with that level's features and level-tagged labels", async () => {
+    newAnalyticsApi.journeys.mockResolvedValue({
+      data: {
+        total: 1,
+        page: 1,
+        limit: 20,
+        users: [
+          {
+            subject_id: "7",
+            name: "Adil",
+            first_event_at: "2026-07-20T05:00:00Z",
+            last_event_at: "2026-07-20T06:00:00Z",
+            event_count: 12,
+            platforms: ["app"],
+            features: ["flashcards", "learn_german"],
+            feature_levels: { flashcards: ["A1", "A2"], learn_german: ["A1"] },
+            diagnostics: { errors: 0, rage_points: 0 },
+          },
+        ],
+      },
+    });
+    render(
+      <MemoryRouter initialEntries={["/?tab=journeys&journey_feature=news|B1"]}>
+        <NewAnalytics me={{ role: "admin" }} />
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText("Flashcards (A1, A2)")).toBeInTheDocument();
+    expect(screen.getByText("Guided Lessons (A1)")).toBeInTheDocument();
+    expect(newAnalyticsApi.journeys).toHaveBeenLastCalledWith(
+      expect.objectContaining({ feature: "news", level: "B1" }),
+    );
+
+    // All levels: every feature once per level, shared ones included.
+    fireEvent.click(screen.getByLabelText("Feature used"));
+    const all = screen.getAllByRole("option").map((o) => o.textContent);
+    expect(all).toEqual(
+      expect.arrayContaining(["Flashcards (A1)", "Flashcards (A2)", "Flashcards (B1)", "Guided Lessons (B2)", "News (B1)"]),
+    );
+    expect(all).not.toContain("Flashcards");
+    fireEvent.click(screen.getByRole("option", { name: "Flashcards (A1)" }));
+    await waitFor(() =>
+      expect(newAnalyticsApi.journeys).toHaveBeenLastCalledWith(
+        expect.objectContaining({ feature: "flashcards", level: "A1" }),
+      ),
+    );
+
+    // Picking A2 keeps flashcards; the list holds only A2 entries.
+    fireEvent.click(screen.getByLabelText("Level"));
+    fireEvent.click(screen.getByRole("option", { name: "A2" }));
+    await waitFor(() =>
+      expect(newAnalyticsApi.journeys).toHaveBeenLastCalledWith(
+        expect.objectContaining({ feature: "flashcards", level: "A2" }),
+      ),
+    );
+    fireEvent.click(screen.getByLabelText("Feature used"));
+    const a2 = screen.getAllByRole("option").map((o) => o.textContent);
+    expect(a2).toEqual(
+      expect.arrayContaining(["Flashcards (A2)", "Grammar (A2)", "Hardcore Exams (A2)", "Guided Lessons (A2)"]),
+    );
+    expect(a2.some((o) => /B1|A1|All levels/.test(o))).toBe(false);
   });
 
   it("summarises a day rolled up before modules were stored", async () => {

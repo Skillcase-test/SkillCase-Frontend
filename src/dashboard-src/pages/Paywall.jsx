@@ -94,11 +94,18 @@ const TRIAL_STATUS_TABS = [
   { value: "maybe_later", label: "Maybe Later" },
 ];
 
+// `countKey` reads the matching count from the list response's `tiers`.
+const USER_TYPE_TABS = [
+  { value: "all", label: "All" },
+  { value: "learners", label: "Learners", countKey: "learners", title: "Paid through an enrollment (is_paid)" },
+  { value: "subscribers", label: "Subscribers", countKey: "subscribers", title: "Subscription access right now, including cancelled ones still in their paid period" },
+];
+
 const AUTOPAY_STATUS_TABS = [
   { value: "all", label: "All" },
   { value: "active", label: "Autopay On" },
   { value: "inactive", label: "Autopay Off" },
-  { value: "paid", label: "Paid" },
+  { value: "checkout_started", label: "Checkout Started", countKey: "checkout_started", title: "Opened the subscription checkout but didn't finish, and has no subscription access" },
   { value: "unpaid", label: "Unpaid" },
 ];
 
@@ -251,6 +258,7 @@ function Paywall() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [trialStatusFilter, setTrialStatusFilter] = useState("all");
   const [autopayStatusFilter, setAutopayStatusFilter] = useState("all");
+  const [userTypeFilter, setUserTypeFilter] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [sortOption, setSortOption] = useState("default");
@@ -284,6 +292,7 @@ function Paywall() {
     statusFilter,
     trialStatusFilter,
     autopayStatusFilter,
+    userTypeFilter,
     startDate,
     endDate,
     sortOption,
@@ -306,6 +315,7 @@ function Paywall() {
             trialStatusFilter !== "all" ? trialStatusFilter : undefined,
           autopayStatus:
             autopayStatusFilter !== "all" ? autopayStatusFilter : undefined,
+          userType: userTypeFilter !== "all" ? userTypeFilter : undefined,
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           sort: sortOption !== "default" ? sortOption : undefined,
@@ -361,6 +371,11 @@ function Paywall() {
 
   const handleAutopayStatusFilterChange = (value) => {
     setAutopayStatusFilter(value);
+    setPage(1);
+  };
+
+  const handleUserTypeFilterChange = (value) => {
+    setUserTypeFilter(value);
     setPage(1);
   };
 
@@ -505,6 +520,9 @@ function Paywall() {
     );
   };
 
+  const tabLabel = (tab) =>
+    tab.countKey ? `${tab.label} (${(tierCounts[tab.countKey] ?? 0).toLocaleString("en-IN")})` : tab.label;
+
   // Utility badge formatter — "enabled" is access, "status" is renewal intent:
   // only 'active' self-renews; anything else with access is on paid-through
   // grace (cancelled/completed) or an abandoned re-checkout.
@@ -548,6 +566,15 @@ function Paywall() {
         </span>
       );
     }
+    // A learner who opened the subscription checkout is still worth a call.
+    if (isPaid && normalized === "created") {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200/60">
+          <HelpCircle className="w-3 h-3" />
+          Paid · Checkout Started
+        </span>
+      );
+    }
     if (isPaid) {
       return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200/60">
@@ -586,8 +613,15 @@ function Paywall() {
             Disputed
           </span>
         );
-      case "created":
+      // Razorpay retrying a failed renewal charge, not a new checkout.
       case "pending":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200/60">
+            <RotateCcw className="w-3 h-3" />
+            Renewal Retrying
+          </span>
+        );
+      case "created":
       case "authenticated":
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-blue-50 text-blue-700 border border-blue-200/60">
@@ -754,12 +788,32 @@ function Paywall() {
             ))}
           </div>
 
+          {/* User Type Toggle Tabs */}
+          <div className="inline-flex p-0.5 bg-slate-100 rounded-lg border border-slate-200/80 h-9 items-center">
+            {USER_TYPE_TABS.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                title={tab.title}
+                onClick={() => handleUserTypeFilterChange(tab.value)}
+                className={`h-7 px-1.5 rounded-md text-[11px] transition-all cursor-pointer ${
+                  userTypeFilter === tab.value
+                    ? "bg-white shadow-2xs text-slate-900 font-semibold"
+                    : "text-slate-500 hover:text-slate-800 font-medium"
+                }`}
+              >
+                {tabLabel(tab)}
+              </button>
+            ))}
+          </div>
+
           {/* Autopay Status Toggle Tabs */}
           <div className="inline-flex p-0.5 bg-slate-100 rounded-lg border border-slate-200/80 h-9 items-center">
             {AUTOPAY_STATUS_TABS.map((tab) => (
               <button
                 key={tab.value}
                 type="button"
+                title={tab.title}
                 onClick={() => handleAutopayStatusFilterChange(tab.value)}
                 className={`h-7 px-1.5 rounded-md text-[11px] transition-all cursor-pointer ${
                   autopayStatusFilter === tab.value
@@ -767,7 +821,7 @@ function Paywall() {
                     : "text-slate-500 hover:text-slate-800 font-medium"
                 }`}
               >
-                {tab.label}
+                {tabLabel(tab)}
               </button>
             ))}
           </div>

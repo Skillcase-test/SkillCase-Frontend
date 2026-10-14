@@ -263,6 +263,34 @@ function groupJourneyItems(items = []) {
 
 const LEVEL_LABELS = { ALL: "—", LEARN_GERMAN: "Lessons", UNKNOWN: "—" };
 
+// Journeys filter on the level of the content used; shared content counts at the learner's level.
+const JOURNEY_LEVELS = ["ALL", "A1", "A2", "B1", "B2"];
+const LEARNER_LEVELS = JOURNEY_LEVELS.slice(1);
+const SHARED_LEVELS = ["ALL", "LEARN_GERMAN"];
+
+// The levels a feature can be used at: its own, or every level for shared content.
+const featureLevelsOf = (f) =>
+  f.levels?.some((l) => SHARED_LEVELS.includes(l)) ? LEARNER_LEVELS : LEARNER_LEVELS.filter((l) => f.levels?.includes(l));
+
+// Under all levels each feature is listed once per level as "key|LEVEL".
+function journeyFeatureChoices(features = [], level) {
+  return features.flatMap((f) => {
+    const levels = featureLevelsOf(f);
+    if (level !== "ALL") return levels.includes(level) ? [{ value: f.key, label: `${f.label} (${level})` }] : [];
+    if (!levels.length) return [{ value: f.key, label: f.label }];
+    return levels.map((l) => ({ value: `${f.key}|${l}`, label: `${f.label} (${l})` }));
+  });
+}
+
+const levelTag = (level) =>
+  JOURNEY_LEVELS.includes(level) && level !== "ALL" ? level : SHARED_LEVELS.includes(level) ? "All levels" : null;
+
+// "Flashcards (A1, A2)": the levels a feature was used at, so A1 and A2 flashcards never blur together.
+function featureWithLevels(label, levels = []) {
+  const tags = [...new Set(levels.map(levelTag).filter(Boolean))];
+  return tags.length ? `${label} (${tags.join(", ")})` : label;
+}
+
 // Days rolled up before the journey stored `modules` only have a timeline, and
 // the position is buried in strings like "Item 14 of 20". Reading it back keeps
 // those days looking like every other day instead of empty.
@@ -1077,9 +1105,6 @@ function JourneyModal({ journey, loading, features = [], onClose }) {
                         Chapter
                       </th>
                       <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                        Level
-                      </th>
-                      <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                         Progress
                       </th>
                       <th className="px-4 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-400">
@@ -1101,8 +1126,6 @@ function JourneyModal({ journey, loading, features = [], onClose }) {
                       const Icon = theme.icon;
                       const meta = featureMeta.get(module.feature);
                       const progress = moduleProgressText(module, meta?.metric);
-                      const level =
-                        LEVEL_LABELS[module.level] || module.level || "—";
 
                       return (
                         <Fragment key={rowKey}>
@@ -1128,19 +1151,16 @@ function JourneyModal({ journey, loading, features = [], onClose }) {
                                 className={`inline-flex items-center gap-1.5 rounded-lg border border-slate-100 px-2.5 py-1 text-[10px] font-bold ${theme.iconBg}`}
                               >
                                 <Icon className="h-3 w-3" />
-                                {meta?.label ||
-                                  fallbackJourneyLabel(module.feature)}
+                                {featureWithLevels(
+                                  meta?.label || fallbackJourneyLabel(module.feature),
+                                  [module.level],
+                                )}
                               </span>
                             </td>
                             <td className="px-4 py-3 font-semibold text-slate-800">
                               {module.module_label ||
                                 meta?.label ||
                                 fallbackJourneyLabel(module.feature)}
-                            </td>
-                            <td className="px-4 py-3">
-                              <span className="inline-flex rounded px-2 py-0.5 text-xs font-semibold text-slate-500">
-                                {level}
-                              </span>
                             </td>
                             <td className="px-4 py-3 text-xs font-medium text-slate-500">
                               {progress || (
@@ -1172,7 +1192,7 @@ function JourneyModal({ journey, loading, features = [], onClose }) {
                           </tr>
                           {isOpen && (
                             <tr className="bg-slate-50">
-                              <td colSpan={7} className="px-6 py-4">
+                              <td colSpan={6} className="px-6 py-4">
                                 {module.timeline?.length ? (
                                   <ul className="space-y-2">
                                     {module.timeline.map((item, itemIndex) => (
@@ -1319,11 +1339,13 @@ export default function NewAnalytics({ me }) {
       const val = params.get(key) || fallback;
       return FILTERS[key].some(([o]) => o === val) ? val : fallback;
     };
-    // Journeys get their own param: the features tab defaults `feature` to a
+    // Journeys get their own params: the features tab defaults `feature` to a
     // single feature, which would quietly narrow the journey list.
+    const rawJourneyLevel = String(params.get("journey_level") || "ALL").toUpperCase();
+    const journeyLevel = JOURNEY_LEVELS.includes(rawJourneyLevel) ? rawJourneyLevel : "ALL";
     const rawJourneyFeature = params.get("journey_feature") || "all";
-    const journeyFeature = (catalog?.features || []).some(
-      (f) => f.key === rawJourneyFeature,
+    const journeyFeature = journeyFeatureChoices(catalog?.features, journeyLevel).some(
+      (c) => c.value === rawJourneyFeature,
     )
       ? rawJourneyFeature
       : "all";
@@ -1356,6 +1378,7 @@ export default function NewAnalytics({ me }) {
       date_to: dateTo,
       feature,
       journey_feature: journeyFeature,
+      journey_level: journeyLevel,
       level,
       user_type: allowed("user_type", "all"),
       learner_stage: allowed("learner_stage", "all"),
@@ -1502,7 +1525,9 @@ export default function NewAnalytics({ me }) {
             limit: dataParams.limit,
             app_version: dataParams.app_version,
             trial_status: dataParams.trial_status,
-            feature: dataParams.journey_feature,
+            // "flashcards|A1" carries its own level when the level filter is on all levels.
+            feature: dataParams.journey_feature.split("|")[0],
+            level: dataParams.journey_feature.split("|")[1] || dataParams.journey_level,
           });
     request
       .then((result) => {
@@ -1596,8 +1621,26 @@ export default function NewAnalytics({ me }) {
 
   const journeyFeatureOptions = [
     { value: "all", label: "All Features" },
-    ...(catalog?.features || []).map((f) => ({ value: f.key, label: f.label })),
+    ...journeyFeatureChoices(catalog?.features, filters.journey_level),
   ];
+  // Keeps the picked feature if the new level has it, else falls back to all.
+  const changeJourneyLevel = (lvl) => {
+    const next = new URLSearchParams(params);
+    next.set("journey_level", lvl);
+    const [key, pickedLevel = filters.journey_level] = filters.journey_feature.split("|");
+    const wanted = lvl === "ALL" ? `${key}|${pickedLevel}` : key;
+    const choices = journeyFeatureChoices(catalog?.features, lvl);
+    next.set(
+      "journey_feature",
+      choices.some((c) => c.value === wanted) ? wanted : choices.some((c) => c.value === key) ? key : "all",
+    );
+    next.set("page", "1");
+    setParams(next, { replace: true });
+  };
+  const journeyLevelOptions = JOURNEY_LEVELS.map((lvl) => ({
+    value: lvl,
+    label: lvl === "ALL" ? "All levels" : lvl,
+  }));
   const journeyFeatureLabel = journeyFeatureOptions.find(
     (o) => o.value === filters.journey_feature,
   )?.label;
@@ -1760,6 +1803,22 @@ export default function NewAnalytics({ me }) {
                     value={filters.date_to}
                     onChange={(e) => updateRange(e.target.value, e.target.value)}
                     className="w-full text-sm font-semibold text-slate-700"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <label
+                    htmlFor="analytics-level-journeys"
+                    className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400"
+                  >
+                    Level
+                  </label>
+                  <ControlDropdown
+                    id="analytics-level-journeys"
+                    value={filters.journey_level}
+                    options={journeyLevelOptions}
+                    onChange={changeJourneyLevel}
+                    fixedMenu={true}
+                    className="w-full"
                   />
                 </div>
                 <div className="flex flex-col">
@@ -2122,7 +2181,9 @@ export default function NewAnalytics({ me }) {
                 <p className="mt-0.5 text-xs text-slate-400">
                   {number(journeys.total)} candidates{" "}
                   {filters.journey_feature === "all"
-                    ? "with activity"
+                    ? filters.journey_level === "ALL"
+                      ? "with activity"
+                      : `with ${filters.journey_level} activity`
                     : `who used ${journeyFeatureLabel}`}{" "}
                   on {formatDateLabel(filters.date_to)}
                 </p>
@@ -2261,7 +2322,7 @@ export default function NewAnalytics({ me }) {
                                 key={f}
                                 className="rounded-lg border border-indigo-100 bg-indigo-50/60 px-2 py-0.5 text-[10px] font-semibold text-indigo-600"
                               >
-                                {fallbackJourneyLabel(f)}
+                                {featureWithLevels(fallbackJourneyLabel(f), user.feature_levels?.[f])}
                               </span>
                             ))}
                             {(user.features?.length || 0) > 3 && (
@@ -2321,7 +2382,9 @@ export default function NewAnalytics({ me }) {
           <EmptyState
             message={
               filters.journey_feature === "all"
-                ? "No meaningful candidate activity recorded for this day."
+                ? filters.journey_level === "ALL"
+                  ? "No meaningful candidate activity recorded for this day."
+                  : `No ${filters.journey_level} activity recorded for this day.`
                 : `No candidates used ${journeyFeatureLabel} on this day.`
             }
           />
