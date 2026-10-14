@@ -3,7 +3,7 @@ import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
 import api from "../api/axios";
 import { appNavigate } from "../router/navigation";
-import { captureFeatureError } from "../observability/sentry";
+import { captureFeatureError } from "../observability/errors";
 
 let listenerHandles = [];
 

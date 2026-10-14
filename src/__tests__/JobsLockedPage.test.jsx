@@ -37,8 +37,8 @@ vi.mock("../api/streakApi", () => ({
   getStreakData: (...args) => mockGetStreak(...args),
 }));
 
-vi.mock("../observability/clarity", () => ({
-  trackClarityEvent: vi.fn(),
+vi.mock("../observability/journeyEvents", () => ({
+  trackJourneyEvent: vi.fn(),
 }));
 
 vi.mock("../utils/haptics", () => ({

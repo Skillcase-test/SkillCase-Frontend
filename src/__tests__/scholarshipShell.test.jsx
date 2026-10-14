@@ -18,8 +18,8 @@ vi.mock("../api/learnGermanApi", () => ({
 vi.mock("react-redux", () => ({
   useSelector: () => ({ user: null }),
 }));
-vi.mock("../observability/clarity", () => ({
-  trackClarityEvent: vi.fn(),
+vi.mock("../observability/journeyEvents", () => ({
+  trackJourneyEvent: vi.fn(),
 }));
 vi.mock("../utils/haptics", () => ({
   hapticLight: vi.fn(),

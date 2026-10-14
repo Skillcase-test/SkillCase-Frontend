@@ -19,7 +19,7 @@ import {
   useUsageLimitGate,
   useUsageLimitModule,
 } from "../../hooks/useUsageLimits";
-import { setClarityTag, trackClarityEvent } from "../../observability/clarity";
+import { trackJourneyEvent } from "../../observability/journeyEvents";
 
 const EMPTY = [];
 
@@ -42,10 +42,7 @@ export default function LearnGermanV2Home() {
   const mountedRef = useRef(true);
 
   useEffect(() => {
-    setClarityTag("lg_funnel", "learn_home");
-    setClarityTag("lg_mode", "learn");
-    setClarityTag("lg_variant", "v2");
-    trackClarityEvent("lg_home_viewed", {
+    trackJourneyEvent("lg_home_viewed", {
       lg_funnel: "learn_home",
       lg_mode: "learn",
       lg_variant: "v2",

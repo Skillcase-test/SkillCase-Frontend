@@ -13,8 +13,7 @@ vi.mock("../utils/maintenanceSignal", () => ({
   isMaintenanceResponse: () => false,
   setMaintenanceStatus: vi.fn(),
 }));
-vi.mock("../observability/sentry", () => ({
-  addSentryBreadcrumb: vi.fn(),
+vi.mock("../observability/errors", () => ({
   captureApiError: vi.fn(),
 }));
 vi.mock("../telemetry", () => ({

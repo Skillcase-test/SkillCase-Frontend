@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { getLGMode, setLGMode } from "../api/learnGermanApi";
-import { trackClarityEvent } from "../observability/clarity";
+import { trackJourneyEvent } from "../observability/journeyEvents";
 import { hapticLight } from "../utils/haptics";
 import { isPracticeSuiteLevel } from "../utils/b1Progress";
 import { syncModeIntoRedux } from "../utils/lgMode";
@@ -244,7 +244,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
           detail: { mode: "job_screening" },
         }),
       );
-      trackClarityEvent("lg_mode_switched", {
+      trackJourneyEvent("lg_mode_switched", {
         lg_mode: "job_screening",
         lg_mode_source: activeTab,
         lg_switcher_route: location.pathname,
@@ -257,7 +257,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
     }
 
     if (tab === "courses") {
-      trackClarityEvent("lg_mode_switched", {
+      trackJourneyEvent("lg_mode_switched", {
         lg_mode: "courses",
         lg_mode_source: activeTab,
         lg_switcher_route: location.pathname,
@@ -280,7 +280,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
 
     // Notify Navbar and any other listeners immediately
     window.dispatchEvent(new CustomEvent("lgModeChange", { detail: { mode } }));
-    trackClarityEvent("lg_mode_switched", {
+    trackJourneyEvent("lg_mode_switched", {
       lg_mode: mode,
       lg_mode_source: activeTab,
       lg_switcher_route: location.pathname,

@@ -18,7 +18,7 @@ import {
 import { hapticLight, hapticMedium, hapticHeavy } from "../../../utils/haptics";
 import { trackAppAnalyticsEvent } from "../../../utils/appAnalytics";
 import { recordEvent } from "../../../telemetry";
-import { setClarityTag, trackClarityEvent } from "../../../observability/clarity";
+import { trackJourneyEvent } from "../../../observability/journeyEvents";
 import {
   preloadMayaTTSText,
   resetLastPlayedDialogue,
@@ -373,10 +373,7 @@ export default function NewLessonFlow() {
             is_resume: data.user_status === "in_progress",
           });
         }
-        setClarityTag("lg_funnel", "lesson");
-        setClarityTag("lg_lesson_id", chapterId);
-        setClarityTag("lg_lesson_title", data.title || "unknown");
-        trackClarityEvent("lg_lesson_opened", {
+        trackJourneyEvent("lg_lesson_opened", {
           lg_funnel: "lesson",
           lg_lesson_id: chapterId,
           lg_lesson_title: data.title || "unknown",
@@ -585,7 +582,7 @@ export default function NewLessonFlow() {
             }),
           );
         }
-        trackClarityEvent("lg_lesson_completed", {
+        trackJourneyEvent("lg_lesson_completed", {
           lg_funnel: "lesson",
           lg_lesson_id: chapterId,
           lg_lesson_title: lessonData?.title || "unknown",

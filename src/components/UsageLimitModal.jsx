@@ -57,7 +57,7 @@ const PREMIUM_FEATURES = [
   "Exam practice",
 ];
 
-export default function UsageLimitModal() {
+export default function UsageLimitModal({ initialEvent = null }) {
   const [event, setEvent] = useState(null);
   const [expired, setExpired] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -253,9 +253,11 @@ export default function UsageLimitModal() {
       }
     };
     window.addEventListener("skillcase:usage-limit", onUsageLimitHit);
+    // The event that caused this lazy mount fired before the listener existed
+    if (initialEvent) onUsageLimitHit(initialEvent);
     return () =>
       window.removeEventListener("skillcase:usage-limit", onUsageLimitHit);
-  }, []);
+  }, [initialEvent]);
 
   useEffect(() => {
     if (!event || !event.reset_at) return undefined;

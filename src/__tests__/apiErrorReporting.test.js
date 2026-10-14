@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const captureApiError = vi.fn();
-const addSentryBreadcrumb = vi.fn();
 const recordEvent = vi.fn();
 const dispatch = vi.fn();
 const setMaintenanceStatus = vi.fn();
@@ -21,9 +20,8 @@ vi.mock("../utils/maintenanceSignal", async () => {
     setMaintenanceStatus: (...a) => setMaintenanceStatus(...a),
   };
 });
-vi.mock("../observability/sentry", () => ({
+vi.mock("../observability/errors", () => ({
   captureApiError: (...a) => captureApiError(...a),
-  addSentryBreadcrumb: (...a) => addSentryBreadcrumb(...a),
 }));
 vi.mock("../telemetry", () => ({
   getTelemetryHeaders: () => ({}),

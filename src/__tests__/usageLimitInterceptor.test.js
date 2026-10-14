@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const captureApiError = vi.fn();
-const addSentryBreadcrumb = vi.fn();
 const recordEvent = vi.fn();
 const dispatch = vi.fn();
 const setMaintenanceStatus = vi.fn();
@@ -18,9 +17,8 @@ vi.mock("../utils/maintenanceSignal", async () => {
   const actual = await vi.importActual("../utils/maintenanceSignal");
   return { ...actual, setMaintenanceStatus: (...a) => setMaintenanceStatus(...a) };
 });
-vi.mock("../observability/sentry", () => ({
+vi.mock("../observability/errors", () => ({
   captureApiError: (...a) => captureApiError(...a),
-  addSentryBreadcrumb: (...a) => addSentryBreadcrumb(...a),
 }));
 vi.mock("../telemetry", () => ({
   getTelemetryHeaders: () => ({}),
@@ -95,7 +93,7 @@ describe("axios usage-limit 402 handling", () => {
     window.removeEventListener("skillcase:usage-limit", listener);
   });
 
-  it("does not file a Sentry error report for a usage-limit 402 (still an expected status)", async () => {
+  it("does not file an error report for a usage-limit 402 (still an expected status)", async () => {
     vi.spyOn(api, "post").mockResolvedValue({ data: {} });
     await expect(
       onRejected(failure({ status: 402, data: { reason: "usage_limit" } })),

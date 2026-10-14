@@ -98,9 +98,8 @@ vi.mock("../telemetry/flow", () => ({
   useFlowJourney: vi.fn(),
 }));
 
-vi.mock("../observability/clarity", () => ({
-  setClarityTag: vi.fn(),
-  trackClarityEvent: vi.fn(),
+vi.mock("../observability/journeyEvents", () => ({
+  trackJourneyEvent: vi.fn(),
 }));
 
 vi.mock("../utils/haptics", () => ({ hapticLight: vi.fn() }));

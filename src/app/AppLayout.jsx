@@ -16,7 +16,6 @@ import {
 } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import NewNavbar from "../components/NewNavbar";
-import PaywallBlocker from "../components/PaywallBlocker";
 import GuideSpotlight from "../components/GuideSpotlight";
 import BottomTabBar from "../components/BottomTabBar";
 import TopModeSwitcher from "../components/TopModeSwitcher";
@@ -25,14 +24,12 @@ import OtaUpdateModal from "../components/OtaUpdateModal";
 import OtaAvatarIndicator from "../components/OtaAvatarIndicator";
 import { setOtaProgress } from "../utils/otaProgress";
 import MaintenanceModal from "../components/MaintenanceModal";
-import UsageLimitModal from "../components/UsageLimitModal";
-import PromoAdsHost from "../components/promoAds/PromoAdsHost";
+import UsageLimitModalHost from "../components/UsageLimitModalHost";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
 import AppSplashScreen from "../components/common/AppSplashScreen";
 import { SplashScreen } from "@capacitor/splash-screen";
 import { useDispatch, useSelector } from "react-redux";
 import { store } from "../redux/store";
-import SupportWidget from "../components/SupportWidget";
 import api from "../api/axios";
 import { isPracticeSuiteLevel } from "../utils/b1Progress";
 import {
@@ -102,12 +99,7 @@ import {
   subscribeMaintenanceStatus,
 } from "../utils/maintenanceSignal";
 import { APP_VERSION } from "../config/appVersion";
-import {
-  addSentryBreadcrumb,
-  captureFeatureError,
-  setSentryUserFromAuth,
-} from "../observability/sentry";
-import { identifyUserInClarity } from "../observability/clarity";
+import { captureFeatureError } from "../observability/errors";
 import {
   flushTelemetry,
   recordEvent,
@@ -125,6 +117,9 @@ const StreakLeaderboardModal = lazy(() => import("../components/StreakLeaderboar
 const PremiumActivatedModal = lazy(() => import("../components/PremiumActivatedModal"));
 const TrialCountdownModal = lazy(() => import("../components/TrialCountdownModal"));
 const TrialEndedModal = lazy(() => import("../components/TrialEndedModal"));
+const PaywallBlocker = lazy(() => import("../components/PaywallBlocker"));
+const PromoAdsHost = lazy(() => import("../components/promoAds/PromoAdsHost"));
+const SupportWidget = lazy(() => import("../components/SupportWidget"));
 
 const MAX_RETRY_ATTEMPTS = 5;
 
@@ -336,14 +331,6 @@ export default function AppLayout() {
   }, [token]);
 
   useEffect(() => {
-    addSentryBreadcrumb({
-      category: "navigation",
-      message: "route-change",
-      data: {
-        path: location.pathname,
-        search: location.search,
-      },
-    });
     recordEvent("navigation.route_changed", {
       domain: "navigation",
       feature: location.pathname,
@@ -357,8 +344,6 @@ export default function AppLayout() {
 
   useEffect(() => {
     setTelemetryIdentity(user, token);
-    setSentryUserFromAuth(user);
-    identifyUserInClarity(user);
   }, [user, token]);
 
   // Keyed on the account, not the user object — profile refreshes (coins etc.)
@@ -545,11 +530,6 @@ export default function AppLayout() {
                 status: data.status,
               },
             });
-            addSentryBreadcrumb({
-              category: "ota",
-              message: "play-store-update-required",
-              data: { currentVersion: data.currentVersion },
-            });
             api
               .post("/updates/log", {
                 event: "play_store_redirect",
@@ -565,11 +545,6 @@ export default function AppLayout() {
             const bundleExists = bundles.bundleIds?.includes(data.version);
 
             if (bundleExists) {
-              addSentryBreadcrumb({
-                category: "ota",
-                message: "bundle-already-exists",
-                data: { version: data.version, silent: isSilent },
-              });
               console.log(
                 `Bundle ${data.version} already exists, setting as next bundle${isSilent ? " (silent)" : ""}`,
               );
@@ -586,11 +561,6 @@ export default function AppLayout() {
                 entity_id: data.version,
                 lifecycle: "started",
                 attributes: { state: "ota_downloading", mode: "silent" },
-              });
-              addSentryBreadcrumb({
-                category: "ota",
-                message: "download-started-silent",
-                data: { version: data.version },
               });
               api
                 .post("/updates/log", {
@@ -619,11 +589,6 @@ export default function AppLayout() {
                 outcome: "ready",
                 attributes: { state: "ota_ready", mode: "silent" },
               });
-              addSentryBreadcrumb({
-                category: "ota",
-                message: "download-ready-silent",
-                data: { version: data.version },
-              });
               return;
             }
 
@@ -636,11 +601,6 @@ export default function AppLayout() {
               entity_id: data.version,
               lifecycle: "started",
               attributes: { state: "ota_downloading" },
-            });
-            addSentryBreadcrumb({
-              category: "ota",
-              message: "download-started",
-              data: { version: data.version },
             });
 
             // Real byte progress from the plugin drives the avatar ring; a
@@ -704,11 +664,6 @@ export default function AppLayout() {
               lifecycle: "succeeded",
               outcome: "ready",
               attributes: { state: "ota_ready" },
-            });
-            addSentryBreadcrumb({
-              category: "ota",
-              message: "download-ready",
-              data: { version: data.version },
             });
             return;
           }
@@ -852,10 +807,6 @@ export default function AppLayout() {
           if (response.ok) {
             setMaintenanceStatus(false);
             setMaintenanceOpen(false);
-            addSentryBreadcrumb({
-              category: "maintenance",
-              message: "health-check-ok",
-            });
             return;
           }
 
@@ -863,32 +814,18 @@ export default function AppLayout() {
           if (isMaintenanceResponse({ status: response.status, data })) {
             setMaintenanceStatus(true);
             setMaintenanceOpen(true);
-            addSentryBreadcrumb({
-              category: "maintenance",
-              message: "maintenance-mode-confirmed",
-            });
             return;
           }
 
           if (attempt === maxRetries) {
-            addSentryBreadcrumb({
-              category: "maintenance",
-              message: "health-check-unavailable",
-              data: { status: response.status },
-            });
             return;
           }
-        } catch (error) {
+        } catch {
           clearTimeout(timeoutId);
 
           if (attempt === maxRetries) {
             // A timeout or network failure is not proof of maintenance. Keep
             // the app usable and wait for the next scheduled health check.
-            addSentryBreadcrumb({
-              category: "maintenance",
-              message: "health-check-network-failure",
-              data: { error: error?.name || "unknown" },
-            });
             return;
           }
         }
@@ -1004,7 +941,7 @@ export default function AppLayout() {
           onOpenPlayStore={openPlayStore}
         />
         <MaintenanceModal open={maintenanceOpen} onRetry={checkHealth} />
-        <UsageLimitModal />
+        <UsageLimitModalHost />
         <Suspense fallback={null}>
           <StreakLeaderboardModal />
         </Suspense>
@@ -1023,9 +960,11 @@ export default function AppLayout() {
 
         {/* Promo ads — hub screens only, never under a blocking overlay */}
         {isShellRoute(location.pathname) && isAuthenticated && (
-          <PromoAdsHost
-            blocked={maintenanceOpen || otaState === "play_store" || isPaywallLocked}
-          />
+          <Suspense fallback={null}>
+            <PromoAdsHost
+              blocked={maintenanceOpen || otaState === "play_store" || isPaywallLocked}
+            />
+          </Suspense>
         )}
 
         <A1ProductTour>
@@ -1043,11 +982,14 @@ export default function AppLayout() {
                 <ConditionalTopSwitcher />
                 <TopSwitcherTour />
                 {isPaywallLocked && !isPaymentRoute(location.pathname) && (
-                  <PaywallBlocker
-                    user={user}
-                    dispatch={dispatch}
-                    onSuccess={() => setShowPaymentSuccess(true)}
-                  />
+                  // The placeholder still swallows taps while the blocker loads
+                  <Suspense fallback={<div className="fixed inset-0 z-9999" />}>
+                    <PaywallBlocker
+                      user={user}
+                      dispatch={dispatch}
+                      onSuccess={() => setShowPaymentSuccess(true)}
+                    />
+                  </Suspense>
                 )}
 
                 {/* Premium Activated Modal — revamped success state */}
@@ -1091,7 +1033,9 @@ export default function AppLayout() {
                 <div className="mt-auto">
                   {routeHandle.footer && <Footer />}
                 </div>
-                <SupportWidget />
+                <Suspense fallback={null}>
+                  <SupportWidget />
+                </Suspense>
                 </B2ProductTour>
               </B1ProductTour>
             </A2ProductTour>

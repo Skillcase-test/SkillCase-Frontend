@@ -1,11 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <!-- Google tag (gtag.js) -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=G-CB8X1XP8FL"
-    ></script>
+    <!-- GA + Meta Pixel: queues exist now, scripts load 1s after the app and replay them -->
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag() {
@@ -13,11 +9,8 @@
       }
       gtag("js", new Date());
       gtag("config", "G-CB8X1XP8FL", { send_page_view: false });
-    </script>
 
-    <!-- Meta Pixel Code -->
-    <script>
-      !(function (f, b, e, v, n, t, s) {
+      !(function (f, n) {
         if (f.fbq) return;
         n = f.fbq = function () {
           n.callMethod
@@ -29,31 +22,27 @@
         n.loaded = !0;
         n.version = "2.0";
         n.queue = [];
-        t = b.createElement(e);
-        t.async = !0;
-        t.src = v;
-        s = b.getElementsByTagName(e)[0];
-        s.parentNode.insertBefore(t, s);
-      })(
-        window,
-        document,
-        "script",
-        "https://connect.facebook.net/en_US/fbevents.js"
-      );
+      })(window);
       fbq("init", "1254088988549816");
       fbq("track", "PageView");
-    </script>
-    <!-- End Meta Pixel Code -->
 
-    <!-- Microsoft Clarity -->
-    <script type="text/javascript">
-      (function(c,l,a,r,i,t,y){
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-      })(window, document, "clarity", "script", "wlv5t10mak");
+      (function () {
+        function loadScript(src) {
+          var t = document.createElement("script");
+          t.async = true;
+          t.src = src;
+          document.head.appendChild(t);
+        }
+        function loadTags() {
+          setTimeout(function () {
+            loadScript("https://www.googletagmanager.com/gtag/js?id=G-CB8X1XP8FL");
+            loadScript("https://connect.facebook.net/en_US/fbevents.js");
+          }, 1000);
+        }
+        if (document.readyState === "complete") loadTags();
+        else window.addEventListener("load", loadTags, { once: true });
+      })();
     </script>
-    <!-- End Microsoft Clarity -->
 
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/s.webp" />

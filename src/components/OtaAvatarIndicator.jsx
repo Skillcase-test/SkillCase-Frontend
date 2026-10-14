@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useOtaProgress } from "../utils/otaProgress";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 
 const RING_PAD = 5;
 const CARD_W = 230;
@@ -103,7 +103,7 @@ export default function OtaAvatarIndicator({
   return createPortal(
     <AnimatePresence>
       {show && (
-      <motion.div
+      <m.div
         key="ota-avatar"
         className="fixed left-0 top-0 z-[999]"
         style={{
@@ -133,7 +133,7 @@ export default function OtaAvatarIndicator({
         {/* Announcement card (crossfades out while docking) */}
         <AnimatePresence>
           {phase === "card" && (
-            <motion.div
+            <m.div
               key="card"
               className="absolute inset-0 flex items-center gap-2.5 rounded-2xl bg-white px-3.5 shadow-xl border border-slate-200/70"
               initial={{ opacity: 1 }}
@@ -170,14 +170,14 @@ export default function OtaAvatarIndicator({
               <span className="shrink-0 text-[11px] font-bold tabular-nums text-slate-500">
                 {Math.round(progress)}%
               </span>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 
         {/* Docked ring (fades in while morphing onto the avatar) */}
         <AnimatePresence>
           {phase === "docked" && (
-            <motion.div
+            <m.div
               key="ring"
               className="absolute inset-0"
               initial={{ opacity: 0 }}
@@ -211,7 +211,7 @@ export default function OtaAvatarIndicator({
               </svg>
 
               {ready && (
-                <motion.span
+                <m.span
                   className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-[#22c55e] shadow ring-2 ring-white"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
@@ -229,12 +229,12 @@ export default function OtaAvatarIndicator({
                   >
                     <polyline points="2 6.5 4.8 9.2 10 3" />
                   </svg>
-                </motion.span>
+                </m.span>
               )}
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
-      </motion.div>
+      </m.div>
       )}
 
       {/* Update-now/later popover anchored under the avatar */}
@@ -245,7 +245,7 @@ export default function OtaAvatarIndicator({
             className="fixed inset-0 z-[998]"
             onClick={() => setDialogOpen(false)}
           />
-          <motion.div
+          <m.div
             key="ota-popover"
             className="fixed z-[1000] w-56 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-2xl"
             style={{ top: popoverTop, left: popoverLeft }}
@@ -272,7 +272,7 @@ export default function OtaAvatarIndicator({
             >
               Later
             </button>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>,

@@ -46,8 +46,8 @@ vi.mock("../hooks/useFeatureFlags", () => ({
   }),
 }));
 
-vi.mock("../observability/clarity", () => ({
-  trackClarityEvent: vi.fn(),
+vi.mock("../observability/journeyEvents", () => ({
+  trackJourneyEvent: vi.fn(),
 }));
 
 vi.mock("../utils/haptics", () => ({

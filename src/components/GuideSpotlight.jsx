@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 export default function GuideSpotlight({ rect, radius = 22, onClick, children }) {
   const padding = 12;
@@ -37,7 +37,7 @@ export default function GuideSpotlight({ rect, radius = 22, onClick, children })
         style={{ left: 0, top: top + height, right: 0, bottom: 0 }}
       />
 
-      <motion.button
+      <m.button
         type="button"
         onClick={onClick}
         className="absolute bg-transparent cursor-pointer"
@@ -46,7 +46,7 @@ export default function GuideSpotlight({ rect, radius = 22, onClick, children })
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
       >
-        <motion.span
+        <m.span
           className="absolute inset-0 border-[3px] border-white rounded-[inherit] shadow-[0_0_0_1px_rgba(255,255,255,0.75),0_18px_45px_rgba(0,0,0,0.3)]"
           animate={{
             boxShadow: [
@@ -56,9 +56,9 @@ export default function GuideSpotlight({ rect, radius = 22, onClick, children })
           }}
           transition={{ duration: 1.35, repeat: Infinity, ease: "easeOut" }}
         />
-      </motion.button>
+      </m.button>
 
-      <motion.div
+      <m.div
         className="absolute w-[300px] max-w-[calc(100vw-32px)] rounded-[22px] bg-white px-4 py-3 shadow-[0_20px_45px_rgba(15,23,42,0.28)] border border-white/80"
         style={{ top: calloutTop, left: calloutLeft }}
         initial={{ y: 10, opacity: 0, scale: 0.96 }}
@@ -77,7 +77,7 @@ export default function GuideSpotlight({ rect, radius = 22, onClick, children })
           style={{ left: `${arrowLeft}px` }}
         />
         {children}
-      </motion.div>
+      </m.div>
     </div>
   );
 }

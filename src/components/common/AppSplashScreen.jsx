@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
 
 // Same files as the inline splash in index.html, so they're already decoded
 // and the handover from HTML to React is invisible
@@ -18,10 +17,7 @@ export default function AppSplashScreen({ message = "Hi, I am Maya.", showTimeou
   }, []);
 
   return (
-    <motion.div
-      initial={false}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.35, ease: "easeInOut" } }}
+    <div
       className="fixed inset-0 z-[99999] bg-gradient-to-b from-[#002856] to-[#1A4B9F] flex flex-col items-center justify-between pt-16 pb-0 overflow-hidden select-none"
       style={{
         paddingTop: "max(env(safe-area-inset-top), 4rem)",
@@ -43,23 +39,17 @@ export default function AppSplashScreen({ message = "Hi, I am Maya.", showTimeou
 
       {/* Center/Bottom Mascot & Speech bubble */}
       <div className="relative z-10 w-full flex-1 flex flex-col items-center justify-end">
-        <motion.div
-          initial={false}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
+        <div
           className="mb-3 relative bg-white px-6 py-3 rounded-2xl shadow-xl flex items-center justify-center max-w-[85%]"
         >
           <span className="text-black text-[15px] font-semibold text-center leading-tight">
             {message}
           </span>
           <div className="absolute -bottom-[8px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[8px] border-l-transparent border-r-[8px] border-r-transparent border-t-[10px] border-t-white" />
-        </motion.div>
+        </div>
 
         {/* Mascot Image */}
-        <motion.img
-          initial={false}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
+        <img
           src={mayaStanding}
           alt="Maya"
           className="w-[75%] max-w-[260px] sm:max-w-[280px] md:max-w-[300px] object-contain object-bottom"
@@ -68,9 +58,8 @@ export default function AppSplashScreen({ message = "Hi, I am Maya.", showTimeou
 
       {/* Optional graceful fallback if network is very slow */}
       {delayedNotice && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+        <div
+          style={{ animation: "splash-notice-in 0.3s ease-out" }}
           className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center gap-2"
         >
           <span className="text-white/80 text-xs font-medium">
@@ -84,8 +73,8 @@ export default function AppSplashScreen({ message = "Hi, I am Maya.", showTimeou
               Retry
             </button>
           )}
-        </motion.div>
+        </div>
       )}
-    </motion.div>
+    </div>
   );
 }

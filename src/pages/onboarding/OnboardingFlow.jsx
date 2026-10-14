@@ -6,7 +6,7 @@ import { Capacitor, registerPlugin } from "@capacitor/core";
 import api from "../../api/axios";
 import { loginSuccess } from "../../redux/auth/authSlice";
 import { hapticLight } from "../../utils/haptics";
-import { setClarityTag, trackClarityEvent } from "../../observability/clarity";
+import { trackJourneyEvent } from "../../observability/journeyEvents";
 import { trackFlowAction, useFlowJourney } from "../../telemetry/flow";
 import { getPublicPathways } from "../../api/scholarshipExamApi";
 import { Briefcase } from "lucide-react";
@@ -21,7 +21,6 @@ function extractOtp(smsText) {
 const SmsPlugin = registerPlugin("SmsPlugin");
 
 // Mascot Assets
-import mayaStanding from "../../assets/onboarding/mayaStanding.webp";
 import mayaWave from "../../assets/onboarding/mayaWave.webp";
 import mayaSmiling from "../../assets/onboarding/mayaSmiling.webp";
 import mayaFull from "../../assets/onboarding/mayaFull.webp";
@@ -30,7 +29,6 @@ import nurseIcon from "../../assets/onboarding/nurse.webp";
 import studentIcon from "../../assets/onboarding/student.webp";
 import supportIcon from "../../assets/onboarding/support.webp";
 import otherIcon from "../../assets/onboarding/other.webp";
-import whiteLogo from "../../assets/onboarding/white_mainlogo.webp";
 import germanFlag from "../../assets/onboarding/germanFlag.webp";
 
 // Shared Components
@@ -47,6 +45,10 @@ const navigateAfterOnboarding = (userData, navigate, dest, state = {}) => {
   navigate(dest, { replace: true, ...state });
 };
 import { setLgFirstLandingMarker } from "../learnGerman/lgFirstTimeGuide";
+
+// Same files as the splash, so they are already cached when onboarding opens
+const mayaStanding = "/mayaStanding.webp";
+const whiteLogo = "/white_mainlogo.webp";
 
 // Map German level label to proficiency route
 const LEVEL_ROUTE_MAP = {
@@ -365,9 +367,7 @@ const OnboardingFlow = () => {
   }, [step]);
 
   useEffect(() => {
-    setClarityTag("lg_funnel", "onboarding");
-    setClarityTag("lg_onboarding_step", step);
-    trackClarityEvent(
+    trackJourneyEvent(
       ONBOARDING_STEP_EVENTS[step] || "lg_onboarding_step_viewed",
       {
         lg_funnel: "onboarding",
@@ -468,12 +468,12 @@ const OnboardingFlow = () => {
     setLoading(true);
     setError("");
     try {
-      trackClarityEvent("lg_onboarding_otp_requested", {
+      trackJourneyEvent("lg_onboarding_otp_requested", {
         lg_funnel: "onboarding",
         lg_onboarding_step: 2,
       });
       await api.post("/user/send-otp", { phone: phoneNumber });
-      trackClarityEvent("lg_onboarding_otp_sent", {
+      trackJourneyEvent("lg_onboarding_otp_sent", {
         lg_funnel: "onboarding",
         lg_onboarding_step: 3,
       });
@@ -528,7 +528,7 @@ const OnboardingFlow = () => {
         phone: phoneNumber,
         code,
       });
-      trackClarityEvent(
+      trackJourneyEvent(
         "lg_onboarding_otp_verified",
         {
           lg_funnel: "onboarding",
@@ -702,7 +702,7 @@ const OnboardingFlow = () => {
       });
       dispatch(loginSuccess({ token: data.token, user: data.user }));
       localStorage.setItem("lg_preferred_mode", "job_screening");
-      trackClarityEvent(
+      trackJourneyEvent(
         "lg_onboarding_completed",
         {
           lg_funnel: "onboarding",
@@ -781,7 +781,7 @@ const OnboardingFlow = () => {
       });
       dispatch(loginSuccess({ token: data.token, user: data.user }));
       localStorage.setItem("lg_preferred_mode", "scholarship");
-      trackClarityEvent(
+      trackJourneyEvent(
         "lg_onboarding_completed",
         {
           lg_funnel: "onboarding",
@@ -870,7 +870,7 @@ const OnboardingFlow = () => {
         "lg_preferred_mode",
         germanPrefCode === "2" ? "practice" : "learn",
       );
-      trackClarityEvent(
+      trackJourneyEvent(
         "lg_onboarding_completed",
         {
           lg_funnel: "onboarding",
@@ -946,7 +946,7 @@ const OnboardingFlow = () => {
         "lg_preferred_mode",
         preference === "3" ? "job_screening" : "practice",
       );
-      trackClarityEvent(
+      trackJourneyEvent(
         "lg_onboarding_completed",
         {
           lg_funnel: "onboarding",
@@ -1013,7 +1013,7 @@ const OnboardingFlow = () => {
       step: 5,
       selectionCode: normalizeOnboardingValue(value),
     });
-    trackClarityEvent("lg_onboarding_occupation_selected", {
+    trackJourneyEvent("lg_onboarding_occupation_selected", {
       lg_funnel: "onboarding",
       lg_occupation: normalizeOnboardingValue(value),
       lg_onboarding_step: 5,
@@ -1026,7 +1026,7 @@ const OnboardingFlow = () => {
       step: 7,
       selectionCode: normalizeOnboardingValue(value),
     });
-    trackClarityEvent("lg_onboarding_status_selected", {
+    trackJourneyEvent("lg_onboarding_status_selected", {
       lg_funnel: "onboarding",
       lg_german_status: normalizeOnboardingValue(value),
       lg_onboarding_step: 7,
@@ -1039,7 +1039,7 @@ const OnboardingFlow = () => {
       step: 8,
       selectionCode: normalizeOnboardingValue(value.split("\n")[0]),
     });
-    trackClarityEvent("lg_onboarding_level_selected", {
+    trackJourneyEvent("lg_onboarding_level_selected", {
       lg_funnel: "onboarding",
       lg_selected_level: normalizeOnboardingValue(value.split("\n")[0]),
       lg_onboarding_step: 8,
@@ -1052,7 +1052,7 @@ const OnboardingFlow = () => {
       step: 9,
       selectionCode: value,
     });
-    trackClarityEvent("lg_onboarding_preference_selected", {
+    trackJourneyEvent("lg_onboarding_preference_selected", {
       lg_funnel: "onboarding",
       lg_selected_mode: value === "2" ? "practice" : "learn",
       lg_onboarding_step: 9,

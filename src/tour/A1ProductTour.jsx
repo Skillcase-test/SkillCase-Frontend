@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { driver } from "driver.js";
-import "driver.js/dist/driver.css";
-import "./tourStyles.css";
+import { getDriver, loadDriver } from "./driverLoader";
 import { useSelector, useDispatch } from "react-redux";
 import { useLocation } from "react-router-dom";
 import { setA1OnboardingComplete } from "../redux/auth/authSlice";
@@ -212,7 +210,14 @@ export default function A1ProductTour({ children }) {
     setTimeout(() => setShowSuccessPopup(false), 2000);
   }, []);
 
+  useEffect(() => {
+    if (isA1 && !isDone) loadDriver();
+  }, [isA1, isDone]);
+
+  const pendingStartRef = useRef(0);
+
   const destroyDriver = useCallback(() => {
+    pendingStartRef.current += 1;
     cleanupTapOverlays();
     if (driverRef.current) {
       driverRef.current.destroy();
@@ -251,6 +256,17 @@ export default function A1ProductTour({ children }) {
 
   const startDriver = useCallback(
     (steps, { onComplete, onClose, showSkipBtn = false } = {}) => {
+      const driver = getDriver();
+      if (!driver) {
+        // Not preloaded yet: start once it lands, unless the tour moved on meanwhile
+        const token = ++pendingStartRef.current;
+        loadDriver().then(() => {
+          if (token === pendingStartRef.current) {
+            startDriver(steps, { onComplete, onClose, showSkipBtn });
+          }
+        });
+        return;
+      }
       destroyDriver();
 
       const d = driver({

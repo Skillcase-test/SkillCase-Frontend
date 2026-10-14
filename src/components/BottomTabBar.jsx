@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { setUser } from "../redux/auth/authSlice";
 import api from "../api/axios";
 import { getStreakData } from "../api/streakApi";
@@ -439,7 +439,7 @@ export default function BottomTabBar() {
           )}
 
           {/* Sleek Arch SVG (Solid White Interior + 4px Track + 4px Royal Blue Arc) */}
-          <motion.div
+          <m.div
             animate={
               vaultAnimationState.active
                 ? { scale: [1, 1.15, 0.95, 1.05, 1], y: [0, -4, 1, 0] }
@@ -494,8 +494,8 @@ export default function BottomTabBar() {
                 className="transition-all duration-700 ease-out"
               />
             </svg>
-          </motion.div>
-          <motion.img
+          </m.div>
+          <m.img
             src={germanFlagImg}
             alt="German Flag"
             animate={
@@ -660,7 +660,7 @@ function SpeedometerCounter({
   }, [value]);
 
   const content = (
-    <motion.div
+    <m.div
       animate={isCounting ? { scale: 1.2, y: -3 } : { scale: 1, y: 0 }}
       transition={{
         type: "spring",
@@ -669,7 +669,7 @@ function SpeedometerCounter({
       }}
       className="flex flex-col items-center justify-center gap-0.5"
     >
-      <motion.img
+      <m.img
         src={iconUrl}
         alt={iconAlt}
         className={iconClass}
@@ -689,7 +689,7 @@ function SpeedometerCounter({
         {displayValue}
         {suffix}
       </span>
-    </motion.div>
+    </m.div>
   );
 
   if (isButton) {
@@ -730,7 +730,7 @@ function WordVaultFlyInAnimation({
   return (
     <div className="absolute inset-0 pointer-events-none z-30 overflow-visible flex items-center justify-center">
       {/* Floating Badge above Arch */}
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: -45, scale: 0.8 }}
         animate={{
           opacity: [0, 1, 1, 0],
@@ -746,7 +746,7 @@ function WordVaultFlyInAnimation({
       >
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
         <span>+{count} words added</span>
-      </motion.div>
+      </m.div>
 
       {/* Floating Word Pills (Only on First-Time Full Animation) */}
       {isFullAnimation &&
@@ -757,7 +757,7 @@ function WordVaultFlyInAnimation({
           const delay = index * 0.22;
 
           return (
-            <motion.div
+            <m.div
               key={`${item.word}-${index}`}
               initial={{
                 x: startX,
@@ -781,7 +781,7 @@ function WordVaultFlyInAnimation({
             >
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
               <span className="font-bold">{item.word}</span>
-            </motion.div>
+            </m.div>
           );
         })}
     </div>

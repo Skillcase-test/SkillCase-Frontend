@@ -1,4 +1,4 @@
-import { isChunkLoadError, reloadForChunkError } from "./utils/chunkErrors";
+import { reloadForChunkError } from "./utils/chunkErrors";
 
 // Vite emits this event when a lazy-loaded asset from an older deployment is unavailable.
 window.addEventListener("vite:preloadError", (event) => {
@@ -29,34 +29,30 @@ import App from './App';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store,persistor} from './redux/store';
 import { Provider } from 'react-redux';
+import { LazyMotion } from "framer-motion";
 import "./index.css"
 
-import * as Sentry from "@sentry/react";
-import { initSentry } from "./observability/sentry";
-import AppErrorFallback from "./components/AppErrorFallback";
+import AppErrorBoundary from "./components/AppErrorBoundary";
 import { initializeTelemetry } from "./telemetry";
 import AppSplashScreen from "./components/common/AppSplashScreen";
 import { UsageLimitProvider } from "./hooks/useUsageLimits";
 
 initializeTelemetry();
-initSentry();
+
+// framer animation features load after first paint; startup chrome uses m.*
+const loadMotionFeatures = () => import("./app/motionFeatures").then((mod) => mod.default);
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <Sentry.ErrorBoundary
-        fallback={({ error, resetError }) => (
-          <AppErrorFallback
-            staleChunk={isChunkLoadError(error)}
-            resetError={resetError}
-          />
-        )}
-      >
-        <Provider store={store}>
-          <PersistGate loading={<AppSplashScreen message="Hi, I am Maya." />} persistor={persistor}>
-              <UsageLimitProvider>
-                <App />
-              </UsageLimitProvider>
-          </PersistGate>
-        </Provider>
-  </Sentry.ErrorBoundary>
+  <AppErrorBoundary>
+    <LazyMotion features={loadMotionFeatures}>
+      <Provider store={store}>
+        <PersistGate loading={<AppSplashScreen message="Hi, I am Maya." />} persistor={persistor}>
+          <UsageLimitProvider>
+            <App />
+          </UsageLimitProvider>
+        </PersistGate>
+      </Provider>
+    </LazyMotion>
+  </AppErrorBoundary>
 );

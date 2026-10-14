@@ -7,7 +7,6 @@ import mockTest from "./images/mocktest.webp";
 import vocabulary from "./images/vocabulary.webp";
 import interview from "./images/interview.webp";
 import grammar from "./images/grammer.webp";
-import demoCards from "./images/demoCards.webp";
 import salaryImage from "./images/salaryImage.webp";
 import germanFlag from "./images/germanFlag.svg";
 import jobsIcon from "./images/jobIcon.svg";
@@ -38,7 +37,6 @@ export const images = {
   grammar,
 
   // Section Images
-  demoCards,
   salaryImage,
 
   // Icons

@@ -2,34 +2,25 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import svgr from '@svgr/rollup'
-import { sentryVitePlugin } from "@sentry/vite-plugin";
-import { resolve } from "path";
-import { readdirSync, rmSync, statSync } from "fs";
 
-function deleteSourcemapsPlugin() {
+// Opens the API connection while the app's JS is still parsing
+function apiPreconnectPlugin(backendUrl) {
   return {
-    name: "delete-sourcemaps",
-    closeBundle() {
-      const distDir = resolve(__dirname, "dist");
-      const deleteRecursive = (dir) => {
-        for (const file of readdirSync(dir)) {
-          const fullPath = resolve(dir, file);
-          if (statSync(fullPath).isDirectory()) {
-            deleteRecursive(fullPath);
-          } else if (file.endsWith(".map")) {
-            rmSync(fullPath);
-            console.log(`[sourcemaps] Deleted: ${fullPath}`);
-          }
-        }
-      };
-      deleteRecursive(distDir);
+    name: "api-preconnect",
+    transformIndexHtml() {
+      let origin;
+      try {
+        origin = new URL(backendUrl).origin;
+      } catch {
+        return [];
+      }
+      return [{ tag: "link", attrs: { rel: "preconnect", href: origin, crossorigin: "" }, injectTo: "head" }];
     },
   };
 }
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const isProd = mode === "production";
   const buildId = String(
     env.VITE_APP_BUILD ||
     process.env.VERCEL_GIT_COMMIT_SHA ||
@@ -49,20 +40,9 @@ export default defineConfig(({ mode }) => {
         exportType: "default",
         jsxRuntime: "automatic",
       }),
-      ...(isProd
-        ? [
-            sentryVitePlugin({
-              org: env.SENTRY_ORG,
-              project: env.SENTRY_PROJECT,
-              authToken: env.SENTRY_AUTH_TOKEN,
-              telemetry: false,
-            }),
-            deleteSourcemapsPlugin(),
-          ]
-        : []),
+      apiPreconnectPlugin(env.VITE_BACKEND_URL),
     ],
   build: {
-    sourcemap: isProd,
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -80,9 +60,6 @@ export default defineConfig(({ mode }) => {
             id.includes("moment")
           ) {
             return "charts";
-          }
-          if (id.includes("@sentry")) {
-            return "sentry";
           }
           if (id.includes("@capacitor") || id.includes("@capawesome")) {
             return "capacitor";

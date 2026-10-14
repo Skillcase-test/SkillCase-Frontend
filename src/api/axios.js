@@ -6,7 +6,7 @@ import {
   isMaintenanceResponse,
   setMaintenanceStatus,
 } from "../utils/maintenanceSignal";
-import { addSentryBreadcrumb, captureApiError } from "../observability/sentry";
+import { captureApiError } from "../observability/errors";
 import {
   getTelemetryHeaders,
   getTelemetryRequestContext,
@@ -631,29 +631,7 @@ api.interceptors.response.use(
       error?.code !== "ERR_CANCELED" &&
       !isExpectedApiOutcome(error)
     ) {
-      addSentryBreadcrumb({
-        category: "api",
-        message: "api-failure",
-        level: "error",
-        data: {
-          method,
-          requestUrl,
-          statusCode: statusCode || "network_error",
-          durationBucket:
-            durationMs == null
-              ? "unknown"
-              : durationMs < 300
-                ? "<300ms"
-                : durationMs < 1000
-                  ? "300ms-1s"
-                  : ">=1s",
-        },
-      });
-
-      captureApiError(error, {
-        featureArea: "api",
-        cacheProfile,
-      });
+      captureApiError(error);
     }
 
     return Promise.reject(error);

@@ -33,7 +33,7 @@ import bg1 from "../../assets/2.webp";
 import bg2 from "../../assets/1.webp";
 import bg3 from "../../assets/3.webp";
 
-import { setClarityTag, trackClarityEvent } from "../../observability/clarity";
+import { trackJourneyEvent } from "../../observability/journeyEvents";
 import {
   getLgGuideStage,
   LG_GUIDE_STAGES,
@@ -784,9 +784,7 @@ export default function LearnGermanHome() {
   });
 
   useEffect(() => {
-    setClarityTag("lg_funnel", "learn_home");
-    setClarityTag("lg_mode", "learn");
-    trackClarityEvent(
+    trackJourneyEvent(
       "lg_home_viewed",
       {
         lg_funnel: "learn_home",
@@ -1194,7 +1192,7 @@ export default function LearnGermanHome() {
 
   const handleStart = (lesson_id, status, hasContent) => {
     if (!hasContent || usageLocked) return;
-    trackClarityEvent(
+    trackJourneyEvent(
       "lg_lesson_card_clicked",
       {
         lg_funnel: "learn_home",
