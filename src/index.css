@@ -277,3 +277,13 @@ html[data-nav-kind="tab"]::view-transition-new(root) {
   animation: vt-tab-rise 300ms cubic-bezier(0.2, 0.8, 0.2, 1) 60ms both;
 }
 @keyframes vt-tab-rise { from { opacity: 0; transform: translateY(14px); } }
+
+/* Lite mode (utils/liteMode.js): low-memory phones skip backdrop blur, which
+   re-blurs everything behind a panel each frame, and paint-heavy loops. */
+html.lite *,
+html.lite *::before,
+html.lite *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+html.lite .gp-art-shimmer { animation: none; }

@@ -1,4 +1,8 @@
 import { reloadForChunkError } from "./utils/chunkErrors";
+import { applyLiteMode } from "./utils/liteMode";
+
+// Before the first paint, so lite styles never flash in
+applyLiteMode();
 
 // Vite emits this event when a lazy-loaded asset from an older deployment is unavailable.
 window.addEventListener("vite:preloadError", (event) => {

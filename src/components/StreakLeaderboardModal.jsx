@@ -23,6 +23,7 @@ import { useSelector } from "react-redux";
 import ModalPortal from "./common/ModalPortal";
 import { getTopStreakLeaderboard } from "../api/streakApi";
 import { trackFeatureEvent } from "../telemetry/events";
+import { isLiteMode } from "../utils/liteMode";
 
 
 function LoadingState() {
@@ -42,9 +43,10 @@ function LoadingState() {
   );
 }
 
+// A spinning, screen-sized blend layer is too much for low-end GPUs; lite keeps it still
 const GodRays = () => (
   <motion.div
-    animate={{ rotate: 360 }}
+    animate={isLiteMode ? undefined : { rotate: 360 }}
     transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
     className="absolute -top-[150%] -bottom-[150%] -left-[150%] -right-[150%] z-0 pointer-events-none opacity-40 mix-blend-overlay"
     style={{
