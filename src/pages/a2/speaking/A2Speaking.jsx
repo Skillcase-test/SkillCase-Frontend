@@ -204,8 +204,7 @@ export default function A2Speaking() {
   };
   const {
     swipeDirection,
-    isDragging,
-    dragOffset,
+    drag,
     handleDragStart,
     handleDragMove,
     handleDragEnd,
@@ -320,8 +319,7 @@ export default function A2Speaking() {
             totalCards={totalCards}
             deckRotation={deckRotation}
             swipeDirection={swipeDirection || buttonSwipeDirection}
-            isDragging={isDragging}
-            dragOffset={dragOffset}
+            drag={drag}
             handleDragStart={handleDragStart}
             handleDragMove={handleDragMove}
             handleDragEnd={handleDragEnd}

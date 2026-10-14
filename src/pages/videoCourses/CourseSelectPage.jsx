@@ -6,6 +6,7 @@ import { getVideoCourses } from "../../api/videoCourseApi";
 import { trackFeatureEvent } from "../../telemetry/events";
 import { useUsageLimitGate } from "../../hooks/useUsageLimits";
 import { useCacheSeed } from "../../hooks/useCacheSeed";
+import LoadError from "./LoadError";
 
 const toCourses = (body) => (Array.isArray(body?.data) ? body.data : undefined);
 
@@ -18,8 +19,11 @@ export default function CourseSelectPage() {
   const seed = useCacheSeed(getVideoCourses, toCourses, userLevel);
   const [courses, setCourses] = useState(seed ?? []);
   const [loading, setLoading] = useState(!seed);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    setFailed(false);
     getVideoCourses(userLevel)
       .then((res) => {
         const nextCourses = res.data?.data || [];
@@ -30,9 +34,12 @@ export default function CourseSelectPage() {
           attributes: { level: userLevel },
         });
       })
-      .catch((err) => console.error("Error fetching video courses:", err))
+      .catch((err) => {
+        console.error("Error fetching video courses:", err);
+        setFailed(true);
+      })
       .finally(() => setLoading(false));
-  }, [userLevel]);
+  }, [userLevel, attempt]);
 
   const openCourse = (course) => {
     trackFeatureEvent("video_courses", "course_opened", {
@@ -65,6 +72,13 @@ export default function CourseSelectPage() {
             </div>
           ))}
         </div>
+      ) : failed && courses.length === 0 ? (
+        <LoadError
+          onRetry={() => {
+            setLoading(true);
+            setAttempt((n) => n + 1);
+          }}
+        />
       ) : courses.length === 0 ? (
         <p className="text-center text-slate-400 py-16 text-sm">
           No courses available yet.

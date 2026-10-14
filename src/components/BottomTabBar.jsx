@@ -26,11 +26,10 @@ import bookImg from "../assets/book.webp";
 import { isScholarshipRoute } from "../utils/shellRoutes";
 import { syncModeIntoRedux } from "../utils/lgMode";
 import { trackFeatureEvent } from "../telemetry/events";
+import { fetchMe, getLastMeSyncAt } from "../api/meSync";
 
-const COIN_IMG_URL =
-  "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/Coin_1_kjblsa.svg";
-const STREAK_IMG_URL =
-  "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/Gemini_Generated_Image_m7b0m6m7b0m6m7b0_2_x8mtum.svg";
+const COIN_IMG_URL = "/coin.webp";
+const STREAK_IMG_URL = "/streak-bolt.webp";
 
 /**
  * Bottom tab bar — the floating app navigation bar shown on the shell
@@ -46,7 +45,6 @@ const STREAK_IMG_URL =
  */
 // /user/me is shared by every mount of the bar (tab switches remount it)
 const ME_SYNC_INTERVAL_MS = 60_000;
-let lastMeSyncAt = 0;
 let meSyncInFlight = false;
 let meSyncAgain = false;
 
@@ -73,10 +71,8 @@ export default function BottomTabBar() {
       meSyncAgain = true;
       return;
     }
-    lastMeSyncAt = Date.now();
     meSyncInFlight = true;
-    api
-      .post("/user/me")
+    fetchMe()
       .then((res) => {
         if (res.data?.user) {
           dispatch(setUser(res.data.user));
@@ -96,8 +92,8 @@ export default function BottomTabBar() {
     // Navigation alone re-syncs at most once a minute; anything the user did
     // since the last sync (coins, streak, plan) triggers it straight away
     const stale =
-      Date.now() - lastMeSyncAt > ME_SYNC_INTERVAL_MS ||
-      (api.getLastWriteAt?.() || 0) >= lastMeSyncAt;
+      Date.now() - getLastMeSyncAt() > ME_SYNC_INTERVAL_MS ||
+      (api.getLastWriteAt?.() || 0) >= getLastMeSyncAt();
     // Wait out the screen transition so the sync doesn't land mid-animation
     const timer = stale ? setTimeout(syncUserProfile, 450) : null;
     const handleSync = () => syncUserProfile();

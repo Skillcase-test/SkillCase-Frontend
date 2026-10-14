@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import A1FlashcardCard from "./A1FlashcardCard";
+import { useDragChannel } from "../../hooks/useDragChannel";
 
 const cardColors = ["#d6bbfb", "#d9f4ff", "#ffffff"];
 const baseTransforms = [
@@ -35,18 +36,19 @@ export default function A1FlashcardDeck({
   const touchStartTimeRef = useRef(0);
   const lastFlipTimeRef = useRef(0);
 
-  // Only visual state triggers re-render for CSS transforms
-  const [dragOffsetVisual, setDragOffsetVisual] = useState(0);
-  const [isDraggingVisual, setIsDraggingVisual] = useState(false);
+  // The card follows the finger through `drag` without re-rendering; only the
+  // drag direction is state, since dragging right swaps the cards underneath
+  const drag = useDragChannel();
+  const [dragSign, setDragSign] = useState(0);
 
   const resetDrag = useCallback(() => {
     dragStartRef.current = null;
     dragOffsetRef.current = 0;
     isDraggingRef.current = false;
     hasDraggedRef.current = false;
-    setDragOffsetVisual(0);
-    setIsDraggingVisual(false);
-  }, []);
+    drag.set(0);
+    setDragSign(0);
+  }, [drag]);
 
   const triggerFlip = useCallback(() => {
     const now = Date.now();
@@ -64,9 +66,9 @@ export default function A1FlashcardDeck({
       dragOffsetRef.current = 0;
       hasDraggedRef.current = false;
       isDraggingRef.current = false;
-      setDragOffsetVisual(0);
+      drag.set(0);
     },
-    [swipeDirection],
+    [swipeDirection, drag],
   );
 
   const handleDragMove = useCallback((e) => {
@@ -78,13 +80,11 @@ export default function A1FlashcardDeck({
     // Only engage visual drag state if finger has actually moved past jitter threshold (10px)
     if (Math.abs(offset) > 10) {
       hasDraggedRef.current = true;
-      if (!isDraggingRef.current) {
-        isDraggingRef.current = true;
-        setIsDraggingVisual(true);
-      }
-      setDragOffsetVisual(offset);
+      isDraggingRef.current = true;
+      setDragSign(Math.sign(offset));
+      drag.set(offset);
     }
-  }, []);
+  }, [drag]);
 
   const handleDragEnd = useCallback(() => {
     if (dragStartRef.current === null) return;
@@ -133,8 +133,7 @@ export default function A1FlashcardDeck({
     >
       {[0, 1, 2].map((position) => {
         const isGoingBackwards =
-          swipeDirection === "right" ||
-          (!swipeDirection && isDraggingVisual && dragOffsetVisual > 0);
+          swipeDirection === "right" || (!swipeDirection && dragSign > 0);
 
         let cardIndex = currentCard + (2 - position);
         if (isGoingBackwards && position < 2) {
@@ -165,14 +164,6 @@ export default function A1FlashcardDeck({
               "translateX(120%) translateY(20px) rotate(20deg) scale(0.85)";
             opacity = 0.6;
             zIndex = 0;
-          } else if (isDraggingVisual && dragOffsetVisual !== 0) {
-            const rotation = dragOffsetVisual * 0.04;
-            const translateY = Math.abs(dragOffsetVisual) * 0.06;
-            const scale = Math.max(
-              0.92,
-              1 - Math.abs(dragOffsetVisual) * 0.0006,
-            );
-            transform = `translateX(${dragOffsetVisual}px) translateY(${translateY}px) rotate(${rotation}deg) scale(${scale})`;
           }
         }
 
@@ -204,9 +195,7 @@ export default function A1FlashcardDeck({
               transform,
               opacity,
               transition:
-                isDraggingVisual && isFrontCard
-                  ? "none"
-                  : "all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+                "transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
               transformStyle: "preserve-3d",
             }}
             onMouseDown={isFrontCard ? handleDragStart : undefined}
@@ -219,19 +208,25 @@ export default function A1FlashcardDeck({
             onTouchCancel={isFrontCard ? handleDragEnd : undefined}
             onClick={isFrontCard ? triggerFlip : undefined}
           >
-            {position >= 1 && cardData && (
-              <CardComponent
-                cardData={cardData}
-                isFrontCard={isFrontCard}
-                isFlipped={isFlipped}
-                bgColor={bgColor}
-                swipeDirection={swipeDirection}
-                onSpeak={onSpeak}
-                isSpeaking={isSpeaking}
-                isLoadingAudio={isLoadingAudio}
-                {...cardExtraProps}
-              />
-            )}
+            <div
+              ref={isFrontCard ? drag.bind : undefined}
+              className="absolute inset-0"
+              style={{ transformStyle: "preserve-3d" }}
+            >
+              {position >= 1 && cardData && (
+                <CardComponent
+                  cardData={cardData}
+                  isFrontCard={isFrontCard}
+                  isFlipped={isFlipped}
+                  bgColor={bgColor}
+                  swipeDirection={swipeDirection}
+                  onSpeak={onSpeak}
+                  isSpeaking={isSpeaking}
+                  isLoadingAudio={isLoadingAudio}
+                  {...cardExtraProps}
+                />
+              )}
+            </div>
           </div>
         );
       })}

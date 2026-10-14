@@ -48,7 +48,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import { useFlashcardTelemetry } from "../../../telemetry/learning";
-import { useFrameState } from "../../../hooks/useFrameState";
+import { useDragChannel } from "../../../hooks/useDragChannel";
 
 // DnD Word Component
 function WordItem({ word, isDragging, isOverlay }) {
@@ -437,7 +437,10 @@ export default function B1Flashcard() {
 
   const [swipeDirection, setSwipeDirection] = useState(null);
   const [dragStart, setDragStart] = useState(null);
-  const [dragOffset, setDragOffset, dragOffsetRef] = useFrameState(0);
+  // The card follows the finger through the deck's drag channel, not page state
+  const drag = useDragChannel({ lift: 0.08, shrink: 0.0008, minScale: 0.9 });
+  const dragOffsetRef = drag.offsetRef;
+  const setDragOffset = drag.set;
   const [isDragging, setIsDragging] = useState(false);
 
   const [showTest, setShowTest] = useState(false);
@@ -1635,8 +1638,7 @@ export default function B1Flashcard() {
             totalCards={totalCards}
             isFlipped={isFlipped}
             swipeDirection={swipeDirection}
-            dragOffset={dragOffset}
-            isDragging={isDragging}
+            drag={drag}
             deckRotation={deckRotation}
             handleDragStart={handleDragStart}
             handleDragMove={handleDragMove}

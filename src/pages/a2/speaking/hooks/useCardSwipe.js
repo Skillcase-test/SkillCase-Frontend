@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useFrameState } from "../../../../hooks/useFrameState";
+import { useDragChannel } from "../../../../hooks/useDragChannel";
 const useCardSwipe = ({
   onNext,
   onPrevious,
@@ -9,7 +9,10 @@ const useCardSwipe = ({
 }) => {
   const [swipeDirection, setSwipeDirection] = useState(null);
   const [dragStart, setDragStart] = useState(null);
-  const [dragOffset, setDragOffset, dragOffsetRef] = useFrameState(0);
+  // The card follows the finger through the drag channel, not React state
+  const drag = useDragChannel({ lift: 0.08, shrink: 0.0008, minScale: 0.9 });
+  const dragOffsetRef = drag.offsetRef;
+  const setDragOffset = drag.set;
   const [isDragging, setIsDragging] = useState(false);
   const handleDragStart = (e) => {
     if (disabled) return;
@@ -51,7 +54,7 @@ const useCardSwipe = ({
   };
   return {
     swipeDirection,
-    dragOffset,
+    drag,
     isDragging,
     handleDragStart,
     handleDragMove,

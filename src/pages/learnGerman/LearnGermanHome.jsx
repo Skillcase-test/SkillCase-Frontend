@@ -130,7 +130,9 @@ const GuideSpotlight = ({ rect, radius = 22, onClick, children }) => {
     Math.max(16, window.innerWidth - 316),
   );
 
-  const blurPanelClass = "absolute bg-slate-950/50 backdrop-blur-[5px]";
+  // A plain dim: a backdrop blur re-blurs every frame of whatever is behind
+  // it (the playing video, animations), which is heavy on low-end phones
+  const blurPanelClass = "absolute bg-slate-950/60";
 
   return (
     <div className="fixed inset-0 z-[260]">
@@ -160,16 +162,9 @@ const GuideSpotlight = ({ rect, radius = 22, onClick, children }) => {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
       >
-        <motion.span
-          className="absolute inset-0 border-[3px] border-white rounded-[inherit] shadow-[0_0_0_1px_rgba(255,255,255,0.75),0_18px_45px_rgba(0,0,0,0.3)]"
-          animate={{
-            boxShadow: [
-              "0 0 0 1px rgba(255,255,255,0.75), 0 0 0 0 rgba(255,255,255,0.8), 0 18px 45px rgba(0,0,0,0.3)",
-              "0 0 0 1px rgba(255,255,255,0.75), 0 0 0 12px rgba(255,255,255,0), 0 18px 45px rgba(0,0,0,0.3)",
-            ],
-          }}
-          transition={{ duration: 1.35, repeat: Infinity, ease: "easeOut" }}
-        />
+        <span className="absolute inset-0 border-[3px] border-white rounded-[inherit] shadow-[0_0_0_1px_rgba(255,255,255,0.75),0_18px_45px_rgba(0,0,0,0.3)]" />
+        {/* The pulse only scales and fades, so it runs off the main thread */}
+        <span className="spotlight-ring absolute inset-0 rounded-[inherit] border-[3px] border-white/80" />
         <span className="absolute -bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-white px-3 py-1 text-[11px] font-bold text-blue-950 shadow-lg">
           Tap to start
         </span>

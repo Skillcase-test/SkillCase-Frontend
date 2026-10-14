@@ -505,6 +505,19 @@ export default function VideoPlayerPage() {
     setSettingsSubmenu(null);
   }, []);
 
+  // The seek arrows pulse forever by design; only let them run while shown
+  const dtSide = dtFeedback.active ? dtFeedback.side : null;
+
+  // Mouse moves arrive every frame; re-arming the hide timer a few times a
+  // second is plenty
+  const lastControlsResetRef = useRef(0);
+  const handlePlayerMouseMove = () => {
+    const now = performance.now();
+    if (showControls && now - lastControlsResetRef.current < 250) return;
+    lastControlsResetRef.current = now;
+    resetControlsTimeout();
+  };
+
   const togglePlay = () => {
     const el = videoRef.current;
     if (!el) return;
@@ -893,7 +906,7 @@ export default function VideoPlayerPage() {
           <div
             ref={videoContainerRef}
             onClick={handlePlayerTap}
-            onMouseMove={resetControlsTimeout}
+            onMouseMove={handlePlayerMouseMove}
             className="w-full bg-black flex flex-col items-center relative select-none overflow-visible"
           >
             <div
@@ -982,18 +995,21 @@ export default function VideoPlayerPage() {
                       className="w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-white"
                       style={{
                         animation: "ytPulse1 600ms infinite 300ms ease-in-out",
+                        animationPlayState: dtSide === "left" ? "running" : "paused",
                       }}
                     />
                     <div
                       className="w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-white"
                       style={{
                         animation: "ytPulse2 600ms infinite 150ms ease-in-out",
+                        animationPlayState: dtSide === "left" ? "running" : "paused",
                       }}
                     />
                     <div
                       className="w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-white"
                       style={{
                         animation: "ytPulse3 600ms infinite 0ms ease-in-out",
+                        animationPlayState: dtSide === "left" ? "running" : "paused",
                       }}
                     />
                   </div>
@@ -1025,18 +1041,21 @@ export default function VideoPlayerPage() {
                       className="w-0 h-0 border-y-[6px] border-y-transparent border-l-[8px] border-l-white"
                       style={{
                         animation: "ytPulse3 600ms infinite 0ms ease-in-out",
+                        animationPlayState: dtSide === "right" ? "running" : "paused",
                       }}
                     />
                     <div
                       className="w-0 h-0 border-y-[6px] border-y-transparent border-l-[8px] border-l-white"
                       style={{
                         animation: "ytPulse2 600ms infinite 150ms ease-in-out",
+                        animationPlayState: dtSide === "right" ? "running" : "paused",
                       }}
                     />
                     <div
                       className="w-0 h-0 border-y-[6px] border-y-transparent border-l-[8px] border-l-white"
                       style={{
                         animation: "ytPulse1 600ms infinite 300ms ease-in-out",
+                        animationPlayState: dtSide === "right" ? "running" : "paused",
                       }}
                     />
                   </div>

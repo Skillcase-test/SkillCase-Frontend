@@ -10,8 +10,12 @@ function setup(overrides = {}) {
   const hook = renderHook(() =>
     useCardSwipe({ onNext, onPrevious, canGoNext: true, canGoPrevious: true, disabled: false, ...overrides }),
   );
-  return { ...hook, onNext, onPrevious };
+  const card = document.createElement("div");
+  act(() => hook.result.current.drag.bind(card));
+  return { ...hook, card, onNext, onPrevious };
 }
+
+const offset = (result) => result.current.drag.offsetRef.current;
 
 // Each handler runs in its own act() so state from the previous step is
 // committed, like separate touch events in the browser
@@ -22,7 +26,7 @@ function drag(result, from, to, steps = 6) {
   }
 }
 
-describe("useCardSwipe with frame-coalesced drag", () => {
+describe("useCardSwipe with the drag channel", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
@@ -34,7 +38,7 @@ describe("useCardSwipe with frame-coalesced drag", () => {
     act(() => vi.advanceTimersByTime(300));
     expect(onNext).toHaveBeenCalledTimes(1);
     expect(onPrevious).not.toHaveBeenCalled();
-    expect(result.current.dragOffset).toBe(0);
+    expect(offset(result)).toBe(0);
   });
 
   it("swipes back on a right drag", () => {
@@ -46,26 +50,40 @@ describe("useCardSwipe with frame-coalesced drag", () => {
   });
 
   it("snaps back on a short drag", () => {
-    const { result, onNext, onPrevious } = setup();
+    const { result, card, onNext, onPrevious } = setup();
     drag(result, 200, 150);
     act(() => vi.advanceTimersByTime(20));
-    expect(result.current.dragOffset).toBe(-50);
+    expect(offset(result)).toBe(-50);
+    expect(card.style.transform).toContain("translateX(-50px)");
     act(() => result.current.handleDragEnd());
     act(() => vi.advanceTimersByTime(300));
     expect(onNext).not.toHaveBeenCalled();
     expect(onPrevious).not.toHaveBeenCalled();
-    expect(result.current.dragOffset).toBe(0);
+    expect(offset(result)).toBe(0);
+    expect(card.style.transform).toBe("");
+    expect(card.style.transition).toContain("transform");
     expect(result.current.isDragging).toBe(false);
   });
 
-  it("renders the drag offset once per frame", () => {
-    const { result } = setup();
+  it("paints the card once per frame without re-rendering", () => {
+    const { result, card } = setup();
     act(() => result.current.handleDragStart(touch("touchstart", 200)));
+    const before = result.current;
     act(() => {
       result.current.handleDragMove(touch("touchmove", 190));
       result.current.handleDragMove(touch("touchmove", 170));
     });
+    expect(card.style.transform).toBe("");
     act(() => vi.advanceTimersByTime(20));
-    expect(result.current.dragOffset).toBe(-30);
+    expect(card.style.transform).toContain("translateX(-30px)");
+    expect(result.current).toBe(before);
+  });
+
+  it("clears the pose of a card that is no longer in front", () => {
+    const { result, card } = setup();
+    drag(result, 200, 150);
+    act(() => vi.advanceTimersByTime(20));
+    act(() => result.current.drag.bind(document.createElement("div")));
+    expect(card.style.transform).toBe("");
   });
 });

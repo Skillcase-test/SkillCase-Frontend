@@ -74,8 +74,8 @@ const FloatingStreakCounter = ({ current, target, onComplete }) => {
             100% { transform: translateY(-22px) scale(0.8); opacity: 0; }
           }
           @keyframes gentleGlow {
-            0%, 100% { filter: drop-shadow(0 0 4px rgba(245,158,11,0.3)); }
-            50% { filter: drop-shadow(0 0 10px rgba(245,158,11,0.6)); }
+            0%, 100% { opacity: 0.35; }
+            50% { opacity: 1; }
           }
           .animate-micro-float { animation: microFloat 0.6s ease-out forwards; }
           .animate-gentle-glow { animation: gentleGlow 1.2s ease-in-out infinite; }
@@ -86,16 +86,21 @@ const FloatingStreakCounter = ({ current, target, onComplete }) => {
         className={`
           relative w-10 h-10 transition-transform duration-300
           ${isPop ? "scale-110" : "scale-100"}
-          ${showFire ? "animate-gentle-glow" : ""}
         `}
       >
-        {/* Frosted Glass Background */}
+        {/* Glow fades in and out on its own layer; animating a filter on the
+            whole counter repainted it every frame */}
+        {showFire && (
+          <div
+            className="absolute inset-0 rounded-full animate-gentle-glow"
+            style={{ boxShadow: "0 0 10px 2px rgba(245,158,11,0.55)" }}
+          />
+        )}
+        {/* Near-opaque instead of frosted: the blur re-ran under every card swipe */}
         <div
           className="absolute inset-0 rounded-full"
           style={{
-            background: "rgba(255, 255, 255, 0.75)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
+            background: "rgba(255, 255, 255, 0.92)",
             boxShadow: showFire
               ? "0 2px 12px rgba(245,158,11,0.25), inset 0 1px 2px rgba(255,255,255,0.6)"
               : "0 1px 8px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,0.6)",

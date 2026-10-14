@@ -11,8 +11,7 @@ const SpeakingCardDeck = ({
   totalCards,
   deckRotation,
   swipeDirection,
-  isDragging,
-  dragOffset,
+  drag,
   handleDragStart,
   handleDragMove,
   handleDragEnd,
@@ -55,11 +54,6 @@ const SpeakingCardDeck = ({
               "translateX(120%) translateY(20px) rotate(20deg) scale(0.85)";
             opacity = 0.6;
             zIndex = 0;
-          } else if (isDragging && dragOffset !== 0) {
-            const r = dragOffset * 0.04,
-              ty = Math.abs(dragOffset) * 0.08,
-              s = Math.max(0.9, 1 - Math.abs(dragOffset) * 0.0008);
-            transform = `translateX(${dragOffset}px) translateY(${ty}px) rotate(${r}deg) scale(${s})`;
           }
         }
         if (!isFrontCard && swipeDirection) {
@@ -76,18 +70,13 @@ const SpeakingCardDeck = ({
               isFrontCard ? "cursor-grab select-none touch-none" : ""
             }`}
             style={{
-              backgroundColor: bgColor,
               top: 0,
               left: 10,
               zIndex,
               transform,
               opacity,
               transition:
-                isDragging && isFrontCard
-                  ? "none"
-                  : "all 0.35s cubic-bezier(0.25,0.46,0.45,0.94)",
-              boxShadow:
-                position >= 1 ? "4px 4px 36px rgba(0,0,0,0.1)" : "none",
+                "transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.35s cubic-bezier(0.25,0.46,0.45,0.94)",
             }}
             onMouseDown={isFrontCard ? handleDragStart : undefined}
             onMouseMove={isFrontCard ? handleDragMove : undefined}
@@ -97,26 +86,37 @@ const SpeakingCardDeck = ({
             onTouchMove={isFrontCard ? handleDragMove : undefined}
             onTouchEnd={isFrontCard ? handleDragEnd : undefined}
           >
-            {position >= 1 && cardData && (
-              <SpeakingCard
-                cardData={cardData}
-                isFrontCard={isFrontCard}
-                swipeDirection={swipeDirection}
-                isRecording={isRecording}
-                isUploading={isUploading}
-                recordingTime={recordingTime}
-                formatTime={formatTime}
-                onStartRecording={onStartRecording}
-                onStopRecording={onStopRecording}
-                isSpeaking={isSpeaking}
-                isLoadingAudio={isLoadingAudio}
-                onSpeak={onSpeak}
-                assessmentResult={isFrontCard ? assessmentResult : null}
-                onRetry={onRetry}
-                isTourMode={isTourMode}
-                tourSpeakingStep={isFrontCard ? tourSpeakingStep : 0}
-              />
-            )}
+            {/* Background moves with the card; see useDragChannel */}
+            <div
+              ref={isFrontCard ? drag?.bind : undefined}
+              className="absolute inset-0 rounded-[20px]"
+              style={{
+                backgroundColor: bgColor,
+                boxShadow:
+                  position >= 1 ? "4px 4px 36px rgba(0,0,0,0.1)" : "none",
+              }}
+            >
+              {position >= 1 && cardData && (
+                <SpeakingCard
+                  cardData={cardData}
+                  isFrontCard={isFrontCard}
+                  swipeDirection={swipeDirection}
+                  isRecording={isRecording}
+                  isUploading={isUploading}
+                  recordingTime={recordingTime}
+                  formatTime={formatTime}
+                  onStartRecording={onStartRecording}
+                  onStopRecording={onStopRecording}
+                  isSpeaking={isSpeaking}
+                  isLoadingAudio={isLoadingAudio}
+                  onSpeak={onSpeak}
+                  assessmentResult={isFrontCard ? assessmentResult : null}
+                  onRetry={onRetry}
+                  isTourMode={isTourMode}
+                  tourSpeakingStep={isFrontCard ? tourSpeakingStep : 0}
+                />
+              )}
+            </div>
           </div>
         );
       })}

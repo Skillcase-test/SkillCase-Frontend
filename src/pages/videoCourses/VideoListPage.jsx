@@ -8,6 +8,7 @@ import {
 import { trackFeatureEvent } from "../../telemetry/events";
 import { useUsageLimitGate } from "../../hooks/useUsageLimits";
 import { useCacheSeed } from "../../hooks/useCacheSeed";
+import LoadError from "./LoadError";
 import germanclassImg from "../../assets/images/germanclass.webp";
 
 const formatTime = (secs) => {
@@ -130,6 +131,8 @@ export default function VideoListPage() {
   const [course, setCourse] = useState(seed?.course || null);
   const [videos, setVideos] = useState(seed?.videos || []);
   const [loading, setLoading] = useState(!seed);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const seededCourseId = useRef(seed ? courseId : null);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState(null);
@@ -148,6 +151,7 @@ export default function VideoListPage() {
       }
     }
     seededCourseId.current = null;
+    setFailed(false);
     getVideoCourse(courseId)
       .then((res) => {
         const nextCourse = res.data?.data?.course || null;
@@ -161,9 +165,12 @@ export default function VideoListPage() {
           attributes: { level: nextCourse?.proficiency_level },
         });
       })
-      .catch((err) => console.error("Error fetching course videos:", err))
+      .catch((err) => {
+        console.error("Error fetching course videos:", err);
+        setFailed(true);
+      })
       .finally(() => setLoading(false));
-  }, [courseId]);
+  }, [courseId, attempt]);
 
   // Debounced deep search across transcripts & chapter labels via backend
   useEffect(() => {
@@ -277,6 +284,13 @@ export default function VideoListPage() {
               </div>
             ))}
           </div>
+        ) : failed && !query && videos.length === 0 ? (
+          <LoadError
+            onRetry={() => {
+              setLoading(true);
+              setAttempt((n) => n + 1);
+            }}
+          />
         ) : shown.length === 0 ? (
           <div className="text-center text-slate-400 py-16 px-4 text-xs flex flex-col items-center gap-2">
             <Search className="w-8 h-8 text-slate-300 stroke-[1.5]" />

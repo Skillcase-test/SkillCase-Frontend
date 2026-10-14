@@ -31,6 +31,7 @@ import { SplashScreen } from "@capacitor/splash-screen";
 import { useDispatch, useSelector } from "react-redux";
 import { store } from "../redux/store";
 import api from "../api/axios";
+import { fetchMe } from "../api/meSync";
 import { isPracticeSuiteLevel } from "../utils/b1Progress";
 import {
   isShellRoute,
@@ -742,7 +743,7 @@ export default function AppLayout() {
 
       if (active && !user) setAuthBootstrapping(true);
       try {
-        const res = await api.post("/user/me");
+        const res = await fetchMe();
         if (!active) return;
         dispatch(setUser(res.data.user));
         syncPreferredModeCache(res.data.user);

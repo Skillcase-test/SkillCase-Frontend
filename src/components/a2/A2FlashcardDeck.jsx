@@ -14,8 +14,7 @@ const A2FlashcardDeck = ({
   deckRotation,
   isFlipped,
   swipeDirection,
-  isDragging,
-  dragOffset,
+  drag,
   handleDragStart,
   handleDragMove,
   handleDragEnd,
@@ -54,11 +53,6 @@ const A2FlashcardDeck = ({
             transform = "translateX(120%) translateY(20px) rotate(20deg) scale(0.85)";
             opacity = 0.6;
             zIndex = 0;
-          } else if (isDragging && dragOffset !== 0) {
-            const rotation = dragOffset * 0.04;
-            const translateY = Math.abs(dragOffset) * 0.08;
-            const scale = 1 - Math.abs(dragOffset) * 0.0008;
-            transform = `translateX(${dragOffset}px) translateY(${translateY}px) rotate(${rotation}deg) scale(${Math.max(0.9, scale)})`;
           }
         }
 
@@ -84,7 +78,8 @@ const A2FlashcardDeck = ({
               zIndex,
               transform,
               opacity,
-              transition: isDragging && isFrontCard ? "none" : "all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+              transition:
+                "transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
               transformStyle: "preserve-3d",
             }}
             onMouseDown={isFrontCard ? handleDragStart : undefined}
@@ -96,18 +91,25 @@ const A2FlashcardDeck = ({
             onTouchEnd={isFrontCard ? handleDragEnd : undefined}
             onClick={isFrontCard ? onCardClick : undefined}
           >
-            {position >= 1 && cardData && (
-              <A2FlashcardCard
-                cardData={cardData}
-                isFrontCard={isFrontCard}
-                isFlipped={isFlipped}
-                bgColor={bgColor}
-                swipeDirection={swipeDirection}
-                onSpeak={onSpeak}
-                isSpeaking={isSpeaking}
-                isLoadingAudio={isLoadingAudio}
-              />
-            )}
+            {/* Follows the finger during a drag; see useDragChannel */}
+            <div
+              ref={isFrontCard ? drag?.bind : undefined}
+              className="absolute inset-0"
+              style={{ transformStyle: "preserve-3d" }}
+            >
+              {position >= 1 && cardData && (
+                <A2FlashcardCard
+                  cardData={cardData}
+                  isFrontCard={isFrontCard}
+                  isFlipped={isFlipped}
+                  bgColor={bgColor}
+                  swipeDirection={swipeDirection}
+                  onSpeak={onSpeak}
+                  isSpeaking={isSpeaking}
+                  isLoadingAudio={isLoadingAudio}
+                />
+              )}
+            </div>
           </div>
         );
       })}

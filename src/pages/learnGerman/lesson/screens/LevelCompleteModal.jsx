@@ -13,10 +13,8 @@ import {
 } from "../../../../utils/haptics";
 import { trackFeatureEvent } from "../../../../telemetry/events";
 
-const COIN_URL =
-  "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/Coin_1_kjblsa.svg";
-const STREAK_URL =
-  "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/Gemini_Generated_Image_m7b0m6m7b0m6m7b0_2_x8mtum.svg";
+const COIN_URL = "/coin.webp";
+const STREAK_URL = "/streak-bolt.webp";
 
 function StatRow({ icon, label, value, barWidth, delay }) {
   useEffect(() => {
