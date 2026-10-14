@@ -24,7 +24,7 @@ export default function UpgradePlanPage() {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   const [showSuccess, setShowSuccess] = useState(false);
-  // The plans this learner may buy, from the server (Plus is B2-only). null =
+  // The plans this learner may buy, from the server (Plus is for A2, B1 and B2). null =
   // still loading — the standard ₹99 card renders in the meantime.
   const [plans, setPlans] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState("standard");

@@ -10,6 +10,11 @@ export function isB2PracticeLevel(level) {
   return normalized === "b2" || normalized === "c1" || normalized === "c2";
 }
 
+// The levels with Talk to Maya (and so the Plus plan).
+export function hasMayaLevel(level) {
+  return String(level || "").toLowerCase() === "a2" || isB1PracticeLevel(level) || isB2PracticeLevel(level);
+}
+
 // The shared "practice suite" segment (top mode switcher, jobs tab, app
 // shell). B1 and B2 users get identical chrome — only the content differs.
 export function isPracticeSuiteLevel(level) {

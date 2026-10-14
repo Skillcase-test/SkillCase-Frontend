@@ -1,6 +1,7 @@
 /* Plain helpers shared by the Maya screens (kept out of the component files for fast refresh). */
 
-export const modeName = (mode) => (mode === "talk" ? "Everyday German" : mode === "coach" ? "Job interview" : "Nursing interview");
+/** A practice's mode as the learner knows it at this level (`maya` is the useMaya() config). */
+export const modeName = (mode, maya) => (mode === "talk" ? maya.talkName : maya.interviewName);
 
 export const SMOOTHNESS_LABEL = { smooth: "Smooth", some_hesitation: "Some hesitation", hesitant: "Hesitant" };
 
@@ -29,6 +30,10 @@ const ENGLISH = new Set(
 const GERMAN_HINT = new Set("der die das den dem des ein eine einen einem einer eines und ist sind nicht ich du wir ihr sie mit auf für von zu zum zur im".split(" "));
 
 /** The English words in something said in German, in order and without repeats, for highlighting. */
+// Maya writes German quotes („…“, ‚…‘); show the usual “…” and ‘…’ instead.
+export const plainQuotes = (text) =>
+  text.replace(/„([^„“”]*)[“”]/g, "“$1”").replace(/‚([^‚‘’]*)[‘’]/g, "‘$1’").replace(/„/g, "“").replace(/‚/g, "‘");
+
 export function englishWords(text) {
   const seen = new Set();
   for (const w of text.toLowerCase().match(/[a-zäöüß']+/g) ?? []) if ((ENGLISH.has(w) || w === "i") && !GERMAN_HINT.has(w)) seen.add(w);

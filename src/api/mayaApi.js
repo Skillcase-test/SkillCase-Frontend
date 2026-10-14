@@ -6,7 +6,7 @@ import api from "./axios";
  * around it (start, report, progress, "Try it"). Each level has its own route prefix.
  */
 
-const PREFIX = { B1: "/maya/b1", B2: "/b2-maya" };
+const PREFIX = { A2: "/maya/a2", B1: "/maya/b1", B2: "/b2-maya" };
 
 /**
  * The WebSocket URL for the call: the API host over ws/wss, no extra env needed.
@@ -41,6 +41,12 @@ export function mayaApi(level) {
 
     /** Re-runs feedback after it failed; returns whether a retry was kicked off. */
     retryFeedback: (id) => api.post(`${p}/sessions/${encodeURIComponent(id)}/retry-feedback`).then((r) => r.data.ok),
+
+    /** The rating card is on screen: uses up one of the level's showings. False once none are left. */
+    reviewShown: (id) => api.post(`${p}/sessions/${encodeURIComponent(id)}/review/shown`).then((r) => r.data.ok),
+
+    /** The learner's rating of a call: `{ rating: 1-5, text? }`, or `{ skip: true }`. */
+    review: (id, body) => api.post(`${p}/sessions/${encodeURIComponent(id)}/review`, body).then((r) => r.data.ok),
 
     /** My progress: `{ progress }`. */
     progress: () => api.get(`${p}/progress`).then((r) => r.data),

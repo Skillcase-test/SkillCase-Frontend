@@ -23,6 +23,7 @@ const RULES = [
   [/^\/b1\/read-listen/, "learning", "b1_read_listen"],
   [/^\/b1\/describe-speak/, "learning", "b1_describe_speak"],
   [/^\/b1\/flashcard/, "learning", "b1_flashcard"],
+  [/^\/a2\/maya/, "maya", "maya"],
   [/^\/b1\/maya/, "maya", "maya"],
   // B2 Maya shares B1's maya surface so voice-session analytics line up.
   [/^\/b2\/maya/, "maya", "maya"],

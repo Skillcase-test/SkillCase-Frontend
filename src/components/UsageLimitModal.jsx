@@ -66,7 +66,7 @@ export default function UsageLimitModal() {
   const navigate = useNavigate();
   const { refresh } = useUsageLimits();
   // Plans offered to this learner, fetched when a Maya lock opens the modal —
-  // B1 and B2 learners get Standard + Plus; everyone else just Standard.
+  // A2, B1 and B2 learners get Standard + Plus; everyone else just Standard.
   const [plansData, setPlansData] = useState(null);
   const [pickedPlan, setPickedPlan] = useState("standard");
   const [upgrading, setUpgrading] = useState(false);

@@ -3,7 +3,7 @@ import api from "./axios";
 /*
  * Subscription plans the signed-in learner may buy: GET /user/plans returns
  * `{ plans, current, currentPlan, next_billing_at }` — `plans` is server-filtered
- * (the ₹199 Plus plan only appears for B2-segment learners), `current` is the
+ * (the ₹199 Plus plan only appears for A2, B1 and B2-segment learners), `current` is the
  * catalog key of their active plan ("standard" | "b2_plus"), `currentPlan` its
  * label/price even when it is no longer buyable for them.
  */

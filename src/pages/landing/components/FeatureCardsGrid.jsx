@@ -33,6 +33,7 @@ const MODULE_MAP = {
   "a2-speaking": { level: "A2", module_key: "speaking" },
   "a2-reading": { level: "A2", module_key: "reading" },
   "a2-test": { level: "A2", module_key: "test" },
+  "a2-maya": { level: "A2", module_key: "maya" },
   "b1-flashcard": { level: "B1", module_key: "flashcard" },
   "b1-read-listen": { level: "B1", module_key: "reading" },
   "b1-describe-speak": { level: "B1", module_key: "describe_speak" },
@@ -91,6 +92,15 @@ export default function FeatureCardsGrid() {
       description: "Practice pronunciation",
       image: images.interview,
       link: "/a2/speaking",
+      enabled: true,
+    },
+    {
+      id: "a2-maya",
+      title: "Talk to Maya",
+      description: "Role-play real situations in German & get instant feedback",
+      image:
+        "https://skillcase-media.s3.ap-south-1.amazonaws.com/cloudinary-migrated/maya_ylcppy.webp",
+      link: "/a2/maya",
       enabled: true,
     },
     {
