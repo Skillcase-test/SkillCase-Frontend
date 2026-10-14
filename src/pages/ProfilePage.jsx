@@ -6,6 +6,8 @@ import { setUser, logout } from "../redux/auth/authSlice";
 import { isTrialActive, trialDaysLeft } from "../utils/premium";
 import { stableFile } from "../utils/stableFile";
 import api from "../api/axios";
+import { cachedRead } from "../api/cachedRead";
+import { useCacheSeed } from "../hooks/useCacheSeed";
 import { getSubscriptionPlans } from "../api/subscriptionApi";
 import { getProfileVisibility } from "../api/scholarshipExamApi";
 import ScholarshipEntryCard, {
@@ -219,6 +221,32 @@ function PdfCanvasPreview({ fileUrl }) {
   );
 }
 
+// Always fetched fresh; the stored copy only lets a revisit skip the skeleton
+const getProfile = cachedRead(() => ["/user/profile", { meta: { persist: true } }, "NO_CACHE"]);
+
+const EMPTY_FORM = {
+  fullname: "",
+  email: "",
+  dob: "",
+  gender: "",
+  qualification: "",
+  language_level: "",
+  experience: "",
+};
+
+function profileToForm(p) {
+  const germanLevel = p.current_profeciency_level || p.language_level || "";
+  return {
+    fullname: p.fullname || "",
+    email: p.email || "",
+    dob: p.dob ? p.dob.split("T")[0] : "",
+    gender: p.gender || "",
+    qualification: p.qualification || "",
+    language_level: p.language_level || germanLevel,
+    experience: p.experience || "",
+  };
+}
+
 export default function ProfilePage() {
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
@@ -248,18 +276,16 @@ export default function ProfilePage() {
   });
 
   // Form state
-  const [form, setForm] = useState({
-    fullname: "",
-    email: "",
-    dob: "",
-    gender: "",
-    qualification: "",
-    language_level: "",
-    experience: "",
-  });
+  const seed = useCacheSeed(getProfile, (body) => body?.profile || undefined);
+  const [form, setForm] = useState(() => (seed ? profileToForm(seed) : EMPTY_FORM));
+  // Set once the user types, so a background refresh never overwrites their edits
+  const formTouchedRef = useRef(false);
+  // A stored copy can be days old, so saving waits for the server's version
+  const [freshLoaded, setFreshLoaded] = useState(false);
+  const canSave = !seed || freshLoaded;
 
-  const [profilePicUrl, setProfilePicUrl] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [profilePicUrl, setProfilePicUrl] = useState(seed?.profile_pic_url || "");
+  const [phoneNumber, setPhoneNumber] = useState(seed?.number || "");
 
   // Documents State
   const [docProgress, setDocProgress] = useState(null);
@@ -269,7 +295,7 @@ export default function ProfilePage() {
   const [deletingDocId, setDeletingDocId] = useState(null);
 
   // Loading & Action UI States
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!seed);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [toast, setToast] = useState({ show: false, msg: "", type: "" });
@@ -309,20 +335,11 @@ export default function ProfilePage() {
 
   const fetchProfileData = useCallback(async () => {
     try {
-      setLoading(true);
-      const res = await api.get("/user/profile");
+      const res = await getProfile();
       if (!aliveRef.current) return;
       const p = res.data.profile;
-      const germanLevel = p.current_profeciency_level || p.language_level || "";
-      setForm({
-        fullname: p.fullname || "",
-        email: p.email || "",
-        dob: p.dob ? p.dob.split("T")[0] : "",
-        gender: p.gender || "",
-        qualification: p.qualification || "",
-        language_level: p.language_level || germanLevel,
-        experience: p.experience || "",
-      });
+      if (!formTouchedRef.current) setForm(profileToForm(p));
+      setFreshLoaded(true);
       setProfilePicUrl(p.profile_pic_url || "");
       setPhoneNumber(p.number || "");
 
@@ -402,16 +419,19 @@ export default function ProfilePage() {
   }, [isAuthenticated, userId, isPaidMember]);
 
   const handleSelectChange = (fieldName, val) => {
+    formTouchedRef.current = true;
     setForm((prev) => ({ ...prev, [fieldName]: val }));
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    formTouchedRef.current = true;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!canSave) return;
 
     if (!form.fullname.trim()) {
       showToast("Full name is required", "error");
@@ -1253,7 +1273,7 @@ export default function ProfilePage() {
 
                   <button
                     type="submit"
-                    disabled={saving}
+                    disabled={saving || !canSave}
                     className="w-full h-11 bg-[#002856] hover:bg-[#001e40] text-white text-sm font-semibold rounded-lg shadow-sm transition-colors cursor-pointer disabled:opacity-50 mt-2"
                   >
                     {saving ? "Updating..." : "Update Details"}

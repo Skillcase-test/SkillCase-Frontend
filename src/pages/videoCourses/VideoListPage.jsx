@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft, Loader2, PlayCircle, Search, X } from "lucide-react";
 import {
@@ -7,6 +7,7 @@ import {
 } from "../../api/videoCourseApi";
 import { trackFeatureEvent } from "../../telemetry/events";
 import { useUsageLimitGate } from "../../hooks/useUsageLimits";
+import { useCacheSeed } from "../../hooks/useCacheSeed";
 import germanclassImg from "../../assets/images/germanclass.webp";
 
 const formatTime = (secs) => {
@@ -125,15 +126,28 @@ export default function VideoListPage() {
   const navigate = useNavigate();
   useUsageLimitGate("ALL", "video_courses");
 
-  const [course, setCourse] = useState(null);
-  const [videos, setVideos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const seed = useCacheSeed(getVideoCourse, (body) => body?.data, courseId);
+  const [course, setCourse] = useState(seed?.course || null);
+  const [videos, setVideos] = useState(seed?.videos || []);
+  const [loading, setLoading] = useState(!seed);
+  const seededCourseId = useRef(seed ? courseId : null);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState(null);
   const [searching, setSearching] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
+    // The first mount already painted from the seed
+    if (seededCourseId.current !== courseId) {
+      const cached = getVideoCourse.peek?.(courseId)?.data?.data;
+      if (cached) {
+        setCourse(cached.course || null);
+        setVideos(cached.videos || []);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+    }
+    seededCourseId.current = null;
     getVideoCourse(courseId)
       .then((res) => {
         const nextCourse = res.data?.data?.course || null;

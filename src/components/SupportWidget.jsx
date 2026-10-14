@@ -55,6 +55,7 @@ export default function SupportWidget() {
     useState(null);
   const [focusedTicketId, setFocusedTicketId] = useState(null);
   const ticketsRef = useRef([]);
+  const lastBadgeFetchAt = useRef(0);
   const fileInputRef = useRef(null);
   const modalFileInputRef = useRef(null);
   const commentFileInputRefs = useRef({});
@@ -105,11 +106,14 @@ export default function SupportWidget() {
     ticketsRef.current = tickets;
   }, [tickets]);
 
-  // Pre-fetch tickets on shell routes to populate unread badge state
+  // Pre-fetch tickets on shell routes to populate unread badge state. Tab
+  // switches remount this often, so the badge refreshes at most once a minute
+  // (the open panel polls on its own).
   useEffect(() => {
-    if (showSupport) {
-      fetchTickets(true);
-    }
+    if (!showSupport) return;
+    if (Date.now() - lastBadgeFetchAt.current < 60_000) return;
+    lastBadgeFetchAt.current = Date.now();
+    fetchTickets(true);
   }, [location.pathname, showSupport]);
 
   // Deep linking: Detect openSupport and ticketId query params

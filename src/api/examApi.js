@@ -1,7 +1,9 @@
 import api from "./axios";
 
 // STUDENT EXAM ENDPOINTS
-export const getVisibleExams = () => api.get("/exam/visible");
+// Home asks on every visit; a minute of reuse is fine (countdowns run client-side)
+export const getVisibleExams = () =>
+  api.cachedGet("/exam/visible", {}, "SHORT_PRIVATE");
 
 export const getExamInfo = (testId) => api.get(`/exam/${testId}`);
 

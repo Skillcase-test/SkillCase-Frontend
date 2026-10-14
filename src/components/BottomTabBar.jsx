@@ -44,6 +44,12 @@ const STREAK_IMG_URL =
  * re-uses the existing "openLeaderboard" event (handled by the landing
  * page).
  */
+// /user/me is shared by every mount of the bar (tab switches remount it)
+const ME_SYNC_INTERVAL_MS = 60_000;
+let lastMeSyncAt = 0;
+let meSyncInFlight = false;
+let meSyncAgain = false;
+
 export default function BottomTabBar() {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
@@ -62,6 +68,13 @@ export default function BottomTabBar() {
   // Sync fresh user profile / coins from database into Redux
   const syncUserProfile = useCallback(() => {
     if (!user?.user_id) return;
+    // A sync asked for mid-flight may follow a write, so run it once more after
+    if (meSyncInFlight) {
+      meSyncAgain = true;
+      return;
+    }
+    lastMeSyncAt = Date.now();
+    meSyncInFlight = true;
     api
       .post("/user/me")
       .then((res) => {
@@ -69,12 +82,24 @@ export default function BottomTabBar() {
           dispatch(setUser(res.data.user));
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        meSyncInFlight = false;
+        if (meSyncAgain) {
+          meSyncAgain = false;
+          syncUserProfile();
+        }
+      });
   }, [user?.user_id, dispatch]);
 
   useEffect(() => {
+    // Navigation alone re-syncs at most once a minute; anything the user did
+    // since the last sync (coins, streak, plan) triggers it straight away
+    const stale =
+      Date.now() - lastMeSyncAt > ME_SYNC_INTERVAL_MS ||
+      (api.getLastWriteAt?.() || 0) >= lastMeSyncAt;
     // Wait out the screen transition so the sync doesn't land mid-animation
-    const timer = setTimeout(syncUserProfile, 450);
+    const timer = stale ? setTimeout(syncUserProfile, 450) : null;
     const handleSync = () => syncUserProfile();
     window.addEventListener("lgLessonComplete", handleSync);
     window.addEventListener("skillcase:coins-updated", handleSync);

@@ -6,6 +6,7 @@ import { getMyFeatureFlags } from "../api/featureFlagApi";
 let cachedUserId = null;
 let cachedFlags = null;
 let isFetching = false;
+let fetchingUserId = null;
 let lastFetchAt = 0;
 const listeners = new Set();
 
@@ -13,14 +14,11 @@ const listeners = new Set();
 // tab switches — forced refreshes within this window reuse the fresh cache.
 const FORCED_REFRESH_MIN_INTERVAL_MS = 15000;
 
-function notifyListeners() {
-  listeners.forEach((listener) => listener(cachedFlags));
-}
-
 export function _resetFlagsCache() {
   cachedUserId = null;
   cachedFlags = null;
   isFetching = false;
+  fetchingUserId = null;
   lastFetchAt = 0;
 }
 
@@ -49,7 +47,8 @@ export function useFeatureFlags() {
 
       // One in-flight fetch max, forced or not — a forced refresh during an
       // active fetch gets the fresh result when it lands anyway.
-      if (isFetching && cachedUserId === user.user_id) return;
+      // Keyed on who is being fetched, so cold-start consumers share one call
+      if (isFetching && fetchingUserId === user.user_id) return;
       if (
         force &&
         cachedUserId === user.user_id &&
@@ -63,18 +62,22 @@ export function useFeatureFlags() {
 
       try {
         isFetching = true;
+        fetchingUserId = user.user_id;
         lastFetchAt = Date.now();
         const res = await getMyFeatureFlags();
         const resolved = res?.data?.flags || {};
         cachedUserId = user.user_id;
         cachedFlags = resolved;
         setFlags(resolved);
-        notifyListeners();
       } catch (err) {
         console.warn("[useFeatureFlags] Failed to fetch feature flags:", err.message);
       } finally {
         isFetching = false;
+        fetchingUserId = null;
         setLoading(false);
+        // Consumers that skipped the shared fetch are waiting on this too
+        const fetched = cachedUserId === user.user_id ? cachedFlags : null;
+        listeners.forEach((listener) => listener(fetched));
       }
     },
     [user?.user_id]
@@ -83,6 +86,7 @@ export function useFeatureFlags() {
   useEffect(() => {
     const handleUpdate = (updatedFlags) => {
       if (updatedFlags) setFlags(updatedFlags);
+      setLoading(false);
     };
 
     listeners.add(handleUpdate);

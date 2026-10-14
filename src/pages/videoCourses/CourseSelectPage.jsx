@@ -5,6 +5,9 @@ import { PlayCircle } from "lucide-react";
 import { getVideoCourses } from "../../api/videoCourseApi";
 import { trackFeatureEvent } from "../../telemetry/events";
 import { useUsageLimitGate } from "../../hooks/useUsageLimits";
+import { useCacheSeed } from "../../hooks/useCacheSeed";
+
+const toCourses = (body) => (Array.isArray(body?.data) ? body.data : undefined);
 
 export default function CourseSelectPage() {
   const navigate = useNavigate();
@@ -12,8 +15,9 @@ export default function CourseSelectPage() {
   const userLevel = (user?.user_prof_level || "A1").toUpperCase();
   useUsageLimitGate("ALL", "video_courses");
 
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const seed = useCacheSeed(getVideoCourses, toCourses, userLevel);
+  const [courses, setCourses] = useState(seed ?? []);
+  const [loading, setLoading] = useState(!seed);
 
   useEffect(() => {
     getVideoCourses(userLevel)

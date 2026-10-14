@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 
 import ChapterSelectTemplate from "../../../components/a2/ChapterSelectTemplate";
 import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
+import { asArray, useCacheSeed } from "../../../hooks/useCacheSeed";
 
 import { getFlashcardChapters } from "../../../api/a2Api";
 
@@ -11,8 +12,9 @@ export default function A2FlashcardSelect() {
   const navigate = useNavigate();
 
   const { user } = useSelector((state) => state.auth);
-  const [chapters, setChapters] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const seed = useCacheSeed(getFlashcardChapters, asArray);
+  const [chapters, setChapters] = useState(seed ?? []);
+  const [loading, setLoading] = useState(!seed);
   const { locked: usageLocked } = useUsageLimitModule("A2", "flashcard");
 
   useEffect(() => {

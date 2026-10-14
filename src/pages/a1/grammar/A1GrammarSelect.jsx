@@ -4,11 +4,38 @@ import { useSelector } from "react-redux";
 import ChapterSelectTemplate from "../../../components/a1/ChapterSelectTemplate";
 import { getGrammarTopics } from "../../../api/a1Api";
 import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
+import { useCacheSeed } from "../../../hooks/useCacheSeed";
+
+// Groups topic rows into chapters
+function toChapters(rows) {
+  // Group by chapter
+  const chapterMap = {};
+  rows.forEach((row) => {
+    if (!chapterMap[row.chapter_id]) {
+      chapterMap[row.chapter_id] = {
+        id: row.chapter_id,
+        chapter_name: row.chapter_name,
+        description: row.description,
+        topics: [],
+        completedCount: 0,
+        totalCount: 0,
+      };
+    }
+    if (row.topic_id) {
+      chapterMap[row.chapter_id].topics.push(row);
+      chapterMap[row.chapter_id].totalCount++;
+      if (row.is_completed) chapterMap[row.chapter_id].completedCount++;
+    }
+  });
+  return Object.values(chapterMap);
+}
+
 export default function A1GrammarSelect() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  const [chapters, setChapters] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const seed = useCacheSeed(getGrammarTopics, toChapters);
+  const [chapters, setChapters] = useState(seed ?? []);
+  const [loading, setLoading] = useState(!seed);
   const { locked: usageLocked } = useUsageLimitModule("A1", "grammar");
   useEffect(() => {
     if (!user) {
@@ -18,26 +45,7 @@ export default function A1GrammarSelect() {
     const fetchData = async () => {
       try {
         const res = await getGrammarTopics();
-        // Group by chapter
-        const chapterMap = {};
-        res.data.forEach((row) => {
-          if (!chapterMap[row.chapter_id]) {
-            chapterMap[row.chapter_id] = {
-              id: row.chapter_id,
-              chapter_name: row.chapter_name,
-              description: row.description,
-              topics: [],
-              completedCount: 0,
-              totalCount: 0,
-            };
-          }
-          if (row.topic_id) {
-            chapterMap[row.chapter_id].topics.push(row);
-            chapterMap[row.chapter_id].totalCount++;
-            if (row.is_completed) chapterMap[row.chapter_id].completedCount++;
-          }
-        });
-        setChapters(Object.values(chapterMap));
+        setChapters(toChapters(res.data));
       } catch (err) {
         console.error("Error:", err);
       } finally {

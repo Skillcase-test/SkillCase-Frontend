@@ -1,23 +1,22 @@
 import api from "./axios";
+import { cachedRead } from "./cachedRead";
 
 const VIDEO_COURSE_CACHE_TAG = "video-courses";
 
 // STUDENT ENDPOINTS
-export const getVideoCourses = (level) =>
-  api.cachedGet(
-    "/video-courses/courses",
-    {
-      ...(level ? { params: { level } } : {}),
-      meta: { cacheTags: [VIDEO_COURSE_CACHE_TAG] },
-    },
-    "MEDIUM_PRIVATE",
-  );
-export const getVideoCourse = (courseId) =>
-  api.cachedGet(
-    `/video-courses/courses/${courseId}`,
-    { meta: { cacheTags: [VIDEO_COURSE_CACHE_TAG] } },
-    "MEDIUM_PRIVATE",
-  );
+export const getVideoCourses = cachedRead((level) => [
+  "/video-courses/courses",
+  {
+    ...(level ? { params: { level } } : {}),
+    meta: { cacheTags: [VIDEO_COURSE_CACHE_TAG], persist: true },
+  },
+  "MEDIUM_PRIVATE",
+]);
+export const getVideoCourse = cachedRead((courseId) => [
+  `/video-courses/courses/${courseId}`,
+  { meta: { cacheTags: [VIDEO_COURSE_CACHE_TAG], persist: true } },
+  "MEDIUM_PRIVATE",
+]);
 export const getVideoCourseVideos = (level) =>
   api.cachedGet(
     "/video-courses/list",

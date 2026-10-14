@@ -1,4 +1,5 @@
 import api from "./axios";
+import { cachedRead } from "./cachedRead";
 
 const B1_READ_LISTEN_CACHE_TAG = "b1:read-listen";
 const B1_DESCRIBE_SPEAK_CACHE_TAG = "b1:describe-speak";
@@ -77,12 +78,11 @@ export const skipB1DescribeSpeakSpeaking = (topicId) =>
     },
   });
 
-export const getB1FlashcardChapters = () =>
-  api.cachedGet(
-    "/b1/flashcard/chapters",
-    { meta: { cacheTags: [B1_FLASHCARD_CACHE_TAG] } },
-    "MEDIUM_PRIVATE",
-  );
+export const getB1FlashcardChapters = cachedRead(() => [
+  "/b1/flashcard/chapters",
+  { meta: { cacheTags: [B1_FLASHCARD_CACHE_TAG], persist: true } },
+  "MEDIUM_PRIVATE",
+]);
 export const getB1Flashcards = (chapterId) =>
   api.cachedGet(
     `/b1/flashcard/cards/${chapterId}`,

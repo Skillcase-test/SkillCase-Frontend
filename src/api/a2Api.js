@@ -1,16 +1,16 @@
 import api from "./axios";
+import { cachedRead } from "./cachedRead";
 
 // FLASHCARD
 // These responses are cached, but the flashcard tag is invalidated after
 // writes so the embedded user progress is not reused stale.
 const A2_FLASHCARD_CACHE_TAG = "a2:flashcard";
 
-export const getFlashcardChapters = () =>
-  api.cachedGet(
-    "/a2/flashcard/chapters",
-    { meta: { cacheTags: [A2_FLASHCARD_CACHE_TAG] } },
-    "MEDIUM_PRIVATE",
-  );
+export const getFlashcardChapters = cachedRead(() => [
+  "/a2/flashcard/chapters",
+  { meta: { cacheTags: [A2_FLASHCARD_CACHE_TAG], persist: true } },
+  "MEDIUM_PRIVATE",
+]);
 export const getFlashcards = (chapterId) =>
   api.cachedGet(
     `/a2/flashcard/cards/${chapterId}`,
@@ -44,12 +44,11 @@ export const submitFlashcardQuiz = (data) =>
 // GRAMMAR
 const A2_GRAMMAR_CACHE_TAG = "a2:grammar";
 
-export const getGrammarTopics = () =>
-  api.cachedGet(
-    "/a2/grammar/topics",
-    { meta: { cacheTags: [A2_GRAMMAR_CACHE_TAG] } },
-    "MEDIUM_PRIVATE",
-  );
+export const getGrammarTopics = cachedRead(() => [
+  "/a2/grammar/topics",
+  { meta: { cacheTags: [A2_GRAMMAR_CACHE_TAG], persist: true } },
+  "MEDIUM_PRIVATE",
+]);
 export const getGrammarTopicDetail = (topicId) =>
   api.cachedGet(
     `/a2/grammar/topic/${topicId}`,
@@ -77,12 +76,11 @@ export const checkGrammarAnswer = (data) =>
 // LISTENING
 const A2_LISTENING_CACHE_TAG = "a2:listening";
 
-export const getListeningChapters = () =>
-  api.cachedGet(
-    "/a2/listening/chapters",
-    { meta: { cacheTags: [A2_LISTENING_CACHE_TAG] } },
-    "MEDIUM_PRIVATE",
-  );
+export const getListeningChapters = cachedRead(() => [
+  "/a2/listening/chapters",
+  { meta: { cacheTags: [A2_LISTENING_CACHE_TAG], persist: true } },
+  "MEDIUM_PRIVATE",
+]);
 export const getListeningContent = (chapterId) =>
   api.cachedGet(
     `/a2/listening/content/${chapterId}`,
@@ -104,12 +102,11 @@ export const checkListeningAnswers = (data) =>
 // SPEAKING
 const A2_SPEAKING_CACHE_TAG = "a2:speaking";
 
-export const getSpeakingChapters = () =>
-  api.cachedGet(
-    "/a2/speaking/chapters",
-    { meta: { cacheTags: [A2_SPEAKING_CACHE_TAG] } },
-    "MEDIUM_PRIVATE",
-  );
+export const getSpeakingChapters = cachedRead(() => [
+  "/a2/speaking/chapters",
+  { meta: { cacheTags: [A2_SPEAKING_CACHE_TAG], persist: true } },
+  "MEDIUM_PRIVATE",
+]);
 export const getSpeakingContent = (chapterId) =>
   api.cachedGet(
     `/a2/speaking/content/${chapterId}`,
@@ -131,12 +128,11 @@ export const saveSpeakingAssessment = (data) =>
 // READING
 const A2_READING_CACHE_TAG = "a2:reading";
 
-export const getReadingChapters = () =>
-  api.cachedGet(
-    "/a2/reading/chapters",
-    { meta: { cacheTags: [A2_READING_CACHE_TAG] } },
-    "MEDIUM_PRIVATE",
-  );
+export const getReadingChapters = cachedRead(() => [
+  "/a2/reading/chapters",
+  { meta: { cacheTags: [A2_READING_CACHE_TAG], persist: true } },
+  "MEDIUM_PRIVATE",
+]);
 export const getReadingContent = (chapterId) =>
   api.cachedGet(
     `/a2/reading/content/${chapterId}`,
@@ -158,12 +154,11 @@ export const checkReadingAnswers = (data) =>
 // TEST
 const A2_TEST_CACHE_TAG = "a2:test";
 
-export const getTestTopics = () =>
-  api.cachedGet(
-    "/a2/test/topics",
-    { meta: { cacheTags: [A2_TEST_CACHE_TAG] } },
-    "MEDIUM_PRIVATE",
-  );
+export const getTestTopics = cachedRead(() => [
+  "/a2/test/topics",
+  { meta: { cacheTags: [A2_TEST_CACHE_TAG], persist: true } },
+  "MEDIUM_PRIVATE",
+]);
 export const getTestProgress = (topicId) =>
   api.cachedGet(`/a2/test/progress/${topicId}`, {}, "NO_CACHE");
 export const getTestSet = (topicId, level, setNumber) =>

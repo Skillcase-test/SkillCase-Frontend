@@ -4,6 +4,7 @@ import AppSplashScreen from "../components/common/AppSplashScreen";
 import RouteErrorBoundary from "./RouteErrorBoundary";
 import { appRoutes } from "./routes";
 import { canAnimateRoutes, setAppRouter, setNavMotion } from "./navigation";
+import { setPrefetchRoutes } from "./prefetch";
 
 // Registered before the router's own popstate listener so the slide direction
 // is set before React Router starts the reverse transition.
@@ -43,3 +44,4 @@ if (canAnimateRoutes) {
 }
 
 setAppRouter(router);
+setPrefetchRoutes(appRoutes);

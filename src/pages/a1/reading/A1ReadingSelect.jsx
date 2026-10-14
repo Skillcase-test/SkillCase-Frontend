@@ -4,11 +4,13 @@ import { useSelector } from "react-redux";
 import ChapterSelectTemplate from "../../../components/a1/ChapterSelectTemplate";
 import { getReadingChapters } from "../../../api/a1Api";
 import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
+import { asArray, useCacheSeed } from "../../../hooks/useCacheSeed";
 export default function A1ReadingSelect() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  const [chapters, setChapters] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const seed = useCacheSeed(getReadingChapters, asArray);
+  const [chapters, setChapters] = useState(seed ?? []);
+  const [loading, setLoading] = useState(!seed);
   const { locked: usageLocked } = useUsageLimitModule("A1", "reading");
   useEffect(() => {
     if (!user) {

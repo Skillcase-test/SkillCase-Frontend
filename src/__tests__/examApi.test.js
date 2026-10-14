@@ -20,6 +20,7 @@ import axios from "../api/axios";
 vi.mock("../api/axios", () => ({
   default: {
     get: vi.fn(),
+    cachedGet: vi.fn(),
     post: vi.fn(),
     put: vi.fn(),
     delete: vi.fn(),
@@ -51,9 +52,14 @@ describe("examApi", () => {
   // ─── Student exam endpoints ────────────────────────────────────────────────
 
   describe("Student exam endpoints", () => {
-    test("getVisibleExams calls GET /exam/visible", async () => {
+    test("getVisibleExams reads /exam/visible through the short private cache", async () => {
+      vi.mocked(axios).cachedGet.mockResolvedValue({ data: {} });
       await examApi.getVisibleExams();
-      expect(mockGet).toHaveBeenCalledWith("/exam/visible");
+      expect(vi.mocked(axios).cachedGet).toHaveBeenCalledWith(
+        "/exam/visible",
+        {},
+        "SHORT_PRIVATE",
+      );
     });
 
     test("getExamInfo calls GET /exam/:testId", async () => {

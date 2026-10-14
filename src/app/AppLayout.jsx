@@ -86,6 +86,7 @@ import { LiveUpdate } from "@capawesome/capacitor-live-update";
 import { App as CapApp } from "@capacitor/app";
 import { initPushNotifications } from "../notifications/pushNotifications";
 import NavigationProgress from "../router/NavigationProgress";
+import RoutePrefetcher from "../router/RoutePrefetcher";
 import { mergeRouteHandles, resolveRouteGuard } from "../router/guards";
 import { runBackHandler } from "../router/backButton";
 import { canGoBackInApp } from "../hooks/useGoBack";
@@ -281,14 +282,12 @@ export default function AppLayout() {
   useEffect(() => {
     // Signed-out users never reach these screens. One chunk per idle slot so
     // parsing them can't stack into a long freeze while the user taps around.
+    // Level screens are warmed by RoutePrefetcher as the user gets near them.
     if (!token) return undefined;
     const queue = [
       () => import("../pages/learnGerman/LearnGermanHome"),
       () => import("../pages/jobScreening/JobScreening"),
       () => import("../pages/videoCourses/CourseSelectPage"),
-      () => import("../pages/a2/flashcard/A2Flashcard"),
-      () => import("../pages/a1/listening/A1ListeningContent"),
-      () => import("../pages/a2/listening/A2ListeningContent"),
       () => import("../pages/exam/ExamPage"),
     ];
     const idle = (fn) =>
@@ -974,6 +973,7 @@ export default function AppLayout() {
                 <GoogleAnalyticsTracker />
                 <ScrollRestoration />
                 <NavigationProgress />
+                <RoutePrefetcher />
                 <Toaster
                   position="top-right"
                   containerStyle={{ zIndex: 100000 }}

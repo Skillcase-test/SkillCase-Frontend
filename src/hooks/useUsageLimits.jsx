@@ -117,10 +117,17 @@ export function UsageLimitProvider({ children }) {
   useEffect(() => {
     if (!isAuthenticated) return undefined;
 
-    const onVisible = () => {
-      if (document.visibilityState === "visible") refresh();
+    // Resuming the app fires focus and visibilitychange together; one fetch covers both
+    let lastResumeAt = 0;
+    const onResume = () => {
+      if (Date.now() - lastResumeAt < 2000) return;
+      lastResumeAt = Date.now();
+      refresh();
     };
-    const onFocus = () => refresh();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") onResume();
+    };
+    const onFocus = onResume;
     const onUsageLimitHit = () => refresh();
     const onUsageLimitRefresh = () => refresh();
 

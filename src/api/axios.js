@@ -16,6 +16,7 @@ import {
   getReferralAttribution,
   clearReferralAttribution,
 } from "../utils/referralAttribution";
+import { dropAllPeeks, dropPeeks, readPeek, writePeek } from "./peekStore";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_BACKEND_URL,
@@ -233,6 +234,16 @@ if (typeof window !== "undefined") {
   window.addEventListener("storage", handleCacheEpochStorage);
 }
 
+// Logout (or a 401 that signs the user out) wipes their stored snapshots right
+// away. Rehydration on launch goes from no user to a user, which keeps them.
+let signedInUserId = store.getState().auth?.user?.user_id ?? null;
+store.subscribe?.(() => {
+  const next = store.getState().auth?.user?.user_id ?? null;
+  if (next === signedInUserId) return;
+  if (signedInUserId !== null) dropAllPeeks();
+  signedInUserId = next;
+});
+
 // Statuses that describe an expected business or auth state rather than a
 // defect: the paywall (402), auth challenges (401/403), absent optional content
 // (404), conflicts, validation and rate limits. These were being reported as
@@ -263,6 +274,7 @@ function clearGetCaches() {
   inFlightGet.clear();
   cacheEpoch += 1;
   persistCacheEpochs();
+  dropPeeks();
 }
 
 function ensureAuthScopeFresh() {
@@ -280,6 +292,7 @@ function ensureAuthScopeFresh() {
     if (hadActiveScope) {
       cacheEpoch += 1;
       persistCacheEpochs();
+      dropAllPeeks();
     }
   }
   return currentScope;
@@ -331,9 +344,10 @@ function invalidateGetCacheTags(tags) {
   }
 
   persistCacheEpochs();
+  dropPeeks(normalizedTags);
 }
 
-api.cachedGet = async (url, config = {}, cacheProfile = "NO_CACHE") => {
+function buildCachedRequest(url, config, cacheProfile) {
   const authScope = ensureAuthScopeFresh();
   const requestConfig = {
     ...config,
@@ -355,9 +369,38 @@ api.cachedGet = async (url, config = {}, cacheProfile = "NO_CACHE") => {
     };
   }
   const ttl = GET_CACHE_TTLS[cacheProfile] ?? 0;
-  if (!ttl) return api.get(url, requestConfig);
-
   const key = getCacheKey(url, requestConfig?.params, authScope);
+  return { requestConfig, cacheTags, ttl, key };
+}
+
+// Same key as cachedGet, but synchronous and never touches the network.
+// Returns a { data } snapshot to paint with, or undefined.
+api.peekGet = (url, config = {}, cacheProfile = "NO_CACHE") => {
+  const { key, requestConfig } = buildCachedRequest(url, config, cacheProfile);
+  const hit = getCache.get(key);
+  if (hit) return { data: hit.response.data };
+  if (!requestConfig.meta?.persist) return undefined;
+  const data = readPeek(key, cacheEpoch);
+  return data === undefined ? undefined : { data };
+};
+
+api.cachedGet = async (url, config = {}, cacheProfile = "NO_CACHE") => {
+  const { requestConfig, cacheTags, ttl, key } = buildCachedRequest(
+    url,
+    config,
+    cacheProfile,
+  );
+  const persist = requestConfig.meta?.persist === true;
+  if (!ttl) {
+    if (!persist) return api.get(url, requestConfig);
+    const epochAtStart = cacheEpoch;
+    const response = await api.get(url, requestConfig);
+    if (cacheEpoch === epochAtStart) {
+      writePeek(key, cacheEpoch, cacheTags, response.data);
+    }
+    return response;
+  }
+
   const now = Date.now();
   const existing = getCache.get(key);
   if (existing && now < existing.expiresAt) {
@@ -384,6 +427,7 @@ api.cachedGet = async (url, config = {}, cacheProfile = "NO_CACHE") => {
             expiresAt: Date.now() + ttl,
             tags: cacheTags,
           });
+          if (persist) writePeek(key, cacheEpoch, cacheTags, response.data);
         }
         return response;
       })
@@ -399,7 +443,57 @@ api.cachedGet = async (url, config = {}, cacheProfile = "NO_CACHE") => {
   return await inFlightGet.get(key).promise;
 };
 
+// Plain app reads get a timeout and a couple of retries so a dropped packet on
+// a weak connection doesn't leave a screen on its skeleton forever. The timeout
+// caps the whole download, so it is generous enough for ~1.5MB on slow 3G.
+// Streams, AI calls, downloads and admin tools keep the old no-timeout behaviour.
+const GET_TIMEOUT_MS = 30_000;
+const MAX_GET_RETRIES = 2;
+const NO_RETRY_PATH =
+  /^\/(admin|analytics|telemetry|interview-tools|resume|upload)\b|maya|\/ai\b|\/chat\b|\/say\b|invoice/i;
+
+function isRetryableRead(config) {
+  if (!config || (config.method || "get").toLowerCase() !== "get") return false;
+  if (config.responseType === "blob" || config.meta?.noRetry) return false;
+  const path = String(config.url || "").replace(/^https?:\/\/[^/]+/, "");
+  return !NO_RETRY_PATH.test(path);
+}
+
+function retryDelay(error) {
+  const config = error?.config;
+  if (!isRetryableRead(config) || config.meta?.retryable !== true) return null;
+  if (axios.isCancel(error) || error.code === "ERR_CANCELED") return null;
+  if (config.signal?.aborted) return null;
+  const attempt = config.meta.retryCount || 0;
+  if (attempt >= MAX_GET_RETRIES) return null;
+  const status = error.response?.status;
+  if (status) return status >= 502 && status <= 504 ? 800 * 2 ** attempt : null;
+  // A link slow enough to time out won't do better on a second try
+  if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") return null;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return null;
+  return 600 * 2 ** attempt + Math.random() * 300;
+}
+
+function retryRead(error, delay) {
+  const config = error.config;
+  config.meta = { ...config.meta, retryCount: (config.meta.retryCount || 0) + 1 };
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      config.signal?.removeEventListener?.("abort", onAbort);
+      resolve(api.request(config));
+    }, delay);
+    function onAbort() {
+      clearTimeout(timer);
+      reject(error);
+    }
+    config.signal?.addEventListener?.("abort", onAbort, { once: true });
+  });
+}
+
 api.clearGetCache = clearGetCaches;
+// When the last real write landed, so profile syncs can skip quiet periods
+let lastWriteAt = 0;
+api.getLastWriteAt = () => lastWriteAt;
 api.invalidateGetCacheTags = invalidateGetCacheTags;
 
 api.interceptors.request.use((config) => {
@@ -411,6 +505,12 @@ api.interceptors.request.use((config) => {
     startedAt: Date.now(),
     telemetryContext,
   };
+  if (config.timeout === undefined || config.timeout === 0) {
+    if (isRetryableRead(config)) {
+      config.timeout = GET_TIMEOUT_MS;
+      config.meta.retryable = true;
+    }
+  }
 
   const requestMethod = (config.method || "get").toLowerCase();
   // Referral attribution rides along on onboarding completion — injected here
@@ -472,6 +572,9 @@ api.interceptors.response.use(
       )
     ) {
       clearReferralAttribution();
+    }
+    if (method !== "get" && !isBackgroundPost(response?.config?.url)) {
+      lastWriteAt = Date.now();
     }
     if (method !== "get") {
       // Tagged learning writes invalidate only their related GETs. Untagged
@@ -546,6 +649,11 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    // Retried before any of the handling below, so a recovered read never
+    // reports an error or trips the paywall/usage-limit handlers
+    const delay = retryDelay(error);
+    if (delay !== null) return retryRead(error, delay);
+
     const statusCode = error?.response?.status;
     const method = (error?.config?.method || "get").toUpperCase();
     const requestUrl = error?.config?.url || "unknown";

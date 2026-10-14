@@ -4,11 +4,47 @@ import { useSelector } from "react-redux";
 import ChapterSelectTemplate from "../../../components/a2/ChapterSelectTemplate";
 import { getTestTopics } from "../../../api/a2Api";
 import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
+import { useCacheSeed } from "../../../hooks/useCacheSeed";
+
+// Groups topic rows into chapters
+function toChapters(rows) {
+  const chapterMap = {};
+
+  rows.forEach((row) => {
+    if (!chapterMap[row.chapter_id]) {
+      chapterMap[row.chapter_id] = {
+        id: row.chapter_id,
+        chapter_name: row.chapter_name,
+        topics: [],
+      };
+    }
+    if (row.topic_id) {
+      chapterMap[row.chapter_id].topics.push(row);
+    }
+  });
+  // Convert to chapter format with progress
+  const chaptersWithProgress = Object.values(chapterMap).map((ch) => {
+    const completedLevels = ch.topics.reduce(
+      (acc, t) => acc + (t.current_level || 0),
+      0,
+    );
+    const totalLevels = ch.topics.length * 5; // 5 levels per topic
+    return {
+      ...ch,
+      completedCount: completedLevels,
+      totalCount: totalLevels,
+    };
+  });
+
+  return chaptersWithProgress;
+}
+
 export default function A2TestSelect() {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  const [chapters, setChapters] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const seed = useCacheSeed(getTestTopics, toChapters);
+  const [chapters, setChapters] = useState(seed ?? []);
+  const [loading, setLoading] = useState(!seed);
   const { locked: usageLocked } = useUsageLimitModule("A2", "test");
   useEffect(() => {
     if (!user) {
@@ -18,35 +54,7 @@ export default function A2TestSelect() {
     const fetchTopics = async () => {
       try {
         const res = await getTestTopics();
-        const chapterMap = {};
-
-        res.data.forEach((row) => {
-          if (!chapterMap[row.chapter_id]) {
-            chapterMap[row.chapter_id] = {
-              id: row.chapter_id,
-              chapter_name: row.chapter_name,
-              topics: [],
-            };
-          }
-          if (row.topic_id) {
-            chapterMap[row.chapter_id].topics.push(row);
-          }
-        });
-        // Convert to chapter format with progress
-        const chaptersWithProgress = Object.values(chapterMap).map((ch) => {
-          const completedLevels = ch.topics.reduce(
-            (acc, t) => acc + (t.current_level || 0),
-            0,
-          );
-          const totalLevels = ch.topics.length * 5; // 5 levels per topic
-          return {
-            ...ch,
-            completedCount: completedLevels,
-            totalCount: totalLevels,
-          };
-        });
-
-        setChapters(chaptersWithProgress);
+        setChapters(toChapters(res.data));
       } catch (err) {
         console.error(err);
       } finally {
