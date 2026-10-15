@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation } from "react-router-dom";
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence, animate, m, useMotionValue, useTransform } from "framer-motion";
 import api from "../../api/axios";
 import { setUser } from "../../redux/auth/authSlice";
 import { PREMIUM_PREVIEW_EVENT, PREMIUM_TIER_NAMES, premiumIntroDue, premiumTier } from "../../utils/premium";
@@ -15,6 +15,9 @@ import { PLAN_TROPHY } from "./PlanCards";
 const BUSY_SELECTOR = "[data-premium-celebration], [aria-modal='true'], .driver-active";
 const SPARKS = 10;
 const EASE_OUT = [0.22, 1, 0.36, 1];
+// Plus → Pro: the ring charges, bursts at LEVEL_UP_AT, then the Maya minutes count up
+const LEVEL_UP_AT = 1250;
+const MAYA_MINUTES = { plus: 10, pro: 30 };
 
 /** Hides the premium header colours under the old navy until the trophy lands, then sweeps them in. */
 function setReveal(state) {
@@ -23,17 +26,41 @@ function setReveal(state) {
   else delete root.dataset.premiumReveal;
 }
 
+/** "Plus" rolls up and out while "Pro" rolls in, both in one grid cell so the line doesn't jump */
+function TierWord({ pro }) {
+  const word = (show, children, gold) => (
+    <m.span
+      className={`col-start-1 row-start-1 ${gold ? "text-gold-300" : ""}`}
+      initial={false}
+      animate={{ y: show ? "0%" : pro ? "-100%" : "100%", opacity: show ? 1 : 0 }}
+      transition={{ duration: 0.45, ease: EASE_OUT }}
+    >
+      {children}
+    </m.span>
+  );
+  return (
+    <span className="inline-grid justify-items-start overflow-hidden align-bottom">
+      {word(!pro, "Plus")}
+      {word(pro, "Pro", true)}
+    </span>
+  );
+}
+
 /**
  * The one-time "you're premium now" moment: the trophy rises, the plan name appears, then the
  * trophy flies into the header pill while the header turns to the premium colours. Plays once per
  * tier per account (after paying, or on the first open of this version for existing subscribers).
+ * A Plus → Pro upgrade gets its own take: the ring charges, bursts, and Plus turns into Pro.
  */
 export default function PremiumWelcome({ paused = false }) {
   const user = useSelector((state) => state.auth.user);
   const dispatch = useDispatch();
   const location = useLocation();
-  const [run, setRun] = useState(null); // { tier, preview }
+  const [run, setRun] = useState(null); // { tier, preview, upgrade }
   const [phase, setPhase] = useState("rise"); // rise → fly → done
+  const [levelled, setLevelled] = useState(false);
+  const minutes = useMotionValue(MAYA_MINUTES.plus);
+  const minutesText = useTransform(minutes, (v) => Math.round(v));
   const [flyTo, setFlyTo] = useState(null);
   const trophyRef = useRef(null);
   const timers = useRef([]);
@@ -49,17 +76,20 @@ export default function PremiumWelcome({ paused = false }) {
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
   const start = useCallback(
-    (tier, preview) => {
+    (tier, preview, upgrade = false) => {
       setPhase("rise");
       setFlyTo(null);
-      setRun({ tier, preview });
-      setReveal("pending");
+      setLevelled(false);
+      minutes.set(MAYA_MINUTES.plus);
+      setRun({ tier, preview, upgrade });
+      // A Plus header is already premium, so there's nothing to hide on an upgrade
+      setReveal(upgrade ? null : "pending");
       hapticMedium();
-      trackFeatureEvent("payments", "premium_welcome_presented", { entityId: tier, attributes: { preview } });
+      trackFeatureEvent("payments", "premium_welcome_presented", { entityId: tier, attributes: { preview, upgrade } });
       // The local copy updates once it's over: re-rendering the app mid-animation stutters it
       if (!preview) api.post("/user/premium-intro-seen", { tier }).catch(() => {});
     },
-    [],
+    [minutes],
   );
 
   // Wait for the home screen and for other modals/tours to close first, then for the
@@ -75,7 +105,7 @@ export default function PremiumWelcome({ paused = false }) {
       if (!ready()) return void timers.current.push(setTimeout(tryStart, 1000));
       whenIdle(() => {
         if (cancelled) return;
-        if (ready()) start(due, false);
+        if (ready()) start(due, false, due === "pro" && userRef.current?.premium_intro_tier === "plus");
         else timers.current.push(setTimeout(tryStart, 1000));
       });
     };
@@ -86,7 +116,8 @@ export default function PremiumWelcome({ paused = false }) {
   }, [due, onShell, paused, run, start]);
 
   useEffect(() => {
-    const onPreview = () => start(premiumTier(user) || "pro", true);
+    const onPreview = (e) =>
+      e?.detail?.upgrade ? start("pro", true, true) : start(premiumTier(user) || "pro", true);
     window.addEventListener(PREMIUM_PREVIEW_EVENT, onPreview);
     return () => window.removeEventListener(PREMIUM_PREVIEW_EVENT, onPreview);
   }, [start, user]);
@@ -95,7 +126,7 @@ export default function PremiumWelcome({ paused = false }) {
     timers.current.forEach(clearTimeout);
     timers.current = [];
     setPhase("done");
-    setReveal("sweep");
+    setReveal(runRef.current?.upgrade ? "pill" : "sweep");
     later(() => {
       setReveal(null);
       const current = runRef.current;
@@ -121,8 +152,15 @@ export default function PremiumWelcome({ paused = false }) {
 
   useEffect(() => {
     if (!run || phase !== "rise") return;
-    later(fly, isLiteMode ? 1600 : 2000);
-  }, [run, phase, fly]);
+    if (!run.upgrade) return void later(fly, isLiteMode ? 1600 : 2000);
+    const levelUpAt = isLiteMode ? 700 : LEVEL_UP_AT;
+    later(() => {
+      setLevelled(true);
+      if (!isLiteMode) hapticMedium();
+    }, levelUpAt);
+    later(() => animate(minutes, MAYA_MINUTES.pro, { duration: 0.7, ease: "easeOut" }), levelUpAt + 150);
+    later(fly, levelUpAt + (isLiteMode ? 1100 : 1400));
+  }, [run, phase, fly, minutes]);
 
   const skip = () => {
     if (phase === "rise") fly();
@@ -130,6 +168,9 @@ export default function PremiumWelcome({ paused = false }) {
 
   const name = run ? PREMIUM_TIER_NAMES[run.tier] : "";
   const flying = phase === "fly";
+  const upgrade = Boolean(run?.upgrade);
+  // Upgrade glow: dim while the ring charges, full at the burst
+  const glowScale = flying ? 0.4 : upgrade && !levelled ? 0.7 : 1;
 
   return (
     <AnimatePresence>
@@ -151,17 +192,61 @@ export default function PremiumWelcome({ paused = false }) {
             animate={{ opacity: flying ? 0 : 1 }}
             transition={{ duration: flying ? 0.5 : 0.3, ease: "easeOut" }}
           />
+          {upgrade && (
+            <m.div
+              aria-hidden="true"
+              className="absolute inset-0 bg-linear-155 from-black from-25% via-premium-navy via-70% to-premium-gold"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: levelled && !flying ? 1 : 0 }}
+              transition={{ duration: flying ? 0.5 : 0.6, ease: "easeOut" }}
+            />
+          )}
           <div className="relative grid place-items-center">
             {!isLiteMode && (
               <m.div
                 aria-hidden="true"
                 className="absolute size-72 rounded-full bg-radial from-gold-300/45 via-gold-400/10 to-transparent"
                 initial={{ scale: 0.3, opacity: 0 }}
-                animate={{ scale: flying ? 0.4 : 1, opacity: flying ? 0 : 1 }}
+                animate={{ scale: glowScale, opacity: flying ? 0 : 1 }}
                 transition={{ duration: 0.9, ease: EASE_OUT }}
               />
             )}
+            {upgrade && !isLiteMode && (
+              <>
+                {/* Charging ring that fills, then blows outwards at the level-up */}
+                <m.svg
+                  aria-hidden="true"
+                  viewBox="0 0 100 100"
+                  className="absolute size-56 -rotate-90 overflow-visible"
+                  initial={{ opacity: 0, scale: 0.85 }}
+                  animate={levelled ? { opacity: 0, scale: 1.35 } : { opacity: 1, scale: 1 }}
+                  transition={{ duration: levelled ? 0.5 : 0.4, ease: EASE_OUT }}
+                >
+                  <circle cx="50" cy="50" r="47" fill="none" strokeWidth="1.5" className="stroke-white/10" />
+                  <m.circle
+                    cx="50"
+                    cy="50"
+                    r="47"
+                    fill="none"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    className="stroke-gold-300"
+                    initial={{ pathLength: 0 }}
+                    animate={{ pathLength: 1 }}
+                    transition={{ delay: 0.4, duration: (LEVEL_UP_AT - 450) / 1000, ease: "easeIn" }}
+                  />
+                </m.svg>
+                <m.div
+                  aria-hidden="true"
+                  className="absolute size-72 rounded-full bg-radial from-white/80 via-gold-300/40 to-transparent"
+                  initial={{ opacity: 0, scale: 0.4 }}
+                  animate={levelled ? { opacity: [0, 1, 0], scale: [0.4, 1.4, 1.8] } : { opacity: 0, scale: 0.4 }}
+                  transition={{ duration: 0.6, ease: "easeOut" }}
+                />
+              </>
+            )}
             {!isLiteMode &&
+              (!upgrade || levelled) &&
               Array.from({ length: SPARKS }, (_, i) => {
                 const angle = (i / SPARKS) * Math.PI * 2;
                 const dist = 110 + (i % 3) * 18;
@@ -172,7 +257,7 @@ export default function PremiumWelcome({ paused = false }) {
                     className="absolute size-1.5 rounded-full bg-gold-300"
                     initial={{ x: 0, y: 0, opacity: 0, scale: 0.4 }}
                     animate={{ x: Math.cos(angle) * dist, y: Math.sin(angle) * dist, opacity: [0, 1, 0], scale: [0.4, 1, 0.6] }}
-                    transition={{ delay: 0.45 + (i % 4) * 0.04, duration: 1.1, ease: "easeOut" }}
+                    transition={{ delay: (upgrade ? 0 : 0.45) + (i % 4) * 0.04, duration: 1.1, ease: "easeOut" }}
                   />
                 );
               })}
@@ -203,7 +288,7 @@ export default function PremiumWelcome({ paused = false }) {
                     className="absolute inset-y-0 -left-full w-full -skew-x-12 bg-linear-to-r from-transparent via-white/70 to-transparent"
                     initial={{ x: "0%" }}
                     animate={{ x: "300%" }}
-                    transition={{ delay: 0.7, duration: 0.9, ease: "easeInOut" }}
+                    transition={{ delay: upgrade ? LEVEL_UP_AT / 1000 : 0.7, duration: 0.9, ease: "easeInOut" }}
                   />
                 </div>
               )}
@@ -216,9 +301,24 @@ export default function PremiumWelcome({ paused = false }) {
             animate={{ opacity: flying ? 0 : 1, y: flying ? -8 : 0 }}
             transition={{ delay: flying ? 0 : 0.5, duration: 0.45, ease: EASE_OUT }}
           >
-            <p className="text-gold-300 text-sm font-medium">Welcome to</p>
-            <h2 className="text-white text-3xl font-bold">{name}</h2>
-            <p className="text-white/70 text-sm">Unlimited access to every feature is now yours</p>
+            {upgrade ? (
+              <>
+                <p className="text-gold-300 text-sm font-medium">{levelled ? "You're now on" : "Levelling up"}</p>
+                <h2 className="text-white text-3xl font-bold">
+                  Career <TierWord pro={levelled} />
+                </h2>
+                <p className="text-white/70 text-sm">
+                  Talk to Maya ·{" "}
+                  <m.span className="inline-block min-w-[2ch] text-white font-semibold tabular-nums">{minutesText}</m.span> min a day
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-gold-300 text-sm font-medium">Welcome to</p>
+                <h2 className="text-white text-3xl font-bold">{name}</h2>
+                <p className="text-white/70 text-sm">Unlimited access to every feature is now yours</p>
+              </>
+            )}
           </m.div>
         </m.div>
       )}

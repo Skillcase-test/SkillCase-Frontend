@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useGoBack } from "../hooks/useGoBack";
 import { useBackHandler } from "../router/backButton";
 import { setUser, logout } from "../redux/auth/authSlice";
-import { isTrialActive, PREMIUM_PREVIEW_EVENT, premiumPlanName, trialDaysLeft } from "../utils/premium";
+import { canLearnerUpgradeToPro, isTrialActive, PREMIUM_PREVIEW_EVENT, premiumPlanName, trialDaysLeft } from "../utils/premium";
 import { hasMayaLevel } from "../utils/levels";
 import { FreePlanCard, PremiumPlanCard } from "../components/premium/PlanCards";
 import { stableFile } from "../utils/stableFile";
@@ -996,8 +996,22 @@ export default function ProfilePage() {
                       ]
                     : ["Active Plan: Full Access", "All learning features unlocked"]
                 }
-                actionLabel={user?.autopay_enabled ? "Manage Plan" : "Start Practicing"}
-                onAction={() => navigate(user?.autopay_enabled ? "/profile/manage-plan" : "/")}
+                actionLabel={
+                  user?.autopay_enabled
+                    ? "Manage Plan"
+                    : canLearnerUpgradeToPro(user)
+                      ? "Upgrade to Career Pro"
+                      : "Start Practicing"
+                }
+                onAction={() =>
+                  navigate(
+                    user?.autopay_enabled
+                      ? "/profile/manage-plan"
+                      : canLearnerUpgradeToPro(user)
+                        ? "/profile/upgrade"
+                        : "/",
+                  )
+                }
               />
             ) : isTrial ? (
               <div className="w-full p-3 bg-gradient-to-r from-[#083262] to-[#1E5CA2] rounded-xl flex flex-col gap-2.5">
@@ -1048,16 +1062,16 @@ export default function ProfilePage() {
               />
             )}
 
-            {/* TEMP TESTING: replays the premium welcome on the home screen. Remove before release. */}
+            {/* TEMP TESTING: replays the Plus → Pro upgrade animation on the home screen. Remove before release. */}
             <button
               type="button"
               onClick={() => {
                 navigate("/");
-                setTimeout(() => window.dispatchEvent(new Event(PREMIUM_PREVIEW_EVENT)), 600);
+                setTimeout(() => window.dispatchEvent(new CustomEvent(PREMIUM_PREVIEW_EVENT, { detail: { upgrade: true } })), 600);
               }}
               className="w-full py-2 rounded-lg border border-dashed border-amber-400 text-amber-700 text-xs font-medium"
             >
-              Test: play premium welcome
+              Test: play Plus → Pro upgrade
             </button>
 
             {/* Scholarship Exam Entry — re-entry point into the exam funnel. */}

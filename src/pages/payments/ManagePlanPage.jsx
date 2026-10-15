@@ -11,7 +11,7 @@ import { useAutopayCheckout } from "../../hooks/useAutopayCheckout";
 import { getSubscriptionPlans, changePlan } from "../../api/subscriptionApi";
 import mayaSad from "../../assets/onboarding/mayaSad.webp";
 import { getMayaImage } from "../../utils/mayaAvatars";
-import { mayaFeatureValue, premiumPlanName } from "../../utils/premium";
+import { canLearnerUpgradeToPro, isLearnerAccess, mayaFeatureValue, premiumPlanName } from "../../utils/premium";
 import { PLAN_TROPHY } from "../../components/premium/PlanCards";
 import PremiumActivatedModal from "../../components/PremiumActivatedModal";
 import { trackFeatureEvent } from "../../telemetry/events";
@@ -56,6 +56,9 @@ export default function ManagePlanPage() {
   // Which catalog plan their access is on (null while loading → fall back to
   // the standard ₹99 labels the page always had).
   const [plansInfo, setPlansInfo] = useState(null);
+  // A course learner buying Career Pro: the success modal must still say Pro
+  // after the page flips to the subscriber view
+  const [boughtPro, setBoughtPro] = useState(false);
   const { loading: resuming, handlePay, handleInstantUpgrade } = useAutopayCheckout({
     user,
     dispatch,
@@ -76,9 +79,11 @@ export default function ManagePlanPage() {
       .catch(() => setPlansInfo(null));
   }, []);
 
-  // Not premium with recurring autopay → redirect
-  if (user?.autopay_enabled !== true) {
-    return <Navigate to={user?.is_paid ? "/profile" : "/profile/upgrade"} replace />;
+  // Course learners (paid by the team, no subscription) get a read-only view
+  // plus the Career Pro upgrade; everyone else without autopay buys a plan
+  const learner = isLearnerAccess(user);
+  if (user?.autopay_enabled !== true && !learner) {
+    return <Navigate to="/profile/upgrade" replace />;
   }
 
   // currentPlan survives a plan that isn't buyable for them anymore (level
@@ -112,6 +117,8 @@ export default function ManagePlanPage() {
   const canMoveToPlus = Boolean(
     plusPlan && plansInfo?.current === "standard" && subIsUpdatable
   );
+  // No ₹99 to credit back here: a fresh ₹199 autopay on top of their course access
+  const learnerCanBuyPro = Boolean(plusPlan && canLearnerUpgradeToPro(user));
 
   const handleDisableAutopay = async () => {
     setCancelling(true);
@@ -234,7 +241,7 @@ export default function ManagePlanPage() {
                 {planName} Active
               </h2>
               <p className="max-w-xs text-center text-white text-xs font-normal">
-                {isNonRenewable
+                {isNonRenewable && !learner
                   ? `Your plan won't renew. You keep full access${
                       accessUntil ? ` until ${accessUntil}` : ""
                     }.`
@@ -282,6 +289,7 @@ export default function ManagePlanPage() {
             </div>
 
             {/* Plan details */}
+            {!learner && (
             <div className="self-stretch p-4 bg-black/50 rounded-xl flex flex-col gap-4">
               <div className="text-gold-400 text-base font-normal">
                 Monthly Plan details
@@ -315,8 +323,32 @@ export default function ManagePlanPage() {
                 )}
               </div>
             </div>
+            )}
 
-            {pendingPlan?.key === "b2_plus" && pendingPlan.unpaid ? (
+            {learner ? (
+              learnerCanBuyPro && (
+                <button
+                  onClick={() => {
+                    trackFeatureEvent("payments", "upgrade_clicked", {
+                      entityId: "b2_plus",
+                      attributes: { surface: "manage_plan", kind: "learner" },
+                    });
+                    setBoughtPro(true);
+                    handlePay("b2_plus");
+                  }}
+                  disabled={resuming}
+                  className="self-stretch px-4 py-3 rounded-xl border border-gold-400/40 bg-white/10 text-left hover:bg-white/15 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                >
+                  <span className="flex items-center gap-2 text-white text-sm font-semibold">
+                    {resuming ? <Loader2 className="size-4 animate-spin text-gold-400" /> : <Gem className="size-4 text-gold-400" />}
+                    Upgrade to Career Pro — ₹{rupees(plusPlan.amountPaise)}/mo
+                  </span>
+                  <span className="block text-white/60 text-[11px] mt-1 leading-snug">
+                    {plusPlan.mayaMinutesPerDay} min of Maya a day with monthly UPI autopay. Your Career Plus course access stays as it is, and you can cancel anytime.
+                  </span>
+                </button>
+              )
+            ) : pendingPlan?.key === "b2_plus" && pendingPlan.unpaid ? (
               // An abandoned upgrade payment — nothing was charged and NOTHING
               // is scheduled, so this must offer to resume the payment, never
               // imply Plus is "coming" on its own.
@@ -408,7 +440,7 @@ export default function ManagePlanPage() {
             <PhoneCall className="size-5 text-blue-950" />
             <span>Get priority support</span>
           </a>
-          {isNonRenewable ? (
+          {learner ? null : isNonRenewable ? (
             <button
               // Resume on the same plan they paid for — a Plus user who cancelled
               // must not silently come back on Standard. The redux payload's
@@ -586,16 +618,17 @@ export default function ManagePlanPage() {
       {/* Post-payment celebration — `upgraded` selects the Plus title/refund line. */}
       <PremiumActivatedModal
         open={Boolean(successData)}
-        title={successData?.upgraded ? "Career Pro activated!" : "Premium activated!"}
+        title={successData?.upgraded || boughtPro ? "Career Pro activated!" : "Premium activated!"}
         refundPaise={successData?.refunded_paise}
         mayaValue={mayaFeatureValue(
           user,
-          successData?.upgraded
+          successData?.upgraded || boughtPro
             ? (plusPlan?.mayaMinutesPerDay ?? 30)
             : 10,
         )}
         onClose={() => {
           setSuccessData(null);
+          setBoughtPro(false);
           getSubscriptionPlans().then(setPlansInfo).catch(() => {});
         }}
         onGoHome={() => {

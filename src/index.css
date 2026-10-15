@@ -389,3 +389,15 @@ html.lite[data-premium-reveal="sweep"] .premium-veil {
 @keyframes premium-veil-fade {
   to { opacity: 0; }
 }
+/* Plus → Pro: the header pill takes the trophy with a gold pulse */
+html[data-premium-reveal="pill"] [data-premium-pill] {
+  animation: premium-pill-pulse 800ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes premium-pill-pulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); }
+  35% { transform: scale(1.08); filter: drop-shadow(0 0 6px var(--color-gold-300)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0 transparent); }
+}
+html.lite[data-premium-reveal="pill"] [data-premium-pill] {
+  animation: none;
+}

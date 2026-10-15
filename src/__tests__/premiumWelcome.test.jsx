@@ -104,4 +104,27 @@ describe("PremiumWelcome", () => {
     await act(async () => vi.advanceTimersByTime(2100));
     expect(document.documentElement.dataset.premiumReveal).toBe("sweep");
   });
+
+  it("a Plus learner who moved to Pro gets the level-up, with the header left alone", async () => {
+    mockUser = { ...pro, premium_intro_tier: "plus" };
+    renderAt("/");
+    await act(async () => vi.advanceTimersByTime(1600));
+    expect(screen.getByText("Levelling up")).toBeInTheDocument();
+    expect(document.documentElement.dataset.premiumReveal).toBeUndefined();
+    expect(mockPost).toHaveBeenCalledWith("/user/premium-intro-seen", { tier: "pro" });
+    await act(async () => vi.advanceTimersByTime(1300));
+    expect(screen.getByText("You're now on")).toBeInTheDocument();
+    await act(async () => vi.advanceTimersByTime(1500));
+    expect(document.documentElement.dataset.premiumReveal).toBe("pill");
+  });
+
+  it("the upgrade test button replays the level-up without saving", async () => {
+    mockUser = { ...plus, premium_intro_tier: "plus" };
+    renderAt("/");
+    await act(async () =>
+      window.dispatchEvent(new CustomEvent(PREMIUM_PREVIEW_EVENT, { detail: { upgrade: true } })),
+    );
+    expect(screen.getByText("Levelling up")).toBeInTheDocument();
+    expect(mockPost).not.toHaveBeenCalled();
+  });
 });

@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ChevronRight, Gem, Check } from "lucide-react";
 import { useAutopayCheckout } from "../../hooks/useAutopayCheckout";
 import { getSubscriptionPlans } from "../../api/subscriptionApi";
-import { mayaFeatureValue } from "../../utils/premium";
+import { canLearnerUpgradeToPro, mayaFeatureValue } from "../../utils/premium";
 import PremiumActivatedModal from "../../components/PremiumActivatedModal";
 import diamond from "../../assets/diamond.webp";
 
@@ -30,6 +30,8 @@ export default function UpgradePlanPage() {
   // still loading — the standard ₹99 card renders in the meantime.
   const [plans, setPlans] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState("standard");
+  // What was just bought: once paid, the learner check above no longer applies
+  const [paidPlan, setPaidPlan] = useState(null);
 
   useEffect(() => {
     getSubscriptionPlans()
@@ -43,9 +45,13 @@ export default function UpgradePlanPage() {
     onSuccess: () => setShowSuccess(true),
   });
 
-  const selected = plans?.find((p) => p.key === selectedPlan) || null;
-  const priceLabel = `₹${rupees(selected?.amountPaise ?? 9900)}`;
-  const hasChoice = (plans?.length || 0) > 1;
+  // Course learners already have Career Plus, so Career Pro is the only thing to buy
+  const learnerUpgrade = canLearnerUpgradeToPro(user);
+  const buyable = learnerUpgrade ? plans?.filter((p) => p.key === "b2_plus") : plans;
+  const planKey = learnerUpgrade ? "b2_plus" : selectedPlan;
+  const selected = buyable?.find((p) => p.key === planKey) || null;
+  const priceLabel = `₹${rupees(selected?.amountPaise ?? (learnerUpgrade ? 19900 : 9900))}`;
+  const hasChoice = (buyable?.length || 0) > 1;
   // Talk to Maya is minute-metered at B1 and B2; lower levels don't have it yet.
   const mayaMinutes = mayaFeatureValue(user, selected?.mayaMinutesPerDay);
   const mayaLabel = mayaMinutes ? `Talk to Maya · ${mayaMinutes}` : null;
@@ -57,7 +63,7 @@ export default function UpgradePlanPage() {
     return <Navigate to="/profile/manage-plan" replace />;
   }
 
-  if (user?.is_paid === true && !showSuccess) {
+  if (user?.is_paid === true && !learnerUpgrade && !showSuccess) {
     return <Navigate to="/profile" replace />;
   }
 
@@ -68,6 +74,7 @@ export default function UpgradePlanPage() {
   if (
     user &&
     !user.trial_taken &&
+    !learnerUpgrade &&
     !showSuccess &&
     !location.state?.skipTrialOffer
   ) {
@@ -103,7 +110,7 @@ export default function UpgradePlanPage() {
         {/* Plan picker — only when the learner has a real choice (B2 → Plus exists) */}
         {hasChoice && (
           <div className="flex gap-1 rounded-full bg-white/10 p-1" role="radiogroup" aria-label="Choose a plan">
-            {plans.map((p) => {
+            {buyable.map((p) => {
               const active = selectedPlan === p.key;
               const plus = p.key === "b2_plus";
               return (
@@ -213,7 +220,10 @@ export default function UpgradePlanPage() {
         {/* Pay */}
         <div className="flex flex-col items-center gap-2">
           <motion.button
-            onClick={() => handlePay(selectedPlan)}
+            onClick={() => {
+              setPaidPlan(selected);
+              handlePay(planKey);
+            }}
             disabled={loading}
             whileTap={{ scale: 0.98 }}
             className="w-full px-4 py-3 bg-linear-to-r from-amber-300 to-amber-400 rounded-lg text-[#002856] text-base font-semibold hover:bg-amber-400 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed border border-amber-400/80"
@@ -224,12 +234,18 @@ export default function UpgradePlanPage() {
             You can cancel it anytime
             <ChevronRight className="size-3" />
           </p>
+          {learnerUpgrade && (
+            <p className="text-center text-white/60 text-xs font-normal">
+              Your Career Plus course access stays as it is.
+            </p>
+          )}
         </div>
       </div>
 
       <PremiumActivatedModal
         open={showSuccess}
-        mayaValue={mayaFeatureValue(user, selected?.mayaMinutesPerDay)}
+        title={paidPlan?.key === "b2_plus" ? "Career Pro activated!" : undefined}
+        mayaValue={mayaFeatureValue(user, (paidPlan || selected)?.mayaMinutesPerDay)}
         onClose={() => {
           setShowSuccess(false);
           navigate("/profile");

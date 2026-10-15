@@ -42,6 +42,17 @@ export function mayaFeatureValue(user, planMinutes) {
   return null;
 }
 
+// Course learners marked paid by the team, with no subscription of their own.
+// They're Career Plus and can buy Career Pro (₹199 autopay) on top, at the
+// levels the plan is sold for. Cancelling it later drops them back to this.
+export function isLearnerAccess(user) {
+  return user?.is_paid === true && user?.autopay_enabled !== true;
+}
+
+export function canLearnerUpgradeToPro(user) {
+  return isLearnerAccess(user) && hasMayaLevel(user?.user_prof_level);
+}
+
 // Which premium look the learner gets: "pro" for the ₹199 plan, "plus" for the
 // ₹99 plan and admin-granted access. null for free and trial users.
 export function premiumTier(user) {
