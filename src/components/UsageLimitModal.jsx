@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Check, Gem, Loader2, Lock, Phone, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { setUser } from "../redux/auth/authSlice";
+import UpgradeBreakdown from "./premium/UpgradeBreakdown";
 import { getMayaImage } from "../utils/mayaAvatars";
 import mayaSad from "../assets/onboarding/mayaSad.webp";
 import timerImg from "../assets/timer.webp";
@@ -149,7 +150,6 @@ export default function UsageLimitModal({ initialEvent = null }) {
       attributes: {
         surface: "usage_limit_modal",
         charge_paise: confirm?.chargePaise ?? 0,
-        refund_paise: confirm?.refundPaise ?? 0,
       },
     });
     setUpgradeConfirm(confirm);
@@ -161,7 +161,6 @@ export default function UsageLimitModal({ initialEvent = null }) {
       attributes: {
         surface: "usage_limit_modal",
         charge_paise: upgradeConfirm?.chargePaise ?? 0,
-        refund_paise: upgradeConfirm?.refundPaise ?? 0,
       },
     });
     setUpgradeConfirm(null);
@@ -185,12 +184,13 @@ export default function UsageLimitModal({ initialEvent = null }) {
       );
       close();
     } catch (err) {
-      // Fixed-amount (UPI) mandates can't switch in place — show the
-      // charge/refund breakdown, then run the instant upgrade.
+      // Fixed-amount (UPI) mandates can't switch in place — show what's paid
+      // now and monthly, then run the instant upgrade.
       if (err?.response?.data?.code === "upi_plan_change") {
         openUpgradeConfirm({
           chargePaise: err.response.data.charge_amount_paise,
-          refundPaise: err.response.data.refund_estimate_paise,
+          recurringPaise: err.response.data.recurring_amount_paise,
+          recurringFrom: err.response.data.recurring_from,
         });
       } else {
         toast.error(err?.response?.data?.msg || "Couldn't switch plans — try again");
@@ -585,7 +585,7 @@ export default function UsageLimitModal({ initialEvent = null }) {
           </div>
         </div>
 
-        {/* Instant upgrade — refund breakdown before the checkout sheet */}
+        {/* Instant upgrade — the charge breakdown before the checkout sheet */}
         {upgradeConfirm && (
           <motion.div
             initial={{ opacity: 0, scale: 0.96 }}
@@ -609,28 +609,11 @@ export default function UsageLimitModal({ initialEvent = null }) {
               </p>
             </div>
 
-            <div className="w-full bg-slate-50 rounded-2xl p-4 flex flex-col gap-2.5 text-xs font-medium text-slate-600">
-              <div className="flex justify-between items-baseline gap-3">
-                <span className="min-w-0">Pay now, new Career Pro cycle</span>
-                <span className="shrink-0 text-right text-[#002856] font-semibold">₹{rupees(upgradeConfirm.chargePaise ?? plusPlan?.amountPaise ?? 19900)}</span>
-              </div>
-              {upgradeConfirm.refundPaise > 0 && (
-                <div className="flex justify-between items-baseline gap-3 text-emerald-700">
-                  <span className="min-w-0">Unused Career Plus days back</span>
-                  <span className="shrink-0 text-right font-semibold">₹{rupees(upgradeConfirm.refundPaise)}</span>
-                </div>
-              )}
-              <div className="w-full border-t border-slate-200" />
-              <div className="flex justify-between items-baseline gap-3 text-sm text-[#002856] font-bold">
-                <span className="min-w-0">You effectively pay</span>
-                <span className="shrink-0 text-right">₹{rupees(Math.max(0, (upgradeConfirm.chargePaise ?? plusPlan?.amountPaise ?? 19900) - (upgradeConfirm.refundPaise || 0)))}</span>
-              </div>
-              {upgradeConfirm.refundPaise > 0 && (
-                <p className="text-slate-400 font-normal leading-relaxed">
-                  The refund lands in your UPI automatically after payment.
-                </p>
-              )}
-            </div>
+            <UpgradeBreakdown
+              chargePaise={upgradeConfirm.chargePaise}
+              recurringPaise={upgradeConfirm.recurringPaise ?? plusPlan?.amountPaise ?? 19900}
+              recurringFrom={upgradeConfirm.recurringFrom}
+            />
 
             <div className="flex flex-col gap-2 w-full">
               <button

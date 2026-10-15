@@ -158,21 +158,22 @@ describe("ManagePlanPage — Standard→Plus upgrade", () => {
     );
   });
 
-  it("shows the refund breakdown then runs the instant upgrade for UPI subscribers", async () => {
+  it("shows what's paid now and monthly, then runs the instant upgrade for UPI subscribers", async () => {
     mockChangePlan.mockRejectedValue({
-      response: { data: { code: "upi_plan_change", msg: "one ₹199 payment", instant_upgrade: true, charge_amount_paise: 19900, refund_estimate_paise: 4950 } },
+      response: { data: { msg: "Pay ₹50 for the rest of this cycle", code: "upi_plan_change", instant_upgrade: true, charge_amount_paise: 5000, refund_estimate_paise: 0, recurring_amount_paise: 19900, recurring_from: "2026-11-02T10:00:00.000Z" } },
     });
     render(<ManagePlanPage />);
     const btn = await screen.findByText(/Upgrade to Career Pro/);
     await act(async () => btn.closest("button").click());
     expect(mockChangePlan).toHaveBeenCalledWith("b2_plus");
-    // The sheet must NOT open until the user sees what comes back — the
-    // confirm panel carries the refund math.
+    // The sheet must NOT open until the user sees what they pay now and later.
     expect(mockInstantUpgrade).not.toHaveBeenCalled();
-    expect(await screen.findByText(/Unused Career Plus days back/)).toBeInTheDocument();
-    expect(screen.getByText(/You effectively pay/)).toBeInTheDocument();
+    expect(await screen.findByText(/Pay now, for the rest of this cycle/)).toBeInTheDocument();
     expect(screen.getByText("₹50")).toBeInTheDocument();
-    const confirm = screen.getByText("Pay ₹199");
+    expect(screen.getByText(/Then every month from 2 Nov/)).toBeInTheDocument();
+    expect(screen.getByText("₹199")).toBeInTheDocument();
+    expect(screen.queryByText(/refund|back/i)).not.toBeInTheDocument();
+    const confirm = screen.getByText("Pay ₹50");
     await act(async () => confirm.click());
     expect(mockInstantUpgrade).toHaveBeenCalledWith("b2_plus");
     expect(mockHandlePay).not.toHaveBeenCalled();
@@ -180,33 +181,33 @@ describe("ManagePlanPage — Standard→Plus upgrade", () => {
     // The whole funnel fires: click → confirm presented → confirmed.
     expect(trackFeatureEvent).toHaveBeenCalledWith("payments", "upgrade_clicked", expect.objectContaining({ entityId: "b2_plus" }));
     expect(trackFeatureEvent).toHaveBeenCalledWith("payments", "upgrade_confirm_presented", expect.objectContaining({
-      attributes: expect.objectContaining({ charge_paise: 19900, refund_paise: 4950 }),
+      attributes: expect.objectContaining({ charge_paise: 5000 }),
     }));
     expect(trackFeatureEvent).toHaveBeenCalledWith("payments", "upgrade_confirm_confirmed", expect.anything());
   });
 
   it("dismisses the upgrade confirmation without opening checkout", async () => {
     mockChangePlan.mockRejectedValue({
-      response: { data: { code: "upi_plan_change", instant_upgrade: true, charge_amount_paise: 19900, refund_estimate_paise: 4950 } },
+      response: { data: { code: "upi_plan_change", instant_upgrade: true, charge_amount_paise: 5000, refund_estimate_paise: 0, recurring_amount_paise: 19900, recurring_from: "2026-11-02T10:00:00.000Z" } },
     });
     render(<ManagePlanPage />);
     const btn = await screen.findByText(/Upgrade to Career Pro/);
     await act(async () => btn.closest("button").click());
-    expect(await screen.findByText(/You effectively pay/)).toBeInTheDocument();
+    expect(await screen.findByText(/Pay now, for the rest of this cycle/)).toBeInTheDocument();
     await act(async () => screen.getByText("Not now").click());
-    expect(screen.queryByText(/You effectively pay/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Pay now, for the rest of this cycle/)).not.toBeInTheDocument();
     expect(mockInstantUpgrade).not.toHaveBeenCalled();
     expect(trackFeatureEvent).toHaveBeenCalledWith("payments", "upgrade_confirm_dismissed", expect.anything());
   });
 
-  it("shows the breakdown even with no refund due near cycle end", async () => {
+  it("shows the ₹1 minimum near cycle end", async () => {
     mockChangePlan.mockRejectedValue({
-      response: { data: { code: "upi_plan_change", charge_amount_paise: 19900, refund_estimate_paise: 0 } },
+      response: { data: { code: "upi_plan_change", charge_amount_paise: 100, refund_estimate_paise: 0, recurring_amount_paise: 19900 } },
     });
     render(<ManagePlanPage />);
     const btn = await screen.findByText(/Upgrade to Career Pro/);
     await act(async () => btn.closest("button").click());
-    expect(screen.getByText("Pay ₹199")).toBeInTheDocument();
+    expect(screen.getByText("Pay ₹1")).toBeInTheDocument();
     expect(mockHandlePay).not.toHaveBeenCalled();
   });
 
@@ -235,21 +236,21 @@ describe("ManagePlanPage — Standard→Plus upgrade", () => {
     expect(mockHandlePay).not.toHaveBeenCalled();
   });
 
-  it("offers to finish an unpaid upgrade with the refund breakdown — never 'next month'", async () => {
+  it("offers to finish an unpaid upgrade at today's price — never 'next month'", async () => {
     mockGetPlans.mockResolvedValue({
       ...PLANS_STD,
-      pendingPlan: { key: "b2_plus", label: "Career Pro", unpaid: true, refund_estimate_paise: 4950 },
+      pendingPlan: { key: "b2_plus", label: "Career Pro", unpaid: true, charge_now_paise: 5000, refund_estimate_paise: 0 },
     });
     render(<ManagePlanPage />);
 
     // An abandoned payment must NOT claim Plus is coming on its own.
     expect(screen.queryByText(/starts on your next billing date/)).not.toBeInTheDocument();
     const resume = await screen.findByText(/Finish your Career Pro upgrade/);
-    expect(screen.getByText(/₹50 of unused Career Plus days comes back/)).toBeInTheDocument();
+    expect(screen.getByText(/Pay ₹50 for the rest of this cycle/)).toBeInTheDocument();
     act(() => resume.closest("button").click());
-    // Same refund-breakdown confirm as a fresh upgrade, then the sheet.
-    expect(await screen.findByText(/You effectively pay/)).toBeInTheDocument();
-    await act(async () => screen.getByText("Pay ₹199").click());
+    // Same breakdown confirm as a fresh upgrade, then the sheet.
+    expect(await screen.findByText(/Pay now, for the rest of this cycle/)).toBeInTheDocument();
+    await act(async () => screen.getByText("Pay ₹50").click());
     expect(mockInstantUpgrade).toHaveBeenCalledWith("b2_plus");
   });
 

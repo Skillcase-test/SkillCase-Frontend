@@ -256,11 +256,11 @@ describe("UsageLimitModal — Maya daily pool exhausted", () => {
     expect(mockChangePlan).not.toHaveBeenCalled();
   });
 
-  it("shows the refund breakdown then runs the instant upgrade when the Standard sub is UPI", async () => {
+  it("shows what's paid now and monthly, then runs the instant upgrade when the Standard sub is UPI", async () => {
     mockUser = { ...mockUser, autopay_method: "upi" };
     mockGetPlans.mockResolvedValue({ ...BOTH_PLANS, current: "standard" });
     mockChangePlan.mockRejectedValue({
-      response: { data: { code: "upi_plan_change", instant_upgrade: true, charge_amount_paise: 19900, refund_estimate_paise: 4950 } },
+      response: { data: { code: "upi_plan_change", instant_upgrade: true, charge_amount_paise: 5000, refund_estimate_paise: 0, recurring_amount_paise: 19900, recurring_from: "2026-11-02T10:00:00.000Z" } },
     });
     render(<UsageLimitModal />);
     fireUsageLimit(mayaDailyLimit);
@@ -268,11 +268,12 @@ describe("UsageLimitModal — Maya daily pool exhausted", () => {
     const upgrade = await screen.findByText(/Upgrade to Career Pro/);
     await act(async () => upgrade.closest("button").click());
     expect(mockChangePlan).toHaveBeenCalledWith("b2_plus");
-    // Checkout waits for the refund-breakdown confirm.
+    // Checkout waits for the breakdown confirm.
     expect(mockInstantUpgrade).not.toHaveBeenCalled();
-    expect(await screen.findByText(/Unused Career Plus days back/)).toBeInTheDocument();
+    expect(await screen.findByText(/Pay now, for the rest of this cycle/)).toBeInTheDocument();
     expect(screen.getByText("₹50")).toBeInTheDocument();
-    const confirm = screen.getByText("Pay ₹199");
+    expect(screen.getByText(/Then every month from 2 Nov/)).toBeInTheDocument();
+    const confirm = screen.getByText("Pay ₹50");
     await act(async () => confirm.click());
     expect(mockInstantUpgrade).toHaveBeenCalledWith("b2_plus");
     expect(mockHandlePay).not.toHaveBeenCalled();

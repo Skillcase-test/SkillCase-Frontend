@@ -202,10 +202,9 @@ export function useAutopayCheckout({ user, dispatch, onSuccess }) {
       });
     });
 
-  // Instant upgrade for fixed-amount (UPI) mandates: an immediate-start
-  // subscription on the new plan bundles the mandate auth and first charge
-  // into ONE collect — the unused remainder of the old plan is refunded
-  // server-side, netting the fair prorated difference.
+  // Instant upgrade for fixed-amount (UPI) mandates: one approval pays the
+  // prorated difference for the rest of the cycle and sets up the new plan's
+  // AutoPay from the renewal date. Nothing is refunded.
   const handleInstantUpgrade = async (plan) => {
     setLoading(true);
     try {
@@ -219,7 +218,7 @@ export function useAutopayCheckout({ user, dispatch, onSuccess }) {
             : "fresh";
       trackFeatureEvent("payments", "upgrade_order", {
         entityId: plan,
-        attributes: { kind: orderKind, refund_estimate_paise: res.data?.refund_estimate_paise || 0 },
+        attributes: { kind: orderKind, charge_paise: res.data?.charge_amount_paise ?? res.data?.amount ?? 0 },
       });
       if (res.data?.alreadyOnPlan) {
         if (res.data.user) dispatch(setUser(res.data.user));
@@ -235,7 +234,7 @@ export function useAutopayCheckout({ user, dispatch, onSuccess }) {
         setLoading(false);
         return;
       }
-      const { key, subscription_id, amount, refund_estimate_paise, prefill } = res.data;
+      const { key, subscription_id, amount, recurring_amount_paise, prefill } = res.data;
       if (res.data?.mandate_resume) {
         toast(res.data.msg || "Finish your upgrade — one payment and Career Pro is live.");
       }
@@ -269,9 +268,9 @@ export function useAutopayCheckout({ user, dispatch, onSuccess }) {
         amount: String(amount),
         currency: "INR",
         name: "SkillCase Journey",
-        description: refund_estimate_paise
-          ? `Career Pro upgrade — INR ${Math.round(amount / 100)} now, INR ${Math.round(refund_estimate_paise / 100)} back`
-          : `Career Pro upgrade — INR ${Math.round(amount / 100)}/month`,
+        description: recurring_amount_paise
+          ? `Career Pro upgrade — INR ${Math.round(amount / 100)} now, then INR ${Math.round(recurring_amount_paise / 100)}/month`
+          : `Career Pro upgrade — INR ${Math.round(amount / 100)}`,
         image: "https://skillcase.co/images/logo.png",
         method: "upi",
         prefill: {

@@ -14,6 +14,7 @@ import { getMayaImage } from "../../utils/mayaAvatars";
 import { canLearnerUpgradeToPro, isLearnerAccess, mayaFeatureValue, premiumPlanName } from "../../utils/premium";
 import { PLAN_TROPHY } from "../../components/premium/PlanCards";
 import PremiumActivatedModal from "../../components/PremiumActivatedModal";
+import UpgradeBreakdown from "../../components/premium/UpgradeBreakdown";
 import { trackFeatureEvent } from "../../telemetry/events";
 
 const rupees = (paise) => Math.round((paise || 0) / 100);
@@ -147,7 +148,6 @@ export default function ManagePlanPage() {
       attributes: {
         surface: "manage_plan",
         charge_paise: confirm?.chargePaise ?? 0,
-        refund_paise: confirm?.refundPaise ?? 0,
       },
     });
     setUpgradeConfirm(confirm);
@@ -159,7 +159,6 @@ export default function ManagePlanPage() {
       attributes: {
         surface: "manage_plan",
         charge_paise: upgradeConfirm?.chargePaise ?? 0,
-        refund_paise: upgradeConfirm?.refundPaise ?? 0,
       },
     });
     setUpgradeConfirm(null);
@@ -198,12 +197,13 @@ export default function ManagePlanPage() {
       refreshPlans();
     } catch (err) {
       console.error("Change plan error:", err);
-      // Fixed-amount (UPI) mandates can't switch in place — show the
-      // charge/refund breakdown, then run the instant upgrade.
+      // Fixed-amount (UPI) mandates can't switch in place — show what's paid
+      // now and monthly, then run the instant upgrade.
       if (err.response?.data?.code === "upi_plan_change") {
         openUpgradeConfirm({
           chargePaise: err.response.data.charge_amount_paise,
-          refundPaise: err.response.data.refund_estimate_paise,
+          recurringPaise: err.response.data.recurring_amount_paise,
+          recurringFrom: err.response.data.recurring_from,
         });
       } else {
         toast.error(err.response?.data?.msg || "Couldn't switch plans — try again");
@@ -359,8 +359,9 @@ export default function ManagePlanPage() {
                     attributes: { surface: "manage_plan", kind: "unpaid" },
                   });
                   openUpgradeConfirm({
-                    chargePaise: plusPlan?.amountPaise ?? 19900,
-                    refundPaise: pendingPlan.refund_estimate_paise,
+                    chargePaise: pendingPlan.charge_now_paise,
+                    recurringPaise: plusPlan?.amountPaise,
+                    recurringFrom: user?.next_billing_at,
                   });
                 }}
                 className="self-stretch px-4 py-3 rounded-xl border border-gold-400/40 bg-white/10 text-left hover:bg-white/15 active:scale-[0.99] transition-all cursor-pointer"
@@ -370,11 +371,9 @@ export default function ManagePlanPage() {
                   Finish your Career Pro upgrade
                 </span>
                 <span className="block text-white/60 text-[11px] mt-1 leading-snug">
-                  One ₹{rupees(plusPlan?.amountPaise ?? 19900)} payment activates Career Pro instantly
-                  {pendingPlan.refund_estimate_paise > 0
-                    ? ` and ₹${rupees(pendingPlan.refund_estimate_paise)} of unused Career Plus days comes back to your UPI`
-                    : ""}
-                  .
+                  {pendingPlan.charge_now_paise
+                    ? `Pay ₹${rupees(pendingPlan.charge_now_paise)} for the rest of this cycle and Career Pro is live instantly.`
+                    : "One payment and Career Pro is live instantly."}
                 </span>
               </button>
             ) : pendingPlan?.key === "b2_plus" ? (
@@ -423,7 +422,7 @@ export default function ManagePlanPage() {
                 </span>
                 <span className="block text-white/60 text-[11px] mt-1 leading-snug">
                   {user?.autopay_method === "upi"
-                    ? `${plusPlan.mayaMinutesPerDay} min of Maya a day. Pay ₹${rupees(plusPlan.amountPaise)} once and your unused Career Plus days come straight back to your UPI — Career Pro activates instantly.`
+                    ? `${plusPlan.mayaMinutesPerDay} min of Maya a day. Pay just the difference for the rest of this cycle — Career Pro activates instantly, then ₹${rupees(plusPlan.amountPaise)}/month from your renewal date.`
                     : `${plusPlan.mayaMinutesPerDay} min of Maya a day. You only pay the difference for the days left in this cycle — no new checkout needed.`}
                 </span>
               </button>
@@ -468,7 +467,7 @@ export default function ManagePlanPage() {
         </div>
       </div>
 
-      {/* Instant upgrade — refund breakdown before the checkout sheet */}
+      {/* Instant upgrade — the charge breakdown before the checkout sheet */}
       {upgradeConfirm && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 select-none ">
           <motion.div
@@ -501,28 +500,11 @@ export default function ManagePlanPage() {
               </p>
             </div>
 
-            <div className="w-full bg-slate-50 rounded-2xl p-4 flex flex-col gap-2.5 text-xs font-medium text-slate-600">
-              <div className="flex justify-between items-baseline gap-3">
-                <span className="min-w-0">Pay now, new Career Pro cycle</span>
-                <span className="shrink-0 text-right text-[#002856] font-semibold">₹{rupees(upgradeConfirm.chargePaise ?? plusPlan?.amountPaise ?? 19900)}</span>
-              </div>
-              {upgradeConfirm.refundPaise > 0 && (
-                <div className="flex justify-between items-baseline gap-3 text-emerald-700">
-                  <span className="min-w-0">Unused Career Plus days back</span>
-                  <span className="shrink-0 text-right font-semibold">₹{rupees(upgradeConfirm.refundPaise)}</span>
-                </div>
-              )}
-              <div className="w-full border-t border-slate-200" />
-              <div className="flex justify-between items-baseline gap-3 text-sm text-[#002856] font-bold">
-                <span className="min-w-0">You effectively pay</span>
-                <span className="shrink-0 text-right">₹{rupees(Math.max(0, (upgradeConfirm.chargePaise ?? plusPlan?.amountPaise ?? 19900) - (upgradeConfirm.refundPaise || 0)))}</span>
-              </div>
-              {upgradeConfirm.refundPaise > 0 && (
-                <p className="text-slate-400 font-normal leading-relaxed">
-                  The refund lands in your UPI automatically after payment.
-                </p>
-              )}
-            </div>
+            <UpgradeBreakdown
+              chargePaise={upgradeConfirm.chargePaise}
+              recurringPaise={upgradeConfirm.recurringPaise ?? plusPlan?.amountPaise ?? 19900}
+              recurringFrom={upgradeConfirm.recurringFrom}
+            />
 
             <div className="flex flex-col gap-2 w-full">
               <button
