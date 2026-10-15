@@ -5,6 +5,7 @@ import { getLGMode, setLGMode } from "../api/learnGermanApi";
 import { trackJourneyEvent } from "../observability/journeyEvents";
 import { hapticLight } from "../utils/haptics";
 import { isPracticeSuiteLevel } from "../utils/b1Progress";
+import { isPremiumUser } from "../utils/premium";
 import { syncModeIntoRedux } from "../utils/lgMode";
 import {
   isScholarshipRoute,
@@ -93,6 +94,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
   // B1/B2 users get a two-tab switcher: Exam & Practice + Jobs. The Jobs tab
   // is the gateway into the job-screening pipeline (and back via practice).
   const isB1 = isPracticeSuiteLevel(user?.user_prof_level);
+  const isPremium = isPremiumUser(user);
   const [localTourActive, setLocalTourActive] = useState(false);
 
   useEffect(() => {
@@ -415,8 +417,11 @@ export default function TopModeSwitcher({ isTourActive = false }) {
     <div
       id="bottom-mode-switcher"
       ref={shellRef}
-      className={`relative w-full bg-[#002856] pt-1 pb-0 vt-app-switcher ${tourActive ? "pointer-events-none" : ""}`}
+      className={`relative w-full pt-1 pb-0 vt-app-switcher ${
+        isPremium ? "bg-premium-band bg-premium-band-below" : "bg-[#002856]"
+      } ${tourActive ? "pointer-events-none" : ""}`}
     >
+      {isPremium && <span aria-hidden="true" className="premium-veil premium-veil-late" />}
       {geo && (
         <svg
           aria-hidden="true"

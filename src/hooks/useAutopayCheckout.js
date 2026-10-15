@@ -230,14 +230,14 @@ export function useAutopayCheckout({ user, dispatch, onSuccess }) {
       // The pending sub already captured the charge — reopening a sheet would
       // look like a second payment. The webhook promotes it; refetch the user.
       if (res.data?.upgrade_processing) {
-        toast(res.data.msg || "Payment received — Plus is activating, give it a moment.");
+        toast(res.data.msg || "Payment received — Career Pro is activating, give it a moment.");
         if (onSuccess) onSuccess({ processing: true });
         setLoading(false);
         return;
       }
       const { key, subscription_id, amount, refund_estimate_paise, prefill } = res.data;
       if (res.data?.mandate_resume) {
-        toast(res.data.msg || "Finish your upgrade — one payment and Plus is live.");
+        toast(res.data.msg || "Finish your upgrade — one payment and Career Pro is live.");
       }
       let checkoutPrefill = buildCheckoutPrefill({ ...user, ...(prefill || {}) });
 
@@ -270,8 +270,8 @@ export function useAutopayCheckout({ user, dispatch, onSuccess }) {
         currency: "INR",
         name: "SkillCase Journey",
         description: refund_estimate_paise
-          ? `Plus upgrade — INR ${Math.round(amount / 100)} now, INR ${Math.round(refund_estimate_paise / 100)} back`
-          : `Plus upgrade — INR ${Math.round(amount / 100)}/month`,
+          ? `Career Pro upgrade — INR ${Math.round(amount / 100)} now, INR ${Math.round(refund_estimate_paise / 100)} back`
+          : `Career Pro upgrade — INR ${Math.round(amount / 100)}/month`,
         image: "https://skillcase.co/images/logo.png",
         method: "upi",
         prefill: {
@@ -314,13 +314,13 @@ export function useAutopayCheckout({ user, dispatch, onSuccess }) {
             entityId: plan,
             attributes: { flow: "upgrade" },
           });
-          toast("Payment received — Plus is activating, give it a moment.");
+          toast("Payment received — Career Pro is activating, give it a moment.");
           setLoading(false);
           return;
         }
       }
       if (verifyRes.data?.user) dispatch(setUser(verifyRes.data.user));
-      toast.success(verifyRes.data?.msg || "Plus is active!");
+      toast.success(verifyRes.data?.msg || "Career Pro is active!");
       trackFeatureEvent("payments", "payment_verify_succeeded", {
         entityId: plan,
         attributes: { flow: "upgrade", refunded_paise: verifyRes.data?.refunded_paise || 0 },

@@ -3,7 +3,9 @@ import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useGoBack } from "../hooks/useGoBack";
 import { setUser, logout } from "../redux/auth/authSlice";
-import { isTrialActive, trialDaysLeft } from "../utils/premium";
+import { isTrialActive, PREMIUM_PREVIEW_EVENT, premiumPlanName, trialDaysLeft } from "../utils/premium";
+import { hasMayaLevel } from "../utils/levels";
+import { FreePlanCard, PremiumPlanCard } from "../components/premium/PlanCards";
 import { stableFile } from "../utils/stableFile";
 import api from "../api/axios";
 import { cachedRead } from "../api/cachedRead";
@@ -300,21 +302,21 @@ export default function ProfilePage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [toast, setToast] = useState({ show: false, msg: "", type: "" });
   const [showOnProfile, setShowOnProfile] = useState(false);
-  // "Standard"/"Plus" label for the plan card — only fetched while subscribed.
-  const [planName, setPlanName] = useState(null);
+  // Monthly price for the plan card — only fetched while subscribed.
+  const [planPrice, setPlanPrice] = useState(null);
   const [hasPaymentHistory, setHasPaymentHistory] = useState(false);
 
   useEffect(() => {
     if (!user?.autopay_enabled) {
-      setPlanName(null);
+      setPlanPrice(null);
       return;
     }
     getSubscriptionPlans()
       .then((d) => {
         const p = d?.currentPlan || d?.plans?.find((x) => x.key === d?.current);
-        setPlanName(p ? `${p.label} ₹${Math.round(p.amountPaise / 100)}` : null);
+        setPlanPrice(p ? `₹${Math.round(p.amountPaise / 100)}` : null);
       })
-      .catch(() => setPlanName(null));
+      .catch(() => setPlanPrice(null));
   }, [user?.autopay_enabled]);
 
   useEffect(() => {
@@ -968,71 +970,23 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Plan Card — Free vs Premium Member */}
+            {/* Plan Card — premium, trial or free */}
             {isPaidMember ? (
-              <div className="w-full p-3.5 bg-gradient-to-r from-[#083262] to-[#1E5CA2] rounded-xl flex flex-col gap-2.5 shadow-sm">
-                <div className="flex justify-between items-center gap-3">
-                  <div className="flex-1 min-w-0 flex flex-col gap-2.5">
-                    <div className="flex flex-col gap-1.5">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1 bg-amber-300 rounded-3xl flex items-center justify-center shrink-0">
-                          <GemIcon className="size-4 text-[#002856]" />
-                        </div>
-                        <span className="text-white text-base font-semibold leading-5">
-                          Premium Member
-                        </span>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <p className="text-white text-xs font-medium leading-4">
-                          {user?.autopay_enabled
-                            ? `Active Plan: ${planName || "₹99"} / month`
-                            : "Active Plan: Full Access"}
-                        </p>
-                        {user?.autopay_enabled && nextBilling ? (
-                          <p className="text-white/80 text-[11px] font-normal leading-4">
-                            {autopayNonRenewable
-                              ? `Active till ${nextBilling} — won't renew`
-                              : `Next billing: ${nextBilling}`}
-                          </p>
-                        ) : (
-                          <p className="text-white/80 text-[11px] font-normal leading-4">
-                            All courses &amp; learning features unlocked
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    {user?.autopay_enabled ? (
-                      <button
-                        onClick={() => navigate("/profile/manage-plan")}
-                        className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity w-fit"
-                      >
-                        <span className="text-amber-300 text-xs font-medium">
-                          Manage Plan
-                        </span>
-                        <ChevronRightIcon className="size-3 text-amber-300" />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => navigate("/")}
-                        className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity w-fit"
-                      >
-                        <span className="text-amber-300 text-xs font-medium">
-                          Start Practicing
-                        </span>
-                        <ChevronRightIcon className="size-3 text-amber-300" />
-                      </button>
-                    )}
-                  </div>
-                  <div className="size-20 sm:size-24 rounded-3xl overflow-hidden shrink-0">
-                    <img
-                      src={diamond}
-                      alt="Premium"
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                </div>
-              </div>
+              <PremiumPlanCard
+                name={premiumPlanName(user)}
+                lines={
+                  user?.autopay_enabled
+                    ? [
+                        `Active Plan: ${planPrice || "₹99"} / month`,
+                        ...(nextBilling
+                          ? [autopayNonRenewable ? `Active till ${nextBilling} — won't renew` : `Next billing: ${nextBilling}`]
+                          : []),
+                      ]
+                    : ["Active Plan: Full Access", "All learning features unlocked"]
+                }
+                actionLabel={user?.autopay_enabled ? "Manage Plan" : "Start Practicing"}
+                onAction={() => navigate(user?.autopay_enabled ? "/profile/manage-plan" : "/")}
+              />
             ) : isTrial ? (
               <div className="w-full p-3 bg-gradient-to-r from-[#083262] to-[#1E5CA2] rounded-xl flex flex-col gap-2.5">
                 <div className="flex justify-between items-start gap-3">
@@ -1076,43 +1030,23 @@ export default function ProfilePage() {
                 </div>
               </div>
             ) : (
-              <div className="w-full p-3 bg-gradient-to-r from-white to-blue-100 rounded-xl flex flex-col gap-2.5">
-                <div className="flex justify-between items-start gap-3">
-                  <div className="flex-1 min-w-0 flex flex-col gap-4">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1 bg-[#002856] rounded-3xl flex items-center justify-center">
-                          <LucideIcons.Gift className="size-4 text-white" />
-                        </div>
-                        <span className="text-[#002856] text-base font-semibold leading-5">
-                          Free Plan active
-                        </span>
-                      </div>
-                      <p className="text-[#002856] text-xs font-normal leading-4">
-                        Subscribe to Premium Plan for unlimited access to all
-                        features.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => navigate("/profile/upgrade")}
-                      className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
-                    >
-                      <span className="text-[#002856] text-xs font-medium">
-                        Upgrade to Premium
-                      </span>
-                      <LucideIcons.ChevronRight className="size-3 text-[#002856]" />
-                    </button>
-                  </div>
-                  <div className="size-24 rounded-3xl overflow-hidden shrink-0">
-                    <img
-                      src={diamond}
-                      alt="Premium"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              </div>
+              <FreePlanCard
+                upgradeTier={hasMayaLevel(user?.user_prof_level) ? "pro" : "plus"}
+                onUpgrade={() => navigate("/profile/upgrade")}
+              />
             )}
+
+            {/* TEMP TESTING: replays the premium welcome on the home screen. Remove before release. */}
+            <button
+              type="button"
+              onClick={() => {
+                navigate("/");
+                setTimeout(() => window.dispatchEvent(new Event(PREMIUM_PREVIEW_EVENT)), 600);
+              }}
+              className="w-full py-2 rounded-lg border border-dashed border-amber-400 text-amber-700 text-xs font-medium"
+            >
+              Test: play premium welcome
+            </button>
 
             {/* Scholarship Exam Entry — re-entry point into the exam funnel. */}
             <ScholarshipEntryCard visible={showOnProfile} user={user} />

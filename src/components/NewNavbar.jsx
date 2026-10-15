@@ -3,8 +3,9 @@ import { useSelector } from "react-redux";
 import { images } from "../assets/images.js";
 import { isPracticeSuiteLevel } from "../utils/b1Progress";
 import { hapticLight, hapticMedium } from "../utils/haptics";
-import { Gem, Gift, GraduationCap } from "lucide-react";
-import { isPremiumUser, isTrialActive, trialDaysLeft } from "../utils/premium";
+import { Gift, GraduationCap } from "lucide-react";
+import { GoTrophy } from "react-icons/go";
+import { isPremiumUser, isTrialActive, premiumPlanName, trialDaysLeft } from "../utils/premium";
 import { isScholarshipRoute } from "../utils/shellRoutes";
 
 export default function Navbar({ disableNavigation = false }) {
@@ -66,6 +67,7 @@ export default function Navbar({ disableNavigation = false }) {
   const rawLevel = user?.user_prof_level || "A1";
   const displayLevel = String(rawLevel).toUpperCase();
   const isPremium = isPremiumUser(user);
+  const premiumName = premiumPlanName(user);
   const isTrial = !isPremium && isTrialActive(user);
   const daysLeft = trialDaysLeft(user);
 
@@ -117,13 +119,14 @@ export default function Navbar({ disableNavigation = false }) {
 
   return (
     <header
-      className={`bg-[#002856] sticky top-0 z-50 ${
-        disableNavigation ? "pointer-events-none" : ""
-      }`}
+      className={`sticky top-0 z-50 ${
+        isPremium ? "bg-premium-band" : "bg-[#002856]"
+      } ${disableNavigation ? "pointer-events-none" : ""}`}
       style={{ paddingTop: "env(safe-area-inset-top)" }}
       aria-disabled={disableNavigation}
     >
-      <div className="h-16 w-full max-w-7xl mx-auto px-4 flex items-center justify-between gap-3">
+      {isPremium && <span aria-hidden="true" className="premium-veil" />}
+      <div className="relative h-16 w-full max-w-7xl mx-auto px-4 flex items-center justify-between gap-3">
         {/* Level title — tappable brand entry, goes home or to current active hub */}
         <Link
           to={brandHref}
@@ -158,14 +161,15 @@ export default function Navbar({ disableNavigation = false }) {
                 <Link
                   to="/profile/manage-plan"
                   onClick={hapticLight}
-                  className="flex items-center gap-1.5 pl-1 pr-2 py-1 bg-white/10 rounded-[200px] hover:bg-white/20 transition-colors"
-                  title="Premium Plan — manage your plan"
+                  data-premium-pill
+                  className="relative premium-pill-ring h-8 flex items-center gap-1.5 pl-1 pr-2.5 rounded-full hover:bg-white/5 transition-colors"
+                  title={`${premiumName} — manage your plan`}
                 >
-                  <span className="p-1 bg-amber-300 rounded-3xl flex items-center justify-center shrink-0">
-                    <Gem className="w-3.5 h-3.5 text-[#002856]" />
+                  <span className="size-6 rounded-full bg-black/30 inset-shadow-sm inset-shadow-black/60 flex items-center justify-center shrink-0">
+                    <GoTrophy className="size-3.5 text-gold-300" />
                   </span>
-                  <span className="text-white text-[10px] font-medium leading-3">
-                    Premium
+                  <span className="text-gold-300 text-xs font-medium leading-4 whitespace-nowrap">
+                    {premiumName}
                   </span>
                 </Link>
               ) : isTrial ? (

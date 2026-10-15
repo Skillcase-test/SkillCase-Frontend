@@ -41,3 +41,29 @@ export function mayaFeatureValue(user, planMinutes) {
   if (hasMayaLevel(user?.user_prof_level)) return `${planMinutes ?? 10} min/day`;
   return null;
 }
+
+// Which premium look the learner gets: "pro" for the ₹199 plan, "plus" for the
+// ₹99 plan and admin-granted access. null for free and trial users.
+export function premiumTier(user) {
+  if (!isPremiumUser(user)) return null;
+  return user?.autopay_enabled === true && user?.subscription_plan === "b2_plus" ? "pro" : "plus";
+}
+
+// Window event that replays the premium welcome (temporary test button)
+export const PREMIUM_PREVIEW_EVENT = "skillcase:premium-intro-preview";
+
+export const PREMIUM_TIER_NAMES = { plus: "Career Plus", pro: "Career Pro" };
+
+export function premiumPlanName(user) {
+  const tier = premiumTier(user);
+  return tier ? PREMIUM_TIER_NAMES[tier] : null;
+}
+
+// The premium welcome animation is due when the learner is on a tier above the
+// last one they saw it for. Only decided once /user/me has reported the flag.
+export function premiumIntroDue(user) {
+  const tier = premiumTier(user);
+  if (!tier || typeof user?.premium_intro_tier !== "string") return null;
+  const rank = { "": 0, plus: 1, pro: 2 };
+  return (rank[tier] ?? 0) > (rank[user.premium_intro_tier] ?? 0) ? tier : null;
+}

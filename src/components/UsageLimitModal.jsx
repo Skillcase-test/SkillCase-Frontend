@@ -180,8 +180,8 @@ export default function UsageLimitModal({ initialEvent = null }) {
       if (res.user) dispatch(setUser(res.user));
       toast.success(
         res.status === "scheduled"
-          ? res.msg || "Plus starts on your next billing date"
-          : res.msg || "Charging just the difference — Plus activates in a moment"
+          ? res.msg || "Career Pro starts on your next billing date"
+          : res.msg || "Charging just the difference — Career Pro activates in a moment"
       );
       close();
     } catch (err) {
@@ -387,7 +387,7 @@ export default function UsageLimitModal({ initialEvent = null }) {
 
             {/* Pricing card — hidden once the limit has reset (the "free to
                 continue" state) so the flow stays celebratory. For Maya's
-                daily_limit the pitch is the Plus upgrade instead. */}
+                daily_limit the pitch is the Career Pro upgrade instead. */}
             {!expired && isMayaDailyLimit ? (
               // A Plus user already owns this plan — showing the card pitches
               // them their own tier.
@@ -396,7 +396,7 @@ export default function UsageLimitModal({ initialEvent = null }) {
                   <div className="self-stretch px-1.5 py-1 bg-gradient-to-r from-[#002856] to-blue-700 rounded-tl-xl rounded-tr-xl inline-flex justify-center items-center gap-2">
                     <Gem className="w-3.5 h-3.5 text-amber-300" />
                     <span className="text-white text-xs font-normal">
-                      Plus Plan
+                      Career Pro Plan
                     </span>
                   </div>
                   <div className="self-stretch px-4 pt-2.5 pb-4 bg-black/5 rounded-bl-xl rounded-br-xl flex flex-col items-center gap-4">
@@ -419,8 +419,8 @@ export default function UsageLimitModal({ initialEvent = null }) {
                     {plusInPlaceUpgrade && (
                       <p className="w-64 text-center text-[#002856]/60 text-[11px] font-normal leading-relaxed">
                         {user?.autopay_method === "upi"
-                          ? `You're on Standard — pay ₹${rupees(plusPlan.amountPaise)} once, your unused days come straight back, and Plus activates instantly.`
-                          : "You're on Standard — upgrade in one tap and only pay the difference for this cycle."}
+                          ? `You're on Career Plus — pay ₹${rupees(plusPlan.amountPaise)} once, your unused days come straight back, and Career Pro activates instantly.`
+                          : "You're on Career Plus — upgrade in one tap and only pay the difference for this cycle."}
                       </p>
                     )}
                   </div>
@@ -502,7 +502,7 @@ export default function UsageLimitModal({ initialEvent = null }) {
             ) : isMayaDailyLimit ? (
               <>
                 {/* Already-paying users: "Upgrade to Premium" is a dead end —
-                    the upgrade here is Plus. Live Standard subs swap in place;
+                    the upgrade here is Career Pro. Live Career Plus subs swap in place;
                     trial/is_paid/cancelled users buy a fresh subscription. */}
                 {plusDirectCheckout && (
                   <motion.button
@@ -517,7 +517,7 @@ export default function UsageLimitModal({ initialEvent = null }) {
                       <>
                         <Gem className="w-5 h-5 text-amber-300" />
                         <span className="text-white text-base font-semibold leading-6">
-                          Get Plus — ₹{rupees(plusPlan.amountPaise)}/month
+                          Get Career Pro — ₹{rupees(plusPlan.amountPaise)}/month
                         </span>
                       </>
                     )}
@@ -536,7 +536,7 @@ export default function UsageLimitModal({ initialEvent = null }) {
                     ) : (
                       <>
                         <Gem className="w-5 h-5 text-amber-300" />
-                        <span>{user?.autopay_method === "upi" ? "Upgrade to Plus — instant activation" : "Upgrade to Plus — pay only the difference"}</span>
+                        <span>{user?.autopay_method === "upi" ? "Upgrade to Career Pro — instant activation" : "Upgrade to Career Pro — pay only the difference"}</span>
                       </>
                     )}
                   </motion.button>
@@ -602,21 +602,21 @@ export default function UsageLimitModal({ initialEvent = null }) {
 
             <div className="flex flex-col items-center gap-1">
               <h3 className="text-2xl font-bold text-[#002856] text-center">
-                Upgrade to Plus
+                Upgrade to Career Pro
               </h3>
               <p className="text-[#002856]/60 text-xs font-normal text-center leading-relaxed">
-                One UPI payment. Plus activates instantly.
+                One UPI payment. Career Pro activates instantly.
               </p>
             </div>
 
             <div className="w-full bg-slate-50 rounded-2xl p-4 flex flex-col gap-2.5 text-xs font-medium text-slate-600">
               <div className="flex justify-between items-baseline gap-3">
-                <span className="min-w-0">Pay now, new Plus cycle</span>
+                <span className="min-w-0">Pay now, new Career Pro cycle</span>
                 <span className="shrink-0 text-right text-[#002856] font-semibold">₹{rupees(upgradeConfirm.chargePaise ?? plusPlan?.amountPaise ?? 19900)}</span>
               </div>
               {upgradeConfirm.refundPaise > 0 && (
                 <div className="flex justify-between items-baseline gap-3 text-emerald-700">
-                  <span className="min-w-0">Unused Standard days back</span>
+                  <span className="min-w-0">Unused Career Plus days back</span>
                   <span className="shrink-0 text-right font-semibold">₹{rupees(upgradeConfirm.refundPaise)}</span>
                 </div>
               )}
@@ -656,7 +656,7 @@ export default function UsageLimitModal({ initialEvent = null }) {
       {/* Post-payment celebration; dismissing also closes the lock view. */}
       <PremiumActivatedModal
         open={Boolean(successData)}
-        title={successData?.upgraded ? "Plus activated!" : "Premium activated!"}
+        title={successData?.upgraded ? "Career Pro activated!" : "Premium activated!"}
         refundPaise={successData?.refunded_paise}
         mayaValue={
           successData &&

@@ -151,11 +151,11 @@ function PlusUpsell() {
         <strong>Time ran out mid-call</strong>
         <small>
           {onStandard
-            ? `Plus gives you ${plus.mayaMinutesPerDay} min with Maya every day — upgrade on your current plan, you only pay the difference.`
-            : `Plus gives you ${plus.mayaMinutesPerDay} min with Maya every day for ₹${Math.round(plus.amountPaise / 100)}/month.`}
+            ? `Career Pro gives you ${plus.mayaMinutesPerDay} min with Maya every day — upgrade on your current plan, you only pay the difference.`
+            : `Career Pro gives you ${plus.mayaMinutesPerDay} min with Maya every day for ₹${Math.round(plus.amountPaise / 100)}/month.`}
         </small>
         <Link className="insight-link" to={onStandard ? "/profile/manage-plan" : "/profile/upgrade"}>
-          {onStandard ? "Upgrade to Plus" : "See Plus"}
+          {onStandard ? "Upgrade to Career Pro" : "See Career Pro"}
           <Icon name="arrow" />
         </Link>
       </div>

@@ -89,11 +89,11 @@ const activeStandardUser = {
 
 const PLANS_STD = {
   plans: [
-    { key: "standard", label: "Standard", amountPaise: 9900, mayaMinutesPerDay: 10 },
-    { key: "b2_plus", label: "Plus", amountPaise: 19900, mayaMinutesPerDay: 30 },
+    { key: "standard", label: "Career Plus", amountPaise: 9900, mayaMinutesPerDay: 10 },
+    { key: "b2_plus", label: "Career Pro", amountPaise: 19900, mayaMinutesPerDay: 30 },
   ],
   current: "standard",
-  currentPlan: { key: "standard", label: "Standard", amountPaise: 9900 },
+  currentPlan: { key: "standard", label: "Career Plus", amountPaise: 9900 },
   pendingPlan: null,
 };
 
@@ -107,18 +107,18 @@ describe("ManagePlanPage — Standard→Plus upgrade", () => {
 
   it("offers a live Standard B2 subscriber the in-place upgrade", async () => {
     render(<ManagePlanPage />);
-    expect(await screen.findByText(/Upgrade to Plus/)).toBeInTheDocument();
+    expect(await screen.findByText(/Upgrade to Career Pro/)).toBeInTheDocument();
     expect(screen.getByText(/only pay the difference/)).toBeInTheDocument();
   });
 
   it("calls the plan-change endpoint and toasts the scheduled state", async () => {
     mockChangePlan.mockResolvedValue({
       status: "scheduled",
-      msg: "Plus starts on your next billing date — no charge today.",
+      msg: "Career Pro starts on your next billing date — no charge today.",
       user: { ...activeStandardUser, pending_plan: "b2_plus" },
     });
     render(<ManagePlanPage />);
-    const btn = await screen.findByText(/Upgrade to Plus/);
+    const btn = await screen.findByText(/Upgrade to Career Pro/);
     await act(async () => btn.closest("button").click());
     expect(mockChangePlan).toHaveBeenCalledWith("b2_plus");
     expect(mockToast.success).toHaveBeenCalledWith(
@@ -138,7 +138,7 @@ describe("ManagePlanPage — Standard→Plus upgrade", () => {
       data: { user: { ...activeStandardUser, subscription_plan: "b2_plus" } },
     });
     render(<ManagePlanPage />);
-    const btn = await screen.findByText(/Upgrade to Plus/);
+    const btn = await screen.findByText(/Upgrade to Career Pro/);
     await act(async () => btn.closest("button").click());
     expect(mockChangePlan).toHaveBeenCalledWith("b2_plus");
     expect(mockToast.success).toHaveBeenCalledWith("charging");
@@ -154,7 +154,7 @@ describe("ManagePlanPage — Standard→Plus upgrade", () => {
     );
     expect(mockDispatch).toHaveBeenCalled();
     expect(mockToast.success).toHaveBeenCalledWith(
-      expect.stringMatching(/on Plus/)
+      expect.stringMatching(/on Career Pro/)
     );
   });
 
@@ -163,13 +163,13 @@ describe("ManagePlanPage — Standard→Plus upgrade", () => {
       response: { data: { code: "upi_plan_change", msg: "one ₹199 payment", instant_upgrade: true, charge_amount_paise: 19900, refund_estimate_paise: 4950 } },
     });
     render(<ManagePlanPage />);
-    const btn = await screen.findByText(/Upgrade to Plus/);
+    const btn = await screen.findByText(/Upgrade to Career Pro/);
     await act(async () => btn.closest("button").click());
     expect(mockChangePlan).toHaveBeenCalledWith("b2_plus");
     // The sheet must NOT open until the user sees what comes back — the
     // confirm panel carries the refund math.
     expect(mockInstantUpgrade).not.toHaveBeenCalled();
-    expect(await screen.findByText(/Unused Standard days back/)).toBeInTheDocument();
+    expect(await screen.findByText(/Unused Career Plus days back/)).toBeInTheDocument();
     expect(screen.getByText(/You effectively pay/)).toBeInTheDocument();
     expect(screen.getByText("₹50")).toBeInTheDocument();
     const confirm = screen.getByText("Pay ₹199");
@@ -190,7 +190,7 @@ describe("ManagePlanPage — Standard→Plus upgrade", () => {
       response: { data: { code: "upi_plan_change", instant_upgrade: true, charge_amount_paise: 19900, refund_estimate_paise: 4950 } },
     });
     render(<ManagePlanPage />);
-    const btn = await screen.findByText(/Upgrade to Plus/);
+    const btn = await screen.findByText(/Upgrade to Career Pro/);
     await act(async () => btn.closest("button").click());
     expect(await screen.findByText(/You effectively pay/)).toBeInTheDocument();
     await act(async () => screen.getByText("Not now").click());
@@ -204,7 +204,7 @@ describe("ManagePlanPage — Standard→Plus upgrade", () => {
       response: { data: { code: "upi_plan_change", charge_amount_paise: 19900, refund_estimate_paise: 0 } },
     });
     render(<ManagePlanPage />);
-    const btn = await screen.findByText(/Upgrade to Plus/);
+    const btn = await screen.findByText(/Upgrade to Career Pro/);
     await act(async () => btn.closest("button").click());
     expect(screen.getByText("Pay ₹199")).toBeInTheDocument();
     expect(mockHandlePay).not.toHaveBeenCalled();
@@ -223,11 +223,11 @@ describe("ManagePlanPage — Standard→Plus upgrade", () => {
     mockUser = { ...activeStandardUser, autopay_status: "cancelled" };
     mockGetPlans.mockResolvedValue({
       ...PLANS_STD,
-      pendingPlan: { key: "b2_plus", label: "Plus" },
+      pendingPlan: { key: "b2_plus", label: "Career Pro" },
     });
     render(<ManagePlanPage />);
 
-    const resume = await screen.findByText(/Finish setting up Plus/);
+    const resume = await screen.findByText(/Finish setting up Career Pro/);
     act(() => resume.closest("button").click());
     // Routes through the upgrade path so the pending subscription is resumed
     // (mandate_resume), not a second subscription created via /create-subscription.
@@ -238,14 +238,14 @@ describe("ManagePlanPage — Standard→Plus upgrade", () => {
   it("offers to finish an unpaid upgrade with the refund breakdown — never 'next month'", async () => {
     mockGetPlans.mockResolvedValue({
       ...PLANS_STD,
-      pendingPlan: { key: "b2_plus", label: "Plus", unpaid: true, refund_estimate_paise: 4950 },
+      pendingPlan: { key: "b2_plus", label: "Career Pro", unpaid: true, refund_estimate_paise: 4950 },
     });
     render(<ManagePlanPage />);
 
     // An abandoned payment must NOT claim Plus is coming on its own.
     expect(screen.queryByText(/starts on your next billing date/)).not.toBeInTheDocument();
-    const resume = await screen.findByText(/Finish your Plus upgrade/);
-    expect(screen.getByText(/₹50 of unused Standard days comes back/)).toBeInTheDocument();
+    const resume = await screen.findByText(/Finish your Career Pro upgrade/);
+    expect(screen.getByText(/₹50 of unused Career Plus days comes back/)).toBeInTheDocument();
     act(() => resume.closest("button").click());
     // Same refund-breakdown confirm as a fresh upgrade, then the sheet.
     expect(await screen.findByText(/You effectively pay/)).toBeInTheDocument();
@@ -256,13 +256,13 @@ describe("ManagePlanPage — Standard→Plus upgrade", () => {
   it("shows the pending-plan note and no button when a switch is queued", async () => {
     mockGetPlans.mockResolvedValue({
       ...PLANS_STD,
-      pendingPlan: { key: "b2_plus", label: "Plus" },
+      pendingPlan: { key: "b2_plus", label: "Career Pro" },
     });
     render(<ManagePlanPage />);
     expect(
-      await screen.findByText(/Plus starts on your next billing date/)
+      await screen.findByText(/Career Pro starts on your next billing date/)
     ).toBeInTheDocument();
-    expect(screen.queryByText(/Upgrade to Plus —/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Upgrade to Career Pro —/)).not.toBeInTheDocument();
   });
 
   it("never offers a Plus user the upgrade", async () => {
@@ -270,17 +270,17 @@ describe("ManagePlanPage — Standard→Plus upgrade", () => {
     mockGetPlans.mockResolvedValue({
       ...PLANS_STD,
       current: "b2_plus",
-      currentPlan: { key: "b2_plus", label: "Plus", amountPaise: 19900 },
+      currentPlan: { key: "b2_plus", label: "Career Pro", amountPaise: 19900 },
     });
     render(<ManagePlanPage />);
-    await screen.findByText(/Plus membership fee/);
-    expect(screen.queryByText(/Upgrade to Plus/)).not.toBeInTheDocument();
+    await screen.findByText(/Career Pro membership fee/);
+    expect(screen.queryByText(/Upgrade to Career Pro/)).not.toBeInTheDocument();
   });
 
   it("never offers the upgrade on a cancelled subscription", async () => {
     mockUser = { ...activeStandardUser, autopay_status: "cancelled" };
     render(<ManagePlanPage />);
     await screen.findByText(/Resume Premium/);
-    expect(screen.queryByText(/Upgrade to Plus/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Upgrade to Career Pro/)).not.toBeInTheDocument();
   });
 });

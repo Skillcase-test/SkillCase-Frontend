@@ -1,6 +1,27 @@
 @import "tailwindcss";
 @import "./dashboard-src/css/shared-theme.css";
 
+@theme {
+  /* Premium palette from the Figma */
+  --color-gold-300: #fed375;
+  --color-gold-400: #edb843;
+  --color-premium-navy: #083262;
+  --color-premium-gold: #a28c58;
+}
+
+/* Premium chrome: one black → navy diagonal shared by the header and the mode switcher under it,
+   so it runs top-left to bottom-right across both without a seam */
+@utility bg-premium-band {
+  --premium-head-h: calc(env(safe-area-inset-top) + 4rem);
+  background-color: var(--color-premium-navy);
+  background-image: linear-gradient(155deg, var(--color-black) 25%, var(--color-premium-navy) 95%);
+  background-size: 100% calc(var(--premium-head-h) + 4.5rem);
+  background-repeat: no-repeat;
+}
+@utility bg-premium-band-below {
+  background-position: 0 calc(-1 * var(--premium-head-h));
+}
+
 
 :root {
   /* Colors - Primary */
@@ -287,3 +308,69 @@ html.lite *::after {
   backdrop-filter: none !important;
 }
 html.lite .gp-art-shimmer { animation: none; }
+
+/* Gold pill border: a thin ring all round, thickened over the left part. The thick part thins out
+   around 90% along the top and 65% along the bottom */
+.premium-pill-ring::before,
+/* Inner shadow under the border so it reads as a rim set into the header */
+.premium-pill-ring {
+  box-shadow:
+    inset 0 2px 4px 1px rgb(0 0 0 / 0.85),
+    inset 0 -1.5px 2px color-mix(in oklab, var(--color-gold-300) 30%, transparent),
+    0 1px 1px rgb(255 255 255 / 0.08);
+}
+.premium-pill-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid transparent;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) padding-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+}
+/* Inner shadow under the border so it reads as a rim set into the header */
+.premium-pill-ring {
+  box-shadow:
+    inset 0 2px 4px 1px rgb(0 0 0 / 0.85),
+    inset 0 -1.5px 2px color-mix(in oklab, var(--color-gold-300) 30%, transparent),
+    0 1px 1px rgb(255 255 255 / 0.08);
+}
+.premium-pill-ring::after {
+  background: linear-gradient(to right, var(--color-gold-400), color-mix(in oklab, var(--color-gold-300) 40%, transparent)) border-box;
+}
+.premium-pill-ring::before {
+  border-width: 2px;
+  background: linear-gradient(125deg, var(--color-gold-400) 45%, transparent 85%) border-box;
+}
+
+/* Premium welcome: the old navy covers the premium header until the trophy lands, then sweeps away */
+.premium-veil {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background-color: var(--color-primary);
+  pointer-events: none;
+}
+html[data-premium-reveal] .premium-veil {
+  display: block;
+}
+html[data-premium-reveal="sweep"] .premium-veil {
+  animation: premium-veil-sweep 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+html[data-premium-reveal="sweep"] .premium-veil-late {
+  animation-delay: 120ms;
+}
+html.lite[data-premium-reveal="sweep"] .premium-veil {
+  animation-name: premium-veil-fade;
+  animation-duration: 300ms;
+}
+/* Uncovers from the top left corner towards the bottom right, like the gradient */
+@keyframes premium-veil-sweep {
+  from { clip-path: polygon(100% 0, 0 0, -40% 100%, 100% 100%); }
+  to { clip-path: polygon(100% 0, 140% 0, 100% 100%, 100% 100%); }
+}
+@keyframes premium-veil-fade {
+  to { opacity: 0; }
+}

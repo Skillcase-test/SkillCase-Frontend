@@ -3,16 +3,16 @@ import { useNavigate, Navigate } from "react-router-dom";
 import { useGoBack } from "../../hooks/useGoBack";
 import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
-import { ArrowLeft, Headset, X, Loader2, Check, Gem } from "lucide-react";
+import { ArrowLeft, PhoneCall, X, Loader2, Check, Gem } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../../api/axios";
 import { setUser } from "../../redux/auth/authSlice";
 import { useAutopayCheckout } from "../../hooks/useAutopayCheckout";
 import { getSubscriptionPlans, changePlan } from "../../api/subscriptionApi";
-import diamond from "../../assets/diamond.webp";
 import mayaSad from "../../assets/onboarding/mayaSad.webp";
 import { getMayaImage } from "../../utils/mayaAvatars";
-import { mayaFeatureValue } from "../../utils/premium";
+import { mayaFeatureValue, premiumPlanName } from "../../utils/premium";
+import { PLAN_TROPHY } from "../../components/premium/PlanCards";
 import PremiumActivatedModal from "../../components/PremiumActivatedModal";
 import { trackFeatureEvent } from "../../telemetry/events";
 
@@ -84,7 +84,7 @@ export default function ManagePlanPage() {
   // currentPlan survives a plan that isn't buyable for them anymore (level
   // moved off B2); plans[] only ever lists what they may purchase.
   const currentPlan = plansInfo?.currentPlan || plansInfo?.plans?.find((p) => p.key === plansInfo?.current) || null;
-  const planName = currentPlan?.label || "Premium";
+  const planName = premiumPlanName(user) || currentPlan?.label || "Premium";
   const planPrice = `₹${rupees(currentPlan?.amountPaise ?? 9900)}`;
 
   // 'active'/'authenticated' are the self-renewing states (an authenticated
@@ -168,13 +168,13 @@ export default function ManagePlanPage() {
       const res = await changePlan("b2_plus");
       if (res.user) dispatch(setUser(res.user));
       if (res.status === "scheduled") {
-        toast.success(res.msg || "Plus starts on your next billing date");
+        toast.success(res.msg || "Career Pro starts on your next billing date");
         refreshPlans();
         return;
       }
       // 'activating' — the prorated top-up is charging on the mandate; the tier
       // only flips when the webhook confirms, so poll briefly for it.
-      toast.success(res.msg || "Charging just the difference — activating Plus…");
+      toast.success(res.msg || "Charging just the difference — activating Career Pro…");
       for (let i = 0; i < 6; i += 1) {
         await new Promise((r) => setTimeout(r, 2000));
         const me = await api
@@ -182,7 +182,7 @@ export default function ManagePlanPage() {
           .catch(() => null);
         if (me?.data?.user?.subscription_plan === "b2_plus") {
           dispatch(setUser(me.data.user));
-          toast.success("You're on Plus — 30 minutes of Maya a day");
+          toast.success("You're on Career Pro — 30 minutes of Maya a day");
           refreshPlans();
           return;
         }
@@ -208,7 +208,7 @@ export default function ManagePlanPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#002856] flex flex-col ">
+    <div className="min-h-screen bg-linear-to-b from-black to-premium-navy flex flex-col">
       {/* Header */}
       <div
         className="px-4 pb-2.5 flex items-center gap-3"
@@ -226,32 +226,25 @@ export default function ManagePlanPage() {
 
       <div className="px-4 pt-4 pb-10 flex flex-col gap-9">
         <div className="flex flex-col items-center gap-3">
-          {/* Diamond Hero */}
-          <div className="size-24 rounded-3xl overflow-hidden">
-            <img
-              src={diamond}
-              alt="Premium"
-              className="w-full h-full object-cover"
-            />
-          </div>
+          <img src={PLAN_TROPHY} alt="" aria-hidden="true" className="w-20 aspect-5/6 object-contain" />
 
           <div className="flex flex-col items-center gap-7 w-full">
             <div className="flex flex-col items-center gap-3">
               <h2 className="text-center text-white text-2xl font-bold">
-                Premium Active
+                {planName} Active
               </h2>
-              <p className="w-80 text-center text-white text-xs font-normal">
+              <p className="max-w-xs text-center text-white text-xs font-normal">
                 {isNonRenewable
                   ? `Your plan won't renew. You keep full access${
                       accessUntil ? ` until ${accessUntil}` : ""
                     }.`
-                  : "You have now access to all premium features"}
+                  : `You have now access to all ${planName} features`}
               </p>
             </div>
 
             {/* What's included */}
             <div className="self-stretch p-4 bg-black/50 rounded-xl flex flex-col gap-4">
-              <div className="text-amber-300 text-base font-normal">
+              <div className="text-gold-400 text-base font-normal">
                 What's included
               </div>
               <div className="flex flex-col gap-1">
@@ -279,9 +272,9 @@ export default function ManagePlanPage() {
                       <span className="text-white text-xs font-medium">
                         {value}
                       </span>
-                      <div className="size-2.5 bg-green-600 rounded-full">
-                        <Check className="text-white size-full" />
-                      </div>
+                      <span className="size-3 p-0.5 bg-gold-400 rounded-full flex">
+                        <Check className="text-blue-950 size-full" strokeWidth={4} />
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -290,7 +283,7 @@ export default function ManagePlanPage() {
 
             {/* Plan details */}
             <div className="self-stretch p-4 bg-black/50 rounded-xl flex flex-col gap-4">
-              <div className="text-amber-300 text-base font-normal">
+              <div className="text-gold-400 text-base font-normal">
                 Monthly Plan details
               </div>
               <div className="flex flex-col gap-2">
@@ -338,26 +331,26 @@ export default function ManagePlanPage() {
                     refundPaise: pendingPlan.refund_estimate_paise,
                   });
                 }}
-                className="self-stretch px-4 py-3 rounded-xl border border-amber-300/40 bg-white/10 text-left hover:bg-white/15 active:scale-[0.99] transition-all cursor-pointer"
+                className="self-stretch px-4 py-3 rounded-xl border border-gold-400/40 bg-white/10 text-left hover:bg-white/15 active:scale-[0.99] transition-all cursor-pointer"
               >
                 <span className="flex items-center gap-2 text-white text-sm font-semibold">
-                  <Gem className="size-4 text-amber-300" />
-                  Finish your Plus upgrade
+                  <Gem className="size-4 text-gold-400" />
+                  Finish your Career Pro upgrade
                 </span>
                 <span className="block text-white/60 text-[11px] mt-1 leading-snug">
-                  One ₹{rupees(plusPlan?.amountPaise ?? 19900)} payment activates Plus instantly
+                  One ₹{rupees(plusPlan?.amountPaise ?? 19900)} payment activates Career Pro instantly
                   {pendingPlan.refund_estimate_paise > 0
-                    ? ` and ₹${rupees(pendingPlan.refund_estimate_paise)} of unused Standard days comes back to your UPI`
+                    ? ` and ₹${rupees(pendingPlan.refund_estimate_paise)} of unused Career Plus days comes back to your UPI`
                     : ""}
                   .
                 </span>
               </button>
             ) : pendingPlan?.key === "b2_plus" ? (
               subIsUpdatable ? (
-                <div className="self-stretch p-3 bg-white/10 rounded-xl border border-amber-300/40 flex items-center gap-2.5">
-                  <Gem className="size-4 text-amber-300 shrink-0" />
+                <div className="self-stretch p-3 bg-white/10 rounded-xl border border-gold-400/40 flex items-center gap-2.5">
+                  <Gem className="size-4 text-gold-400 shrink-0" />
                   <p className="text-white/70 text-xs font-normal leading-relaxed">
-                    Plus starts on your next billing date{accessUntil ? ` (${accessUntil})` : ""} — {plusPlan?.mayaMinutesPerDay || 30} min of Maya a day, nothing extra charged today.
+                    Career Pro starts on your next billing date{accessUntil ? ` (${accessUntil})` : ""} — {plusPlan?.mayaMinutesPerDay || 30} min of Maya a day, nothing extra charged today.
                   </p>
                 </div>
               ) : (
@@ -373,16 +366,16 @@ export default function ManagePlanPage() {
                     });
                     handleInstantUpgrade("b2_plus");
                   }}
-                  className="self-stretch px-4 py-3 rounded-xl border border-amber-300/40 bg-white/10 text-left hover:bg-white/15 active:scale-[0.99] transition-all cursor-pointer"
+                  className="self-stretch px-4 py-3 rounded-xl border border-gold-400/40 bg-white/10 text-left hover:bg-white/15 active:scale-[0.99] transition-all cursor-pointer"
                 >
                   <span className="flex items-center gap-2 text-white text-sm font-semibold">
-                    <Gem className="size-4 text-amber-300" />
-                    Finish setting up Plus
+                    <Gem className="size-4 text-gold-400" />
+                    Finish setting up Career Pro
                   </span>
                   <span className="block text-white/60 text-[11px] mt-1 leading-snug">
                     {plansInfo?.current === "b2_plus"
-                      ? "Plus is already active — finish the quick mandate setup to keep it renewing."
-                      : "Your upgrade is waiting — complete the quick mandate setup and your Standard plan carries over until it activates."}
+                      ? "Career Pro is already active — finish the quick mandate setup to keep it renewing."
+                      : "Your upgrade is waiting — complete the quick mandate setup and your Career Plus plan carries over until it activates."}
                   </span>
                 </button>
               )
@@ -390,15 +383,15 @@ export default function ManagePlanPage() {
               <button
                 onClick={upgradeToPlus}
                 disabled={upgrading}
-                className="self-stretch px-4 py-3 rounded-xl border border-amber-300/40 bg-white/10 text-left hover:bg-white/15 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+                className="self-stretch px-4 py-3 rounded-xl border border-gold-400/40 bg-white/10 text-left hover:bg-white/15 active:scale-[0.99] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
               >
                 <span className="flex items-center gap-2 text-white text-sm font-semibold">
-                  {upgrading ? <Loader2 className="size-4 animate-spin text-amber-300" /> : <Gem className="size-4 text-amber-300" />}
-                  Upgrade to Plus — ₹{rupees(plusPlan.amountPaise)}/mo
+                  {upgrading ? <Loader2 className="size-4 animate-spin text-gold-400" /> : <Gem className="size-4 text-gold-400" />}
+                  Upgrade to Career Pro — ₹{rupees(plusPlan.amountPaise)}/mo
                 </span>
                 <span className="block text-white/60 text-[11px] mt-1 leading-snug">
                   {user?.autopay_method === "upi"
-                    ? `${plusPlan.mayaMinutesPerDay} min of Maya a day. Pay ₹${rupees(plusPlan.amountPaise)} once and your unused Standard days come straight back to your UPI — Plus activates instantly.`
+                    ? `${plusPlan.mayaMinutesPerDay} min of Maya a day. Pay ₹${rupees(plusPlan.amountPaise)} once and your unused Career Plus days come straight back to your UPI — Career Pro activates instantly.`
                     : `${plusPlan.mayaMinutesPerDay} min of Maya a day. You only pay the difference for the days left in this cycle — no new checkout needed.`}
                 </span>
               </button>
@@ -410,9 +403,9 @@ export default function ManagePlanPage() {
         <div className="flex flex-col items-center gap-3">
           <a
             href={`tel:${SUPPORT_PHONE}`}
-            className="w-full px-4 py-3 bg-linear-to-r from-amber-300 to-amber-400 rounded-lg text-blue-950 text-base font-semibold hover:bg-amber-400 active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-1.5 border border-amber-400/80"
+            className="w-full px-4 py-3 bg-gold-400 rounded-lg text-blue-950 text-base font-semibold hover:bg-gold-300 active:scale-[0.99] transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs inset-ring inset-ring-black/15"
           >
-            <Headset className="size-5 text-blue-950" />
+            <PhoneCall className="size-5 text-blue-950" />
             <span>Get priority support</span>
           </a>
           {isNonRenewable ? (
@@ -469,21 +462,21 @@ export default function ManagePlanPage() {
 
             <div className="flex flex-col items-center gap-1">
               <h3 className="text-2xl font-bold text-[#002856] text-center">
-                Upgrade to Plus
+                Upgrade to Career Pro
               </h3>
               <p className="text-[#002856]/60 text-xs font-normal text-center leading-relaxed">
-                One UPI payment. Plus activates instantly.
+                One UPI payment. Career Pro activates instantly.
               </p>
             </div>
 
             <div className="w-full bg-slate-50 rounded-2xl p-4 flex flex-col gap-2.5 text-xs font-medium text-slate-600">
               <div className="flex justify-between items-baseline gap-3">
-                <span className="min-w-0">Pay now, new Plus cycle</span>
+                <span className="min-w-0">Pay now, new Career Pro cycle</span>
                 <span className="shrink-0 text-right text-[#002856] font-semibold">₹{rupees(upgradeConfirm.chargePaise ?? plusPlan?.amountPaise ?? 19900)}</span>
               </div>
               {upgradeConfirm.refundPaise > 0 && (
                 <div className="flex justify-between items-baseline gap-3 text-emerald-700">
-                  <span className="min-w-0">Unused Standard days back</span>
+                  <span className="min-w-0">Unused Career Plus days back</span>
                   <span className="shrink-0 text-right font-semibold">₹{rupees(upgradeConfirm.refundPaise)}</span>
                 </div>
               )}
@@ -593,7 +586,7 @@ export default function ManagePlanPage() {
       {/* Post-payment celebration — `upgraded` selects the Plus title/refund line. */}
       <PremiumActivatedModal
         open={Boolean(successData)}
-        title={successData?.upgraded ? "Plus activated!" : "Premium activated!"}
+        title={successData?.upgraded ? "Career Pro activated!" : "Premium activated!"}
         refundPaise={successData?.refunded_paise}
         mayaValue={mayaFeatureValue(
           user,

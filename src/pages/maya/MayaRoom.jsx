@@ -686,7 +686,7 @@ export default function MayaRoom({ meta, focus }) {
             desc={plan?.window === "trial"
               ? "Your conversation was saved — subscribe to keep practising with Maya every day."
               : plan?.tier === "standard"
-                ? "Your conversation was saved — see your feedback, then come back tomorrow. Plus gives you 30 minutes a day."
+                ? "Your conversation was saved — see your feedback, then come back tomorrow. Career Pro gives you 30 minutes a day."
                 : "Your conversation was saved — see your feedback, then come back tomorrow."}
           />
           <div className="context-row">

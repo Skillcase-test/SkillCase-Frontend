@@ -81,8 +81,8 @@ vi.mock("../utils/mayaAvatars", () => ({ getMayaImage: () => "maya.webp" }));
 
 const BOTH_PLANS = {
   plans: [
-    { key: "standard", label: "Standard", amountPaise: 9900, mayaMinutesPerDay: 10 },
-    { key: "b2_plus", label: "Plus", amountPaise: 19900, mayaMinutesPerDay: 30 },
+    { key: "standard", label: "Career Plus", amountPaise: 9900, mayaMinutesPerDay: 10 },
+    { key: "b2_plus", label: "Career Pro", amountPaise: 19900, mayaMinutesPerDay: 30 },
   ],
   current: null,
 };
@@ -130,7 +130,7 @@ describe("UsageLimitModal — Maya premium lock", () => {
     expect(screen.getByText("10 min/day")).toBeInTheDocument();
 
     // Picking Plus updates the row to the bigger pool.
-    const plusOption = await screen.findByText(/Plus ₹199/);
+    const plusOption = await screen.findByText(/Career Pro ₹199/);
     act(() => plusOption.closest("button").click());
     expect(screen.getByText("30 min/day")).toBeInTheDocument();
   });
@@ -166,8 +166,8 @@ describe("UsageLimitModal — Maya premium lock", () => {
     render(<UsageLimitModal />);
     fireUsageLimit(mayaLock);
 
-    const plusOption = await screen.findByText(/Plus ₹199/);
-    expect(screen.getByText(/Standard ₹99/)).toBeInTheDocument();
+    const plusOption = await screen.findByText(/Career Pro ₹199/);
+    expect(screen.getByText(/Career Plus ₹99/)).toBeInTheDocument();
 
     act(() => plusOption.closest("button").click());
     act(() => screen.getByText("Unlock Premium").closest("button").click());
@@ -179,7 +179,7 @@ describe("UsageLimitModal — Maya premium lock", () => {
     render(<UsageLimitModal />);
     fireUsageLimit({ ...mayaLock, level: "A2" });
 
-    const plusOption = await screen.findByText(/Plus ₹199/);
+    const plusOption = await screen.findByText(/Career Pro ₹199/);
     act(() => plusOption.closest("button").click());
     act(() => screen.getByText("Unlock Premium").closest("button").click());
     expect(mockHandlePay).toHaveBeenCalledWith("b2_plus");
@@ -188,7 +188,7 @@ describe("UsageLimitModal — Maya premium lock", () => {
   it("defaults to Standard when the learner does not pick a plan", async () => {
     render(<UsageLimitModal />);
     fireUsageLimit(mayaLock);
-    await screen.findByText(/Plus ₹199/);
+    await screen.findByText(/Career Pro ₹199/);
 
     act(() => screen.getByText("Unlock Premium").closest("button").click());
     expect(mockHandlePay).toHaveBeenCalledWith("standard");
@@ -218,7 +218,7 @@ describe("UsageLimitModal — Maya daily pool exhausted", () => {
     render(<UsageLimitModal />);
     fireUsageLimit(mayaDailyLimit);
 
-    const cta = await screen.findByText("Get Plus — ₹199/month");
+    const cta = await screen.findByText("Get Career Pro — ₹199/month");
     expect(screen.getByText("That's your Maya time for today")).toBeInTheDocument();
     expect(screen.queryByText("Unlock Premium")).not.toBeInTheDocument();
     expect(screen.queryByText("Manage my plan")).not.toBeInTheDocument();
@@ -233,8 +233,8 @@ describe("UsageLimitModal — Maya daily pool exhausted", () => {
     render(<UsageLimitModal />);
     fireUsageLimit(mayaDailyLimit);
 
-    const upgrade = await screen.findByText(/Upgrade to Plus/);
-    expect(screen.queryByText(/Get Plus/)).not.toBeInTheDocument();
+    const upgrade = await screen.findByText(/Upgrade to Career Pro/);
+    expect(screen.queryByText(/Get Career Pro/)).not.toBeInTheDocument();
     expect(screen.getByText(/only pay the difference/)).toBeInTheDocument();
 
     await act(async () => upgrade.closest("button").click());
@@ -248,8 +248,8 @@ describe("UsageLimitModal — Maya daily pool exhausted", () => {
     render(<UsageLimitModal />);
     fireUsageLimit(mayaDailyLimit);
 
-    const cta = await screen.findByText("Get Plus — ₹199/month");
-    expect(screen.queryByText(/Upgrade to Plus/)).not.toBeInTheDocument();
+    const cta = await screen.findByText("Get Career Pro — ₹199/month");
+    expect(screen.queryByText(/Upgrade to Career Pro/)).not.toBeInTheDocument();
 
     act(() => cta.closest("button").click());
     expect(mockHandlePay).toHaveBeenCalledWith("b2_plus");
@@ -265,12 +265,12 @@ describe("UsageLimitModal — Maya daily pool exhausted", () => {
     render(<UsageLimitModal />);
     fireUsageLimit(mayaDailyLimit);
 
-    const upgrade = await screen.findByText(/Upgrade to Plus/);
+    const upgrade = await screen.findByText(/Upgrade to Career Pro/);
     await act(async () => upgrade.closest("button").click());
     expect(mockChangePlan).toHaveBeenCalledWith("b2_plus");
     // Checkout waits for the refund-breakdown confirm.
     expect(mockInstantUpgrade).not.toHaveBeenCalled();
-    expect(await screen.findByText(/Unused Standard days back/)).toBeInTheDocument();
+    expect(await screen.findByText(/Unused Career Plus days back/)).toBeInTheDocument();
     expect(screen.getByText("₹50")).toBeInTheDocument();
     const confirm = screen.getByText("Pay ₹199");
     await act(async () => confirm.click());
@@ -284,9 +284,9 @@ describe("UsageLimitModal — Maya daily pool exhausted", () => {
     fireUsageLimit(mayaDailyLimit);
 
     await screen.findByText("That's your Maya time for today");
-    expect(screen.queryByText(/Get Plus/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Get Career Pro/)).not.toBeInTheDocument();
     expect(screen.queryByText("Manage my plan")).not.toBeInTheDocument();
-    expect(screen.queryByText("Plus Plan")).not.toBeInTheDocument();
+    expect(screen.queryByText("Career Pro Plan")).not.toBeInTheDocument();
     expect(screen.getByText("Not now")).toBeInTheDocument();
   });
 });

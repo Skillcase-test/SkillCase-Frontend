@@ -38,7 +38,7 @@ import {
   isPaymentRoute,
   isScholarshipRoute,
 } from "../utils/shellRoutes";
-import { hasPremiumAccess } from "../utils/premium";
+import { hasPremiumAccess, isPremiumUser } from "../utils/premium";
 import { setUser, logout } from "../redux/auth/authSlice";
 
 const syncPreferredModeCache = (user) => {
@@ -117,6 +117,7 @@ import {
 const AppReviewPromptModal = lazy(() => import("../components/AppReviewPromptModal"));
 const StreakLeaderboardModal = lazy(() => import("../components/StreakLeaderboardModal"));
 const PremiumActivatedModal = lazy(() => import("../components/PremiumActivatedModal"));
+const PremiumWelcome = lazy(() => import("../components/premium/PremiumWelcome"));
 const TrialCountdownModal = lazy(() => import("../components/TrialCountdownModal"));
 const TrialEndedModal = lazy(() => import("../components/TrialEndedModal"));
 const PaywallBlocker = lazy(() => import("../components/PaywallBlocker"));
@@ -1008,6 +1009,12 @@ export default function AppLayout() {
                   />
                 </Suspense>
 
+                {isAuthenticated && (
+                  <Suspense fallback={null}>
+                    <PremiumWelcome paused={showPaymentSuccess || showProfileHighlight} />
+                  </Suspense>
+                )}
+
                 {/* Profile Spotlight Guide */}
                 {showProfileHighlight && profileRect && (
                   <GuideSpotlight
@@ -1058,7 +1065,7 @@ function AppHeaderShell() {
   return (
     <div
       className={`sticky top-0 z-50 w-full vt-app-header ${
-        isWhiteHeader ? "bg-white" : "bg-[#002856]"
+        isWhiteHeader ? "bg-white" : isPremiumUser(user) ? "bg-black" : "bg-[#002856]"
       }`}
     >
       <ConditionalNav />
