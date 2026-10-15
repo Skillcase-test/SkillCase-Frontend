@@ -19,6 +19,8 @@ import "./maya.css";
 const POLL_LIMIT_MS = 10 * 60_000;
 /** How long an unreachable server (e.g. restarting after a deploy) is retried before saying so. */
 const UNREACHABLE_LIMIT_MS = 90_000;
+/** Feedback usually lands 10–20 s after the call; a short interval shows it as soon as it does. */
+const POLL_EVERY_MS = 1500;
 
 const heardIt = (p) => (p.heard !== undefined ? p.heard : (p.transcript ?? []).some((l) => l.speaker === "candidate"));
 const kindOf = (p) => (!heardIt(p) || feedbackReason(p.feedback) === "too_little_speech" ? "attempt" : p.feedback ? "completed" : "pending");
@@ -102,6 +104,9 @@ function Screens() {
   const [stalled, setStalled] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
   const pollRef = useRef(null);
+  // Bumped by "Try feedback again" so the report is polled again until the retry lands
+  const [pollKey, setPollKey] = useState(0);
+  const shownIdRef = useRef(null);
   // The session whose rating card is open; the report waits behind it until it's answered.
   const [reviewing, setReviewing] = useState(null);
   const reviewAsked = useRef(new Set());
@@ -144,9 +149,13 @@ function Screens() {
   );
 
   useEffect(() => {
-    setSession(null);
-    setSessionMissing(false);
-    setLoadFailed(false);
+    // A retry re-polls the same report without blanking it first
+    if (shownIdRef.current !== loadId) {
+      shownIdRef.current = loadId;
+      setSession(null);
+      setSessionMissing(false);
+      setLoadFailed(false);
+    }
     setStalled(false);
     const stop = () => {
       clearInterval(pollRef.current);
@@ -173,13 +182,13 @@ function Screens() {
           if (p) loaded = true;
           if (p === null || (p && p.status !== "started" && p.feedback)) stop();
         });
-      }, 3000);
+      }, POLL_EVERY_MS);
     });
     return () => {
       active = false;
       stop();
     };
-  }, [loadId, sessionId, loadSession]);
+  }, [loadId, sessionId, loadSession, pollKey]);
 
   // ?view=progress: the session list + the progress card data.
   useEffect(() => {
@@ -209,7 +218,7 @@ function Screens() {
       screen = <Processing saved={false}>{card}</Processing>;
     }
     else if (!heardIt(p) || feedbackReason(p.feedback) === "too_little_speech") screen = <NoSpeech sessionId={p.id} hasTranscript={(p.transcript ?? []).length > 0} />;
-    else if (feedbackReason(p.feedback) === "failed") screen = <FeedbackError sessionId={p.id} onRetried={() => loadSession(loadId)} />;
+    else if (feedbackReason(p.feedback) === "failed") screen = <FeedbackError sessionId={p.id} onRetried={() => setPollKey((k) => k + 1)} />;
     else if (!p.feedback?.ok) {
       processing = true;
       screen = <Processing saved>{card}</Processing>;

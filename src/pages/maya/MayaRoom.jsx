@@ -259,6 +259,25 @@ export default function MayaRoom({ meta, focus }) {
       onEnd: () => {},
     });
     void playerRef.current.resume();
+    // The relay socket and the mic pipeline get ready while /start runs; the
+    // ticket goes out once both the socket and /start are done.
+    const wsUrl = mayaRelayUrl();
+    let ws = new WebSocket(wsUrl);
+    let wsOpenedAt = 0;
+    ws.onopen = () => (wsOpenedAt = Date.now());
+    wsRef.current = ws;
+    let node;
+    const audioReady = (async () => {
+      const ctx = new AudioContext({ sampleRate: 24000 });
+      ctxRef.current = ctx;
+      if (ctx.state !== "running") await ctx.resume().catch(() => {});
+      const workletUrl = URL.createObjectURL(new Blob([WORKLET], { type: "application/javascript" }));
+      await ctx.audioWorklet.addModule(workletUrl);
+      URL.revokeObjectURL(workletUrl);
+      node = new AudioWorkletNode(ctx, "pcm16");
+      ctx.createMediaStreamSource(stream).connect(node);
+    })();
+    audioReady.catch(() => {});
     const request = focus ? { focus: { sessionId: focus.sessionId, index: focus.index } } : !interview && (topic || customTopic.trim()) ? { topic: topic || customTopic.trim() } : {};
     let res;
     try {
@@ -271,27 +290,31 @@ export default function MayaRoom({ meta, focus }) {
       else backToStart();
       return;
     }
+    // Cancelled while /start was running
+    if (wsRef.current !== ws) return;
     setSessionId(res.sessionId);
     sessionIdRef.current = res.sessionId;
     // The server is the clock: its callSeconds is the pool-capped duration this
     // call is allowed to run, never a client-side guess.
     if (Number(res.callSeconds) > 0) setCallCapSeconds(Number(res.callSeconds));
     try {
-      const ctx = new AudioContext({ sampleRate: 24000 });
-      ctxRef.current = ctx;
-      if (ctx.state !== "running") await ctx.resume().catch(() => {});
-      const workletUrl = URL.createObjectURL(new Blob([WORKLET], { type: "application/javascript" }));
-      await ctx.audioWorklet.addModule(workletUrl);
-      URL.revokeObjectURL(workletUrl);
-      const node = new AudioWorkletNode(ctx, "pcm16");
-      ctx.createMediaStreamSource(stream).connect(node);
-      const wsUrl = mayaRelayUrl();
-      const ws = new WebSocket(wsUrl);
+      await audioReady;
+      if (wsRef.current !== ws) return;
+      // The relay drops a socket that sends no ticket within 5 s, so after a slow /start
+      // (or if the early socket already failed) dial again
+      if (ws.readyState > WebSocket.OPEN || (wsOpenedAt && Date.now() - wsOpenedAt > 3000)) {
+        ws.onopen = null;
+        ws.close();
+        ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+      }
       // The sealed ticket goes as the first message, not the URL — it's ~9 KB, over nginx's
       // request-line limit, and URLs shouldn't carry sealed credentials anyway.
-      ws.onopen = () => ws.send(JSON.stringify({ type: "maya.auth", ticket: res.ticket }));
+      const sendTicket = () => ws.send(JSON.stringify({ type: "maya.auth", ticket: res.ticket }));
+      if (ws.readyState === WebSocket.OPEN) sendTicket();
+      else ws.onopen = sendTicket;
       ws.onerror = () => console.error("[maya] ws failed:", wsUrl);
-      wsRef.current = ws;
+      let noisy = false;
       node.port.onmessage = (e) => {
         const pcm = new Int16Array(e.data);
         let sum = 0;
@@ -310,6 +333,9 @@ export default function MayaRoom({ meta, focus }) {
         } else if (m.type === "input_audio_buffer.speech_started") {
           spokenRef.current.stop(Date.now());
           playerRef.current?.interrupt();
+          // The cut-off reply's late audio must not play after the learner barged in. In a
+          // noisy room the relay lets that reply carry on, so it keeps playing as before.
+          if (!noisy) replyRef.current = "interrupted";
           setStatus("listening");
           answeredRef.current = true;
           setUserTalking(true);
@@ -327,7 +353,10 @@ export default function MayaRoom({ meta, focus }) {
           if ((!replyRef.current || m.response_id === replyRef.current) && m.timestamp_type !== "viseme")
             spokenRef.current.word(String(m.text ?? ""), Number(m.audio_offset_ms) || 0, Date.now(), Number(m.audio_duration_ms) || 0);
         } else if (m.type === "response.done") spokenRef.current.finish();
-        else if (m.type === "room.noise") setNoisyRoom(Boolean(m.noisy));
+        else if (m.type === "room.noise") {
+          noisy = Boolean(m.noisy);
+          setNoisyRoom(noisy);
+        }
         else if (m.type === "turn.ended") {
           setStatus("thinking");
           setUserTalking(false);
