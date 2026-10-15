@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
 import { useSelector } from "react-redux";
 import { ChevronLeft, Loader2, AlertCircle } from "lucide-react";
 import { BsNewspaper } from "react-icons/bs";
@@ -10,6 +11,7 @@ import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 export default function PaperSelect() {
   const navigate = useNavigate();
   const { examType } = useParams();
+  const goBack = useGoBack("/b1/exams");
   const { user } = useSelector((state) => state.auth);
 
   const [papers, setPapers] = useState([]);
@@ -71,7 +73,7 @@ export default function PaperSelect() {
 
   if (loading) {
     return (
-      <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen bg-white flex flex-col p-4">
+      <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen bg-white flex flex-col pt-safe-4 px-4 pb-4">
         <div className="h-6 w-32 bg-slate-200 rounded mb-6 animate-pulse" />
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -102,7 +104,7 @@ export default function PaperSelect() {
       >
         <div className="self-stretch inline-flex justify-between items-center">
           <button
-            onClick={() => navigate("/b1/exams")}
+            onClick={goBack}
             className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
           >
             <ChevronLeft className="w-4 h-4 text-slate-900" />

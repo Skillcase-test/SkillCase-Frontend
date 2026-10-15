@@ -10,6 +10,7 @@ import OpportunityListSkeleton from "./OpportunityListSkeleton";
 import OpportunityIcon from "../../../components/opportunity/OpportunityIcon";
 import OpportunityImage from "../../../components/opportunity/OpportunityImage";
 import OpportunityDetailView from "../../../components/opportunity/OpportunityDetailView";
+import { useBackHandler } from "../../../router/backButton";
 import {
   oppAlpha,
   oppShade,
@@ -153,6 +154,11 @@ const SelectOpportunityStep = ({ progress, onBack, initialOpportunityId }) => {
     setStatusModal(null);
     setView("list");
   };
+
+  useBackHandler(() => {
+    if (view === "detail") backToList();
+    else onBack?.();
+  });
 
   const markChosen = (oppId) =>
     setOpportunities((prev) =>

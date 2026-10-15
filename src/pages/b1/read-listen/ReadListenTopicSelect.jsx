@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ChevronLeft } from "lucide-react";
+import { useBackHandler } from "../../../router/backButton";
 import { getB1ReadingChapterItems, getB1ReadingChapters } from "../../../api/b1Api";
 import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 
@@ -70,9 +71,11 @@ export default function ReadListenTopicSelect() {
     return `/b1/read-listen/list/${module}`;
   };
 
+  useBackHandler(() => navigate(getBackPath()));
+
   if (loading) {
     return (
-      <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col p-4 shadow-sm">
+      <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col pt-safe-4 px-4 pb-4 shadow-sm">
         <div className="h-6 w-36 bg-slate-200 rounded mb-6 animate-pulse" />
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (

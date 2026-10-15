@@ -5,6 +5,7 @@ import useB2Draft from "../../../hooks/useB2Draft";
 import B2WorkspaceHeader from "../../../components/b2/B2WorkspaceHeader";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
 import { useSelector } from "react-redux";
 import {
   Loader2,
@@ -17,6 +18,7 @@ import { useQuestionPositionTelemetry } from "../../../telemetry/learning";
 
 export default function ListeningWorkspace() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/b2/listening");
   const { exerciseId } = useParams();
   const { user } = useSelector((state) => state.auth);
 
@@ -237,14 +239,14 @@ export default function ListeningWorkspace() {
 
   if (loading)
     return (
-      <B2Page title="Listening" back="/b2/listening">
+      <B2Page title="Listening" back="/b2/listening" onBack={goBack}>
         <B2State loading />
       </B2Page>
     );
 
   if (fetchError || questions.length === 0)
     return (
-      <B2Page title="Listening" back="/b2/listening">
+      <B2Page title="Listening" back="/b2/listening" onBack={goBack}>
         <B2State
           title="Listening tasks couldn’t load"
           description="Your connection may have dropped. Try again when you’re ready."
@@ -270,7 +272,7 @@ export default function ListeningWorkspace() {
         index={currentBlockIndex}
         total={questions.length}
         draftStatus={draft.status}
-        onLeave={() => navigate("/b2/listening")}
+        onLeave={goBack}
       />
 
       <div

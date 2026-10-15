@@ -92,7 +92,7 @@ export default function FeaturedEventPage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20">
+      <div className="max-w-4xl mx-auto px-4 pt-safe-20 pb-20">
         <div className="text-center text-xl">Loading featured event...</div>
       </div>
     );
@@ -100,7 +100,7 @@ export default function FeaturedEventPage() {
 
   if (!event) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-20">
+      <div className="max-w-4xl mx-auto px-4 pt-safe-20 pb-20">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-800 mb-4">
             No Featured Event
@@ -131,7 +131,7 @@ export default function FeaturedEventPage() {
   const todayIstDateKey = getIstDateKey(new Date());
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="max-w-4xl mx-auto px-4 pt-safe-6 pb-6">
       {/* Featured Badge */}
       <div className="inline-block bg-[#EDB843] text-[#163B72] px-5 py-2 rounded-full font-bold mb-6">
         ⭐ Featured Event

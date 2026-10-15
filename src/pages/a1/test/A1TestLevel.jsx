@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import { useParams, useNavigate } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
 import {
   ChevronLeft,
   Lock,
@@ -13,6 +14,7 @@ import { getTestProgress } from "../../../api/a1Api";
 export default function A1TestLevel() {
   const { topicId } = useParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/a1/test");
   const [topic, setTopic] = useState(null);
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -108,7 +110,7 @@ export default function A1TestLevel() {
       >
         <div className="flex w-full justify-between items-center">
           <button
-            onClick={() => navigate("/a1/test")}
+            onClick={goBack}
             className="flex items-center gap-2 text-sm font-semibold"
           >
             <ChevronLeft className="w-4 h-4" /> Back

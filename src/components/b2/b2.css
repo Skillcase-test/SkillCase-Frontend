@@ -892,6 +892,7 @@
   background: #f4f8ff;
   border-bottom: 1px solid #dfe6ee;
   padding: 10px 20px 18px;
+  padding-top: max(10px, env(safe-area-inset-top));
 }
 .b2-workspace-header h1 {
   font-size: 20px;
@@ -966,6 +967,7 @@
   min-height: 60px;
   border-bottom: 1px solid #dfe6ee;
   background: #f4f8ff;
+  padding-top: max(10px, env(safe-area-inset-top));
 }
 .b2-reading-review-detail > div:first-child:not(.b2-content) {
   min-height: 56px;
@@ -1062,6 +1064,7 @@
   }
   .b2-workspace-header {
     padding: 16px 32px;
+    padding-top: max(16px, env(safe-area-inset-top));
   }
   .b2-workspace,
   .b2-review {

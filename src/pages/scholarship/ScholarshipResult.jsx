@@ -10,6 +10,8 @@ import ScholarshipLevelPickerModal from "../../components/ScholarshipLevelPicker
 import ScholarshipStatusCard from "../../components/ScholarshipStatusCard";
 import { switchScholarshipToMode } from "../../utils/lgMode";
 import toast from "react-hot-toast";
+import { useGoBack } from "../../hooks/useGoBack";
+import { useBackHandler } from "../../router/backButton";
 import {
   ChevronLeft,
   ChevronRight,
@@ -30,7 +32,7 @@ import mayaSad from "../../assets/onboarding/mayaSad.webp";
 
 /** B1-style top navigation row shared by every result state. */
 function ResultTopBar({ title }) {
-  const navigate = useNavigate();
+  const goBack = useGoBack("/scholarship");
   return (
     <div
       className="px-4 pb-2.5"
@@ -38,7 +40,7 @@ function ResultTopBar({ title }) {
     >
       <div className="flex items-center justify-between">
         <button
-          onClick={() => navigate("/scholarship")}
+          onClick={goBack}
           className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -68,6 +70,8 @@ export default function ScholarshipResult() {
   const [submission, setSubmission] = useState(null);
   const [percentile, setPercentile] = useState(null);
   const [picker, setPicker] = useState(null); // "learn" | "practice" | null
+  const goBack = useGoBack("/scholarship");
+  useBackHandler(() => setPicker(null), Boolean(picker));
   const [nowTick, setNowTick] = useState(Date.now());
   const [userAward, setUserAward] = useState({
     active: false,
@@ -269,7 +273,7 @@ export default function ScholarshipResult() {
           />
           <p className="text-gray-700 text-lg font-medium mb-4">{error}</p>
           <button
-            onClick={() => navigate("/scholarship")}
+            onClick={goBack}
             className="px-6 py-2 bg-[#002856] text-white rounded-xl font-semibold"
           >
             Back to Exam
@@ -345,7 +349,7 @@ export default function ScholarshipResult() {
           </div>
 
           <button
-            onClick={() => navigate("/scholarship")}
+            onClick={goBack}
             className="w-full mt-4 px-6 py-3 text-[#002856] rounded-xl font-semibold hover:bg-gray-50 transition"
           >
             Back to Scholarship Exam
@@ -393,7 +397,7 @@ export default function ScholarshipResult() {
   if (isEligible && isExpired) {
     return (
       <div className="min-h-screen bg-white flex flex-col">
-        <div className="w-full max-w-md mx-auto px-4 pt-3 pb-6 flex-1 flex flex-col">
+        <div className="w-full max-w-md mx-auto px-4 pt-safe-3 pb-6 flex-1 flex flex-col">
           <ScholarshipStatusCard
             topTitle="Scholarship Exam"
             badge={{
@@ -431,7 +435,7 @@ export default function ScholarshipResult() {
               icon: Dumbbell,
               onClick: () => handleModeHandoff("practice"),
             }}
-            onBack={() => navigate("/scholarship")}
+            onBack={goBack}
             backLabel="Back to Scholarship"
           />
         </div>
@@ -451,7 +455,7 @@ export default function ScholarshipResult() {
   if (!isEligible) {
     return (
       <div className="min-h-screen bg-white flex flex-col">
-        <div className="w-full max-w-md mx-auto px-4 pt-3 pb-6 flex-1 flex flex-col">
+        <div className="w-full max-w-md mx-auto px-4 pt-safe-3 pb-6 flex-1 flex flex-col">
           <ScholarshipStatusCard
             topTitle="Scholarship Exam"
             character={mayaSad}
@@ -495,7 +499,7 @@ export default function ScholarshipResult() {
               icon: Dumbbell,
               onClick: () => handleModeHandoff("practice"),
             }}
-            onBack={() => navigate("/scholarship")}
+            onBack={goBack}
             backLabel="Back to Scholarship Exam"
           />
         </div>
@@ -525,11 +529,11 @@ export default function ScholarshipResult() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <div className="w-full max-w-md mx-auto px-4 pt-3 pb-6 flex-1 flex flex-col">
+      <div className="w-full max-w-md mx-auto px-4 pt-safe-3 pb-6 flex-1 flex flex-col">
         {/* Sub-Header bar */}
         <div className="w-full flex items-center justify-between mb-3 px-1">
           <button
-            onClick={() => navigate("/scholarship")}
+            onClick={goBack}
             className="flex items-center gap-1 text-base font-bold text-[#002856] hover:opacity-80 transition cursor-pointer bg-transparent border-none p-0"
           >
             <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
@@ -977,7 +981,7 @@ export default function ScholarshipResult() {
             <div className="text-center pt-1">
               <button
                 type="button"
-                onClick={() => navigate("/scholarship")}
+                onClick={goBack}
                 className="text-xs sm:text-sm font-semibold text-slate-500 hover:text-[#002856] hover:underline cursor-pointer bg-transparent border-none"
               >
                 Back to Scholarship

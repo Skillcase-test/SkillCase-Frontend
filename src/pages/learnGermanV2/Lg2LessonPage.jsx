@@ -20,6 +20,7 @@ import {
 } from "../../api/learnGermanV2Api";
 import { loadArtManifest } from "./lib/vocabArt";
 import { enqueue as enqueueProgress, flush as flushPending, wireFlushOnReconnect } from "./lib/pendingProgress";
+import { useBackHandler } from "../../router/backButton";
 
 const NOCHECK = ["teach", "match", "chat", "hack"];
 // Story, Speak, VoiceNote and Chat already carry Maya's presence in their own
@@ -146,6 +147,8 @@ export default function Lg2LessonPage() {
   }, [topicId, subKeyParam, navigate]);
 
   const onExit = () => navigate("/learn-german");
+  useBackHandler(onExit, phase !== "loading" && phase !== "reward");
+  useBackHandler(() => setExplain(null), !!explain);
 
   // The stamp ceremony waits on the save: a stamp shown before the server
   // has the completion would be a stamp that might not exist.

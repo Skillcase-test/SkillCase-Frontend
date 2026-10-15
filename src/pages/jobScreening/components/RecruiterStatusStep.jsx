@@ -24,6 +24,7 @@ import shocked from "../../../assets/onboarding/mayaShocked.webp";
 import { toast } from "react-hot-toast";
 import { trackFlowAction } from "../../../telemetry/flow";
 import RejectionNote from "../../../components/RejectionNote";
+import { useBackHandler } from "../../../router/backButton";
 
 const OfferLetterCover = lazy(() => import("./OfferLetterCover"));
 
@@ -189,6 +190,8 @@ const RecruiterStatusStep = ({ progress, onComplete, onBack }) => {
       onBack();
     }
   };
+
+  useBackHandler(onBackClick);
 
   const selectRecruiter = (accountId, state) => {
     trackFlowAction("job_screening", "recruiter_status", "recruiter_selected", "success", {

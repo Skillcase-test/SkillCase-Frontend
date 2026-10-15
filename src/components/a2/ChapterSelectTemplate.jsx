@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useGoBack } from "../../hooks/useGoBack";
 import { images } from "../../assets/images";
 
 const FEATURE_HEADER_IMAGES = {
@@ -26,7 +26,7 @@ export default function ChapterSelectTemplate({
   backPath = "/",
   showTourIds = false,
 }) {
-  const navigate = useNavigate();
+  const goBack = useGoBack(backPath);
   const resolvedHeaderImage =
     headerImage ||
     FEATURE_HEADER_IMAGES[title?.toLowerCase()?.trim()] ||
@@ -59,7 +59,7 @@ export default function ChapterSelectTemplate({
       >
         <div className="flex items-center justify-between">
           <button
-            onClick={() => navigate(backPath)}
+            onClick={goBack}
             className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
           >
             <ChevronLeft className="w-4 h-4" />

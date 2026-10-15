@@ -22,6 +22,7 @@ import ShortlistedPromoCard from "./components/ShortlistedPromoCard";
 import MeetingStep from "./components/MeetingStep";
 import AdditionalDocumentsStep from "./components/AdditionalDocumentsStep";
 import RecruiterStatusStep from "./components/RecruiterStatusStep";
+import { useBackHandler } from "../../router/backButton";
 import {
   Lock,
   RefreshCw,
@@ -124,6 +125,16 @@ const isStepReachable = (stepId, progress) => {
   const step = (progress.steps_config || []).find((s) => s.id === stepId);
   return step?.status === "pending" || step?.status === "review";
 };
+
+// Steps whose visible Back only leaves the step. select_opportunity and
+// recruiter_status have their own sub-views and register their own handler.
+const EXIT_BACK_STEPS = [
+  "profile_completion",
+  "interview_attempt",
+  "review_pending",
+  "additional_documents",
+  "interview_training",
+];
 
 const JobScreening = () => {
   const navigate = useNavigate();
@@ -378,6 +389,22 @@ const JobScreening = () => {
     };
   }, []);
 
+  const handleExitStep = () => {
+    setIsExecutingStep(false);
+    setExecutingStepId(null);
+    navigate("/job-screening", { replace: true });
+  };
+
+  const exitBackStepKey =
+    executingStepId || progress?.current_step_id || "welcome";
+  useBackHandler(
+    handleExitStep,
+    !loading &&
+      !redirecting &&
+      isExecutingStep &&
+      EXIT_BACK_STEPS.includes(exitBackStepKey),
+  );
+
   if (loading || redirecting) {
     // The opportunity page has its own look — white, full-height, its own
     // fetching state once mounted. Landing on ?step=select_opportunity
@@ -387,7 +414,7 @@ const JobScreening = () => {
     }
     return (
       <div
-        className={`w-full ${pipelineMinHeightClass} bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] pt-6 pb-28 px-4 flex flex-col items-center overflow-y-auto`}
+        className={`w-full ${pipelineMinHeightClass} bg-linear-to-b from-[#e0f2fe] to-[#dbeafe] ${isExecutingStep ? "pt-safe-6" : "pt-6"} pb-28 px-4 flex flex-col items-center overflow-y-auto`}
       >
         <div className="w-full max-w-md flex flex-col items-center gap-6">
           <div className="w-full bg-white/80 rounded-3xl p-6 shadow-sm border border-white/60 animate-pulse flex flex-col items-center gap-3">
@@ -435,12 +462,6 @@ const JobScreening = () => {
 
   const steps = progress?.steps_config || [];
   const currentStepId = progress?.current_step_id || "welcome";
-
-  const handleExitStep = () => {
-    setIsExecutingStep(false);
-    setExecutingStepId(null);
-    navigate("/job-screening", { replace: true });
-  };
 
   const handleStepComplete = (updatedData, shouldExitStep = true) => {
     trackFeatureEvent("job_screening", "step_completed", {

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ChevronLeft } from "lucide-react";
+import { useGoBack } from "../../../hooks/useGoBack";
 import { ImNewspaper } from "react-icons/im";
 import { RiNewspaperFill } from "react-icons/ri";
 import { FaHeadphonesSimple } from "react-icons/fa6";
@@ -62,6 +63,8 @@ export default function ReadListenSelect() {
     navigate(`/b1/read-listen/list/${moduleName}`);
   };
 
+  const goBack = useGoBack("/");
+
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden shadow-sm">
       {/* Back & Module Title navigation bar */}
@@ -71,7 +74,7 @@ export default function ReadListenSelect() {
       >
         <div className="self-stretch inline-flex justify-between items-center">
           <button
-            onClick={() => navigate("/")}
+            onClick={goBack}
             className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
           >
             <ChevronLeft className="w-4 h-4 text-slate-900" />

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import api from "../api/axios";
+import { useGoBack } from "../hooks/useGoBack";
 // Import extracted components
 import UploadScreen from "../components/resume/UploadScreen";
 import ProcessingScreen from "../components/resume/ProcessingScreen";
@@ -26,6 +27,7 @@ const EDIT_STEPS = [
 export default function AIResumeBuilder() {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+  const goBack = useGoBack("/resume");
 
   const [step, setStep] = useState("upload");
   const [editStep, setEditStep] = useState(1);
@@ -111,7 +113,7 @@ export default function AIResumeBuilder() {
         error={error}
         onFileChange={handleFileChange}
         onExtract={extractResumeData}
-        onBack={() => navigate("/resume")}
+        onBack={goBack}
         loading={loading}
       />
     );
@@ -131,10 +133,10 @@ export default function AIResumeBuilder() {
   if (step === "editing") {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-        <div className="bg-white shadow-sm border-b sticky top-0 z-10">
+        <div className="bg-white shadow-sm border-b sticky top-0 z-10 pt-safe">
           <div className="max-w-4xl mx-auto py-6 px-4">
             <button
-              onClick={() => navigate("/resume")}
+              onClick={goBack}
               className="flex items-center text-slate-600 hover:text-slate-900 mb-4 cursor-pointer"
             >
               <ArrowLeft className="w-5 h-5 mr-2" />
@@ -194,7 +196,7 @@ export default function AIResumeBuilder() {
   if (step === "preview") {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-        <div className="bg-white shadow-sm border-b">
+        <div className="bg-white shadow-sm border-b pt-safe">
           <div className="max-w-4xl mx-auto py-6 px-4">
             <h1 className="text-2xl font-bold text-[#1976D2]">Your Resume</h1>
             <p className="text-slate-600">Review and save your resume</p>

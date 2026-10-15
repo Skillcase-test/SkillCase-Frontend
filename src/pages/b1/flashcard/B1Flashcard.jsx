@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { useGoBack } from "../../../hooks/useGoBack";
+import { useBackHandler } from "../../../router/backButton";
 import {
   getB1Flashcards as getFlashcards,
   saveB1FlashcardProgress as saveFlashcardProgress,
@@ -1027,6 +1029,13 @@ export default function B1Flashcard() {
     setShowStreakCelebration(true);
   }, []);
 
+  const goBack = useGoBack("/b1/flashcard");
+  const leaveTest = () => {
+    setShowTest(false);
+    setShowTestPrompt(true);
+  };
+  useBackHandler(leaveTest, showTest);
+
   if (loading) {
     return <FlashcardDeckSkeleton title={chapterName || "Flashcards"} />;
   }
@@ -1041,7 +1050,7 @@ export default function B1Flashcard() {
         >
           <div className="flex items-center justify-between">
             <button
-              onClick={() => navigate("/b1/flashcard")}
+              onClick={goBack}
               className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -1135,10 +1144,7 @@ export default function B1Flashcard() {
         >
           <div className="flex items-center justify-between mb-2">
             <button
-              onClick={() => {
-                setShowTest(false);
-                setShowTestPrompt(true);
-              }}
+              onClick={leaveTest}
               className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -1607,7 +1613,7 @@ export default function B1Flashcard() {
       >
         <div className="flex items-center justify-between">
           <button
-            onClick={() => navigate("/b1/flashcard")}
+            onClick={goBack}
             className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
           >
             <ChevronLeft className="w-4 h-4" /> Back

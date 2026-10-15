@@ -5,6 +5,7 @@ import useB2Draft from "../../../hooks/useB2Draft";
 import B2WorkspaceHeader from "../../../components/b2/B2WorkspaceHeader";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
 import { useSelector } from "react-redux";
 import { Loader2, Camera } from "lucide-react";
 import {
@@ -19,6 +20,7 @@ import { useQuestionPositionTelemetry } from "../../../telemetry/learning";
 
 export default function WritingWorkspace() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/b2/writing");
   const { exerciseId } = useParams();
   const { user } = useSelector((state) => state.auth);
 
@@ -222,14 +224,14 @@ export default function WritingWorkspace() {
 
   if (loading)
     return (
-      <B2Page title="Writing" back="/b2/writing">
+      <B2Page title="Writing" back="/b2/writing" onBack={goBack}>
         <B2State loading />
       </B2Page>
     );
 
   if (fetchError || questions.length === 0)
     return (
-      <B2Page title="Writing" back="/b2/writing">
+      <B2Page title="Writing" back="/b2/writing" onBack={goBack}>
         <B2State
           title="Writing tasks couldn’t load"
           description="Your connection may have dropped. Try again when you’re ready."
@@ -251,7 +253,7 @@ export default function WritingWorkspace() {
         index={currentBlockIndex}
         total={questions.length}
         draftStatus={draft.status}
-        onLeave={() => navigate("/b2/writing")}
+        onLeave={goBack}
       />
 
       <div className="self-stretch bg-white px-4 pb-10 flex flex-col gap-4 border-b border-zinc-100 shrink-0 z-10">

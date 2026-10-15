@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, Volume2, Loader2, Check, Timer, Maximize2 } from "lucide-react";
+import { useBackHandler } from "../../../router/backButton";
 import NursingDocumentSheet from "./NursingDocumentSheet";
 import NursingSegmentedBar from "./NursingSegmentedBar";
 import ArticleText from "./ArticleText";
@@ -39,6 +40,7 @@ export default function NursingQuiz({
   const [timeLeft, setTimeLeft] = useState(null);
   const [overlayDoc, setOverlayDoc] = useState(null);
   const [reveal, setReveal] = useState(null); // {answer, feedback_de, feedback_en}
+  useBackHandler(() => setOverlayDoc(null), !!overlayDoc);
   const firstAnswersRef = useRef({});
   const autoPlayedRef = useRef(null);
 

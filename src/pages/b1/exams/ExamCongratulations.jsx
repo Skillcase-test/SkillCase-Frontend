@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useBackHandler } from "../../../router/backButton";
 import { useSelector } from "react-redux";
 import {
   ChevronLeft,
@@ -120,6 +121,9 @@ export default function ExamCongratulations() {
     };
   };
 
+  const handleBack = () => navigate("/b1/exams", { replace: true });
+  useBackHandler(handleBack);
+
   if (loading) {
     return <ExerciseLayoutSkeleton variant="exam" />;
   }
@@ -170,10 +174,10 @@ export default function ExamCongratulations() {
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden shadow-sm relative">
       {/* Navigation and Title Bar */}
-      <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
+      <div className="self-stretch px-4 pt-safe-2.5 pb-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
         <div className="self-stretch inline-flex justify-between items-center">
           <button
-            onClick={() => navigate("/b1/exams")}
+            onClick={handleBack}
             className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
           >
             <ChevronLeft className="w-4 h-4 text-slate-900" />

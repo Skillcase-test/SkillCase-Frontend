@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useGoBack } from "../hooks/useGoBack";
+import { useBackHandler } from "../router/backButton";
 import { setUser, logout } from "../redux/auth/authSlice";
 import { isTrialActive, PREMIUM_PREVIEW_EVENT, premiumPlanName, trialDaysLeft } from "../utils/premium";
 import { hasMayaLevel } from "../utils/levels";
@@ -276,6 +277,17 @@ export default function ProfilePage() {
     url: "",
     fileName: "",
   });
+
+  useBackHandler(() => setActiveTab("profile"), activeTab !== "profile");
+  useBackHandler(() => {
+    setUploadModal({ open: false, docType: null, docTitle: "" });
+    setSelectedFileForUpload(null);
+  }, uploadModal.open);
+  useBackHandler(
+    () =>
+      setPreviewModal({ open: false, docType: null, docTitle: "", url: "", fileName: "" }),
+    previewModal.open,
+  );
 
   // Form state
   const seed = useCacheSeed(getProfile, (body) => body?.profile || undefined);

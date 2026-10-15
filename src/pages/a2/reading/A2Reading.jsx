@@ -40,6 +40,8 @@ import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import { useUsageLimitGate } from "../../../hooks/useUsageLimits";
+import { useGoBack } from "../../../hooks/useGoBack";
+import { useBackHandler } from "../../../router/backButton";
 
 // Drag-and-drop sentence ordering components
 function WordItem({ word, isDragging, isOverlay }) {
@@ -202,6 +204,7 @@ function SentenceOrderingInline({ question, onAnswer, showResult, isCorrect }) {
 export default function A2Reading() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/a2/reading");
   const { user } = useSelector((state) => state.auth);
   const analytics = useFirstPartyAnalytics();
   const { isSpeaking, speakText } = useTextToSpeech();
@@ -219,6 +222,11 @@ export default function A2Reading() {
     open: false,
     targetIndex: null,
   });
+  useBackHandler(
+    () => setNavWarning({ open: false, targetIndex: null }),
+    navWarning.open,
+  );
+  useBackHandler(() => setSelectedVocab(null), !!selectedVocab);
 
   // --- Streak tracking ---
   const [showStreakCelebration, setShowStreakCelebration] = useState(false);
@@ -403,9 +411,9 @@ export default function A2Reading() {
   }
   if (!currentContent) {
     return (
-      <div className="min-h-screen bg-white p-4">
+      <div className="min-h-screen bg-white px-4 pb-4 pt-safe-4">
         <button
-          onClick={() => navigate("/a2/reading")}
+          onClick={goBack}
           className="flex items-center gap-2 mb-4"
         >
           <ChevronLeft className="w-4 h-4" /> Back
@@ -462,7 +470,7 @@ export default function A2Reading() {
         style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate("/a2/reading")}
+          onClick={goBack}
           className="flex items-center gap-2 text-sm font-semibold"
         >
           <ChevronLeft className="w-4 h-4" /> Back

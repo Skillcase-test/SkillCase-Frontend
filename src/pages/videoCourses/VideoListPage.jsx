@@ -6,6 +6,7 @@ import {
   searchVideoCourseVideos,
 } from "../../api/videoCourseApi";
 import { trackFeatureEvent } from "../../telemetry/events";
+import { useGoBack } from "../../hooks/useGoBack";
 import { useUsageLimitGate } from "../../hooks/useUsageLimits";
 import { useCacheSeed } from "../../hooks/useCacheSeed";
 import LoadError from "./LoadError";
@@ -125,6 +126,7 @@ function VideoCard({ video, courseId, navigate }) {
 export default function VideoListPage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/video-courses");
   useUsageLimitGate("ALL", "video_courses");
 
   const seed = useCacheSeed(getVideoCourse, (body) => body?.data, courseId);
@@ -232,7 +234,7 @@ export default function VideoListPage() {
       >
         <button
           type="button"
-          onClick={() => navigate("/video-courses")}
+          onClick={goBack}
           className="px-0.5 flex items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
         >
           <ChevronLeft className="w-4 h-4 text-slate-900" />

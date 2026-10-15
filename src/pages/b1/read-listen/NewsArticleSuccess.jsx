@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
+import { useBackHandler } from "../../../router/backButton";
 import { useSelector } from "react-redux";
 import { getB1ReadingChapterItems } from "../../../api/b1Api";
 import { hapticHeavy } from "../../../utils/haptics";
@@ -89,14 +90,17 @@ export default function NewsArticleSuccess() {
   const circumference = radius * 2 * Math.PI;
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
+  const handleBack = () => navigate(`/b1/read-listen/list/${module}/${chapterId}`, { replace: true });
+  useBackHandler(handleBack);
+
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden shadow-sm">
       <Toaster position="top-center" />
       {/* Back & Module Title navigation bar */}
-      <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
+      <div className="self-stretch px-4 pt-safe-2.5 pb-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
         <div className="self-stretch inline-flex justify-between items-center">
           <button
-            onClick={() => navigate(`/b1/read-listen/list/${module}/${chapterId}`)}
+            onClick={handleBack}
             className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
           >
             <ChevronLeft className="w-4 h-4 text-slate-900" />

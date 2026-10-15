@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { useGoBack } from "../../../hooks/useGoBack";
+import { useBackHandler } from "../../../router/backButton";
 import { ChevronLeft, Loader2, Volume2 } from "lucide-react";
 import { getB1ReadingContent, submitB1ReadingQuiz } from "../../../api/b1Api";
 import useTextToSpeech from "../../../hooks/useTextToSpeech";
@@ -366,6 +368,13 @@ export default function NewsArticleReader() {
     return "bg-red-100 border-red-500/20 text-red-500";
   };
 
+  const goBack = useGoBack(
+    content
+      ? `/b1/read-listen/list/${content.module}/${content.chapter_id || "unassigned"}`
+      : "/b1/read-listen",
+  );
+  useBackHandler(() => setSelectedVocab(null), !!selectedVocab);
+
   if (loading) {
     return (
       <div className="w-full max-w-md mx-auto min-h-screen bg-white shadow-sm flex flex-col">
@@ -389,7 +398,7 @@ export default function NewsArticleReader() {
 
   if (!content) {
     return (
-      <div className="w-full max-w-md mx-auto min-h-screen bg-white p-6 flex flex-col shadow-sm">
+      <div className="w-full max-w-md mx-auto min-h-screen bg-white pt-safe-6 px-6 pb-6 flex flex-col shadow-sm">
         <p className="text-center text-slate-400 py-12">Content not found.</p>
       </div>
     );
@@ -409,7 +418,7 @@ export default function NewsArticleReader() {
       >
         <div className="self-stretch inline-flex justify-between items-center">
           <button
-            onClick={() => navigate(`/b1/read-listen/list/${content.module}/${content.chapter_id || "unassigned"}`)}
+            onClick={goBack}
             className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
           >
             <ChevronLeft className="w-4 h-4 text-slate-900" />

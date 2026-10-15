@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BookOpen, CheckCircle } from "lucide-react";
 import ModalPortal from "../common/ModalPortal";
+import { useBackHandler } from "../../router/backButton";
 
 const A2TestPrerequisiteModal = ({
   topic,
@@ -37,6 +38,7 @@ const A2TestPrerequisiteModal = ({
     setIsClosing(true);
     setTimeout(() => onDismiss(), 300);
   };
+  useBackHandler(handleDismiss);
 
   return (
     <ModalPortal active={true}>

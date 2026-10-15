@@ -6,6 +6,7 @@ import { toast } from "react-hot-toast";
 import { getProgress, optInCrashCourse } from "../../api/jobScreeningApi";
 import { trackFeatureEvent } from "../../telemetry/events";
 import CourseOptedIn from "./components/CourseOptedIn";
+import { useGoBack } from "../../hooks/useGoBack";
 import mayaShocked from "../../assets/onboarding/mayaShocked.webp";
 import { COURSE } from "../../config/course";
 
@@ -73,9 +74,11 @@ const CoursePage = () => {
     }
   };
 
+  const goBack = useGoBack("/job-screening");
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-white w-full flex flex-col items-center pt-4 px-4 pb-24">
+      <div className="min-h-screen bg-white w-full flex flex-col items-center pt-safe-4 px-4 pb-24">
         <div className="w-full max-w-md flex flex-col gap-4 animate-pulse">
           <div className="h-8 w-40 bg-slate-100 rounded-lg" />
           <div className="aspect-video w-full bg-slate-100 rounded-2xl" />
@@ -114,7 +117,7 @@ const CoursePage = () => {
         <div className="w-full max-w-md flex items-center justify-start gap-3">
           <button
             type="button"
-            onClick={() => navigate("/job-screening")}
+            onClick={goBack}
             className="w-7 h-7 flex items-center justify-center rounded-md border-2 border-slate-400 text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer shrink-0"
             aria-label="Back"
           >

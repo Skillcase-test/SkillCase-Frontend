@@ -8,10 +8,12 @@ import WaveformIcon from "./lesson/screens/shared/WaveformIcon";
 import { getGermanTTSBlob } from "./lesson/ttsCache";
 import { hapticMedium } from "../../utils/haptics";
 import { trackLearningEvent, trackFeatureEvent } from "../../telemetry/events";
+import { useGoBack } from "../../hooks/useGoBack";
 
 export default function RecapScreen() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/learn-german");
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -167,7 +169,7 @@ export default function RecapScreen() {
         aria-label="Loading recap"
         role="status"
       >
-        <div className="w-full max-w-[500px] px-5 pt-8 flex flex-col gap-4">
+        <div className="w-full max-w-[500px] px-5 pt-safe-8 flex flex-col gap-4">
           <div className="h-8 w-44 bg-white/60 rounded animate-pulse self-center" />
           <div className="size-24 rounded-xl bg-white/60 animate-pulse self-center my-3" />
           {[0, 1, 2, 3, 4].map((i) => (
@@ -189,7 +191,7 @@ export default function RecapScreen() {
           isHost
           title={pageTitle}
           hideProgress={true}
-          onBackClick={() => navigate("/learn-german")}
+          onBackClick={goBack}
         />
       </div>
 

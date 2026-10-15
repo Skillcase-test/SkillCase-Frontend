@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ChevronLeft, ChevronRight, Volume2, Loader2 } from "lucide-react";
+import { useGoBack } from "../../../hooks/useGoBack";
 import { getReadingContent, saveReadingProgress } from "../../../api/a1Api";
 import UmlautKeyboard from "../../../components/a2/UmlautKeyboard";
 import ReadingRenderer from "../../../components/a2/ReadingRenderer";
@@ -227,6 +228,7 @@ function SentenceOrderingInline({ question, onAnswer, showResult, isCorrect }) {
 export default function A1Reading() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/a1/reading");
   const { user } = useSelector((state) => state.auth);
   const analytics = useFirstPartyAnalytics();
   const { isSpeaking, speakText } = useTextToSpeech();
@@ -444,9 +446,9 @@ export default function A1Reading() {
   }
   if (!currentContent) {
     return (
-      <div className="min-h-screen bg-white p-4">
+      <div className="min-h-screen bg-white px-4 pb-4 pt-safe-4">
         <button
-          onClick={() => navigate("/a1/reading")}
+          onClick={goBack}
           className="flex items-center gap-2 mb-4"
         >
           <ChevronLeft className="w-4 h-4" /> Back
@@ -466,7 +468,7 @@ export default function A1Reading() {
         style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate("/a1/reading")}
+          onClick={goBack}
           className="flex items-center gap-2 text-sm font-semibold"
         >
           <ChevronLeft className="w-4 h-4" /> Back

@@ -92,7 +92,7 @@ export default function EventDetailPage() {
 
   if (error && !event) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20">
+      <div className="max-w-7xl mx-auto px-4 pt-safe-20 pb-20">
         <div className="text-center">
           <h2 className="text-3xl font-bold mb-4">Event Not Found</h2>
           <p className="text-lg text-gray-600 mb-6">{error}</p>
@@ -201,7 +201,7 @@ export default function EventDetailPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Two-Column Layout */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 pt-safe-6 pb-6">
         <div className="grid grid-cols-1 lg:grid-cols-[40%_60%] gap-8">
           {/* LEFT COLUMN - Square Image with Grey Bar at Bottom */}
           <div>

@@ -25,15 +25,19 @@ import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSke
 import { useLearningQuestionJourney } from "../../../telemetry/learning";
 import { trackLearningEvent } from "../../../telemetry/events";
 import { useUsageLimitGate } from "../../../hooks/useUsageLimits";
+import { useGoBack } from "../../../hooks/useGoBack";
+import { useBackHandler } from "../../../router/backButton";
 
 export default function A2GrammarPractice() {
   const { topicId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/a2/grammar");
   const analytics = useFirstPartyAnalytics();
   useUsageLimitGate("A2", "grammar");
 
   const isReviewMode = searchParams.get("mode") === "review";
+  useBackHandler(() => navigate("/a2/grammar"), isReviewMode);
 
   const [topic, setTopic] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -253,7 +257,7 @@ export default function A2GrammarPractice() {
           style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
         >
           <button
-            onClick={() => navigate("/a2/grammar")}
+            onClick={goBack}
             className="flex items-center gap-2 text-sm font-semibold"
           >
             <ChevronLeft className="w-4 h-4" /> Back
@@ -517,9 +521,9 @@ export default function A2GrammarPractice() {
   if (showExplanation && topic?.explanation) {
     return (
       <div className="min-h-screen bg-white flex flex-col relative">
-        <div className="px-4 py-3 flex items-center justify-between border-b border-[#E5E7EB]">
+        <div className="px-4 pt-safe-3 pb-3 flex items-center justify-between border-b border-[#E5E7EB]">
           <button
-            onClick={() => navigate("/a2/grammar")}
+            onClick={goBack}
             className="flex items-center gap-2 text-sm font-semibold"
           >
             <ChevronLeft className="w-4 h-4" /> Back
@@ -576,7 +580,7 @@ export default function A2GrammarPractice() {
         style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate("/a2/grammar")}
+          onClick={goBack}
           className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
         >
           <ChevronLeft className="w-4 h-4" />

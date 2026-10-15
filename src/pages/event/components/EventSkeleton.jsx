@@ -29,7 +29,7 @@ export function EventCardSkeleton({ compact = false }) {
 export function EventDetailSkeleton() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 pt-6">
+      <div className="max-w-7xl mx-auto px-4 pt-safe-6">
         <div className="h-6 bg-gray-200 rounded w-32 mb-6 animate-pulse" />
       </div>
       <div className="max-w-7xl mx-auto px-4 py-8">

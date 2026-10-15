@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useGoBack } from "../../hooks/useGoBack";
 import { getExamResult } from "../../api/examApi";
 import { useFirstPartyAnalytics } from "../../telemetry/legacyAnalytics";
 import {
@@ -202,6 +203,7 @@ function ResultAudioPlayer({ src }) {
 export default function ExamResult() {
   const { testId } = useParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [examData, setExamData] = useState(null);
@@ -285,7 +287,7 @@ export default function ExamResult() {
         style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate("/")}
+          onClick={goBack}
           className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
         >
           <ChevronLeft className="w-4 h-4" /> Back

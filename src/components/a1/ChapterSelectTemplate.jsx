@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { images } from "../../assets/images";
+import { useGoBack } from "../../hooks/useGoBack";
 
 const FEATURE_HEADER_IMAGES = {
   flashcards: images.flashcards,
@@ -33,7 +33,7 @@ export default function ChapterSelectTemplate({
   currentChapterId, // gold ring on the row learners should tap next
   continueCta, // { label, onClick } — pinned bottom action
 }) {
-  const navigate = useNavigate();
+  const goBack = useGoBack(backPath);
   const resolvedHeaderImage =
     headerImage ||
     FEATURE_HEADER_IMAGES[title?.toLowerCase()?.trim()] ||
@@ -67,7 +67,7 @@ export default function ChapterSelectTemplate({
       >
         <div className="flex items-center justify-between">
           <button
-            onClick={() => navigate(backPath)}
+            onClick={goBack}
             className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
           >
             <ChevronLeft className="w-4 h-4" />

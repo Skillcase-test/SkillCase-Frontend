@@ -9,12 +9,14 @@ import {
   Loader2,
 } from "lucide-react";
 import api from "../api/axios";
+import { useGoBack } from "../hooks/useGoBack";
 
 import { toast } from "react-hot-toast";
 
 export default function MyResumes() {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+  const goBack = useGoBack("/resume");
 
   const [resumes, setResumes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,10 +77,10 @@ export default function MyResumes() {
     );
   }
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white pt-safe-12 pb-12 px-4">
       <div className="max-w-6xl mx-auto">
         <button
-          onClick={() => navigate("/resume")}
+          onClick={goBack}
           className="flex items-center text-slate-600 hover:text-slate-900 mb-6 cursor-pointer"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />

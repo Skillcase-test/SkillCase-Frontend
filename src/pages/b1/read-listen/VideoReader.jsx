@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { useGoBack } from "../../../hooks/useGoBack";
 import {
   ChevronLeft,
   Loader2,
@@ -479,13 +480,19 @@ export default function VideoReader() {
     }
   };
 
+  const goBack = useGoBack(
+    data?.video
+      ? `/b1/read-listen/list/video/${data.video.course_id || "unassigned"}`
+      : "/b1/read-listen",
+  );
+
   if (loading) {
     return <ExerciseLayoutSkeleton variant="listening" />;
   }
 
   if (!data || !data.video) {
     return (
-      <div className="w-full max-w-md mx-auto min-h-screen bg-white p-6 flex flex-col shadow-sm">
+      <div className="w-full max-w-md mx-auto min-h-screen bg-white pt-safe-6 px-6 pb-6 flex flex-col shadow-sm">
         <p className="text-center text-slate-400 py-12">
           Video details not found.
         </p>
@@ -508,7 +515,7 @@ export default function VideoReader() {
       >
         <div className="self-stretch inline-flex justify-between items-center">
           <button
-            onClick={() => navigate(`/b1/read-listen/list/video/${video.course_id || "unassigned"}`)}
+            onClick={goBack}
             className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
           >
             <ChevronLeft className="w-4 h-4 text-slate-900" />

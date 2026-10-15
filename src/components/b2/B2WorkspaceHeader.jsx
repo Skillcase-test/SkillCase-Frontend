@@ -1,7 +1,8 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { ArrowLeft, Clock3, Check } from "lucide-react";
 import { B2Button } from "./B2UI";
 import { B2_SKILLS } from "./b2Skills";
+import { useBackHandler } from "../../router/backButton";
 export default function B2WorkspaceHeader({
   skill,
   assessment = false,
@@ -33,11 +34,18 @@ export default function B2WorkspaceHeader({
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [recording]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const confirmLeave = assessment || recording || draftStatus === "unavailable";
+  const openDialog = () => {
+    setDialogOpen(true);
+    dialog.current?.showModal();
+  };
   const leave = () => {
-    if (assessment || recording || draftStatus === "unavailable")
-      dialog.current?.showModal();
+    if (confirmLeave) openDialog();
     else onLeave();
   };
+  useBackHandler(openDialog, confirmLeave);
+  useBackHandler(() => dialog.current?.close(), dialogOpen);
   const remaining = Number.isFinite(timeLeft)
     ? `${Math.floor(Math.max(0, timeLeft) / 60)
         .toString()
@@ -111,7 +119,10 @@ export default function B2WorkspaceHeader({
         ref={dialog}
         className="b2-ui b2-dialog"
         aria-labelledby="b2-leave-title"
-        onClose={() => trigger.current?.focus()}
+        onClose={() => {
+          setDialogOpen(false);
+          trigger.current?.focus();
+        }}
       >
         <h2 id="b2-leave-title">
           Leave this {assessment ? "section" : "exercise"}?

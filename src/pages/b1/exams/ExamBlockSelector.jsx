@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
 import { useSelector } from "react-redux";
 import { ChevronLeft, AlertCircle, Check } from "lucide-react";
 import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
@@ -21,6 +22,7 @@ export default function ExamBlockSelector() {
   const [selectedSection, setSelectedSection] = useState("reading");
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
+  const goBack = useGoBack(`/b1/exams/${submission?.exam_type || ""}/papers`);
 
   const fetchStatus = async () => {
     setLoading(true);
@@ -148,13 +150,10 @@ export default function ExamBlockSelector() {
   return (
     <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen bg-white flex flex-col justify-between items-center overflow-hidden relative pb-8">
       {/* Navigation bar */}
-      <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
+      <div className="self-stretch px-4 pt-safe-2.5 pb-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
         <div className="self-stretch inline-flex justify-between items-center">
           <button
-            onClick={() =>
-              // exam_type now always present via statusRes.data.submission JOIN
-              navigate(`/b1/exams/${submission?.exam_type || ""}/papers`)
-            }
+            onClick={goBack}
             className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
           >
             <ChevronLeft className="w-4 h-4 text-slate-900" />

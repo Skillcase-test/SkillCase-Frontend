@@ -12,6 +12,8 @@ import {
   X,
 } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
+import { useBackHandler } from "../../../router/backButton";
 import { useSelector } from "react-redux";
 
 import A1FlashcardDeck from "../../../components/a1/A1FlashcardDeck";
@@ -143,6 +145,7 @@ export default function A1Flashcard() {
   const { chapterId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/a1/flashcard");
   const { user } = useSelector((state) => state.auth);
   const analytics = useFirstPartyAnalytics();
   const { guardUsage } = useUsageLimits();
@@ -161,6 +164,10 @@ export default function A1Flashcard() {
 
   const [showTestPrompt, setShowTestPrompt] = useState(false);
   const [showTest, setShowTest] = useState(false);
+  useBackHandler(() => {
+    setShowTest(false);
+    setShowTestPrompt(true);
+  }, showTest);
   const [testQuestions, setTestQuestions] = useState([]);
   const [userAnswers, setUserAnswers] = useState({});
   const [testSubmitted, setTestSubmitted] = useState(false);
@@ -749,7 +756,7 @@ export default function A1Flashcard() {
           This chapter does not have flashcards yet.
         </p>
         <button
-          onClick={() => navigate("/a1/flashcard")}
+          onClick={goBack}
           className="px-6 py-3 bg-[#002856] text-white rounded-xl font-semibold"
         >
           Back to Chapters
@@ -768,7 +775,7 @@ export default function A1Flashcard() {
         >
           <div className="flex items-center justify-between">
             <button
-              onClick={() => navigate("/a1/flashcard")}
+              onClick={goBack}
               className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -1353,7 +1360,7 @@ export default function A1Flashcard() {
       >
         <div className="flex items-center justify-between">
           <button
-            onClick={() => navigate("/a1/flashcard")}
+            onClick={goBack}
             className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
           >
             <ChevronLeft className="w-4 h-4" />

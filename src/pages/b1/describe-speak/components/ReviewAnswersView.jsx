@@ -3,6 +3,7 @@ import { Volume2, Maximize2 } from "lucide-react";
 import ScoreRing from "./ScoreRing";
 import MetricBar from "./MetricBar";
 import AudioPlayer from "./AudioPlayer";
+import { useBackHandler } from "../../../../router/backButton";
 
 export default function ReviewAnswersView({
   data,
@@ -69,6 +70,8 @@ export default function ReviewAnswersView({
     }
     return result;
   };
+
+  useBackHandler(() => setIsPreviewOpen(false), isPreviewOpen);
 
   return (
     <div className="w-full flex flex-col">
@@ -307,7 +310,7 @@ export default function ReviewAnswersView({
               e.stopPropagation();
               setIsPreviewOpen(false);
             }}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border-0 outline-none cursor-pointer text-xl font-bold transition duration-200"
+            className="absolute top-safe-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border-0 outline-none cursor-pointer text-xl font-bold transition duration-200"
           >
             ✕
           </button>

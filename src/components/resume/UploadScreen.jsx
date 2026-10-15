@@ -8,7 +8,7 @@ export default function UploadScreen({
   loading,
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white pt-safe-12 pb-12 px-4">
       <div className="max-w-2xl mx-auto">
         <button
           onClick={onBack}

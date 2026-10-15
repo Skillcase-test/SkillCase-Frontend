@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import GuideSpotlight from "../../components/GuideSpotlight";
 import { trackFeatureEvent } from "../../telemetry/events";
 import { markVideoClassesTourComplete } from "./videoClassesTourStorage";
+import { useBackHandler } from "../../router/backButton";
 
 const SETTLE_DELAYS_MS = [250, 650];
 
@@ -142,6 +143,7 @@ export default function VideoClassesTour({
   };
 
   const goBack = () => setStepIndex((i) => Math.max(0, i - 1));
+  useBackHandler(goBack, stepIndex > 0);
 
   if (!rect) return null;
 

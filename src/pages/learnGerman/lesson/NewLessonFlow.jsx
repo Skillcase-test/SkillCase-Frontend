@@ -19,6 +19,7 @@ import { hapticLight, hapticMedium, hapticHeavy } from "../../../utils/haptics";
 import { trackAppAnalyticsEvent } from "../../../utils/appAnalytics";
 import { recordEvent } from "../../../telemetry";
 import { trackJourneyEvent } from "../../../observability/journeyEvents";
+import { useBackHandler } from "../../../router/backButton";
 import {
   preloadMayaTTSText,
   resetLastPlayedDialogue,
@@ -764,6 +765,11 @@ export default function NewLessonFlow() {
   const showProgressBar = !["intro", "scenario"].includes(
     currentScreen?.type || "",
   );
+  useBackHandler(
+    () => setShowLeaveModal(true),
+    showProgressBar && !showLeaveModal && !levelComplete && quizState === "idle",
+  );
+  useBackHandler(() => setShowLeaveModal(false), showLeaveModal);
 
   const isCorrectSelectionForScreen = useCallback((screen, selectionIndex) => {
     if (selectionIndex === null || selectionIndex === undefined) return false;
@@ -1432,7 +1438,7 @@ export default function NewLessonFlow() {
         aria-label="Loading lesson"
         role="status"
       >
-        <div className="w-full max-w-[500px] flex flex-col px-5 pt-6 gap-5 overflow-hidden">
+        <div className="w-full max-w-[500px] flex flex-col px-5 pt-safe-6 gap-5 overflow-hidden">
           <div className="h-2 w-full bg-white/70 rounded-full animate-pulse" />
           <div className="h-6 w-2/3 bg-white/70 rounded animate-pulse mt-1" />
           <div className="w-full bg-white/80 rounded-2xl p-5 flex flex-col gap-3 animate-pulse">

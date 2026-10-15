@@ -1,11 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { Upload, X } from "lucide-react";
+import { useBackHandler } from "../../../../router/backButton";
 
 export default function OcrModal({ onClose, onUpload }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
+  useBackHandler(() => {
+    if (!isUploading) onClose();
+  });
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];

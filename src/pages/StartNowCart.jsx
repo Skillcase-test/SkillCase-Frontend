@@ -3,10 +3,12 @@ import { ArrowLeft, Loader2, Phone } from "lucide-react";
 import { fetchTrustPageContent } from "../api/trustPageApi";
 import CartBlocks from "./startNow/CartBlocks";
 import CartCheckoutBar from "./startNow/CartCheckoutBar";
+import { useGoBack } from "../hooks/useGoBack";
 
 export default function StartNowCart() {
   const [cartBlocks, setCartBlocks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const goBack = useGoBack("/start-now");
 
   useEffect(() => {
     let mounted = true;
@@ -30,15 +32,16 @@ export default function StartNowCart() {
   return (
     <div className="bg-white min-h-screen relative overflow-x-hidden pb-32 selection:bg-[#F9C53D] selection:text-[#002856]">
       {/* Top App Bar */}
-      <header className="sticky top-0 z-40 bg-white shadow-xs border-b border-slate-100 w-full">
+      <header className="sticky top-0 z-40 bg-white shadow-xs border-b border-slate-100 w-full pt-safe">
         <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto h-16">
-          <a
-            href="/start-now"
+          <button
+            type="button"
+            onClick={goBack}
             aria-label="Go back"
             className="p-2 -ml-2 rounded-full hover:bg-slate-100 transition-colors text-[#002856]"
           >
             <ArrowLeft className="w-5 h-5" />
-          </a>
+          </button>
           <h1 className="font-extrabold text-lg sm:text-xl text-[#002856] flex-1 text-center pr-8">
             Choose Your Service
           </h1>

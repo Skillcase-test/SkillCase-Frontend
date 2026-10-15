@@ -70,7 +70,7 @@ export default function EventQuickViewModal({
         }}
       >
         {/* Header Actions */}
-        <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between z-10">
+        <div className="sticky top-0 bg-white border-b px-4 pt-safe-3 pb-3 flex items-center justify-between z-10">
           <div className="flex gap-2">
             <button
               onClick={copyLink}

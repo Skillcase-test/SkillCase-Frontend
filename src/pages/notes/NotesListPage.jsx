@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Search, FileText } from "lucide-react";
 import { getNotes } from "../../api/notesApi";
 import { trackFeatureEvent } from "../../telemetry/events";
+import { useGoBack } from "../../hooks/useGoBack";
 
 const LANGUAGES = [
   { code: "en", label: "EN" },
@@ -12,6 +13,7 @@ const LANGUAGES = [
 
 export default function NotesListPage() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/");
 
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +63,7 @@ export default function NotesListPage() {
         style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate("/")}
+          onClick={goBack}
           className="px-0.5 flex items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
         >
 

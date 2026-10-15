@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ChevronLeft } from "lucide-react";
+import { useBackHandler } from "../../../router/backButton";
+import { useGoBack } from "../../../hooks/useGoBack";
 import { getB1DescribeSpeakChapters, getB1DescribeSpeakChapterItems } from "../../../api/b1Api";
 import { useUsageLimitModule } from "../../../hooks/useUsageLimits";
 
@@ -53,12 +55,13 @@ export default function DescribeSpeakSelect() {
     }
   }, [user?.user_id, selectedChapterId]);
 
+  const goBack = useGoBack("/");
   const handleBackClick = () => {
     if (selectedChapterId !== null) {
       setSelectedChapterId(null);
       setChapterTitle("");
     } else {
-      navigate("/");
+      goBack();
     }
   };
 
@@ -83,9 +86,11 @@ export default function DescribeSpeakSelect() {
     return "bg-red-100 border-red-500/20 text-red-500";
   };
 
+  useBackHandler(handleBackClick, selectedChapterId !== null);
+
   if (loading) {
     return (
-      <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col p-4 shadow-sm">
+      <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col pt-safe-4 px-4 pb-4 shadow-sm">
         <div className="h-6 w-36 bg-slate-200 rounded mb-6 animate-pulse" />
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -108,7 +113,7 @@ export default function DescribeSpeakSelect() {
   return (
     <div className="w-full max-w-md mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden shadow-sm relative">
       {/* Back & Module Title navigation bar */}
-      <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
+      <div className="self-stretch px-4 pt-safe-2.5 pb-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
         <div className="self-stretch inline-flex justify-between items-center">
           <button
             onClick={handleBackClick}

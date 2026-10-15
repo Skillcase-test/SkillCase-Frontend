@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
 import { useSelector } from "react-redux";
 import api from "../../../api/axios";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
@@ -19,6 +20,7 @@ import { useUsageLimits } from "../../../hooks/useUsageLimits";
 export default function A1Speaking() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/a1/speaking");
   const { user } = useSelector((state) => state.auth);
   const analytics = useFirstPartyAnalytics();
   const { guardUsage } = useUsageLimits();
@@ -286,7 +288,7 @@ export default function A1Speaking() {
         style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate("/a1/speaking")}
+          onClick={goBack}
           className="flex items-center gap-2 text-sm font-semibold"
         >
           <ChevronLeft className="w-4 h-4" /> Back

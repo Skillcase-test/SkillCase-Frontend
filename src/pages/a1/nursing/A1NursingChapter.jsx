@@ -10,6 +10,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
+import { useBackHandler } from "../../../router/backButton";
 import { useSelector } from "react-redux";
 
 import A1FlashcardDeck from "../../../components/a1/A1FlashcardDeck";
@@ -41,6 +43,7 @@ const QUICK_CHECK_EVERY = 20;
 export default function A1NursingChapter() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/a1/nursing");
   const { user } = useSelector((state) => state.auth);
   // Shared module at every level — analytics tag the learner's own level.
   const userLevel = (user?.user_prof_level || "A1").toUpperCase();
@@ -470,6 +473,8 @@ export default function A1NursingChapter() {
     setQuizType(null);
     setPendingIndex(null);
   };
+  useBackHandler(() => exitQuiz(), phase === "quiz");
+  useBackHandler(() => setOverlayDoc(null), !!overlayDoc);
 
   const skipQuickCheck = () => {
     setPhase("cards");
@@ -494,7 +499,7 @@ export default function A1NursingChapter() {
           Pass the previous chapter's quiz to unlock this one.
         </p>
         <button
-          onClick={() => navigate("/a1/nursing")}
+          onClick={goBack}
           className="px-6 py-3 bg-[#002856] text-white rounded-xl font-semibold"
         >
           Back to Chapters
@@ -511,7 +516,7 @@ export default function A1NursingChapter() {
           This chapter does not have cards yet.
         </p>
         <button
-          onClick={() => navigate("/a1/nursing")}
+          onClick={goBack}
           className="px-6 py-3 bg-[#002856] text-white rounded-xl font-semibold"
         >
           Back to Chapters
@@ -532,7 +537,7 @@ export default function A1NursingChapter() {
         >
           <div className="flex items-center justify-between">
             <button
-              onClick={() => navigate("/a1/nursing")}
+              onClick={goBack}
               className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -660,7 +665,7 @@ export default function A1NursingChapter() {
         >
           <div className="flex items-center justify-between">
             <button
-              onClick={() => navigate("/a1/nursing")}
+              onClick={goBack}
               className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -709,7 +714,7 @@ export default function A1NursingChapter() {
               )}
               {passed && !nextChapter && (
                 <button
-                  onClick={() => navigate("/a1/nursing")}
+                  onClick={goBack}
                   className="w-full py-3 rounded-xl bg-[#019035] text-white text-sm font-bold"
                 >
                   Back to Chapters
@@ -764,7 +769,7 @@ export default function A1NursingChapter() {
       >
         <div className="flex items-center justify-between">
           <button
-            onClick={() => navigate("/a1/nursing")}
+            onClick={goBack}
             className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
           >
             <ChevronLeft className="w-4 h-4" />

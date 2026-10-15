@@ -5,11 +5,13 @@ import { getLg2Curriculum, getLg2State } from "../../api/learnGermanV2Api";
 import { nextSub } from "./lib/curriculum";
 import PassportPage from "./guided/PassportPage";
 import { challengeFromTopic, nextJourneyChallenge } from "./guided/journeyModel";
+import { useGoBack } from "../../hooks/useGoBack";
 
 // The passport — opened from the journey dock, or onto a stamp the reward
 // screen just earned (route state `earned`).
 export default function Lg2Passport() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/learn-german");
   const location = useLocation();
   const user = useSelector((s) => s.auth?.user);
   const userName = user?.name || user?.username || "";
@@ -76,7 +78,7 @@ export default function Lg2Passport() {
       userId={user?.user_id}
       earnedId={earnedId}
       initiallyOpen={!!earnedId}
-      onBack={() => navigate("/learn-german")}
+      onBack={goBack}
       onOpenChallenge={openChallenge}
     />
   );

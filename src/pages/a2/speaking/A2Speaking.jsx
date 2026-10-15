@@ -17,12 +17,14 @@ import useTextToSpeech from "../../../hooks/useTextToSpeech";
 import SpeakingCardDeck from "../../../components/a2/SpeakingCardDeck";
 import { useA2Tour } from "../../../tour/A2TourContext";
 import { useUsageLimits } from "../../../hooks/useUsageLimits";
+import { useGoBack } from "../../../hooks/useGoBack";
 
 export default function A2Speaking() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const { guardUsage } = useUsageLimits();
+  const goBack = useGoBack("/a2/speaking");
 
   const [content, setContent] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -284,9 +286,9 @@ export default function A2Speaking() {
   };
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <div className="px-4 py-2.5 flex items-center justify-between">
+      <div className="px-4 pt-safe-2.5 pb-2.5 flex items-center justify-between">
         <button
-          onClick={() => navigate("/a2/speaking")}
+          onClick={goBack}
           className="flex items-center gap-2 text-sm font-semibold"
         >
           <ChevronLeft className="w-4 h-4" /> Back

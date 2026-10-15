@@ -12,6 +12,7 @@ import {
   getB1DescribeSpeakChapters,
 } from "../../../api/b1Api";
 import toast, { Toaster } from "react-hot-toast";
+import { useBackHandler } from "../../../router/backButton";
 
 import WorkspaceHeader from "./components/WorkspaceHeader";
 import WritingStage from "./components/WritingStage";
@@ -559,6 +560,9 @@ export default function DescribeSpeakWorkspace() {
       },
     });
   };
+
+  useBackHandler(handleBackPress);
+  useBackHandler(() => setSelectedVocab(null), !!selectedVocab);
 
   if (loading) {
     return <ExerciseLayoutSkeleton variant="speaking" />;

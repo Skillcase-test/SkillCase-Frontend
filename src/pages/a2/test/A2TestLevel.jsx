@@ -9,10 +9,12 @@ import {
   Eye,
 } from "lucide-react";
 import { getTestProgress } from "../../../api/a2Api";
+import { useGoBack } from "../../../hooks/useGoBack";
 
 export default function A2TestLevel() {
   const { topicId } = useParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/a2/test");
   const [topic, setTopic] = useState(null);
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -109,7 +111,7 @@ export default function A2TestLevel() {
       >
         <div className="flex w-full justify-between items-center">
           <button
-            onClick={() => navigate("/a2/test")}
+            onClick={goBack}
             className="flex items-center gap-2 text-sm font-semibold"
           >
             <ChevronLeft className="w-4 h-4" /> Back

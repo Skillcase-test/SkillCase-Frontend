@@ -9,6 +9,7 @@ import {
   resetB1DescribeSpeakProgress,
 } from "../../../api/b1Api";
 import toast, { Toaster } from "react-hot-toast";
+import { useBackHandler } from "../../../router/backButton";
 import { hapticHeavy } from "../../../utils/haptics";
 
 import WorkspaceHeader from "./components/WorkspaceHeader";
@@ -249,6 +250,8 @@ export default function DescribeSpeakSuccess() {
       navigate("/b1/describe-speak");
     }
   };
+
+  useBackHandler(handleBackPress);
 
   if (loading) {
     return <ExerciseLayoutSkeleton variant="speaking" />;

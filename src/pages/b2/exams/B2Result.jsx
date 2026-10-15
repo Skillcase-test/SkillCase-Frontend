@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useBackHandler } from "../../../router/backButton";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ChevronRight } from "lucide-react";
@@ -142,16 +143,19 @@ export default function B2Result() {
     fetchFinalReport();
   }, [user?.user_id, fetchFinalReport]);
 
+  const handleBackToTest = () => navigate("/b2/test", { replace: true });
+  useBackHandler(handleBackToTest);
+
   if (loading)
     return (
-      <B2Page title="Assessment results" back="/b2/test">
+      <B2Page title="Assessment results" back="/b2/test" onBack={handleBackToTest}>
         <B2State loading />
       </B2Page>
     );
 
   if (fetchError || !submissionData)
     return (
-      <B2Page title="Assessment results" back="/b2/test">
+      <B2Page title="Assessment results" back="/b2/test" onBack={handleBackToTest}>
         <B2State
           title="Your results couldn’t load"
           onRetry={fetchFinalReport}
@@ -201,7 +205,7 @@ export default function B2Result() {
         sections.find((s) => s.section_type === skill)?.status === "completed",
     );
   return (
-    <B2Page title="Assessment results" back="/b2/test">
+    <B2Page title="Assessment results" back="/b2/test" onBack={handleBackToTest}>
       <div className="b2-content b2-results-content b2-with-primary">
         <div className="b2-feedback-hero">
           <B2MayaPortrait user={user} />

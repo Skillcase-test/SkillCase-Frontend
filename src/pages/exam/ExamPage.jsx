@@ -1308,7 +1308,7 @@ export default function ExamPage() {
             className="absolute inset-0 bg-black/30"
             onClick={() => setShowNavDrawer(false)}
           />
-          <div className="relative bg-white w-72 max-w-[80vw] h-full p-6 shadow-xl overflow-y-auto">
+          <div className="relative bg-white w-72 max-w-[80vw] h-full px-6 pb-6 pt-safe-6 shadow-xl overflow-y-auto">
             <h3 className="text-lg font-bold text-[#002856] mb-4">Pages</h3>
             <div className="space-y-3">
               {pages.map((page, pageIdx) => {

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
 import { useSelector } from "react-redux";
 import {
   ChevronLeft,
@@ -20,6 +21,7 @@ import { useQuestionPositionTelemetry } from "../../../telemetry/learning";
 export default function ExamListeningWorkspace() {
   const navigate = useNavigate();
   const { paperId } = useParams();
+  const goBack = useGoBack(`/b1/exams/papers/${paperId}/dashboard`);
   const { user } = useSelector((state) => state.auth);
 
   const [submission, setSubmission] = useState(null);
@@ -306,10 +308,10 @@ export default function ExamListeningWorkspace() {
   return (
     <div className="w-full max-w-md lg:max-w-none mx-auto min-h-screen bg-white flex flex-col justify-start items-center overflow-hidden relative">
       {/* Navigation and Title Bar */}
-      <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
+      <div className="self-stretch px-4 pt-safe-2.5 pb-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
         <div className="self-stretch inline-flex justify-between items-center">
           <button
-            onClick={() => navigate(`/b1/exams/papers/${paperId}/dashboard`)}
+            onClick={goBack}
             className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
           >
             <ChevronLeft className="w-4 h-4 text-slate-900" />

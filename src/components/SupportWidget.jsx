@@ -26,6 +26,10 @@ import { stableFile } from "../utils/stableFile";
 import toast from "react-hot-toast";
 import { trackFeatureEvent } from "../telemetry/events";
 import { isShellRoute } from "../utils/shellRoutes";
+import { useWaveTabs } from "../hooks/useWaveTabs";
+import { useBackHandler } from "../router/backButton";
+import { hapticLight } from "../utils/haptics";
+import WaveOutline from "./WaveOutline";
 
 const MAX_COMMENT_IMAGE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_COMMENT_IMAGE_TYPES = new Set([
@@ -437,6 +441,17 @@ export default function SupportWidget() {
     };
   }, [location.pathname]);
 
+  const tabWave = useWaveTabs(activeTab, isOpen ? "open" : "closed");
+
+  // Android back closes whatever is on top: lightbox / modals, then the drawer
+  useBackHandler(() => setIsOpen(false), isOpen);
+  useBackHandler(() => {
+    setUploadModalOpen(false);
+    setTempSelectedFile(null);
+  }, uploadModalOpen);
+  useBackHandler(() => setAttachmentPreviewModal(false), attachmentPreviewModal);
+  useBackHandler(() => setSelectedImage(null), Boolean(selectedImage));
+
   const isProfilePage = location.pathname === "/profile";
   const hideFloatingButton = isProfilePage || !showSupport;
   const isFormValid = Boolean(title.trim() && description.trim());
@@ -517,81 +532,37 @@ export default function SupportWidget() {
                 </h2>
               </div>
 
-              {/* Figma Tabs Row */}
-              <div className="px-4 pt-3 bg-white flex items-stretch gap-2 shrink-0 select-none relative z-20">
-                <button
-                  type="button"
+              {/* Tabs: same raised-tab wave as the home switcher, filled with the body colour */}
+              <div
+                ref={tabWave.shellRef}
+                className="px-4 pt-3 bg-white flex items-end gap-4 shrink-0 select-none relative z-20"
+              >
+                <WaveOutline
+                  wave={tabWave}
+                  fillClassName="fill-black/5"
+                  strokeClassName="stroke-black/5"
+                />
+                <SupportTab
+                  tabKey="new"
+                  active={activeTab === "new"}
+                  registerTab={tabWave.registerTab}
                   onClick={() => setActiveTab("new")}
-                  className={`flex-1 py-3 px-3 rounded-t-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer relative ${
-                    activeTab === "new"
-                      ? "bg-black/5 text-slate-900"
-                      : "bg-transparent text-slate-900 hover:bg-black/5"
-                  }`}
+                  icon={PlusCircle}
                 >
-                  {activeTab === "new" && (
-                    <>
-                      <span
-                        className="absolute -left-3 bottom-0 w-3 h-3 bg-black/5 pointer-events-none"
-                        style={{
-                          maskImage:
-                            "radial-gradient(circle at 0 0, transparent 12px, black 12px)",
-                          WebkitMaskImage:
-                            "radial-gradient(circle at 0 0, transparent 12px, black 12px)",
-                        }}
-                      />
-                      <span
-                        className="absolute -right-3 bottom-0 w-3 h-3 bg-black/5 pointer-events-none"
-                        style={{
-                          maskImage:
-                            "radial-gradient(circle at 100% 0, transparent 12px, black 12px)",
-                          WebkitMaskImage:
-                            "radial-gradient(circle at 100% 0, transparent 12px, black 12px)",
-                        }}
-                      />
-                    </>
-                  )}
-                  <PlusCircle className="w-5 h-5 text-black shrink-0 relative z-10" />
-                  <span className="relative z-10">New Ticket</span>
-                </button>
-                <button
-                  type="button"
+                  New Ticket
+                </SupportTab>
+                <SupportTab
+                  tabKey="history"
+                  active={activeTab === "history"}
+                  registerTab={tabWave.registerTab}
                   onClick={() => setActiveTab("history")}
-                  className={`flex-1 py-3 px-3 rounded-t-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer relative ${
-                    activeTab === "history"
-                      ? "bg-black/5 text-slate-900"
-                      : "bg-transparent text-slate-900 hover:bg-black/5"
-                  }`}
+                  icon={History}
                 >
-                  {activeTab === "history" && (
-                    <>
-                      <span
-                        className="absolute -left-3 bottom-0 w-3 h-3 bg-black/5 pointer-events-none"
-                        style={{
-                          maskImage:
-                            "radial-gradient(circle at 0 0, transparent 12px, black 12px)",
-                          WebkitMaskImage:
-                            "radial-gradient(circle at 0 0, transparent 12px, black 12px)",
-                        }}
-                      />
-                      <span
-                        className="absolute -right-3 bottom-0 w-3 h-3 bg-black/5 pointer-events-none"
-                        style={{
-                          maskImage:
-                            "radial-gradient(circle at 100% 0, transparent 12px, black 12px)",
-                          WebkitMaskImage:
-                            "radial-gradient(circle at 100% 0, transparent 12px, black 12px)",
-                        }}
-                      />
-                    </>
+                  Ticket History
+                  {totalUnreadComments > 0 && (
+                    <span className="w-2 h-2 bg-rose-500 rounded-full" />
                   )}
-                  <History className="w-5 h-5 text-black shrink-0 relative z-10" />
-                  <span className="relative z-10 flex items-center gap-1.5">
-                    Ticket History
-                    {totalUnreadComments > 0 && (
-                      <span className="w-2 h-2 bg-rose-500 rounded-full" />
-                    )}
-                  </span>
-                </button>
+                </SupportTab>
               </div>
 
               {/* Content Panel Body (bg-black/5) */}
@@ -1174,7 +1145,7 @@ export default function SupportWidget() {
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/90">
             <button
               onClick={() => setSelectedImage(null)}
-              className="absolute top-5 right-5 p-2 bg-slate-900/60 hover:bg-slate-950 text-white rounded-full transition-colors cursor-pointer"
+              className="absolute top-safe-5 right-5 p-2 bg-slate-900/60 hover:bg-slate-950 text-white rounded-full transition-colors cursor-pointer"
             >
               <X className="w-6 h-6" />
             </button>
@@ -1190,5 +1161,38 @@ export default function SupportWidget() {
         )}
       </AnimatePresence>
     </>
+  );
+}
+
+function SupportTab({ tabKey, active, registerTab, onClick, icon: Icon, children }) {
+  // Like the home switcher: the raised shape is drawn by the wave, the inactive
+  // tab is just a pill sitting slightly higher
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      ref={(el) => registerTab(tabKey, el)}
+      onClick={() => {
+        if (!active) hapticLight();
+        onClick();
+      }}
+      className="group relative flex-1 h-12 px-3 flex items-center justify-center gap-2 text-sm font-semibold text-slate-900 cursor-pointer"
+    >
+      <span
+        aria-hidden="true"
+        className={`absolute inset-x-0 top-0 bottom-2 rounded-lg bg-black/5 group-hover:bg-black/8 transition-opacity duration-200 ${
+          active ? "opacity-0" : "opacity-100"
+        }`}
+      />
+      <span
+        className={`relative z-10 flex items-center gap-2 transition-transform duration-300 ease-out ${
+          active ? "" : "-translate-y-1"
+        }`}
+      >
+        <Icon className="w-5 h-5 text-black shrink-0" />
+        <span className="flex items-center gap-1.5">{children}</span>
+      </span>
+    </button>
   );
 }

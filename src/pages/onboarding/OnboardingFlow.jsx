@@ -6,6 +6,7 @@ import { Capacitor, registerPlugin } from "@capacitor/core";
 import api from "../../api/axios";
 import { loginSuccess } from "../../redux/auth/authSlice";
 import { hapticLight } from "../../utils/haptics";
+import { useBackHandler } from "../../router/backButton";
 import { trackJourneyEvent } from "../../observability/journeyEvents";
 import { trackFlowAction, useFlowJourney } from "../../telemetry/flow";
 import { getPublicPathways } from "../../api/scholarshipExamApi";
@@ -354,6 +355,7 @@ const OnboardingFlow = () => {
       return next;
     });
   };
+  useBackHandler(handleBack, step > 2);
 
   // Hide global navbar only for step 1
   useEffect(() => {

@@ -6,6 +6,7 @@ import B2WorkspaceHeader from "../../../components/b2/B2WorkspaceHeader";
 import B2PassageAudio from "../../../components/b2/B2PassageAudio";
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
 import { useSelector } from "react-redux";
 import {
   Loader2,
@@ -18,6 +19,7 @@ import { useQuestionPositionTelemetry } from "../../../telemetry/learning";
 
 export default function ReadingWorkspace() {
   const navigate = useNavigate();
+  const goBack = useGoBack("/b2/reading");
   const { exerciseId } = useParams();
   const { user } = useSelector((state) => state.auth);
   const { isSpeaking, isLoadingAudio, speakText, cancelSpeech } =
@@ -177,14 +179,14 @@ export default function ReadingWorkspace() {
 
   if (loading)
     return (
-      <B2Page title="Reading" back="/b2/reading">
+      <B2Page title="Reading" back="/b2/reading" onBack={goBack}>
         <B2State loading />
       </B2Page>
     );
 
   if (fetchError || questions.length === 0)
     return (
-      <B2Page title="Reading" back="/b2/reading">
+      <B2Page title="Reading" back="/b2/reading" onBack={goBack}>
         <B2State
           title="Reading tasks couldn’t load"
           description="Your connection may have dropped. Try again when you’re ready."
@@ -402,7 +404,7 @@ export default function ReadingWorkspace() {
         index={currentBlockIndex}
         total={questions.length}
         draftStatus={draft.status}
-        onLeave={() => navigate("/b2/reading")}
+        onLeave={goBack}
       />
 
       <div className="flex-1 w-full overflow-y-auto">

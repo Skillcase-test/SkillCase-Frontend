@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { useBackHandler } from "../../router/backButton";
 import { Document, Page, pdfjs } from "react-pdf";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { termsApi } from "../../api/termsApi";
@@ -1507,9 +1508,12 @@ export default function TermsSignPage() {
   const isStep4Valid = () => true;
   const isStep5Valid = () => true;
 
+  useBackHandler(() => setWizardStep((prev) => Math.max(1, prev - 1)), wizardStep > 1 && wizardStep < 6);
+  useBackHandler(() => setShowSignatureModal(false), showSignatureModal);
+
   if (wizardStep > 0 && wizardStep < 6) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col justify-between py-6 px-4 sm:px-6 lg:px-8 antialiased text-slate-800">
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-between pt-safe-6 pb-6 px-4 sm:px-6 lg:px-8 antialiased text-slate-800">
         <div className="max-w-2xl w-full mx-auto bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden flex-grow flex flex-col justify-between">
           <div className="bg-slate-900 px-6 py-6 text-white">
             <div className="flex items-center justify-between mb-4">
@@ -2051,7 +2055,7 @@ export default function TermsSignPage() {
 
   if (error && !template) {
     return (
-      <div className="mx-auto max-w-3xl p-6">
+      <div className="mx-auto max-w-3xl px-6 pb-6 pt-safe-6">
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
           {error}
         </div>
@@ -2079,7 +2083,7 @@ export default function TermsSignPage() {
 
   if (justSubmitted) {
     return (
-      <div className="mx-auto max-w-2xl p-6">
+      <div className="mx-auto max-w-2xl px-6 pb-6 pt-safe-6">
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-center">
           <h2 className="text-xl font-bold text-emerald-900">
             Signature submitted successfully
@@ -2106,7 +2110,7 @@ export default function TermsSignPage() {
 
   if (alreadySigned) {
     return (
-      <div className="mx-auto max-w-2xl p-6">
+      <div className="mx-auto max-w-2xl px-6 pb-6 pt-safe-6">
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-center">
           <h2 className="text-xl font-bold text-emerald-900">
             Document already signed
@@ -2134,7 +2138,7 @@ export default function TermsSignPage() {
   // Mobile: Two-step flow
   if (isMobile) {
     return (
-      <div className="min-h-screen bg-white p-4">
+      <div className="min-h-screen bg-white px-4 pb-4 pt-safe-4">
         {mobileStep === "document" ? (
           !hasStarted ? (
             <div className="flex items-center justify-center min-h-[70vh]">
@@ -2291,7 +2295,7 @@ export default function TermsSignPage() {
 
   // Desktop: One-step flow
   return (
-    <div className="min-h-screen bg-white p-6">
+    <div className="min-h-screen bg-white px-6 pb-6 pt-safe-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-900">{template?.title}</h1>
         <p className="mt-2 text-slate-600">{template?.description}</p>

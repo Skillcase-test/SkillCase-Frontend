@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
+import { useBackHandler } from "../../../router/backButton";
 import {
   Loader2,
   CheckCircle,
@@ -26,6 +28,7 @@ export default function A1TestQuestions() {
   const { topicId, level } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const goBack = useGoBack(`/a1/test/${topicId}`);
   const analytics = useFirstPartyAnalytics();
 
   const isReviewMode = searchParams.get("mode") === "review";
@@ -41,6 +44,12 @@ export default function A1TestQuestions() {
   const [correctAnswers, setCorrectAnswers] = useState([]);
   const [questionsBySet, setQuestionsBySet] = useState([]);
   const [currentSet, setCurrentSet] = useState(1);
+  const reviewShown = isReviewMode && questions.length > 0;
+  const failedShown = !reviewShown && showFailedReview && !!result && !result.passed;
+  const resultShown = !reviewShown && !!result && !failedShown;
+  const backToLevels = () => navigate(`/a1/test/${topicId}`, { replace: true });
+  useBackHandler(backToLevels, resultShown);
+  useBackHandler(() => setShowFailedReview(false), failedShown);
   useLearningQuestionJourney({ level: "A1", module: "test", feature: "a1.test", topicId, question: questions[currentIndex], index: currentIndex, total: questions.length, loading });
 
   useEffect(() => {
@@ -312,7 +321,7 @@ export default function A1TestQuestions() {
           style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
         >
           <button
-            onClick={() => navigate(`/a1/test/${topicId}`)}
+            onClick={goBack}
             className="flex items-center gap-2 text-sm font-semibold"
           >
             <ChevronLeft className="w-4 h-4" /> Back
@@ -375,7 +384,7 @@ export default function A1TestQuestions() {
 
         <div className="p-4">
           <button
-            onClick={() => navigate(`/a1/test/${topicId}`)}
+            onClick={goBack}
             className="w-full py-3 bg-[#002856] text-white rounded-xl font-semibold"
           >
             Back to Levels
@@ -670,7 +679,7 @@ export default function A1TestQuestions() {
           <button
             onClick={() => {
               setShowFailedReview(false);
-              navigate(`/a1/test/${topicId}`);
+              backToLevels();
             }}
             className="w-full py-3 bg-[#002856] text-white rounded-xl font-semibold"
           >
@@ -727,7 +736,7 @@ export default function A1TestQuestions() {
                 </div>
               )}
               <button
-                onClick={() => navigate(`/a1/test/${topicId}`)}
+                onClick={backToLevels}
                 className="w-full py-3 bg-[#002856] text-white rounded-xl font-semibold"
               >
                 Back to Topic
@@ -766,7 +775,7 @@ export default function A1TestQuestions() {
             </button>
           )}
           <button
-            onClick={() => navigate(`/a1/test/${topicId}`)}
+            onClick={backToLevels}
             className="px-8 py-3 bg-[#002856] text-white rounded-xl font-semibold"
           >
             {passed ? "Continue" : "Try Again"}
@@ -787,7 +796,7 @@ export default function A1TestQuestions() {
         style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate(`/a1/test/${topicId}`)}
+          onClick={goBack}
           className="flex items-center gap-2"
         >
           <ChevronLeft className="w-4 h-4" /> Back

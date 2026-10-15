@@ -21,6 +21,8 @@ import StreakCelebrationModal from "../../../components/StreakCelebrationModal";
 import FloatingStreakCounter from "../../../components/FloatingStreakCounter";
 import UmlautKeyboard from "../../../components/a2/UmlautKeyboard";
 import { useUsageLimits } from "../../../hooks/useUsageLimits";
+import { useGoBack } from "../../../hooks/useGoBack";
+import { useBackHandler } from "../../../router/backButton";
 import FlashcardDeckSkeleton from "../../../components/common/FlashcardDeckSkeleton";
 
 import {
@@ -426,6 +428,7 @@ export default function A2Flashcard() {
   const { chapterId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/a2/flashcard");
   const { user } = useSelector((state) => state.auth);
   const analytics = useFirstPartyAnalytics();
   const { guardUsage } = useUsageLimits();
@@ -457,6 +460,10 @@ export default function A2Flashcard() {
   const [testResults, setTestResults] = useState(null);
   const [completedTests, setCompletedTests] = useState(new Set());
   const [isFinalTest, setIsFinalTest] = useState(false);
+  useBackHandler(() => {
+    setShowTest(false);
+    setShowTestPrompt(true);
+  }, showTest);
 
   // Tracks which questions are locked correct from previous retry rounds
   const [lockedCorrectSet, setLockedCorrectSet] = useState(new Set());
@@ -1113,7 +1120,7 @@ export default function A2Flashcard() {
         >
           <div className="flex items-center justify-between">
             <button
-              onClick={() => navigate("/a2/flashcard")}
+              onClick={goBack}
               className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -1685,7 +1692,7 @@ export default function A2Flashcard() {
       >
         <div className="flex items-center justify-between">
           <button
-            onClick={() => navigate("/a2/flashcard")}
+            onClick={goBack}
             className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
           >
             <ChevronLeft className="w-4 h-4" /> Back

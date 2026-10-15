@@ -3,6 +3,7 @@ import B2ResultSummary from "../../../components/b2/B2ResultSummary";
 import B2ReadingReviewHeader from "../../../components/b2/B2ReadingReviewHeader";
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useBackHandler } from "../../../router/backButton";
 import { useSelector } from "react-redux";
 import {
   ChevronLeft,
@@ -64,8 +65,21 @@ export default function ReadingResults() {
   }, [reviewBlockIndex, cancelSpeech]);
 
   const handleBackToDashboard = () => {
-    navigate(`/b2/reading`);
+    navigate(`/b2/reading`, { replace: true });
   };
+
+  const handleBack = () => {
+    if (reviewMode) {
+      if (reviewBlockIndex !== null) {
+        setReviewBlockIndex(null);
+      } else {
+        setReviewMode(false);
+      }
+    } else {
+      handleBackToDashboard();
+    }
+  };
+  useBackHandler(handleBack);
 
   const handleStartNextSection = () => {
     handleBackToDashboard();
@@ -81,14 +95,14 @@ export default function ReadingResults() {
 
   if (loading)
     return (
-      <B2Page title="Reading" back="/b2/reading">
+      <B2Page title="Reading" back="/b2/reading" onBack={handleBackToDashboard}>
         <B2State loading />
       </B2Page>
     );
 
   if (fetchError || !sectionData)
     return (
-      <B2Page title="Reading" back="/b2/reading">
+      <B2Page title="Reading" back="/b2/reading" onBack={handleBackToDashboard}>
         <B2State
           title="Reading feedback couldn’t load"
           description="Your connection may have dropped. Try again when you’re ready."
@@ -224,17 +238,7 @@ export default function ReadingResults() {
       <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
         <div className="self-stretch inline-flex justify-between items-center">
           <button
-            onClick={() => {
-              if (reviewMode) {
-                if (reviewBlockIndex !== null) {
-                  setReviewBlockIndex(null);
-                } else {
-                  setReviewMode(false);
-                }
-              } else {
-                handleBackToDashboard();
-              }
-            }}
+            onClick={handleBack}
             className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
           >
             <ChevronLeft className="w-4 h-4 text-slate-900" />

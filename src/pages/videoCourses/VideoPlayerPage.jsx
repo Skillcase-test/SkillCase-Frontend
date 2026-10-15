@@ -33,6 +33,8 @@ import { isVideoClassesTourComplete } from "./videoClassesTourStorage";
 import { trackLearningEvent } from "../../telemetry/events";
 
 import { useUsageLimitGate } from "../../hooks/useUsageLimits";
+import { useBackHandler } from "../../router/backButton";
+import { useGoBack } from "../../hooks/useGoBack";
 
 const formatTime = (secs) => {
   const s = Math.floor(Number(secs) || 0);
@@ -849,6 +851,11 @@ export default function VideoPlayerPage() {
       ? Math.round((totalCourseSeconds / 3600) * 10) / 10
       : null;
 
+  const goBack = useGoBack(`/video-courses/${video?.course_id || ""}`);
+  useBackHandler(() => setSettingsOpen(false), settingsOpen);
+  useBackHandler(() => setSettingsSubmenu(null), settingsSubmenu !== null);
+  useBackHandler(() => setChatOpen(false), chatOpen);
+
   if (loading) {
     return (
       <div className="w-full max-w-md mx-auto min-h-screen bg-white shadow-sm flex flex-col">
@@ -887,7 +894,7 @@ export default function VideoPlayerPage() {
         style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate(`/video-courses/${video.course_id || ""}`)}
+          onClick={goBack}
           className="px-0.5 flex items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
         >
           <ChevronLeft className="w-4 h-4 text-slate-900" />

@@ -1,6 +1,7 @@
 import { memo, useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
 import {
   ChevronLeft,
   Play,
@@ -439,6 +440,7 @@ const AUDIO_QUESTION_TYPES = new Set(["audio_mcq"]);
 export default function A1ListeningContent() {
   const { chapterId } = useParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/a1/listening");
   const analytics = useFirstPartyAnalytics();
   useUsageLimitGate("A1", "listening");
 
@@ -738,7 +740,7 @@ export default function A1ListeningContent() {
           No listening content available for this chapter yet.
         </p>
         <button
-          onClick={() => navigate("/a1/listening")}
+          onClick={goBack}
           className="mt-4 px-6 py-2 bg-[#002856] text-white rounded-lg"
         >
           Go Back
@@ -758,7 +760,7 @@ export default function A1ListeningContent() {
         style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate("/a1/listening")}
+          onClick={goBack}
           className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
         >
           <ChevronLeft className="w-4 h-4" />

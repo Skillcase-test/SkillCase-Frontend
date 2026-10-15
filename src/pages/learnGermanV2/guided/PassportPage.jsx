@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight, Globe2, LockKeyhole, Stamp, X } from "lucide-react";
 import { GuidedHeader, FocusTitle, PassportStamp, SkillcaseLogo } from "./PassportUI";
 import { challengeFromTopic, readPassportDates, formatStampDate, nextJourneyChallenge } from "./journeyModel";
+import { useBackHandler } from "../../../router/backButton";
 
 const PER_PAGE = 4;
 
@@ -51,6 +52,9 @@ export default function PassportPage({ topics, done, userName, userId, earnedId 
   const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   const openBook = () => { setOpen(true); window.setTimeout(() => collectionTitle.current?.focus({ preventScroll: true }), reduced ? 0 : 650); };
   const closeBook = () => { setOpen(false); window.setTimeout(() => coverRef.current?.focus({ preventScroll: true }), 0); };
+  useBackHandler(onBack, !!onBack);
+  useBackHandler(closeBook, open);
+  useBackHandler(() => setSelectedStamp(null), !!selectedStamp);
 
   return (
     <main className="gp-ui gp-page gp-passport-page" id="gp-passport">

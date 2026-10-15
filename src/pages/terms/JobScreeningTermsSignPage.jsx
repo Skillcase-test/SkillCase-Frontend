@@ -4,6 +4,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { ChevronLeft, RefreshCw } from "lucide-react";
 import { termsApi } from "../../api/termsApi";
 import { checkAgreement } from "../../api/jobScreeningApi";
+import { useBackHandler } from "../../router/backButton";
 import mayaShocked from "../../assets/onboarding/mayaShocked.webp";
 import "./JobScreeningTermsSignPage.css";
 
@@ -1085,6 +1086,17 @@ export default function JobScreeningTermsSignPage() {
     }
   }, [activeFieldId]);
 
+  const goBackFromSign = () => {
+    if (showSignatureModal) setShowSignatureModal(false);
+    else if (justSubmitted || alreadySigned)
+      navigate("/job-screening", {
+        state: { justCompletedStepId: "registration_form" },
+      });
+    else if (!hasStarted) navigate("/job-screening");
+    else setHasStarted(false);
+  };
+  useBackHandler(goBackFromSign, !loading && Boolean(template));
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
@@ -1100,7 +1112,7 @@ export default function JobScreeningTermsSignPage() {
 
   if (error && !template) {
     return (
-      <div className="mx-auto max-w-md p-6">
+      <div className="mx-auto max-w-md px-6 pb-6 pt-safe-6">
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 text-center font-medium">
           {error}
         </div>
@@ -1113,14 +1125,10 @@ export default function JobScreeningTermsSignPage() {
     return (
       <div className="w-full bg-white flex flex-col justify-start items-center overflow-hidden min-h-screen px-4 pb-10">
         {/* Back & Job Progress Subheader */}
-        <div className="w-full max-w-md py-2.5 flex flex-col justify-start items-start gap-2.5">
+        <div className="w-full max-w-md pt-safe-2.5 pb-2.5 flex flex-col justify-start items-start gap-2.5">
           <div className="self-stretch inline-flex justify-between items-center">
             <div
-              onClick={() =>
-                navigate("/job-screening", {
-                  state: { justCompletedStepId: "registration_form" },
-                })
-              }
+              onClick={goBackFromSign}
               className="flex justify-start items-center gap-1 cursor-pointer"
             >
               <ChevronLeft className="w-5 h-5 text-slate-800" />
@@ -1212,10 +1220,10 @@ export default function JobScreeningTermsSignPage() {
     return (
       <div className="w-full bg-white flex flex-col justify-start items-center overflow-hidden min-h-screen px-4 pb-10">
         {/* Back & Job Progress Subheader */}
-        <div className="w-full max-w-md py-2.5 flex flex-col justify-start items-start gap-2.5">
+        <div className="w-full max-w-md pt-safe-2.5 pb-2.5 flex flex-col justify-start items-start gap-2.5">
           <div className="self-stretch inline-flex justify-between items-center">
             <div
-              onClick={() => navigate("/job-screening")}
+              onClick={goBackFromSign}
               className="flex justify-start items-center gap-1 cursor-pointer"
             >
               <ChevronLeft className="w-5 h-5 text-slate-800" />
@@ -1311,12 +1319,12 @@ export default function JobScreeningTermsSignPage() {
 
   // View 2: Interactive Document Sign Page (Second Page)
   return (
-    <div className="w-full bg-white min-h-screen px-4 pt-3 pb-28 flex flex-col items-center overflow-x-hidden">
+    <div className="w-full bg-white min-h-screen px-4 pt-safe-3 pb-28 flex flex-col items-center overflow-x-hidden">
       <div className="w-full max-w-4xl flex flex-col" ref={viewerRef}>
         {/* Back and Breadcrumb Header */}
         <div className="w-full flex justify-between items-center mb-4">
           <div
-            onClick={() => setHasStarted(false)}
+            onClick={goBackFromSign}
             className="flex justify-start items-center gap-1 cursor-pointer"
           >
             <ChevronLeft className="w-5 h-5 text-slate-800" />

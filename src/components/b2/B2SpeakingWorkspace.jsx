@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useGoBack } from "../../hooks/useGoBack";
 import { useSelector } from "react-redux";
 import { Volume2, VolumeX, Loader2, ArrowRight, AlertCircle } from "lucide-react";
 import { B2Page, B2State, B2Button } from "./B2UI";
@@ -44,6 +45,8 @@ export default function B2SpeakingWorkspace({ assessment = false, resourceId }) 
   const expired = assessment && timeLeft === 0;
   const last = index === questions.length - 1;
   const back = assessment ? "/b2/test" : "/b2/speaking";
+  const goBack = useGoBack(back);
+  const leave = assessment ? () => navigate(back) : goBack;
   const results = assessment ? `/b2/exams/papers/${resourceId}/speaking/results` : `/b2/speaking/${resourceId}/results`;
   const timerKey = `b2_exam_timer_${userId || "guest"}_${resourceId}_speaking`;
 
@@ -170,13 +173,13 @@ export default function B2SpeakingWorkspace({ assessment = false, resourceId }) 
     }
   };
 
-  if (loading) return <B2Page title="Speaking" back={back}><B2State loading /></B2Page>;
-  if (fetchError || !questions.length) return <B2Page title="Speaking" back={back}><B2State title="Speaking tasks couldn’t load" description="Try again when you’re ready." onRetry={fetchContent} /></B2Page>;
+  if (loading) return <B2Page title="Speaking" back={back} onBack={leave}><B2State loading /></B2Page>;
+  if (fetchError || !questions.length) return <B2Page title="Speaking" back={back} onBack={leave}><B2State title="Speaking tasks couldn’t load" description="Try again when you’re ready." onRetry={fetchContent} /></B2Page>;
 
   return (
     <main className="b2-ui b2-workspace b2-speaking-workspace">
       <B2WorkspaceHeader compact skill="speaking" assessment={assessment} index={index} total={questions.length}
-        timeLeft={timeLeft} recording={capturing || recorder.hasUnsaved} onLeave={() => navigate(back)} />
+        timeLeft={timeLeft} recording={capturing || recorder.hasUnsaved} onLeave={leave} />
       <div className="b2-speaking-body">
         <div className="b2-speaking-title">
           <h2>{block.block_title || "Your speaking task"}</h2>

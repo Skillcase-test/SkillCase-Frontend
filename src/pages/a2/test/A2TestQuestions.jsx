@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
+import { useBackHandler } from "../../../router/backButton";
 import {
   Loader2,
   CheckCircle,
@@ -26,6 +28,7 @@ export default function A2TestQuestions() {
   const { topicId, level } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const goBack = useGoBack(`/a2/test/${topicId}`);
   const analytics = useFirstPartyAnalytics();
 
   const isReviewMode = searchParams.get("mode") === "review";
@@ -41,6 +44,10 @@ export default function A2TestQuestions() {
   const [correctAnswers, setCorrectAnswers] = useState([]);
   const [questionsBySet, setQuestionsBySet] = useState([]);
   const [currentSet, setCurrentSet] = useState(1);
+  useBackHandler(
+    () => setShowFailedReview(false),
+    showFailedReview && !!result && !result.passed,
+  );
   useLearningQuestionJourney({ level: "A2", module: "test", feature: "a2.test", topicId, question: questions[currentIndex], index: currentIndex, total: questions.length, loading });
 
   useEffect(() => {
@@ -300,7 +307,7 @@ export default function A2TestQuestions() {
           style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
         >
           <button
-            onClick={() => navigate(`/a2/test/${topicId}`)}
+            onClick={goBack}
             className="flex items-center gap-2 text-sm font-semibold"
           >
             <ChevronLeft className="w-4 h-4" /> Back
@@ -771,7 +778,7 @@ export default function A2TestQuestions() {
         style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate(`/a2/test/${topicId}`)}
+          onClick={goBack}
           className="flex items-center gap-2"
         >
           <ChevronLeft className="w-4 h-4" /> Back

@@ -122,7 +122,7 @@ export default function TrialOfferPage() {
 
   return (
     <div className="min-h-screen w-full bg-[#002856] flex flex-col items-center overflow-hidden select-none">
-      <div className="w-full max-w-md px-4 pt-10 pb-8 flex flex-col items-center gap-10">
+      <div className="w-full max-w-md px-4 pt-safe-10 pb-8 flex flex-col items-center gap-10">
         {started ? (
           <>
             <div className="self-stretch flex flex-col items-center gap-9">

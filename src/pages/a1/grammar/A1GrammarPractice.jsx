@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
 import {
   ChevronLeft,
   ArrowRight,
@@ -30,6 +31,7 @@ export default function A1GrammarPractice() {
   const { topicId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/a1/grammar");
   const analytics = useFirstPartyAnalytics();
   useUsageLimitGate("A1", "grammar");
 
@@ -250,7 +252,7 @@ export default function A1GrammarPractice() {
           style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
         >
           <button
-            onClick={() => navigate("/a1/grammar")}
+            onClick={goBack}
             className="flex items-center gap-2 text-sm font-semibold"
           >
             <ChevronLeft className="w-4 h-4" /> Back
@@ -280,7 +282,7 @@ export default function A1GrammarPractice() {
               Practice Again
             </button>
             <button
-              onClick={() => navigate("/a1/grammar")}
+              onClick={goBack}
               className="w-full py-3 text-gray-600 font-medium"
             >
               Back to Topics
@@ -300,7 +302,7 @@ export default function A1GrammarPractice() {
           style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
         >
           <button
-            onClick={() => navigate("/a1/grammar")}
+            onClick={goBack}
             className="flex items-center gap-2"
           >
             <ChevronLeft className="w-4 h-4" /> Back
@@ -514,9 +516,9 @@ export default function A1GrammarPractice() {
   if (showExplanation && topic?.explanation) {
     return (
       <div className="min-h-screen bg-white flex flex-col relative">
-        <div className="px-4 py-3 flex items-center justify-between border-b border-[#E5E7EB]">
+        <div className="px-4 pb-3 pt-safe-3 flex items-center justify-between border-b border-[#E5E7EB]">
           <button
-            onClick={() => navigate("/a1/grammar")}
+            onClick={goBack}
             className="flex items-center gap-2 text-sm font-semibold"
           >
             <ChevronLeft className="w-4 h-4" /> Back
@@ -573,7 +575,7 @@ export default function A1GrammarPractice() {
         style={{ paddingTop: "calc(0.75rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate("/a1/grammar")}
+          onClick={goBack}
           className="flex items-center gap-2 text-sm font-semibold text-[#181d27]"
         >
           <ChevronLeft className="w-4 h-4" />

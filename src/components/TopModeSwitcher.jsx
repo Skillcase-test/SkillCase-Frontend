@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { getLGMode, setLGMode } from "../api/learnGermanApi";
@@ -15,67 +15,14 @@ import { useFeatureFlags } from "../hooks/useFeatureFlags";
 import { canAnimateRoutes, runHubSwitch, setNavMotion } from "../router/navigation";
 import bookImg from "../assets/book.webp";
 import { getMayaImage } from "../utils/mayaAvatars";
+import { useWaveTabs } from "../hooks/useWaveTabs";
+import WaveOutline from "./WaveOutline";
 import classImg from "../assets/class.webp";
 import bagImg from "../assets/bag.webp";
 
 const isLearnPath = (pathname = "") => pathname.startsWith("/learn-german");
 const isCoursesPath = (pathname = "") => pathname === "/video-courses";
 const RECENT_MODE_SWITCH_MS = 10_000;
-
-// Seamless outline geometry. The shoulder is the concave fillet where the
-// horizontal rail turns up into the active tab. The tablist gap must stay
-// >= SHOULDER_W or the shoulder paints over the neighbouring tab.
-const SHOULDER_W = 16;
-const SHOULDER_H = 21;
-const CORNER = 12;
-
-// Tab-switch wave: the old tab sinks while the new one rises a beat later
-// and settles with a slight overshoot.
-const WAVE_SINK_MS = 220;
-const WAVE_RISE_DELAY_MS = 70;
-const WAVE_RISE_MS = 260;
-const clamp01 = (v) => Math.min(Math.max(v, 0), 1);
-const easeInOut = (p) => (p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2);
-const easeOutSettle = (p) => 1 + 2.1 * (p - 1) ** 3 + 1.1 * (p - 1) ** 2; // ~3px overshoot
-const prefersReducedMotion = () =>
-  window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-
-/**
- * One continuous open path along the rail that bulges up around every tab
- * with lift k > 0 (k = 1 is a fully raised tab, 0 is flat). Closing it (Z)
- * fills the bumps with the page colour so the active tab melts into the screen
- * below; the open form is what gets stroked. Two bumps share the gap between
- * them mid-wave instead of overlapping.
- */
-function wavePath({ width, top, base, bumps }) {
-  const height = base - top;
-  const lifted = bumps.filter((b) => b.k > 0.001);
-  const cmds = [`M 0,${base}`];
-  lifted.forEach((b, i) => {
-    const prev = lifted[i - 1];
-    const next = lifted[i + 1];
-    const k = b.k;
-    const grow = Math.min(k, 1);
-    const swL = Math.min(SHOULDER_W * grow, prev ? (b.left - prev.right) / 2 : SHOULDER_W);
-    const swR = Math.min(SHOULDER_W * grow, next ? (next.left - b.right) / 2 : SHOULDER_W);
-    const tabTop = base - height * k;
-    const shoulderTop = base - SHOULDER_H * k;
-    const c = CORNER * k;
-    const bend = 7 * k;
-    cmds.push(
-      `H ${b.left - swL}`,
-      `C ${b.left - Math.min(6 * grow, swL)},${base} ${b.left},${base - bend} ${b.left},${shoulderTop}`,
-      `V ${tabTop + c}`,
-      `Q ${b.left},${tabTop} ${b.left + c},${tabTop}`,
-      `H ${b.right - c}`,
-      `Q ${b.right},${tabTop} ${b.right},${tabTop + c}`,
-      `V ${shoulderTop}`,
-      `C ${b.right},${base - bend} ${b.right + Math.min(6 * grow, swR)},${base} ${b.right + swR},${base}`,
-    );
-  });
-  cmds.push(`H ${width}`);
-  return cmds.join(" ");
-}
 
 /**
  * Top mode switcher — the redesigned replacement for BottomModeSwitcher.
@@ -312,139 +259,25 @@ export default function TopModeSwitcher({ isTourActive = false }) {
     }
   };
 
-  // Tabs never change size (only the drawn outline moves), so geometry is
-  // measured per layout, not per frame — re-measuring a growing tab every
-  // frame is what made the old notch jitter and detach from the page.
-  const shellRef = useRef(null);
-  const tabEls = useRef({});
-  const geoRef = useRef(null);
-  const [geo, setGeo] = useState(null);
-  const fillRef = useRef(null);
-  const strokeRef = useRef(null);
-  const liftsRef = useRef({});
-  const frameRef = useRef(0);
   const visualActive = isScholarship ? "scholarship" : activeTab;
-
-  const registerTab = useCallback((key, el) => {
-    if (el) tabEls.current[key] = el;
-    else delete tabEls.current[key];
-  }, []);
-
-  const draw = useCallback(() => {
-    const g = geoRef.current;
-    if (!g || !fillRef.current || !strokeRef.current) return;
-    const bumps = g.tabs.map((t) => ({ ...t, k: liftsRef.current[t.key] ?? 0 }));
-    const d = wavePath({ width: g.width, top: g.top, base: g.base, bumps });
-    fillRef.current.setAttribute("d", `${d} Z`);
-    strokeRef.current.setAttribute("d", d);
-  }, []);
-
-  useLayoutEffect(() => {
-    const measure = () => {
-      const shell = shellRef.current;
-      if (!shell) return;
-      const s = shell.getBoundingClientRect();
-      if (!s.width) return;
-      const tabs = Object.entries(tabEls.current)
-        .filter(([, el]) => el?.isConnected)
-        .map(([key, el]) => {
-          const r = el.getBoundingClientRect();
-          return {
-            key,
-            left: r.left - s.left,
-            right: r.right - s.left,
-            top: r.top - s.top,
-            base: r.bottom - s.top,
-          };
-        })
-        .sort((a, b) => a.left - b.left);
-      if (!tabs.length) return;
-      geoRef.current = {
-        width: s.width,
-        height: s.height,
-        top: tabs[0].top,
-        base: tabs[0].base,
-        tabs,
-      };
-      setGeo(geoRef.current);
-    };
-
-    measure();
-    const observer = new ResizeObserver(measure);
-    if (shellRef.current) observer.observe(shellRef.current);
-    return () => observer.disconnect();
-  }, [isB1, isScholarship, showGermanClasses]);
-
-  useLayoutEffect(draw, [geo, draw]);
-
-  useLayoutEffect(() => {
-    const from = liftsRef.current;
-    if (!Object.keys(from).length || prefersReducedMotion()) {
-      liftsRef.current = { [visualActive]: 1 };
-      draw();
-      return undefined;
-    }
-
-    const keys = new Set([...Object.keys(from), visualActive]);
-    // Re-tapped mid-wave: a tab that's already partly up rises straight away
-    const riseDelay = (from[visualActive] ?? 0) > 0.05 ? 0 : WAVE_RISE_DELAY_MS;
-    const start = performance.now();
-    const step = (now) => {
-      const t = now - start;
-      let running = false;
-      const next = {};
-      keys.forEach((key) => {
-        const k0 = from[key] ?? 0;
-        if (key === visualActive) {
-          const p = clamp01((t - riseDelay) / WAVE_RISE_MS);
-          next[key] = k0 + (1 - k0) * easeOutSettle(p);
-          running ||= p < 1;
-        } else {
-          const p = clamp01(t / WAVE_SINK_MS);
-          next[key] = k0 * (1 - easeInOut(p));
-          running ||= p < 1;
-        }
-      });
-      liftsRef.current = next;
-      draw();
-      if (running) frameRef.current = requestAnimationFrame(step);
-    };
-    frameRef.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frameRef.current);
-  }, [visualActive, draw]);
+  const wave = useWaveTabs(visualActive, `${isB1}|${isScholarship}|${showGermanClasses}`);
+  const { registerTab } = wave;
 
   return (
     <div
       id="bottom-mode-switcher"
-      ref={shellRef}
+      ref={wave.shellRef}
       className={`relative w-full pt-1 pb-0 vt-app-switcher ${
         isPremium ? "bg-premium-band bg-premium-band-below" : "bg-[#002856]"
       } ${tourActive ? "pointer-events-none" : ""}`}
     >
       {isPremium && <span aria-hidden="true" className="premium-veil premium-veil-late" />}
-      {geo && (
-        <svg
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full overflow-visible pointer-events-none"
-          viewBox={`0 0 ${geo.width} ${geo.height}`}
-          preserveAspectRatio="none"
-        >
-          {/* d is written per frame by draw() */}
-          <path
-            ref={fillRef}
-            fill={blendColor}
-            style={{ transition: "fill 240ms ease-out" }}
-            shapeRendering="geometricPrecision"
-          />
-          <path
-            ref={strokeRef}
-            fill="none"
-            stroke="rgba(255,255,255,0.2)"
-            strokeWidth="1"
-            shapeRendering="geometricPrecision"
-          />
-        </svg>
-      )}
+      <WaveOutline
+        wave={wave}
+        fill={blendColor}
+        fillStyle={{ transition: "fill 240ms ease-out" }}
+        stroke="rgba(255,255,255,0.2)"
+      />
 
       <div className="relative w-full max-w-7xl mx-auto px-2 sm:px-2">
         <div

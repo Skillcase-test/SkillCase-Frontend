@@ -9,6 +9,21 @@
   --color-premium-gold: #a28c58;
 }
 
+/* Status bar spacing for screens that draw their own header (no app navbar).
+   pt-safe-3 = the usual 0.75rem plus the inset; top-safe-* for fixed/sticky offsets */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+@utility pt-safe-* {
+  padding-top: calc(--spacing(--value(number)) + env(safe-area-inset-top, 0px));
+}
+@utility top-safe {
+  top: env(safe-area-inset-top, 0px);
+}
+@utility top-safe-* {
+  top: calc(--spacing(--value(number)) + env(safe-area-inset-top, 0px));
+}
+
 /* Premium chrome: one black → navy diagonal shared by the header and the mode switcher under it,
    so it runs top-left to bottom-right across both without a seam */
 @utility bg-premium-band {

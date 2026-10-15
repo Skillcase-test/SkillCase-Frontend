@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { getNote } from "../../api/notesApi";
 import PdfViewer from "./components/PdfViewer";
+import { useGoBack } from "../../hooks/useGoBack";
 
 export default function NotePreviewPage() {
   const { noteId } = useParams();
-  const navigate = useNavigate();
+  const goBack = useGoBack("/notes");
 
   const [note, setNote] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -56,7 +57,7 @@ export default function NotePreviewPage() {
         style={{ paddingTop: "calc(0.625rem + env(safe-area-inset-top, 0px))" }}
       >
         <button
-          onClick={() => navigate("/notes")}
+          onClick={goBack}
           className="px-0.5 flex items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
         >
           <ChevronLeft className="w-4 h-4 text-slate-900" />

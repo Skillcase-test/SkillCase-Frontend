@@ -10,6 +10,7 @@ import { useUsageLimitModule } from "../../hooks/useUsageLimits";
 import { suggestedTopics } from "./topicSuggestions";
 import { useMaya } from "./mayaLevel";
 import { plainQuotes } from "./mayaFormat";
+import { useBackHandler } from "../../router/backButton";
 import { BottomNav, Brand, Footer, Header, Icon, Main, MayaFrame, MayaLive, MayaMark, Title } from "./sp";
 
 /*
@@ -465,6 +466,10 @@ export default function MayaRoom({ meta, focus }) {
     if (access("maya")) void start();
     else backToStart();
   });
+
+  useBackHandler(cancel, screen === "connecting");
+  useBackHandler(backToStart, screen === "failed" || screen === "mic-blocked");
+  useBackHandler(() => setScreen("choose"), screen === "topics");
 
   if (screen === "connecting")
     return (

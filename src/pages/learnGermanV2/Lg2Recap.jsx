@@ -4,6 +4,7 @@ import { getLg2Art, getLg2Curriculum } from "../../api/learnGermanV2Api";
 import { loadArtManifest, moduleScene } from "./lib/vocabArt";
 import { speak, stopPlayback } from "./lib/audio";
 import Img from "./components/Img";
+import { useGoBack } from "../../hooks/useGoBack";
 
 /* What a finished topic gives you back: every word it taught, in the order it
  * taught them, each one speakable on tap, and a way back in. Not a score
@@ -12,6 +13,7 @@ import Img from "./components/Img";
 export default function Lg2Recap() {
   const { topicId } = useParams();
   const navigate = useNavigate();
+  const goBack = useGoBack("/learn-german");
   const [topic, setTopic] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -110,7 +112,7 @@ export default function Lg2Recap() {
         <button
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-slate-500 ring-1 ring-slate-200"
           aria-label="Back"
-          onClick={() => navigate("/learn-german")}
+          onClick={goBack}
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M15 6l-6 6 6 6" />

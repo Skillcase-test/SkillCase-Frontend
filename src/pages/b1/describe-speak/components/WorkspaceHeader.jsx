@@ -2,7 +2,7 @@ import { ChevronLeft } from "lucide-react";
 
 export default function WorkspaceHeader({ onBack }) {
   return (
-    <div className="self-stretch px-4 py-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
+    <div className="self-stretch px-4 pt-safe-2.5 pb-2.5 flex flex-col justify-start items-start gap-2.5 shrink-0 bg-white">
       <div className="self-stretch inline-flex justify-between items-center">
         <button
           onClick={onBack}

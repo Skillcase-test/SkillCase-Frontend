@@ -6,6 +6,7 @@ import { getMayaImage } from "../../utils/mayaAvatars";
 import api from "../../api/axios";
 import { setB2ExamGateSeen } from "../../redux/auth/authSlice";
 import useB2Access from "../../hooks/useB2Access";
+import { useBackHandler } from "../../router/backButton";
 import { B2Button, B2SkillStrip } from "./B2UI";
 import SkillcaseLogo from "../SkillcaseLogo";
 export default function B2ExamGate({ overview }) {
@@ -27,6 +28,7 @@ export default function B2ExamGate({ overview }) {
     dispatch(setB2ExamGateSeen());
     api.post("/user/complete-b2-exam-gate").catch(() => {});
   };
+  useBackHandler(markSeen);
   const start = () => {
     markSeen();
     if (!overview?.nextPaper) {

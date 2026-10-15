@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import api from "../api/axios";
+import { useGoBack } from "../hooks/useGoBack";
 // Import extracted components
 import StepIndicator from "../components/resume/StepIndicator";
 import PersonalInfoForm from "../components/resume/forms/PersonalInfoForm";
@@ -40,6 +41,7 @@ export default function ManualResumeBuilder() {
   const { user } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   const location = useLocation();
+  const goBack = useGoBack("/resume");
 
   const [editStep, setEditStep] = useState(1);
   const [resumeData, setResumeData] = useState(EMPTY_RESUME);
@@ -108,10 +110,10 @@ export default function ManualResumeBuilder() {
   };
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      <div className="bg-white shadow-sm border-b sticky top-0 z-10">
+      <div className="bg-white shadow-sm border-b sticky top-0 z-10 pt-safe">
         <div className="max-w-4xl mx-auto py-6 px-4">
           <button
-            onClick={() => navigate("/resume")}
+            onClick={goBack}
             className="flex items-center text-slate-600 hover:text-slate-900 mb-4 cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5 mr-2" />

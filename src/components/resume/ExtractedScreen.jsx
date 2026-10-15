@@ -1,7 +1,7 @@
 import { CheckCircle } from "lucide-react";
 export default function ExtractedScreen({ resumeData, onEdit, onPreview }) {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white pt-safe-12 pb-12 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">

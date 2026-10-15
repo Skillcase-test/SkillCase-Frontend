@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useGoBack } from "../../../hooks/useGoBack";
 import { useSelector } from "react-redux";
 import { ChevronLeft, Loader2, AlertCircle, Clock, Camera } from "lucide-react";
 import ExerciseLayoutSkeleton from "../../../components/common/ExerciseLayoutSkeleton";
@@ -17,6 +18,7 @@ import { useQuestionPositionTelemetry } from "../../../telemetry/learning";
 export default function ExamWritingWorkspace() {
   const navigate = useNavigate();
   const { paperId } = useParams();
+  const goBack = useGoBack(`/b1/exams/papers/${paperId}/dashboard`);
   const { user } = useSelector((state) => state.auth);
 
   const [submission, setSubmission] = useState(null);
@@ -296,7 +298,7 @@ export default function ExamWritingWorkspace() {
       >
         <div className="self-stretch inline-flex justify-between items-center">
           <button
-            onClick={() => navigate(`/b1/exams/papers/${paperId}/dashboard`)}
+            onClick={goBack}
             className="px-0.5 flex justify-center items-center gap-2 cursor-pointer bg-transparent border-0 outline-none"
           >
             <ChevronLeft className="w-4 h-4 text-slate-900" />

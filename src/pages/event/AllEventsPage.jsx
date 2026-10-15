@@ -15,6 +15,7 @@ import {
   EventCardSkeleton,
   CalendarSkeleton,
 } from "./components/EventSkeleton";
+import { useBackHandler } from "../../router/backButton";
 
 export default function AllEventsPage() {
   const [events, setEvents] = useState([]);
@@ -156,9 +157,19 @@ export default function AllEventsPage() {
     setShowQuickView(false);
     setShowRegister(true);
   };
+
+  useBackHandler(
+    () => {
+      if (showRegister) setShowRegister(false);
+      else if (showSubscribe) setShowSubscribe(false);
+      else setShowQuickView(false);
+    },
+    showQuickView || showSubscribe || showRegister,
+  );
+
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-6 min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 pt-safe-6 pb-6 min-h-screen">
         {/* Header Skeleton */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between pt-6 pb-8 animate-pulse">
           <div className="space-y-2">
@@ -190,13 +201,13 @@ export default function AllEventsPage() {
   }
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center text-xl text-red-600">
+      <div className="max-w-7xl mx-auto px-4 pt-safe-20 pb-20 text-center text-xl text-red-600">
         {error}
       </div>
     );
   }
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 min-h-screen">
+    <div className="max-w-7xl mx-auto px-4 pt-safe-6 pb-6 min-h-screen">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between pt-6 pb-8">
         <div key={activeTab} className="animate-fade">

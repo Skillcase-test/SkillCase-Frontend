@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Volume2, Maximize2, ZoomIn, ZoomOut } from "lucide-react";
 import UmlautKeyboard from "../../../../components/b1/UmlautKeyboard";
+import { useBackHandler } from "../../../../router/backButton";
 
 export default function WritingStage({
   topic,
@@ -148,6 +149,11 @@ export default function WritingStage({
       input.setSelectionRange(start + char.length, start + char.length);
     });
   };
+
+  useBackHandler(() => {
+    setIsPreviewOpen(false);
+    setZoomLevel(1);
+  }, isPreviewOpen);
 
   return (
     <div className="w-full">
@@ -309,7 +315,7 @@ export default function WritingStage({
               setIsPreviewOpen(false);
               setZoomLevel(1);
             }}
-            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border-0 outline-none cursor-pointer text-xl font-bold transition duration-200 z-[5020]"
+            className="absolute top-safe-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center border-0 outline-none cursor-pointer text-xl font-bold transition duration-200 z-[5020]"
           >
             ✕
           </button>
