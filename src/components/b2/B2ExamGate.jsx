@@ -70,7 +70,7 @@ export default function B2ExamGate({ overview }) {
                 Prepare for test <ArrowRight size={18} />
               </B2Button>
               <B2Button variant="quiet" onClick={markSeen}>
-                Explore practice
+                Skip to practice
               </B2Button>
             </div>
           </div>

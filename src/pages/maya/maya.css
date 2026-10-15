@@ -83,6 +83,10 @@
 .sp .topic-option{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);padding:13px 14px;font-size:13px;min-height:46px}
 .sp .topic-option:last-child{border-bottom:0}
 .sp .topic-option:active,.sp .topic-option:hover{background:var(--blue)}
+.sp .topic-option.popular{display:flex;align-items:center;gap:10px}
+.sp .topic-option.popular .icon{--icon-size:var(--icon-small);color:var(--icon-muted)}
+.sp .topic-option.popular span{flex:1;min-width:0}
+.sp .topic-tag{font-style:normal;font-size:11px;font-weight:600;color:#8a5a00;background:var(--gold-soft);border-radius:999px;padding:3px 8px;white-space:nowrap}
 .sp .context-row{display:flex;gap:12px;align-items:center;background:var(--blue);border:1px solid #d5e4f7;border-radius:16px;padding:16px;margin:20px 0}
 .sp .context-row .icon{color:var(--icon-muted)}
 .sp .context-row strong{font-size:13px;font-weight:600;display:block}

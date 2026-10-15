@@ -100,13 +100,22 @@ const SUGGESTED_TOPICS = [
 ];
 
 /** Up to `n` labels containing `q` — earliest match position first, then shortest. */
-export function suggestedTopics(q, n = 8) {
+export function suggestedTopics(q, n = 8, pool = []) {
   q = q.trim().toLowerCase();
   if (!q) return [];
-  return SUGGESTED_TOPICS.filter((t) => {
+  // Maya's own topics for the level win ties over the general list
+  const seen = new Set();
+  const all = [...pool, ...SUGGESTED_TOPICS].filter((t) => {
     const l = t.toLowerCase();
-    return l !== q && l.includes(q);
-  })
+    if (seen.has(l)) return false;
+    seen.add(l);
+    return true;
+  });
+  return all
+    .filter((t) => {
+      const l = t.toLowerCase();
+      return l !== q && l.includes(q);
+    })
     .sort((a, b) => a.toLowerCase().indexOf(q) - b.toLowerCase().indexOf(q) || a.length - b.length)
     .slice(0, n);
 }

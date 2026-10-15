@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Badge from "../../../components/ui/Badge";
 import FeatureStatusChip from "../../../components/ui/FeatureStatusChip";
 import { hapticLight } from "../../../utils/haptics";
@@ -24,6 +24,7 @@ export default function FeatureCard({
   const clickable = enabled && !isLocked;
   const CardWrapper = clickable ? Link : "div";
   const [isPressed, setIsPressed] = useState(false);
+  const touchStart = useRef(null);
 
   const openLockModal = () => {
     if (!isLocked || !moduleState) return;
@@ -49,14 +50,24 @@ export default function FeatureCard({
     <CardWrapper
       id={tourId}
       to={clickable ? link : undefined}
-      onClick={isLocked ? openLockModal : undefined}
-      onTouchStart={() => {
-        if (clickable) {
-          setIsPressed(true);
-          hapticLight();
+      onClick={isLocked ? openLockModal : clickable ? () => hapticLight() : undefined}
+      onTouchStart={(e) => {
+        if (!clickable) return;
+        const t = e.touches[0];
+        touchStart.current = { x: t.clientX, y: t.clientY };
+        setIsPressed(true);
+      }}
+      // A scroll that starts on the card shouldn't leave it pressed
+      onTouchMove={(e) => {
+        const start = touchStart.current;
+        const t = e.touches[0];
+        if (start && Math.hypot(t.clientX - start.x, t.clientY - start.y) > 8) {
+          touchStart.current = null;
+          setIsPressed(false);
         }
       }}
       onTouchEnd={() => setIsPressed(false)}
+      onTouchCancel={() => setIsPressed(false)}
       onMouseDown={() => clickable && setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
       onMouseLeave={() => setIsPressed(false)}

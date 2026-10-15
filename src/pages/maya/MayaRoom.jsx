@@ -87,6 +87,7 @@ export default function MayaRoom({ meta, focus }) {
   const interview = mode !== "talk";
   const [topic, setTopic] = useState(""); // "" = Maya picks
   const [customTopic, setCustomTopic] = useState("");
+  const [topicFocused, setTopicFocused] = useState(false);
   const [noisyRoom, setNoisyRoom] = useState(false);
   const [error, setError] = useState(null);
   const [status, setStatus] = useState("thinking");
@@ -772,7 +773,18 @@ export default function MayaRoom({ meta, focus }) {
     );
 
   if (screen === "topics") {
-    const suggestions = suggestedTopics(customTopic, 3);
+    const pickedFromDrop = (label) => {
+      // A topic that's already a card selects the card; anything else goes in the box
+      if (topics.some((t) => t.label === label)) {
+        setTopic(label);
+        setCustomTopic("");
+      } else {
+        setCustomTopic(label);
+        setTopic("");
+      }
+    };
+    const popular = !customTopic.trim() && topicFocused ? (meta.popularTopics ?? []).slice(0, 3) : [];
+    const suggestions = popular.length ? [] : suggestedTopics(customTopic, 3, meta.topicPool?.map((t) => t.label));
     return (
       <>
         <Header title="Your conversation" onBack={() => setScreen("choose")} />
@@ -816,11 +828,35 @@ export default function MayaRoom({ meta, focus }) {
             maxLength={100}
             placeholder="e.g. My favourite festival"
             value={customTopic}
+            onFocus={() => setTopicFocused(true)}
+            onBlur={() => setTopicFocused(false)}
             onChange={(e) => {
               setCustomTopic(e.target.value);
               if (e.target.value.trim()) setTopic("");
             }}
           />
+          {popular.length ? (
+            // preventDefault keeps the input focused so the list stays put until the tap lands
+            <div className="topic-drop" role="listbox" aria-label="Most spoken topics" onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()}>
+              {popular.map((t) => (
+                <button
+                  type="button"
+                  key={t.id}
+                  role="option"
+                  aria-selected="false"
+                  className="topic-option popular"
+                  onClick={() => {
+                    pickedFromDrop(t.label);
+                    document.activeElement?.blur?.();
+                  }}
+                >
+                  <Icon name={t.icon} />
+                  <span>{t.label}</span>
+                  <em className="topic-tag">Most spoken</em>
+                </button>
+              ))}
+            </div>
+          ) : null}
           {suggestions.length ? (
             <div className="topic-drop" role="listbox" aria-label="Suggested topics">
               {suggestions.map((t) => (
@@ -830,10 +866,7 @@ export default function MayaRoom({ meta, focus }) {
                   role="option"
                   aria-selected="false"
                   className="topic-option"
-                  onClick={() => {
-                    setCustomTopic(t);
-                    setTopic("");
-                  }}
+                  onClick={() => pickedFromDrop(t)}
                 >
                   {t}
                 </button>

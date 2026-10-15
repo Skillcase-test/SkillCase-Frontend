@@ -52,8 +52,7 @@ export default function NursingBanner({ className = "" }) {
   return (
     <Wrapper
       to={isLocked ? undefined : "/a1/nursing"}
-      onClick={isLocked ? openLockModal : undefined}
-      onTouchStart={() => !isLocked && hapticLight()}
+      onClick={isLocked ? openLockModal : () => hapticLight()}
       className={`rounded-2xl bg-white border border-slate-200 px-3 py-2.5 sm:px-4 sm:py-3 flex items-center gap-3 sm:gap-4 cursor-pointer hover:shadow-md active:scale-[0.99] transition-all shadow-sm ${className}`}
     >
       <div className="size-16 sm:size-[72px] shrink-0 rounded-xl border border-slate-200 p-1 bg-white">

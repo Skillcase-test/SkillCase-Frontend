@@ -132,6 +132,8 @@ const PLAY_STORE_WEB_URL =
   "https://play.google.com/store/apps/details?id=com.skillcase.app";
 
 const LAUNCH_URL_KEY = "handled_launch_url";
+// Bundle id of a downloaded OTA update waiting for restart (this launch only)
+const OTA_READY_KEY = "ota_ready_bundle";
 
 // skillcase://app/<route> → /<route>. Parsed by hand because older Android
 // WebViews give non-special schemes an empty URL.host.
@@ -496,6 +498,22 @@ export default function AppLayout() {
       console.warn("LiveUpdate.ready() failed:", e);
     }
 
+    // A downloaded update keeps its tick until relaunch, Update Now or Later,
+    // even if this layout remounts (pull-to-refresh) or the WebView reloads
+    const readyBundle = sessionStorage.getItem(OTA_READY_KEY);
+    if (readyBundle) {
+      try {
+        const [{ bundleId: current }, { bundleId: next }] = await Promise.all([
+          LiveUpdate.getCurrentBundle(),
+          LiveUpdate.getNextBundle(),
+        ]);
+        if (next === readyBundle && current !== readyBundle) setOtaState("ota_ready");
+        else sessionStorage.removeItem(OTA_READY_KEY);
+      } catch {
+        setOtaState("ota_ready");
+      }
+    }
+
     // Only run the update check once per app session (sessionStorage clears on kill+reopen)
     if (sessionStorage.getItem("ota_checked")) return;
     sessionStorage.setItem("ota_checked", "1");
@@ -656,6 +674,7 @@ export default function AppLayout() {
               .catch(() => {});
 
             console.log(`OTA update downloaded: ${data.version}`);
+            sessionStorage.setItem(OTA_READY_KEY, data.version);
             setOtaState("ota_ready");
             recordEvent("ota.download_completed", {
               domain: "app_update",
@@ -896,10 +915,14 @@ export default function AppLayout() {
               lifecycle: "started",
               attributes: { state: "ota_ready", trigger: "restart_now" },
             });
+            // sessionStorage outlives the reload, so the new bundle mustn't see the flag
+            const readyBundle = sessionStorage.getItem(OTA_READY_KEY);
+            sessionStorage.removeItem(OTA_READY_KEY);
             try {
               await LiveUpdate.reload();
             } catch (e) {
               console.error("Reload failed", e);
+              if (readyBundle) sessionStorage.setItem(OTA_READY_KEY, readyBundle);
               alert(
                 "Could not restart automatically. Please close and reopen the app to apply the update.",
               );
@@ -916,6 +939,7 @@ export default function AppLayout() {
               reason_code: "restart_later",
               attributes: { state: otaState, trigger: "user_action" },
             });
+            sessionStorage.removeItem(OTA_READY_KEY);
             setOtaState(null);
           }}
         />
