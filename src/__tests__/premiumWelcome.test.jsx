@@ -1,7 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { premiumIntroDue, premiumPlanName, premiumTier, PREMIUM_PREVIEW_EVENT } from "../utils/premium";
+import { canLearnerUpgradeToPro, premiumIntroDue, premiumPlanName, premiumTier, PREMIUM_PREVIEW_EVENT } from "../utils/premium";
 
 const mockPost = vi.fn(() => Promise.resolve({ data: {} }));
 vi.mock("../api/axios", () => ({ default: { post: (...a) => mockPost(...a) } }));
@@ -34,6 +34,14 @@ describe("premium tiers", () => {
     expect(premiumIntroDue({ ...plus, premium_intro_tier: "plus" })).toBeNull();
     expect(premiumIntroDue({ ...pro, premium_intro_tier: "plus" })).toBe("pro");
     expect(premiumIntroDue({ ...plus, premium_intro_tier: "pro" })).toBeNull();
+  });
+
+  it("treats Pro given from the admin panel as Career Pro with no upgrade offer", () => {
+    const adminPro = { is_paid: true, admin_pro: true, user_prof_level: "B1" };
+    expect(premiumPlanName(adminPro)).toBe("Career Pro");
+    expect(canLearnerUpgradeToPro(adminPro)).toBe(false);
+    expect(canLearnerUpgradeToPro({ ...adminPro, admin_pro: false })).toBe(true);
+    expect(premiumIntroDue({ ...adminPro, premium_intro_tier: "plus" })).toBe("pro");
   });
 
   it("waits for /user/me to report the flag before deciding", () => {

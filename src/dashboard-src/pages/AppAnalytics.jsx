@@ -43,6 +43,10 @@ import {
   ControlButton,
 } from "../payments-admin/components/controls";
 import { chartColors } from "../charts/ChartjsConfig";
+import UserPlanControl from "./app-analytics/UserPlanControl";
+import PillDropdown from "./app-analytics/PillDropdown";
+import { USER_TRACK_OPTIONS, getUserTrackValue } from "./app-analytics/tracks";
+import { PLAN_OPTIONS, userPlanOf } from "./app-analytics/plans";
 
 // Register Chart.js components
 Chart.register(
@@ -116,95 +120,6 @@ function timeAgo(timestamp) {
 
 // Track options mirror the legacy "All Users" editor so admins can still
 // reassign a learner's level/mode straight from this list.
-const USER_TRACK_OPTIONS = [
-  {
-    value: "A1",
-    label: "A1",
-    badgeClass: "bg-blue-50 text-blue-700",
-    payload: {
-      current_profeciency_level: "A1",
-      language_level: "A1",
-      lg_preferred_mode: "practice",
-      german_preference: "2",
-    },
-  },
-  {
-    value: "A2",
-    label: "A2",
-    badgeClass: "bg-emerald-50 text-emerald-700",
-    payload: {
-      current_profeciency_level: "A2",
-      language_level: "A2",
-      lg_preferred_mode: "practice",
-      german_preference: "2",
-    },
-  },
-  {
-    value: "B1_PRACTICE",
-    label: "B1 Practice",
-    badgeClass: "bg-purple-50 text-purple-700",
-    payload: {
-      current_profeciency_level: "B1",
-      language_level: "B1",
-      lg_preferred_mode: "practice",
-      german_preference: "2",
-    },
-  },
-  {
-    value: "B2_PRACTICE",
-    label: "B2 Practice",
-    badgeClass: "bg-purple-50 text-purple-700",
-    payload: {
-      current_profeciency_level: "B2",
-      language_level: "B2",
-      lg_preferred_mode: "practice",
-      german_preference: "2",
-    },
-  },
-  {
-    value: "B1_JOB_SCREENING",
-    label: "B1 Job Screening",
-    badgeClass: "bg-amber-50 text-amber-700",
-    payload: {
-      current_profeciency_level: "B1",
-      language_level: "B1",
-      lg_preferred_mode: "job_screening",
-      german_preference: "3",
-    },
-  },
-  {
-    value: "B2_JOB_SCREENING",
-    label: "B2 Job Screening",
-    badgeClass: "bg-amber-50 text-amber-700",
-    payload: {
-      current_profeciency_level: "B1",
-      language_level: "B2",
-      lg_preferred_mode: "job_screening",
-      german_preference: "3",
-    },
-  },
-];
-
-function getUserTrackValue(user = {}) {
-  const mode = String(user.lg_preferred_mode || "").toLowerCase();
-  const preference = String(user.german_preference || "");
-  const languageLevel = String(
-    user.language_level || user.current_profeciency_level || "A1",
-  ).toUpperCase();
-  const learningLevel = String(
-    user.current_profeciency_level || "A1",
-  ).toUpperCase();
-  const isJobScreening = mode === "job_screening" || preference === "3";
-
-  if (isJobScreening) {
-    return languageLevel === "B2" ? "B2_JOB_SCREENING" : "B1_JOB_SCREENING";
-  }
-  if (languageLevel === "B2" || learningLevel === "B2") return "B2_PRACTICE";
-  if (languageLevel === "B1" || learningLevel === "B1") return "B1_PRACTICE";
-  if (learningLevel === "A2") return "A2";
-  return "A1";
-}
-
 function DashboardCard({ title, action, children, className = "" }) {
   return (
     <div
@@ -982,46 +897,90 @@ function LiveUsersModal({
   );
 }
 
-function AllUsersModal({ onClose }) {
+const ALL_USERS_PAGE_SIZE = 50;
+
+// Filters go to the server as query params; "all" means no filter
+const allUsersParams = ({ search, track, paid }) => ({
+  ...(search ? { search } : {}),
+  ...(track !== "all" ? { track } : {}),
+  ...(paid !== "all" ? { paid } : {}),
+});
+
+function AllUsersModal({ onClose, canGrantPro }) {
   const [users, setUsers] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [trackFilter, setTrackFilter] = useState("all");
   const [paidFilter, setPaidFilter] = useState("all");
-  const [savingUserId, setSavingUserId] = useState(null);
+  // { id, field } so only the control being saved shows the spinner
+  const [saving, setSaving] = useState(null);
   const [rowErrors, setRowErrors] = useState({});
+
+  // A new filter always starts from the first page (set together, so one fetch)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch((prev) => {
+        const next = search.trim();
+        if (next !== prev) setPage(1);
+        return next;
+      });
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const filters = useMemo(
+    () => ({ search: debouncedSearch, track: trackFilter, paid: paidFilter }),
+    [debouncedSearch, trackFilter, paidFilter],
+  );
 
   useEffect(() => {
     let live = true;
+    setFetching(true);
     api
-      .get("/admin/analytics/all-users")
+      .get("/admin/analytics/all-users", {
+        params: { ...allUsersParams(filters), page, limit: ALL_USERS_PAGE_SIZE },
+      })
       .then((res) => {
-        if (live) setUsers(res.data || []);
+        if (!live) return;
+        setUsers(res.data?.rows || []);
+        setTotal(res.data?.total || 0);
+        setError(null);
       })
       .catch((err) => {
         console.error("Error fetching all users:", err);
         if (live) setError("Could not load users");
       })
       .finally(() => {
-        if (live) setLoading(false);
+        if (!live) return;
+        setLoading(false);
+        setFetching(false);
       });
     return () => {
       live = false;
     };
-  }, []);
+  }, [filters, page]);
 
-  const updateUser = async (userId, fields, revert) => {
-    setSavingUserId(userId);
+  const updateUser = async (userId, fields, revert, field) => {
+    setSaving({ id: userId, field });
     setRowErrors((prev) => ({ ...prev, [userId]: null }));
     try {
       await api.patch(`/admin/users/${userId}`, fields);
     } catch (err) {
       console.error("Error updating user:", err);
       revert();
-      setRowErrors((prev) => ({ ...prev, [userId]: "Save failed, reverted." }));
+      const reason = err?.response?.data?.error;
+      setRowErrors((prev) => ({
+        ...prev,
+        [userId]: reason ? `${reason} Reverted.` : "Save failed, reverted.",
+      }));
     } finally {
-      setSavingUserId(null);
+      setSaving(null);
     }
   };
 
@@ -1032,38 +991,41 @@ function AllUsersModal({ onClose }) {
     setUsers((prev) =>
       prev.map((u) => (u.user_id === userId ? { ...u, ...option.payload } : u)),
     );
-    updateUser(userId, option.payload, () => setUsers(prevUsers));
+    updateUser(userId, option.payload, () => setUsers(prevUsers), "track");
   };
 
-  const handlePaidToggle = (userId, currentPaid) => {
+  const handlePlanChange = (userId, plan) => {
     const prevUsers = users;
     setUsers((prev) =>
       prev.map((u) =>
-        u.user_id === userId ? { ...u, is_paid: !currentPaid } : u,
+        u.user_id === userId
+          ? { ...u, admin_plan: plan, is_paid: plan !== "free" }
+          : u,
       ),
     );
-    updateUser(userId, { is_paid: !currentPaid }, () => setUsers(prevUsers));
+    updateUser(userId, { plan }, () => setUsers(prevUsers), "plan");
   };
 
-  const filteredUsers = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return users.filter((user) => {
-      if (q) {
-        const matches =
-          (user.fullname || "").toLowerCase().includes(q) ||
-          (user.username || "").toLowerCase().includes(q) ||
-          (user.phone || "").toLowerCase().includes(q);
-        if (!matches) return false;
-      }
-      if (trackFilter !== "all" && getUserTrackValue(user) !== trackFilter)
-        return false;
-      if (paidFilter === "paid" && !user.is_paid) return false;
-      if (paidFilter === "unpaid" && user.is_paid) return false;
-      return true;
-    });
-  }, [users, search, trackFilter, paidFilter]);
+  const pageCount = Math.max(1, Math.ceil(total / ALL_USERS_PAGE_SIZE));
+  const firstRow = total ? (page - 1) * ALL_USERS_PAGE_SIZE + 1 : 0;
+  const lastRow = Math.min(page * ALL_USERS_PAGE_SIZE, total);
 
-  const handleDownloadCSV = () => {
+  // Exports every user matching the filters, not just the page on screen
+  const handleDownloadCSV = async () => {
+    setExporting(true);
+    let allRows;
+    try {
+      const res = await api.get("/admin/analytics/all-users", {
+        params: { ...allUsersParams(filters), export: 1 },
+      });
+      allRows = res.data?.rows || [];
+    } catch (err) {
+      console.error("Error exporting users:", err);
+      toast.error("Couldn't export users");
+      setExporting(false);
+      return;
+    }
+    setExporting(false);
     const headers = [
       "Full Name",
       "Phone",
@@ -1073,13 +1035,15 @@ function AllUsersModal({ onClose }) {
       "Signup Date",
       "Last Active",
     ];
-    const rows = filteredUsers.map((u) => [
+    const rows = allRows.map((u) => [
       u.fullname || u.username || "",
       u.phone || "",
-      USER_TRACK_OPTIONS.find((o) => o.value === getUserTrackValue(u))?.label ||
+      USER_TRACK_OPTIONS.find((o) => o.value === getUserTrackValue(u))?.name ||
         "",
       u.signup_source || "",
-      u.is_paid ? "Paid" : "Free",
+      u.own_subscription
+        ? "AutoPay"
+        : PLAN_OPTIONS.find((o) => o.value === userPlanOf(u))?.name || "Free",
       u.created_at ? u.created_at.slice(0, 10) : "",
       u.last_activity_at || "",
     ]);
@@ -1103,17 +1067,18 @@ function AllUsersModal({ onClose }) {
           <div>
             <h3 className="text-base font-bold text-slate-900">All Users</h3>
             <p className="mt-0.5 text-xs text-slate-400">
-              {formatNumber(filteredUsers.length)} users found
+              {loading ? "Loading…" : `${formatNumber(total)} users found`}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <ControlButton
               onClick={handleDownloadCSV}
+              disabled={exporting || loading}
               variant="secondary"
               className="h-9 gap-1.5 px-3 text-xs"
             >
               <Download className="h-3.5 w-3.5" />
-              Export CSV
+              {exporting ? "Exporting…" : "Export CSV"}
             </ControlButton>
             <ControlButton
               onClick={onClose}
@@ -1137,18 +1102,24 @@ function AllUsersModal({ onClose }) {
           </div>
           <SingleSelectDropdown
             value={trackFilter}
-            onChange={setTrackFilter}
+            onChange={(v) => {
+              setTrackFilter(v);
+              setPage(1);
+            }}
             options={[
               { value: "all", label: "All Tracks" },
               ...USER_TRACK_OPTIONS.map((o) => ({
                 value: o.value,
-                label: o.label,
+                label: o.name,
               })),
             ]}
           />
           <Segmented
             value={paidFilter}
-            onChange={setPaidFilter}
+            onChange={(v) => {
+              setPaidFilter(v);
+              setPage(1);
+            }}
             options={[
               { label: "All", value: "all" },
               { label: "Paid", value: "paid" },
@@ -1157,7 +1128,9 @@ function AllUsersModal({ onClose }) {
           />
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-3">
+        <div
+          className={`flex-1 overflow-y-auto px-6 py-3 transition-opacity ${fetching && !loading ? "opacity-60" : ""}`}
+        >
           {loading ? (
             <div className="py-12 text-center text-sm font-semibold text-slate-400 animate-pulse">
               Loading users...
@@ -1173,18 +1146,15 @@ function AllUsersModal({ onClose }) {
                   <th className="py-2.5 pr-3">Name</th>
                   <th className="py-2.5 pr-3">Phone</th>
                   <th className="py-2.5 pr-3">Track</th>
-                  <th className="py-2.5 pr-3">Payment</th>
+                  <th className="py-2.5 pr-3">Plan</th>
                   <th className="py-2.5 pr-3">Signed Up</th>
                   <th className="py-2.5">Last Active</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredUsers.map((user) => {
-                  const isSaving = savingUserId === user.user_id;
+                {users.map((user) => {
+                  const isSaving = saving?.id === user.user_id;
                   const trackValue = getUserTrackValue(user);
-                  const trackOption = USER_TRACK_OPTIONS.find(
-                    (o) => o.value === trackValue,
-                  );
                   return (
                     <tr
                       key={user.user_id}
@@ -1206,40 +1176,28 @@ function AllUsersModal({ onClose }) {
                         {user.phone || "—"}
                       </td>
                       <td className="py-2.5 pr-3">
-                        <select
+                        <PillDropdown
                           value={trackValue}
-                          disabled={isSaving}
-                          onChange={(e) =>
-                            handleTrackChange(user.user_id, e.target.value)
+                          options={USER_TRACK_OPTIONS}
+                          onPick={(value) =>
+                            handleTrackChange(user.user_id, value)
                           }
-                          className={`cursor-pointer rounded-full border-0 px-2 py-0.5 text-[10px] font-bold outline-none focus:ring-2 focus:ring-indigo-200 disabled:opacity-60 ${trackOption?.badgeClass || "bg-slate-100 text-slate-600"}`}
-                        >
-                          {USER_TRACK_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
+                          saving={isSaving && saving.field === "track"}
+                          locked={isSaving && saving.field !== "track"}
+                          heading="Change track"
+                          ariaLabel="Track"
+                          className="w-[136px]"
+                        />
                       </td>
                       <td className="py-2.5 pr-3">
-                        <button
-                          type="button"
-                          disabled={isSaving}
-                          onClick={() =>
-                            handlePaidToggle(user.user_id, user.is_paid)
+                        <UserPlanControl
+                          user={user}
+                          canGrantPro={canGrantPro}
+                          saving={isSaving && saving.field === "plan"}
+                          onChange={(plan) =>
+                            handlePlanChange(user.user_id, plan)
                           }
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-bold transition-opacity hover:opacity-80 disabled:opacity-60 ${
-                            user.is_paid
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-slate-100 text-slate-500"
-                          }`}
-                        >
-                          {isSaving
-                            ? "Saving…"
-                            : user.is_paid
-                              ? "Paid"
-                              : "Free"}
-                        </button>
+                        />
                       </td>
                       <td className="py-2.5 pr-3 text-slate-500">
                         {user.created_at ? user.created_at.slice(0, 10) : "—"}
@@ -1250,7 +1208,7 @@ function AllUsersModal({ onClose }) {
                     </tr>
                   );
                 })}
-                {filteredUsers.length === 0 && (
+                {users.length === 0 && (
                   <tr>
                     <td
                       colSpan="6"
@@ -1264,6 +1222,42 @@ function AllUsersModal({ onClose }) {
             </table>
           )}
         </div>
+
+        {!loading && !error && total > 0 && (
+          <footer className="flex items-center justify-between gap-3 border-t border-slate-100 px-6 py-3 text-xs text-slate-500">
+            <span>
+              Showing{" "}
+              <span className="font-semibold text-slate-700">
+                {formatNumber(firstRow)}–{formatNumber(lastRow)}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-slate-700">
+                {formatNumber(total)}
+              </span>
+            </span>
+            <div className="flex items-center gap-2">
+              <ControlButton
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1 || fetching}
+                variant="secondary"
+                className="h-8 px-3 text-xs"
+              >
+                Previous
+              </ControlButton>
+              <span className="tabular-nums">
+                Page {page} of {pageCount}
+              </span>
+              <ControlButton
+                onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                disabled={page >= pageCount || fetching}
+                variant="secondary"
+                className="h-8 px-3 text-xs"
+              >
+                Next
+              </ControlButton>
+            </div>
+          </footer>
+        )}
       </div>
     </div>
   );
@@ -2307,7 +2301,12 @@ export default function AppAnalytics({ me }) {
         />
       )}
 
-      {allUsersOpen && <AllUsersModal onClose={() => setAllUsersOpen(false)} />}
+      {allUsersOpen && (
+        <AllUsersModal
+          onClose={() => setAllUsersOpen(false)}
+          canGrantPro={me?.can_grant_pro === true}
+        />
+      )}
     </div>
   );
 }

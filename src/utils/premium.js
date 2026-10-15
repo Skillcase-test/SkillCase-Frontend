@@ -50,13 +50,15 @@ export function isLearnerAccess(user) {
 }
 
 export function canLearnerUpgradeToPro(user) {
-  return isLearnerAccess(user) && hasMayaLevel(user?.user_prof_level);
+  return isLearnerAccess(user) && user?.admin_pro !== true && hasMayaLevel(user?.user_prof_level);
 }
 
-// Which premium look the learner gets: "pro" for the ₹199 plan, "plus" for the
-// ₹99 plan and admin-granted access. null for free and trial users.
+// Which premium look the learner gets: "pro" for the ₹199 plan or Pro given by
+// a super admin, "plus" for the ₹99 plan and admin-granted access. null for
+// free and trial users.
 export function premiumTier(user) {
   if (!isPremiumUser(user)) return null;
+  if (user?.is_paid === true && user?.admin_pro === true) return "pro";
   return user?.autopay_enabled === true && user?.subscription_plan === "b2_plus" ? "pro" : "plus";
 }
 

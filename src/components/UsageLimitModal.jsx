@@ -12,7 +12,7 @@ import timerImg from "../assets/timer.webp";
 import { useAutopayCheckout } from "../hooks/useAutopayCheckout";
 import { useUsageLimits } from "../hooks/useUsageLimits";
 import { getSubscriptionPlans, changePlan } from "../api/subscriptionApi";
-import { mayaFeatureValue } from "../utils/premium";
+import { mayaFeatureValue, premiumTier } from "../utils/premium";
 import { switchLGMode } from "../utils/lgMode";
 import { trackFeatureEvent } from "../telemetry/events";
 import PremiumActivatedModal from "./PremiumActivatedModal";
@@ -211,9 +211,12 @@ export default function UsageLimitModal({ initialEvent = null }) {
   const subIsLive = ["active", "authenticated"].includes(
     String(user?.autopay_status || "").toLowerCase()
   );
+  // Admin-given Pro has no plan of its own, so plansData.current is null for it
+  const onPro = plansData?.current === "b2_plus" || premiumTier(user) === "pro";
   const plusDirectCheckout = Boolean(
     plusPlan &&
       plansData &&
+      !onPro &&
       (!plansData.current || (plansData.current === "standard" && !subIsLive))
   );
   const plusInPlaceUpgrade = Boolean(plansData?.current === "standard" && subIsLive);
@@ -391,7 +394,7 @@ export default function UsageLimitModal({ initialEvent = null }) {
             {!expired && isMayaDailyLimit ? (
               // A Plus user already owns this plan — showing the card pitches
               // them their own tier.
-              plusPlan && plansData?.current !== "b2_plus" ? (
+              plusPlan && !onPro ? (
                 <div className="self-stretch flex flex-col items-center">
                   <div className="self-stretch px-1.5 py-1 bg-gradient-to-r from-[#002856] to-blue-700 rounded-tl-xl rounded-tr-xl inline-flex justify-center items-center gap-2">
                     <Gem className="w-3.5 h-3.5 text-amber-300" />
@@ -419,7 +422,7 @@ export default function UsageLimitModal({ initialEvent = null }) {
                     {plusInPlaceUpgrade && (
                       <p className="w-64 text-center text-[#002856]/60 text-[11px] font-normal leading-relaxed">
                         {user?.autopay_method === "upi"
-                          ? `You're on Career Plus — pay ₹${rupees(plusPlan.amountPaise)} once, your unused days come straight back, and Career Pro activates instantly.`
+                          ? "You're on Career Plus — pay just the difference for the rest of this cycle and Career Pro activates instantly."
                           : "You're on Career Plus — upgrade in one tap and only pay the difference for this cycle."}
                       </p>
                     )}

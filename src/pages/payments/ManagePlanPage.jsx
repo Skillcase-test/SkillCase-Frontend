@@ -11,7 +11,7 @@ import { useAutopayCheckout } from "../../hooks/useAutopayCheckout";
 import { getSubscriptionPlans, changePlan } from "../../api/subscriptionApi";
 import mayaSad from "../../assets/onboarding/mayaSad.webp";
 import { getMayaImage } from "../../utils/mayaAvatars";
-import { canLearnerUpgradeToPro, isLearnerAccess, mayaFeatureValue, premiumPlanName } from "../../utils/premium";
+import { canLearnerUpgradeToPro, isLearnerAccess, mayaFeatureValue, premiumPlanName, premiumTier } from "../../utils/premium";
 import { PLAN_TROPHY } from "../../components/premium/PlanCards";
 import PremiumActivatedModal from "../../components/PremiumActivatedModal";
 import UpgradeBreakdown from "../../components/premium/UpgradeBreakdown";
@@ -104,9 +104,11 @@ export default function ManagePlanPage() {
   const accessUntil = formatBillingDate(user?.next_billing_at);
 
   const plusPlan = plansInfo?.plans?.find((p) => p.key === "b2_plus") || null;
+  // Learners on admin-given Pro have no plan of their own, so take Pro's minutes
   const currentMayaValue = mayaFeatureValue(
     user,
-    plansInfo?.currentPlan?.mayaMinutesPerDay,
+    plansInfo?.currentPlan?.mayaMinutesPerDay ??
+      (learner && premiumTier(user) === "pro" ? plusPlan?.mayaMinutesPerDay ?? 30 : undefined),
   );
   const pendingPlan = plansInfo?.pendingPlan || null;
   // Standard B2 users on a live subscription can switch plans in place — same

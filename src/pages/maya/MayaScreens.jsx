@@ -5,6 +5,7 @@ import { images } from "../../assets/images";
 import RetryFeedback from "./RetryFeedback";
 import SayItAgain from "./SayItAgain";
 import { getSubscriptionPlans } from "../../api/subscriptionApi";
+import { premiumTier } from "../../utils/premium";
 import { SMOOTHNESS_LABEL, callSmoothness, englishWords, modeName, plainQuotes } from "./mayaFormat";
 import { useMaya } from "./mayaLevel";
 import { BottomNav, Brand, Footer, Header, Icon, Main, MayaFrame, MayaHero, MayaMark, ScoreRing, Title } from "./sp";
@@ -138,11 +139,13 @@ export function FeedbackError({ sessionId, onRetried }) {
  */
 function PlusUpsell() {
   const [info, setInfo] = useState(null);
+  const user = useSelector((state) => state.auth.user);
   useEffect(() => {
     getSubscriptionPlans().then(setInfo).catch(() => setInfo(null));
   }, []);
   const plus = info?.plans?.find((x) => x.key === "b2_plus");
-  if (!info || !plus || info.current === "b2_plus") return null;
+  // Admin-given Pro has no plan of its own, so check the tier too
+  if (!info || !plus || info.current === "b2_plus" || premiumTier(user) === "pro") return null;
   const onStandard = info.current === "standard";
   return (
     <div className="context-row">
