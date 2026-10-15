@@ -67,6 +67,12 @@ const Wave = ({ heights }) => (
   </span>
 );
 
+const DIFFICULTIES = [
+  { id: "easy", label: "Easy", hint: "Short questions, simple words and lots of help." },
+  { id: "medium", label: "Medium", hint: "A relaxed A2 chat with help when you need it." },
+  { id: "hard", label: "Hard", hint: "Longer answers, more A2 words, less help. Still A2." },
+];
+
 export default function MayaRoom({ meta, focus }) {
   const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
@@ -87,6 +93,9 @@ export default function MayaRoom({ meta, focus }) {
   const interview = mode !== "talk";
   const [topic, setTopic] = useState(""); // "" = Maya picks
   const [customTopic, setCustomTopic] = useState("");
+  // A2 practice only; preselects what the learner picked last time
+  const pickDifficulty = level === "A2";
+  const [difficulty, setDifficulty] = useState(meta.difficulty || "medium");
   const [topicFocused, setTopicFocused] = useState(false);
   const [noisyRoom, setNoisyRoom] = useState(false);
   const [error, setError] = useState(null);
@@ -280,7 +289,11 @@ export default function MayaRoom({ meta, focus }) {
       ctx.createMediaStreamSource(stream).connect(node);
     })();
     audioReady.catch(() => {});
-    const request = focus ? { focus: { sessionId: focus.sessionId, index: focus.index } } : !interview && (topic || customTopic.trim()) ? { topic: topic || customTopic.trim() } : {};
+    const request = focus
+      ? { focus: { sessionId: focus.sessionId, index: focus.index } }
+      : interview
+        ? {}
+        : { ...(topic || customTopic.trim() ? { topic: topic || customTopic.trim() } : {}), ...(pickDifficulty ? { difficulty } : {}) };
     let res;
     try {
       res = await api.start({ consent: true, mode: focus ? "talk" : mode, ...request });
@@ -881,6 +894,18 @@ export default function MayaRoom({ meta, focus }) {
           ) : null}
         </Main>
         <Footer note={plan ? `Up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} minutes left ${plan.window === "trial" ? "in your trial" : plan.window === "free" ? "free" : "today"} · ${level} practice` : `About ${minutes} minutes · ${level} practice`}>
+          {pickDifficulty ? (
+            <div className="level-choice">
+              <div className="level-picker" role="radiogroup" aria-label="How challenging?">
+                {DIFFICULTIES.map((d) => (
+                  <button key={d.id} type="button" role="radio" aria-checked={difficulty === d.id} className={difficulty === d.id ? "selected" : ""} onClick={() => setDifficulty(d.id)}>
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+              <p className="level-hint">{DIFFICULTIES.find((d) => d.id === difficulty)?.hint}</p>
+            </div>
+          ) : null}
           <button
             type="button"
             className="primary"

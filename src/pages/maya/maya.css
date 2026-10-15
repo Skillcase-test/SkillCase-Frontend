@@ -82,6 +82,11 @@
 .sp .topic-drop{margin-top:8px;border:1px solid var(--line);border-radius:10px;background:white;overflow:hidden;box-shadow:0 10px 30px #00285614}
 .sp .topic-option{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);padding:13px 14px;font-size:13px;min-height:46px}
 .sp .topic-option:last-child{border-bottom:0}
+.sp .level-picker{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;border:1px solid var(--line);border-radius:12px;background:white}
+.sp .level-picker button{min-height:40px;border:0;border-radius:9px;background:none;color:var(--muted);font-size:13px;font-weight:500;transition:background-color .2s,color .2s}
+.sp .level-picker button.selected{background:var(--navy);color:white}
+.sp .level-choice{margin-bottom:12px}
+.sp .bottom-action .level-hint{font-size:11px;color:var(--muted);margin:6px 0 0}
 .sp .topic-option:active,.sp .topic-option:hover{background:var(--blue)}
 .sp .topic-option.popular{display:flex;align-items:center;gap:10px}
 .sp .topic-option.popular .icon{--icon-size:var(--icon-small);color:var(--icon-muted)}
