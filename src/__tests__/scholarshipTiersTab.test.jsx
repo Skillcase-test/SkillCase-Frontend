@@ -156,13 +156,14 @@ describe("TiersTab", () => {
     };
 
     test("Save sends the input as a UTC ISO string read from IST", async () => {
-      await typeExpiry("2026-09-15T14:30");
+      // Far-future date so the "now or later" guard never trips as time passes
+      await typeExpiry("2099-09-15T14:30");
       fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
       // 14:30 IST == 09:00Z — not the CI machine's local time.
       await waitFor(() =>
         expect(mockUpdateExam).toHaveBeenCalledWith(1, {
-          redemption_expires_at: "2026-09-15T09:00:00.000Z",
+          redemption_expires_at: "2099-09-15T09:00:00.000Z",
         }),
       );
     });
@@ -191,12 +192,12 @@ describe("TiersTab", () => {
       mockSelectedExam = {
         test_id: 1,
         results_visible: false,
-        redemption_expires_at: "2026-09-15T09:00:00.000Z",
+        redemption_expires_at: "2099-09-15T09:00:00.000Z",
       };
       render(<TiersTab />);
       await screen.findByText(/No tiers yet/);
       expect(document.querySelector('input[type="datetime-local"]').value).toBe(
-        "2026-09-15T14:30",
+        "2099-09-15T14:30",
       );
     });
   });

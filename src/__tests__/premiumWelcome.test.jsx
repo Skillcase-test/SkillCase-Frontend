@@ -1,7 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { canLearnerUpgradeToPro, premiumIntroDue, premiumPlanName, premiumTier, PREMIUM_PREVIEW_EVENT } from "../utils/premium";
+import { canLearnerUpgradeToPro, premiumLook, premiumPlanName, premiumTier, premiumTransition, shownPremiumLook, trialPillLabel, PREMIUM_PREVIEW_EVENT } from "../utils/premium";
 
 const mockPost = vi.fn(() => Promise.resolve({ data: {} }));
 vi.mock("../api/axios", () => ({ default: { post: (...a) => mockPost(...a) } }));
@@ -30,10 +30,30 @@ describe("premium tiers", () => {
   });
 
   it("is due once per tier, and again on an upgrade to Pro", () => {
-    expect(premiumIntroDue({ ...plus, premium_intro_tier: "" })).toBe("plus");
-    expect(premiumIntroDue({ ...plus, premium_intro_tier: "plus" })).toBeNull();
-    expect(premiumIntroDue({ ...pro, premium_intro_tier: "plus" })).toBe("pro");
-    expect(premiumIntroDue({ ...plus, premium_intro_tier: "pro" })).toBeNull();
+    expect(premiumTransition({ ...plus, premium_intro_tier: "" })).toEqual({ kind: "welcome", from: "", to: "plus" });
+    expect(premiumTransition({ ...plus, premium_intro_tier: "plus" })).toBeNull();
+    expect(premiumTransition({ ...pro, premium_intro_tier: "plus" })).toEqual({ kind: "upgrade", from: "plus", to: "pro" });
+  });
+
+  it("the trial gets the Plus look with its own entry, and buying after it is a welcome", () => {
+    const trial = { trial_active: true, trial_end_at: new Date(Date.now() + 6.5 * 86400000).toISOString() };
+    expect(premiumLook(trial)).toBe("trial");
+    expect(premiumTransition({ ...trial, premium_intro_tier: "" })).toMatchObject({ kind: "trial", to: "trial" });
+    expect(premiumTransition({ ...plus, premium_intro_tier: "trial" })).toMatchObject({ kind: "welcome", to: "plus" });
+    expect(trialPillLabel(trial)).toBe("7d left");
+    expect(trialPillLabel({ trial_end_at: new Date(Date.now() + 3600e3).toISOString() })).toBe("last day");
+  });
+
+  it("losing access is an exit, and the old look stays until it has played", () => {
+    expect(premiumTransition({ premium_intro_tier: "trial" })).toEqual({ kind: "exit", from: "trial", to: "" });
+    expect(premiumTransition({ premium_intro_tier: "pro" })).toEqual({ kind: "exit", from: "pro", to: "" });
+    expect(premiumTransition({ ...plus, premium_intro_tier: "pro" })).toEqual({ kind: "exit", from: "pro", to: "plus" });
+    expect(shownPremiumLook({ premium_intro_tier: "plus" })).toBe("plus");
+    expect(shownPremiumLook({ premium_intro_tier: "" })).toBeNull();
+  });
+
+  it("learners whose access ended before this version get no exit", () => {
+    expect(premiumTransition({ trial_taken: true, premium_intro_tier: "" })).toBeNull();
   });
 
   it("treats Pro given from the admin panel as Career Pro with no upgrade offer", () => {
@@ -41,11 +61,11 @@ describe("premium tiers", () => {
     expect(premiumPlanName(adminPro)).toBe("Career Pro");
     expect(canLearnerUpgradeToPro(adminPro)).toBe(false);
     expect(canLearnerUpgradeToPro({ ...adminPro, admin_pro: false })).toBe(true);
-    expect(premiumIntroDue({ ...adminPro, premium_intro_tier: "plus" })).toBe("pro");
+    expect(premiumTransition({ ...adminPro, premium_intro_tier: "plus" })).toMatchObject({ kind: "upgrade" });
   });
 
   it("waits for /user/me to report the flag before deciding", () => {
-    expect(premiumIntroDue(plus)).toBeNull();
+    expect(premiumTransition(plus)).toBeNull();
   });
 });
 
@@ -102,17 +122,6 @@ describe("PremiumWelcome", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("the test button replays it without saving anything", async () => {
-    mockUser = { ...pro, premium_intro_tier: "pro" };
-    renderAt("/");
-    await act(async () => window.dispatchEvent(new Event(PREMIUM_PREVIEW_EVENT)));
-    expect(screen.getByRole("dialog", { name: "Welcome to Career Pro" })).toBeInTheDocument();
-    expect(mockPost).not.toHaveBeenCalled();
-    // No header pill to fly into here: it finishes and the header colours sweep in
-    await act(async () => vi.advanceTimersByTime(2100));
-    expect(document.documentElement.dataset.premiumReveal).toBe("sweep");
-  });
-
   it("a Plus learner who moved to Pro gets the level-up, with the header left alone", async () => {
     mockUser = { ...pro, premium_intro_tier: "plus" };
     renderAt("/");
@@ -126,13 +135,26 @@ describe("PremiumWelcome", () => {
     expect(document.documentElement.dataset.premiumReveal).toBe("pill");
   });
 
-  it("the upgrade test button replays the level-up without saving", async () => {
+  it("a running trial gets the padlock that turns into the trophy", async () => {
+    mockUser = { trial_active: true, premium_intro_tier: "" };
+    renderAt("/");
+    await act(async () => vi.advanceTimersByTime(1600));
+    expect(screen.getByRole("dialog", { name: "Welcome to your Career Plus trial" })).toBeInTheDocument();
+    expect(screen.getByText("Your free trial")).toBeInTheDocument();
+    expect(mockPost).toHaveBeenCalledWith("/user/premium-intro-seen", { tier: "trial" });
+    await act(async () => vi.advanceTimersByTime(800));
+    expect(screen.getByText("Unlocked for you")).toBeInTheDocument();
+    await act(async () => vi.advanceTimersByTime(3000));
+    expect(mockDispatch).toHaveBeenCalledWith(expect.objectContaining({ payload: expect.objectContaining({ premium_intro_tier: "trial" }) }));
+  });
+
+  it("the trial test button replays it without saving", async () => {
     mockUser = { ...plus, premium_intro_tier: "plus" };
     renderAt("/");
-    await act(async () =>
-      window.dispatchEvent(new CustomEvent(PREMIUM_PREVIEW_EVENT, { detail: { upgrade: true } })),
-    );
-    expect(screen.getByText("Levelling up")).toBeInTheDocument();
+    await act(async () => window.dispatchEvent(new CustomEvent(PREMIUM_PREVIEW_EVENT, { detail: { kind: "trial" } })));
+    expect(screen.getByText("Your free trial")).toBeInTheDocument();
     expect(mockPost).not.toHaveBeenCalled();
+    await act(async () => vi.advanceTimersByTime(4000));
+    expect(mockDispatch).not.toHaveBeenCalled();
   });
 });

@@ -4,12 +4,14 @@ import { useLocation } from "react-router-dom";
 import { AnimatePresence, animate, m, useMotionValue, useTransform } from "framer-motion";
 import api from "../../api/axios";
 import { setUser } from "../../redux/auth/authSlice";
-import { PREMIUM_PREVIEW_EVENT, PREMIUM_TIER_NAMES, premiumIntroDue, premiumTier } from "../../utils/premium";
+import { Hourglass, Lock, LockOpen } from "lucide-react";
+import { PREMIUM_PREVIEW_EVENT, PREMIUM_TIER_NAMES, premiumTransition } from "../../utils/premium";
 import { isShellRoute } from "../../utils/shellRoutes";
 import { isLiteMode } from "../../utils/liteMode";
 import { hapticMedium } from "../../utils/haptics";
 import { trackFeatureEvent } from "../../telemetry/events";
 import { PLAN_TROPHY } from "./PlanCards";
+import { setLookPreview } from "./usePremiumLook";
 
 // Anything that should finish before the welcome takes the screen
 const BUSY_SELECTOR = "[data-premium-celebration], [aria-modal='true'], .driver-active";
@@ -18,6 +20,12 @@ const EASE_OUT = [0.22, 1, 0.36, 1];
 // Plus → Pro: the ring charges, bursts at LEVEL_UP_AT, then the Maya minutes count up
 const LEVEL_UP_AT = 1250;
 const MAYA_MINUTES = { plus: 10, pro: 30 };
+// Trial: the padlock clicks open, then turns into the trophy that flies into the pill
+const UNLOCK_AT = 700;
+const TROPHY_AT = 1300;
+const TRIAL_FLY_AT = 2400;
+// A test preview leaves its look on the header this long before going back to the real one
+const PREVIEW_HOLD_MS = 5000;
 
 /** Hides the premium header colours under the old navy until the trophy lands, then sweeps them in. */
 function setReveal(state) {
@@ -46,17 +54,43 @@ function TierWord({ pro }) {
   );
 }
 
+/** The trial's padlock: shut, then open with a little hop */
+function TrialLock({ open }) {
+  const icon = "absolute inset-0 m-auto size-16 text-premium-navy";
+  return (
+    <div className="absolute inset-0 m-auto size-32 rounded-full bg-linear-135 from-gold-300 to-gold-400 shadow-xl shadow-gold-400/30 inset-shadow-sm inset-shadow-white/50">
+      <m.span
+        className="absolute inset-0"
+        initial={false}
+        animate={open ? { opacity: 0, y: -6 } : { opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <Lock className={icon} strokeWidth={2.2} />
+      </m.span>
+      <m.span
+        className="absolute inset-0"
+        initial={false}
+        animate={open ? { opacity: 1, y: [6, -4, 0] } : { opacity: 0, y: 6 }}
+        transition={{ duration: 0.35, ease: EASE_OUT }}
+      >
+        <LockOpen className={icon} strokeWidth={2.2} />
+      </m.span>
+    </div>
+  );
+}
+
 /**
  * The one-time "you're premium now" moment: the trophy rises, the plan name appears, then the
  * trophy flies into the header pill while the header turns to the premium colours. Plays once per
  * tier per account (after paying, or on the first open of this version for existing subscribers).
  * A Plus → Pro upgrade gets its own take: the ring charges, bursts, and Plus turns into Pro.
+ * A trial gets a borrowed-feeling one: a padlock clicks open and becomes the trophy.
  */
 export default function PremiumWelcome({ paused = false }) {
   const user = useSelector((state) => state.auth.user);
   const dispatch = useDispatch();
   const location = useLocation();
-  const [run, setRun] = useState(null); // { tier, preview, upgrade }
+  const [run, setRun] = useState(null); // { tier, preview, kind: "welcome" | "upgrade" | "trial" }
   const [phase, setPhase] = useState("rise"); // rise → fly → done
   const [levelled, setLevelled] = useState(false);
   const minutes = useMotionValue(MAYA_MINUTES.plus);
@@ -65,7 +99,8 @@ export default function PremiumWelcome({ paused = false }) {
   const trophyRef = useRef(null);
   const timers = useRef([]);
 
-  const due = premiumIntroDue(user);
+  const transition = premiumTransition(user);
+  const due = transition && transition.kind !== "exit" ? transition : null;
   const onShell = isShellRoute(location.pathname);
 
   const userRef = useRef(user);
@@ -76,16 +111,17 @@ export default function PremiumWelcome({ paused = false }) {
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
   const start = useCallback(
-    (tier, preview, upgrade = false) => {
+    (tier, preview, kind = "welcome") => {
+      const upgrade = kind === "upgrade";
       setPhase("rise");
       setFlyTo(null);
       setLevelled(false);
       minutes.set(MAYA_MINUTES.plus);
-      setRun({ tier, preview, upgrade });
+      setRun({ tier, preview, kind });
       // A Plus header is already premium, so there's nothing to hide on an upgrade
       setReveal(upgrade ? null : "pending");
       hapticMedium();
-      trackFeatureEvent("payments", "premium_welcome_presented", { entityId: tier, attributes: { preview, upgrade } });
+      trackFeatureEvent("payments", "premium_welcome_presented", { entityId: tier, attributes: { preview, upgrade, kind } });
       // The local copy updates once it's over: re-rendering the app mid-animation stutters it
       if (!preview) api.post("/user/premium-intro-seen", { tier }).catch(() => {});
     },
@@ -105,7 +141,7 @@ export default function PremiumWelcome({ paused = false }) {
       if (!ready()) return void timers.current.push(setTimeout(tryStart, 1000));
       whenIdle(() => {
         if (cancelled) return;
-        if (ready()) start(due, false, due === "pro" && userRef.current?.premium_intro_tier === "plus");
+        if (ready()) start(due.to, false, due.kind);
         else timers.current.push(setTimeout(tryStart, 1000));
       });
     };
@@ -116,22 +152,26 @@ export default function PremiumWelcome({ paused = false }) {
   }, [due, onShell, paused, run, start]);
 
   useEffect(() => {
-    const onPreview = (e) =>
-      e?.detail?.upgrade ? start("pro", true, true) : start(premiumTier(user) || "pro", true);
+    const onPreview = (e) => {
+      if (e?.detail?.kind !== "trial") return;
+      setLookPreview("trial");
+      start("trial", true, "trial");
+    };
     window.addEventListener(PREMIUM_PREVIEW_EVENT, onPreview);
     return () => window.removeEventListener(PREMIUM_PREVIEW_EVENT, onPreview);
-  }, [start, user]);
+  }, [start]);
 
   const finish = useCallback(() => {
     timers.current.forEach(clearTimeout);
     timers.current = [];
     setPhase("done");
-    setReveal(runRef.current?.upgrade ? "pill" : "sweep");
+    setReveal(runRef.current?.kind === "upgrade" ? "pill" : "sweep");
     later(() => {
       setReveal(null);
       const current = runRef.current;
       setRun(null);
       if (current && !current.preview) dispatch(setUser({ ...userRef.current, premium_intro_tier: current.tier }));
+      if (current?.preview) later(() => setLookPreview(null), PREVIEW_HOLD_MS);
     }, 900);
   }, [dispatch]);
 
@@ -152,7 +192,16 @@ export default function PremiumWelcome({ paused = false }) {
 
   useEffect(() => {
     if (!run || phase !== "rise") return;
-    if (!run.upgrade) return void later(fly, isLiteMode ? 1600 : 2000);
+    // "trophy" is a later step of the trial's rise, the timers are already set
+    if (run.kind === "trial") {
+      later(() => {
+        setLevelled(true);
+        hapticMedium();
+      }, isLiteMode ? 400 : UNLOCK_AT);
+      later(() => setPhase("trophy"), isLiteMode ? 900 : TROPHY_AT);
+      return void later(fly, isLiteMode ? 1700 : TRIAL_FLY_AT);
+    }
+    if (run.kind !== "upgrade") return void later(fly, isLiteMode ? 1600 : 2000);
     const levelUpAt = isLiteMode ? 700 : LEVEL_UP_AT;
     later(() => {
       setLevelled(true);
@@ -163,14 +212,17 @@ export default function PremiumWelcome({ paused = false }) {
   }, [run, phase, fly, minutes]);
 
   const skip = () => {
-    if (phase === "rise") fly();
+    if (phase === "rise" || phase === "trophy") fly();
   };
 
-  const name = run ? PREMIUM_TIER_NAMES[run.tier] : "";
+  const name = !run ? "" : run.tier === "trial" ? "your Career Plus trial" : PREMIUM_TIER_NAMES[run.tier];
   const flying = phase === "fly";
-  const upgrade = Boolean(run?.upgrade);
+  const upgrade = run?.kind === "upgrade";
+  const trial = run?.kind === "trial";
+  // The trial shows its padlock until it turns into the trophy
+  const showLock = trial && phase === "rise";
   // Upgrade glow: dim while the ring charges, full at the burst
-  const glowScale = flying ? 0.4 : upgrade && !levelled ? 0.7 : 1;
+  const glowScale = flying ? 0.4 : (upgrade || trial) && !levelled ? 0.7 : 1;
 
   return (
     <AnimatePresence>
@@ -246,7 +298,7 @@ export default function PremiumWelcome({ paused = false }) {
               </>
             )}
             {!isLiteMode &&
-              (!upgrade || levelled) &&
+              ((!upgrade && !trial) || levelled) &&
               Array.from({ length: SPARKS }, (_, i) => {
                 const angle = (i / SPARKS) * Math.PI * 2;
                 const dist = 110 + (i % 3) * 18;
@@ -257,7 +309,7 @@ export default function PremiumWelcome({ paused = false }) {
                     className="absolute size-1.5 rounded-full bg-gold-300"
                     initial={{ x: 0, y: 0, opacity: 0, scale: 0.4 }}
                     animate={{ x: Math.cos(angle) * dist, y: Math.sin(angle) * dist, opacity: [0, 1, 0], scale: [0.4, 1, 0.6] }}
-                    transition={{ delay: (upgrade ? 0 : 0.45) + (i % 4) * 0.04, duration: 1.1, ease: "easeOut" }}
+                    transition={{ delay: (upgrade || trial ? 0 : 0.45) + (i % 4) * 0.04, duration: 1.1, ease: "easeOut" }}
                   />
                 );
               })}
@@ -276,8 +328,19 @@ export default function PremiumWelcome({ paused = false }) {
                   : { type: "spring", stiffness: 140, damping: 14, mass: 0.9 }
               }
             >
-              <img src={PLAN_TROPHY} alt="" className="size-full object-contain drop-shadow-xl" />
-              {!isLiteMode && (
+              {showLock ? (
+                <TrialLock open={levelled} />
+              ) : (
+                <m.img
+                  src={PLAN_TROPHY}
+                  alt=""
+                  className="size-full object-contain drop-shadow-xl"
+                  initial={trial ? { opacity: 0, scale: 0.7 } : false}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 220, damping: 16 }}
+                />
+              )}
+              {!isLiteMode && !showLock && (
                 // A band of light across the trophy, clipped to its shape
                 <div
                   aria-hidden="true"
@@ -288,7 +351,7 @@ export default function PremiumWelcome({ paused = false }) {
                     className="absolute inset-y-0 -left-full w-full -skew-x-12 bg-linear-to-r from-transparent via-white/70 to-transparent"
                     initial={{ x: "0%" }}
                     animate={{ x: "300%" }}
-                    transition={{ delay: upgrade ? LEVEL_UP_AT / 1000 : 0.7, duration: 0.9, ease: "easeInOut" }}
+                    transition={{ delay: upgrade ? LEVEL_UP_AT / 1000 : trial ? 0.25 : 0.7, duration: 0.9, ease: "easeInOut" }}
                   />
                 </div>
               )}
@@ -301,7 +364,15 @@ export default function PremiumWelcome({ paused = false }) {
             animate={{ opacity: flying ? 0 : 1, y: flying ? -8 : 0 }}
             transition={{ delay: flying ? 0 : 0.5, duration: 0.45, ease: EASE_OUT }}
           >
-            {upgrade ? (
+            {trial ? (
+              <>
+                <p className="text-gold-300 text-sm font-medium">{levelled ? "Unlocked for you" : "Your free trial"}</p>
+                <h2 className="text-white text-3xl font-bold">Career Plus</h2>
+                <p className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-white/80 text-sm">
+                  <Hourglass className="size-3.5 text-gold-300" />7 days, every feature
+                </p>
+              </>
+            ) : upgrade ? (
               <>
                 <p className="text-gold-300 text-sm font-medium">{levelled ? "You're now on" : "Levelling up"}</p>
                 <h2 className="text-white text-3xl font-bold">

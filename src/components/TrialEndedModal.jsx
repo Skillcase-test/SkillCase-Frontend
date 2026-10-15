@@ -11,7 +11,9 @@ import {
   isPremiumUser,
   isTrialActive,
   isTrialEndedDismissed,
+  premiumTransition,
 } from "../utils/premium";
+import { useExitCardOpen } from "./premium/usePremiumLook";
 import { trackFeatureEvent } from "../telemetry/events";
 
 const PREMIUM_FEATURES = [
@@ -62,6 +64,7 @@ export default function TrialEndedModal() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [closed, setClosed] = useState(false);
+  const exitCardOpen = useExitCardOpen();
 
   const shouldShow =
     !closed &&
@@ -69,7 +72,10 @@ export default function TrialEndedModal() {
     !isPremiumUser(user) &&
     !isTrialActive(user) &&
     hasTakenTrial(user) &&
-    !isTrialEndedDismissed(user);
+    !isTrialEndedDismissed(user) &&
+    // The exit animation's card says it first (and stands in for this one)
+    !exitCardOpen &&
+    premiumTransition(user)?.kind !== "exit";
 
   useEffect(() => {
     if (shouldShow) {

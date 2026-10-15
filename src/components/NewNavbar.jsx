@@ -5,11 +5,15 @@ import { isPracticeSuiteLevel } from "../utils/b1Progress";
 import { hapticLight, hapticMedium } from "../utils/haptics";
 import { Gift, GraduationCap } from "lucide-react";
 import { GoTrophy } from "react-icons/go";
-import { isPremiumUser, isTrialActive, premiumPlanName, trialDaysLeft } from "../utils/premium";
+import { PREMIUM_TIER_NAMES } from "../utils/premium";
+import { usePremiumLook } from "./premium/usePremiumLook";
 import { isScholarshipRoute } from "../utils/shellRoutes";
 
 export default function Navbar({ disableNavigation = false }) {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  // The trial wears the Career Plus look; a plan or trial that just ended keeps its look
+  // until the exit animation takes it away
+  const { look, trialLabel } = usePremiumLook();
   const location = useLocation();
 
   const queryParams = new URLSearchParams(location.search);
@@ -66,10 +70,9 @@ export default function Navbar({ disableNavigation = false }) {
 
   const rawLevel = user?.user_prof_level || "A1";
   const displayLevel = String(rawLevel).toUpperCase();
-  const isPremium = isPremiumUser(user);
-  const premiumName = premiumPlanName(user);
-  const isTrial = !isPremium && isTrialActive(user);
-  const daysLeft = trialDaysLeft(user);
+  const isPremium = Boolean(look);
+  const isTrial = look === "trial";
+  const premiumName = isTrial ? "Trial" : PREMIUM_TIER_NAMES[look];
 
   const renderAvatar = () => (
     <Link to="/profile" id="profile-nav-link" className="flex-shrink-0">
@@ -155,60 +158,21 @@ export default function Navbar({ disableNavigation = false }) {
                 </Link>
               )}
 
-              {/* Plan pill — three states, all tappable: premium manages its
-                  plan, trial and free go to the upgrade page. */}
+              {/* Plan pill: premium manages its plan, trial and free go to the upgrade page */}
               {isPremium ? (
                 <Link
-                  to="/profile/manage-plan"
+                  to={isTrial ? "/profile/upgrade" : "/profile/manage-plan"}
                   onClick={hapticLight}
                   data-premium-pill
                   className="relative premium-pill-ring h-8 flex items-center gap-1.5 pl-1 pr-2.5 rounded-full hover:bg-white/5 transition-colors"
-                  title={`${premiumName} — manage your plan`}
+                  title={isTrial ? `Free trial, ${trialLabel} — upgrade now` : `${premiumName} — manage your plan`}
                 >
                   <span className="size-6 rounded-full bg-black/30 inset-shadow-sm inset-shadow-black/60 flex items-center justify-center shrink-0">
                     <GoTrophy className="size-3.5 text-gold-300" />
                   </span>
                   <span className="text-gold-300 text-xs font-medium leading-4 whitespace-nowrap">
                     {premiumName}
-                  </span>
-                </Link>
-              ) : isTrial ? (
-                <Link
-                  to="/profile/upgrade"
-                  onClick={hapticLight}
-                  className="flex items-center gap-1 pl-0.5 pr-2 py-0.5 bg-white/10 rounded-[200px] hover:bg-white/20 transition-colors"
-                  title={`${daysLeft} days left in Premium Trial — upgrade now`}
-                >
-                  <span className="relative w-6 h-6 shrink-0">
-                    <svg viewBox="0 0 24 24" className="w-6 h-6 -rotate-90">
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="9.5"
-                        fill="none"
-                        stroke="#002856"
-                        strokeWidth="3"
-                      />
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="9.5"
-                        fill="none"
-                        stroke="#fbbf24"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeDasharray={59.69}
-                        strokeDashoffset={
-                          59.69 * (1 - Math.min(1, daysLeft / 7))
-                        }
-                      />
-                    </svg>
-                    <span className="absolute inset-0 flex items-center justify-center text-white text-[10px] font-semibold leading-3 tabular-nums">
-                      {String(daysLeft).padStart(2, "0")}
-                    </span>
-                  </span>
-                  <span className="text-white text-[10px] font-medium leading-3">
-                    days left
+                    {isTrial && <span className="text-gold-300/70"> · {trialLabel}</span>}
                   </span>
                 </Link>
               ) : (

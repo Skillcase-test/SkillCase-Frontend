@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useGoBack } from "../hooks/useGoBack";
 import { useBackHandler } from "../router/backButton";
 import { setUser, logout } from "../redux/auth/authSlice";
-import { canLearnerUpgradeToPro, isTrialActive, PREMIUM_PREVIEW_EVENT, premiumPlanName, trialDaysLeft } from "../utils/premium";
+import { canLearnerUpgradeToPro, isTrialActive, PREMIUM_PREVIEW_EVENT, premiumPlanName, trialDaysRemaining } from "../utils/premium";
 import { hasMayaLevel } from "../utils/levels";
 import { FreePlanCard, PremiumPlanCard } from "../components/premium/PlanCards";
 import { stableFile } from "../utils/stableFile";
@@ -26,7 +26,6 @@ import {
 import { Document, Page, pdfjs } from "react-pdf";
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import * as LucideIcons from "lucide-react";
-import diamond from "../assets/diamond.webp";
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -41,7 +40,6 @@ const MessageCircleQuestionMarkIcon =
 
 const ArrowLeftIcon = LucideIcons.ArrowLeft || LucideIcons.ChevronLeft;
 const CheckIcon = LucideIcons.Check;
-const GemIcon = LucideIcons.Gem || LucideIcons.Diamond;
 const ChevronRightIcon = LucideIcons.ChevronRight;
 const XIcon = LucideIcons.X;
 const UploadIcon = LucideIcons.Upload;
@@ -834,7 +832,7 @@ export default function ProfilePage() {
   const displayName = form.fullname || user?.username || "Amélie Laurent";
   const displayPhone = phoneNumber || user?.number || "8240951870";
   const isTrial = !isPaidMember && isTrialActive(user);
-  const trialDays = trialDaysLeft(user);
+  const trialDays = trialDaysRemaining(user);
   const nextBilling = (() => {
     if (!user?.next_billing_at) return "";
     const d = new Date(user.next_billing_at);
@@ -1014,47 +1012,16 @@ export default function ProfilePage() {
                 }
               />
             ) : isTrial ? (
-              <div className="w-full p-3 bg-gradient-to-r from-[#083262] to-[#1E5CA2] rounded-xl flex flex-col gap-2.5">
-                <div className="flex justify-between items-start gap-3">
-                  <div className="flex-1 min-w-0 flex flex-col gap-4">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1 bg-amber-300 rounded-3xl flex items-center justify-center">
-                          <GemIcon className="size-4 text-[#002856]" />
-                        </div>
-                        <span className="text-white text-base font-semibold leading-5">
-                          Free Trial
-                        </span>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <p className="text-white text-xs font-normal leading-4">
-                          {trialDays} day{trialDays === 1 ? "" : "s"} left in
-                          your Premium Trial
-                        </p>
-                        <p className="text-white text-xs font-normal leading-4">
-                          Full access to all premium features.
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => navigate("/profile/upgrade")}
-                      className="inline-flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
-                    >
-                      <span className="text-amber-300 text-xs font-medium">
-                        Upgrade to Premium
-                      </span>
-                      <ChevronRightIcon className="size-3 text-amber-300" />
-                    </button>
-                  </div>
-                  <div className="size-24 rounded-3xl overflow-hidden shrink-0">
-                    <img
-                      src={diamond}
-                      alt="Premium"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              </div>
+              // The trial wears the Career Plus look
+              <PremiumPlanCard
+                name="Career Plus Trial"
+                lines={[
+                  trialDays <= 1 ? "Last day of your free trial" : `${trialDays} days left in your free trial`,
+                  "Full access to all premium features.",
+                ]}
+                actionLabel="Upgrade now"
+                onAction={() => navigate("/profile/upgrade")}
+              />
             ) : (
               <FreePlanCard
                 upgradeTier={hasMayaLevel(user?.user_prof_level) ? "pro" : "plus"}
@@ -1062,17 +1029,26 @@ export default function ProfilePage() {
               />
             )}
 
-            {/* TEMP TESTING: replays the Plus → Pro upgrade animation on the home screen. Remove before release. */}
-            <button
-              type="button"
-              onClick={() => {
-                navigate("/");
-                setTimeout(() => window.dispatchEvent(new CustomEvent(PREMIUM_PREVIEW_EVENT, { detail: { upgrade: true } })), 600);
-              }}
-              className="w-full py-2 rounded-lg border border-dashed border-amber-400 text-amber-700 text-xs font-medium"
-            >
-              Test: play Plus → Pro upgrade
-            </button>
+            {/* TEMP TESTING: replays the trial and exit animations on the home screen. Remove before release. */}
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                ["trial", "Trial starts"],
+                ["trial-exit", "Trial over"],
+                ["plan-exit", "Premium ends"],
+              ].map(([kind, label]) => (
+                <button
+                  key={kind}
+                  type="button"
+                  onClick={() => {
+                    navigate("/");
+                    setTimeout(() => window.dispatchEvent(new CustomEvent(PREMIUM_PREVIEW_EVENT, { detail: { kind } })), 600);
+                  }}
+                  className="py-2 rounded-lg border border-dashed border-amber-400 text-amber-700 text-xs font-medium"
+                >
+                  Test: {label}
+                </button>
+              ))}
+            </div>
 
             {/* Scholarship Exam Entry — re-entry point into the exam funnel. */}
             <ScholarshipEntryCard visible={showOnProfile} user={user} />

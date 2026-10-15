@@ -42,6 +42,20 @@ export function mayaFeatureValue(user, planMinutes) {
   return null;
 }
 
+// The plan's feature list, worded as on the upgrade page. Talk to Maya leads at the levels
+// that have it, in place of the generic AI line.
+export const PLAN_FEATURES = [
+  "Unlimited AI conversations",
+  "Unlimited German lessons",
+  "Unlimited Flashcards",
+  "Unlimited learning & many more",
+];
+
+export function planFeatures(user, planMinutes) {
+  const maya = mayaFeatureValue(user, planMinutes);
+  return maya ? [`Talk to Maya · ${maya}`, ...PLAN_FEATURES.slice(1)] : PLAN_FEATURES;
+}
+
 // Course learners marked paid by the team, with no subscription of their own.
 // They're Career Plus and can buy Career Pro (₹199 autopay) on top, at the
 // levels the plan is sold for. Cancelling it later drops them back to this.
@@ -62,7 +76,8 @@ export function premiumTier(user) {
   return user?.autopay_enabled === true && user?.subscription_plan === "b2_plus" ? "pro" : "plus";
 }
 
-// Window event that replays the premium welcome (temporary test button)
+// Window event that replays a premium animation (temporary test buttons).
+// detail.kind: "trial" | "trial-exit" | "plan-exit"
 export const PREMIUM_PREVIEW_EVENT = "skillcase:premium-intro-preview";
 
 export const PREMIUM_TIER_NAMES = { plus: "Career Plus", pro: "Career Pro" };
@@ -72,11 +87,41 @@ export function premiumPlanName(user) {
   return tier ? PREMIUM_TIER_NAMES[tier] : null;
 }
 
-// The premium welcome animation is due when the learner is on a tier above the
-// last one they saw it for. Only decided once /user/me has reported the flag.
-export function premiumIntroDue(user) {
-  const tier = premiumTier(user);
-  if (!tier || typeof user?.premium_intro_tier !== "string") return null;
-  const rank = { "": 0, plus: 1, pro: 2 };
-  return (rank[tier] ?? 0) > (rank[user.premium_intro_tier] ?? 0) ? tier : null;
+// The header look: the plan's tier, "trial" (the Plus look with a trial pill), or null
+export function premiumLook(user) {
+  return premiumTier(user) || (isTrialActive(user) ? "trial" : null);
+}
+
+const LOOK_RANK = { "": 0, trial: 1, plus: 2, pro: 3 };
+
+// What changed since the look the app last animated the learner into (premium_intro_tier):
+// "trial" (trial starts), "welcome" (a plan starts), "upgrade" (Plus → Pro), or "exit"
+// (trial or plan over, or Pro → Plus). null when nothing changed, or until /user/me has
+// reported the flag. Learners whose access ended before this version have "" stored, so
+// they never get an exit.
+export function premiumTransition(user) {
+  const seen = user?.premium_intro_tier;
+  if (typeof seen !== "string" || !(seen in LOOK_RANK)) return null;
+  const to = premiumLook(user) || "";
+  if (LOOK_RANK[to] === LOOK_RANK[seen]) return null;
+  if (LOOK_RANK[to] < LOOK_RANK[seen]) return { kind: "exit", from: seen, to };
+  const kind = to === "trial" ? "trial" : seen === "plus" && to === "pro" ? "upgrade" : "welcome";
+  return { kind, from: seen, to };
+}
+
+// The look to draw: until the exit animation has played, the learner keeps the look they had
+export function shownPremiumLook(user) {
+  const t = premiumTransition(user);
+  return t?.kind === "exit" ? t.from : premiumLook(user);
+}
+
+// Trial days counted like a calendar: 7 right after starting, 1 on the last day
+export function trialDaysRemaining(user) {
+  const end = user?.trial_end_at ? new Date(user.trial_end_at).getTime() : NaN;
+  return Math.max(0, Number.isFinite(end) ? Math.ceil((end - Date.now()) / 86400000) : trialDaysLeft(user) + 1);
+}
+
+export function trialPillLabel(user) {
+  const days = trialDaysRemaining(user);
+  return days <= 1 ? "last day" : `${days}d left`;
 }

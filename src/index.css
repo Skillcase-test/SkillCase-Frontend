@@ -401,3 +401,51 @@ html[data-premium-reveal="pill"] [data-premium-pill] {
 html.lite[data-premium-reveal="pill"] [data-premium-pill] {
   animation: none;
 }
+
+/* Premium exit: the pill shakes and cracks, the band greys out, then the old navy sweeps
+   back in from the top left. The falling pill halves are drawn by PremiumExit itself. */
+html[data-premium-exit="crack"] [data-premium-pill] {
+  animation: premium-pill-shake 500ms ease-in-out;
+}
+html[data-premium-exit="fall"] [data-premium-pill],
+html[data-premium-exit="drain"] [data-premium-pill] {
+  visibility: hidden;
+}
+@keyframes premium-pill-shake {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  20% { transform: translateX(-2px) rotate(-2deg); }
+  40% { transform: translateX(2px) rotate(2deg); }
+  60% { transform: translateX(-1.5px) rotate(-1deg); }
+  80% { transform: translateX(1px) rotate(1deg); }
+}
+html[data-premium-exit="drain"] .premium-veil {
+  display: block;
+  background-color: transparent;
+}
+html[data-premium-exit="drain"] .premium-veil::before,
+html[data-premium-exit="drain"] .premium-veil::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+html[data-premium-exit="drain"] .premium-veil::before {
+  -webkit-backdrop-filter: grayscale(1) brightness(0.8);
+  backdrop-filter: grayscale(1) brightness(0.8);
+  animation: premium-ash 450ms ease-out both;
+}
+html[data-premium-exit="drain"] .premium-veil::after {
+  background-color: var(--color-primary);
+  animation: premium-veil-cover 650ms 450ms cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+html[data-premium-exit="drain"] .premium-veil-late::after {
+  animation-delay: 570ms;
+}
+@keyframes premium-ash {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* The reverse of premium-veil-sweep: covers from the top left corner towards the bottom right */
+@keyframes premium-veil-cover {
+  from { clip-path: polygon(0 0, 0 0, -40% 100%, -40% 100%); }
+  to { clip-path: polygon(0 0, 140% 0, 100% 100%, -40% 100%); }
+}

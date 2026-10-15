@@ -6,16 +6,10 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ChevronRight, Gem, Check } from "lucide-react";
 import { useAutopayCheckout } from "../../hooks/useAutopayCheckout";
 import { getSubscriptionPlans } from "../../api/subscriptionApi";
-import { canLearnerUpgradeToPro, mayaFeatureValue } from "../../utils/premium";
+import { canLearnerUpgradeToPro, mayaFeatureValue, planFeatures } from "../../utils/premium";
 import PremiumActivatedModal from "../../components/PremiumActivatedModal";
 import diamond from "../../assets/diamond.webp";
 
-const PLAN_FEATURES = [
-  "Unlimited AI conversations",
-  "Unlimited German lessons",
-  "Unlimited Flashcards",
-  "Unlimited learning & many more",
-];
 
 const rupees = (paise) => Math.round((paise || 0) / 100);
 
@@ -53,8 +47,7 @@ export default function UpgradePlanPage() {
   const priceLabel = `₹${rupees(selected?.amountPaise ?? (learnerUpgrade ? 19900 : 9900))}`;
   const hasChoice = (buyable?.length || 0) > 1;
   // Talk to Maya is minute-metered at B1 and B2; lower levels don't have it yet.
-  const mayaMinutes = mayaFeatureValue(user, selected?.mayaMinutesPerDay);
-  const mayaLabel = mayaMinutes ? `Talk to Maya · ${mayaMinutes}` : null;
+  const features = planFeatures(user, selected?.mayaMinutesPerDay);
 
   // Already premium → manage plan instead of a second upgrade. (Keep the
   // success modal visible right after checkout completes, then let Go/close
@@ -159,10 +152,7 @@ export default function UpgradePlanPage() {
 
           <div className="flex justify-start items-start gap-4">
             <div className="flex-1 flex flex-col gap-1">
-              {(mayaLabel
-                ? [mayaLabel, ...PLAN_FEATURES.slice(1)]
-                : PLAN_FEATURES
-              ).map((feature) => (
+              {features.map((feature) => (
                 <div key={feature} className="flex items-center gap-2">
                   <div className="size-2.5 bg-green-600 rounded-full shrink-0">
                     <Check className="text-white size-full" />

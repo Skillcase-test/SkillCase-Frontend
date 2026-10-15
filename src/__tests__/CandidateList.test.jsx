@@ -78,19 +78,24 @@ describe("CandidateList", () => {
     expect(onSelectCandidate).toHaveBeenCalledWith("candidate-1");
   });
 
-  test("offers proficiency levels only through B2", () => {
+  test("offers only the B1 and B2 proficiency filters", () => {
     const onProficiencyLevelChange = vi.fn();
     render(
       <CandidateList
         {...defaultProps}
+        filtersOpen
+        experienceOptions={[]}
+        qualificationOptions={[]}
+        departmentOptions={[]}
+        departmentFilters={[]}
         onProficiencyLevelChange={onProficiencyLevelChange}
       />,
     );
 
-    const select = screen.getByLabelText("Proficiency");
+    const select = screen.getByText("Proficiency").closest("label").querySelector("select");
     expect(
       Array.from(select.options).map((option) => option.textContent),
-    ).toEqual(["All Levels", "A1", "A2", "B1", "B2"]);
+    ).toEqual(["All Levels", "B1", "B2"]);
 
     fireEvent.change(select, { target: { value: "B2" } });
     expect(onProficiencyLevelChange).toHaveBeenCalledWith("B2");

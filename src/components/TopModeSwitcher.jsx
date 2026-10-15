@@ -5,7 +5,7 @@ import { getLGMode, setLGMode } from "../api/learnGermanApi";
 import { trackJourneyEvent } from "../observability/journeyEvents";
 import { hapticLight } from "../utils/haptics";
 import { isPracticeSuiteLevel } from "../utils/b1Progress";
-import { isPremiumUser } from "../utils/premium";
+import { usePremiumLook } from "./premium/usePremiumLook";
 import { syncModeIntoRedux } from "../utils/lgMode";
 import {
   isScholarshipRoute,
@@ -41,7 +41,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
   // B1/B2 users get a two-tab switcher: Exam & Practice + Jobs. The Jobs tab
   // is the gateway into the job-screening pipeline (and back via practice).
   const isB1 = isPracticeSuiteLevel(user?.user_prof_level);
-  const isPremium = isPremiumUser(user);
+  const isPremium = Boolean(usePremiumLook().look);
   const [localTourActive, setLocalTourActive] = useState(false);
 
   useEffect(() => {

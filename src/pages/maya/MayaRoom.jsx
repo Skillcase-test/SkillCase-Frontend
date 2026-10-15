@@ -682,14 +682,14 @@ export default function MayaRoom({ meta, focus }) {
   if (screen === "timeup")
     return (
       <>
-        <Header title={plan?.window === "trial" ? "Trial minutes used" : "Time's up for today"} />
+        <Header title={plan?.window === "trial" ? "Trial minutes used" : plan?.window === "free" ? "Free minutes used" : "Time's up for today"} />
         <Main>
           <div className="device-hero warning">
             <Icon name="clock" />
           </div>
           <Title
-            text={<>That’s your {plan ? `${plan.dailyMinutes} minutes` : "practice time"}<br />{plan?.window === "trial" ? "of free trial." : "for today."}</>}
-            desc={plan?.window === "trial"
+            text={<>That’s your {plan ? `${plan.dailyMinutes} minutes` : "practice time"}<br />{plan?.window === "trial" ? "of free trial." : plan?.window === "free" ? "for free." : "for today."}</>}
+            desc={plan?.window === "trial" || plan?.window === "free"
               ? "Your conversation was saved — subscribe to keep practising with Maya every day."
               : plan?.tier === "standard"
                 ? "Your conversation was saved — see your feedback, then come back tomorrow. Career Pro gives you 30 minutes a day."
@@ -880,7 +880,7 @@ export default function MayaRoom({ meta, focus }) {
             </p>
           ) : null}
         </Main>
-        <Footer note={plan ? `Up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} minutes left ${plan.window === "trial" ? "in your trial" : "today"} · ${level} practice` : `About ${minutes} minutes · ${level} practice`}>
+        <Footer note={plan ? `Up to ${Math.max(1, Math.floor(poolSecondsLeft / 60))} minutes left ${plan.window === "trial" ? "in your trial" : plan.window === "free" ? "free" : "today"} · ${level} practice` : `About ${minutes} minutes · ${level} practice`}>
           <button
             type="button"
             className="primary"
@@ -948,9 +948,11 @@ export default function MayaRoom({ meta, focus }) {
             {plan ? (
               <span className="pill gold" role="status">
                 {poolSecondsLeft >= 60
-                  ? `${Math.floor(poolSecondsLeft / 60)} of ${plan.dailyMinutes} min left ${plan.window === "trial" ? "in your trial" : "today"}`
+                  ? `${Math.floor(poolSecondsLeft / 60)} of ${plan.dailyMinutes} min left ${plan.window === "trial" ? "in your trial" : plan.window === "free" ? "free" : "today"}`
                   : plan.window === "trial"
                     ? "Your trial minutes are used up"
+                    : plan.window === "free"
+                      ? "Your free minutes are used up"
                     : "Today’s minutes are used up"}
               </span>
             ) : null}

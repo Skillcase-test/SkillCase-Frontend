@@ -118,6 +118,7 @@ const AppReviewPromptModal = lazy(() => import("../components/AppReviewPromptMod
 const StreakLeaderboardModal = lazy(() => import("../components/StreakLeaderboardModal"));
 const PremiumActivatedModal = lazy(() => import("../components/PremiumActivatedModal"));
 const PremiumWelcome = lazy(() => import("../components/premium/PremiumWelcome"));
+const PremiumExit = lazy(() => import("../components/premium/PremiumExit"));
 const TrialCountdownModal = lazy(() => import("../components/TrialCountdownModal"));
 const TrialEndedModal = lazy(() => import("../components/TrialEndedModal"));
 const PaywallBlocker = lazy(() => import("../components/PaywallBlocker"));
@@ -1036,6 +1037,7 @@ export default function AppLayout() {
                 {isAuthenticated && (
                   <Suspense fallback={null}>
                     <PremiumWelcome paused={showPaymentSuccess || showProfileHighlight} />
+                    <PremiumExit paused={showPaymentSuccess || showProfileHighlight} />
                   </Suspense>
                 )}
 

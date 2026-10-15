@@ -361,6 +361,8 @@ export default function UsageLimitModal({ initialEvent = null }) {
                 {isMayaDailyLimit
                   ? event.limit_window === "trial"
                     ? "That's all your Maya trial minutes"
+                    : event.limit_window === "free"
+                      ? "That's all your free Maya minutes"
                     : "That's your Maya time for today"
                   : isHardLocked
                     ? "Subscribe to Premium Plan for access"
