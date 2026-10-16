@@ -10,6 +10,9 @@ import {
 import { useSelector } from "react-redux";
 import { getMyUsageLimitState } from "../api/usageLimitApi";
 
+// Screen mounts reuse a fetch from the last 10s; the server still enforces every save
+const MODULE_MOUNT_MAX_AGE_MS = 10_000;
+
 const UsageLimitContext = createContext({
   eligible: false,
   states: [],
@@ -37,11 +40,16 @@ export function UsageLimitProvider({ children }) {
   // every reload with any locked module would pop the subscribe modal
   // out of nowhere.
   const hasFetchedRef = useRef(false);
+  const lastFetchedAtRef = useRef(0);
+  const lastFetchedUserRef = useRef(null);
+  const inFlightRef = useRef(null);
+  const userId = isAuthenticated ? user?.user_id || null : null;
 
-  const refresh = useCallback(async () => {
+  const fetchStates = useCallback(async () => {
     if (!isAuthenticated || !user?.user_id) {
       prevStatesRef.current = [];
       hasFetchedRef.current = false;
+      lastFetchedAtRef.current = 0;
       setEligible(false);
       setStates((prev) => (prev.length ? [] : prev));
       return;
@@ -82,6 +90,8 @@ export function UsageLimitProvider({ children }) {
         }
       }
       hasFetchedRef.current = true;
+      lastFetchedAtRef.current = Date.now();
+      lastFetchedUserRef.current = user.user_id;
       prevStatesRef.current = nextStates;
 
       setEligible(Boolean(res.data?.eligible));
@@ -92,6 +102,7 @@ export function UsageLimitProvider({ children }) {
       );
     } catch (err) {
       hasFetchedRef.current = false;
+      lastFetchedAtRef.current = 0;
       // Fail closed on the client — the server-side middleware is the real
       // authority; a fetch failure here just means no badges/pre-emptive
       // modals, not a security hole.
@@ -102,6 +113,32 @@ export function UsageLimitProvider({ children }) {
     }
   }, [isAuthenticated, user?.user_id]);
 
+  // maxAgeMs is only for screen mounts: reuse a fetch that is running or
+  // finished moments ago. Lock events, focus and the interval always fetch.
+  const refresh = useCallback(
+    (options) => {
+      const maxAgeMs = options?.maxAgeMs || 0;
+      if (maxAgeMs > 0 && userId) {
+        const inFlight = inFlightRef.current;
+        if (inFlight?.userId === userId) return inFlight.promise;
+        if (
+          hasFetchedRef.current &&
+          lastFetchedUserRef.current === userId &&
+          Date.now() - lastFetchedAtRef.current < maxAgeMs
+        ) {
+          return Promise.resolve();
+        }
+      }
+      const entry = { userId, promise: null };
+      entry.promise = fetchStates().finally(() => {
+        if (inFlightRef.current === entry) inFlightRef.current = null;
+      });
+      inFlightRef.current = entry;
+      return entry.promise;
+    },
+    [fetchStates, userId],
+  );
+
   useEffect(() => {
     if (!isAuthenticated || !user?.user_id) {
       fetchedForUserId.current = null;
@@ -111,7 +148,7 @@ export function UsageLimitProvider({ children }) {
     }
     if (fetchedForUserId.current === user.user_id) return;
     fetchedForUserId.current = user.user_id;
-    refresh();
+    refresh({ maxAgeMs: MODULE_MOUNT_MAX_AGE_MS });
   }, [isAuthenticated, user?.user_id, refresh]);
 
   useEffect(() => {
@@ -223,7 +260,7 @@ export function useUsageLimitModule(level, moduleKey) {
   const state = getState(level, moduleKey);
 
   useEffect(() => {
-    refresh();
+    refresh({ maxAgeMs: MODULE_MOUNT_MAX_AGE_MS });
   }, [level, moduleKey, refresh]);
 
   return { state, locked: Boolean(state?.locked) };
