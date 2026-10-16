@@ -818,7 +818,10 @@ const OnboardingFlow = () => {
   const handleGermanLevelSubmit = () => {
     if (germanLevel) {
       setError("");
-      if (germanStatus === "I have completed learning German") {
+      // "Other" professions don't get German Jobs: straight into practice
+      if (occupation === "Other" && (germanStatus === "I have completed learning German" || germanLevel.includes("B1") || germanLevel.includes("B2"))) {
+        submitB1B2Preference("2");
+      } else if (germanStatus === "I have completed learning German") {
         handleInstantJobScreeningSubmit();
       } else {
         const isB1OrB2 =
@@ -921,7 +924,8 @@ const OnboardingFlow = () => {
     }
   };
 
-  const handleB1B2PreferenceSubmit = async () => {
+  const handleB1B2PreferenceSubmit = () => submitB1B2Preference(preference);
+  const submitB1B2Preference = async (preference) => {
     if (!preference) {
       trackFlowAction(
         "onboarding",

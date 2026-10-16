@@ -26,7 +26,8 @@ import bookImg from "../assets/book.webp";
 import { isScholarshipRoute } from "../utils/shellRoutes";
 import { syncModeIntoRedux } from "../utils/lgMode";
 import { trackFeatureEvent } from "../telemetry/events";
-import { fetchMe, getLastMeSyncAt } from "../api/meSync";
+import { fetchMe, getLastMeSyncAt } from "../api/meSync";import { useGermanJobsHidden } from "../hooks/useGermanJobs";
+
 
 const COIN_IMG_URL = "/coin.webp";
 const STREAK_IMG_URL = "/streak-bolt.webp";
@@ -129,6 +130,8 @@ export default function BottomTabBar() {
   // A1/A2 users land on the locked /jobs teaser page (non-actionable, hardcoded
   // job cards); B1/B2 users go into the real job-screening pipeline.
   const jobsHref = isB1 ? "/job-screening" : "/jobs";
+  const { hidden: jobsHidden } = useGermanJobsHidden();
+  const showJobs = !(isB1 && jobsHidden);
 
   useEffect(() => {
     let cancelled = false;
@@ -375,6 +378,7 @@ export default function BottomTabBar() {
             tap also persists the mode server-side (admin visibility stays
             sticky via the screening record either way). A1/A2 users get the
             locked /jobs teaser instead. */}
+        {showJobs ? (
         <Link
           to={jobsHref}
           // /jobs is the A1/A2 teaser, not a hub — it must keep a Back entry
@@ -416,6 +420,10 @@ export default function BottomTabBar() {
             Jobs
           </span>
         </Link>
+        ) : (
+          // Keeps the centre arch centred
+          <span className="w-14" aria-hidden="true" />
+        )}
 
         {/* Center — mode-aware progress arch with adaptive Word Vault absorb animation */}
         <button

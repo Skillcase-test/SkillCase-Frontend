@@ -12,6 +12,7 @@ import {
   getSwitcherBlendColor,
 } from "../utils/shellRoutes";
 import { useFeatureFlags } from "../hooks/useFeatureFlags";
+import { useGermanJobsHidden } from "../hooks/useGermanJobs";
 import { canAnimateRoutes, runHubSwitch, setNavMotion } from "../router/navigation";
 import bookImg from "../assets/book.webp";
 import { getMayaImage } from "../utils/mayaAvatars";
@@ -41,6 +42,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
   // B1/B2 users get a two-tab switcher: Exam & Practice + Jobs. The Jobs tab
   // is the gateway into the job-screening pipeline (and back via practice).
   const isB1 = isPracticeSuiteLevel(user?.user_prof_level);
+  const { hidden: jobsHidden } = useGermanJobsHidden();
   const isPremium = Boolean(usePremiumLook().look);
   const [localTourActive, setLocalTourActive] = useState(false);
 
@@ -183,6 +185,7 @@ export default function TopModeSwitcher({ isTourActive = false }) {
     hapticLight();
 
     if (isB1 && tab === "jobs") {
+      if (jobsHidden) return;
       // Enter the job-screening pipeline. Persisting the mode server-side is
       // what makes them eligible; the permanent user_job_screening record (and
       // hence admin visibility) follows from entering the pipeline at all.
@@ -307,17 +310,19 @@ export default function TopModeSwitcher({ isTourActive = false }) {
                 blendColor={blendColor}
                 tourTabKey="practice"
               />
-              <SwitcherTab
-                active={activeTab === "jobs"}
-                registerTab={registerTab}
-                onClick={() => handleSwitch("jobs")}
-                onPreload={() => handlePreload("jobs")}
-                image={bagImg}
-                line1="German Jobs"
-                line2=""
-                blendColor={blendColor}
-                tourTabKey="jobs"
-              />
+              {!jobsHidden && (
+                <SwitcherTab
+                  active={activeTab === "jobs"}
+                  registerTab={registerTab}
+                  onClick={() => handleSwitch("jobs")}
+                  onPreload={() => handlePreload("jobs")}
+                  image={bagImg}
+                  line1="German Jobs"
+                  line2=""
+                  blendColor={blendColor}
+                  tourTabKey="jobs"
+                />
+              )}
               {showGermanClasses && (
                 <SwitcherTab
                   active={activeTab === "courses"}

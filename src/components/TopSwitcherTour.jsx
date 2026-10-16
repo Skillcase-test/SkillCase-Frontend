@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import GuideSpotlight from "./GuideSpotlight";
 import { useFeatureFlags } from "../hooks/useFeatureFlags";
+import { useGermanJobsHidden } from "../hooks/useGermanJobs";
 import { isPracticeSuiteLevel } from "../utils/b1Progress";
 import { getMayaImage } from "../utils/mayaAvatars";
 import { setTopSwitcherTourComplete } from "../redux/auth/authSlice";
@@ -33,6 +34,7 @@ export default function TopSwitcherTour() {
   const { isFeatureEnabled } = useFeatureFlags();
 
   const showGermanClasses = isFeatureEnabled("german_classes");
+  const { hidden: jobsHidden } = useGermanJobsHidden();
   const isB1 = isPracticeSuiteLevel(user?.user_prof_level);
 
   const [isActive, setIsActive] = useState(false);
@@ -120,8 +122,9 @@ export default function TopSwitcherTour() {
         },
       };
 
-      const ordered =
-        initTab === "jobs"
+      const ordered = jobsHidden
+        ? [allB1.practice]
+        : initTab === "jobs"
           ? [allB1.jobs, allB1.practice]
           : [allB1.practice, allB1.jobs];
 
