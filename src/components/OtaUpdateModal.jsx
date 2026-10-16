@@ -1,4 +1,5 @@
 import ModalPortal from "./common/ModalPortal";
+import { storeName } from "../config/storeLinks";
 
 // Blocking modal — only used for `play_store` updates, which require the
 // store and cannot ship as an OTA bundle. Bundle downloads and the ready
@@ -41,7 +42,7 @@ const OtaUpdateModal = ({
             New Version Available
           </h2>
           <p className="text-slate-500 text-sm mb-6">
-            A new version of SkillCase is available on the Play Store with
+            A new version of SkillCase is available on the {storeName()} with
             improvements and new features.
           </p>
           <button

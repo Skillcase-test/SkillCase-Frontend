@@ -23,6 +23,7 @@ import Footer from "../components/Footer";
 import OtaUpdateModal from "../components/OtaUpdateModal";
 import OtaAvatarIndicator from "../components/OtaAvatarIndicator";
 import { setOtaProgress } from "../utils/otaProgress";
+import { storeUrls } from "../config/storeLinks";
 import MaintenanceModal from "../components/MaintenanceModal";
 import UsageLimitModalHost from "../components/UsageLimitModalHost";
 import PullToRefreshIndicator from "../components/PullToRefreshIndicator";
@@ -128,9 +129,6 @@ const SupportWidget = lazy(() => import("../components/SupportWidget"));
 const MAX_RETRY_ATTEMPTS = 5;
 
 const RETRY_DELAY_MS = 2000;
-const PLAY_STORE_URL = "market://details?id=com.skillcase.app";
-const PLAY_STORE_WEB_URL =
-  "https://play.google.com/store/apps/details?id=com.skillcase.app";
 
 const LAUNCH_URL_KEY = "handled_launch_url";
 // Bundle id of a downloaded OTA update waiting for restart (this launch only)
@@ -316,7 +314,8 @@ export default function AppLayout() {
 
   useEffect(() => {
     if (Capacitor.isNativePlatform()) {
-      Fullscreen.activateImmersiveMode();
+      // Immersive mode is an Android-only plugin
+      if (Capacitor.getPlatform() === "android") Fullscreen.activateImmersiveMode();
       initLiveUpdate();
 
       // Only init push notifications if authenticated
@@ -479,12 +478,12 @@ export default function AppLayout() {
       outcome: "redirected",
       attributes: { state: "play_store", trigger: "update_now" },
     });
+    const urls = storeUrls();
+    if (!urls) return;
     try {
-      // Try to open Play Store app directly
-      await CapApp.openUrl({ url: PLAY_STORE_URL });
+      await CapApp.openUrl({ url: urls.app });
     } catch (err) {
-      // Fallback to web URL if Play Store app fails
-      window.open(PLAY_STORE_WEB_URL, "_blank");
+      window.open(urls.web, "_blank");
     }
   };
 
@@ -538,6 +537,8 @@ export default function AppLayout() {
               console.log("Play store update available, but user is not authenticated; deferring prompt");
               return;
             }
+            // No App Store listing to send iOS users to yet
+            if (!storeUrls()) return;
             setShowPlayStoreSkipForLater(data.showSkipForLater !== false);
             recordEvent("ota.update_prompt_presented", {
               domain: "app_update",

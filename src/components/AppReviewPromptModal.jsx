@@ -9,6 +9,7 @@ import { getMayaImage } from "../utils/mayaAvatars";
 import ModalPortal from "./common/ModalPortal";
 import api from "../api/axios";
 import { recordEvent } from "../telemetry";
+import { isIos, storeName } from "../config/storeLinks";
 
 const PLAY_STORE_DEEPLINK = "market://details?id=com.skillcase.app";
 const PLAY_STORE_WEB_URL =
@@ -155,7 +156,10 @@ export default function AppReviewPromptModal({ blocked = false }) {
     });
 
     try {
-      if (Capacitor.isNativePlatform()) {
+      if (isIos()) {
+        // Apple's rating sheet works in-app and needs no store id
+        await AppReview.requestReview();
+      } else if (Capacitor.isNativePlatform()) {
         // Google's in-app review (AppReview.requestReview) silently resolves
         // without showing anything once the per-user quota is exhausted, so it
         // can never be relied on here. Always open the Play Store listing — the
@@ -261,8 +265,8 @@ export default function AppReviewPromptModal({ blocked = false }) {
                       {headline}
                     </h2>
                     <p className="w-64 text-center text-[#002856] text-xs font-normal leading-5">
-                      You're building an amazing habit! A quick rating on the
-                      Play Store helps other learners discover Skillcase — it
+                      You're building an amazing habit! A quick rating on the{" "}
+                      {storeName()} helps other learners discover Skillcase — it
                       takes just a few seconds.
                     </p>
 
@@ -287,7 +291,7 @@ export default function AppReviewPromptModal({ blocked = false }) {
                   >
                     <Star className="size-5 text-amber-300 fill-amber-300" />
                     <span>
-                      {submitting ? "Opening Play Store..." : "Rate us on Play Store"}
+                      {submitting ? `Opening ${storeName()}...` : `Rate us on ${storeName()}`}
                     </span>
                   </motion.button>
                   <motion.button

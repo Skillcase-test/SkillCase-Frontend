@@ -2,8 +2,9 @@ import { act, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockNative = vi.fn();
+const mockPlatform = vi.fn();
 vi.mock("@capacitor/core", () => ({
-  Capacitor: { isNativePlatform: () => mockNative() },
+  Capacitor: { isNativePlatform: () => mockNative(), getPlatform: () => mockPlatform() },
 }));
 
 const mockRequestReview = vi.fn();
@@ -44,6 +45,7 @@ describe("AppReviewPromptModal", () => {
     vi.clearAllMocks();
     vi.useRealTimers();
     mockNative.mockReturnValue(true);
+    mockPlatform.mockReturnValue("android");
     mockRequestReview.mockResolvedValue(true);
     mockOpenAppStore.mockResolvedValue(true);
     mockOpenUrl.mockResolvedValue(true);
@@ -123,6 +125,30 @@ describe("AppReviewPromptModal", () => {
     // exhaustion — so the store listing must open every time.
     expect(mockOpenAppStore).toHaveBeenCalledTimes(1);
     expect(mockRequestReview).not.toHaveBeenCalled();
+    expect(mockPost).toHaveBeenCalledWith(
+      "/streak/review/completed",
+      { milestone: 20 },
+      expect.objectContaining({ meta: { skipCacheInvalidation: true } }),
+    );
+  });
+
+  it("on iOS rates through Apple's review sheet and names the App Store", async () => {
+    mockPlatform.mockReturnValue("ios");
+    vi.useFakeTimers();
+    render(<AppReviewPromptModal />);
+    dispatchReviewEvent({ milestone: 20, streakDays: 20 });
+
+    act(() => {
+      vi.advanceTimersByTime(1600);
+    });
+
+    await act(async () => {
+      screen.getByText(/Rate us on App Store/).click();
+    });
+
+    expect(mockRequestReview).toHaveBeenCalledTimes(1);
+    expect(mockOpenAppStore).not.toHaveBeenCalled();
+    expect(mockOpenUrl).not.toHaveBeenCalled();
     expect(mockPost).toHaveBeenCalledWith(
       "/streak/review/completed",
       { milestone: 20 },

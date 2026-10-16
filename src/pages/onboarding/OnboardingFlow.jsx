@@ -575,7 +575,12 @@ const OnboardingFlow = () => {
   };
 
   const handleOtpChange = (i, val, target) => {
-    const digits = val.replace(/\D/g, "");
+    let digits = val.replace(/\D/g, "");
+    // The first box takes up to 6 for autofill; a shorter run is a digit typed over the old one
+    if (digits.length > 1 && digits.length < 6) {
+      const at = otpArray[i] ? digits.indexOf(otpArray[i]) : -1;
+      digits = (at >= 0 ? digits.slice(0, at) + digits.slice(at + 1) : digits).slice(-1);
+    }
     if (digits.length > 1) {
       // Pasted or autofilled sequence of digits
       const newArr = ["", "", "", "", "", ""];
@@ -1256,7 +1261,10 @@ const OnboardingFlow = () => {
                         <input
                           key={i}
                           type="tel"
-                          maxLength="1"
+                          inputMode="numeric"
+                          // iOS drops the whole SMS code into the first box
+                          autoComplete={i === 0 ? "one-time-code" : "off"}
+                          maxLength={i === 0 ? 6 : 1}
                           autoFocus={i === 0}
                           value={otpArray[i] || ""}
                           onPaste={handleOtpPaste}

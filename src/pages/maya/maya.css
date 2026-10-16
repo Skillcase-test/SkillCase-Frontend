@@ -110,7 +110,7 @@
 .sp .numbered{list-style:none;counter-reset:steps;padding:0;margin:27px 0}
 .sp .numbered li{counter-increment:steps;display:flex;gap:12px;font-size:13px;line-height:1.65;margin:18px 0;color:var(--muted)}
 .sp .numbered li:before{content:counter(steps);display:grid;place-items:center;width:27px;height:27px;flex-shrink:0;border-radius:50%;background:var(--blue);font-size:11px;font-weight:600;color:var(--navy)}
-.sp .call-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 24px;background:white;border-bottom:1px solid var(--line)}
+.sp .call-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(16px + env(safe-area-inset-top)) 24px 16px;background:white;border-bottom:1px solid var(--line)}
 .sp .call-top strong{display:block;font-size:14px;font-weight:600}
 .sp .call-top small{font-size:12px;color:var(--muted)}
 .sp .time{font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}
@@ -133,7 +133,7 @@
 .sp .call-control .icon{--icon-size:var(--icon-control)}
 .sp .call-control.end b{background:#fff0ed;color:var(--red)}
 .sp .call-control.on b{background:var(--navy);color:white}
-.sp .call-footer{font-size:10px;color:var(--muted);text-align:center;padding:0 12px 17px;margin:0;background:white}
+.sp .call-footer{font-size:10px;color:var(--muted);text-align:center;padding:0 12px max(17px,env(safe-area-inset-bottom));margin:0;background:white}
 .sp .overlay{position:absolute;inset:0;background:#09233659;display:flex;align-items:flex-end;z-index:5}
 .sp .sheet{width:100%;background:white;border-radius:28px 28px 0 0;padding:12px 24px 27px;box-shadow:0 -6px 35px #00285614;max-height:85%;overflow:auto}
 .sp .sheet-handle{height:4px;width:34px;background:#c9d3d8;border-radius:9px;margin:0 auto 23px}
